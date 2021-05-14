@@ -1,23 +1,60 @@
 import { ChainId, CurrencyAmount, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import Logger from 'bunyan';
+import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
+import { Multicall2Provider } from '../../providers/multicall';
+import { PoolProvider } from '../../providers/pool-provider';
+import { QuoteProvider } from '../../providers/quote-provider';
 import { routeToString } from '../../util/routes';
+import { TokenProvider } from '../../util/tokens';
 
-import { Route, RouteQuote, Router, RouterParams } from '../router';
+import { IRouter, Route, RouteQuote, RouteType } from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
   CUSTOM_BASES,
 } from './bases';
 
+export type V3InterfaceRouterParams = {
+  chainId: ChainId;
+  multicall2Provider: Multicall2Provider;
+  poolProvider: PoolProvider;
+  quoteProvider: QuoteProvider;
+  tokenProvider: TokenProvider;
+  log: Logger;
+};
+
+// Interface defaults to 2.
+const MAX_HOPS = 2;
+
 /**
- * Replicates the router used by the V3 interface.
+ * Replicates the router implemented in the V3 interface.
  * Code is mostly a copy from https://github.com/Uniswap/uniswap-interface/blob/0190b5a408c13016c87e1030ffc59326c085f389/src/hooks/useBestV3Trade.ts#L22-L23
- * with React/Redux hooks removed, and some refactoring to allow re-use in other strategies.
+ * with React/Redux hooks removed, and refactoring to allow re-use in other routers.
  */
-export class V3InterfaceRouter extends Router {
-  constructor(params: RouterParams) {
-    super(params);
+export class V3InterfaceRouter implements IRouter {
+  protected log: Logger;
+  protected chainId: ChainId;
+  protected multicall2Provider: Multicall2Provider;
+  protected poolProvider: PoolProvider;
+  protected quoteProvider: QuoteProvider;
+  protected tokenProvider: TokenProvider;
+
+  constructor({
+    chainId,
+    multicall2Provider,
+    poolProvider,
+    quoteProvider,
+    tokenProvider,
+    log,
+  }: V3InterfaceRouterParams) {
+    this.chainId = chainId;
+    this.multicall2Provider = multicall2Provider;
+    this.poolProvider = poolProvider;
+    this.quoteProvider = quoteProvider;
+    this.tokenProvider = tokenProvider;
+    this.log = log;
   }
 
   public async routeExactIn(
@@ -26,11 +63,31 @@ export class V3InterfaceRouter extends Router {
     amountIn: CurrencyAmount
   ): Promise<RouteQuote | null> {
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
-    const routeQuote = await this.findBestRoute(amountIn, tokenOut, routes);
+    const routeQuote = await this.findBestRouteExactIn(
+      amountIn,
+      tokenOut,
+      routes
+    );
+
     return routeQuote;
   }
 
-  private async findBestRoute(
+  public async routeExactOut(
+    tokenIn: Token,
+    tokenOut: Token,
+    amountOut: CurrencyAmount
+  ): Promise<RouteQuote | null> {
+    const routes = await this.getAllRoutes(tokenIn, tokenOut);
+    const routeQuote = await this.findBestRouteExactOut(
+      amountOut,
+      tokenIn,
+      routes
+    );
+
+    return routeQuote;
+  }
+
+  private async findBestRouteExactIn(
     amountIn: CurrencyAmount,
     tokenOut: Token,
     routes: Route[]
@@ -39,7 +96,41 @@ export class V3InterfaceRouter extends Router {
       amountIn,
       routes
     );
+    const bestQuote = await this.getBestQuote(
+      routes,
+      quotesRaw,
+      tokenOut,
+      RouteType.EXACT_IN
+    );
 
+    return bestQuote;
+  }
+
+  private async findBestRouteExactOut(
+    amountOut: CurrencyAmount,
+    tokenIn: Token,
+    routes: Route[]
+  ): Promise<RouteQuote | null> {
+    const quotesRaw = await this.quoteProvider.getQuotesExactOut(
+      amountOut,
+      routes
+    );
+    const bestQuote = await this.getBestQuote(
+      routes,
+      quotesRaw,
+      tokenIn,
+      RouteType.EXACT_OUT
+    );
+
+    return bestQuote;
+  }
+
+  private async getBestQuote(
+    routes: Route[],
+    quotesRaw: (BigNumber | null)[],
+    quoteToken: Token,
+    routeType: RouteType
+  ): Promise<RouteQuote | null> {
     this.log.info(
       `Got ${_.filter(quotesRaw, (quote) => quote).length} valid quotes from ${
         routes.length
@@ -50,27 +141,34 @@ export class V3InterfaceRouter extends Router {
 
     for (let i = 0; i < quotesRaw.length; i++) {
       const quote = quotesRaw[i];
-      if (!quote) continue;
+      if (!quote) {
+        logger.debug(`No quote for ${routeToString(routes[i]!)}`);
+        continue;
+      }
 
       routeQuotesRaw.push({ route: routes[i]!, quote });
     }
 
-    routeQuotesRaw.sort((routeQuoteA, routeQuoteB) =>
-      routeQuoteA.quote.gt(routeQuoteB.quote) ? -1 : 1
-    );
+    if (routeQuotesRaw.length == 0) {
+      return null;
+    }
+
+    routeQuotesRaw.sort((routeQuoteA, routeQuoteB) => {
+      if (routeType == RouteType.EXACT_IN) {
+        return routeQuoteA.quote.gt(routeQuoteB.quote) ? -1 : 1;
+      } else {
+        return routeQuoteA.quote.lt(routeQuoteB.quote) ? -1 : 1;
+      }
+    });
 
     const routeQuotes = _.map(routeQuotesRaw, ({ route, quote }) => {
-      return { route, quote: new CurrencyAmount(tokenOut, quote.toString()) };
+      return { route, quote: new CurrencyAmount(quoteToken, quote.toString()) };
     });
 
     for (let rq of routeQuotes) {
       this.log.debug(
         `Quote: ${rq.quote.toFixed(2)} Route: ${routeToString(rq.route)}`
       );
-    }
-
-    if (routeQuotesRaw.length == 0) {
-      return null;
     }
 
     return routeQuotes[0]!;
@@ -96,14 +194,13 @@ export class V3InterfaceRouter extends Router {
       [],
       [],
       tokenIn,
-      2
+      MAX_HOPS
     );
 
     this.log.debug(
       { routes: _.map(routes, routeToString) },
       `Computed possible routes.`
     );
-
     this.log.info(`Computed ${routes.length} possible routes.`);
 
     return routes;
@@ -113,10 +210,14 @@ export class V3InterfaceRouter extends Router {
     tokenIn: Token,
     tokenOut: Token
   ): [Token, Token, FeeAmount][] {
-    const common = BASES_TO_CHECK_TRADES_AGAINST[this.chainId] ?? [];
-    const additionalA = ADDITIONAL_BASES[this.chainId]?.[tokenIn.address] ?? [];
+    const common =
+      BASES_TO_CHECK_TRADES_AGAINST(this.tokenProvider)[this.chainId] ?? [];
+    const additionalA =
+      ADDITIONAL_BASES(this.tokenProvider)[this.chainId]?.[tokenIn.address] ??
+      [];
     const additionalB =
-      ADDITIONAL_BASES[this.chainId]?.[tokenOut.address] ?? [];
+      ADDITIONAL_BASES(this.tokenProvider)[this.chainId]?.[tokenOut.address] ??
+      [];
     const bases = [...common, ...additionalA, ...additionalB];
 
     const basePairs: [Token, Token][] = _.flatMap(bases, (base): [
@@ -142,7 +243,7 @@ export class V3InterfaceRouter extends Router {
           tokenA.address !== tokenB.address && !tokenA.equals(tokenB)
       )
       .filter(([tokenA, tokenB]) => {
-        const customBases = CUSTOM_BASES[this.chainId];
+        const customBases = CUSTOM_BASES(this.tokenProvider)[this.chainId];
 
         const customBasesA: Token[] | undefined = customBases?.[tokenA.address];
         const customBasesB: Token[] | undefined = customBases?.[tokenB.address];

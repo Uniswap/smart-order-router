@@ -46,6 +46,7 @@
     "@uniswap/v3-sdk": "^3.0.0-alpha.0",
     "ajv": "^6.12.6",
     "ascii-art": "^2.7.0",
+    "axios": "^0.21.1",
     "bunyan": "^1.8.15",
     "ethers": "^5.1.4",
     "jsbi": "^3.1.4",

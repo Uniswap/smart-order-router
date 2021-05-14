@@ -18,17 +18,30 @@ export class QuoteProvider {
     amountIn: CurrencyAmount,
     routes: Route[]
   ): Promise<(BigNumber | null)[]> {
-    const quotesResult = await this.getQuotesExactInData(amountIn, routes);
+    const quoteResults = await this.getQuotesExactInData(amountIn, routes);
+    const quotes = this.processQuoteResults(quoteResults);
 
-    const quotes = _.map(quotesResult, (quoteResult: Result<[BigNumber]>) => {
+    return quotes;
+  }
+
+  public async getQuotesExactOut(
+    amountOut: CurrencyAmount,
+    routes: Route[]
+  ): Promise<(BigNumber | null)[]> {
+    const quoteResults = await this.getQuotesExactOutData(amountOut, routes);
+    const quotes = this.processQuoteResults(quoteResults);
+
+    return quotes;
+  }
+
+  private processQuoteResults(quoteResults: Result<[BigNumber]>[]) {
+    return _.map(quoteResults, (quoteResult: Result<[BigNumber]>) => {
       if (!quoteResult.success) {
         return null;
       }
 
       return quoteResult.result[0];
     });
-
-    return quotes;
   }
 
   private async getQuotesExactInData(
@@ -51,6 +64,33 @@ export class QuoteProvider {
       contractInterface: IQuoter__factory.createInterface(),
       functionName: 'quoteExactInput',
       functionParams: quoteExactInInputs,
+    });
+
+    this.log.info(`Quotes fetched as of block ${blockNumber}`);
+
+    return results;
+  }
+
+  private async getQuotesExactOutData(
+    amountOut: CurrencyAmount,
+    routes: Route[]
+  ): Promise<Result<[BigNumber]>[]> {
+    const quoteExactOutInputs: [string, string][] = routes.map((route) => [
+      encodeRouteToPath(route, true),
+      `0x${amountOut.raw.toString(16)}`,
+    ]);
+
+    const {
+      results,
+      blockNumber,
+    } = await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+      [string, string],
+      [BigNumber]
+    >({
+      address: QUOTER_ADDRESS,
+      contractInterface: IQuoter__factory.createInterface(),
+      functionName: 'quoteExactOutput',
+      functionParams: quoteExactOutInputs,
     });
 
     this.log.info(`Quotes fetched as of block ${blockNumber}`);
