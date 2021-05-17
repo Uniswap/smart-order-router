@@ -1,11 +1,11 @@
 {
-  "name": "uniswap-smart-order-router",
+  "name": "@uniswap/smart-order-router",
   "version": "1.0.1",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
-  "repository": "https://github.com/willpote/uniswap-smart-order-router",
+  "repository": "https://github.com/Uniswap/uniswap-smart-order-router",
   "license": "MIT",
   "keywords": [],
   "bin": {
