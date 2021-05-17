@@ -20,13 +20,8 @@
     "fix": "run-s fix:*",
     "fix:prettier": "prettier \"src/**/*.ts\" --write",
     "fix:lint": "eslint src --ext .ts --fix",
-    "cov": "run-s build test:unit cov:html cov:lcov && open-cli coverage/index.html",
-    "cov:html": "nyc report --reporter=html",
-    "cov:lcov": "nyc report --reporter=lcov",
-    "cov:send": "run-s cov:lcov && codecov",
-    "cov:check": "nyc report && nyc check-coverage --lines 100 --functions 100 --branches 100",
     "version": "standard-version",
-    "prepare-release": "run-s reset-hard test cov:check doc:html version doc:publish"
+    "prepare-release": "run-s cov:check doc:html version doc:publish"
   },
   "engines": {
     "node": ">=10"
@@ -35,6 +30,7 @@
     "@bitauth/libauth": "^1.17.1",
     "@oclif/command": "^1.8.0",
     "@oclif/config": "^1.17.0",
+    "@oclif/dev-cli": "^1.26.0",
     "@oclif/plugin-help": "^3.2.2",
     "@typechain/ethers-v5": "^7.0.0",
     "@types/bunyan": "^1.8.6",
@@ -44,31 +40,25 @@
     "@uniswap/token-lists": "*",
     "@uniswap/v3-core": "^1.0.0",
     "@uniswap/v3-sdk": "^3.0.0-alpha.0",
-    "ajv": "^6.12.6",
-    "ascii-art": "^2.7.0",
     "axios": "^0.21.1",
     "bunyan": "^1.8.15",
+    "bunyan-debug-stream": "^2.0.0",
+    "cli-logger": "^0.5.40",
     "ethers": "^5.1.4",
     "jsbi": "^3.1.4",
     "lodash": "^4.17.21",
     "tslib": "^1.14.1"
   },
   "devDependencies": {
-    "@ava/typescript": "^1.1.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@types/node": "^15.0.2",
     "@typescript-eslint/eslint-plugin": "^4.0.1",
     "@typescript-eslint/parser": "^4.0.1",
-    "ava": "^3.12.1",
-    "codecov": "^3.5.0",
-    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^7.8.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.22.0",
-    "gh-pages": "^3.1.0",
     "npm-run-all": "^4.1.5",
-    "nyc": "^15.1.0",
     "open-cli": "^6.0.1",
     "prettier": "^2.1.1",
     "standard-version": "^9.0.0",
@@ -85,18 +75,7 @@
     "LICENSE",
     "README.md"
   ],
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
-    }
-  },
   "prettier": {
     "singleQuote": true
-  },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
-    "exclude": [
-      "**/*.spec.js"
-    ]
   }
 }

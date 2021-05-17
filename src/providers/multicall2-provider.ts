@@ -113,10 +113,7 @@ export class Multicall2Provider {
 
     this.log.debug(
       { results },
-      `Results for multicall2 using tryBlockAndAggregate on ${functionName} across ${addresses.length} addresses`
-    );
-    this.log.info(
-      `Results for multicall2 on ${functionName} are from block ${blockNumber}`
+      `Results for multicall2 using tryBlockAndAggregate on ${functionName} across ${addresses.length} addresses as of block ${blockNumber}`
     );
 
     return { blockNumber, results };
@@ -188,10 +185,7 @@ export class Multicall2Provider {
 
     this.log.debug(
       { results, functionName, address },
-      `Results for multicall2 using tryBlockAndAggregate for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
-    );
-    this.log.info(
-      `Results for multicall2 on ${functionName} are from block ${blockNumber}`
+      `Results for multicall2 using tryBlockAndAggregate for ${functionName} at address ${address} with ${functionParams.length} different sets of params. Results as of block ${blockNumber}`
     );
     return { blockNumber, results };
   }

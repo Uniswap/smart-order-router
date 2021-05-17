@@ -2,11 +2,11 @@ import { IRouter } from './router';
 import { V3InterfaceRouter } from './v3-interface-router/v3-interface-router';
 import { providers } from 'ethers';
 import Logger from 'bunyan';
-import { Multicall2Provider } from '../providers/multicall';
+import { Multicall2Provider } from '../providers/multicall2-provider';
 import { PoolProvider } from '../providers/pool-provider';
 import { QuoteProvider } from '../providers/quote-provider';
 import { ChainId } from '@uniswap/sdk-core';
-import { TokenProvider } from '../util/tokens';
+import { TokenProvider } from '../providers/token-provider';
 
 export enum RouterId {
   V3Interface = 'V3Interface',

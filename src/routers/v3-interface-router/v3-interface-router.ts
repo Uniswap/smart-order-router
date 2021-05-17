@@ -3,11 +3,11 @@ import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
-import { Multicall2Provider } from '../../providers/multicall';
+import { Multicall2Provider } from '../../providers/multicall2-provider';
 import { PoolProvider } from '../../providers/pool-provider';
 import { QuoteProvider } from '../../providers/quote-provider';
 import { routeToString } from '../../util/routes';
-import { TokenProvider } from '../../util/tokens';
+import { TokenProvider } from '../../providers/token-provider';
 
 import { IRouter, Route, RouteQuote, RouteType } from '../router';
 import {
@@ -131,7 +131,7 @@ export class V3InterfaceRouter implements IRouter {
     quoteToken: Token,
     routeType: RouteType
   ): Promise<RouteQuote | null> {
-    this.log.info(
+    this.log.debug(
       `Got ${_.filter(quotesRaw, (quote) => quote).length} valid quotes from ${
         routes.length
       } possible routes.`
@@ -199,9 +199,8 @@ export class V3InterfaceRouter implements IRouter {
 
     this.log.debug(
       { routes: _.map(routes, routeToString) },
-      `Computed possible routes.`
+      `Computed ${routes.length} possible routes.`
     );
-    this.log.info(`Computed ${routes.length} possible routes.`);
 
     return routes;
   }

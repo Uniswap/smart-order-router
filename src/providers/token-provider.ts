@@ -8,10 +8,11 @@ import axios from 'axios';
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
 type TokenInfoMapping = { [chainId in ChainId]: SymbolToTokenInfo };
+
 export class TokenProvider {
   private log: Logger;
   private chainToTokenInfos: ChainToTokenInfoList;
-  private chainIdToSymbolToTokenInfo: TokenInfoMapping;
+  private chainSymbolToTokenInfo: TokenInfoMapping;
   private tokenList: TokenList;
 
   constructor(tokenList: TokenList, log: Logger) {
@@ -37,7 +38,7 @@ export class TokenProvider {
       }
     );
 
-    this.chainIdToSymbolToTokenInfo = _.mapValues(
+    this.chainSymbolToTokenInfo = _.mapValues(
       this.chainToTokenInfos,
       (tokenInfos: TokenInfo[]) => _.keyBy(tokenInfos, 'symbol')
     );
@@ -68,7 +69,7 @@ export class TokenProvider {
 
     if (!token) {
       throw new Error(
-        `Token ${symbol} not found in token list "${this.tokenList.name}"`
+        `Token ${symbol} not found in token list '${this.tokenList.name}'`
       );
     }
 
@@ -80,13 +81,13 @@ export class TokenProvider {
       return WETH9[chainId];
     }
 
-    const tokenInfo: TokenInfo | undefined = this.chainIdToSymbolToTokenInfo[
+    const tokenInfo: TokenInfo | undefined = this.chainSymbolToTokenInfo[
       chainId
     ][symbol];
 
     if (!tokenInfo) {
       this.log.warn(
-        `Could not find ${symbol} in Token List ${this.tokenList.name}. Ignoring.`
+        `Could not find ${symbol} in Token List: '${this.tokenList.name}'. Ignoring.`
       );
 
       return undefined;

@@ -5,7 +5,7 @@ import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
-import { Multicall2Provider, Result } from './multicall';
+import { Multicall2Provider, Result } from './multicall2-provider';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -166,7 +166,7 @@ export class PoolProvider {
       functionName: functionName,
     });
 
-    this.log.info(`Pool data fetched as of block ${blockNumber}`);
+    this.log.debug(`Pool data fetched as of block ${blockNumber}`);
 
     return results;
   }

@@ -9,5 +9,5 @@ if (dev) {
   require('ts-node').register({project})
 }
 
-require(`../${dev ? 'src' : 'lib'}`).UniswapSORCLI.run()
+require(`../src`).UniswapSORCLI.run()
 .catch(require('@oclif/errors/handle'))

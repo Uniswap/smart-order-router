@@ -1,3 +1,4 @@
+/// <reference types="./types/bunyan-debug-stream" />
 import { Command, flags } from '@oclif/command';
 import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
@@ -10,20 +11,21 @@ import {
   ID_TO_NETWORK_NAME,
 } from './util/chains';
 import { parseAmount } from './util/amounts';
-import { TokenProvider } from './util/tokens';
+import { TokenProvider } from './providers/token-provider';
 import {
   RouterId,
   ROUTER_IDS_LIST,
   RouterFactory,
 } from './routers/router-factory';
 import bunyan from 'bunyan';
-import Logger from 'bunyan';
+import bunyanDebugStream from 'bunyan-debug-stream';
+
 import { routeToString } from './util/routes';
+import Logger from 'bunyan';
 export class UniswapSORCLI extends Command {
   static description = 'Uniswap Smart Order Router CLI';
 
   static flags = {
-    // add --version flag to show CLI version
     version: flags.version({ char: 'v' }),
     help: flags.help({ char: 'h' }),
     tokenIn: flags.string({ char: 'i', required: true }),
@@ -46,6 +48,9 @@ export class UniswapSORCLI extends Command {
     tokenListUrl: flags.string({
       required: false,
     }),
+    infuraKey: flags.string({
+      required: true,
+    }),
     debug: flags.boolean(),
   };
 
@@ -60,16 +65,32 @@ export class UniswapSORCLI extends Command {
       exactIn,
       exactOut,
       tokenListUrl,
+      infuraKey,
       debug,
     } = flags;
 
     if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
-      throw new Error('Must set --exactIn or --exactOut.');
+      throw new Error('Must set either --exactIn or --exactOut.');
     }
 
+    const logLevel = debug ? bunyan.DEBUG : bunyan.INFO;
     const log: Logger = bunyan.createLogger({
       name: 'Uniswap Smart Order Router',
-      level: debug ? bunyan.DEBUG : bunyan.INFO,
+      level: logLevel,
+      streams: [
+        {
+          level: logLevel,
+          type: 'raw',
+          stream: bunyanDebugStream({
+            basepath: __dirname,
+            forceColor: false,
+            showDate: false,
+            showPid: false,
+            showLoggerName: false,
+            showLevel: !!debug,
+          }),
+        },
+      ],
     });
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
@@ -77,7 +98,7 @@ export class UniswapSORCLI extends Command {
 
     const provider = new ethers.providers.InfuraProvider(
       chainName,
-      '791a3ffe36f346b8ae11ca3acba32142'
+      infuraKey
     );
 
     let tokenProvider: TokenProvider;

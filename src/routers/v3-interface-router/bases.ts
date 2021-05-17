@@ -1,6 +1,6 @@
 import { ChainId, Token, WETH9 } from '@uniswap/sdk-core';
 import _ from 'lodash';
-import { TokenProvider } from '../../util/tokens';
+import { TokenProvider } from '../../providers/token-provider';
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];

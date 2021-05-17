@@ -6,7 +6,7 @@ import _ from 'lodash';
 import { Route } from '../routers/router';
 import { IQuoter__factory } from '../types/v3';
 import { QUOTER_ADDRESS } from '../util/addresses';
-import { Multicall2Provider, Result } from './multicall';
+import { Multicall2Provider, Result } from './multicall2-provider';
 
 export class QuoteProvider {
   constructor(
@@ -66,7 +66,7 @@ export class QuoteProvider {
       functionParams: quoteExactInInputs,
     });
 
-    this.log.info(`Quotes fetched as of block ${blockNumber}`);
+    this.log.debug(`Quotes fetched as of block ${blockNumber}`);
 
     return results;
   }
@@ -93,7 +93,7 @@ export class QuoteProvider {
       functionParams: quoteExactOutInputs,
     });
 
-    this.log.info(`Quotes fetched as of block ${blockNumber}`);
+    this.log.debug(`Quotes fetched as of block ${blockNumber}`);
 
     return results;
   }
