@@ -7,9 +7,12 @@ import { PoolProvider } from '../providers/pool-provider';
 import { QuoteProvider } from '../providers/quote-provider';
 import { ChainId } from '@uniswap/sdk-core';
 import { TokenProvider } from '../providers/token-provider';
+import { SubgraphProvider } from '../providers/subgraph-provider';
+import { DefaultRouter } from './default-router/default-router';
 
 export enum RouterId {
   V3Interface = 'V3Interface',
+  Default = 'Default',
 }
 
 export const ROUTER_IDS_LIST = Object.values(RouterId) as string[];
@@ -21,22 +24,29 @@ export const RouterFactory = (
   tokenProvider: TokenProvider,
   log: Logger
 ): IRouter => {
-  switch (routerStr) {
-    case RouterId.V3Interface:
-      const multicall2Provider = new Multicall2Provider(provider, log);
-      const poolProvider = new PoolProvider(multicall2Provider, log);
-      const quoteProvider = new QuoteProvider(multicall2Provider, log);
+  const multicall2Provider = new Multicall2Provider(provider, log);
 
-      const router = new V3InterfaceRouter({
+  switch (routerStr) {
+    case RouterId.Default:
+      return new DefaultRouter({
+        chainId,
+        subgraphProvider: new SubgraphProvider(log),
+        multicall2Provider: new Multicall2Provider(provider, log),
+        poolProvider: new PoolProvider(multicall2Provider, log),
+        quoteProvider: new QuoteProvider(multicall2Provider, log),
+        tokenProvider,
+        log,
+      });
+    case RouterId.V3Interface:
+      return new V3InterfaceRouter({
         chainId,
         multicall2Provider,
-        poolProvider,
-        quoteProvider,
+        poolProvider: new PoolProvider(multicall2Provider, log),
+        quoteProvider: new QuoteProvider(multicall2Provider, log),
         tokenProvider,
         log,
       });
 
-      return router;
     default:
       throw new Error(`Implementation of router ${routerStr} not found.`);
   }

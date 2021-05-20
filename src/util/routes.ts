@@ -1,5 +1,6 @@
+import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { Route } from '../routers/router';
+import { Route, RouteAmount } from '../routers/router';
 
 export const routeToString = (route: Route): string => {
   const routeStr = [];
@@ -17,4 +18,13 @@ export const routeToString = (route: Route): string => {
   }
 
   return routeStr.join('');
+};
+
+export const routeAmountToString = (routeAmount: RouteAmount): string => {
+  const { route, percentage } = routeAmount;
+  return `${percentage}% = ${routeToString(route)}`;
+};
+
+export const poolToString = (p: Pool): string => {
+  return `${p.token0.symbol}/${p.token1.symbol}/${p.fee / 10000}%`;
 };

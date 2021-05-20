@@ -1,11 +1,18 @@
-import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
+import { Currency, Token } from '@uniswap/sdk-core';
 import { Route as RouteRaw } from '@uniswap/v3-sdk';
+import { CurrencyAmount } from '../util/amounts';
 
 export class Route extends RouteRaw<Currency, Currency> {}
 
-export type RouteQuote = {
+export type RouteAmount = {
   route: Route;
-  quote: CurrencyAmount;
+  amount: CurrencyAmount;
+  percentage: number;
+};
+
+export type SwapRoute = {
+  amount: CurrencyAmount;
+  routeAmounts: RouteAmount[];
 };
 
 export enum RouteType {
@@ -17,11 +24,11 @@ export interface IRouter {
     tokenIn: Token,
     tokenOut: Token,
     amountIn: CurrencyAmount
-  ): Promise<RouteQuote | null>;
+  ): Promise<SwapRoute | null>;
 
   routeExactOut(
     tokenIn: Token,
     tokenOut: Token,
     amountOut: CurrencyAmount
-  ): Promise<RouteQuote | null>;
+  ): Promise<SwapRoute | null>;
 }

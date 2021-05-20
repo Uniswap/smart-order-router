@@ -20,7 +20,7 @@ import {
 import bunyan from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 
-import { routeToString } from './util/routes';
+import { routeAmountToString } from './util/routes';
 import Logger from 'bunyan';
 export class UniswapSORCLI extends Command {
   static description = 'Uniswap Smart Order Router CLI';
@@ -36,7 +36,7 @@ export class UniswapSORCLI extends Command {
     router: flags.string({
       char: 's',
       required: false,
-      default: RouterId.V3Interface,
+      default: RouterId.Default,
       options: ROUTER_IDS_LIST,
     }),
     chainId: flags.integer({
@@ -45,7 +45,7 @@ export class UniswapSORCLI extends Command {
       default: ChainId.MAINNET,
       options: CHAIN_IDS_LIST,
     }),
-    tokenListUrl: flags.string({
+    tokenListURI: flags.string({
       required: false,
     }),
     infuraKey: flags.string({
@@ -64,7 +64,7 @@ export class UniswapSORCLI extends Command {
       amount: amountStr,
       exactIn,
       exactOut,
-      tokenListUrl,
+      tokenListURI,
       infuraKey,
       debug,
     } = flags;
@@ -96,14 +96,11 @@ export class UniswapSORCLI extends Command {
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainName = ID_TO_NETWORK_NAME(chainIdNumb);
 
-    const provider = new ethers.providers.InfuraProvider(
-      chainName,
-      infuraKey
-    );
+    const provider = new ethers.providers.InfuraProvider(chainName, infuraKey);
 
     let tokenProvider: TokenProvider;
-    if (tokenListUrl) {
-      tokenProvider = await TokenProvider.fromTokenListUrl(tokenListUrl, log);
+    if (tokenListURI) {
+      tokenProvider = await TokenProvider.fromTokenListURI(tokenListURI, log);
     } else {
       tokenProvider = await TokenProvider.fromTokenList(
         DEFAULT_TOKEN_LIST,
@@ -122,16 +119,16 @@ export class UniswapSORCLI extends Command {
       log
     );
 
-    let routeAndQuote;
+    let swapRoute;
     if (exactIn) {
       const amountIn = parseAmount(amountStr, tokenIn);
-      routeAndQuote = await router.routeExactIn(tokenIn, tokenOut, amountIn);
+      swapRoute = await router.routeExactIn(tokenIn, tokenOut, amountIn);
     } else {
       const amountOut = parseAmount(amountStr, tokenOut);
-      routeAndQuote = await router.routeExactOut(tokenIn, tokenOut, amountOut);
+      swapRoute = await router.routeExactOut(tokenIn, tokenOut, amountOut);
     }
 
-    if (!routeAndQuote) {
+    if (!swapRoute) {
       log.error(
         `Could not find route. ${
           debug ? '' : 'Run in debug mode for more info'
@@ -140,9 +137,14 @@ export class UniswapSORCLI extends Command {
       return;
     }
 
-    const { route, quote } = routeAndQuote;
+    const { amount, routeAmounts } = swapRoute;
 
-    log.info(`Best Route: ${routeToString(route)}`);
-    log.info(`Best Amount Out: ${quote.toFixed(2)}`);
+    log.info(`Best Route:`);
+    for (const routeAmount of routeAmounts) {
+      log.info(`${routeAmountToString(routeAmount)}`);
+    }
+
+    log.info(`Best Amount Out:`);
+    log.info(`${amount.toFixed(2)}`);
   }
 }
