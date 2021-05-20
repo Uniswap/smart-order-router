@@ -1,4 +1,4 @@
-import { ChainId, CurrencyAmount, Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber, logger } from 'ethers';
@@ -9,12 +9,13 @@ import { QuoteProvider } from '../../providers/quote-provider';
 import { routeToString } from '../../util/routes';
 import { TokenProvider } from '../../providers/token-provider';
 
-import { IRouter, Route, RouteQuote, RouteType } from '../router';
+import { IRouter, Route, RouteAmount, RouteType, SwapRoute } from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
   CUSTOM_BASES,
 } from './bases';
+import { CurrencyAmount } from '../../util/amounts';
 
 export type V3InterfaceRouterParams = {
   chainId: ChainId;
@@ -61,7 +62,7 @@ export class V3InterfaceRouter implements IRouter {
     tokenIn: Token,
     tokenOut: Token,
     amountIn: CurrencyAmount
-  ): Promise<RouteQuote | null> {
+  ): Promise<SwapRoute | null> {
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactIn(
       amountIn,
@@ -69,14 +70,18 @@ export class V3InterfaceRouter implements IRouter {
       routes
     );
 
-    return routeQuote;
+    if (!routeQuote) {
+      return null;
+    }
+
+    return { amount: routeQuote.amount, routeAmounts: [ routeQuote ] };
   }
 
   public async routeExactOut(
     tokenIn: Token,
     tokenOut: Token,
     amountOut: CurrencyAmount
-  ): Promise<RouteQuote | null> {
+  ): Promise<SwapRoute | null> {
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactOut(
       amountOut,
@@ -84,14 +89,18 @@ export class V3InterfaceRouter implements IRouter {
       routes
     );
 
-    return routeQuote;
+    if (!routeQuote) {
+      return null;
+    }
+
+    return { amount: routeQuote.amount, routeAmounts: [ routeQuote ] };
   }
 
   private async findBestRouteExactIn(
     amountIn: CurrencyAmount,
     tokenOut: Token,
     routes: Route[]
-  ): Promise<RouteQuote | null> {
+  ): Promise<RouteAmount | null> {
     const quotesRaw = await this.quoteProvider.getQuotesExactIn(
       amountIn,
       routes
@@ -110,7 +119,7 @@ export class V3InterfaceRouter implements IRouter {
     amountOut: CurrencyAmount,
     tokenIn: Token,
     routes: Route[]
-  ): Promise<RouteQuote | null> {
+  ): Promise<RouteAmount | null> {
     const quotesRaw = await this.quoteProvider.getQuotesExactOut(
       amountOut,
       routes
@@ -130,9 +139,9 @@ export class V3InterfaceRouter implements IRouter {
     quotesRaw: (BigNumber | null)[],
     quoteToken: Token,
     routeType: RouteType
-  ): Promise<RouteQuote | null> {
+  ): Promise<RouteAmount | null> {
     this.log.debug(
-      `Got ${_.filter(quotesRaw, (quote) => quote).length} valid quotes from ${
+      `Got ${_.filter(quotesRaw, (quote) => !!quote).length} valid quotes from ${
         routes.length
       } possible routes.`
     );
@@ -162,12 +171,12 @@ export class V3InterfaceRouter implements IRouter {
     });
 
     const routeQuotes = _.map(routeQuotesRaw, ({ route, quote }) => {
-      return { route, quote: new CurrencyAmount(quoteToken, quote.toString()) };
+      return { route, amount: CurrencyAmount.fromRawAmount(quoteToken, quote.toString()), percentage: 100 };
     });
 
     for (let rq of routeQuotes) {
       this.log.debug(
-        `Quote: ${rq.quote.toFixed(2)} Route: ${routeToString(rq.route)}`
+        `Quote: ${rq.amount.toFixed(2)} Route: ${routeToString(rq.route)}`
       );
     }
 

@@ -5,6 +5,7 @@ import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
+import { poolToString } from '../util/routes';
 import { Multicall2Provider, Result } from './multicall2-provider';
 
 type ISlot0 = {
@@ -68,9 +69,19 @@ export class PoolProvider {
       'slot0'
     );
 
+    this.log.debug(
+      { slot0Results },
+      `Got slot0s for ${poolAddressSet.size} pools.`
+    );
+
     const liquidityResults = await this.getPoolsData<[ILiquidity]>(
       sortedPoolAddresses,
       'liquidity'
+    );
+
+    this.log.debug(
+      { liquidityResults },
+      `Got liquidity for ${poolAddressSet.size} pools.`
     );
 
     const poolAddressToPool: { [poolAddress: string]: Pool } = {};
@@ -108,15 +119,9 @@ export class PoolProvider {
       poolAddressToPool[poolAddress] = pool;
     }
 
-    const poolStrs = _.map(
-      Object.values(poolAddressToPool),
-      (pool) => pool.token0.symbol + '/' + pool.token1.symbol
-    );
+    const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
-    this.log.debug(
-      { poolStrs },
-      `Found ${poolStrs.length} valid pools to route across`
-    );
+    this.log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
 
     return {
       getPool: (

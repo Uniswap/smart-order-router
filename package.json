@@ -36,7 +36,7 @@
     "@types/bunyan": "^1.8.6",
     "@types/lodash": "^4.14.168",
     "@uniswap/default-token-list": "^2.0.0",
-    "@uniswap/sdk-core": "^2.0.2",
+    "@uniswap/sdk-core": "^3.0.0-alpha.1",
     "@uniswap/token-lists": "*",
     "@uniswap/v3-core": "^1.0.0",
     "@uniswap/v3-sdk": "^3.0.0-alpha.0",
@@ -45,6 +45,8 @@
     "bunyan-debug-stream": "^2.0.0",
     "cli-logger": "^0.5.40",
     "ethers": "^5.1.4",
+    "graphql": "^15.5.0",
+    "graphql-request": "^3.4.0",
     "jsbi": "^3.1.4",
     "lodash": "^4.17.21",
     "tslib": "^1.14.1"

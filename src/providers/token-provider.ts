@@ -1,4 +1,4 @@
-import { ChainId, Token, WETH9 } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { TokenInfo, TokenList, schema } from '@uniswap/token-lists';
 import _ from 'lodash';
 import Logger from 'bunyan';
@@ -44,17 +44,17 @@ export class TokenProvider {
     );
   }
 
-  public static async fromTokenListUrl(tokenListUrl: string, log: Logger) {
-    const response = await axios.get(tokenListUrl);
+  public static async fromTokenListURI(tokenListURI: string, log: Logger) {
+    const response = await axios.get(tokenListURI);
     const { data: tokenList, status } = response;
 
     if (status != 200) {
       log.error(
         { response },
-        `Unabled to get token list from ${tokenListUrl}.`
+        `Unabled to get token list from ${tokenListURI}.`
       );
 
-      throw new Error(`Unable to get token list from ${tokenListUrl}`);
+      throw new Error(`Unable to get token list from ${tokenListURI}`);
     }
 
     return new TokenProvider(tokenList, log);
@@ -76,9 +76,14 @@ export class TokenProvider {
     return token;
   }
 
-  public getTokenIfExists(chainId: ChainId, symbol: string): Token | undefined {
-    if (symbol == 'ETH') {
-      return WETH9[chainId];
+  public getTokenIfExists(
+    chainId: ChainId,
+    _symbol: string
+  ): Token | undefined {
+    let symbol = _symbol;
+
+    if (_symbol == 'ETH') {
+      symbol = 'WETH';
     }
 
     const tokenInfo: TokenInfo | undefined = this.chainSymbolToTokenInfo[
@@ -86,7 +91,7 @@ export class TokenProvider {
     ][symbol];
 
     if (!tokenInfo) {
-      this.log.warn(
+      this.log.trace(
         `Could not find ${symbol} in Token List: '${this.tokenList.name}'. Ignoring.`
       );
 
@@ -100,6 +105,10 @@ export class TokenProvider {
       tokenInfo.symbol,
       tokenInfo.name
     );
+  }
+
+  public tokenExists(chainId: ChainId, symbol: string): boolean {
+    return !!this.getTokenIfExists(chainId, symbol);
   }
 
   public getTokensIfExists(chainId: ChainId, ...symbols: string[]): Token[] {
