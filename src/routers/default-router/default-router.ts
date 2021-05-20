@@ -30,7 +30,7 @@ export type DefaultRouterParams = {
 const TOP_N = 10;
 // Max swaps in a path.
 const MAX_SWAPS = 3;
-const MAX_SPLITS = 2;
+const MAX_SPLITS = 3;
 const DISTRIBUTION_PERCENT = 5;
 
 type RouteQuote = {
@@ -220,7 +220,7 @@ export class DefaultRouter implements IRouter {
             }
 
             const { route: routeB, quote: quoteB } = routeQuoteB;
-            const percentC = remainingPercent - percent;
+            const percentC = remainingPercent - percentB;
 
             const remainingQuotes = percentToSortedQuotes[percentC]!;
 
