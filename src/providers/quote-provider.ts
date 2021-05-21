@@ -6,117 +6,118 @@ import { Route } from '../routers/router';
 import { IQuoter__factory } from '../types/v3';
 import { QUOTER_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
+import { routeToString } from '../util/routes';
 import { Multicall2Provider, Result } from './multicall2-provider';
 
-export type Quotes = (BigNumber | null)[];
-export type RouteQuotes = [Route, Quotes];
+// Quotes can be null (e.g. pool did not have enough liquidity).
+export type AmountQuote = { amount: CurrencyAmount; quote: BigNumber | null };
+export type RouteWithQuotes = [Route, AmountQuote[]];
+
+const QUOTE_CHUNKS = 20;
 export class QuoteProvider {
   constructor(
     private multicall2Provider: Multicall2Provider,
     private log: Logger
   ) {}
 
-  public async getQuotesExactIn(
-    amountIn: CurrencyAmount,
-    routes: Route[]
-  ): Promise<Quotes> {
-    const quoteResults = await this.getQuotesExactInData(amountIn, routes);
-    const quotes = this.processQuoteResults(quoteResults);
-
-    return quotes;
-  }
-
-  public async getQuotesExactIns(
+  public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: Route[]
-  ): Promise<RouteQuotes[]> {
-    const quoteResults = await this.getQuotesExactInsData(amountIns, routes);
-    const quotes = this.processQuoteResults(quoteResults);
-    const routesQuotes: RouteQuotes[] = [];
+  ): Promise<RouteWithQuotes[]> {
+    const quoteResults = await this.getQuotesManyExactInsData(
+      amountIns,
+      routes
+    );
 
-    const quotesChunked = _.chunk(quotes, amountIns.length);
-    for (let i = 0; i < routes.length; i++) {
+    const routesQuotes = this.processQuoteResults(
+      quoteResults,
+      routes,
+      amountIns
+    );
+
+    return routesQuotes;
+  }
+
+  public async getQuotesManyExactOut(
+    amountOuts: CurrencyAmount[],
+    routes: Route[]
+  ): Promise<RouteWithQuotes[]> {
+    const quoteResults = await this.getQuotesManyExactOutsData(
+      amountOuts,
+      routes
+    );
+
+    const routesQuotes = this.processQuoteResults(
+      quoteResults,
+      routes,
+      amountOuts
+    );
+
+    return routesQuotes;
+  }
+
+  private processQuoteResults(
+    quoteResults: Result<[BigNumber]>[],
+    routes: Route[],
+    amounts: CurrencyAmount[]
+  ): RouteWithQuotes[] {
+    const routesQuotes: RouteWithQuotes[] = [];
+
+    const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
+
+    for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
-      const routeQuotes = quotesChunked[i] as (BigNumber | null)[];
-      routesQuotes.push([route, routeQuotes]);
+      const quoteResults = quotesResultsByRoute[i]!;
+      const quotes: AmountQuote[] = _.map(
+        quoteResults,
+        (quoteResult: Result<[BigNumber]>, index: number) => {
+          const amount = amounts[index]!;
+          if (!quoteResult.success) {
+            const { returnData } = quoteResult;
+
+            this.log.debug(
+              { result: returnData },
+              `Unable to get quote for ${routeToString(
+                route
+              )} with amount ${amount.toFixed(2)}`
+            );
+
+            return { amount, quote: null };
+          }
+
+          return { amount, quote: quoteResult.result[0] };
+        }
+      );
+
+      routesQuotes.push([route, quotes]);
     }
 
     return routesQuotes;
   }
 
-  public async getQuotesExactOut(
-    amountOut: CurrencyAmount,
-    routes: Route[]
-  ): Promise<Quotes> {
-    const quoteResults = await this.getQuotesExactOutData(amountOut, routes);
-    const quotes = this.processQuoteResults(quoteResults);
-
-    return quotes;
-  }
-
-  private processQuoteResults(quoteResults: Result<[BigNumber]>[]) {
-    return _.map(quoteResults, (quoteResult: Result<[BigNumber]>) => {
-      if (!quoteResult.success) {
-        return null;
-      }
-
-      return quoteResult.result[0];
-    });
-  }
-
-  private async getQuotesExactInData(
-    amountIn: CurrencyAmount,
-    routes: Route[]
-  ): Promise<Result<[BigNumber]>[]> {
-    const quoteExactInInputs: [string, string][] = routes.map((route) => [
-      encodeRouteToPath(route, false),
-      `0x${amountIn.quotient.toString(16)}`,
-    ]);
-
-    const {
-      results,
-      blockNumber,
-    } = await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-      [string, string],
-      [BigNumber]
-    >({
-      address: QUOTER_ADDRESS,
-      contractInterface: IQuoter__factory.createInterface(),
-      functionName: 'quoteExactInput',
-      functionParams: quoteExactInInputs,
-    });
-
-    this.log.debug(`Quotes fetched as of block ${blockNumber}`);
-
-    return results;
-  }
-
-  private async getQuotesExactInsData(
+  private async getQuotesManyExactInsData(
     amountIns: CurrencyAmount[],
     routes: Route[]
   ): Promise<Result<[BigNumber]>[]> {
-    const inputs: [string, string][] = [];
-
-    for (const route of routes) {
-      const encodedRoute = encodeRouteToPath(route, false);
-      const routeInputs: [string, string][] = amountIns.map((amountIn) => [
-        encodedRoute,
-        `0x${amountIn.quotient.toString(16)}`,
-      ]);
-      inputs.push(...routeInputs);
-    }
+    const inputs: [string, string][] = _(routes)
+      .flatMap((route) => {
+        const encodedRoute = encodeRouteToPath(route, false);
+        const routeInputs: [string, string][] = amountIns.map((amountIn) => [
+          encodedRoute,
+          `0x${amountIn.quotient.toString(16)}`,
+        ]);
+        return routeInputs;
+      })
+      .value();
 
     this.log.debug(
-      `About to get quotes for ${inputs.length} different inputs.`
+      `About to get quotes for ${inputs.length} different inputs in chunks of ${QUOTE_CHUNKS}.`
     );
 
-    const inputsChunked = _.chunk(inputs, 20);
+    const inputsChunked = _.chunk(inputs, QUOTE_CHUNKS);
     const results = await Promise.all(
       _.map(inputsChunked, async (inputChunk) => {
-        const {
-          results,
-          blockNumber,
-        } = await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+        return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
           [string, string],
           [BigNumber]
         >({
@@ -125,40 +126,67 @@ export class QuoteProvider {
           functionName: 'quoteExactInput',
           functionParams: inputChunk,
         });
-
-        this.log.debug(`Quotes fetched as of block ${blockNumber}`);
-
-        return results;
       })
     );
 
-    return _.flatten(results);
+    this.validateBlockNumbers(results);
+
+    return _.flatMap(results, (result) => result.results);
   }
 
-  private async getQuotesExactOutData(
-    amountOut: CurrencyAmount,
+  private async getQuotesManyExactOutsData(
+    amountOuts: CurrencyAmount[],
     routes: Route[]
   ): Promise<Result<[BigNumber]>[]> {
-    const quoteExactOutInputs: [string, string][] = routes.map((route) => [
-      encodeRouteToPath(route, true),
-      `0x${amountOut.quotient.toString(16)}`,
-    ]);
+    const inputs: [string, string][] = _(routes)
+      .flatMap((route) => {
+        const routeInputs: [string, string][] = amountOuts.map((amountOut) => [
+          encodeRouteToPath(route, true),
+          `0x${amountOut.quotient.toString(16)}`,
+        ]);
+        return routeInputs;
+      })
+      .value();
 
-    const {
-      results,
-      blockNumber,
-    } = await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-      [string, string],
-      [BigNumber]
-    >({
-      address: QUOTER_ADDRESS,
-      contractInterface: IQuoter__factory.createInterface(),
-      functionName: 'quoteExactOutput',
-      functionParams: quoteExactOutInputs,
-    });
+    this.log.debug(
+      `About to get quotes for ${inputs.length} different inputs in chunks of ${QUOTE_CHUNKS}.`
+    );
 
-    this.log.debug(`Quotes fetched as of block ${blockNumber}`);
+    const inputsChunked = _.chunk(inputs, QUOTE_CHUNKS);
+    const results = await Promise.all(
+      _.map(inputsChunked, async (inputChunk) => {
+        return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+          [string, string],
+          [BigNumber]
+        >({
+          address: QUOTER_ADDRESS,
+          contractInterface: IQuoter__factory.createInterface(),
+          functionName: 'quoteExactOutput',
+          functionParams: inputChunk,
+        });
+      })
+    );
 
-    return results;
+    this.validateBlockNumbers(results);
+
+    return _.flatMap(results, (result) => result.results);
+  }
+
+  private validateBlockNumbers(results: { blockNumber: BigNumber }[]): void {
+    const blockNumbers = _.map(results, (result) => result.blockNumber);
+
+    const allBlockNumbersSame = _.every(
+      blockNumbers,
+      (blockNumber) => blockNumber.toString() == blockNumbers[0]!.toString()
+    );
+
+    if (!allBlockNumbersSame) {
+      // TODO: Retry.
+      this.log.error(
+        { blocks: _.uniq(_.map(blockNumbers, (b) => b.toString())) },
+        'Quotes returned from different blocks.'
+      );
+      throw new Error('Quotes returned from different blocks.');
+    }
   }
 }

@@ -1,3 +1,4 @@
+import Logger from 'bunyan';
 import { request, gql } from 'graphql-request';
 
 export type SubgraphPool = {
@@ -22,6 +23,8 @@ const SUBGRAPH_URL =
 const PAGE_SIZE = 1000;
 
 export class SubgraphProvider {
+  constructor(private log: Logger) {}
+
   public async getPools(): Promise<SubgraphPool[]> {
     const query = gql`
       query getPools($pageSize: Int!, $skip: Int!) {
@@ -63,6 +66,8 @@ export class SubgraphProvider {
       pools = pools.concat(poolsPage);
       skip = skip + PAGE_SIZE;
     } while (poolsPage.length > 0);
+
+    this.log.debug(`Got ${pools.length} pools from the subgraph.`);
 
     return pools;
   }

@@ -3,10 +3,14 @@ import Logger from 'bunyan';
 import _ from 'lodash';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
 import { PoolProvider } from '../../providers/pool-provider';
-import { QuoteProvider, RouteQuotes } from '../../providers/quote-provider';
+import {
+  AmountQuote,
+  QuoteProvider,
+  RouteWithQuotes,
+} from '../../providers/quote-provider';
 import { TokenProvider } from '../../providers/token-provider';
 
-import { IRouter, Route, RouteAmount, SwapRoute } from '../router';
+import { IRouter, Route, RouteAmount, RouteType, SwapRoute } from '../router';
 import {
   printSubgraphPool,
   SubgraphPool,
@@ -33,15 +37,11 @@ const MAX_SWAPS = 3;
 const MAX_SPLITS = 3;
 const DISTRIBUTION_PERCENT = 5;
 
-type RouteQuote = {
-  route: Route;
+type RouteWithValidQuote = AmountQuote & {
   quote: BigNumber;
-};
-
-type RouteQuotePercent = {
   percent: number;
-} & RouteQuote;
-
+  route: Route;
+};
 export class DefaultRouter implements IRouter {
   protected log: Logger;
   protected chainId: ChainId;
@@ -75,40 +75,63 @@ export class DefaultRouter implements IRouter {
     amountIn: CurrencyAmount
   ): Promise<SwapRoute | null> {
     const pools = await this.getPoolsToConsider(tokenIn, tokenOut);
-
     const routes = this.computeAllRoutes(tokenIn, tokenOut, pools, MAX_SWAPS);
-
     const [percents, amounts] = this.getAmountDistribution(amountIn);
-    this.log.debug(
-      { percents, amounts: amounts.map((a) => a.toFixed(2)) },
-      'PERCENTS AMOUNTS'
-    );
-    const routesQuotes: RouteQuotes[] = await this.quoteProvider.getQuotesExactIns(
+    const routesWithQuotes = await this.quoteProvider.getQuotesManyExactIn(
       amounts,
       routes
     );
-    const swapRoute = this.getBestSwapRoute(percents, routesQuotes, tokenOut);
+    const swapRoute = this.getBestSwapRoute(
+      percents,
+      routesWithQuotes,
+      tokenOut,
+      RouteType.EXACT_IN
+    );
+
+    return swapRoute;
+  }
+
+  public async routeExactOut(
+    tokenIn: Token,
+    tokenOut: Token,
+    amountOut: CurrencyAmount
+  ): Promise<SwapRoute | null> {
+    const pools = await this.getPoolsToConsider(tokenIn, tokenOut);
+    const routes = this.computeAllRoutes(tokenIn, tokenOut, pools, MAX_SWAPS);
+    const [percents, amounts] = this.getAmountDistribution(amountOut);
+    const routesWithQuotes = await this.quoteProvider.getQuotesManyExactOut(
+      amounts,
+      routes
+    );
+    const swapRoute = this.getBestSwapRoute(
+      percents,
+      routesWithQuotes,
+      tokenIn,
+      RouteType.EXACT_OUT
+    );
 
     return swapRoute;
   }
 
   private getBestSwapRoute(
     percents: number[],
-    routesQuotes: RouteQuotes[],
-    tokenOut: Token
+    routesWithQuotes: RouteWithQuotes[],
+    quoteToken: Token,
+    routeType: RouteType
   ): SwapRoute | null {
-    const percentToQuotes: { [percent: number]: RouteQuote[] } = {};
+    const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
-    for (const routeQuote of routesQuotes) {
-      const [route, quotes] = routeQuote;
+    for (const routeWithQuote of routesWithQuotes) {
+      const [route, quotes] = routeWithQuote;
 
       for (let i = 0; i < quotes.length; i++) {
         const percent = percents[i]!;
-        const quote = quotes[i];
+        const amountQuote = quotes[i]!;
+        const { quote, amount } = amountQuote;
 
         if (!quote) {
           this.log.debug(
-            { route: routeToString(route) },
+            { route: routeToString(route), amount: amount.toFixed(2) },
             'Dropping a null quote for route.'
           );
           continue;
@@ -117,39 +140,46 @@ export class DefaultRouter implements IRouter {
         if (!percentToQuotes[percent]) {
           percentToQuotes[percent] = [];
         }
-        percentToQuotes[percent]!.push({ route, quote });
+        percentToQuotes[percent]!.push({ route, quote, amount, percent });
       }
     }
 
-    this.log.debug({ percentToQuotes }, 'Percent to quotes');
-
     const percentToSortedQuotes = _.mapValues(
       percentToQuotes,
-      (routeQuotes: RouteQuote[]) => {
+      (routeQuotes: RouteWithValidQuote[]) => {
         return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
-          return routeQuoteA.quote.gt(routeQuoteB.quote) ? -1 : 1;
+          if (routeType == RouteType.EXACT_IN) {
+            return routeQuoteA.quote.gt(routeQuoteB.quote) ? -1 : 1;
+          } else {
+            return routeQuoteA.quote.lt(routeQuoteB.quote) ? -1 : 1;
+          }
         });
       }
     );
 
-    if (!percentToSortedQuotes[100]) {
-      return null;
-    }
+    this.log.debug({ percentToSortedQuotes }, 'Percentages to sorted quotes.');
 
-    const findFirstRouteNotReusingPools = (
-      routes: Route[],
-      routeQuotes: RouteQuote[]
-    ): RouteQuote | null => {
+    const findFirstRouteNotUsingUsedPools = (
+      usedRoutes: Route[],
+      candidateRoutes: RouteWithValidQuote[]
+    ): RouteWithValidQuote | null => {
       const getPoolAddress = (pool: Pool) =>
         Pool.getAddress(pool.token0, pool.token1, pool.fee);
 
       const poolAddressSet = new Set();
-      for (let pool of _(routes).map('pools').flatten().value()) {
-        poolAddressSet.add(getPoolAddress(pool));
+      const usedPoolAddresses = _(usedRoutes)
+        .flatMap((r) => r.pools)
+        .map(getPoolAddress)
+        .value();
+
+      for (let poolAddress of usedPoolAddresses) {
+        poolAddressSet.add(poolAddress);
       }
 
-      for (const routeQuote of routeQuotes) {
-        const pools = routeQuote.route.pools;
+      for (const routeQuote of candidateRoutes) {
+        const {
+          route: { pools },
+        } = routeQuote;
         if (pools.some((pool) => poolAddressSet.has(getPoolAddress(pool)))) {
           continue;
         }
@@ -160,111 +190,134 @@ export class DefaultRouter implements IRouter {
       return null;
     };
 
+    if (!percentToSortedQuotes[100]) {
+      this.log.info(
+        { percentToSortedQuotes },
+        'Did not find a valid route without any splits.'
+      );
+      return null;
+    }
+
     let bestQuote = percentToSortedQuotes[100][0]!.quote;
-    let bestSwap: RouteQuotePercent[] = [
-      { ...percentToSortedQuotes[100][0]!, percent: 100 },
-    ];
+    let bestSwap: RouteWithValidQuote[] = [percentToSortedQuotes[100][0]!];
 
-    let splits = 1;
-    while (splits < MAX_SPLITS) {
-      if (splits == 1) {
+    const quoteCompFn =
+      routeType == RouteType.EXACT_IN
+        ? (a: BigNumber, b: BigNumber) => a.gt(b)
+        : (a: BigNumber, b: BigNumber) => a.lt(b);
+    let splits = 2;
+    while (splits <= MAX_SPLITS) {
+      if (splits == 2) {
         for (let i = 0; i < Math.ceil(percents.length / 2); i++) {
-          const percent = percents[i]!;
-          const routeQuoteA = percentToSortedQuotes[percent]![0]!;
-          const { route: routeA, quote: quoteA } = routeQuoteA;
+          const percentA = percents[i]!;
+          const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
+          const { route: routeA, quote: quoteA } = routeWithQuoteA;
 
-          const remainingPercent = 100 - percent;
-          const remainingQuotes = percentToSortedQuotes[remainingPercent]!;
+          const percentB = 100 - percentA;
+          const candidateRoutesB = percentToSortedQuotes[percentB]!;
 
-          if (!remainingQuotes) {
+          if (!candidateRoutesB) {
             continue;
           }
 
-          const routeQuoteB = findFirstRouteNotReusingPools(
+          const routeWithQuoteB = findFirstRouteNotUsingUsedPools(
             [routeA],
-            remainingQuotes
+            candidateRoutesB
           );
 
-          if (!routeQuoteB) {
+          if (!routeWithQuoteB) {
             continue;
           }
 
-          const newQuote = quoteA.add(routeQuoteB.quote);
-          if (newQuote.gt(bestQuote)) {
+          const newQuote = quoteA.add(routeWithQuoteB.quote);
+
+          if (quoteCompFn(newQuote, bestQuote)) {
             bestQuote = newQuote;
             bestSwap = [
-              { ...routeQuoteA, percent },
-              { ...routeQuoteB, percent: remainingPercent },
+              { ...routeWithQuoteA, percent: percentA },
+              { ...routeWithQuoteB, percent: percentB },
             ];
           }
         }
       }
 
-      if (splits == 2) {
+      if (splits == 3) {
         for (let i = 0; i < percents.length; i++) {
-          const percent = percents[i]!;
-          const routeQuoteA = percentToSortedQuotes[percent]![0]!;
-          const { route: routeA, quote: quoteA } = routeQuoteA;
-          const remainingPercent = 100 - percent;
+          const percentA = percents[i]!;
+          const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
+          const { route: routeA, quote: quoteA } = routeWithQuoteA;
+          const remainingPercent = 100 - percentA;
 
           for (let j = i + 1; j < percents.length; j++) {
             const percentB = percents[j]!;
+            const candidateRoutesB = percentToSortedQuotes[percentB]!;
 
-            const routeQuoteB = findFirstRouteNotReusingPools(
+            const routeWithQuoteB = findFirstRouteNotUsingUsedPools(
               [routeA],
-              percentToSortedQuotes[percentB]!
+              candidateRoutesB
             );
 
-            if (!routeQuoteB) {
+            if (!routeWithQuoteB) {
               continue;
             }
 
-            const { route: routeB, quote: quoteB } = routeQuoteB;
+            const { route: routeB, quote: quoteB } = routeWithQuoteB;
             const percentC = remainingPercent - percentB;
 
-            const remainingQuotes = percentToSortedQuotes[percentC]!;
+            const candidateRoutesC = percentToSortedQuotes[percentC]!;
 
-            if (!remainingQuotes) {
+            if (!candidateRoutesC) {
               continue;
             }
 
-            const routeQuoteC = findFirstRouteNotReusingPools(
+            const routeWithQuoteC = findFirstRouteNotUsingUsedPools(
               [routeA, routeB],
-              remainingQuotes
+              candidateRoutesC
             );
 
-            if (!routeQuoteC) {
+            if (!routeWithQuoteC) {
               continue;
             }
 
-            const { quote: quoteC } = routeQuoteC;
+            const { quote: quoteC } = routeWithQuoteC;
 
             const newQuote = quoteA.add(quoteB).add(quoteC);
-            if (newQuote.gt(bestQuote)) {
+
+            if (quoteCompFn(newQuote, bestQuote)) {
               bestQuote = newQuote;
               bestSwap = [
-                { ...routeQuoteA, percent },
-                { ...routeQuoteB, percent: percentB },
-                { ...routeQuoteC, percent: percentC },
+                { ...routeWithQuoteA, percent: percentA },
+                { ...routeWithQuoteB, percent: percentB },
+                { ...routeWithQuoteC, percent: percentC },
               ];
             }
           }
         }
       }
 
+      if (splits == 4) {
+        throw new Error('Not implemented');
+      }
+
       splits += 1;
     }
 
-    const amount = CurrencyAmount.fromRawAmount(tokenOut, bestQuote.toString());
-    const routeAmounts = _.map<RouteQuotePercent, RouteAmount>(
+    const amount = CurrencyAmount.fromRawAmount(
+      quoteToken,
+      bestQuote.toString()
+    );
+    const routeAmounts = _.map<RouteWithValidQuote, RouteAmount>(
       bestSwap,
-      (rq: RouteQuotePercent) => {
+      (rq: RouteWithValidQuote) => {
         return {
           route: rq.route,
-          amount: CurrencyAmount.fromRawAmount(tokenOut, rq.quote.toString()),
+          amount: CurrencyAmount.fromRawAmount(quoteToken, rq.quote.toString()),
           percentage: rq.percent,
         };
       }
+    ).sort(
+      (routeAmountA, routeAmountB) =>
+        routeAmountB.percentage - routeAmountA.percentage
     );
 
     return {
@@ -361,13 +414,6 @@ export class DefaultRouter implements IRouter {
       .uniqBy((pool) => pool.id)
       .value();
 
-    this.log.debug(
-      {
-        subgraphPools: subgraphPools.map(printSubgraphPool),
-      },
-      `${subgraphPools.length} pools under consideration.`
-    );
-
     const tokenPairs = _.map<SubgraphPool, [Token, Token, FeeAmount]>(
       subgraphPools,
       (subgraphPool) => {
@@ -388,15 +434,6 @@ export class DefaultRouter implements IRouter {
     const poolAccessor = await this.poolProvider.getPools(tokenPairs);
 
     return poolAccessor.getAllPools();
-  }
-
-  public async routeExactOut(
-    tokenIn: Token,
-    tokenOut: Token,
-    amountOut: CurrencyAmount
-  ): Promise<SwapRoute | null> {
-    this.log.info({ tokenIn, tokenOut, amountOut });
-    return null;
   }
 
   private computeAllRoutes(

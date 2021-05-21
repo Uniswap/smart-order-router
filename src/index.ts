@@ -144,6 +144,7 @@ export class UniswapSORCLI extends Command {
       log.info(`${routeAmountToString(routeAmount)}`);
     }
 
-    log.info(`Best Amount Out: ${amount.toFixed(2)}`);
+    log.info(`Best Amount Out:`);
+    log.info(`${amount.toFixed(2)}`);
   }
 }

@@ -30,7 +30,7 @@ export const RouterFactory = (
     case RouterId.Default:
       return new DefaultRouter({
         chainId,
-        subgraphProvider: new SubgraphProvider(),
+        subgraphProvider: new SubgraphProvider(log),
         multicall2Provider: new Multicall2Provider(provider, log),
         poolProvider: new PoolProvider(multicall2Provider, log),
         quoteProvider: new QuoteProvider(multicall2Provider, log),

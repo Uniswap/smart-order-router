@@ -5,7 +5,7 @@ import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
 import { PoolProvider } from '../../providers/pool-provider';
-import { QuoteProvider } from '../../providers/quote-provider';
+import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
 import { routeToString } from '../../util/routes';
 import { TokenProvider } from '../../providers/token-provider';
 
@@ -74,7 +74,7 @@ export class V3InterfaceRouter implements IRouter {
       return null;
     }
 
-    return { amount: routeQuote.amount, routeAmounts: [ routeQuote ] };
+    return { amount: routeQuote.amount, routeAmounts: [routeQuote] };
   }
 
   public async routeExactOut(
@@ -93,7 +93,7 @@ export class V3InterfaceRouter implements IRouter {
       return null;
     }
 
-    return { amount: routeQuote.amount, routeAmounts: [ routeQuote ] };
+    return { amount: routeQuote.amount, routeAmounts: [routeQuote] };
   }
 
   private async findBestRouteExactIn(
@@ -101,8 +101,8 @@ export class V3InterfaceRouter implements IRouter {
     tokenOut: Token,
     routes: Route[]
   ): Promise<RouteAmount | null> {
-    const quotesRaw = await this.quoteProvider.getQuotesExactIn(
-      amountIn,
+    const quotesRaw = await this.quoteProvider.getQuotesManyExactIn(
+      [amountIn],
       routes
     );
     const bestQuote = await this.getBestQuote(
@@ -120,8 +120,8 @@ export class V3InterfaceRouter implements IRouter {
     tokenIn: Token,
     routes: Route[]
   ): Promise<RouteAmount | null> {
-    const quotesRaw = await this.quoteProvider.getQuotesExactOut(
-      amountOut,
+    const quotesRaw = await this.quoteProvider.getQuotesManyExactOut(
+      [amountOut],
       routes
     );
     const bestQuote = await this.getBestQuote(
@@ -136,26 +136,28 @@ export class V3InterfaceRouter implements IRouter {
 
   private async getBestQuote(
     routes: Route[],
-    quotesRaw: (BigNumber | null)[],
+    quotesRaw: RouteWithQuotes[],
     quoteToken: Token,
     routeType: RouteType
   ): Promise<RouteAmount | null> {
     this.log.debug(
-      `Got ${_.filter(quotesRaw, (quote) => !!quote).length} valid quotes from ${
-        routes.length
-      } possible routes.`
+      `Got ${
+        _.filter(quotesRaw, ([_, quotes]) => !!quotes[0]).length
+      } valid quotes from ${routes.length} possible routes.`
     );
 
-    const routeQuotesRaw = [];
+    const routeQuotesRaw: { route: Route, quote: BigNumber }[] = [];
 
     for (let i = 0; i < quotesRaw.length; i++) {
-      const quote = quotesRaw[i];
+      const [route, quotes] = quotesRaw[i]!;
+      const { quote } = quotes[0]!;
+      
       if (!quote) {
-        logger.debug(`No quote for ${routeToString(routes[i]!)}`);
+        logger.debug(`No quote for ${routeToString(route)}`);
         continue;
       }
 
-      routeQuotesRaw.push({ route: routes[i]!, quote });
+      routeQuotesRaw.push({ route, quote });
     }
 
     if (routeQuotesRaw.length == 0) {
@@ -171,7 +173,11 @@ export class V3InterfaceRouter implements IRouter {
     });
 
     const routeQuotes = _.map(routeQuotesRaw, ({ route, quote }) => {
-      return { route, amount: CurrencyAmount.fromRawAmount(quoteToken, quote.toString()), percentage: 100 };
+      return {
+        route,
+        amount: CurrencyAmount.fromRawAmount(quoteToken, quote.toString()),
+        percentage: 100,
+      };
     });
 
     for (let rq of routeQuotes) {
