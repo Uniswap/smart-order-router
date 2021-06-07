@@ -9,6 +9,8 @@ import { ChainId } from '@uniswap/sdk-core';
 import { TokenProvider } from '../providers/token-provider';
 import { SubgraphProvider } from '../providers/subgraph-provider';
 import { DefaultRouter } from './default-router/default-router';
+import { ETHGasStationInfoGasPriceProvider } from '../providers/gas-price-provider';
+import { HeuristicGasModelFactory } from './default-router/gas-models/heuristic-gas-model';
 
 export enum RouterId {
   V3Interface = 'V3Interface',
@@ -34,6 +36,8 @@ export const RouterFactory = (
         multicall2Provider: new Multicall2Provider(provider, log),
         poolProvider: new PoolProvider(multicall2Provider, log),
         quoteProvider: new QuoteProvider(multicall2Provider, log),
+        gasPriceProvider: new ETHGasStationInfoGasPriceProvider(log),
+        gasModelFactory: new HeuristicGasModelFactory(log),
         tokenProvider,
         log,
       });

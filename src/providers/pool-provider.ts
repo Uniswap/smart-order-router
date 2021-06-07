@@ -20,7 +20,7 @@ type ISlot0 = {
 
 type ILiquidity = { liquidity: BigNumber };
 
-type PoolAccessor = {
+export type PoolAccessor = {
   getPool: (
     tokenA: Token,
     tokenB: Token,
