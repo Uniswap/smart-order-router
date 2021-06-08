@@ -9,7 +9,7 @@ import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
 import { routeToString } from '../../util/routes';
 import { TokenProvider } from '../../providers/token-provider';
 
-import { IRouter, Route, RouteAmount, RouteType, SwapRoute } from '../router';
+import { IRouter, Route, RouteAmount, RouteType, SwapRoutes } from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
@@ -62,7 +62,7 @@ export class V3InterfaceRouter implements IRouter {
     tokenIn: Token,
     tokenOut: Token,
     amountIn: CurrencyAmount
-  ): Promise<SwapRoute | null> {
+  ): Promise<SwapRoutes | null> {
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactIn(
       amountIn,
@@ -74,14 +74,20 @@ export class V3InterfaceRouter implements IRouter {
       return null;
     }
 
-    return { amount: routeQuote.amount, routeAmounts: [routeQuote] };
+    return {
+      raw: {
+        quote: routeQuote.amount,
+        quoteGasAdjusted: routeQuote.amount,
+        routeAmounts: [routeQuote],
+      },
+    };
   }
 
   public async routeExactOut(
     tokenIn: Token,
     tokenOut: Token,
     amountOut: CurrencyAmount
-  ): Promise<SwapRoute | null> {
+  ): Promise<SwapRoutes | null> {
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactOut(
       amountOut,
@@ -93,7 +99,13 @@ export class V3InterfaceRouter implements IRouter {
       return null;
     }
 
-    return { amount: routeQuote.amount, routeAmounts: [routeQuote] };
+    return {
+      raw: {
+        quote: routeQuote.amount,
+        quoteGasAdjusted: routeQuote.amount,
+        routeAmounts: [routeQuote],
+      },
+    };
   }
 
   private async findBestRouteExactIn(
@@ -146,12 +158,12 @@ export class V3InterfaceRouter implements IRouter {
       } valid quotes from ${routes.length} possible routes.`
     );
 
-    const routeQuotesRaw: { route: Route, quote: BigNumber }[] = [];
+    const routeQuotesRaw: { route: Route; quote: BigNumber }[] = [];
 
     for (let i = 0; i < quotesRaw.length; i++) {
       const [route, quotes] = quotesRaw[i]!;
       const { quote } = quotes[0]!;
-      
+
       if (!quote) {
         logger.debug(`No quote for ${routeToString(route)}`);
         continue;

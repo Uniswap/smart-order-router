@@ -3,14 +3,21 @@ import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { Route } from '../routers/router';
-import { IQuoter__factory } from '../types/v3';
-import { QUOTER_ADDRESS } from '../util/addresses';
+import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
+import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { routeToString } from '../util/routes';
 import { Multicall2Provider, Result } from './multicall2-provider';
 
 // Quotes can be null (e.g. pool did not have enough liquidity).
-export type AmountQuote = { amount: CurrencyAmount; quote: BigNumber | null };
+export type AmountQuote = {
+  amount: CurrencyAmount;
+  quote: BigNumber | null;
+  sqrtPriceX96AfterList: BigNumber[] | null;
+  initializedTicksCrossedList: number[] | null;
+  gasEstimate: BigNumber | null;
+};
+
 export type RouteWithQuotes = [Route, AmountQuote[]];
 
 const QUOTE_CHUNKS = 20;
@@ -57,7 +64,7 @@ export class QuoteProvider {
   }
 
   private processQuoteResults(
-    quoteResults: Result<[BigNumber]>[],
+    quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     routes: Route[],
     amounts: CurrencyAmount[]
   ): RouteWithQuotes[] {
@@ -70,7 +77,10 @@ export class QuoteProvider {
       const quoteResults = quotesResultsByRoute[i]!;
       const quotes: AmountQuote[] = _.map(
         quoteResults,
-        (quoteResult: Result<[BigNumber]>, index: number) => {
+        (
+          quoteResult: Result<[BigNumber, BigNumber[], number[], BigNumber]>,
+          index: number
+        ) => {
           const amount = amounts[index]!;
           if (!quoteResult.success) {
             const { returnData } = quoteResult;
@@ -82,10 +92,22 @@ export class QuoteProvider {
               )} with amount ${amount.toFixed(2)}`
             );
 
-            return { amount, quote: null };
+            return {
+              amount,
+              quote: null,
+              sqrtPriceX96AfterList: null,
+              gasEstimate: null,
+              initializedTicksCrossedList: null,
+            };
           }
 
-          return { amount, quote: quoteResult.result[0] };
+          return {
+            amount,
+            quote: quoteResult.result[0],
+            sqrtPriceX96AfterList: quoteResult.result[1],
+            initializedTicksCrossedList: quoteResult.result[2],
+            gasEstimate: quoteResult.result[3],
+          };
         }
       );
 
@@ -98,7 +120,7 @@ export class QuoteProvider {
   private async getQuotesManyExactInsData(
     amountIns: CurrencyAmount[],
     routes: Route[]
-  ): Promise<Result<[BigNumber]>[]> {
+  ): Promise<Result<[BigNumber, BigNumber[], number[], BigNumber]>[]> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const encodedRoute = encodeRouteToPath(route, false);
@@ -119,10 +141,10 @@ export class QuoteProvider {
       _.map(inputsChunked, async (inputChunk) => {
         return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
           [string, string],
-          [BigNumber]
+          [BigNumber, BigNumber[], number[], BigNumber] // amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
         >({
-          address: QUOTER_ADDRESS,
-          contractInterface: IQuoter__factory.createInterface(),
+          address: QUOTER_V2_ADDRESS,
+          contractInterface: IQuoterV2__factory.createInterface(),
           functionName: 'quoteExactInput',
           functionParams: inputChunk,
         });
@@ -137,7 +159,7 @@ export class QuoteProvider {
   private async getQuotesManyExactOutsData(
     amountOuts: CurrencyAmount[],
     routes: Route[]
-  ): Promise<Result<[BigNumber]>[]> {
+  ): Promise<Result<[BigNumber, BigNumber[], number[], BigNumber]>[]> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const routeInputs: [string, string][] = amountOuts.map((amountOut) => [
@@ -157,10 +179,10 @@ export class QuoteProvider {
       _.map(inputsChunked, async (inputChunk) => {
         return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
           [string, string],
-          [BigNumber]
+          [BigNumber, BigNumber[], number[], BigNumber] // amountIn, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
         >({
-          address: QUOTER_ADDRESS,
-          contractInterface: IQuoter__factory.createInterface(),
+          address: QUOTER_V2_ADDRESS,
+          contractInterface: IQuoterV2__factory.createInterface(),
           functionName: 'quoteExactOutput',
           functionParams: inputChunk,
         });

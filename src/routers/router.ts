@@ -11,8 +11,14 @@ export type RouteAmount = {
 };
 
 export type SwapRoute = {
-  amount: CurrencyAmount;
+  quote: CurrencyAmount;
+  quoteGasAdjusted: CurrencyAmount;
   routeAmounts: RouteAmount[];
+};
+
+export type SwapRoutes = {
+  raw: SwapRoute;
+  gasAdjusted?: SwapRoute;
 };
 
 export enum RouteType {
@@ -24,11 +30,11 @@ export interface IRouter {
     tokenIn: Token,
     tokenOut: Token,
     amountIn: CurrencyAmount
-  ): Promise<SwapRoute | null>;
+  ): Promise<SwapRoutes | null>;
 
   routeExactOut(
     tokenIn: Token,
     tokenOut: Token,
     amountOut: CurrencyAmount
-  ): Promise<SwapRoute | null>;
+  ): Promise<SwapRoutes | null>;
 }
