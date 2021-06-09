@@ -1,4 +1,4 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber, logger } from 'ethers';
@@ -16,6 +16,7 @@ import {
   CUSTOM_BASES,
 } from './bases';
 import { CurrencyAmount } from '../../util/amounts';
+import { ChainId } from '../../util/chains';
 
 export type V3InterfaceRouterParams = {
   chainId: ChainId;

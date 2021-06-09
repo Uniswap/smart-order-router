@@ -1,4 +1,4 @@
-import { ChainId, Fraction, Token } from '@uniswap/sdk-core';
+import { Fraction, Token } from '@uniswap/sdk-core';
 import Logger from 'bunyan';
 import _ from 'lodash';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
@@ -25,6 +25,7 @@ import { routeToString } from '../../util/routes';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { GasPriceProvider } from '../../providers/gas-price-provider';
 import { GasModel, GasModelFactory } from './gas-models/gas-model';
+import { ChainId } from '../../util/chains';
 
 export type DefaultRouterParams = {
   chainId: ChainId;

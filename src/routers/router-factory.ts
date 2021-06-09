@@ -5,12 +5,12 @@ import Logger from 'bunyan';
 import { Multicall2Provider } from '../providers/multicall2-provider';
 import { PoolProvider } from '../providers/pool-provider';
 import { QuoteProvider } from '../providers/quote-provider';
-import { ChainId } from '@uniswap/sdk-core';
 import { TokenProvider } from '../providers/token-provider';
 import { SubgraphProvider } from '../providers/subgraph-provider';
 import { DefaultRouter } from './default-router/default-router';
 import { ETHGasStationInfoGasPriceProvider } from '../providers/gas-price-provider';
 import { HeuristicGasModelFactory } from './default-router/gas-models/heuristic-gas-model';
+import { ChainId } from '../util/chains';
 
 export enum RouterId {
   V3Interface = 'V3Interface',

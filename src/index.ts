@@ -1,11 +1,12 @@
 /// <reference types="./types/bunyan-debug-stream" />
 import { Command, flags } from '@oclif/command';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import { ethers } from 'ethers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 
 import {
+  ChainId,
   CHAIN_IDS_LIST,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,

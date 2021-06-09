@@ -1,9 +1,10 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import { TokenInfo, TokenList, schema } from '@uniswap/token-lists';
 import _ from 'lodash';
 import Logger from 'bunyan';
 import Ajv from 'ajv';
 import axios from 'axios';
+import { ChainId } from '../util/chains';
 
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
