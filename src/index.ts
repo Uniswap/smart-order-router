@@ -23,8 +23,13 @@ import bunyanDebugStream from 'bunyan-debug-stream';
 import { routeAmountToString } from './util/routes';
 import Logger from 'bunyan';
 import dotenv from 'dotenv';
-import { SwapRoute } from './routers/router';
+import { SwapRoute, SwapRoutes } from './routers/router';
 dotenv.config();
+
+export * from './providers';
+export * from './routers';
+export * from './util';
+
 export class UniswapSORCLI extends Command {
   static description = 'Uniswap Smart Order Router CLI';
 
@@ -83,14 +88,16 @@ export class UniswapSORCLI extends Command {
         {
           level: logLevel,
           type: 'stream',
-          stream: debugJSON ? undefined : bunyanDebugStream({
-            basepath: __dirname,
-            forceColor: false,
-            showDate: false,
-            showPid: false,
-            showLoggerName: false,
-            showLevel: !!debug,
-          }),
+          stream: debugJSON
+            ? undefined
+            : bunyanDebugStream({
+                basepath: __dirname,
+                forceColor: false,
+                showDate: false,
+                showPid: false,
+                showLoggerName: false,
+                showLevel: !!debug,
+              }),
         },
       ],
     });
@@ -124,7 +131,7 @@ export class UniswapSORCLI extends Command {
       log
     );
 
-    let swapRoutes;
+    let swapRoutes: SwapRoutes | null;
     if (exactIn) {
       const amountIn = parseAmount(amountStr, tokenIn);
       swapRoutes = await router.routeExactIn(tokenIn, tokenOut, amountIn);
