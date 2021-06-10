@@ -8,9 +8,6 @@
   "repository": "https://github.com/Uniswap/uniswap-smart-order-router",
   "license": "MIT",
   "keywords": [],
-  "bin": {
-    "uniswap-smart-order-router": "./bin/run"
-  },
   "scripts": {
     "compile-v3-types": "npx typechain --target ethers-v5 --out-dir src/types/v3 './node_modules/@uniswap/?(v3-core|v3-periphery)/artifacts/contracts/**/*.json'",
     "compile-external-types": "npx typechain --target ethers-v5 --out-dir src/types/other 'src/abis/**/*.json'",
@@ -28,10 +25,6 @@
   },
   "dependencies": {
     "@bitauth/libauth": "^1.17.1",
-    "@oclif/command": "^1.8.0",
-    "@oclif/config": "^1.17.0",
-    "@oclif/dev-cli": "^1.26.0",
-    "@oclif/plugin-help": "^3.2.2",
     "@typechain/ethers-v5": "^7.0.0",
     "@types/bunyan": "^1.8.6",
     "@types/lodash": "^4.14.168",
