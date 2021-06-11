@@ -5,6 +5,7 @@ import Logger from 'bunyan';
 import Ajv from 'ajv';
 import axios from 'axios';
 import { ChainId } from '../util/chains';
+import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
 
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
@@ -44,10 +45,23 @@ export class TokenProvider {
     );
   }
 
-  public static async fromTokenListURI(tokenListURI: string, log: Logger) {
+  public static async fromTokenListURI(
+    tokenListURI: string,
+    log: Logger,
+    metricLogger: IMetricLogger
+  ) {
+    const now = Date.now();
+
     log.info(`Getting tokenList from ${tokenListURI}.`);
     const response = await axios.get(tokenListURI);
-    log.info(`Got tokenList.`);
+    log.info(`Got tokenList from ${tokenListURI}.`);
+
+    metricLogger.putMetric(
+      'TokenListLoad',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
+    );
+
     const { data: tokenList, status } = response;
 
     if (status != 200) {

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
+import { MetricLogger, MetricLoggerUnit } from '../routers/metric';
 
 const gasStationUrl = `https://ethgasstation.info/api/ethgasAPI.json?api-key=${process.env.ETH_GAS_STATION_INFO_KEY}`;
 
@@ -27,12 +28,13 @@ export type ETHGasStationResponse = {
   fastestWait: number;
 };
 
-export class ETHGasStationInfoGasPriceProvider extends GasPriceProvider {
-  constructor(private log: Logger) {
+export class ETHGasStationInfoProvider extends GasPriceProvider {
+  constructor(private log: Logger, private metricLogger: MetricLogger) {
     super();
   }
 
   public async getGasPrice(): Promise<GasPrice> {
+    const now = Date.now();
     this.log.info(`About to get gas prices from gas station ${gasStationUrl}`);
     const response = await axios.get<ETHGasStationResponse>(gasStationUrl);
     const { data: gasPriceResponse, status } = response;
@@ -45,6 +47,12 @@ export class ETHGasStationInfoGasPriceProvider extends GasPriceProvider {
 
       throw new Error(`Unable to get gas price from ${gasStationUrl}`);
     }
+
+    this.metricLogger.putMetric(
+      'GasPriceLoad',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
+    );
 
     // Gas prices from ethgasstation are in GweiX10.
     const gasPriceWei = BigNumber.from(gasPriceResponse.fast)

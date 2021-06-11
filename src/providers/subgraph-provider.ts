@@ -1,5 +1,6 @@
 import Logger from 'bunyan';
 import { request, gql } from 'graphql-request';
+import { MetricLogger, MetricLoggerUnit } from '../routers/metric';
 
 export type SubgraphPool = {
   id: string;
@@ -20,10 +21,10 @@ export const printSubgraphPool = (s: SubgraphPool) =>
 const SUBGRAPH_URL =
   'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3';
 
-const PAGE_SIZE = 3000;
+const PAGE_SIZE = 1000;
 
 export class SubgraphProvider {
-  constructor(private log: Logger) {}
+  constructor(private log: Logger, private metricLogger: MetricLogger) {}
 
   public async getPools(): Promise<SubgraphPool[]> {
     // orderBy: totalValueLockedETH
@@ -48,6 +49,7 @@ export class SubgraphProvider {
     let skip = 0;
     let pools: SubgraphPool[] = [];
     let poolsPage: SubgraphPool[] = [];
+    const now = Date.now();
     this.log.info(
       `Getting pools from the subgraph with page size ${PAGE_SIZE}.`
     );
@@ -67,6 +69,11 @@ export class SubgraphProvider {
       skip = skip + PAGE_SIZE;
     } while (poolsPage.length > 0);
 
+    this.metricLogger.putMetric(
+      'SubgraphPoolsLoad',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
+    );
     this.log.info(`Got ${pools.length} pools from the subgraph.`);
 
     return pools;

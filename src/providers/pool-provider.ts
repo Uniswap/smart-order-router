@@ -3,6 +3,7 @@ import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
+import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
 import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
 import { poolToString } from '../util/routes';
@@ -32,12 +33,14 @@ export type PoolAccessor = {
 export class PoolProvider {
   constructor(
     private multicall2Provider: Multicall2Provider,
-    private log: Logger
+    private log: Logger,
+    private metricLogger: IMetricLogger
   ) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][]
   ): Promise<PoolAccessor> {
+    const now = Date.now();
     const poolAddressSet: Set<string> = new Set<string>();
     const sortedTokenPairs: Array<[Token, Token, FeeAmount]> = [];
     const sortedPoolAddresses: string[] = [];
@@ -64,24 +67,14 @@ export class PoolProvider {
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
     );
 
-    const slot0Results = await this.getPoolsData<ISlot0>(
-      sortedPoolAddresses,
-      'slot0'
-    );
+    const [slot0Results, liquidityResults] = await Promise.all([
+      this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0'),
+      this.getPoolsData<[ILiquidity]>(sortedPoolAddresses, 'liquidity'),
+    ]);
 
     this.log.debug(
-      { slot0Results },
-      `Got slot0s for ${poolAddressSet.size} pools.`
-    );
-
-    const liquidityResults = await this.getPoolsData<[ILiquidity]>(
-      sortedPoolAddresses,
-      'liquidity'
-    );
-
-    this.log.debug(
-      { liquidityResults },
-      `Got liquidity for ${poolAddressSet.size} pools.`
+      { liquidityResults, slot0Results },
+      `Got liquidity and slot0s for ${poolAddressSet.size} pools.`
     );
 
     const poolAddressToPool: { [poolAddress: string]: Pool } = {};
@@ -122,6 +115,12 @@ export class PoolProvider {
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
     this.log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
+
+    this.metricLogger.putMetric(
+      'PoolsLoad',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
+    );
 
     return {
       getPool: (

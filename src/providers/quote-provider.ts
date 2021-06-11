@@ -2,6 +2,7 @@ import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
+import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
 import { Route } from '../routers/router';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
@@ -25,7 +26,8 @@ export type RouteWithQuotes = [Route, AmountQuote[]];
 export class QuoteProvider {
   constructor(
     private multicall2Provider: Multicall2Provider,
-    private log: Logger
+    private log: Logger,
+    private metricLogger: IMetricLogger
   ) {}
 
   public async getQuotesManyExactIn(
@@ -33,6 +35,7 @@ export class QuoteProvider {
     routes: Route[],
     multicallChunk = DEFAULT_CHUNK
   ): Promise<RouteWithQuotes[]> {
+    const now = Date.now();
     const quoteResults = await this.getQuotesManyExactInsData(
       amountIns,
       routes,
@@ -45,6 +48,12 @@ export class QuoteProvider {
       amountIns
     );
 
+    this.metricLogger.putMetric(
+      'QuotesLoad',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
+    );
+
     return routesQuotes;
   }
 
@@ -53,6 +62,7 @@ export class QuoteProvider {
     routes: Route[],
     multicallChunk = DEFAULT_CHUNK
   ): Promise<RouteWithQuotes[]> {
+    const now = Date.now();
     const quoteResults = await this.getQuotesManyExactOutsData(
       amountOuts,
       routes,
@@ -63,6 +73,12 @@ export class QuoteProvider {
       quoteResults,
       routes,
       amountOuts
+    );
+
+    this.metricLogger.putMetric(
+      'QuotesLoad',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
     );
 
     return routesQuotes;

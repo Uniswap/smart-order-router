@@ -21,11 +21,12 @@ import {
 } from '../../providers/subgraph-provider';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import { CurrencyAmount, parseFeeAmount } from '../../util/amounts';
-import { routeToString } from '../../util/routes';
+import { routeAmountToString, routeToString } from '../../util/routes';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { GasPriceProvider } from '../../providers/gas-price-provider';
 import { GasModel, GasModelFactory } from './gas-models/gas-model';
 import { ChainId } from '../../util/chains';
+import { IMetricLogger, MetricLoggerUnit } from '../metric';
 
 export type DefaultRouterParams = {
   chainId: ChainId;
@@ -37,6 +38,7 @@ export type DefaultRouterParams = {
   gasPriceProvider: GasPriceProvider;
   gasModelFactory: GasModelFactory;
   log: Logger;
+  metricLogger: IMetricLogger;
 };
 
 export type DefaultRouterConfig = {
@@ -65,6 +67,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
   protected tokenProvider: TokenProvider;
   protected gasPriceProvider: GasPriceProvider;
   protected gasModelFactory: GasModelFactory;
+  protected metricLogger: IMetricLogger;
 
   constructor({
     chainId,
@@ -76,6 +79,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     gasPriceProvider,
     gasModelFactory,
     log,
+    metricLogger,
   }: DefaultRouterParams) {
     this.chainId = chainId;
     this.multicall2Provider = multicall2Provider;
@@ -86,6 +90,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     this.gasPriceProvider = gasPriceProvider;
     this.gasModelFactory = gasModelFactory;
     this.log = log;
+    this.metricLogger = metricLogger;
   }
 
   public async routeExactIn(
@@ -200,7 +205,8 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     gasModel: GasModel,
     routingConfig: DefaultRouterConfig
   ): SwapRoutes | null {
-    this.log.info('Starting algorithm to find best swap route');
+    const now = Date.now();
+    this.log.info('Finding best swap route');
     const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
     for (const routeWithQuote of routesWithQuotes) {
@@ -275,7 +281,32 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       routingConfig
     );
 
-    this.log.info('Found best swap route');
+    const loggableSwapRoute = (swapRoute: SwapRoute | undefined) => {
+      if (!swapRoute) {
+        return {};
+      }
+
+      return {
+        routes: _.map(swapRoute.routeAmounts, (routeAmount) =>
+          routeAmountToString(routeAmount)
+        ),
+        quote: swapRoute.quote.toFixed(2),
+        quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(2),
+      };
+    };
+
+    this.log.info(
+      {
+        swapRoute: loggableSwapRoute(swapRoute),
+        swapRouteGasAdjusted: loggableSwapRoute(swapRouteGasAdjusted),
+      },
+      'Found best swap route.'
+    );
+    this.metricLogger.putMetric(
+      'FindBestSwapRoute',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
+    );
 
     return { raw: swapRoute, gasAdjusted: swapRouteGasAdjusted };
   }
