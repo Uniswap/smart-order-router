@@ -9,7 +9,7 @@ import { ChainId } from '../util/chains';
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
 type TokenInfoMapping = { [chainId in ChainId]: SymbolToTokenInfo };
-
+const tokenListValidator = new Ajv().compile(schema);
 export class TokenProvider {
   private log: Logger;
   private chainToTokenInfos: ChainToTokenInfoList;
@@ -17,7 +17,6 @@ export class TokenProvider {
   private tokenList: TokenList;
 
   constructor(tokenList: TokenList, log: Logger) {
-    const tokenListValidator = new Ajv().compile(schema);
     if (!tokenListValidator(tokenList)) {
       throw new Error('Token list failed validation.');
     }
@@ -46,7 +45,9 @@ export class TokenProvider {
   }
 
   public static async fromTokenListURI(tokenListURI: string, log: Logger) {
+    log.info(`Getting tokenList from ${tokenListURI}.`);
     const response = await axios.get(tokenListURI);
+    log.info(`Got tokenList.`);
     const { data: tokenList, status } = response;
 
     if (status != 200) {

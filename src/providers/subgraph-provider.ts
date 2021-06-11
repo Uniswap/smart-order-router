@@ -20,20 +20,17 @@ export const printSubgraphPool = (s: SubgraphPool) =>
 const SUBGRAPH_URL =
   'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3';
 
-const PAGE_SIZE = 1000;
+const PAGE_SIZE = 3000;
 
 export class SubgraphProvider {
   constructor(private log: Logger) {}
 
   public async getPools(): Promise<SubgraphPool[]> {
+    // orderBy: totalValueLockedETH
+    // orderDirection: desc
     const query = gql`
       query getPools($pageSize: Int!, $skip: Int!) {
-        pools(
-          orderBy: totalValueLockedETH
-          orderDirection: desc
-          first: $pageSize
-          skip: $skip
-        ) {
+        pools(first: $pageSize, skip: $skip) {
           id
           token0 {
             symbol
@@ -51,6 +48,9 @@ export class SubgraphProvider {
     let skip = 0;
     let pools: SubgraphPool[] = [];
     let poolsPage: SubgraphPool[] = [];
+    this.log.info(
+      `Getting pools from the subgraph with page size ${PAGE_SIZE}.`
+    );
     do {
       const poolsResult = await request<{ pools: SubgraphPool[] }>(
         SUBGRAPH_URL,

@@ -200,6 +200,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     gasModel: GasModel,
     routingConfig: DefaultRouterConfig
   ): SwapRoutes | null {
+    this.log.info('Starting algorithm to find best swap route');
     const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
     for (const routeWithQuote of routesWithQuotes) {
@@ -273,6 +274,8 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas,
       routingConfig
     );
+
+    this.log.info('Found best swap route');
 
     return { raw: swapRoute, gasAdjusted: swapRouteGasAdjusted };
   }

@@ -33,6 +33,7 @@ export class ETHGasStationInfoGasPriceProvider extends GasPriceProvider {
   }
 
   public async getGasPrice(): Promise<GasPrice> {
+    this.log.info(`About to get gas prices from gas station ${gasStationUrl}`);
     const response = await axios.get<ETHGasStationResponse>(gasStationUrl);
     const { data: gasPriceResponse, status } = response;
 
