@@ -39,13 +39,23 @@ export type DefaultRouterParams = {
   log: Logger;
 };
 
-const TOP_N = 10;
-// Max swaps in a path.
-const MAX_SWAPS = 3;
-const MAX_SPLITS = 3;
-const DISTRIBUTION_PERCENT = 5;
+export type DefaultRouterConfig = {
+  topN: number;
+  maxSwapsPerPath: number;
+  maxSplits: number;
+  distributionPercent: number;
+  multicallChunkSize: number;
+};
 
-export class DefaultRouter implements IRouter {
+export const DEFAULT_CONFIG: DefaultRouterConfig = {
+  topN: 10,
+  maxSwapsPerPath: 3,
+  maxSplits: 3,
+  distributionPercent: 5,
+  multicallChunkSize: 20,
+};
+
+export class DefaultRouter implements IRouter<DefaultRouterConfig> {
   protected log: Logger;
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
@@ -81,12 +91,14 @@ export class DefaultRouter implements IRouter {
   public async routeExactIn(
     tokenIn: Token,
     tokenOut: Token,
-    amountIn: CurrencyAmount
+    amountIn: CurrencyAmount,
+    routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoutes | null> {
     const poolAccessor = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
-      RouteType.EXACT_IN
+      RouteType.EXACT_IN,
+      routingConfig
     );
     const pools = poolAccessor.getAllPools();
 
@@ -99,11 +111,22 @@ export class DefaultRouter implements IRouter {
       tokenOut
     );
 
-    const routes = this.computeAllRoutes(tokenIn, tokenOut, pools, MAX_SWAPS);
-    const [percents, amounts] = this.getAmountDistribution(amountIn);
+    const { maxSwapsPerPath, multicallChunkSize } = routingConfig;
+
+    const routes = this.computeAllRoutes(
+      tokenIn,
+      tokenOut,
+      pools,
+      maxSwapsPerPath
+    );
+    const [percents, amounts] = this.getAmountDistribution(
+      amountIn,
+      routingConfig
+    );
     const routesWithQuotes = await this.quoteProvider.getQuotesManyExactIn(
       amounts,
-      routes
+      routes,
+      multicallChunkSize
     );
 
     const swapRoute = this.getBestSwapRoute(
@@ -111,7 +134,8 @@ export class DefaultRouter implements IRouter {
       routesWithQuotes,
       tokenOut,
       RouteType.EXACT_IN,
-      gasModel
+      gasModel,
+      routingConfig
     );
 
     return swapRoute;
@@ -120,12 +144,14 @@ export class DefaultRouter implements IRouter {
   public async routeExactOut(
     tokenIn: Token,
     tokenOut: Token,
-    amountOut: CurrencyAmount
+    amountOut: CurrencyAmount,
+    routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoutes | null> {
     const poolAccessor = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
-      RouteType.EXACT_IN
+      RouteType.EXACT_IN,
+      routingConfig
     );
     const pools = poolAccessor.getAllPools();
 
@@ -138,18 +164,29 @@ export class DefaultRouter implements IRouter {
       tokenIn
     );
 
-    const routes = this.computeAllRoutes(tokenIn, tokenOut, pools, MAX_SWAPS);
-    const [percents, amounts] = this.getAmountDistribution(amountOut);
+    const { maxSwapsPerPath, multicallChunkSize } = routingConfig;
+    const routes = this.computeAllRoutes(
+      tokenIn,
+      tokenOut,
+      pools,
+      maxSwapsPerPath
+    );
+    const [percents, amounts] = this.getAmountDistribution(
+      amountOut,
+      routingConfig
+    );
     const routesWithQuotes = await this.quoteProvider.getQuotesManyExactOut(
       amounts,
-      routes
+      routes,
+      multicallChunkSize
     );
     const swapRoute = this.getBestSwapRoute(
       percents,
       routesWithQuotes,
       tokenIn,
       RouteType.EXACT_OUT,
-      gasModel
+      gasModel,
+      routingConfig
     );
 
     return swapRoute;
@@ -160,7 +197,8 @@ export class DefaultRouter implements IRouter {
     routesWithQuotes: RouteWithQuotes[],
     quoteToken: Token,
     routeType: RouteType,
-    gasModel: GasModel
+    gasModel: GasModel,
+    routingConfig: DefaultRouterConfig
   ): SwapRoutes | null {
     const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
@@ -220,7 +258,8 @@ export class DefaultRouter implements IRouter {
       routeType,
       percentToQuotes,
       percents,
-      (rq: RouteWithValidQuote) => rq.quote
+      (rq: RouteWithValidQuote) => rq.quote,
+      routingConfig
     );
 
     if (!swapRoute) {
@@ -231,7 +270,8 @@ export class DefaultRouter implements IRouter {
       routeType,
       percentToQuotes,
       percents,
-      (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas
+      (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas,
+      routingConfig
     );
 
     return { raw: swapRoute, gasAdjusted: swapRouteGasAdjusted };
@@ -241,7 +281,8 @@ export class DefaultRouter implements IRouter {
     routeType: RouteType,
     percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
     percents: number[],
-    by: (routeQuote: RouteWithValidQuote) => CurrencyAmount
+    by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
+    routingConfig: DefaultRouterConfig
   ): SwapRoute | undefined {
     const percentToSortedQuotes = _.mapValues(
       percentToQuotes,
@@ -309,7 +350,7 @@ export class DefaultRouter implements IRouter {
         : (a: CurrencyAmount, b: CurrencyAmount) => a.lessThan(b);
 
     let splits = 2;
-    while (splits <= MAX_SPLITS) {
+    while (splits <= routingConfig.maxSplits) {
       if (splits == 2) {
         for (let i = 0; i < Math.ceil(percents.length / 2); i++) {
           const percentA = percents[i]!;
@@ -439,16 +480,16 @@ export class DefaultRouter implements IRouter {
   }
 
   private getAmountDistribution(
-    amount: CurrencyAmount
+    amount: CurrencyAmount,
+    routingConfig: DefaultRouterConfig
   ): [number[], CurrencyAmount[]] {
+    const { distributionPercent } = routingConfig;
     let percents = [];
     let amounts = [];
 
-    for (let i = 1; i <= 100 / DISTRIBUTION_PERCENT; i++) {
-      percents.push(i * DISTRIBUTION_PERCENT);
-      amounts.push(
-        amount.multiply(new Fraction(i * DISTRIBUTION_PERCENT, 100))
-      );
+    for (let i = 1; i <= 100 / distributionPercent; i++) {
+      percents.push(i * distributionPercent);
+      amounts.push(amount.multiply(new Fraction(i * distributionPercent, 100)));
     }
 
     return [percents, amounts];
@@ -457,8 +498,10 @@ export class DefaultRouter implements IRouter {
   private async getPoolsToConsider(
     tokenIn: Token,
     tokenOut: Token,
-    routeType: RouteType
+    routeType: RouteType,
+    routingConfig: DefaultRouterConfig
   ): Promise<PoolAccessor> {
+    const { topN } = routingConfig;
     const allPools = await this.subgraphProvider.getPools();
 
     // Only consider pools where both tokens are in the token list.
@@ -498,7 +541,7 @@ export class DefaultRouter implements IRouter {
 
     const topByTVL = _(tokenListPools)
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedETH)
-      .slice(0, TOP_N)
+      .slice(0, topN)
       .value();
 
     const topByTVLUsingTokenIn = _(tokenListPools)
@@ -509,7 +552,7 @@ export class DefaultRouter implements IRouter {
         );
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedETH)
-      .slice(0, TOP_N)
+      .slice(0, topN)
       .value();
 
     const topByTVLUsingTokenOut = _(tokenListPools)
@@ -520,10 +563,10 @@ export class DefaultRouter implements IRouter {
         );
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedETH)
-      .slice(0, TOP_N)
+      .slice(0, topN)
       .value();
 
-    this.log.debug(
+    this.log.info(
       {
         topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printSubgraphPool),
         topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printSubgraphPool),
@@ -533,7 +576,7 @@ export class DefaultRouter implements IRouter {
           : undefined,
         ethPool: ethPool ? printSubgraphPool(ethPool) : undefined,
       },
-      `Pools for consideration using top ${TOP_N}`
+      `Pools for consideration using top ${topN}`
     );
 
     const subgraphPools = _([

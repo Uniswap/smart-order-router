@@ -18,9 +18,10 @@ export type AmountQuote = {
   gasEstimate: BigNumber | null;
 };
 
+const DEFAULT_CHUNK = 20;
+
 export type RouteWithQuotes = [Route, AmountQuote[]];
 
-const QUOTE_CHUNKS = 20;
 export class QuoteProvider {
   constructor(
     private multicall2Provider: Multicall2Provider,
@@ -29,11 +30,13 @@ export class QuoteProvider {
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: Route[]
+    routes: Route[],
+    multicallChunk = DEFAULT_CHUNK
   ): Promise<RouteWithQuotes[]> {
     const quoteResults = await this.getQuotesManyExactInsData(
       amountIns,
-      routes
+      routes,
+      multicallChunk
     );
 
     const routesQuotes = this.processQuoteResults(
@@ -47,11 +50,13 @@ export class QuoteProvider {
 
   public async getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: Route[]
+    routes: Route[],
+    multicallChunk = DEFAULT_CHUNK
   ): Promise<RouteWithQuotes[]> {
     const quoteResults = await this.getQuotesManyExactOutsData(
       amountOuts,
-      routes
+      routes,
+      multicallChunk
     );
 
     const routesQuotes = this.processQuoteResults(
@@ -119,7 +124,8 @@ export class QuoteProvider {
 
   private async getQuotesManyExactInsData(
     amountIns: CurrencyAmount[],
-    routes: Route[]
+    routes: Route[],
+    multicallChunk: number
   ): Promise<Result<[BigNumber, BigNumber[], number[], BigNumber]>[]> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
@@ -132,11 +138,16 @@ export class QuoteProvider {
       })
       .value();
 
-    this.log.debug(
-      `About to get quotes for ${inputs.length} different inputs in chunks of ${QUOTE_CHUNKS}.`
+    const inputsChunked = _.chunk(inputs, multicallChunk);
+
+    this.log.info(
+      {
+        quotesToGet: inputs.length,
+        numQuoteMulticalls: inputsChunked.length,
+      },
+      `About to get ${inputs.length} quotes in chunks of ${multicallChunk}. In total ${inputsChunked.length} multicalls.`
     );
 
-    const inputsChunked = _.chunk(inputs, QUOTE_CHUNKS);
     const results = await Promise.all(
       _.map(inputsChunked, async (inputChunk) => {
         return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
@@ -158,7 +169,8 @@ export class QuoteProvider {
 
   private async getQuotesManyExactOutsData(
     amountOuts: CurrencyAmount[],
-    routes: Route[]
+    routes: Route[],
+    multicallChunk: number
   ): Promise<Result<[BigNumber, BigNumber[], number[], BigNumber]>[]> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
@@ -170,11 +182,16 @@ export class QuoteProvider {
       })
       .value();
 
-    this.log.debug(
-      `About to get quotes for ${inputs.length} different inputs in chunks of ${QUOTE_CHUNKS}.`
+    const inputsChunked = _.chunk(inputs, multicallChunk);
+
+    this.log.info(
+      {
+        quotesToGet: inputs.length,
+        numQuoteMulticalls: inputsChunked.length,
+      },
+      `About to get ${inputs.length} quotes in chunks of ${multicallChunk}. In total ${inputsChunked.length} multicalls.`
     );
 
-    const inputsChunked = _.chunk(inputs, QUOTE_CHUNKS);
     const results = await Promise.all(
       _.map(inputsChunked, async (inputChunk) => {
         return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<

@@ -67,7 +67,7 @@ export class SubgraphProvider {
       skip = skip + PAGE_SIZE;
     } while (poolsPage.length > 0);
 
-    this.log.debug(`Got ${pools.length} pools from the subgraph.`);
+    this.log.info(`Got ${pools.length} pools from the subgraph.`);
 
     return pools;
   }

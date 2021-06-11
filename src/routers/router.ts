@@ -25,16 +25,18 @@ export enum RouteType {
   EXACT_IN,
   EXACT_OUT,
 }
-export interface IRouter {
-  routeExactIn(
+export abstract class IRouter<RoutingConfig> {
+  abstract routeExactIn(
     tokenIn: Token,
     tokenOut: Token,
-    amountIn: CurrencyAmount
+    amountIn: CurrencyAmount,
+    routingConfig?: RoutingConfig
   ): Promise<SwapRoutes | null>;
 
-  routeExactOut(
+  abstract routeExactOut(
     tokenIn: Token,
     tokenOut: Token,
-    amountOut: CurrencyAmount
+    amountOut: CurrencyAmount,
+    routingConfig?: RoutingConfig
   ): Promise<SwapRoutes | null>;
 }

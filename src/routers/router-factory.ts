@@ -25,7 +25,7 @@ export const RouterFactory = (
   provider: providers.BaseProvider,
   tokenProvider: TokenProvider,
   log: Logger
-): IRouter => {
+): IRouter<any> => {
   const multicall2Provider = new Multicall2Provider(provider, log);
 
   switch (routerStr) {

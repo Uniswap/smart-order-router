@@ -35,7 +35,7 @@ const MAX_HOPS = 2;
  * Code is mostly a copy from https://github.com/Uniswap/uniswap-interface/blob/0190b5a408c13016c87e1030ffc59326c085f389/src/hooks/useBestV3Trade.ts#L22-L23
  * with React/Redux hooks removed, and refactoring to allow re-use in other routers.
  */
-export class V3InterfaceRouter implements IRouter {
+export class V3InterfaceRouter implements IRouter<void> {
   protected log: Logger;
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
