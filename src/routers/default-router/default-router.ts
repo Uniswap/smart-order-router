@@ -1,37 +1,33 @@
 import { Fraction, Token } from '@uniswap/sdk-core';
+import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import _ from 'lodash';
+import { GasPriceProvider } from '../../providers/gas-price-provider';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
 import { PoolAccessor, PoolProvider } from '../../providers/pool-provider';
 import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
-import { TokenProvider } from '../../providers/token-provider';
-
 import {
-  IRouter,
-  Route,
-  RouteAmount,
-  RouteType,
-  SwapRoute,
-  SwapRoutes,
-} from '../router';
-import {
+  ISubgraphProvider,
   printSubgraphPool,
   SubgraphPool,
-  SubgraphProvider,
 } from '../../providers/subgraph-provider';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { TokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount, parseFeeAmount } from '../../util/amounts';
-import { routeAmountToString, routeToString } from '../../util/routes';
-import { RouteWithValidQuote } from './entities/route-with-valid-quote';
-import { GasPriceProvider } from '../../providers/gas-price-provider';
-import { GasModel, GasModelFactory } from './gas-models/gas-model';
 import { ChainId } from '../../util/chains';
+import {
+  poolToString,
+  routeAmountToString,
+  routeToString,
+} from '../../util/routes';
 import { IMetricLogger, MetricLoggerUnit } from '../metric';
+import { IRouter, Route, RouteAmount, RouteType, SwapRoute } from '../router';
+import { RouteWithValidQuote } from './entities/route-with-valid-quote';
+import { GasModel, GasModelFactory } from './gas-models/gas-model';
 
 export type DefaultRouterParams = {
   chainId: ChainId;
   multicall2Provider: Multicall2Provider;
-  subgraphProvider: SubgraphProvider;
+  subgraphProvider: ISubgraphProvider;
   poolProvider: PoolProvider;
   quoteProvider: QuoteProvider;
   tokenProvider: TokenProvider;
@@ -43,6 +39,7 @@ export type DefaultRouterParams = {
 
 export type DefaultRouterConfig = {
   topN: number;
+  topNSecondHop: number;
   maxSwapsPerPath: number;
   maxSplits: number;
   distributionPercent: number;
@@ -50,18 +47,19 @@ export type DefaultRouterConfig = {
 };
 
 export const DEFAULT_CONFIG: DefaultRouterConfig = {
-  topN: 10,
+  topN: 7,
+  topNSecondHop: 1,
   maxSwapsPerPath: 3,
   maxSplits: 3,
   distributionPercent: 5,
-  multicallChunkSize: 20,
+  multicallChunkSize: 50,
 };
 
 export class DefaultRouter implements IRouter<DefaultRouterConfig> {
   protected log: Logger;
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
-  protected subgraphProvider: SubgraphProvider;
+  protected subgraphProvider: ISubgraphProvider;
   protected poolProvider: PoolProvider;
   protected quoteProvider: QuoteProvider;
   protected tokenProvider: TokenProvider;
@@ -98,7 +96,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     tokenOut: Token,
     amountIn: CurrencyAmount,
     routingConfig = DEFAULT_CONFIG
-  ): Promise<SwapRoutes | null> {
+  ): Promise<SwapRoute | null> {
     const poolAccessor = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
@@ -107,7 +105,15 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     );
     const pools = poolAccessor.getAllPools();
 
+    const beforeGas = Date.now();
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+
+    this.metricLogger.putMetric(
+      'GasPriceLoad',
+      Date.now() - beforeGas,
+      MetricLoggerUnit.Milliseconds
+    );
+
     const gasModel = this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
@@ -128,12 +134,21 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       amountIn,
       routingConfig
     );
+
+    const beforeQuotes = Date.now();
     const routesWithQuotes = await this.quoteProvider.getQuotesManyExactIn(
       amounts,
       routes,
-      multicallChunkSize
+      { multicallChunk: multicallChunkSize }
     );
 
+    this.metricLogger.putMetric(
+      'QuotesLoad',
+      Date.now() - beforeQuotes,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    const beforeBestSwap = Date.now();
     const swapRoute = this.getBestSwapRoute(
       percents,
       routesWithQuotes,
@@ -141,6 +156,12 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       RouteType.EXACT_IN,
       gasModel,
       routingConfig
+    );
+
+    this.metricLogger.putMetric(
+      'FindBestSwapRoute',
+      Date.now() - beforeBestSwap,
+      MetricLoggerUnit.Milliseconds
     );
 
     return swapRoute;
@@ -151,7 +172,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     tokenOut: Token,
     amountOut: CurrencyAmount,
     routingConfig = DEFAULT_CONFIG
-  ): Promise<SwapRoutes | null> {
+  ): Promise<SwapRoute | null> {
     const poolAccessor = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
@@ -160,7 +181,15 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     );
     const pools = poolAccessor.getAllPools();
 
+    const beforeGas = Date.now();
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+
+    this.metricLogger.putMetric(
+      'GasPriceLoad',
+      Date.now() - beforeGas,
+      MetricLoggerUnit.Milliseconds
+    );
+
     const gasModel = this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
@@ -183,7 +212,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     const routesWithQuotes = await this.quoteProvider.getQuotesManyExactOut(
       amounts,
       routes,
-      multicallChunkSize
+      { multicallChunk: multicallChunkSize }
     );
     const swapRoute = this.getBestSwapRoute(
       percents,
@@ -204,9 +233,9 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     routeType: RouteType,
     gasModel: GasModel,
     routingConfig: DefaultRouterConfig
-  ): SwapRoutes | null {
+  ): SwapRoute | null {
     const now = Date.now();
-    this.log.info('Finding best swap route');
+    this.log.info({ routingConfig }, 'Finding best swap');
     const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
     for (const routeWithQuote of routesWithQuotes) {
@@ -251,7 +280,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
           percent,
           sqrtPriceX96AfterList,
           initializedTicksCrossedList,
-          gasEstimate,
+          quoterGasEstimate: gasEstimate,
           gasModel,
           quoteToken,
           log: this.log,
@@ -261,19 +290,13 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       }
     }
 
-    const swapRoute = this.getBestSwapRouteBy(
-      routeType,
-      percentToQuotes,
-      percents,
-      (rq: RouteWithValidQuote) => rq.quote,
-      routingConfig
+    this.metricLogger.putMetric(
+      'BuildRouteWithValidQuoteObjects',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
     );
 
-    if (!swapRoute) {
-      return null;
-    }
-
-    const swapRouteGasAdjusted = this.getBestSwapRouteBy(
+    const swapRoute = this.getBestSwapRouteBy(
       routeType,
       percentToQuotes,
       percents,
@@ -281,34 +304,22 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       routingConfig
     );
 
-    const loggableSwapRoute = (swapRoute: SwapRoute | undefined) => {
-      if (!swapRoute) {
-        return {};
-      }
+    if (!swapRoute) {
+      return null;
+    }
 
-      return {
+    this.log.info(
+      {
         routes: _.map(swapRoute.routeAmounts, (routeAmount) =>
           routeAmountToString(routeAmount)
         ),
         quote: swapRoute.quote.toFixed(2),
         quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(2),
-      };
-    };
-
-    this.log.info(
-      {
-        swapRoute: loggableSwapRoute(swapRoute),
-        swapRouteGasAdjusted: loggableSwapRoute(swapRouteGasAdjusted),
       },
       'Found best swap route.'
     );
-    this.metricLogger.putMetric(
-      'FindBestSwapRoute',
-      Date.now() - now,
-      MetricLoggerUnit.Milliseconds
-    );
 
-    return { raw: swapRoute, gasAdjusted: swapRouteGasAdjusted };
+    return swapRoute;
   }
 
   private getBestSwapRouteBy(
@@ -386,6 +397,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     let splits = 2;
     while (splits <= routingConfig.maxSplits) {
       if (splits == 2) {
+        const split2Now = Date.now();
         for (let i = 0; i < Math.ceil(percents.length / 2); i++) {
           const percentA = percents[i]!;
           const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
@@ -415,9 +427,15 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
             bestSwap = [routeWithQuoteA, routeWithQuoteB];
           }
         }
+        this.metricLogger.putMetric(
+          'Split2Done',
+          Date.now() - split2Now,
+          MetricLoggerUnit.Milliseconds
+        );
       }
 
       if (splits == 3) {
+        const split3Now = Date.now();
         for (let i = 0; i < percents.length; i++) {
           const percentA = percents[i]!;
           const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
@@ -468,10 +486,16 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
             }
           }
         }
+
+        this.metricLogger.putMetric(
+          'Split3Done',
+          Date.now() - split3Now,
+          MetricLoggerUnit.Milliseconds
+        );
       }
 
       if (splits == 4) {
-        throw new Error('Not implemented');
+        throw new Error('Four splits is not supported');
       }
 
       splits += 1;
@@ -484,6 +508,8 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       }
       return sum;
     };
+
+    const postSplitNow = Date.now();
 
     const quoteGasAdjusted = sum(
       _.map(
@@ -508,6 +534,12 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     ).sort(
       (routeAmountA, routeAmountB) =>
         routeAmountB.percentage - routeAmountA.percentage
+    );
+
+    this.metricLogger.putMetric(
+      'PostSplitDone',
+      Date.now() - postSplitNow,
+      MetricLoggerUnit.Milliseconds
     );
 
     return { quote, quoteGasAdjusted, routeAmounts };
@@ -535,69 +567,122 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     routeType: RouteType,
     routingConfig: DefaultRouterConfig
   ): Promise<PoolAccessor> {
-    const { topN } = routingConfig;
+    const { topN, topNSecondHop } = routingConfig;
+
+    const beforeSubgraphPools = Date.now();
+
     const allPools = await this.subgraphProvider.getPools();
 
+    this.metricLogger.putMetric(
+      'SubgraphPoolsLoad',
+      Date.now() - beforeSubgraphPools,
+      MetricLoggerUnit.Milliseconds
+    );
+
     // Only consider pools where both tokens are in the token list.
-    const tokenListPools = _.filter(allPools, (pool) => {
-      return (
-        this.tokenProvider.tokenExists(this.chainId, pool.token0.symbol) &&
-        this.tokenProvider.tokenExists(this.chainId, pool.token1.symbol)
-      );
-    });
-
-    const directSwapPool = _.find(tokenListPools, (tokenListPool) => {
-      return (
-        (tokenListPool.token0.symbol == tokenIn.symbol &&
-          tokenListPool.token1.symbol == tokenOut.symbol) ||
-        (tokenListPool.token1.symbol == tokenIn.symbol &&
-          tokenListPool.token0.symbol == tokenOut.symbol)
-      );
-    });
-
-    const ethPool = _.find(tokenListPools, (tokenListPool) => {
-      if (routeType == RouteType.EXACT_IN) {
+    const subgraphPoolsSorted = _(allPools)
+      .filter((pool) => {
         return (
-          (tokenListPool.token0.symbol == 'WETH' &&
-            tokenListPool.token1.symbol == tokenOut.symbol) ||
-          (tokenListPool.token1.symbol == tokenOut.symbol &&
-            tokenListPool.token0.symbol == 'WETH')
+          this.tokenProvider.tokenExists(this.chainId, pool.token0.symbol) &&
+          this.tokenProvider.tokenExists(this.chainId, pool.token1.symbol)
         );
-      } else {
-        return (
-          (tokenListPool.token0.symbol == 'WETH' &&
-            tokenListPool.token1.symbol == tokenIn.symbol) ||
-          (tokenListPool.token1.symbol == tokenIn.symbol &&
-            tokenListPool.token0.symbol == 'WETH')
-        );
-      }
-    });
-
-    const topByTVL = _(tokenListPools)
+      })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedETH)
-      .slice(0, topN)
       .value();
 
-    const topByTVLUsingTokenIn = _(tokenListPools)
+    const top2DirectSwapPool = _(subgraphPoolsSorted)
+      .filter((subgraphPool) => {
+        return (
+          (subgraphPool.token0.symbol == tokenIn.symbol &&
+            subgraphPool.token1.symbol == tokenOut.symbol) ||
+          (subgraphPool.token1.symbol == tokenIn.symbol &&
+            subgraphPool.token0.symbol == tokenOut.symbol)
+        );
+      })
+      .slice(0, 2)
+      .value();
+
+    const top2EthPool = _(subgraphPoolsSorted)
+      .filter((subgraphPool) => {
+        if (routeType == RouteType.EXACT_IN) {
+          return (
+            (subgraphPool.token0.symbol == 'WETH' &&
+              subgraphPool.token1.symbol == tokenOut.symbol) ||
+            (subgraphPool.token1.symbol == 'WETH' &&
+              subgraphPool.token0.symbol == tokenOut.symbol)
+          );
+        } else {
+          return (
+            (subgraphPool.token0.symbol == 'WETH' &&
+              subgraphPool.token1.symbol == tokenIn.symbol) ||
+            (subgraphPool.token1.symbol == 'WETH' &&
+              subgraphPool.token0.symbol == tokenIn.symbol)
+          );
+        }
+      })
+      .slice(0, 2)
+      .value();
+
+    const topByTVL = _(subgraphPoolsSorted).slice(0, topN).value();
+
+    const topByTVLUsingTokenIn = _(subgraphPoolsSorted)
       .filter((tokenListPool) => {
         return (
           tokenListPool.token0.symbol == tokenIn.symbol ||
           tokenListPool.token1.symbol == tokenIn.symbol
         );
       })
-      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedETH)
       .slice(0, topN)
       .value();
 
-    const topByTVLUsingTokenOut = _(tokenListPools)
-      .filter((tokenListPool) => {
+    const topByTVLUsingTokenInSecondHops = _(topByTVLUsingTokenIn)
+      .map((subgraphPool) => {
+        return tokenIn.symbol == subgraphPool.token0.symbol
+          ? subgraphPool.token1.symbol
+          : subgraphPool.token0.symbol;
+      })
+      .flatMap((secondHopSymbol: string) => {
+        return _(subgraphPoolsSorted)
+          .filter((subgraphPool) => {
+            return (
+              subgraphPool.token0.symbol == secondHopSymbol ||
+              subgraphPool.token1.symbol == secondHopSymbol
+            );
+          })
+          .slice(0, topNSecondHop)
+          .value();
+      })
+      .slice(0, topNSecondHop)
+      .value();
+
+    const topByTVLUsingTokenOut = _(subgraphPoolsSorted)
+      .filter((subgraphPool) => {
         return (
-          tokenListPool.token0.symbol == tokenOut.symbol ||
-          tokenListPool.token1.symbol == tokenOut.symbol
+          subgraphPool.token0.symbol == tokenOut.symbol ||
+          subgraphPool.token1.symbol == tokenOut.symbol
         );
       })
-      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedETH)
       .slice(0, topN)
+      .value();
+
+    const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenIn)
+      .map((subgraphPool) => {
+        return tokenOut.symbol == subgraphPool.token0.symbol
+          ? subgraphPool.token1.symbol
+          : subgraphPool.token0.symbol;
+      })
+      .flatMap((secondHopSymbol: string) => {
+        return _(subgraphPoolsSorted)
+          .filter((subgraphPool) => {
+            return (
+              subgraphPool.token0.symbol == secondHopSymbol ||
+              subgraphPool.token1.symbol == secondHopSymbol
+            );
+          })
+          .slice(0, topNSecondHop)
+          .value();
+      })
+      .slice(0, topNSecondHop)
       .value();
 
     this.log.info(
@@ -605,20 +690,26 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
         topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printSubgraphPool),
         topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printSubgraphPool),
         topByTVL: topByTVL.map(printSubgraphPool),
-        directSwap: directSwapPool
-          ? printSubgraphPool(directSwapPool)
-          : undefined,
-        ethPool: ethPool ? printSubgraphPool(ethPool) : undefined,
+        topByTVLUsingTokenInSecondHops: topByTVLUsingTokenInSecondHops.map(
+          printSubgraphPool
+        ),
+        topByTVLUsingTokenOutSecondHops: topByTVLUsingTokenOutSecondHops.map(
+          printSubgraphPool
+        ),
+        top2DirectSwap: top2DirectSwapPool.map(printSubgraphPool),
+        top2EthPool: top2EthPool.map(printSubgraphPool),
       },
-      `Pools for consideration using top ${topN}`
+      `Pools for consideration using top ${topN} first hop ${topNSecondHop} second hop`
     );
 
     const subgraphPools = _([
-      directSwapPool,
-      ethPool,
+      ...top2DirectSwapPool,
+      ...top2EthPool,
       ...topByTVL,
       ...topByTVLUsingTokenIn,
       ...topByTVLUsingTokenOut,
+      ...topByTVLUsingTokenInSecondHops,
+      ...topByTVLUsingTokenOutSecondHops,
     ])
       .compact()
       .uniqBy((pool) => pool.id)
@@ -641,7 +732,15 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       }
     );
 
+    const beforePoolsLoad = Date.now();
+
     const poolAccessor = await this.poolProvider.getPools(tokenPairs);
+
+    this.metricLogger.putMetric(
+      'PoolsLoad',
+      Date.now() - beforePoolsLoad,
+      MetricLoggerUnit.Milliseconds
+    );
 
     return poolAccessor;
   }
@@ -708,8 +807,8 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
 
     computeRoutes(tokenIn, tokenOut, [], poolsUsed);
 
-    this.log.debug(
-      { routes: routes.map(routeToString) },
+    this.log.info(
+      { pools: pools.map(poolToString), routes: routes.map(routeToString) },
       `Computed ${routes.length} possible routes.`
     );
 

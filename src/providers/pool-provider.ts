@@ -3,7 +3,6 @@ import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
-import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
 import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
 import { poolToString } from '../util/routes';
@@ -21,6 +20,10 @@ type ISlot0 = {
 
 type ILiquidity = { liquidity: BigNumber };
 
+export interface IPoolProvider {
+  getPools(tokenPairs: [Token, Token, FeeAmount][]): Promise<PoolAccessor>;
+}
+
 export type PoolAccessor = {
   getPool: (
     tokenA: Token,
@@ -30,17 +33,15 @@ export type PoolAccessor = {
   getAllPools: () => Pool[];
 };
 
-export class PoolProvider {
+export class PoolProvider implements IPoolProvider {
   constructor(
-    private multicall2Provider: Multicall2Provider,
-    private log: Logger,
-    private metricLogger: IMetricLogger
+    protected multicall2Provider: Multicall2Provider,
+    protected log: Logger
   ) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][]
   ): Promise<PoolAccessor> {
-    const now = Date.now();
     const poolAddressSet: Set<string> = new Set<string>();
     const sortedTokenPairs: Array<[Token, Token, FeeAmount]> = [];
     const sortedPoolAddresses: string[] = [];
@@ -88,8 +89,11 @@ export class PoolProvider {
         slot0Result.result.sqrtPriceX96.eq(0)
       ) {
         const [token0, token1, fee] = sortedTokenPairs[i]!;
-        this.log.debug(
-          `No valid pool for ${token0.symbol}/${token1.symbol}/${fee / 10000}%`
+        this.log.info(
+          { slot0Result, liquidityResult },
+          `Pool Invalid for ${token0.symbol}/${token1.symbol}/${
+            fee / 10000
+          }%. Dropping.`
         );
         continue;
       }
@@ -115,12 +119,6 @@ export class PoolProvider {
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
     this.log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
-
-    this.metricLogger.putMetric(
-      'PoolsLoad',
-      Date.now() - now,
-      MetricLoggerUnit.Milliseconds
-    );
 
     return {
       getPool: (

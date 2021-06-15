@@ -8,7 +8,7 @@ import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 export type GasModel = {
   estimateGasCostInTermsOfToken(
     routeWithValidQuote: RouteWithValidQuote
-  ): CurrencyAmount;
+  ): { gasEstimate: BigNumber, gasCostInToken: CurrencyAmount };
 };
 
 export abstract class GasModelFactory {

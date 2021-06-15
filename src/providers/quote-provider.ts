@@ -2,7 +2,6 @@ import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
-import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
 import { Route } from '../routers/router';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
@@ -22,24 +21,43 @@ export type AmountQuote = {
 const DEFAULT_CHUNK = 20;
 
 export type RouteWithQuotes = [Route, AmountQuote[]];
+export type QuoteParams = {
+  multicallChunk: number;
+};
+export interface IQuoteProvider<P> {
+  getQuotesManyExactIn(
+    amountIns: CurrencyAmount[],
+    routes: Route[],
+    additionalParams: P
+  ): Promise<RouteWithQuotes[]>;
 
-export class QuoteProvider {
+  getQuotesManyExactOut(
+    amountOuts: CurrencyAmount[],
+    routes: Route[],
+    additionalParams: P
+  ): Promise<RouteWithQuotes[]>;
+}
+
+export class QuoteProvider implements IQuoteProvider<QuoteParams> {
   constructor(
-    private multicall2Provider: Multicall2Provider,
-    private log: Logger,
-    private metricLogger: IMetricLogger
+    protected multicall2Provider: Multicall2Provider,
+    protected log: Logger
   ) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: Route[],
-    multicallChunk = DEFAULT_CHUNK
+    additionalParams = { multicallChunk: DEFAULT_CHUNK }
   ): Promise<RouteWithQuotes[]> {
-    const now = Date.now();
+    this.log.info(
+      { numAmounts: amountIns.length, numRoutes: routes.length },
+      `About to get quotes for ${routes.length} routes, with ${amountIns.length} amounts per route.`
+    );
+
     const quoteResults = await this.getQuotesManyExactInsData(
       amountIns,
       routes,
-      multicallChunk
+      additionalParams.multicallChunk
     );
 
     const routesQuotes = this.processQuoteResults(
@@ -48,37 +66,29 @@ export class QuoteProvider {
       amountIns
     );
 
-    this.metricLogger.putMetric(
-      'QuotesLoad',
-      Date.now() - now,
-      MetricLoggerUnit.Milliseconds
-    );
-
     return routesQuotes;
   }
 
   public async getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
     routes: Route[],
-    multicallChunk = DEFAULT_CHUNK
+    additionalParams = { multicallChunk: DEFAULT_CHUNK }
   ): Promise<RouteWithQuotes[]> {
-    const now = Date.now();
+    this.log.info(
+      { numAmounts: amountOuts.length, numRoutes: routes.length },
+      `About to get quotes for ${routes.length} routes, with ${amountOuts.length} amounts per route.`
+    );
+
     const quoteResults = await this.getQuotesManyExactOutsData(
       amountOuts,
       routes,
-      multicallChunk
+      additionalParams.multicallChunk
     );
 
     const routesQuotes = this.processQuoteResults(
       quoteResults,
       routes,
       amountOuts
-    );
-
-    this.metricLogger.putMetric(
-      'QuotesLoad',
-      Date.now() - now,
-      MetricLoggerUnit.Milliseconds
     );
 
     return routesQuotes;

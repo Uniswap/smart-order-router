@@ -6,17 +6,16 @@ import _ from 'lodash';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
 import { PoolProvider } from '../../providers/pool-provider';
 import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
-import { routeToString } from '../../util/routes';
 import { TokenProvider } from '../../providers/token-provider';
-
-import { IRouter, Route, RouteAmount, RouteType, SwapRoutes } from '../router';
+import { CurrencyAmount } from '../../util/amounts';
+import { ChainId } from '../../util/chains';
+import { routeToString } from '../../util/routes';
+import { IRouter, Route, RouteAmount, RouteType, SwapRoute } from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
   CUSTOM_BASES,
 } from './bases';
-import { CurrencyAmount } from '../../util/amounts';
-import { ChainId } from '../../util/chains';
 
 export type V3InterfaceRouterParams = {
   chainId: ChainId;
@@ -63,7 +62,7 @@ export class V3InterfaceRouter implements IRouter<void> {
     tokenIn: Token,
     tokenOut: Token,
     amountIn: CurrencyAmount
-  ): Promise<SwapRoutes | null> {
+  ): Promise<SwapRoute | null> {
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactIn(
       amountIn,
@@ -76,11 +75,9 @@ export class V3InterfaceRouter implements IRouter<void> {
     }
 
     return {
-      raw: {
-        quote: routeQuote.amount,
-        quoteGasAdjusted: routeQuote.amount,
-        routeAmounts: [routeQuote],
-      },
+      quote: routeQuote.amount,
+      quoteGasAdjusted: routeQuote.amount,
+      routeAmounts: [routeQuote],
     };
   }
 
@@ -88,7 +85,7 @@ export class V3InterfaceRouter implements IRouter<void> {
     tokenIn: Token,
     tokenOut: Token,
     amountOut: CurrencyAmount
-  ): Promise<SwapRoutes | null> {
+  ): Promise<SwapRoute | null> {
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactOut(
       amountOut,
@@ -101,11 +98,9 @@ export class V3InterfaceRouter implements IRouter<void> {
     }
 
     return {
-      raw: {
-        quote: routeQuote.amount,
-        quoteGasAdjusted: routeQuote.amount,
-        routeAmounts: [routeQuote],
-      },
+      quote: routeQuote.amount,
+      quoteGasAdjusted: routeQuote.amount,
+      routeAmounts: [routeQuote],
     };
   }
 

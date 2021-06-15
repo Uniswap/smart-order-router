@@ -16,11 +16,6 @@ export type SwapRoute = {
   routeAmounts: RouteAmount[];
 };
 
-export type SwapRoutes = {
-  raw: SwapRoute;
-  gasAdjusted?: SwapRoute;
-};
-
 export enum RouteType {
   EXACT_IN,
   EXACT_OUT,
@@ -31,12 +26,12 @@ export abstract class IRouter<RoutingConfig> {
     tokenOut: Token,
     amountIn: CurrencyAmount,
     routingConfig?: RoutingConfig
-  ): Promise<SwapRoutes | null>;
+  ): Promise<SwapRoute | null>;
 
   abstract routeExactOut(
     tokenIn: Token,
     tokenOut: Token,
     amountOut: CurrencyAmount,
     routingConfig?: RoutingConfig
-  ): Promise<SwapRoutes | null>;
+  ): Promise<SwapRoute | null>;
 }

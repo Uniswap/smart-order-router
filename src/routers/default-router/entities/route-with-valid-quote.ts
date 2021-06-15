@@ -11,7 +11,7 @@ export type RouteWithValidQuoteParams = {
   rawQuote: BigNumber;
   sqrtPriceX96AfterList: BigNumber[];
   initializedTicksCrossedList: number[];
-  gasEstimate: BigNumber;
+  quoterGasEstimate: BigNumber;
   percent: number;
   route: Route;
   gasModel: GasModel;
@@ -23,13 +23,17 @@ export class RouteWithValidQuote {
   public amount: CurrencyAmount;
   public rawQuote: BigNumber;
   public quote: CurrencyAmount;
+  public quoteAdjustedForGas: CurrencyAmount;
   public sqrtPriceX96AfterList: BigNumber[];
   public initializedTicksCrossedList: number[];
-  public gasEstimate: BigNumber;
+  public quoterGasEstimate: BigNumber;
   public percent: number;
   public route: Route;
   public quoteToken: Token;
   public gasModel: GasModel;
+  public gasEstimate: BigNumber;
+  public gasCostInToken: CurrencyAmount;
+
   private log: Logger;
 
   constructor({
@@ -37,7 +41,7 @@ export class RouteWithValidQuote {
     rawQuote,
     sqrtPriceX96AfterList,
     initializedTicksCrossedList,
-    gasEstimate,
+    quoterGasEstimate,
     percent,
     route,
     gasModel,
@@ -48,23 +52,28 @@ export class RouteWithValidQuote {
     this.rawQuote = rawQuote;
     this.sqrtPriceX96AfterList = sqrtPriceX96AfterList;
     this.initializedTicksCrossedList = initializedTicksCrossedList;
-    this.gasEstimate = gasEstimate;
+    this.quoterGasEstimate = quoterGasEstimate;
     this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
     this.percent = percent;
     this.route = route;
     this.gasModel = gasModel;
     this.quoteToken = quoteToken;
     this.log = log;
-  }
 
-  public get quoteAdjustedForGas(): CurrencyAmount {
-    const gasCostInToken = this.gasModel.estimateGasCostInTermsOfToken(this);
+    const {
+      gasEstimate,
+      gasCostInToken,
+    } = this.gasModel.estimateGasCostInTermsOfToken(this);
+
+    this.gasCostInToken = gasCostInToken;
+    this.gasEstimate = gasEstimate;
+
     this.log.debug(
       `Route: ${routeToString(this.route)} Percent: ${
         this.percent
       } Quote: ${this.quote.toFixed(4)}, GasCost: ${gasCostInToken.toFixed(4)}`
     );
 
-    return this.quote.subtract(gasCostInToken);
+    this.quoteAdjustedForGas = this.quote.subtract(gasCostInToken);
   }
 }

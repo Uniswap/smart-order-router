@@ -6,13 +6,16 @@ import Ajv from 'ajv';
 import axios from 'axios';
 import { ChainId } from '../util/chains';
 import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
+import NodeCache from 'node-cache';
 
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
 type TokenInfoMapping = { [chainId in ChainId]: SymbolToTokenInfo };
 const tokenListValidator = new Ajv().compile(schema);
+
+const TOKEN_LIST_CACHE = new NodeCache({ stdTTL: 600, useClones: false });
 export class TokenProvider {
-  private log: Logger;
+  protected log: Logger;
   private chainToTokenInfos: ChainToTokenInfoList;
   private chainSymbolToTokenInfo: TokenInfoMapping;
   private tokenList: TokenList;
@@ -52,6 +55,18 @@ export class TokenProvider {
   ) {
     const now = Date.now();
 
+    const cachedTokenList = TOKEN_LIST_CACHE.get<TokenList>(tokenListURI);
+
+    if (cachedTokenList) {
+      metricLogger.putMetric(
+        'TokenListLoad',
+        Date.now() - now,
+        MetricLoggerUnit.Milliseconds
+      );
+
+      return new TokenProvider(cachedTokenList, log);
+    }
+
     log.info(`Getting tokenList from ${tokenListURI}.`);
     const response = await axios.get(tokenListURI);
     log.info(`Got tokenList from ${tokenListURI}.`);
@@ -72,6 +87,8 @@ export class TokenProvider {
 
       throw new Error(`Unable to get token list from ${tokenListURI}`);
     }
+
+    TOKEN_LIST_CACHE.set<TokenList>(tokenListURI, tokenList);
 
     return new TokenProvider(tokenList, log);
   }

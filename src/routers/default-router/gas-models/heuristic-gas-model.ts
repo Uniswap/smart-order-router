@@ -36,7 +36,7 @@ export class HeuristicGasModelFactory extends GasModelFactory {
   ): GasModel {
     const estimateGasCostInTermsOfToken = (
       routeWithValidQuote: RouteWithValidQuote
-    ): CurrencyAmount => {
+    ): { gasEstimate: BigNumber; gasCostInToken: CurrencyAmount } => {
       const totalInitializedTicksCrossed = _.sum(
         routeWithValidQuote.initializedTicksCrossedList
       );
@@ -60,11 +60,11 @@ export class HeuristicGasModelFactory extends GasModelFactory {
         )}`
       );
 
-      const totalGasCostWei = gasPriceWei.mul(
-        BASE_SWAP_COST.add(hopsGasUse)
-          .add(tickGasUse)
-          .add(uninitializedTickGasUse)
-      );
+      const gasUse = BASE_SWAP_COST.add(hopsGasUse)
+        .add(tickGasUse)
+        .add(uninitializedTickGasUse);
+
+      const totalGasCostWei = gasPriceWei.mul(gasUse);
 
       const weth = tokenProvider.getToken(chainId, 'WETH');
 
@@ -95,7 +95,10 @@ export class HeuristicGasModelFactory extends GasModelFactory {
         ) as CurrencyAmount;
       }
 
-      return gasCostInTermsOfQuoteToken;
+      return {
+        gasEstimate: gasUse,
+        gasCostInToken: gasCostInTermsOfQuoteToken,
+      };
     };
 
     return {
@@ -122,9 +125,13 @@ export class HeuristicGasModelFactory extends GasModelFactory {
       this.log.error(
         `Could not find a WETH pool with ${token.symbol} for computing gas costs`
       );
-      throw new Error("Can't find high liquidity pool.");
+      throw new Error(
+        `Can't find WETH/${token.symbol} pool for computing gas costs.`
+      );
     }
 
-    return _.maxBy(pools, (pool) => pool.liquidity) as Pool;
+    const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
+
+    return maxPool;
   }
 }
