@@ -1,9 +1,9 @@
-import { Token } from '@uniswap/sdk-core';
+import { Token, TradeType } from '@uniswap/sdk-core';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../../../util/amounts';
 import { routeToString } from '../../../util/routes';
-import { Route } from '../../router';
+import { RouteSOR } from '../../router';
 import { GasModel } from '../gas-models/gas-model';
 
 export type RouteWithValidQuoteParams = {
@@ -13,9 +13,10 @@ export type RouteWithValidQuoteParams = {
   initializedTicksCrossedList: number[];
   quoterGasEstimate: BigNumber;
   percent: number;
-  route: Route;
+  route: RouteSOR;
   gasModel: GasModel;
   quoteToken: Token;
+  tradeType: TradeType;
   log: Logger;
 };
 
@@ -28,11 +29,12 @@ export class RouteWithValidQuote {
   public initializedTicksCrossedList: number[];
   public quoterGasEstimate: BigNumber;
   public percent: number;
-  public route: Route;
+  public route: RouteSOR;
   public quoteToken: Token;
   public gasModel: GasModel;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
+  public tradeType: TradeType;
 
   private log: Logger;
 
@@ -46,6 +48,7 @@ export class RouteWithValidQuote {
     route,
     gasModel,
     quoteToken,
+    tradeType,
     log,
   }: RouteWithValidQuoteParams) {
     this.amount = amount;
@@ -58,12 +61,11 @@ export class RouteWithValidQuote {
     this.route = route;
     this.gasModel = gasModel;
     this.quoteToken = quoteToken;
+    this.tradeType = tradeType;
     this.log = log;
 
-    const {
-      gasEstimate,
-      gasCostInToken,
-    } = this.gasModel.estimateGasCostInTermsOfToken(this);
+    const { gasEstimate, gasCostInToken } =
+      this.gasModel.estimateGasCostInTermsOfToken(this);
 
     this.gasCostInToken = gasCostInToken;
     this.gasEstimate = gasEstimate;
@@ -74,6 +76,19 @@ export class RouteWithValidQuote {
       } Quote: ${this.quote.toFixed(4)}, GasCost: ${gasCostInToken.toFixed(4)}`
     );
 
-    this.quoteAdjustedForGas = this.quote.subtract(gasCostInToken);
+    // If its exact out, we need to request *more* of the input token to account for the gas.
+    if (this.tradeType == TradeType.EXACT_INPUT) {
+      const quoteGasAdjusted = this.quote.subtract(gasCostInToken);
+      this.quoteAdjustedForGas = quoteGasAdjusted;
+      //  this.quoteAdjustedForGas = quoteGasAdjusted.greaterThan(0)
+      //   ? quoteGasAdjusted
+      //   : CurrencyAmount.fromRawAmount(this.quoteToken, 0);
+    } else {
+      const quoteGasAdjusted = this.quote.add(gasCostInToken);
+      this.quoteAdjustedForGas = quoteGasAdjusted;
+      // this.quoteAdjustedForGas = quoteGasAdjusted.greaterThan(0)
+      //   ? quoteGasAdjusted
+      //   : CurrencyAmount.fromRawAmount(this.quoteToken, 0);
+    }
   }
 }

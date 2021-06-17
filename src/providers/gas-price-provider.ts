@@ -6,6 +6,7 @@ const gasStationUrl = `https://ethgasstation.info/api/ethgasAPI.json?api-key=${p
 
 export type GasPrice = {
   gasPriceWei: BigNumber;
+  blockNumber: number;
 };
 
 export abstract class GasPriceProvider {
@@ -55,6 +56,6 @@ export class ETHGasStationInfoProvider extends GasPriceProvider {
       `Gas price in wei: ${gasPriceWei} as of block ${gasPriceResponse.blockNum}`
     );
 
-    return { gasPriceWei: gasPriceWei };
+    return { gasPriceWei: gasPriceWei, blockNumber: gasPriceResponse.blockNum };
   }
 }

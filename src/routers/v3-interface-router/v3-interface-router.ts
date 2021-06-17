@@ -1,5 +1,11 @@
-import { Token } from '@uniswap/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Currency, Token, TradeType } from '@uniswap/sdk-core';
+import {
+  FeeAmount,
+  MethodParameters,
+  Pool,
+  SwapRouter,
+  Trade,
+} from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
@@ -10,7 +16,13 @@ import { TokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { routeToString } from '../../util/routes';
-import { IRouter, Route, RouteAmount, RouteType, SwapRoute } from '../router';
+import {
+  IRouter,
+  RouteAmount,
+  RouteSOR,
+  SwapConfig,
+  SwapRoute,
+} from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
@@ -59,10 +71,13 @@ export class V3InterfaceRouter implements IRouter<void> {
   }
 
   public async routeExactIn(
-    tokenIn: Token,
-    tokenOut: Token,
-    amountIn: CurrencyAmount
+    currencyIn: Currency,
+    currencyOut: Currency,
+    amountIn: CurrencyAmount,
+    swapConfig: SwapConfig
   ): Promise<SwapRoute | null> {
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactIn(
       amountIn,
@@ -78,14 +93,27 @@ export class V3InterfaceRouter implements IRouter<void> {
       quote: routeQuote.amount,
       quoteGasAdjusted: routeQuote.amount,
       routeAmounts: [routeQuote],
+      estimatedGasUsed: BigNumber.from(0),
+      gasPriceWei: BigNumber.from(0),
+      methodParameters: this.buildMethodParameters(
+        currencyIn,
+        currencyOut,
+        TradeType.EXACT_INPUT,
+        routeQuote,
+        swapConfig
+      ),
+      blockNumber: BigNumber.from(0),
     };
   }
 
   public async routeExactOut(
-    tokenIn: Token,
-    tokenOut: Token,
-    amountOut: CurrencyAmount
+    currencyIn: Currency,
+    currencyOut: Currency,
+    amountOut: CurrencyAmount,
+    swapConfig: SwapConfig
   ): Promise<SwapRoute | null> {
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
     const routeQuote = await this.findBestRouteExactOut(
       amountOut,
@@ -101,23 +129,31 @@ export class V3InterfaceRouter implements IRouter<void> {
       quote: routeQuote.amount,
       quoteGasAdjusted: routeQuote.amount,
       routeAmounts: [routeQuote],
+      estimatedGasUsed: BigNumber.from(0),
+      gasPriceWei: BigNumber.from(0),
+      methodParameters: this.buildMethodParameters(
+        currencyIn,
+        currencyOut,
+        TradeType.EXACT_OUTPUT,
+        routeQuote,
+        swapConfig
+      ),
+      blockNumber: BigNumber.from(0),
     };
   }
 
   private async findBestRouteExactIn(
     amountIn: CurrencyAmount,
     tokenOut: Token,
-    routes: Route[]
+    routes: RouteSOR[]
   ): Promise<RouteAmount | null> {
-    const quotesRaw = await this.quoteProvider.getQuotesManyExactIn(
-      [amountIn],
-      routes
-    );
+    const { routesWithQuotes: quotesRaw } =
+      await this.quoteProvider.getQuotesManyExactIn([amountIn], routes);
     const bestQuote = await this.getBestQuote(
       routes,
       quotesRaw,
       tokenOut,
-      RouteType.EXACT_IN
+      TradeType.EXACT_INPUT
     );
 
     return bestQuote;
@@ -126,27 +162,25 @@ export class V3InterfaceRouter implements IRouter<void> {
   private async findBestRouteExactOut(
     amountOut: CurrencyAmount,
     tokenIn: Token,
-    routes: Route[]
+    routes: RouteSOR[]
   ): Promise<RouteAmount | null> {
-    const quotesRaw = await this.quoteProvider.getQuotesManyExactOut(
-      [amountOut],
-      routes
-    );
+    const { routesWithQuotes: quotesRaw } =
+      await this.quoteProvider.getQuotesManyExactOut([amountOut], routes);
     const bestQuote = await this.getBestQuote(
       routes,
       quotesRaw,
       tokenIn,
-      RouteType.EXACT_OUT
+      TradeType.EXACT_OUTPUT
     );
 
     return bestQuote;
   }
 
   private async getBestQuote(
-    routes: Route[],
+    routes: RouteSOR[],
     quotesRaw: RouteWithQuotes[],
     quoteToken: Token,
-    routeType: RouteType
+    routeType: TradeType
   ): Promise<RouteAmount | null> {
     this.log.debug(
       `Got ${
@@ -154,18 +188,22 @@ export class V3InterfaceRouter implements IRouter<void> {
       } valid quotes from ${routes.length} possible routes.`
     );
 
-    const routeQuotesRaw: { route: Route; quote: BigNumber }[] = [];
+    const routeQuotesRaw: {
+      route: RouteSOR;
+      quote: BigNumber;
+      amount: CurrencyAmount;
+    }[] = [];
 
     for (let i = 0; i < quotesRaw.length; i++) {
       const [route, quotes] = quotesRaw[i]!;
-      const { quote } = quotes[0]!;
+      const { quote, amount } = quotes[0]!;
 
       if (!quote) {
         logger.debug(`No quote for ${routeToString(route)}`);
         continue;
       }
 
-      routeQuotesRaw.push({ route, quote });
+      routeQuotesRaw.push({ route, quote, amount });
     }
 
     if (routeQuotesRaw.length == 0) {
@@ -173,18 +211,21 @@ export class V3InterfaceRouter implements IRouter<void> {
     }
 
     routeQuotesRaw.sort((routeQuoteA, routeQuoteB) => {
-      if (routeType == RouteType.EXACT_IN) {
+      if (routeType == TradeType.EXACT_INPUT) {
         return routeQuoteA.quote.gt(routeQuoteB.quote) ? -1 : 1;
       } else {
         return routeQuoteA.quote.lt(routeQuoteB.quote) ? -1 : 1;
       }
     });
 
-    const routeQuotes = _.map(routeQuotesRaw, ({ route, quote }) => {
+    const routeQuotes = _.map(routeQuotesRaw, ({ route, quote, amount }) => {
       return {
         route,
-        amount: CurrencyAmount.fromRawAmount(quoteToken, quote.toString()),
+        quote: CurrencyAmount.fromRawAmount(quoteToken, quote.toString()),
+        amount,
         percentage: 100,
+        quoteGasAdjusted: CurrencyAmount.fromRawAmount(quoteToken, 0),
+        estimatedGasUsed: BigNumber.from(0),
       };
     });
 
@@ -200,7 +241,7 @@ export class V3InterfaceRouter implements IRouter<void> {
   private async getAllRoutes(
     tokenIn: Token,
     tokenOut: Token
-  ): Promise<Route[]> {
+  ): Promise<RouteSOR[]> {
     const tokenPairs: [Token, Token, FeeAmount][] = this.getAllPossiblePairings(
       tokenIn,
       tokenOut
@@ -209,7 +250,7 @@ export class V3InterfaceRouter implements IRouter<void> {
     const poolAccessor = await this.poolProvider.getPools(tokenPairs);
     const pools = poolAccessor.getAllPools();
 
-    const routes: Route[] = this.computeAllRoutes(
+    const routes: RouteSOR[] = this.computeAllRoutes(
       tokenIn,
       tokenOut,
       pools,
@@ -242,10 +283,10 @@ export class V3InterfaceRouter implements IRouter<void> {
       [];
     const bases = [...common, ...additionalA, ...additionalB];
 
-    const basePairs: [Token, Token][] = _.flatMap(bases, (base): [
-      Token,
-      Token
-    ][] => bases.map((otherBase) => [base, otherBase]));
+    const basePairs: [Token, Token][] = _.flatMap(
+      bases,
+      (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
+    );
 
     const allPairs: [Token, Token, FeeAmount][] = _([
       // the direct pair
@@ -297,10 +338,10 @@ export class V3InterfaceRouter implements IRouter<void> {
     pools: Pool[],
     chainId: ChainId,
     currentPath: Pool[] = [],
-    allPaths: Route[] = [],
+    allPaths: RouteSOR[] = [],
     startTokenIn: Token = tokenIn,
     maxHops = 2
-  ): Route[] {
+  ): RouteSOR[] {
     for (const pool of pools) {
       if (currentPath.indexOf(pool) !== -1 || !pool.involvesToken(tokenIn))
         continue;
@@ -309,7 +350,9 @@ export class V3InterfaceRouter implements IRouter<void> {
         ? pool.token1
         : pool.token0;
       if (outputToken.equals(tokenOut)) {
-        allPaths.push(new Route([...currentPath, pool], startTokenIn, tokenIn));
+        allPaths.push(
+          new RouteSOR([...currentPath, pool], startTokenIn, tokenIn)
+        );
       } else if (maxHops > 1) {
         this.computeAllRoutes(
           outputToken,
@@ -325,5 +368,85 @@ export class V3InterfaceRouter implements IRouter<void> {
     }
 
     return allPaths;
+  }
+
+  private buildMethodParameters(
+    tokenInCurrency: Currency,
+    tokenOutCurrency: Currency,
+    tradeType: TradeType,
+    routeAmount: RouteAmount,
+    swapConfig: SwapConfig
+  ): MethodParameters {
+    const { route, amount, quote } = routeAmount;
+    let trade: Trade<Currency, Currency, TradeType>;
+
+    if (tradeType == TradeType.EXACT_INPUT) {
+      const amountCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenInCurrency,
+        amount.numerator,
+        amount.denominator
+      );
+      const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenOutCurrency,
+        quote.numerator,
+        quote.denominator
+      );
+
+      trade = Trade.createUncheckedTrade({
+        route,
+        tradeType: TradeType.EXACT_INPUT,
+        inputAmount: amountCurrency,
+        outputAmount: quoteCurrency,
+      });
+    } else {
+      const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenInCurrency,
+        quote.numerator,
+        quote.denominator
+      );
+
+      const amountCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenOutCurrency,
+        amount.numerator,
+        amount.denominator
+      );
+
+      trade = Trade.createUncheckedTrade({
+        route,
+        tradeType: TradeType.EXACT_OUTPUT,
+        inputAmount: quoteCurrency,
+        outputAmount: amountCurrency,
+      });
+    }
+
+    const { recipient, slippageTolerance, deadline } = swapConfig;
+
+    const methodParameters = SwapRouter.swapCallParameters([trade], {
+      recipient,
+      slippageTolerance,
+      deadline,
+      // ...(signatureData
+      //   ? {
+      //       inputTokenPermit:
+      //         'allowed' in signatureData
+      //           ? {
+      //               expiry: signatureData.deadline,
+      //               nonce: signatureData.nonce,
+      //               s: signatureData.s,
+      //               r: signatureData.r,
+      //               v: signatureData.v as any,
+      //             }
+      //           : {
+      //               deadline: signatureData.deadline,
+      //               amount: signatureData.amount,
+      //               s: signatureData.s,
+      //               r: signatureData.r,
+      //               v: signatureData.v as any,
+      //             },
+      //     }
+      //   : {}),
+    });
+
+    return methodParameters;
   }
 }

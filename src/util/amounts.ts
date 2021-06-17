@@ -1,12 +1,15 @@
-import { Token, CurrencyAmount as CurrencyAmountRaw } from '@uniswap/sdk-core';
+import {
+  Currency,
+  CurrencyAmount as CurrencyAmountRaw,
+} from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import { parseUnits } from 'ethers/lib/utils';
 import JSBI from 'jsbi';
 
-export class CurrencyAmount extends CurrencyAmountRaw<Token> {};
+export class CurrencyAmount extends CurrencyAmountRaw<Currency> {}
 
 // Try to parse a user entered amount for a given token
-export function parseAmount(value: string, currency: Token): CurrencyAmount {
+export function parseAmount(value: string, currency: Currency): CurrencyAmount {
   const typedValueParsed = parseUnits(value, currency.decimals).toString();
   return CurrencyAmount.fromRawAmount(currency, JSBI.BigInt(typedValueParsed));
 }

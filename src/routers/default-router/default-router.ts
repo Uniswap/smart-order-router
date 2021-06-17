@@ -1,6 +1,13 @@
-import { Fraction, Token } from '@uniswap/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
+import {
+  FeeAmount,
+  MethodParameters,
+  Pool,
+  SwapRouter,
+  Trade,
+} from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
+import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { GasPriceProvider } from '../../providers/gas-price-provider';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
@@ -20,7 +27,13 @@ import {
   routeToString,
 } from '../../util/routes';
 import { IMetricLogger, MetricLoggerUnit } from '../metric';
-import { IRouter, Route, RouteAmount, RouteType, SwapRoute } from '../router';
+import {
+  IRouter,
+  RouteAmount,
+  RouteSOR,
+  SwapConfig,
+  SwapRoute,
+} from '../router';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { GasModel, GasModelFactory } from './gas-models/gas-model';
 
@@ -92,15 +105,19 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
   }
 
   public async routeExactIn(
-    tokenIn: Token,
-    tokenOut: Token,
+    currencyIn: Currency,
+    currencyOut: Currency,
     amountIn: CurrencyAmount,
+    swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute | null> {
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
+
     const poolAccessor = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
-      RouteType.EXACT_IN,
+      TradeType.EXACT_INPUT,
       routingConfig
     );
     const pools = poolAccessor.getAllPools();
@@ -136,11 +153,10 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     );
 
     const beforeQuotes = Date.now();
-    const routesWithQuotes = await this.quoteProvider.getQuotesManyExactIn(
-      amounts,
-      routes,
-      { multicallChunk: multicallChunkSize }
-    );
+    const { routesWithQuotes, blockNumber } =
+      await this.quoteProvider.getQuotesManyExactIn(amounts, routes, {
+        multicallChunk: multicallChunkSize,
+      });
 
     this.metricLogger.putMetric(
       'QuotesLoad',
@@ -149,13 +165,28 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     );
 
     const beforeBestSwap = Date.now();
-    const swapRoute = this.getBestSwapRoute(
+    const swapRouteRaw = this.getBestSwapRoute(
       percents,
       routesWithQuotes,
       tokenOut,
-      RouteType.EXACT_IN,
+      TradeType.EXACT_INPUT,
       gasModel,
       routingConfig
+    );
+
+    if (!swapRouteRaw) {
+      return null;
+    }
+
+    const { quote, quoteGasAdjusted, estimatedGasUsed, routeAmounts } =
+      swapRouteRaw;
+
+    const methodParameters = this.buildMethodParameters(
+      currencyIn,
+      currencyOut,
+      TradeType.EXACT_INPUT,
+      routeAmounts,
+      swapConfig
     );
 
     this.metricLogger.putMetric(
@@ -164,19 +195,31 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
-    return swapRoute;
+    return {
+      quote,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      gasPriceWei,
+      routeAmounts,
+      methodParameters,
+      blockNumber,
+    };
   }
 
   public async routeExactOut(
-    tokenIn: Token,
-    tokenOut: Token,
+    currencyIn: Currency,
+    currencyOut: Currency,
     amountOut: CurrencyAmount,
+    swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute | null> {
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
+
     const poolAccessor = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
-      RouteType.EXACT_IN,
+      TradeType.EXACT_INPUT,
       routingConfig
     );
     const pools = poolAccessor.getAllPools();
@@ -209,31 +252,59 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       amountOut,
       routingConfig
     );
-    const routesWithQuotes = await this.quoteProvider.getQuotesManyExactOut(
-      amounts,
-      routes,
-      { multicallChunk: multicallChunkSize }
-    );
-    const swapRoute = this.getBestSwapRoute(
+    const { routesWithQuotes, blockNumber } =
+      await this.quoteProvider.getQuotesManyExactOut(amounts, routes, {
+        multicallChunk: multicallChunkSize,
+      });
+
+    const swapRouteRaw = this.getBestSwapRoute(
       percents,
       routesWithQuotes,
       tokenIn,
-      RouteType.EXACT_OUT,
+      TradeType.EXACT_OUTPUT,
       gasModel,
       routingConfig
     );
 
-    return swapRoute;
+    if (!swapRouteRaw) {
+      return null;
+    }
+
+    const { quote, quoteGasAdjusted, routeAmounts, estimatedGasUsed } =
+      swapRouteRaw;
+
+    const methodParameters = this.buildMethodParameters(
+      currencyIn,
+      currencyOut,
+      TradeType.EXACT_OUTPUT,
+      routeAmounts,
+      swapConfig
+    );
+
+    return {
+      quote,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      gasPriceWei,
+      routeAmounts,
+      methodParameters,
+      blockNumber,
+    };
   }
 
   private getBestSwapRoute(
     percents: number[],
     routesWithQuotes: RouteWithQuotes[],
     quoteToken: Token,
-    routeType: RouteType,
+    routeType: TradeType,
     gasModel: GasModel,
     routingConfig: DefaultRouterConfig
-  ): SwapRoute | null {
+  ): {
+    quote: CurrencyAmount;
+    quoteGasAdjusted: CurrencyAmount;
+    routeAmounts: RouteAmount[];
+    estimatedGasUsed: BigNumber;
+  } | null {
     const now = Date.now();
     this.log.info({ routingConfig }, 'Finding best swap');
     const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
@@ -283,6 +354,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
           quoterGasEstimate: gasEstimate,
           gasModel,
           quoteToken,
+          tradeType: routeType,
           log: this.log,
         });
 
@@ -323,17 +395,24 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
   }
 
   private getBestSwapRouteBy(
-    routeType: RouteType,
+    routeType: TradeType,
     percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
     percents: number[],
     by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
     routingConfig: DefaultRouterConfig
-  ): SwapRoute | undefined {
+  ):
+    | {
+        quote: CurrencyAmount;
+        quoteGasAdjusted: CurrencyAmount;
+        estimatedGasUsed: BigNumber;
+        routeAmounts: RouteAmount[];
+      }
+    | undefined {
     const percentToSortedQuotes = _.mapValues(
       percentToQuotes,
       (routeQuotes: RouteWithValidQuote[]) => {
         return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
-          if (routeType == RouteType.EXACT_IN) {
+          if (routeType == TradeType.EXACT_INPUT) {
             return by(routeQuoteA).greaterThan(by(routeQuoteB)) ? -1 : 1;
           } else {
             return by(routeQuoteA).lessThan(by(routeQuoteB)) ? -1 : 1;
@@ -347,7 +426,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     // Function that given a list of used routes for a current swap route candidate,
     // finds the first route in a list that does not re-use an already used pool.
     const findFirstRouteNotUsingUsedPools = (
-      usedRoutes: Route[],
+      usedRoutes: RouteSOR[],
       candidateRouteQuotes: RouteWithValidQuote[]
     ): RouteWithValidQuote | null => {
       const getPoolAddress = (pool: Pool) =>
@@ -390,7 +469,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     let bestSwap: RouteWithValidQuote[] = [percentToSortedQuotes[100][0]!];
 
     const quoteCompFn =
-      routeType == RouteType.EXACT_IN
+      routeType == TradeType.EXACT_INPUT
         ? (a: CurrencyAmount, b: CurrencyAmount) => a.greaterThan(b)
         : (a: CurrencyAmount, b: CurrencyAmount) => a.lessThan(b);
 
@@ -518,6 +597,13 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       )
     );
 
+    const estimatedGasUsed = _(bestSwap)
+      .map((routeWithValidQuote) => routeWithValidQuote.gasEstimate)
+      .reduce(
+        (sum, routeWithValidQuote) => sum.add(routeWithValidQuote),
+        BigNumber.from(0)
+      );
+
     const quote = sum(
       _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
     );
@@ -527,8 +613,11 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       (rq: RouteWithValidQuote) => {
         return {
           route: rq.route,
-          amount: rq.quote,
+          amount: rq.amount,
+          quote: rq.quote,
+          quoteGasAdjusted: rq.quoteAdjustedForGas,
           percentage: rq.percent,
+          estimatedGasUsed: rq.gasEstimate,
         };
       }
     ).sort(
@@ -542,7 +631,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
-    return { quote, quoteGasAdjusted, routeAmounts };
+    return { quote, quoteGasAdjusted, estimatedGasUsed, routeAmounts };
   }
 
   private getAmountDistribution(
@@ -564,7 +653,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
   private async getPoolsToConsider(
     tokenIn: Token,
     tokenOut: Token,
-    routeType: RouteType,
+    routeType: TradeType,
     routingConfig: DefaultRouterConfig
   ): Promise<PoolAccessor> {
     const { topN, topNSecondHop } = routingConfig;
@@ -604,7 +693,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
 
     const top2EthPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
-        if (routeType == RouteType.EXACT_IN) {
+        if (routeType == TradeType.EXACT_INPUT) {
           return (
             (subgraphPool.token0.symbol == 'WETH' &&
               subgraphPool.token1.symbol == tokenOut.symbol) ||
@@ -690,12 +779,10 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
         topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printSubgraphPool),
         topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printSubgraphPool),
         topByTVL: topByTVL.map(printSubgraphPool),
-        topByTVLUsingTokenInSecondHops: topByTVLUsingTokenInSecondHops.map(
-          printSubgraphPool
-        ),
-        topByTVLUsingTokenOutSecondHops: topByTVLUsingTokenOutSecondHops.map(
-          printSubgraphPool
-        ),
+        topByTVLUsingTokenInSecondHops:
+          topByTVLUsingTokenInSecondHops.map(printSubgraphPool),
+        topByTVLUsingTokenOutSecondHops:
+          topByTVLUsingTokenOutSecondHops.map(printSubgraphPool),
         top2DirectSwap: top2DirectSwapPool.map(printSubgraphPool),
         top2EthPool: top2EthPool.map(printSubgraphPool),
       },
@@ -750,9 +837,9 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     tokenOut: Token,
     pools: Pool[],
     maxHops: number
-  ): Route[] {
+  ): RouteSOR[] {
     const poolsUsed = Array<Boolean>(pools.length).fill(false);
-    const routes: Route[] = [];
+    const routes: RouteSOR[] = [];
 
     const computeRoutes = (
       tokenIn: Token,
@@ -769,7 +856,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
         currentRoute.length > 0 &&
         currentRoute[currentRoute.length - 1]!.involvesToken(tokenOut)
       ) {
-        routes.push(new Route([...currentRoute], tokenIn, tokenOut));
+        routes.push(new RouteSOR([...currentRoute], tokenIn, tokenOut));
         return;
       }
 
@@ -813,5 +900,92 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     );
 
     return routes;
+  }
+
+  private buildMethodParameters(
+    tokenInCurrency: Currency,
+    tokenOutCurrency: Currency,
+    tradeType: TradeType,
+    routeAmounts: RouteAmount[],
+    swapConfig: SwapConfig
+  ): MethodParameters {
+    const trades = _.map<RouteAmount, Trade<Currency, Currency, TradeType>>(
+      routeAmounts,
+      (routeAmount: RouteAmount) => {
+        const { route, amount, quote } = routeAmount;
+
+        // The route, amount and quote are all in terms of wrapped tokens.
+        // When constructing the Trade object the inputAmount/outputAmount must
+        // use native currencies. This is so that the Trade knows to wrap/unwrap.
+        if (tradeType == TradeType.EXACT_INPUT) {
+          const amountCurrency = CurrencyAmount.fromFractionalAmount(
+            tokenInCurrency,
+            amount.numerator,
+            amount.denominator
+          );
+          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+            tokenOutCurrency,
+            quote.numerator,
+            quote.denominator
+          );
+
+          return Trade.createUncheckedTrade({
+            route,
+            tradeType: TradeType.EXACT_INPUT,
+            inputAmount: amountCurrency,
+            outputAmount: quoteCurrency,
+          });
+        } else {
+          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+            tokenInCurrency,
+            quote.numerator,
+            quote.denominator
+          );
+
+          const amountCurrency = CurrencyAmount.fromFractionalAmount(
+            tokenOutCurrency,
+            amount.numerator,
+            amount.denominator
+          );
+
+          return Trade.createUncheckedTrade({
+            route,
+            tradeType: TradeType.EXACT_OUTPUT,
+            inputAmount: quoteCurrency,
+            outputAmount: amountCurrency,
+          });
+        }
+      }
+    );
+
+    const { recipient, slippageTolerance, deadline } = swapConfig;
+
+    const methodParameters = SwapRouter.swapCallParameters(trades, {
+      recipient,
+      slippageTolerance,
+      deadline,
+      // ...(signatureData
+      //   ? {
+      //       inputTokenPermit:
+      //         'allowed' in signatureData
+      //           ? {
+      //               expiry: signatureData.deadline,
+      //               nonce: signatureData.nonce,
+      //               s: signatureData.s,
+      //               r: signatureData.r,
+      //               v: signatureData.v as any,
+      //             }
+      //           : {
+      //               deadline: signatureData.deadline,
+      //               amount: signatureData.amount,
+      //               s: signatureData.s,
+      //               r: signatureData.r,
+      //               v: signatureData.v as any,
+      //             },
+      //     }
+      //   : {}),
+    });
+
+    return methodParameters;
   }
 }

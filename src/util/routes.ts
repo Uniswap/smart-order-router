@@ -1,8 +1,8 @@
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { Route, RouteAmount } from '../routers/router';
+import { RouteSOR, RouteAmount } from '../routers/router';
 
-export const routeToString = (route: Route): string => {
+export const routeToString = (route: RouteSOR): string => {
   const routeStr = [];
   const tokenPath = _.map(route.tokenPath, (token) => `${token.symbol}`);
   const poolFeePath = _.map(

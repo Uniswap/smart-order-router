@@ -2,7 +2,7 @@ import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
-import { Route } from '../routers/router';
+import { RouteSOR } from '../routers/router';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
@@ -20,22 +20,22 @@ export type AmountQuote = {
 
 const DEFAULT_CHUNK = 20;
 
-export type RouteWithQuotes = [Route, AmountQuote[]];
+export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
 export type QuoteParams = {
   multicallChunk: number;
 };
 export interface IQuoteProvider<P> {
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: Route[],
+    routes: RouteSOR[],
     additionalParams: P
-  ): Promise<RouteWithQuotes[]>;
+  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: Route[],
+    routes: RouteSOR[],
     additionalParams: P
-  ): Promise<RouteWithQuotes[]>;
+  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
 export class QuoteProvider implements IQuoteProvider<QuoteParams> {
@@ -46,15 +46,18 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: Route[],
+    routes: RouteSOR[],
     additionalParams = { multicallChunk: DEFAULT_CHUNK }
-  ): Promise<RouteWithQuotes[]> {
+  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     this.log.info(
       { numAmounts: amountIns.length, numRoutes: routes.length },
       `About to get quotes for ${routes.length} routes, with ${amountIns.length} amounts per route.`
     );
 
-    const quoteResults = await this.getQuotesManyExactInsData(
+    const {
+      results: quoteResults,
+      blockNumber,
+    } = await this.getQuotesManyExactInsData(
       amountIns,
       routes,
       additionalParams.multicallChunk
@@ -66,20 +69,23 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
       amountIns
     );
 
-    return routesQuotes;
+    return { routesWithQuotes: routesQuotes, blockNumber };
   }
 
   public async getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: Route[],
+    routes: RouteSOR[],
     additionalParams = { multicallChunk: DEFAULT_CHUNK }
-  ): Promise<RouteWithQuotes[]> {
+  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     this.log.info(
       { numAmounts: amountOuts.length, numRoutes: routes.length },
       `About to get quotes for ${routes.length} routes, with ${amountOuts.length} amounts per route.`
     );
 
-    const quoteResults = await this.getQuotesManyExactOutsData(
+    const {
+      results: quoteResults,
+      blockNumber,
+    } = await this.getQuotesManyExactOutsData(
       amountOuts,
       routes,
       additionalParams.multicallChunk
@@ -91,12 +97,12 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
       amountOuts
     );
 
-    return routesQuotes;
+    return { routesWithQuotes: routesQuotes, blockNumber };
   }
 
   private processQuoteResults(
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
-    routes: Route[],
+    routes: RouteSOR[],
     amounts: CurrencyAmount[]
   ): RouteWithQuotes[] {
     const routesQuotes: RouteWithQuotes[] = [];
@@ -150,9 +156,12 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
   private async getQuotesManyExactInsData(
     amountIns: CurrencyAmount[],
-    routes: Route[],
+    routes: RouteSOR[],
     multicallChunk: number
-  ): Promise<Result<[BigNumber, BigNumber[], number[], BigNumber]>[]> {
+  ): Promise<{
+    results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
+    blockNumber: BigNumber;
+  }> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const encodedRoute = encodeRouteToPath(route, false);
@@ -190,14 +199,20 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
     this.validateBlockNumbers(results);
 
-    return _.flatMap(results, (result) => result.results);
+    return {
+      results: _.flatMap(results, (result) => result.results),
+      blockNumber: results[0]!.blockNumber,
+    };
   }
 
   private async getQuotesManyExactOutsData(
     amountOuts: CurrencyAmount[],
-    routes: Route[],
+    routes: RouteSOR[],
     multicallChunk: number
-  ): Promise<Result<[BigNumber, BigNumber[], number[], BigNumber]>[]> {
+  ): Promise<{
+    results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
+    blockNumber: BigNumber;
+  }> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const routeInputs: [string, string][] = amountOuts.map((amountOut) => [
@@ -234,7 +249,10 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
     this.validateBlockNumbers(results);
 
-    return _.flatMap(results, (result) => result.results);
+    return {
+      results: _.flatMap(results, (result) => result.results),
+      blockNumber: results[0]!.blockNumber,
+    };
   }
 
   private validateBlockNumbers(results: { blockNumber: BigNumber }[]): void {
