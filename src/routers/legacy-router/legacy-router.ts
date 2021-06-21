@@ -3,6 +3,7 @@ import {
   FeeAmount,
   MethodParameters,
   Pool,
+  Route,
   SwapRouter,
   Trade,
 } from '@uniswap/v3-sdk';
@@ -29,7 +30,7 @@ import {
   CUSTOM_BASES,
 } from './bases';
 
-export type V3InterfaceRouterParams = {
+export type LegacyRouterParams = {
   chainId: ChainId;
   multicall2Provider: Multicall2Provider;
   poolProvider: PoolProvider;
@@ -46,7 +47,7 @@ const MAX_HOPS = 2;
  * Code is mostly a copy from https://github.com/Uniswap/uniswap-interface/blob/0190b5a408c13016c87e1030ffc59326c085f389/src/hooks/useBestV3Trade.ts#L22-L23
  * with React/Redux hooks removed, and refactoring to allow re-use in other routers.
  */
-export class V3InterfaceRouter implements IRouter<void> {
+export class LegacyRouter implements IRouter<void> {
   protected log: Logger;
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
@@ -61,7 +62,7 @@ export class V3InterfaceRouter implements IRouter<void> {
     quoteProvider,
     tokenProvider,
     log,
-  }: V3InterfaceRouterParams) {
+  }: LegacyRouterParams) {
     this.chainId = chainId;
     this.multicall2Provider = multicall2Provider;
     this.poolProvider = poolProvider;
@@ -90,8 +91,8 @@ export class V3InterfaceRouter implements IRouter<void> {
     }
 
     return {
-      quote: routeQuote.amount,
-      quoteGasAdjusted: routeQuote.amount,
+      quote: routeQuote.quote,
+      quoteGasAdjusted: routeQuote.quote,
       routeAmounts: [routeQuote],
       estimatedGasUsed: BigNumber.from(0),
       gasPriceWei: BigNumber.from(0),
@@ -126,8 +127,8 @@ export class V3InterfaceRouter implements IRouter<void> {
     }
 
     return {
-      quote: routeQuote.amount,
-      quoteGasAdjusted: routeQuote.amount,
+      quote: routeQuote.quote,
+      quoteGasAdjusted: routeQuote.quote,
       routeAmounts: [routeQuote],
       estimatedGasUsed: BigNumber.from(0),
       gasPriceWei: BigNumber.from(0),
@@ -149,6 +150,14 @@ export class V3InterfaceRouter implements IRouter<void> {
   ): Promise<RouteAmount | null> {
     const { routesWithQuotes: quotesRaw } =
       await this.quoteProvider.getQuotesManyExactIn([amountIn], routes);
+
+    const quotes100Percent = _.map(
+      quotesRaw,
+      ([route, quotes]: RouteWithQuotes) =>
+        `${routeToString(route)} : ${quotes[0]?.quote?.toString()}`
+    );
+    this.log.info({ quotes100Percent }, '100% Quotes');
+
     const bestQuote = await this.getBestQuote(
       routes,
       quotesRaw,
@@ -224,7 +233,10 @@ export class V3InterfaceRouter implements IRouter<void> {
         quote: CurrencyAmount.fromRawAmount(quoteToken, quote.toString()),
         amount,
         percentage: 100,
-        quoteGasAdjusted: CurrencyAmount.fromRawAmount(quoteToken, 0),
+        quoteGasAdjusted: CurrencyAmount.fromRawAmount(
+          quoteToken,
+          quote.toString()
+        ),
         estimatedGasUsed: BigNumber.from(0),
       };
     });
@@ -261,7 +273,7 @@ export class V3InterfaceRouter implements IRouter<void> {
       MAX_HOPS
     );
 
-    this.log.debug(
+    this.log.info(
       { routes: _.map(routes, routeToString) },
       `Computed ${routes.length} possible routes.`
     );
@@ -351,7 +363,7 @@ export class V3InterfaceRouter implements IRouter<void> {
         : pool.token0;
       if (outputToken.equals(tokenOut)) {
         allPaths.push(
-          new RouteSOR([...currentPath, pool], startTokenIn, tokenIn)
+          new RouteSOR([...currentPath, pool], startTokenIn, tokenOut)
         );
       } else if (maxHops > 1) {
         this.computeAllRoutes(
@@ -378,8 +390,12 @@ export class V3InterfaceRouter implements IRouter<void> {
     swapConfig: SwapConfig
   ): MethodParameters {
     const { route, amount, quote } = routeAmount;
+
     let trade: Trade<Currency, Currency, TradeType>;
 
+    // The route, amount and quote are all in terms of wrapped tokens.
+    // When constructing the Trade object the inputAmount/outputAmount must
+    // use native currencies. This is so that the Trade knows to wrap/unwrap.
     if (tradeType == TradeType.EXACT_INPUT) {
       const amountCurrency = CurrencyAmount.fromFractionalAmount(
         tokenInCurrency,
@@ -392,8 +408,14 @@ export class V3InterfaceRouter implements IRouter<void> {
         quote.denominator
       );
 
+      const routeCurrency = new Route(
+        route.pools,
+        amountCurrency.currency,
+        quoteCurrency.currency
+      );
+
       trade = Trade.createUncheckedTrade({
-        route,
+        route: routeCurrency,
         tradeType: TradeType.EXACT_INPUT,
         inputAmount: amountCurrency,
         outputAmount: quoteCurrency,
@@ -411,8 +433,14 @@ export class V3InterfaceRouter implements IRouter<void> {
         amount.denominator
       );
 
+      const routeCurrency = new Route(
+        route.pools,
+        quoteCurrency.currency,
+        amountCurrency.currency
+      );
+
       trade = Trade.createUncheckedTrade({
-        route,
+        route: routeCurrency,
         tradeType: TradeType.EXACT_OUTPUT,
         inputAmount: quoteCurrency,
         outputAmount: amountCurrency,

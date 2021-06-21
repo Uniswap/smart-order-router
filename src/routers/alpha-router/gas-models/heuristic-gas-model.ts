@@ -73,11 +73,12 @@ export class HeuristicGasModelFactory extends GasModelFactory {
         totalGasCostWei.toString()
       );
 
-      let gasCostInTermsOfQuoteToken: CurrencyAmount = totalGasCostCurrencyAmount;
+      let gasCostInTermsOfQuoteToken: CurrencyAmount =
+        totalGasCostCurrencyAmount;
 
-      // If the quote token is not WETH, we convert the gas cost (eth) to be in terms of the quote token.
+      // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
       // We do this by getting the highest liquidity <token>/ETH pool.
-      if (token.symbol !== 'WETH') {
+      if (token.symbol !== 'WETH' && token.symbol !== 'WETH9') {
         const ethPool = this.getHighestLiquidityEthPool(
           chainId,
           token,

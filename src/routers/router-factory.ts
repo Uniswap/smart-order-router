@@ -7,15 +7,15 @@ import { QuoteProvider } from '../providers/quote-provider';
 import { SubgraphProvider } from '../providers/subgraph-provider';
 import { TokenProvider } from '../providers/token-provider';
 import { ChainId } from '../util/chains';
-import { DefaultRouter } from './default-router/default-router';
-import { HeuristicGasModelFactory } from './default-router/gas-models/heuristic-gas-model';
+import { AlphaRouter } from './alpha-router/alpha-router';
+import { HeuristicGasModelFactory } from './alpha-router/gas-models/heuristic-gas-model';
+import { LegacyRouter } from './legacy-router/legacy-router';
 import { MetricLogger } from './metric';
 import { IRouter } from './router';
-import { V3InterfaceRouter } from './v3-interface-router/v3-interface-router';
 
 export enum RouterId {
-  V3Interface = 'V3Interface',
-  Default = 'Default',
+  Legacy = 'Legacy',
+  Alpha = 'Alpha',
 }
 
 export const ROUTER_IDS_LIST = Object.values(RouterId) as string[];
@@ -31,8 +31,8 @@ export const RouterFactory = (
   const multicall2Provider = new Multicall2Provider(provider, log);
 
   switch (routerStr) {
-    case RouterId.Default:
-      return new DefaultRouter({
+    case RouterId.Alpha:
+      return new AlphaRouter({
         chainId,
         subgraphProvider: new SubgraphProvider(log),
         multicall2Provider: new Multicall2Provider(provider, log),
@@ -44,8 +44,8 @@ export const RouterFactory = (
         metricLogger,
         log,
       });
-    case RouterId.V3Interface:
-      return new V3InterfaceRouter({
+    case RouterId.Legacy:
+      return new LegacyRouter({
         chainId,
         multicall2Provider,
         poolProvider: new PoolProvider(multicall2Provider, log),

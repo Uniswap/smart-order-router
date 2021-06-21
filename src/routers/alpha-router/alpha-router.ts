@@ -1,8 +1,9 @@
-import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
+import { Currency, Ether, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import {
   FeeAmount,
   MethodParameters,
   Pool,
+  Route,
   SwapRouter,
   Trade,
 } from '@uniswap/v3-sdk';
@@ -37,7 +38,7 @@ import {
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { GasModel, GasModelFactory } from './gas-models/gas-model';
 
-export type DefaultRouterParams = {
+export type AlphaRouterParams = {
   chainId: ChainId;
   multicall2Provider: Multicall2Provider;
   subgraphProvider: ISubgraphProvider;
@@ -50,8 +51,9 @@ export type DefaultRouterParams = {
   metricLogger: IMetricLogger;
 };
 
-export type DefaultRouterConfig = {
+export type AlphaRouterConfig = {
   topN: number;
+  topNTokenInOut: number;
   topNSecondHop: number;
   maxSwapsPerPath: number;
   maxSplits: number;
@@ -59,16 +61,27 @@ export type DefaultRouterConfig = {
   multicallChunkSize: number;
 };
 
-export const DEFAULT_CONFIG: DefaultRouterConfig = {
-  topN: 7,
-  topNSecondHop: 1,
+export const DEFAULT_CONFIG: AlphaRouterConfig = {
+  topN: 4,
+  topNTokenInOut: 4,
+  topNSecondHop: 2,
   maxSwapsPerPath: 3,
   maxSplits: 3,
   distributionPercent: 5,
   multicallChunkSize: 50,
 };
 
-export class DefaultRouter implements IRouter<DefaultRouterConfig> {
+type PoolsBySelection = {
+  top2DirectSwapPool: SubgraphPool[];
+  top2EthQuoteTokenPool: SubgraphPool[];
+  topByTVL: SubgraphPool[];
+  topByTVLUsingTokenIn: SubgraphPool[];
+  topByTVLUsingTokenOut: SubgraphPool[];
+  topByTVLUsingTokenInSecondHops: SubgraphPool[];
+  topByTVLUsingTokenOutSecondHops: SubgraphPool[];
+};
+
+export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   protected log: Logger;
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
@@ -91,7 +104,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     gasModelFactory,
     log,
     metricLogger,
-  }: DefaultRouterParams) {
+  }: AlphaRouterParams) {
     this.chainId = chainId;
     this.multicall2Provider = multicall2Provider;
     this.poolProvider = poolProvider;
@@ -114,7 +127,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
-    const poolAccessor = await this.getPoolsToConsider(
+    const { poolAccessor, poolsBySelection } = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
       TradeType.EXACT_INPUT,
@@ -140,7 +153,6 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     );
 
     const { maxSwapsPerPath, multicallChunkSize } = routingConfig;
-
     const routes = this.computeAllRoutes(
       tokenIn,
       tokenOut,
@@ -162,6 +174,14 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       'QuotesLoad',
       Date.now() - beforeQuotes,
       MetricLoggerUnit.Milliseconds
+    );
+
+    this.metricLogger.putMetric(
+      'QuotesFetched',
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum(),
+      MetricLoggerUnit.Count
     );
 
     const beforeBestSwap = Date.now();
@@ -195,6 +215,8 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
+    this.emitPoolSelectionMetrics(swapRouteRaw, poolsBySelection);
+
     return {
       quote,
       quoteGasAdjusted,
@@ -216,7 +238,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
-    const poolAccessor = await this.getPoolsToConsider(
+    const { poolAccessor, poolsBySelection } = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
       TradeType.EXACT_INPUT,
@@ -281,6 +303,8 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       swapConfig
     );
 
+    this.emitPoolSelectionMetrics(swapRouteRaw, poolsBySelection);
+
     return {
       quote,
       quoteGasAdjusted,
@@ -298,7 +322,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     quoteToken: Token,
     routeType: TradeType,
     gasModel: GasModel,
-    routingConfig: DefaultRouterConfig
+    routingConfig: AlphaRouterConfig
   ): {
     quote: CurrencyAmount;
     quoteGasAdjusted: CurrencyAmount;
@@ -385,10 +409,11 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
         routes: _.map(swapRoute.routeAmounts, (routeAmount) =>
           routeAmountToString(routeAmount)
         ),
+        numSplits: swapRoute.routeAmounts.length,
         quote: swapRoute.quote.toFixed(2),
         quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(2),
       },
-      'Found best swap route.'
+      `Found best swap route. ${swapRoute.routeAmounts.length} split.`
     );
 
     return swapRoute;
@@ -399,7 +424,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
     percents: number[],
     by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
-    routingConfig: DefaultRouterConfig
+    routingConfig: AlphaRouterConfig
   ):
     | {
         quote: CurrencyAmount;
@@ -513,7 +538,21 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
         );
       }
 
-      if (splits == 3) {
+      // If we didn't find a better route with 2 splits, we won't find one with 3 splits.
+      // Only continue if we managed to find a better route using 2 splits.
+      if (splits == 3 && bestSwap.length < 2) {
+        this.log.info(
+          'Did not improve on route with 2 splits. Not checking 3 splits.'
+        );
+        const split3Now = Date.now();
+        this.metricLogger.putMetric(
+          'Split3Done',
+          Date.now() - split3Now,
+          MetricLoggerUnit.Milliseconds
+        );
+      }
+
+      if (splits == 3 && bestSwap.length == 2) {
         const split3Now = Date.now();
         for (let i = 0; i < percents.length; i++) {
           const percentA = percents[i]!;
@@ -636,7 +675,7 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
 
   private getAmountDistribution(
     amount: CurrencyAmount,
-    routingConfig: DefaultRouterConfig
+    routingConfig: AlphaRouterConfig
   ): [number[], CurrencyAmount[]] {
     const { distributionPercent } = routingConfig;
     let percents = [];
@@ -654,9 +693,22 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     tokenIn: Token,
     tokenOut: Token,
     routeType: TradeType,
-    routingConfig: DefaultRouterConfig
-  ): Promise<PoolAccessor> {
-    const { topN, topNSecondHop } = routingConfig;
+    routingConfig: AlphaRouterConfig
+  ): Promise<{
+    poolAccessor: PoolAccessor;
+    poolsBySelection: {
+      top2DirectSwapPool: SubgraphPool[];
+      top2EthQuoteTokenPool: SubgraphPool[];
+      topByTVL: SubgraphPool[];
+      topByTVLUsingTokenIn: SubgraphPool[];
+      topByTVLUsingTokenOut: SubgraphPool[];
+      topByTVLUsingTokenInSecondHops: SubgraphPool[];
+      topByTVLUsingTokenOutSecondHops: SubgraphPool[];
+    };
+  }> {
+    const { topN, topNTokenInOut, topNSecondHop } = routingConfig;
+    const tokenInAddress = tokenIn.address.toLowerCase();
+    const tokenOutAddress = tokenOut.address.toLowerCase();
 
     const beforeSubgraphPools = Date.now();
 
@@ -676,35 +728,52 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
           this.tokenProvider.tokenExists(this.chainId, pool.token1.symbol)
         );
       })
-      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedETH)
+      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
       .value();
+
+    const poolAddressesSoFar = new Set<string>();
+    const addToAddressSet = (pools: SubgraphPool[]) => {
+      _(pools)
+        .map((pool) => pool.id)
+        .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
+    };
 
     const top2DirectSwapPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
         return (
-          (subgraphPool.token0.symbol == tokenIn.symbol &&
-            subgraphPool.token1.symbol == tokenOut.symbol) ||
-          (subgraphPool.token1.symbol == tokenIn.symbol &&
-            subgraphPool.token0.symbol == tokenOut.symbol)
+          !poolAddressesSoFar.has(subgraphPool.id) &&
+          ((subgraphPool.token0.id == tokenInAddress &&
+            subgraphPool.token1.id == tokenOutAddress) ||
+            (subgraphPool.token1.id == tokenInAddress &&
+              subgraphPool.token0.id == tokenOutAddress))
         );
       })
       .slice(0, 2)
       .value();
 
-    const top2EthPool = _(subgraphPoolsSorted)
+    addToAddressSet(top2DirectSwapPool);
+
+    const wethAddress = Ether.onChain(
+      this.chainId
+    ).wrapped.address.toLowerCase();
+
+    // If we've already added the top 2 eth pools for the quote token
+    // no need to add a third so we don't check the seen address set.
+    // Main reason we need this is for gas estimates
+    const top2EthQuoteTokenPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return (
-            (subgraphPool.token0.symbol == 'WETH' &&
-              subgraphPool.token1.symbol == tokenOut.symbol) ||
-            (subgraphPool.token1.symbol == 'WETH' &&
-              subgraphPool.token0.symbol == tokenOut.symbol)
+            (subgraphPool.token0.id == wethAddress &&
+              subgraphPool.token1.id == tokenOutAddress) ||
+            (subgraphPool.token1.id == wethAddress &&
+              subgraphPool.token0.id == tokenOutAddress)
           );
         } else {
           return (
-            (subgraphPool.token0.symbol == 'WETH' &&
+            (subgraphPool.token0.symbol == wethAddress &&
               subgraphPool.token1.symbol == tokenIn.symbol) ||
-            (subgraphPool.token1.symbol == 'WETH' &&
+            (subgraphPool.token1.symbol == wethAddress &&
               subgraphPool.token0.symbol == tokenIn.symbol)
           );
         }
@@ -712,86 +781,106 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       .slice(0, 2)
       .value();
 
+    addToAddressSet(top2EthQuoteTokenPool);
+
     const topByTVL = _(subgraphPoolsSorted).slice(0, topN).value();
 
+    addToAddressSet(topByTVL);
+
     const topByTVLUsingTokenIn = _(subgraphPoolsSorted)
-      .filter((tokenListPool) => {
+      .filter((subgraphPool) => {
         return (
-          tokenListPool.token0.symbol == tokenIn.symbol ||
-          tokenListPool.token1.symbol == tokenIn.symbol
+          !poolAddressesSoFar.has(subgraphPool.id) &&
+          (subgraphPool.token0.id == tokenInAddress ||
+            subgraphPool.token1.id == tokenInAddress)
         );
       })
-      .slice(0, topN)
+      .slice(0, topNTokenInOut)
       .value();
 
-    const topByTVLUsingTokenInSecondHops = _(topByTVLUsingTokenIn)
-      .map((subgraphPool) => {
-        return tokenIn.symbol == subgraphPool.token0.symbol
-          ? subgraphPool.token1.symbol
-          : subgraphPool.token0.symbol;
-      })
-      .flatMap((secondHopSymbol: string) => {
-        return _(subgraphPoolsSorted)
-          .filter((subgraphPool) => {
-            return (
-              subgraphPool.token0.symbol == secondHopSymbol ||
-              subgraphPool.token1.symbol == secondHopSymbol
-            );
-          })
-          .slice(0, topNSecondHop)
-          .value();
-      })
-      .slice(0, topNSecondHop)
-      .value();
+    addToAddressSet(topByTVLUsingTokenIn);
 
     const topByTVLUsingTokenOut = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
         return (
-          subgraphPool.token0.symbol == tokenOut.symbol ||
-          subgraphPool.token1.symbol == tokenOut.symbol
+          !poolAddressesSoFar.has(subgraphPool.id) &&
+          (subgraphPool.token0.id == tokenOutAddress ||
+            subgraphPool.token1.id == tokenOutAddress)
         );
       })
-      .slice(0, topN)
+      .slice(0, topNTokenInOut)
       .value();
 
-    const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenIn)
+    addToAddressSet(topByTVLUsingTokenOut);
+
+    const topByTVLUsingTokenInSecondHops = _(topByTVLUsingTokenIn)
       .map((subgraphPool) => {
-        return tokenOut.symbol == subgraphPool.token0.symbol
-          ? subgraphPool.token1.symbol
-          : subgraphPool.token0.symbol;
+        return tokenInAddress == subgraphPool.token0.id
+          ? subgraphPool.token1.id
+          : subgraphPool.token0.id;
       })
-      .flatMap((secondHopSymbol: string) => {
+      .flatMap((secondHopId: string) => {
         return _(subgraphPoolsSorted)
           .filter((subgraphPool) => {
             return (
-              subgraphPool.token0.symbol == secondHopSymbol ||
-              subgraphPool.token1.symbol == secondHopSymbol
+              !poolAddressesSoFar.has(subgraphPool.id) &&
+              (subgraphPool.token0.id == secondHopId ||
+                subgraphPool.token1.id == secondHopId)
             );
           })
           .slice(0, topNSecondHop)
           .value();
       })
+      .uniqBy((pool) => pool.id)
+      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
       .slice(0, topNSecondHop)
       .value();
 
+    addToAddressSet(topByTVLUsingTokenInSecondHops);
+
+    const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenIn)
+      .map((subgraphPool) => {
+        return tokenOutAddress == subgraphPool.token0.id
+          ? subgraphPool.token1.id
+          : subgraphPool.token0.id;
+      })
+      .flatMap((secondHopId: string) => {
+        return _(subgraphPoolsSorted)
+          .filter((subgraphPool) => {
+            return (
+              !poolAddressesSoFar.has(subgraphPool.id) &&
+              (subgraphPool.token0.id == secondHopId ||
+                subgraphPool.token1.id == secondHopId)
+            );
+          })
+          .slice(0, topNSecondHop)
+          .value();
+      })
+      .uniqBy((pool) => pool.id)
+      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+      .slice(0, topNSecondHop)
+      .value();
+
+    addToAddressSet(topByTVLUsingTokenOutSecondHops);
+
     this.log.info(
       {
+        topByTVL: topByTVL.map(printSubgraphPool),
         topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printSubgraphPool),
         topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printSubgraphPool),
-        topByTVL: topByTVL.map(printSubgraphPool),
         topByTVLUsingTokenInSecondHops:
           topByTVLUsingTokenInSecondHops.map(printSubgraphPool),
         topByTVLUsingTokenOutSecondHops:
           topByTVLUsingTokenOutSecondHops.map(printSubgraphPool),
         top2DirectSwap: top2DirectSwapPool.map(printSubgraphPool),
-        top2EthPool: top2EthPool.map(printSubgraphPool),
+        top2EthQuotePool: top2EthQuoteTokenPool.map(printSubgraphPool),
       },
       `Pools for consideration using top ${topN} first hop ${topNSecondHop} second hop`
     );
 
     const subgraphPools = _([
       ...top2DirectSwapPool,
-      ...top2EthPool,
+      ...top2EthQuoteTokenPool,
       ...topByTVL,
       ...topByTVLUsingTokenIn,
       ...topByTVLUsingTokenOut,
@@ -829,7 +918,25 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
-    return poolAccessor;
+    const poolsBySelection: {
+      top2DirectSwapPool: SubgraphPool[];
+      top2EthQuoteTokenPool: SubgraphPool[];
+      topByTVL: SubgraphPool[];
+      topByTVLUsingTokenIn: SubgraphPool[];
+      topByTVLUsingTokenOut: SubgraphPool[];
+      topByTVLUsingTokenInSecondHops: SubgraphPool[];
+      topByTVLUsingTokenOutSecondHops: SubgraphPool[];
+    } = {
+      top2DirectSwapPool,
+      top2EthQuoteTokenPool,
+      topByTVL,
+      topByTVLUsingTokenIn,
+      topByTVLUsingTokenOut,
+      topByTVLUsingTokenInSecondHops,
+      topByTVLUsingTokenOutSecondHops,
+    };
+
+    return { poolAccessor, poolsBySelection };
   }
 
   private computeAllRoutes(
@@ -929,8 +1036,14 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
             quote.denominator
           );
 
+          const routeCurrency = new Route(
+            route.pools,
+            amountCurrency.currency,
+            quoteCurrency.currency
+          );
+
           return Trade.createUncheckedTrade({
-            route,
+            route: routeCurrency,
             tradeType: TradeType.EXACT_INPUT,
             inputAmount: amountCurrency,
             outputAmount: quoteCurrency,
@@ -948,8 +1061,14 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
             amount.denominator
           );
 
+          const routeCurrency = new Route(
+            route.pools,
+            quoteCurrency.currency,
+            amountCurrency.currency
+          );
+
           return Trade.createUncheckedTrade({
-            route,
+            route: routeCurrency,
             tradeType: TradeType.EXACT_OUTPUT,
             inputAmount: quoteCurrency,
             outputAmount: amountCurrency,
@@ -987,5 +1106,46 @@ export class DefaultRouter implements IRouter<DefaultRouterConfig> {
     });
 
     return methodParameters;
+  }
+
+  private emitPoolSelectionMetrics(
+    swapRouteRaw: {
+      quote: CurrencyAmount;
+      quoteGasAdjusted: CurrencyAmount;
+      routeAmounts: RouteAmount[];
+      estimatedGasUsed: BigNumber;
+    },
+    poolsBySelection: PoolsBySelection
+  ) {
+    const { routeAmounts } = swapRouteRaw;
+    const poolAddressesUsed = new Set<string>();
+
+    _(routeAmounts)
+      .flatMap((routeAmount) => {
+        const {
+          route: { pools },
+        } = routeAmount;
+        return _.map(pools, (pool) =>
+          Pool.getAddress(pool.token0, pool.token1, pool.fee).toLowerCase()
+        );
+      })
+      .forEach((address: string) => {
+        poolAddressesUsed.add(address);
+      });
+
+    _.forIn(
+      poolsBySelection,
+      (pools: SubgraphPool[], topNSelection: string) => {
+        const topNUsed =
+          _.findLastIndex(pools, (pool) =>
+            poolAddressesUsed.has(pool.id.toLowerCase())
+          ) + 1;
+        this.metricLogger.putMetric(
+          _.capitalize(topNSelection),
+          topNUsed,
+          MetricLoggerUnit.Count
+        );
+      }
+    );
   }
 }

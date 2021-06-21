@@ -1,10 +1,9 @@
-import { BigNumber, providers } from 'ethers';
-import { Multicall2, Multicall2__factory } from '../types/other';
-
-import _ from 'lodash';
-import { MULTICALL2_ADDRESS } from '../util/addresses';
 import { Interface } from '@ethersproject/abi';
 import Logger from 'bunyan';
+import { BigNumber, providers } from 'ethers';
+import _ from 'lodash';
+import { Multicall2, Multicall2__factory } from '../types/other';
+import { MULTICALL2_ADDRESS } from '../util/addresses';
 
 export type CallSameFunctionOnMultipleContractsParams<TFunctionParams> = {
   addresses: string[];
@@ -51,12 +50,8 @@ export class Multicall2Provider {
     blockNumber: BigNumber;
     results: Result<TReturn>[];
   }> {
-    const {
-      addresses,
-      contractInterface,
-      functionName,
-      functionParams,
-    } = params;
+    const { addresses, contractInterface, functionName, functionParams } =
+      params;
 
     const fragment = contractInterface.getFunction(functionName);
     const callData = contractInterface.encodeFunctionData(
@@ -76,13 +71,11 @@ export class Multicall2Provider {
       `About to multicall2 tryBlockAndAggregate for ${functionName} across ${addresses.length} addresses`
     );
 
-    const {
-      blockNumber,
-      returnData: aggregateResults,
-    } = await this.multicallContract.callStatic.tryBlockAndAggregate(
-      false,
-      calls
-    );
+    const { blockNumber, returnData: aggregateResults } =
+      await this.multicallContract.callStatic.tryBlockAndAggregate(
+        false,
+        calls
+      );
 
     const results: Result<TReturn>[] = [];
 
@@ -104,10 +97,10 @@ export class Multicall2Provider {
 
       results.push({
         success: true,
-        result: (contractInterface.decodeFunctionResult(
+        result: contractInterface.decodeFunctionResult(
           fragment,
           returnData
-        ) as unknown) as TReturn,
+        ) as unknown as TReturn,
       });
     }
 
@@ -148,13 +141,11 @@ export class Multicall2Provider {
       `About to multicall2 tryBlockAndAggregate for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
     );
 
-    const {
-      blockNumber,
-      returnData: aggregateResults,
-    } = await this.multicallContract.callStatic.tryBlockAndAggregate(
-      false,
-      calls
-    );
+    const { blockNumber, returnData: aggregateResults } =
+      await this.multicallContract.callStatic.tryBlockAndAggregate(
+        false,
+        calls,
+      );
 
     const results: Result<TReturn>[] = [];
 
@@ -176,10 +167,10 @@ export class Multicall2Provider {
 
       results.push({
         success: true,
-        result: (contractInterface.decodeFunctionResult(
+        result: contractInterface.decodeFunctionResult(
           fragment,
           returnData
-        ) as unknown) as TReturn,
+        ) as unknown as TReturn,
       });
     }
 

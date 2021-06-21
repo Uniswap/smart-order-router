@@ -1,12 +1,12 @@
 import { Token } from '@uniswap/sdk-core';
-import { TokenInfo, TokenList, schema } from '@uniswap/token-lists';
-import _ from 'lodash';
-import Logger from 'bunyan';
+import { schema, TokenInfo, TokenList } from '@uniswap/token-lists';
 import Ajv from 'ajv';
 import axios from 'axios';
-import { ChainId } from '../util/chains';
-import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
+import Logger from 'bunyan';
+import _ from 'lodash';
 import NodeCache from 'node-cache';
+import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
+import { ChainId } from '../util/chains';
 
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
@@ -115,13 +115,14 @@ export class TokenProvider {
   ): Token | undefined {
     let symbol = _symbol;
 
+    // We consider ETH as a regular ERC20 Token throughout this package. We don't use the NativeCurrency object from the sdk.
+    // When we build the calldata for swapping we insert wrapping/unwrapping as needed.
     if (_symbol == 'ETH') {
       symbol = 'WETH';
     }
 
-    const tokenInfo: TokenInfo | undefined = this.chainSymbolToTokenInfo[
-      chainId
-    ][symbol];
+    const tokenInfo: TokenInfo | undefined =
+      this.chainSymbolToTokenInfo[chainId][symbol];
 
     if (!tokenInfo) {
       this.log.trace(
@@ -133,7 +134,7 @@ export class TokenProvider {
 
     return new Token(
       chainId,
-      tokenInfo.address,
+      tokenInfo.address.toLowerCase(),
       tokenInfo.decimals,
       tokenInfo.symbol,
       tokenInfo.name

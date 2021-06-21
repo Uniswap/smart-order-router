@@ -1,4 +1,5 @@
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
+import retry from 'async-retry';
 import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
@@ -18,7 +19,10 @@ export type AmountQuote = {
   gasEstimate: BigNumber | null;
 };
 
+export class BlockConflictError extends Error {}
+
 const DEFAULT_CHUNK = 20;
+const FETCH_QUOTES_RETRIES = 2;
 
 export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
 export type QuoteParams = {
@@ -54,13 +58,15 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
       `About to get quotes for ${routes.length} routes, with ${amountIns.length} amounts per route.`
     );
 
-    const {
-      results: quoteResults,
-      blockNumber,
-    } = await this.getQuotesManyExactInsData(
-      amountIns,
-      routes,
-      additionalParams.multicallChunk
+    const { results: quoteResults, blockNumber } = await retry(
+      async () => {
+        return this.getQuotesManyExactInsData(
+          amountIns,
+          routes,
+          additionalParams.multicallChunk
+        );
+      },
+      { retries: FETCH_QUOTES_RETRIES }
     );
 
     const routesQuotes = this.processQuoteResults(
@@ -82,13 +88,15 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
       `About to get quotes for ${routes.length} routes, with ${amountOuts.length} amounts per route.`
     );
 
-    const {
-      results: quoteResults,
-      blockNumber,
-    } = await this.getQuotesManyExactOutsData(
-      amountOuts,
-      routes,
-      additionalParams.multicallChunk
+    const { results: quoteResults, blockNumber } = await retry(
+      async () => {
+        return this.getQuotesManyExactOutsData(
+          amountOuts,
+          routes,
+          additionalParams.multicallChunk
+        );
+      },
+      { retries: FETCH_QUOTES_RETRIES }
     );
 
     const routesQuotes = this.processQuoteResults(
@@ -269,7 +277,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
         { blocks: _.uniq(_.map(blockNumbers, (b) => b.toString())) },
         'Quotes returned from different blocks.'
       );
-      throw new Error('Quotes returned from different blocks.');
+      throw new BlockConflictError('Quotes returned from different blocks.');
     }
   }
 }

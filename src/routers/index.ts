@@ -1,5 +1,5 @@
 export * from './router';
-export * from './default-router';
-export * from './v3-interface-router';
+export * from './alpha-router';
+export * from './legacy-router';
 export * from './router-factory';
 export * from './metric';
