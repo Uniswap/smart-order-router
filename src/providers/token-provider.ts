@@ -1,6 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
-import { schema, TokenInfo, TokenList } from '@uniswap/token-lists';
-import Ajv from 'ajv';
+import { TokenInfo, TokenList } from '@uniswap/token-lists';
 import axios from 'axios';
 import Logger from 'bunyan';
 import _ from 'lodash';
@@ -11,7 +10,7 @@ import { ChainId } from '../util/chains';
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
 type TokenInfoMapping = { [chainId in ChainId]: SymbolToTokenInfo };
-const tokenListValidator = new Ajv().compile(schema);
+// const tokenListValidator = new Ajv().compile(schema);
 
 const TOKEN_LIST_CACHE = new NodeCache({ stdTTL: 600, useClones: false });
 export class TokenProvider {
@@ -21,9 +20,9 @@ export class TokenProvider {
   private tokenList: TokenList;
 
   constructor(tokenList: TokenList, log: Logger) {
-    if (!tokenListValidator(tokenList)) {
-      throw new Error('Token list failed validation.');
-    }
+    // if (!tokenListValidator(tokenList)) {
+    //   throw new Error('Token list failed validation.');
+    // }
     this.log = log;
     this.tokenList = tokenList;
 
