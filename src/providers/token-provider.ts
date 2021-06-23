@@ -93,8 +93,22 @@ export class TokenProvider {
     return new TokenProvider(tokenList, log);
   }
 
-  public static async fromTokenList(tokenList: TokenList, log: Logger) {
-    return new TokenProvider(tokenList, log);
+  public static async fromTokenList(
+    tokenList: TokenList,
+    log: Logger,
+    metricLogger: IMetricLogger
+  ) {
+    const now = Date.now();
+
+    const tokenProvider = new TokenProvider(tokenList, log);
+
+    metricLogger.putMetric(
+      'TokenListLoad',
+      Date.now() - now,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    return tokenProvider;
   }
 
   public getToken(chainId: ChainId, symbol: string): Token {
