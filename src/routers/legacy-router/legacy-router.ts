@@ -7,7 +7,6 @@ import {
   SwapRouter,
   Trade,
 } from '@uniswap/v3-sdk';
-import Logger from 'bunyan';
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
@@ -16,6 +15,7 @@ import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
 import { TokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
+import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
 import {
   IRouter,
@@ -36,7 +36,6 @@ export type LegacyRouterParams = {
   poolProvider: PoolProvider;
   quoteProvider: QuoteProvider;
   tokenProvider: TokenProvider;
-  log: Logger;
 };
 
 // Interface defaults to 2.
@@ -48,7 +47,6 @@ const MAX_HOPS = 2;
  * with React/Redux hooks removed, and refactoring to allow re-use in other routers.
  */
 export class LegacyRouter implements IRouter<void> {
-  protected log: Logger;
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
   protected poolProvider: PoolProvider;
@@ -61,14 +59,12 @@ export class LegacyRouter implements IRouter<void> {
     poolProvider,
     quoteProvider,
     tokenProvider,
-    log,
   }: LegacyRouterParams) {
     this.chainId = chainId;
     this.multicall2Provider = multicall2Provider;
     this.poolProvider = poolProvider;
     this.quoteProvider = quoteProvider;
     this.tokenProvider = tokenProvider;
-    this.log = log;
   }
 
   public async routeExactIn(
@@ -156,7 +152,7 @@ export class LegacyRouter implements IRouter<void> {
       ([route, quotes]: RouteWithQuotes) =>
         `${routeToString(route)} : ${quotes[0]?.quote?.toString()}`
     );
-    this.log.info({ quotes100Percent }, '100% Quotes');
+    log.info({ quotes100Percent }, '100% Quotes');
 
     const bestQuote = await this.getBestQuote(
       routes,
@@ -191,7 +187,7 @@ export class LegacyRouter implements IRouter<void> {
     quoteToken: Token,
     routeType: TradeType
   ): Promise<RouteAmount | null> {
-    this.log.debug(
+    log.debug(
       `Got ${
         _.filter(quotesRaw, ([_, quotes]) => !!quotes[0]).length
       } valid quotes from ${routes.length} possible routes.`
@@ -242,7 +238,7 @@ export class LegacyRouter implements IRouter<void> {
     });
 
     for (let rq of routeQuotes) {
-      this.log.debug(
+      log.debug(
         `Quote: ${rq.amount.toFixed(2)} Route: ${routeToString(rq.route)}`
       );
     }
@@ -273,7 +269,7 @@ export class LegacyRouter implements IRouter<void> {
       MAX_HOPS
     );
 
-    this.log.info(
+    log.info(
       { routes: _.map(routes, routeToString) },
       `Computed ${routes.length} possible routes.`
     );

@@ -7,10 +7,11 @@ import { QuoteProvider } from '../providers/quote-provider';
 import { SubgraphProvider } from '../providers/subgraph-provider';
 import { TokenProvider } from '../providers/token-provider';
 import { ChainId } from '../util/chains';
+import { setGlobalLogger } from '../util/log';
+import { MetricLogger, setGlobalMetric } from '../util/metric';
 import { AlphaRouter } from './alpha-router/alpha-router';
 import { HeuristicGasModelFactory } from './alpha-router/gas-models/heuristic-gas-model';
 import { LegacyRouter } from './legacy-router/legacy-router';
-import { MetricLogger } from './metric';
 import { IRouter } from './router';
 
 export enum RouterId {
@@ -27,31 +28,30 @@ export const RouterFactory = (
   tokenProvider: TokenProvider,
   log: Logger
 ): IRouter<any> => {
-  const metricLogger = new MetricLogger(log);
-  const multicall2Provider = new Multicall2Provider(provider, log);
+  const metricLogger = new MetricLogger();
+  setGlobalMetric(metricLogger);
+  setGlobalLogger(log);
+  const multicall2Provider = new Multicall2Provider(provider);
 
   switch (routerStr) {
     case RouterId.Alpha:
       return new AlphaRouter({
         chainId,
-        subgraphProvider: new SubgraphProvider(log),
-        multicall2Provider: new Multicall2Provider(provider, log),
-        poolProvider: new PoolProvider(multicall2Provider, log),
-        quoteProvider: new QuoteProvider(multicall2Provider, log),
-        gasPriceProvider: new ETHGasStationInfoProvider(log),
-        gasModelFactory: new HeuristicGasModelFactory(log),
+        subgraphProvider: new SubgraphProvider(),
+        multicall2Provider: new Multicall2Provider(provider),
+        poolProvider: new PoolProvider(multicall2Provider),
+        quoteProvider: new QuoteProvider(multicall2Provider),
+        gasPriceProvider: new ETHGasStationInfoProvider(),
+        gasModelFactory: new HeuristicGasModelFactory(),
         tokenProvider,
-        metricLogger,
-        log,
       });
     case RouterId.Legacy:
       return new LegacyRouter({
         chainId,
         multicall2Provider,
-        poolProvider: new PoolProvider(multicall2Provider, log),
-        quoteProvider: new QuoteProvider(multicall2Provider, log),
+        poolProvider: new PoolProvider(multicall2Provider),
+        quoteProvider: new QuoteProvider(multicall2Provider),
         tokenProvider,
-        log,
       });
 
     default:

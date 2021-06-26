@@ -1,11 +1,11 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
-import Logger from 'bunyan';
 import _ from 'lodash';
 import { PoolAccessor } from '../../../providers/pool-provider';
 import { TokenProvider } from '../../../providers/token-provider';
 import { CurrencyAmount } from '../../../util/amounts';
+import { log } from '../../../util/log';
 import { routeToString } from '../../../util/routes';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 import { GasModel, GasModelFactory } from './gas-model';
@@ -23,7 +23,7 @@ const COST_PER_UNINIT_TICK = BigNumber.from(0);
 const COST_PER_HOP = BigNumber.from(100000);
 
 export class HeuristicGasModelFactory extends GasModelFactory {
-  constructor(private log: Logger) {
+  constructor() {
     super();
   }
 
@@ -46,7 +46,7 @@ export class HeuristicGasModelFactory extends GasModelFactory {
       const tickGasUse = COST_PER_INIT_TICK.mul(totalInitializedTicksCrossed);
       const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
 
-      this.log.debug(
+      log.debug(
         {
           totalHops: totalHops.toString(),
           totalInitializedTicksCrossed: totalInitializedTicksCrossed.toString(),
@@ -123,7 +123,7 @@ export class HeuristicGasModelFactory extends GasModelFactory {
       .value();
 
     if (pools.length == 0) {
-      this.log.error(
+      log.error(
         `Could not find a WETH pool with ${token.symbol} for computing gas costs`
       );
       throw new Error(

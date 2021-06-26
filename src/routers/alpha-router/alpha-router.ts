@@ -7,7 +7,6 @@ import {
   SwapRouter,
   Trade,
 } from '@uniswap/v3-sdk';
-import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { GasPriceProvider } from '../../providers/gas-price-provider';
@@ -22,12 +21,13 @@ import {
 import { TokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount, parseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
+import { log } from '../../util/log';
+import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
   poolToString,
   routeAmountToString,
   routeToString,
 } from '../../util/routes';
-import { IMetricLogger, MetricLoggerUnit } from '../metric';
 import {
   IRouter,
   RouteAmount,
@@ -47,8 +47,6 @@ export type AlphaRouterParams = {
   tokenProvider: TokenProvider;
   gasPriceProvider: GasPriceProvider;
   gasModelFactory: GasModelFactory;
-  log: Logger;
-  metricLogger: IMetricLogger;
 };
 
 export type AlphaRouterConfig = {
@@ -82,7 +80,6 @@ type PoolsBySelection = {
 };
 
 export class AlphaRouter implements IRouter<AlphaRouterConfig> {
-  protected log: Logger;
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
   protected subgraphProvider: ISubgraphProvider;
@@ -91,7 +88,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   protected tokenProvider: TokenProvider;
   protected gasPriceProvider: GasPriceProvider;
   protected gasModelFactory: GasModelFactory;
-  protected metricLogger: IMetricLogger;
 
   constructor({
     chainId,
@@ -102,8 +98,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     subgraphProvider,
     gasPriceProvider,
     gasModelFactory,
-    log,
-    metricLogger,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.multicall2Provider = multicall2Provider;
@@ -113,8 +107,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     this.subgraphProvider = subgraphProvider;
     this.gasPriceProvider = gasPriceProvider;
     this.gasModelFactory = gasModelFactory;
-    this.log = log;
-    this.metricLogger = metricLogger;
   }
 
   public async routeExactIn(
@@ -138,7 +130,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     const beforeGas = Date.now();
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'GasPriceLoad',
       Date.now() - beforeGas,
       MetricLoggerUnit.Milliseconds
@@ -170,13 +162,13 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         multicallChunk: multicallChunkSize,
       });
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'QuotesLoad',
       Date.now() - beforeQuotes,
       MetricLoggerUnit.Milliseconds
     );
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'QuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
@@ -209,7 +201,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       swapConfig
     );
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'FindBestSwapRoute',
       Date.now() - beforeBestSwap,
       MetricLoggerUnit.Milliseconds
@@ -249,7 +241,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     const beforeGas = Date.now();
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'GasPriceLoad',
       Date.now() - beforeGas,
       MetricLoggerUnit.Milliseconds
@@ -330,7 +322,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     estimatedGasUsed: BigNumber;
   } | null {
     const now = Date.now();
-    this.log.info({ routingConfig }, 'Finding best swap');
+    log.info({ routingConfig }, 'Finding best swap');
     const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
     for (const routeWithQuote of routesWithQuotes) {
@@ -353,7 +345,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           !initializedTicksCrossedList ||
           !gasEstimate
         ) {
-          this.log.debug(
+          log.debug(
             {
               route: routeToString(route),
               amount: amount.toFixed(2),
@@ -379,14 +371,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           gasModel,
           quoteToken,
           tradeType: routeType,
-          log: this.log,
+          log: log,
         });
 
         percentToQuotes[percent]!.push(routeWithValidQuote);
       }
     }
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'BuildRouteWithValidQuoteObjects',
       Date.now() - now,
       MetricLoggerUnit.Milliseconds
@@ -404,7 +396,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       return null;
     }
 
-    this.log.info(
+    log.info(
       {
         routes: _.map(swapRoute.routeAmounts, (routeAmount) =>
           routeAmountToString(routeAmount)
@@ -446,7 +438,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       }
     );
 
-    this.log.debug({ percentToSortedQuotes }, 'Percentages to sorted quotes.');
+    log.debug({ percentToSortedQuotes }, 'Percentages to sorted quotes.');
 
     // Function that given a list of used routes for a current swap route candidate,
     // finds the first route in a list that does not re-use an already used pool.
@@ -482,7 +474,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     };
 
     if (!percentToSortedQuotes[100]) {
-      this.log.info(
+      log.info(
         { percentToSortedQuotes },
         'Did not find a valid route without any splits.'
       );
@@ -531,7 +523,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             bestSwap = [routeWithQuoteA, routeWithQuoteB];
           }
         }
-        this.metricLogger.putMetric(
+        metric.putMetric(
           'Split2Done',
           Date.now() - split2Now,
           MetricLoggerUnit.Milliseconds
@@ -541,11 +533,11 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       // If we didn't find a better route with 2 splits, we won't find one with 3 splits.
       // Only continue if we managed to find a better route using 2 splits.
       if (splits == 3 && bestSwap.length < 2) {
-        this.log.info(
+        log.info(
           'Did not improve on route with 2 splits. Not checking 3 splits.'
         );
         const split3Now = Date.now();
-        this.metricLogger.putMetric(
+        metric.putMetric(
           'Split3Done',
           Date.now() - split3Now,
           MetricLoggerUnit.Milliseconds
@@ -605,7 +597,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           }
         }
 
-        this.metricLogger.putMetric(
+        metric.putMetric(
           'Split3Done',
           Date.now() - split3Now,
           MetricLoggerUnit.Milliseconds
@@ -664,7 +656,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         routeAmountB.percentage - routeAmountA.percentage
     );
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'PostSplitDone',
       Date.now() - postSplitNow,
       MetricLoggerUnit.Milliseconds
@@ -714,7 +706,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const allPools = await this.subgraphProvider.getPools();
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'SubgraphPoolsLoad',
       Date.now() - beforeSubgraphPools,
       MetricLoggerUnit.Milliseconds
@@ -863,7 +855,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     addToAddressSet(topByTVLUsingTokenOutSecondHops);
 
-    this.log.info(
+    log.info(
       {
         topByTVL: topByTVL.map(printSubgraphPool),
         topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printSubgraphPool),
@@ -912,7 +904,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const poolAccessor = await this.poolProvider.getPools(tokenPairs);
 
-    this.metricLogger.putMetric(
+    metric.putMetric(
       'PoolsLoad',
       Date.now() - beforePoolsLoad,
       MetricLoggerUnit.Milliseconds
@@ -1001,7 +993,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     computeRoutes(tokenIn, tokenOut, [], poolsUsed);
 
-    this.log.info(
+    log.info(
       { pools: pools.map(poolToString), routes: routes.map(routeToString) },
       `Computed ${routes.length} possible routes.`
     );
@@ -1140,7 +1132,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           _.findLastIndex(pools, (pool) =>
             poolAddressesUsed.has(pool.id.toLowerCase())
           ) + 1;
-        this.metricLogger.putMetric(
+        metric.putMetric(
           _.capitalize(topNSelection),
           topNUsed,
           MetricLoggerUnit.Count

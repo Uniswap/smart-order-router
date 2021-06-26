@@ -1,9 +1,9 @@
 import { Interface } from '@ethersproject/abi';
-import Logger from 'bunyan';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import { Multicall2, Multicall2__factory } from '../types/other';
 import { MULTICALL2_ADDRESS } from '../util/addresses';
+import { log } from '../util/log';
 
 export type CallSameFunctionOnMultipleContractsParams<TFunctionParams> = {
   addresses: string[];
@@ -34,7 +34,7 @@ export type Result<TReturn> = SuccessResult<TReturn> | FailResult;
 export class Multicall2Provider {
   private multicallContract: Multicall2;
 
-  constructor(protected provider: providers.BaseProvider, private log: Logger) {
+  constructor(protected provider: providers.BaseProvider) {
     this.multicallContract = Multicall2__factory.connect(
       MULTICALL2_ADDRESS,
       this.provider
@@ -66,7 +66,7 @@ export class Multicall2Provider {
       };
     });
 
-    this.log.debug(
+    log.debug(
       { calls },
       `About to multicall2 tryBlockAndAggregate for ${functionName} across ${addresses.length} addresses`
     );
@@ -84,7 +84,7 @@ export class Multicall2Provider {
 
       // Return data "0x" is sometimes returned for invalid pools.
       if (!success || returnData.length <= 2) {
-        this.log.debug(
+        log.debug(
           { result: aggregateResults[i] },
           `Invalid result calling ${functionName} on address ${addresses[i]}`
         );
@@ -104,7 +104,7 @@ export class Multicall2Provider {
       });
     }
 
-    this.log.debug(
+    log.debug(
       { results },
       `Results for multicall2 using tryBlockAndAggregate on ${functionName} across ${addresses.length} addresses as of block ${blockNumber}`
     );
@@ -136,7 +136,7 @@ export class Multicall2Provider {
       };
     });
 
-    this.log.debug(
+    log.debug(
       { calls },
       `About to multicall2 tryBlockAndAggregate for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
     );
@@ -144,7 +144,7 @@ export class Multicall2Provider {
     const { blockNumber, returnData: aggregateResults } =
       await this.multicallContract.callStatic.tryBlockAndAggregate(
         false,
-        calls,
+        calls
       );
 
     const results: Result<TReturn>[] = [];
@@ -154,7 +154,7 @@ export class Multicall2Provider {
 
       // Return data "0x" is sometimes returned for invalid pools.
       if (!success || returnData.length <= 2) {
-        this.log.debug(
+        log.debug(
           { result: aggregateResults[i] },
           `Invalid result calling ${functionName} with params ${functionParams[i]}`
         );
@@ -174,7 +174,7 @@ export class Multicall2Provider {
       });
     }
 
-    this.log.debug(
+    log.debug(
       { results, functionName, address },
       `Results for multicall2 using tryBlockAndAggregate for ${functionName} at address ${address} with ${functionParams.length} different sets of params. Results as of block ${blockNumber}`
     );

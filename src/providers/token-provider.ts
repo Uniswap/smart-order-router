@@ -1,29 +1,26 @@
 import { Token } from '@uniswap/sdk-core';
 import { TokenInfo, TokenList } from '@uniswap/token-lists';
 import axios from 'axios';
-import Logger from 'bunyan';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { IMetricLogger, MetricLoggerUnit } from '../routers/metric';
 import { ChainId } from '../util/chains';
+import { log } from '../util/log';
+import { metric, MetricLoggerUnit } from '../util/metric';
 
 type SymbolToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
 type TokenInfoMapping = { [chainId in ChainId]: SymbolToTokenInfo };
-// const tokenListValidator = new Ajv().compile(schema);
 
 const TOKEN_LIST_CACHE = new NodeCache({ stdTTL: 600, useClones: false });
 export class TokenProvider {
-  protected log: Logger;
   private chainToTokenInfos: ChainToTokenInfoList;
   private chainSymbolToTokenInfo: TokenInfoMapping;
   private tokenList: TokenList;
 
-  constructor(tokenList: TokenList, log: Logger) {
+  constructor(tokenList: TokenList) {
     // if (!tokenListValidator(tokenList)) {
     //   throw new Error('Token list failed validation.');
     // }
-    this.log = log;
     this.tokenList = tokenList;
 
     this.chainToTokenInfos = _.reduce(
@@ -47,30 +44,26 @@ export class TokenProvider {
     );
   }
 
-  public static async fromTokenListURI(
-    tokenListURI: string,
-    log: Logger,
-    metricLogger: IMetricLogger
-  ) {
+  public static async fromTokenListURI(tokenListURI: string) {
     const now = Date.now();
 
     const cachedTokenList = TOKEN_LIST_CACHE.get<TokenList>(tokenListURI);
 
     if (cachedTokenList) {
-      metricLogger.putMetric(
+      metric.putMetric(
         'TokenListLoad',
         Date.now() - now,
         MetricLoggerUnit.Milliseconds
       );
 
-      return new TokenProvider(cachedTokenList, log);
+      return new TokenProvider(cachedTokenList);
     }
 
     log.info(`Getting tokenList from ${tokenListURI}.`);
     const response = await axios.get(tokenListURI);
     log.info(`Got tokenList from ${tokenListURI}.`);
 
-    metricLogger.putMetric(
+    metric.putMetric(
       'TokenListLoad',
       Date.now() - now,
       MetricLoggerUnit.Milliseconds
@@ -89,19 +82,15 @@ export class TokenProvider {
 
     TOKEN_LIST_CACHE.set<TokenList>(tokenListURI, tokenList);
 
-    return new TokenProvider(tokenList, log);
+    return new TokenProvider(tokenList);
   }
 
-  public static async fromTokenList(
-    tokenList: TokenList,
-    log: Logger,
-    metricLogger: IMetricLogger
-  ) {
+  public static async fromTokenList(tokenList: TokenList) {
     const now = Date.now();
 
-    const tokenProvider = new TokenProvider(tokenList, log);
+    const tokenProvider = new TokenProvider(tokenList);
 
-    metricLogger.putMetric(
+    metric.putMetric(
       'TokenListLoad',
       Date.now() - now,
       MetricLoggerUnit.Milliseconds
@@ -138,7 +127,7 @@ export class TokenProvider {
       this.chainSymbolToTokenInfo[chainId][symbol];
 
     if (!tokenInfo) {
-      this.log.trace(
+      log.trace(
         `Could not find ${symbol} in Token List: '${this.tokenList.name}'. Ignoring.`
       );
 

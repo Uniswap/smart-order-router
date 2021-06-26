@@ -1,12 +1,12 @@
 import { Token } from '@uniswap/sdk-core';
 import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
-import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
 import { poolToString } from '../util/routes';
 import { Multicall2Provider, Result } from './multicall2-provider';
+import { log } from '../util/log';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -36,7 +36,6 @@ export type PoolAccessor = {
 export class PoolProvider implements IPoolProvider {
   constructor(
     protected multicall2Provider: Multicall2Provider,
-    protected log: Logger
   ) {}
 
   public async getPools(
@@ -64,7 +63,7 @@ export class PoolProvider implements IPoolProvider {
       sortedPoolAddresses.push(poolAddress);
     }
 
-    this.log.debug(
+    log.debug(
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
     );
 
@@ -73,7 +72,7 @@ export class PoolProvider implements IPoolProvider {
       this.getPoolsData<[ILiquidity]>(sortedPoolAddresses, 'liquidity'),
     ]);
 
-    this.log.debug(
+    log.debug(
       { liquidityResults, slot0Results },
       `Got liquidity and slot0s for ${poolAddressSet.size} pools.`
     );
@@ -89,7 +88,7 @@ export class PoolProvider implements IPoolProvider {
         slot0Result.result.sqrtPriceX96.eq(0)
       ) {
         const [token0, token1, fee] = sortedTokenPairs[i]!;
-        this.log.info(
+        log.info(
           { slot0Result, liquidityResult },
           `Pool Invalid for ${token0.symbol}/${token1.symbol}/${
             fee / 10000
@@ -118,7 +117,7 @@ export class PoolProvider implements IPoolProvider {
 
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
-    this.log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
+    log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
 
     return {
       getPool: (
@@ -168,7 +167,7 @@ export class PoolProvider implements IPoolProvider {
       functionName: functionName,
     });
 
-    this.log.debug(`Pool data fetched as of block ${blockNumber}`);
+    log.debug(`Pool data fetched as of block ${blockNumber}`);
 
     return results;
   }

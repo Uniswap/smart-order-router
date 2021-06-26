@@ -1,12 +1,12 @@
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
-import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { RouteSOR } from '../routers/router';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
+import { log } from '../util/log';
 import { routeToString } from '../util/routes';
 import { Multicall2Provider, Result } from './multicall2-provider';
 
@@ -43,17 +43,14 @@ export interface IQuoteProvider<P> {
 }
 
 export class QuoteProvider implements IQuoteProvider<QuoteParams> {
-  constructor(
-    protected multicall2Provider: Multicall2Provider,
-    protected log: Logger
-  ) {}
+  constructor(protected multicall2Provider: Multicall2Provider) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: RouteSOR[],
     additionalParams = { multicallChunk: DEFAULT_CHUNK }
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
-    this.log.info(
+    log.info(
       { numAmounts: amountIns.length, numRoutes: routes.length },
       `About to get quotes for ${routes.length} routes, with ${amountIns.length} amounts per route.`
     );
@@ -83,7 +80,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
     routes: RouteSOR[],
     additionalParams = { multicallChunk: DEFAULT_CHUNK }
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
-    this.log.info(
+    log.info(
       { numAmounts: amountOuts.length, numRoutes: routes.length },
       `About to get quotes for ${routes.length} routes, with ${amountOuts.length} amounts per route.`
     );
@@ -130,7 +127,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
           if (!quoteResult.success) {
             const { returnData } = quoteResult;
 
-            this.log.debug(
+            log.debug(
               { result: returnData },
               `Unable to get quote for ${routeToString(
                 route
@@ -183,7 +180,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
     const inputsChunked = _.chunk(inputs, multicallChunk);
 
-    this.log.info(
+    log.info(
       {
         quotesToGet: inputs.length,
         numQuoteMulticalls: inputsChunked.length,
@@ -233,7 +230,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
     const inputsChunked = _.chunk(inputs, multicallChunk);
 
-    this.log.info(
+    log.info(
       {
         quotesToGet: inputs.length,
         numQuoteMulticalls: inputsChunked.length,
@@ -273,7 +270,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
     if (!allBlockNumbersSame) {
       // TODO: Retry.
-      this.log.error(
+      log.error(
         { blocks: _.uniq(_.map(blockNumbers, (b) => b.toString())) },
         'Quotes returned from different blocks.'
       );

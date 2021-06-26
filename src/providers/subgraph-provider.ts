@@ -1,6 +1,6 @@
-import Logger from 'bunyan';
 import { gql, request } from 'graphql-request';
 import _ from 'lodash';
+import { log } from '../util/log';
 
 export type SubgraphPool = {
   id: string;
@@ -47,7 +47,7 @@ export interface ISubgraphProvider {
   getPools(): Promise<SubgraphPool[]>;
 }
 export class SubgraphProvider implements ISubgraphProvider {
-  constructor(protected log: Logger) {}
+  constructor() {}
 
   public async getPools(): Promise<SubgraphPool[]> {
     const query = gql`
@@ -79,9 +79,7 @@ export class SubgraphProvider implements ISubgraphProvider {
     let pools: RawSubgraphPool[] = [];
     let poolsPage: RawSubgraphPool[] = [];
 
-    this.log.info(
-      `Getting pools from the subgraph with page size ${PAGE_SIZE}.`
-    );
+    log.info(`Getting pools from the subgraph with page size ${PAGE_SIZE}.`);
 
     do {
       const poolsResult = await request<{ pools: RawSubgraphPool[] }>(
@@ -99,7 +97,7 @@ export class SubgraphProvider implements ISubgraphProvider {
       skip = skip + PAGE_SIZE;
     } while (poolsPage.length > 0);
 
-    this.log.info(`Got ${pools.length} pools from the subgraph.`);
+    log.info(`Got ${pools.length} pools from the subgraph.`);
 
     const poolsSanitized = _.map(pools, (pool) => {
       return {

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
+import { log } from '../util/log';
 
 const gasStationUrl = `https://ethgasstation.info/api/ethgasAPI.json?api-key=${process.env.ETH_GAS_STATION_INFO_KEY}`;
 
@@ -29,17 +29,17 @@ export type ETHGasStationResponse = {
 };
 
 export class ETHGasStationInfoProvider extends GasPriceProvider {
-  constructor(protected log: Logger) {
+  constructor() {
     super();
   }
 
   public async getGasPrice(): Promise<GasPrice> {
-    this.log.info(`About to get gas prices from gas station ${gasStationUrl}`);
+    log.info(`About to get gas prices from gas station ${gasStationUrl}`);
     const response = await axios.get<ETHGasStationResponse>(gasStationUrl);
     const { data: gasPriceResponse, status } = response;
 
     if (status != 200) {
-      this.log.error(
+      log.error(
         { response },
         `Unabled to get gas price from ${gasStationUrl}.`
       );
@@ -52,7 +52,7 @@ export class ETHGasStationInfoProvider extends GasPriceProvider {
       .div(BigNumber.from(10))
       .mul(BigNumber.from(10).pow(9));
 
-    this.log.info(
+    log.info(
       `Gas price in wei: ${gasPriceWei} as of block ${gasPriceResponse.blockNum}`
     );
 
