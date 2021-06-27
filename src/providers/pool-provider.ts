@@ -2,11 +2,12 @@ import { Token } from '@uniswap/sdk-core';
 import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
+import NodeCache from 'node-cache';
 import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
+import { log } from '../util/log';
 import { poolToString } from '../util/routes';
 import { Multicall2Provider, Result } from './multicall2-provider';
-import { log } from '../util/log';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -33,10 +34,10 @@ export type PoolAccessor = {
   getAllPools: () => Pool[];
 };
 
+// Computing pool addresses is slow as it requires hashing, encoding etc.
+const POOL_ADDRESS_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class PoolProvider implements IPoolProvider {
-  constructor(
-    protected multicall2Provider: Multicall2Provider,
-  ) {}
+  constructor(protected multicall2Provider: Multicall2Provider) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][]
@@ -67,12 +68,16 @@ export class PoolProvider implements IPoolProvider {
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
     );
 
+    log.info(
+      `About to get liquidity and slot0s for ${poolAddressSet.size} pools.`
+    );
+
     const [slot0Results, liquidityResults] = await Promise.all([
       this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0'),
       this.getPoolsData<[ILiquidity]>(sortedPoolAddresses, 'liquidity'),
     ]);
 
-    log.debug(
+    log.info(
       { liquidityResults, slot0Results },
       `Got liquidity and slot0s for ${poolAddressSet.size} pools.`
     );
@@ -141,12 +146,22 @@ export class PoolProvider implements IPoolProvider {
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
 
+    const cacheKey = `${token0.address}/${token1.address}/${feeAmount}`;
+
+    const cachedAddress = POOL_ADDRESS_CACHE.get<string>(cacheKey);
+
+    if (cachedAddress) {
+      return { poolAddress: cachedAddress, token0, token1 };
+    }
+
     const poolAddress = computePoolAddress({
       factoryAddress: V3_CORE_FACTORY_ADDRESS,
       tokenA: token0,
       tokenB: token1,
       fee: feeAmount,
     });
+
+    POOL_ADDRESS_CACHE.set<string>(cacheKey, poolAddress);
 
     return { poolAddress, token0, token1 };
   }
@@ -155,17 +170,15 @@ export class PoolProvider implements IPoolProvider {
     poolAddresses: string[],
     functionName: string
   ): Promise<Result<TReturn>[]> {
-    const {
-      results,
-      blockNumber,
-    } = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
-      undefined,
-      TReturn
-    >({
-      addresses: poolAddresses,
-      contractInterface: IUniswapV3PoolState__factory.createInterface(),
-      functionName: functionName,
-    });
+    const { results, blockNumber } =
+      await this.multicall2Provider.callSameFunctionOnMultipleContracts<
+        undefined,
+        TReturn
+      >({
+        addresses: poolAddresses,
+        contractInterface: IUniswapV3PoolState__factory.createInterface(),
+        functionName: functionName,
+      });
 
     log.debug(`Pool data fetched as of block ${blockNumber}`);
 

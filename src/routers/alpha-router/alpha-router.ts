@@ -371,7 +371,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           gasModel,
           quoteToken,
           tradeType: routeType,
-          log: log,
         });
 
         percentToQuotes[percent]!.push(routeWithValidQuote);
@@ -867,7 +866,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         top2DirectSwap: top2DirectSwapPool.map(printSubgraphPool),
         top2EthQuotePool: top2EthQuoteTokenPool.map(printSubgraphPool),
       },
-      `Pools for consideration using top ${topN} first hop ${topNSecondHop} second hop`
+      `Pools for consideration using top ${topN} first hop, ${topNTokenInOut} in/out, ${topNSecondHop} second hop`
     );
 
     const subgraphPools = _([

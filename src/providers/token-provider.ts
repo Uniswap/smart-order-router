@@ -12,6 +12,9 @@ type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
 type TokenInfoMapping = { [chainId in ChainId]: SymbolToTokenInfo };
 
 const TOKEN_LIST_CACHE = new NodeCache({ stdTTL: 600, useClones: false });
+
+// Constructing a new token object is slow as sdk-core does checksumming.
+const TOKEN_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class TokenProvider {
   private chainToTokenInfos: ChainToTokenInfoList;
   private chainSymbolToTokenInfo: TokenInfoMapping;
@@ -134,13 +137,24 @@ export class TokenProvider {
       return undefined;
     }
 
-    return new Token(
+    const cacheKey = `${tokenInfo.address}${tokenInfo.decimals}${tokenInfo.symbol}${tokenInfo.name}`;
+    const cachedToken = TOKEN_CACHE.get<Token>(cacheKey);
+
+    if (cachedToken) {
+      return cachedToken;
+    }
+
+    const token = new Token(
       chainId,
       tokenInfo.address.toLowerCase(),
       tokenInfo.decimals,
       tokenInfo.symbol,
       tokenInfo.name
     );
+
+    TOKEN_CACHE.set<Token>(cacheKey, token);
+
+    return token;
   }
 
   public tokenExists(chainId: ChainId, symbol: string): boolean {

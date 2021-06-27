@@ -6,7 +6,6 @@ import { PoolAccessor } from '../../../providers/pool-provider';
 import { TokenProvider } from '../../../providers/token-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
-import { routeToString } from '../../../util/routes';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 import { GasModel, GasModelFactory } from './gas-model';
 
@@ -20,7 +19,7 @@ const COST_PER_INIT_TICK = BigNumber.from(33000);
 const COST_PER_UNINIT_TICK = BigNumber.from(0);
 
 // Constant per pool swap in the route.
-const COST_PER_HOP = BigNumber.from(100000);
+const COST_PER_HOP = BigNumber.from(90000);
 
 export class HeuristicGasModelFactory extends GasModelFactory {
   constructor() {
@@ -34,67 +33,55 @@ export class HeuristicGasModelFactory extends GasModelFactory {
     poolAccessor: PoolAccessor,
     token: Token
   ): GasModel {
+    if (token.symbol === 'WETH' || token.symbol === 'WETH9') {
+      const estimateGasCostInTermsOfToken = (
+        routeWithValidQuote: RouteWithValidQuote
+      ): { gasEstimate: BigNumber; gasCostInToken: CurrencyAmount } => {
+        const { gasCostInEth, gasUse } = this.estimateGas(
+          routeWithValidQuote,
+          gasPriceWei,
+          tokenProvider,
+          chainId
+        );
+        return {
+          gasEstimate: gasUse,
+          gasCostInToken: gasCostInEth,
+        };
+      };
+
+      return {
+        estimateGasCostInTermsOfToken,
+      };
+    }
+
+    // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
+    // We do this by getting the highest liquidity <token>/ETH pool.
+    const ethPool: Pool = this.getHighestLiquidityEthPool(
+      chainId,
+      token,
+      poolAccessor,
+      tokenProvider
+    );
+
     const estimateGasCostInTermsOfToken = (
       routeWithValidQuote: RouteWithValidQuote
     ): { gasEstimate: BigNumber; gasCostInToken: CurrencyAmount } => {
-      const totalInitializedTicksCrossed = _.sum(
-        routeWithValidQuote.initializedTicksCrossedList
-      );
-      const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
-
-      const hopsGasUse = COST_PER_HOP.mul(totalHops);
-      const tickGasUse = COST_PER_INIT_TICK.mul(totalInitializedTicksCrossed);
-      const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
-
-      log.debug(
-        {
-          totalHops: totalHops.toString(),
-          totalInitializedTicksCrossed: totalInitializedTicksCrossed.toString(),
-          hopsGasUse: hopsGasUse.toString(),
-          tickGasUse: tickGasUse.toString(),
-          amount: routeWithValidQuote.amount.toFixed(2),
-          percent: routeWithValidQuote.percent,
-        },
-        `Gas Model Inputs for route: ${routeToString(
-          routeWithValidQuote.route
-        )}`
+      const { gasCostInEth, gasUse } = this.estimateGas(
+        routeWithValidQuote,
+        gasPriceWei,
+        tokenProvider,
+        chainId
       );
 
-      const gasUse = BASE_SWAP_COST.add(hopsGasUse)
-        .add(tickGasUse)
-        .add(uninitializedTickGasUse);
+      const ethToken0 = ethPool.token0.symbol == 'WETH';
 
-      const totalGasCostWei = gasPriceWei.mul(gasUse);
+      const ethTokenPrice = ethToken0
+        ? ethPool.token0Price
+        : ethPool.token1Price;
 
-      const weth = tokenProvider.getToken(chainId, 'WETH');
-
-      const totalGasCostCurrencyAmount = CurrencyAmount.fromRawAmount(
-        weth,
-        totalGasCostWei.toString()
-      );
-
-      let gasCostInTermsOfQuoteToken: CurrencyAmount =
-        totalGasCostCurrencyAmount;
-
-      // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
-      // We do this by getting the highest liquidity <token>/ETH pool.
-      if (token.symbol !== 'WETH' && token.symbol !== 'WETH9') {
-        const ethPool = this.getHighestLiquidityEthPool(
-          chainId,
-          token,
-          poolAccessor,
-          tokenProvider
-        );
-        const ethToken0 = ethPool.token0.symbol == 'WETH';
-
-        const ethTokenPrice = ethToken0
-          ? ethPool.token0Price
-          : ethPool.token1Price;
-
-        gasCostInTermsOfQuoteToken = ethTokenPrice.quote(
-          totalGasCostCurrencyAmount
-        ) as CurrencyAmount;
-      }
+      const gasCostInTermsOfQuoteToken: CurrencyAmount = ethTokenPrice.quote(
+        gasCostInEth
+      ) as CurrencyAmount;
 
       return {
         gasEstimate: gasUse,
@@ -105,6 +92,37 @@ export class HeuristicGasModelFactory extends GasModelFactory {
     return {
       estimateGasCostInTermsOfToken,
     };
+  }
+
+  private estimateGas(
+    routeWithValidQuote: RouteWithValidQuote,
+    gasPriceWei: BigNumber,
+    tokenProvider: TokenProvider,
+    chainId: number
+  ) {
+    const totalInitializedTicksCrossed = _.sum(
+      routeWithValidQuote.initializedTicksCrossedList
+    );
+    const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
+
+    const hopsGasUse = COST_PER_HOP.mul(totalHops);
+    const tickGasUse = COST_PER_INIT_TICK.mul(totalInitializedTicksCrossed);
+    const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
+
+    const gasUse = BASE_SWAP_COST.add(hopsGasUse)
+      .add(tickGasUse)
+      .add(uninitializedTickGasUse);
+
+    const totalGasCostWei = gasPriceWei.mul(gasUse);
+
+    const weth = tokenProvider.getToken(chainId, 'WETH');
+
+    const gasCostInEth = CurrencyAmount.fromRawAmount(
+      weth,
+      totalGasCostWei.toString()
+    );
+
+    return { gasCostInEth, gasUse };
   }
 
   private getHighestLiquidityEthPool(

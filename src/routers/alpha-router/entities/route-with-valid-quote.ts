@@ -1,8 +1,6 @@
 import { Token, TradeType } from '@uniswap/sdk-core';
-import Logger from 'bunyan';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../../../util/amounts';
-import { routeToString } from '../../../util/routes';
 import { RouteSOR } from '../../router';
 import { GasModel } from '../gas-models/gas-model';
 
@@ -17,7 +15,6 @@ export type RouteWithValidQuoteParams = {
   gasModel: GasModel;
   quoteToken: Token;
   tradeType: TradeType;
-  log: Logger;
 };
 
 export class RouteWithValidQuote {
@@ -36,8 +33,6 @@ export class RouteWithValidQuote {
   public gasCostInToken: CurrencyAmount;
   public tradeType: TradeType;
 
-  private log: Logger;
-
   constructor({
     amount,
     rawQuote,
@@ -49,7 +44,6 @@ export class RouteWithValidQuote {
     gasModel,
     quoteToken,
     tradeType,
-    log,
   }: RouteWithValidQuoteParams) {
     this.amount = amount;
     this.rawQuote = rawQuote;
@@ -62,19 +56,12 @@ export class RouteWithValidQuote {
     this.gasModel = gasModel;
     this.quoteToken = quoteToken;
     this.tradeType = tradeType;
-    this.log = log;
 
     const { gasEstimate, gasCostInToken } =
       this.gasModel.estimateGasCostInTermsOfToken(this);
 
     this.gasCostInToken = gasCostInToken;
     this.gasEstimate = gasEstimate;
-
-    this.log.debug(
-      `Route: ${routeToString(this.route)} Percent: ${
-        this.percent
-      } Quote: ${this.quote.toFixed(4)}, GasCost: ${gasCostInToken.toFixed(4)}`
-    );
 
     // If its exact out, we need to request *more* of the input token to account for the gas.
     if (this.tradeType == TradeType.EXACT_INPUT) {

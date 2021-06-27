@@ -3,6 +3,6 @@ import nullLogger from 'bunyan-blackhole';
 
 export let log: Logger = nullLogger('/dev/null');
 
-export const setGlobalLogger = (log: Logger) => {
-  log = log;
+export const setGlobalLogger = (_log: Logger) => {
+  log = _log;
 };

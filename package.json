@@ -40,6 +40,7 @@
     "bunyan-debug-stream": "^2.0.0",
     "cli-logger": "^0.5.40",
     "dotenv": "^10.0.0",
+    "ethereum-types": "^3.5.0",
     "ethers": "^5.1.4",
     "graphql": "^15.5.0",
     "graphql-request": "^3.4.0",

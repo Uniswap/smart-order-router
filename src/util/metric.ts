@@ -54,6 +54,6 @@ export class MetricLogger extends IMetric {
 
 export let metric: IMetric = new MetricLogger();
 
-export const setGlobalMetric = (metric: IMetric) => {
-  metric = metric;
+export const setGlobalMetric = (_metric: IMetric) => {
+  metric = _metric;
 };
