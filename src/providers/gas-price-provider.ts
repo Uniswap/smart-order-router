@@ -2,8 +2,6 @@ import axios from 'axios';
 import { BigNumber } from 'ethers';
 import { log } from '../util/log';
 
-const gasStationUrl = `https://ethgasstation.info/api/ethgasAPI.json?api-key=${process.env.ETH_GAS_STATION_INFO_KEY}`;
-
 export type GasPrice = {
   gasPriceWei: BigNumber;
   blockNumber: number;
@@ -29,22 +27,23 @@ export type ETHGasStationResponse = {
 };
 
 export class ETHGasStationInfoProvider extends GasPriceProvider {
-  constructor() {
+  private url: string;
+  constructor(apiKey?: string) {
     super();
+    this.url = `https://ethgasstation.info/api/ethgasAPI.json?api-key=${
+      apiKey ?? ''
+    }`;
   }
 
   public async getGasPrice(): Promise<GasPrice> {
-    log.info(`About to get gas prices from gas station ${gasStationUrl}`);
-    const response = await axios.get<ETHGasStationResponse>(gasStationUrl);
+    log.info(`About to get gas prices from gas station ${this.url}`);
+    const response = await axios.get<ETHGasStationResponse>(this.url);
     const { data: gasPriceResponse, status } = response;
 
     if (status != 200) {
-      log.error(
-        { response },
-        `Unabled to get gas price from ${gasStationUrl}.`
-      );
+      log.error({ response }, `Unabled to get gas price from ${this.url}.`);
 
-      throw new Error(`Unable to get gas price from ${gasStationUrl}`);
+      throw new Error(`Unable to get gas price from ${this.url}`);
     }
 
     // Gas prices from ethgasstation are in GweiX10.

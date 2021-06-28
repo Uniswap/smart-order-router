@@ -31,10 +31,12 @@ export type PoolAccessor = {
     tokenB: Token,
     feeAmount: FeeAmount
   ) => Pool | undefined;
+  getPoolByAddress: (address: string) => Pool | undefined;
   getAllPools: () => Pool[];
 };
 
 // Computing pool addresses is slow as it requires hashing, encoding etc.
+// Addresses never change so can always be cached.
 const POOL_ADDRESS_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class PoolProvider implements IPoolProvider {
   constructor(protected multicall2Provider: Multicall2Provider) {}
@@ -87,6 +89,7 @@ export class PoolProvider implements IPoolProvider {
     for (let i = 0; i < sortedPoolAddresses.length; i++) {
       const slot0Result = slot0Results[i];
       const liquidityResult = liquidityResults[i];
+      // These properties tell us if a pool is valid and initialized or not.
       if (
         !slot0Result?.success ||
         !liquidityResult?.success ||
@@ -133,11 +136,13 @@ export class PoolProvider implements IPoolProvider {
         const { poolAddress } = this.getPoolAddress(tokenA, tokenB, feeAmount);
         return poolAddressToPool[poolAddress];
       },
+      getPoolByAddress: (address: string): Pool | undefined =>
+        poolAddressToPool[address],
       getAllPools: (): Pool[] => Object.values(poolAddressToPool),
     };
   }
 
-  private getPoolAddress(
+  protected getPoolAddress(
     tokenA: Token,
     tokenB: Token,
     feeAmount: FeeAmount
