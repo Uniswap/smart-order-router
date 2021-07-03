@@ -1,21 +1,23 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { PoolAccessor } from '../../../providers/pool-provider';
-import { TokenProvider } from '../../../providers/token-provider';
+import { ITokenListProvider } from '../../../providers/token-list-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 
 export type GasModel = {
-  estimateGasCostInTermsOfToken(
-    routeWithValidQuote: RouteWithValidQuote
-  ): { gasEstimate: BigNumber, gasCostInToken: CurrencyAmount };
+  estimateGasCost(routeWithValidQuote: RouteWithValidQuote): {
+    gasEstimate: BigNumber;
+    gasCostInToken: CurrencyAmount;
+    gasCostInUSD: CurrencyAmount;
+  };
 };
 
-export abstract class GasModelFactory {
+export abstract class IGasModelFactory {
   public buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
-    tokenProvider: TokenProvider,
+    tokenProvider: ITokenListProvider,
     poolProvider: PoolAccessor,
     inTermsOfToken: Token
   ) {
@@ -31,7 +33,7 @@ export abstract class GasModelFactory {
   protected abstract _buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
-    tokenProvider: TokenProvider,
+    tokenProvider: ITokenListProvider,
     poolProvider: PoolAccessor,
     token: Token
   ): GasModel;

@@ -7,7 +7,7 @@ export type GasPrice = {
   blockNumber: number;
 };
 
-export abstract class GasPriceProvider {
+export abstract class IGasPriceProvider {
   public abstract getGasPrice(): Promise<GasPrice>;
 }
 
@@ -26,7 +26,7 @@ export type ETHGasStationResponse = {
   fastestWait: number;
 };
 
-export class ETHGasStationInfoProvider extends GasPriceProvider {
+export class ETHGasStationInfoProvider extends IGasPriceProvider {
   private url: string;
   constructor(apiKey?: string) {
     super();

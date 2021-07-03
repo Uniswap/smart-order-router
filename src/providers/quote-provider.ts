@@ -269,8 +269,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
     );
 
     if (!allBlockNumbersSame) {
-      // TODO: Retry.
-      log.error(
+      log.info(
         { blocks: _.uniq(_.map(blockNumbers, (b) => b.toString())) },
         'Quotes returned from different blocks.'
       );

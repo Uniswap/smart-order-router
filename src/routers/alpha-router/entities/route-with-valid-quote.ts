@@ -31,6 +31,7 @@ export class RouteWithValidQuote {
   public gasModel: GasModel;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
+  public gasCostInUSD: CurrencyAmount;
   public tradeType: TradeType;
 
   constructor({
@@ -57,10 +58,11 @@ export class RouteWithValidQuote {
     this.quoteToken = quoteToken;
     this.tradeType = tradeType;
 
-    const { gasEstimate, gasCostInToken } =
-      this.gasModel.estimateGasCostInTermsOfToken(this);
+    const { gasEstimate, gasCostInToken, gasCostInUSD } =
+      this.gasModel.estimateGasCost(this);
 
     this.gasCostInToken = gasCostInToken;
+    this.gasCostInUSD = gasCostInUSD;
     this.gasEstimate = gasEstimate;
 
     // If its exact out, we need to request *more* of the input token to account for the gas.

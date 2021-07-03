@@ -11,6 +11,8 @@ export type RouteAmount = {
   quote: CurrencyAmount;
   quoteGasAdjusted: CurrencyAmount;
   estimatedGasUsed: BigNumber;
+  estimatedGasUsedQuoteToken: CurrencyAmount;
+  estimatedGasUsedUSD: CurrencyAmount;
   percentage: number;
 };
 
@@ -18,6 +20,8 @@ export type SwapRoute = {
   quote: CurrencyAmount;
   quoteGasAdjusted: CurrencyAmount;
   estimatedGasUsed: BigNumber;
+  estimatedGasUsedQuoteToken: CurrencyAmount;
+  estimatedGasUsedUSD: CurrencyAmount;
   gasPriceWei: BigNumber;
   routeAmounts: RouteAmount[];
   blockNumber: BigNumber;
@@ -28,6 +32,21 @@ export type SwapConfig = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
+  inputTokenPermit?:
+    | {
+        v: 0 | 1 | 27 | 28;
+        r: string;
+        s: string;
+        amount: string;
+        deadline: string;
+      }
+    | {
+        v: 0 | 1 | 27 | 28;
+        r: string;
+        s: string;
+        nonce: string;
+        expiry: string;
+      };
 };
 export abstract class IRouter<RoutingConfig> {
   abstract routeExactIn(

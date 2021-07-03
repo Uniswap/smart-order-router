@@ -86,9 +86,12 @@ export class PoolProvider implements IPoolProvider {
 
     const poolAddressToPool: { [poolAddress: string]: Pool } = {};
 
+    const invalidPools: [Token, Token, FeeAmount][] = [];
+
     for (let i = 0; i < sortedPoolAddresses.length; i++) {
       const slot0Result = slot0Results[i];
       const liquidityResult = liquidityResults[i];
+
       // These properties tell us if a pool is valid and initialized or not.
       if (
         !slot0Result?.success ||
@@ -96,12 +99,8 @@ export class PoolProvider implements IPoolProvider {
         slot0Result.result.sqrtPriceX96.eq(0)
       ) {
         const [token0, token1, fee] = sortedTokenPairs[i]!;
-        log.info(
-          { slot0Result, liquidityResult },
-          `Pool Invalid for ${token0.symbol}/${token1.symbol}/${
-            fee / 10000
-          }%. Dropping.`
-        );
+        invalidPools.push([token0, token1, fee]);
+
         continue;
       }
 
@@ -122,6 +121,17 @@ export class PoolProvider implements IPoolProvider {
 
       poolAddressToPool[poolAddress] = pool;
     }
+
+    log.info(
+      {
+        invalidPools: _.map(
+          invalidPools,
+          ([token0, token1, fee]) =>
+            `${token0.symbol}/${token1.symbol}/${fee / 10000}%`
+        ),
+      },
+      `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
+    );
 
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 

@@ -1,6 +1,6 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
-import { TokenProvider } from '../../providers/token-provider';
+import { ITokenListProvider } from '../../providers/token-list-provider';
 import { WETH9 } from '../../util/addresses';
 import { ChainId } from '../../util/chains';
 
@@ -9,12 +9,12 @@ type ChainTokenList = {
 };
 
 export const BASES_TO_CHECK_TRADES_AGAINST = (
-  tokenProvider: TokenProvider
+  tokenProvider: ITokenListProvider
 ): ChainTokenList => {
   return {
     [ChainId.MAINNET]: [
       WETH9[ChainId.MAINNET],
-      ...tokenProvider.getTokensIfExists(
+      ...tokenProvider.getTokensBySymbolIfExists(
         ChainId.MAINNET,
         'DAI',
         'USDC',
@@ -30,17 +30,19 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
 };
 
 const getBasePairBySymbols = (
-  tokenProvider: TokenProvider,
+  tokenProvider: ITokenListProvider,
   chainId: ChainId,
   fromSymbol: string,
   ...toSymbols: string[]
 ): { [tokenAddress: string]: Token[] } => {
-  const fromToken: Token | undefined = tokenProvider.getTokenIfExists(
+  const fromToken: Token | undefined = tokenProvider.getTokenBySymbolIfExists(
     chainId,
     fromSymbol
   );
   const toTokens: Token[] = _(toSymbols)
-    .map((toSymbol) => tokenProvider.getTokenIfExists(chainId, toSymbol))
+    .map((toSymbol) =>
+      tokenProvider.getTokenBySymbolIfExists(chainId, toSymbol)
+    )
     .compact()
     .value();
 
@@ -52,12 +54,12 @@ const getBasePairBySymbols = (
 };
 
 const getBasePairByAddress = (
-  tokenProvider: TokenProvider,
+  tokenProvider: ITokenListProvider,
   chainId: ChainId,
   fromAddress: string,
   toSymbol: string
 ): { [tokenAddress: string]: Token[] } => {
-  const toToken: Token | undefined = tokenProvider.getTokenIfExists(
+  const toToken: Token | undefined = tokenProvider.getTokenBySymbolIfExists(
     chainId,
     toSymbol
   );
@@ -70,7 +72,7 @@ const getBasePairByAddress = (
 };
 
 export const ADDITIONAL_BASES = (
-  tokenProvider: TokenProvider
+  tokenProvider: ITokenListProvider
 ): {
   [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
 } => {
@@ -103,7 +105,7 @@ export const ADDITIONAL_BASES = (
  * tokens.
  */
 export const CUSTOM_BASES = (
-  tokenProvider: TokenProvider
+  tokenProvider: ITokenListProvider
 ): {
   [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
 } => {

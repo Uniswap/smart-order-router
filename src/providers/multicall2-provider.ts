@@ -82,7 +82,7 @@ export class Multicall2Provider {
     for (let i = 0; i < aggregateResults.length; i++) {
       const { success, returnData } = aggregateResults[i]!;
 
-      // Return data "0x" is sometimes returned for invalid pools.
+      // Return data "0x" is sometimes returned for invalid calls.
       if (!success || returnData.length <= 2) {
         log.debug(
           { result: aggregateResults[i] },

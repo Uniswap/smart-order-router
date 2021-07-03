@@ -1,12 +1,12 @@
 import NodeCache from 'node-cache';
 import { log } from '../util/log';
-import { GasPrice, GasPriceProvider } from './gas-price-provider';
+import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 const GAS_CACHE = new NodeCache({ stdTTL: 300, useClones: true });
 const GAS_KEY = 'gas';
 
-export class CachingGasStationProvider extends GasPriceProvider {
-  constructor(private gasPriceProvider: GasPriceProvider) {
+export class CachingGasStationProvider extends IGasPriceProvider {
+  constructor(private gasPriceProvider: IGasPriceProvider) {
     super();
   }
 

@@ -9,16 +9,20 @@ import {
 } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
-import { GasPriceProvider } from '../../providers/gas-price-provider';
+import { IGasPriceProvider } from '../../providers/gas-price-provider';
 import { Multicall2Provider } from '../../providers/multicall2-provider';
-import { PoolAccessor, PoolProvider } from '../../providers/pool-provider';
-import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
+import { IPoolProvider, PoolAccessor } from '../../providers/pool-provider';
+import {
+  IQuoteProvider,
+  RouteWithQuotes,
+} from '../../providers/quote-provider';
 import {
   ISubgraphProvider,
   printSubgraphPool,
   SubgraphPool,
 } from '../../providers/subgraph-provider';
-import { TokenProvider } from '../../providers/token-provider';
+import { ITokenListProvider } from '../../providers/token-list-provider';
+import { ITokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount, parseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
@@ -36,17 +40,18 @@ import {
   SwapRoute,
 } from '../router';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
-import { GasModel, GasModelFactory } from './gas-models/gas-model';
+import { GasModel, IGasModelFactory } from './gas-models/gas-model';
 
 export type AlphaRouterParams = {
   chainId: ChainId;
   multicall2Provider: Multicall2Provider;
   subgraphProvider: ISubgraphProvider;
-  poolProvider: PoolProvider;
-  quoteProvider: QuoteProvider;
-  tokenProvider: TokenProvider;
-  gasPriceProvider: GasPriceProvider;
-  gasModelFactory: GasModelFactory;
+  poolProvider: IPoolProvider;
+  quoteProvider: IQuoteProvider<any>;
+  tokenListProvider: ITokenListProvider;
+  tokenProvider: ITokenProvider;
+  gasPriceProvider: IGasPriceProvider;
+  gasModelFactory: IGasModelFactory;
 };
 
 export type AlphaRouterConfig = {
@@ -83,11 +88,12 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   protected chainId: ChainId;
   protected multicall2Provider: Multicall2Provider;
   protected subgraphProvider: ISubgraphProvider;
-  protected poolProvider: PoolProvider;
-  protected quoteProvider: QuoteProvider;
-  protected tokenProvider: TokenProvider;
-  protected gasPriceProvider: GasPriceProvider;
-  protected gasModelFactory: GasModelFactory;
+  protected poolProvider: IPoolProvider;
+  protected quoteProvider: IQuoteProvider<any>;
+  protected tokenProvider: ITokenProvider;
+  protected tokenListProvider: ITokenListProvider;
+  protected gasPriceProvider: IGasPriceProvider;
+  protected gasModelFactory: IGasModelFactory;
 
   constructor({
     chainId,
@@ -95,6 +101,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     poolProvider,
     quoteProvider,
     tokenProvider,
+    tokenListProvider,
     subgraphProvider,
     gasPriceProvider,
     gasModelFactory,
@@ -103,6 +110,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     this.multicall2Provider = multicall2Provider;
     this.poolProvider = poolProvider;
     this.quoteProvider = quoteProvider;
+    this.tokenListProvider = tokenListProvider;
     this.tokenProvider = tokenProvider;
     this.subgraphProvider = subgraphProvider;
     this.gasPriceProvider = gasPriceProvider;
@@ -139,7 +147,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     const gasModel = this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
-      this.tokenProvider,
+      this.tokenListProvider,
       poolAccessor,
       tokenOut
     );
@@ -190,8 +198,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       return null;
     }
 
-    const { quote, quoteGasAdjusted, estimatedGasUsed, routeAmounts } =
-      swapRouteRaw;
+    const {
+      quote,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      routeAmounts,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
+    } = swapRouteRaw;
 
     const methodParameters = this.buildMethodParameters(
       currencyIn,
@@ -213,6 +227,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       quote,
       quoteGasAdjusted,
       estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
       gasPriceWei,
       routeAmounts,
       methodParameters,
@@ -250,7 +266,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     const gasModel = this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
-      this.tokenProvider,
+      this.tokenListProvider,
       poolAccessor,
       tokenIn
     );
@@ -284,8 +300,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       return null;
     }
 
-    const { quote, quoteGasAdjusted, routeAmounts, estimatedGasUsed } =
-      swapRouteRaw;
+    const {
+      quote,
+      quoteGasAdjusted,
+      routeAmounts,
+      estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
+    } = swapRouteRaw;
 
     const methodParameters = this.buildMethodParameters(
       currencyIn,
@@ -301,6 +323,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       quote,
       quoteGasAdjusted,
       estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
       gasPriceWei,
       routeAmounts,
       methodParameters,
@@ -318,8 +342,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   ): {
     quote: CurrencyAmount;
     quoteGasAdjusted: CurrencyAmount;
-    routeAmounts: RouteAmount[];
     estimatedGasUsed: BigNumber;
+    estimatedGasUsedUSD: CurrencyAmount;
+    estimatedGasUsedQuoteToken: CurrencyAmount;
+    routeAmounts: RouteAmount[];
   } | null {
     const now = Date.now();
     log.info({ routingConfig }, 'Finding best swap');
@@ -403,6 +429,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         numSplits: swapRoute.routeAmounts.length,
         quote: swapRoute.quote.toFixed(2),
         quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(2),
+        estimatedGasUSD: swapRoute.estimatedGasUsedUSD.toFixed(2),
+        estimatedGasToken: swapRoute.estimatedGasUsedQuoteToken.toFixed(2),
       },
       `Found best swap route. ${swapRoute.routeAmounts.length} split.`
     );
@@ -421,6 +449,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         quote: CurrencyAmount;
         quoteGasAdjusted: CurrencyAmount;
         estimatedGasUsed: BigNumber;
+        estimatedGasUsedUSD: CurrencyAmount;
+        estimatedGasUsedQuoteToken: CurrencyAmount;
         routeAmounts: RouteAmount[];
       }
     | undefined {
@@ -634,6 +664,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         BigNumber.from(0)
       );
 
+    const estimatedGasUsedUSD = sum(
+      _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.gasCostInUSD)
+    );
+
+    const estimatedGasUsedQuoteToken = sum(
+      _.map(
+        bestSwap,
+        (routeWithValidQuote) => routeWithValidQuote.gasCostInToken
+      )
+    );
+
     const quote = sum(
       _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
     );
@@ -648,6 +689,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           quoteGasAdjusted: rq.quoteAdjustedForGas,
           percentage: rq.percent,
           estimatedGasUsed: rq.gasEstimate,
+          estimatedGasUsedQuoteToken: rq.gasCostInToken,
+          estimatedGasUsedUSD: rq.gasCostInUSD,
         };
       }
     ).sort(
@@ -661,7 +704,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
-    return { quote, quoteGasAdjusted, estimatedGasUsed, routeAmounts };
+    return {
+      quote,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+      routeAmounts,
+    };
   }
 
   private getAmountDistribution(
@@ -711,12 +761,18 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
-    // Only consider pools where both tokens are in the token list.
+    // Only consider pools where neither tokens are in the blocked token list.
     const subgraphPoolsSorted = _(allPools)
       .filter((pool) => {
         return (
-          this.tokenProvider.tokenExists(this.chainId, pool.token0.symbol) &&
-          this.tokenProvider.tokenExists(this.chainId, pool.token1.symbol)
+          !this.tokenListProvider.tokenBlockedBySymbol(
+            this.chainId,
+            pool.token0.symbol
+          ) &&
+          !this.tokenListProvider.tokenBlockedBySymbol(
+            this.chainId,
+            pool.token1.symbol
+          )
         );
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
@@ -774,7 +830,12 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     addToAddressSet(top2EthQuoteTokenPool);
 
-    const topByTVL = _(subgraphPoolsSorted).slice(0, topN).value();
+    const topByTVL = _(subgraphPoolsSorted)
+      .filter((subgraphPool) => {
+        return !poolAddressesSoFar.has(subgraphPool.id);
+      })
+      .slice(0, topN)
+      .value();
 
     addToAddressSet(topByTVL);
 
@@ -829,7 +890,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     addToAddressSet(topByTVLUsingTokenInSecondHops);
 
-    const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenIn)
+    const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenOut)
       .map((subgraphPool) => {
         return tokenOutAddress == subgraphPool.token0.id
           ? subgraphPool.token1.id
@@ -866,7 +927,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         top2DirectSwap: top2DirectSwapPool.map(printSubgraphPool),
         top2EthQuotePool: top2EthQuoteTokenPool.map(printSubgraphPool),
       },
-      `Pools for consideration using top ${topN} first hop, ${topNTokenInOut} in/out, ${topNSecondHop} second hop`
+      `Pools for consideration using top ${topN} for TVL, ${topNTokenInOut} in/out, ${topNSecondHop} second hop`
     );
 
     const subgraphPools = _([
@@ -882,22 +943,35 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       .uniqBy((pool) => pool.id)
       .value();
 
-    const tokenPairs = _.map<SubgraphPool, [Token, Token, FeeAmount]>(
-      subgraphPools,
-      (subgraphPool) => {
-        const tokenA = this.tokenProvider.getToken(
-          this.chainId,
-          subgraphPool.token0.symbol
-        );
-        const tokenB = this.tokenProvider.getToken(
-          this.chainId,
-          subgraphPool.token1.symbol
-        );
-        const fee = parseFeeAmount(subgraphPool.feeTier);
+    const tokenPairsRaw = _.map<
+      SubgraphPool,
+      [Token, Token, FeeAmount] | undefined
+    >(subgraphPools, (subgraphPool) => {
+      const tokenA = this.tokenListProvider.getTokenByAddressIfExists(
+        this.chainId,
+        subgraphPool.token0.id
+      );
+      const tokenB = this.tokenListProvider.getTokenByAddressIfExists(
+        this.chainId,
+        subgraphPool.token1.id
+      );
+      const fee = parseFeeAmount(subgraphPool.feeTier);
 
-        return [tokenA, tokenB, fee];
+      if (!tokenA || !tokenB) {
+        log.info(
+          `Dropping topN pool for ${subgraphPool.token0.symbol}/${
+            subgraphPool.token1.symbol
+          }/${fee} because ${
+            tokenA ? subgraphPool.token1.symbol : subgraphPool.token0.symbol
+          } not in token list`
+        );
+        return undefined;
       }
-    );
+
+      return [tokenA, tokenB, fee];
+    });
+
+    const tokenPairs = _.compact(tokenPairsRaw);
 
     const beforePoolsLoad = Date.now();
 
@@ -1068,32 +1142,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       }
     );
 
-    const { recipient, slippageTolerance, deadline } = swapConfig;
+    const { recipient, slippageTolerance, deadline, inputTokenPermit } =
+      swapConfig;
 
     const methodParameters = SwapRouter.swapCallParameters(trades, {
       recipient,
       slippageTolerance,
       deadline,
-      // ...(signatureData
-      //   ? {
-      //       inputTokenPermit:
-      //         'allowed' in signatureData
-      //           ? {
-      //               expiry: signatureData.deadline,
-      //               nonce: signatureData.nonce,
-      //               s: signatureData.s,
-      //               r: signatureData.r,
-      //               v: signatureData.v as any,
-      //             }
-      //           : {
-      //               deadline: signatureData.deadline,
-      //               amount: signatureData.amount,
-      //               s: signatureData.s,
-      //               r: signatureData.r,
-      //               v: signatureData.v as any,
-      //             },
-      //     }
-      //   : {}),
+      inputTokenPermit,
     });
 
     return methodParameters;

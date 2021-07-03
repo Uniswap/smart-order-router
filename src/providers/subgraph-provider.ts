@@ -40,7 +40,7 @@ export const printSubgraphPool = (s: SubgraphPool) =>
   `${s.token0.symbol}/${s.token1.symbol}/${s.feeTier}`;
 
 const SUBGRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-prod';
+  'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3';
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 export interface ISubgraphProvider {

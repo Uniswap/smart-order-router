@@ -5,6 +5,7 @@ import { Multicall2Provider } from '../providers/multicall2-provider';
 import { PoolProvider } from '../providers/pool-provider';
 import { QuoteProvider } from '../providers/quote-provider';
 import { SubgraphProvider } from '../providers/subgraph-provider';
+import { TokenListProvider } from '../providers/token-list-provider';
 import { TokenProvider } from '../providers/token-provider';
 import { ChainId } from '../util/chains';
 import { setGlobalLogger } from '../util/log';
@@ -25,7 +26,7 @@ export const RouterFactory = (
   routerStr: string,
   chainId: ChainId,
   provider: providers.BaseProvider,
-  tokenProvider: TokenProvider,
+  tokenListProvider: TokenListProvider,
   log: Logger
 ): IRouter<any> => {
   const metricLogger = new MetricLogger();
@@ -43,7 +44,8 @@ export const RouterFactory = (
         quoteProvider: new QuoteProvider(multicall2Provider),
         gasPriceProvider: new ETHGasStationInfoProvider(),
         gasModelFactory: new HeuristicGasModelFactory(),
-        tokenProvider,
+        tokenProvider: new TokenProvider(chainId, multicall2Provider),
+        tokenListProvider,
       });
     case RouterId.Legacy:
       return new LegacyRouter({
@@ -51,7 +53,7 @@ export const RouterFactory = (
         multicall2Provider,
         poolProvider: new PoolProvider(multicall2Provider),
         quoteProvider: new QuoteProvider(multicall2Provider),
-        tokenProvider,
+        tokenListProvider,
       });
 
     default:

@@ -1,174 +1,110 @@
 import { Token } from '@uniswap/sdk-core';
-import { TokenInfo, TokenList } from '@uniswap/token-lists';
-import axios from 'axios';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { ChainId } from '../util/chains';
-import { log } from '../util/log';
-import { metric, MetricLoggerUnit } from '../util/metric';
+import { IERC20Metadata__factory } from '../types/v3';
+import { ChainId, log } from '../util';
+import { Multicall2Provider } from './multicall2-provider';
 
-type SymbolToTokenInfo = { [index: string]: TokenInfo };
-type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
-type TokenInfoMapping = { [chainId in ChainId]: SymbolToTokenInfo };
+export interface ITokenProvider {
+  getTokens(addresses: string[]): Promise<TokenAccessor>;
+}
 
-const TOKEN_LIST_CACHE = new NodeCache({ stdTTL: 600, useClones: false });
+export type TokenAccessor = {
+  getToken: (address: string) => Token | undefined;
+};
 
-// Constructing a new token object is slow as sdk-core does checksumming.
+// Token symbol and decimals never change so can always be cached.
 const TOKEN_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
-export class TokenProvider {
-  private chainToTokenInfos: ChainToTokenInfoList;
-  private chainSymbolToTokenInfo: TokenInfoMapping;
-  private tokenList: TokenList;
 
-  constructor(tokenList: TokenList) {
-    // if (!tokenListValidator(tokenList)) {
-    //   throw new Error('Token list failed validation.');
-    // }
-    this.tokenList = tokenList;
+export class TokenProvider implements ITokenProvider {
+  constructor(
+    private chainId: ChainId,
+    protected multicall2Provider: Multicall2Provider
+  ) {}
 
-    this.chainToTokenInfos = _.reduce(
-      this.tokenList.tokens,
-      (result: ChainToTokenInfoList, tokenInfo: TokenInfo) => {
-        result[tokenInfo.chainId as ChainId].push(tokenInfo);
-        return result;
-      },
-      {
-        [ChainId.MAINNET]: [],
-        [ChainId.KOVAN]: [],
-        [ChainId.RINKEBY]: [],
-        [ChainId.ROPSTEN]: [],
-        [ChainId.GÖRLI]: [],
-      }
-    );
+  public async getTokens(_addresses: string[]): Promise<TokenAccessor> {
+    const addressToToken: { [address: string]: Token } = {};
 
-    this.chainSymbolToTokenInfo = _.mapValues(
-      this.chainToTokenInfos,
-      (tokenInfos: TokenInfo[]) => _.keyBy(tokenInfos, 'symbol')
-    );
-  }
-
-  public static async fromTokenListURI(tokenListURI: string) {
-    const now = Date.now();
-
-    const cachedTokenList = TOKEN_LIST_CACHE.get<TokenList>(tokenListURI);
-
-    if (cachedTokenList) {
-      metric.putMetric(
-        'TokenListLoad',
-        Date.now() - now,
-        MetricLoggerUnit.Milliseconds
-      );
-
-      return new TokenProvider(cachedTokenList);
-    }
-
-    log.info(`Getting tokenList from ${tokenListURI}.`);
-    const response = await axios.get(tokenListURI);
-    log.info(`Got tokenList from ${tokenListURI}.`);
-
-    metric.putMetric(
-      'TokenListLoad',
-      Date.now() - now,
-      MetricLoggerUnit.Milliseconds
-    );
-
-    const { data: tokenList, status } = response;
-
-    if (status != 200) {
-      log.error(
-        { response },
-        `Unabled to get token list from ${tokenListURI}.`
-      );
-
-      throw new Error(`Unable to get token list from ${tokenListURI}`);
-    }
-
-    TOKEN_LIST_CACHE.set<TokenList>(tokenListURI, tokenList);
-
-    return new TokenProvider(tokenList);
-  }
-
-  public static async fromTokenList(tokenList: TokenList) {
-    const now = Date.now();
-
-    const tokenProvider = new TokenProvider(tokenList);
-
-    metric.putMetric(
-      'TokenListLoad',
-      Date.now() - now,
-      MetricLoggerUnit.Milliseconds
-    );
-
-    return tokenProvider;
-  }
-
-  public getToken(chainId: ChainId, symbol: string): Token {
-    const token: Token | undefined = this.getTokenIfExists(chainId, symbol);
-
-    if (!token) {
-      throw new Error(
-        `Token ${symbol} not found in token list '${this.tokenList.name}'`
-      );
-    }
-
-    return token;
-  }
-
-  public getTokenIfExists(
-    chainId: ChainId,
-    _symbol: string
-  ): Token | undefined {
-    let symbol = _symbol;
-
-    // We consider ETH as a regular ERC20 Token throughout this package. We don't use the NativeCurrency object from the sdk.
-    // When we build the calldata for swapping we insert wrapping/unwrapping as needed.
-    if (_symbol == 'ETH') {
-      symbol = 'WETH';
-    }
-
-    const tokenInfo: TokenInfo | undefined =
-      this.chainSymbolToTokenInfo[chainId][symbol];
-
-    if (!tokenInfo) {
-      log.trace(
-        `Could not find ${symbol} in Token List: '${this.tokenList.name}'. Ignoring.`
-      );
-
-      return undefined;
-    }
-
-    const cacheKey = `${tokenInfo.address}${tokenInfo.decimals}${tokenInfo.symbol}${tokenInfo.name}`;
-    const cachedToken = TOKEN_CACHE.get<Token>(cacheKey);
-
-    if (cachedToken) {
-      return cachedToken;
-    }
-
-    const token = new Token(
-      chainId,
-      tokenInfo.address.toLowerCase(),
-      tokenInfo.decimals,
-      tokenInfo.symbol,
-      tokenInfo.name
-    );
-
-    TOKEN_CACHE.set<Token>(cacheKey, token);
-
-    return token;
-  }
-
-  public tokenExists(chainId: ChainId, symbol: string): boolean {
-    return !!this.getTokenIfExists(chainId, symbol);
-  }
-
-  public getTokensIfExists(chainId: ChainId, ...symbols: string[]): Token[] {
-    const tokens: Token[] = _(symbols)
-      .map((symbol: string) => {
-        return this.getTokenIfExists(chainId, symbol);
-      })
-      .compact()
+    const addresses = _(_addresses)
+      .map((address) => address.toLowerCase())
+      .uniq()
       .value();
+    const addressesToFetch = [];
 
-    return tokens;
+    for (const address of addresses) {
+      if (TOKEN_CACHE.has(address)) {
+        log.info(`Found token with address ${address} in local cache`);
+        addressToToken[address] = TOKEN_CACHE.get<Token>(address)!;
+      } else {
+        addressesToFetch.push(address);
+      }
+    }
+
+    log.info(
+      { addresses },
+      `About to fetch ${addressesToFetch.length} tokens on-chain`
+    );
+
+    const [symbolsResult, decimalsResult] = await Promise.all([
+      this.multicall2Provider.callSameFunctionOnMultipleContracts<
+        undefined,
+        [string]
+      >({
+        addresses: addressesToFetch,
+        contractInterface: IERC20Metadata__factory.createInterface(),
+        functionName: 'symbol',
+      }),
+      this.multicall2Provider.callSameFunctionOnMultipleContracts<
+        undefined,
+        [number]
+      >({
+        addresses: addressesToFetch,
+        contractInterface: IERC20Metadata__factory.createInterface(),
+        functionName: 'decimals',
+      }),
+    ]);
+
+    log.info(
+      `Got token symbol and decimals for ${addressesToFetch.length} tokens`
+    );
+
+    const { results: symbols } = symbolsResult;
+    const { results: decimals } = decimalsResult;
+
+    for (let i = 0; i < addressesToFetch.length; i++) {
+      const address = addressesToFetch[i]!;
+
+      const symbolResult = symbols[i];
+      const decimalResult = decimals[i];
+
+      if (!symbolResult?.success || !decimalResult?.success) {
+        log.info(
+          {
+            symbolResult,
+            decimalResult,
+          },
+          `Dropping token with address ${address} as symbol or decimal are invalid`
+        );
+        continue;
+      }
+
+      const symbol = symbolResult.result[0]!;
+      const decimal = decimalResult.result[0]!;
+
+      addressToToken[address] = new Token(
+        this.chainId,
+        address,
+        decimal,
+        symbol
+      );
+    }
+
+    log.info({ addressToToken }, 'Post fetch address to token');
+
+    return {
+      getToken: (address: string): Token | undefined => {
+        return addressToToken[address.toLowerCase()];
+      },
+    };
   }
 }
