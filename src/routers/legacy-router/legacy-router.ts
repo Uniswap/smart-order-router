@@ -9,7 +9,7 @@ import {
 } from '@uniswap/v3-sdk';
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
-import { Multicall2Provider } from '../../providers/multicall2-provider';
+import { UniswapMulticallProvider } from '../../providers/multicall-uniswap-provider';
 import { PoolProvider } from '../../providers/pool-provider';
 import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
 import { ITokenListProvider } from '../../providers/token-list-provider';
@@ -32,7 +32,7 @@ import {
 
 export type LegacyRouterParams = {
   chainId: ChainId;
-  multicall2Provider: Multicall2Provider;
+  multicall2Provider: UniswapMulticallProvider;
   poolProvider: PoolProvider;
   quoteProvider: QuoteProvider;
   tokenListProvider: ITokenListProvider;
@@ -48,7 +48,7 @@ const MAX_HOPS = 2;
  */
 export class LegacyRouter implements IRouter<void> {
   protected chainId: ChainId;
-  protected multicall2Provider: Multicall2Provider;
+  protected multicall2Provider: UniswapMulticallProvider;
   protected poolProvider: PoolProvider;
   protected quoteProvider: QuoteProvider;
   protected tokenListProvider: ITokenListProvider;

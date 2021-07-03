@@ -2,7 +2,7 @@ import { gql, request } from 'graphql-request';
 import _ from 'lodash';
 import { log } from '../util/log';
 
-export type SubgraphPool = {
+export interface SubgraphPool {
   id: string;
   feeTier: string;
   liquidity: string;

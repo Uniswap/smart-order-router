@@ -2,13 +2,13 @@ import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import NodeCache from 'node-cache';
 import { log } from '../util/log';
-import { Multicall2Provider } from './multicall2-provider';
+import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { PoolAccessor, PoolProvider } from './pool-provider';
 
 const POOL_CACHE = new NodeCache({ stdTTL: 900, useClones: false });
 
 export class CachingPoolProvider extends PoolProvider {
-  constructor(protected multicall2Provider: Multicall2Provider) {
+  constructor(protected multicall2Provider: UniswapMulticallProvider) {
     super(multicall2Provider);
   }
 

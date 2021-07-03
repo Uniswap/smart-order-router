@@ -1,7 +1,7 @@
 import Logger from 'bunyan';
 import { providers } from 'ethers';
 import { ETHGasStationInfoProvider } from '../providers/gas-price-provider';
-import { Multicall2Provider } from '../providers/multicall2-provider';
+import { UniswapMulticallProvider } from '../providers/multicall-uniswap-provider';
 import { PoolProvider } from '../providers/pool-provider';
 import { QuoteProvider } from '../providers/quote-provider';
 import { SubgraphProvider } from '../providers/subgraph-provider';
@@ -32,14 +32,14 @@ export const RouterFactory = (
   const metricLogger = new MetricLogger();
   setGlobalMetric(metricLogger);
   setGlobalLogger(log);
-  const multicall2Provider = new Multicall2Provider(provider);
+  const multicall2Provider = new UniswapMulticallProvider(provider);
 
   switch (routerStr) {
     case RouterId.Alpha:
       return new AlphaRouter({
         chainId,
         subgraphProvider: new SubgraphProvider(),
-        multicall2Provider: new Multicall2Provider(provider),
+        multicall2Provider: new UniswapMulticallProvider(provider),
         poolProvider: new PoolProvider(multicall2Provider),
         quoteProvider: new QuoteProvider(multicall2Provider),
         gasPriceProvider: new ETHGasStationInfoProvider(),

@@ -8,7 +8,8 @@ import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import { routeToString } from '../util/routes';
-import { Multicall2Provider, Result } from './multicall2-provider';
+import { Result } from './multicall-provider';
+import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 
 // Quotes can be null (e.g. pool did not have enough liquidity).
 export type AmountQuote = {
@@ -21,8 +22,8 @@ export type AmountQuote = {
 
 export class BlockConflictError extends Error {}
 
-const DEFAULT_CHUNK = 20;
-const FETCH_QUOTES_RETRIES = 2;
+const DEFAULT_CHUNK = 50;
+const FETCH_QUOTES_RETRIES = 1;
 
 export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
 export type QuoteParams = {
@@ -43,7 +44,7 @@ export interface IQuoteProvider<P> {
 }
 
 export class QuoteProvider implements IQuoteProvider<QuoteParams> {
-  constructor(protected multicall2Provider: Multicall2Provider) {}
+  constructor(protected multicall2Provider: UniswapMulticallProvider) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],

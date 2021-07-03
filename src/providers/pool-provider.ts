@@ -7,7 +7,8 @@ import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
 import { log } from '../util/log';
 import { poolToString } from '../util/routes';
-import { Multicall2Provider, Result } from './multicall2-provider';
+import { Result } from './multicall-provider';
+import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -23,6 +24,11 @@ type ILiquidity = { liquidity: BigNumber };
 
 export interface IPoolProvider {
   getPools(tokenPairs: [Token, Token, FeeAmount][]): Promise<PoolAccessor>;
+  getPoolAddress(
+    tokenA: Token,
+    tokenB: Token,
+    feeAmount: FeeAmount
+  ): { poolAddress: string; token0: Token; token1: Token };
 }
 
 export type PoolAccessor = {
@@ -39,7 +45,7 @@ export type PoolAccessor = {
 // Addresses never change so can always be cached.
 const POOL_ADDRESS_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class PoolProvider implements IPoolProvider {
-  constructor(protected multicall2Provider: Multicall2Provider) {}
+  constructor(protected multicall2Provider: UniswapMulticallProvider) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][]
@@ -152,7 +158,7 @@ export class PoolProvider implements IPoolProvider {
     };
   }
 
-  protected getPoolAddress(
+  public getPoolAddress(
     tokenA: Token,
     tokenB: Token,
     feeAmount: FeeAmount

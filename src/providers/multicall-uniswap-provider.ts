@@ -1,16 +1,23 @@
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
-import { Multicall2, Multicall2__factory } from '../types/other';
-import { MULTICALL2_ADDRESS } from '../util/addresses';
+import { UniswapInterfaceMulticall__factory } from '../types/v3/factories/UniswapInterfaceMulticall__factory';
+import { UniswapInterfaceMulticall } from '../types/v3/UniswapInterfaceMulticall';
+import { UNISWAP_MULTICALL_ADDRESS } from '../util/addresses';
 import { log } from '../util/log';
-import { CallSameFunctionOnContractWithMultipleParams, CallSameFunctionOnMultipleContractsParams, Result } from './multicall-provider';
+import {
+  CallSameFunctionOnContractWithMultipleParams,
+  CallSameFunctionOnMultipleContractsParams,
+  IMulticallProvider,
+  Result,
+} from './multicall-provider';
 
-export class Multicall2Provider {
-  private multicallContract: Multicall2;
+export class UniswapMulticallProvider extends IMulticallProvider {
+  private multicallContract: UniswapInterfaceMulticall;
 
   constructor(protected provider: providers.BaseProvider) {
-    this.multicallContract = Multicall2__factory.connect(
-      MULTICALL2_ADDRESS,
+    super();
+    this.multicallContract = UniswapInterfaceMulticall__factory.connect(
+      UNISWAP_MULTICALL_ADDRESS,
       this.provider
     );
   }
@@ -37,19 +44,17 @@ export class Multicall2Provider {
       return {
         target: address,
         callData,
+        gasLimit: 1_000_000,
       };
     });
 
     log.debug(
       { calls },
-      `About to multicall2 tryBlockAndAggregate for ${functionName} across ${addresses.length} addresses`
+      `About to multicall for ${functionName} across ${addresses.length} addresses`
     );
 
     const { blockNumber, returnData: aggregateResults } =
-      await this.multicallContract.callStatic.tryBlockAndAggregate(
-        false,
-        calls
-      );
+      await this.multicallContract.callStatic.multicall(calls);
 
     const results: Result<TReturn>[] = [];
 
@@ -80,7 +85,7 @@ export class Multicall2Provider {
 
     log.debug(
       { results },
-      `Results for multicall2 using tryBlockAndAggregate on ${functionName} across ${addresses.length} addresses as of block ${blockNumber}`
+      `Results for multicall on ${functionName} across ${addresses.length} addresses as of block ${blockNumber}`
     );
 
     return { blockNumber, results };
@@ -107,19 +112,17 @@ export class Multicall2Provider {
       return {
         target: address,
         callData,
+        gasLimit: 1_000_000,
       };
     });
 
     log.debug(
       { calls },
-      `About to multicall2 tryBlockAndAggregate for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
+      `About to multicall for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
     );
 
     const { blockNumber, returnData: aggregateResults } =
-      await this.multicallContract.callStatic.tryBlockAndAggregate(
-        false,
-        calls
-      );
+      await this.multicallContract.callStatic.multicall(calls);
 
     const results: Result<TReturn>[] = [];
 
@@ -150,7 +153,7 @@ export class Multicall2Provider {
 
     log.debug(
       { results, functionName, address },
-      `Results for multicall2 using tryBlockAndAggregate for ${functionName} at address ${address} with ${functionParams.length} different sets of params. Results as of block ${blockNumber}`
+      `Results for multicall for ${functionName} at address ${address} with ${functionParams.length} different sets of params. Results as of block ${blockNumber}`
     );
     return { blockNumber, results };
   }
