@@ -482,8 +482,13 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       usedRoutes: RouteSOR[],
       candidateRouteQuotes: RouteWithValidQuote[]
     ): RouteWithValidQuote | null => {
-      const getPoolAddress = (pool: Pool) =>
-        this.poolProvider.getPoolAddress(pool.token0, pool.token1, pool.fee);
+      const getPoolAddress = (pool: Pool) => {
+        return this.poolProvider.getPoolAddress(
+          pool.token0,
+          pool.token1,
+          pool.fee
+        ).poolAddress;
+      };
 
       const poolAddressSet = new Set();
       const usedPoolAddresses = _(usedRoutes)
