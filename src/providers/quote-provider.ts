@@ -23,7 +23,11 @@ export type AmountQuote = {
 export class BlockConflictError extends Error {}
 
 const DEFAULT_CHUNK = 50;
-const FETCH_QUOTES_RETRIES = 1;
+const RETRY_CONFIG = {
+  retries: 3,
+  minTimeout: 50,
+  maxTimeout: 500,
+};
 
 export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
 export type QuoteParams = {
@@ -56,16 +60,13 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
       `About to get quotes for ${routes.length} routes, with ${amountIns.length} amounts per route.`
     );
 
-    const { results: quoteResults, blockNumber } = await retry(
-      async () => {
-        return this.getQuotesManyExactInsData(
-          amountIns,
-          routes,
-          additionalParams.multicallChunk
-        );
-      },
-      { retries: FETCH_QUOTES_RETRIES }
-    );
+    const { results: quoteResults, blockNumber } = await retry(async () => {
+      return this.getQuotesManyExactInsData(
+        amountIns,
+        routes,
+        additionalParams.multicallChunk
+      );
+    }, RETRY_CONFIG);
 
     const routesQuotes = this.processQuoteResults(
       quoteResults,
@@ -86,16 +87,13 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
       `About to get quotes for ${routes.length} routes, with ${amountOuts.length} amounts per route.`
     );
 
-    const { results: quoteResults, blockNumber } = await retry(
-      async () => {
-        return this.getQuotesManyExactOutsData(
-          amountOuts,
-          routes,
-          additionalParams.multicallChunk
-        );
-      },
-      { retries: FETCH_QUOTES_RETRIES }
-    );
+    const { results: quoteResults, blockNumber } = await retry(async () => {
+      return this.getQuotesManyExactOutsData(
+        amountOuts,
+        routes,
+        additionalParams.multicallChunk
+      );
+    }, RETRY_CONFIG);
 
     const routesQuotes = this.processQuoteResults(
       quoteResults,
