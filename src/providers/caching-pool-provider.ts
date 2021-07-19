@@ -2,14 +2,19 @@ import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import NodeCache from 'node-cache';
 import { log } from '../util/log';
-import { UniswapMulticallProvider } from './multicall-uniswap-provider';
-import { PoolAccessor, PoolProvider } from './pool-provider';
+import { IPoolProvider, PoolAccessor } from './pool-provider';
 
 const POOL_CACHE = new NodeCache({ stdTTL: 900, useClones: false });
 
-export class CachingPoolProvider extends PoolProvider {
-  constructor(protected multicall2Provider: UniswapMulticallProvider) {
-    super(multicall2Provider);
+export class CachingPoolProvider implements IPoolProvider {
+  constructor(protected poolProvider: IPoolProvider) {}
+
+  public getPoolAddress(
+    tokenA: Token,
+    tokenB: Token,
+    feeAmount: FeeAmount
+  ): { poolAddress: string; token0: Token; token1: Token } {
+    return this.poolProvider.getPoolAddress(tokenA, tokenB, feeAmount);
   }
 
   public async getPools(
@@ -54,7 +59,9 @@ export class CachingPoolProvider extends PoolProvider {
     );
 
     if (poolsToGetAddresses.length > 0) {
-      const poolAccessor = await super.getPools(poolsToGetTokenPairs);
+      const poolAccessor = await this.poolProvider.getPools(
+        poolsToGetTokenPairs
+      );
       for (const address of poolsToGetAddresses) {
         const pool = poolAccessor.getPoolByAddress(address);
         if (pool) {

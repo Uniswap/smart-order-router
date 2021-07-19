@@ -18,7 +18,7 @@ export interface SubgraphPool {
   totalValueLockedETH: string;
   totalValueLockedETHFloat: number;
   totalValueLockedUSDFloat: number;
-};
+}
 
 export type RawSubgraphPool = {
   id: string;
@@ -119,3 +119,5 @@ export class SubgraphProvider implements ISubgraphProvider {
     return poolsSanitized;
   }
 }
+
+

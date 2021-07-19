@@ -1,5 +1,4 @@
-export * from './router';
+export * from '../util/metric';
 export * from './alpha-router';
 export * from './legacy-router';
-export * from './router-factory';
-export * from '../util/metric';
+export * from './router';

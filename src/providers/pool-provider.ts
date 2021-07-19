@@ -7,8 +7,7 @@ import { IUniswapV3PoolState__factory } from '../types/v3';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
 import { log } from '../util/log';
 import { poolToString } from '../util/routes';
-import { Result } from './multicall-provider';
-import { UniswapMulticallProvider } from './multicall-uniswap-provider';
+import { IMulticallProvider, Result } from './multicall-provider';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -45,7 +44,7 @@ export type PoolAccessor = {
 // Addresses never change so can always be cached.
 const POOL_ADDRESS_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class PoolProvider implements IPoolProvider {
-  constructor(protected multicall2Provider: UniswapMulticallProvider) {}
+  constructor(protected multicall2Provider: IMulticallProvider) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][]

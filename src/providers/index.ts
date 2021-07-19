@@ -1,5 +1,6 @@
 export * from './caching-gas-provider';
 export * from './caching-pool-provider';
+export * from './caching-subgraph-provider';
 export * from './gas-price-provider';
 export * from './multicall-uniswap-provider';
 export * from './pool-provider';
