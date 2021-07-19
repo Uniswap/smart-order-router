@@ -75,6 +75,8 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
 };
 
 type PoolsBySelection = {
+  topByBaseWithTokenIn: SubgraphPool[];
+  topByBaseWithTokenOut: SubgraphPool[];
   top2DirectSwapPool: SubgraphPool[];
   top2EthQuoteTokenPool: SubgraphPool[];
   topByTVL: SubgraphPool[];
@@ -552,6 +554,13 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         const split2Now = Date.now();
         for (let i = percents.length - 1; i >= 0; i--) {
           const percentA = percents[i]!;
+
+          // At some point the amount * percentage is so small that the quoter is unable to get
+          // a quote. In this case there will be no quotes for that percentage.
+          if (!percentToSortedQuotes[percentA]) {
+            continue;
+          }
+
           const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
           const { route: routeA } = routeWithQuoteA;
           const quoteA = by(routeWithQuoteA);
@@ -796,15 +805,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     routingConfig: AlphaRouterConfig
   ): Promise<{
     poolAccessor: PoolAccessor;
-    poolsBySelection: {
-      top2DirectSwapPool: SubgraphPool[];
-      top2EthQuoteTokenPool: SubgraphPool[];
-      topByTVL: SubgraphPool[];
-      topByTVLUsingTokenIn: SubgraphPool[];
-      topByTVLUsingTokenOut: SubgraphPool[];
-      topByTVLUsingTokenInSecondHops: SubgraphPool[];
-      topByTVLUsingTokenOutSecondHops: SubgraphPool[];
-    };
+    poolsBySelection: PoolsBySelection;
   }> {
     const { topN, topNTokenInOut, topNSecondHop } = routingConfig;
     const tokenInAddress = tokenIn.address.toLowerCase();
@@ -858,6 +859,64 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
     };
 
+    const topByBaseWithTokenIn = _(
+      this.tokenListProvider.getTokensBySymbolIfExists(
+        ChainId.MAINNET,
+        'DAI',
+        'USDC',
+        'USDT',
+        'WBTC'
+      )
+    )
+      .flatMap((token: Token) => {
+        return _(subgraphPoolsSorted)
+          .filter((subgraphPool) => {
+            const tokenAddress = token.address.toLowerCase();
+            return (
+              (subgraphPool.token0.id == tokenAddress &&
+                subgraphPool.token1.id == tokenInAddress) ||
+              (subgraphPool.token1.id == tokenAddress &&
+                subgraphPool.token0.id == tokenInAddress)
+            );
+          })
+          .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+          .slice(0, 1)
+          .value();
+      })
+      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+      .value();
+
+    addToAddressSet(topByBaseWithTokenIn);
+
+    const topByBaseWithTokenOut = _(
+      this.tokenListProvider.getTokensBySymbolIfExists(
+        ChainId.MAINNET,
+        'DAI',
+        'USDC',
+        'USDT',
+        'WBTC'
+      )
+    )
+      .flatMap((token: Token) => {
+        return _(subgraphPoolsSorted)
+          .filter((subgraphPool) => {
+            const tokenAddress = token.address.toLowerCase();
+            return (
+              (subgraphPool.token0.id == tokenAddress &&
+                subgraphPool.token1.id == tokenOutAddress) ||
+              (subgraphPool.token1.id == tokenAddress &&
+                subgraphPool.token0.id == tokenOutAddress)
+            );
+          })
+          .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+          .slice(0, 1)
+          .value();
+      })
+      .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+      .value();
+
+    addToAddressSet(topByBaseWithTokenOut);
+
     const top2DirectSwapPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
         return (
@@ -877,29 +936,36 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       this.chainId
     ).wrapped.address.toLowerCase();
 
-    // If we've already added the top 2 eth pools for the quote token
-    // no need to add a third so we don't check the seen address set.
-    // Main reason we need this is for gas estimates
-    const top2EthQuoteTokenPool = _(subgraphPoolsSorted)
-      .filter((subgraphPool) => {
-        if (routeType == TradeType.EXACT_INPUT) {
-          return (
-            (subgraphPool.token0.id == wethAddress &&
-              subgraphPool.token1.id == tokenOutAddress) ||
-            (subgraphPool.token1.id == wethAddress &&
-              subgraphPool.token0.id == tokenOutAddress)
-          );
-        } else {
-          return (
-            (subgraphPool.token0.symbol == wethAddress &&
-              subgraphPool.token1.symbol == tokenIn.symbol) ||
-            (subgraphPool.token1.symbol == wethAddress &&
-              subgraphPool.token0.symbol == tokenIn.symbol)
-          );
-        }
-      })
-      .slice(0, 2)
-      .value();
+    // Main reason we need this is for gas estimates, only needed if token out is not ETH.
+    // We don't check the seen address set because if we've already added pools for getting ETH quotes
+    // theres no need to add more.
+    let top2EthQuoteTokenPool: SubgraphPool[] = [];
+    if (
+      tokenOut.symbol != 'WETH' &&
+      tokenOut.symbol != 'WETH9' &&
+      tokenOut.symbol != 'ETH'
+    ) {
+      top2EthQuoteTokenPool = _(subgraphPoolsSorted)
+        .filter((subgraphPool) => {
+          if (routeType == TradeType.EXACT_INPUT) {
+            return (
+              (subgraphPool.token0.id == wethAddress &&
+                subgraphPool.token1.id == tokenOutAddress) ||
+              (subgraphPool.token1.id == wethAddress &&
+                subgraphPool.token0.id == tokenOutAddress)
+            );
+          } else {
+            return (
+              (subgraphPool.token0.symbol == wethAddress &&
+                subgraphPool.token1.symbol == tokenIn.symbol) ||
+              (subgraphPool.token1.symbol == wethAddress &&
+                subgraphPool.token0.symbol == tokenIn.symbol)
+            );
+          }
+        })
+        .slice(0, 2)
+        .value();
+    }
 
     addToAddressSet(top2EthQuoteTokenPool);
 
@@ -990,6 +1056,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     log.info(
       {
+        topByBaseWithTokenIn: topByBaseWithTokenIn.map(printSubgraphPool),
+        topByBaseWithTokenOut: topByBaseWithTokenOut.map(printSubgraphPool),
         topByTVL: topByTVL.map(printSubgraphPool),
         topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printSubgraphPool),
         topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printSubgraphPool),
@@ -1004,6 +1072,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     );
 
     const subgraphPools = _([
+      ...topByBaseWithTokenIn,
+      ...topByBaseWithTokenOut,
       ...top2DirectSwapPool,
       ...top2EthQuoteTokenPool,
       ...topByTVL,
@@ -1056,15 +1126,9 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
-    const poolsBySelection: {
-      top2DirectSwapPool: SubgraphPool[];
-      top2EthQuoteTokenPool: SubgraphPool[];
-      topByTVL: SubgraphPool[];
-      topByTVLUsingTokenIn: SubgraphPool[];
-      topByTVLUsingTokenOut: SubgraphPool[];
-      topByTVLUsingTokenInSecondHops: SubgraphPool[];
-      topByTVLUsingTokenOutSecondHops: SubgraphPool[];
-    } = {
+    const poolsBySelection: PoolsBySelection = {
+      topByBaseWithTokenIn,
+      topByBaseWithTokenOut,
       top2DirectSwapPool,
       top2EthQuoteTokenPool,
       topByTVL,
