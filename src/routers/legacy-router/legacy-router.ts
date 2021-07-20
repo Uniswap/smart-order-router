@@ -9,9 +9,12 @@ import {
 } from '@uniswap/v3-sdk';
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
-import { UniswapMulticallProvider } from '../../providers/multicall-uniswap-provider';
-import { PoolProvider } from '../../providers/pool-provider';
-import { QuoteProvider, RouteWithQuotes } from '../../providers/quote-provider';
+import { IMulticallProvider } from '../../providers/multicall-provider';
+import { IPoolProvider } from '../../providers/pool-provider';
+import {
+  IQuoteProvider,
+  RouteWithQuotes,
+} from '../../providers/quote-provider';
 import { ITokenListProvider } from '../../providers/token-list-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
@@ -32,9 +35,9 @@ import {
 
 export type LegacyRouterParams = {
   chainId: ChainId;
-  multicall2Provider: UniswapMulticallProvider;
-  poolProvider: PoolProvider;
-  quoteProvider: QuoteProvider;
+  multicall2Provider: IMulticallProvider;
+  poolProvider: IPoolProvider;
+  quoteProvider: IQuoteProvider<any>;
   tokenListProvider: ITokenListProvider;
 };
 
@@ -48,9 +51,9 @@ const MAX_HOPS = 2;
  */
 export class LegacyRouter implements IRouter<void> {
   protected chainId: ChainId;
-  protected multicall2Provider: UniswapMulticallProvider;
-  protected poolProvider: PoolProvider;
-  protected quoteProvider: QuoteProvider;
+  protected multicall2Provider: IMulticallProvider;
+  protected poolProvider: IPoolProvider;
+  protected quoteProvider: IQuoteProvider<any>;
   protected tokenListProvider: ITokenListProvider;
 
   constructor({
@@ -71,7 +74,7 @@ export class LegacyRouter implements IRouter<void> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountIn: CurrencyAmount,
-    swapConfig: SwapConfig
+    swapConfig?: SwapConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
@@ -102,13 +105,15 @@ export class LegacyRouter implements IRouter<void> {
         1
       ),
       gasPriceWei: BigNumber.from(0),
-      methodParameters: this.buildMethodParameters(
-        currencyIn,
-        currencyOut,
-        TradeType.EXACT_INPUT,
-        routeQuote,
-        swapConfig
-      ),
+      methodParameters: swapConfig
+        ? this.buildMethodParameters(
+            currencyIn,
+            currencyOut,
+            TradeType.EXACT_INPUT,
+            routeQuote,
+            swapConfig
+          )
+        : undefined,
       blockNumber: BigNumber.from(0),
     };
   }
@@ -117,7 +122,7 @@ export class LegacyRouter implements IRouter<void> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountOut: CurrencyAmount,
-    swapConfig: SwapConfig
+    swapConfig?: SwapConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
@@ -148,13 +153,15 @@ export class LegacyRouter implements IRouter<void> {
         1
       ),
       gasPriceWei: BigNumber.from(0),
-      methodParameters: this.buildMethodParameters(
-        currencyIn,
-        currencyOut,
-        TradeType.EXACT_OUTPUT,
-        routeQuote,
-        swapConfig
-      ),
+      methodParameters: swapConfig
+        ? this.buildMethodParameters(
+            currencyIn,
+            currencyOut,
+            TradeType.EXACT_OUTPUT,
+            routeQuote,
+            swapConfig
+          )
+        : undefined,
       blockNumber: BigNumber.from(0),
     };
   }
@@ -165,7 +172,11 @@ export class LegacyRouter implements IRouter<void> {
     routes: RouteSOR[]
   ): Promise<RouteAmount | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactIn([amountIn], routes);
+      await this.quoteProvider.getQuotesManyExactIn(
+        [amountIn],
+        routes,
+        undefined
+      );
 
     const quotes100Percent = _.map(
       quotesRaw,
@@ -190,7 +201,11 @@ export class LegacyRouter implements IRouter<void> {
     routes: RouteSOR[]
   ): Promise<RouteAmount | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactOut([amountOut], routes);
+      await this.quoteProvider.getQuotesManyExactOut(
+        [amountOut],
+        routes,
+        undefined
+      );
     const bestQuote = await this.getBestQuote(
       routes,
       quotesRaw,

@@ -25,7 +25,7 @@ export type SwapRoute = {
   gasPriceWei: BigNumber;
   routeAmounts: RouteAmount[];
   blockNumber: BigNumber;
-  methodParameters: MethodParameters;
+  methodParameters?: MethodParameters;
 };
 
 export type SwapConfig = {
@@ -53,7 +53,7 @@ export abstract class IRouter<RoutingConfig> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountIn: CurrencyAmount,
-    swapConfig: SwapConfig,
+    swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
   ): Promise<SwapRoute | null>;
 
@@ -61,7 +61,7 @@ export abstract class IRouter<RoutingConfig> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountOut: CurrencyAmount,
-    swapConfig: SwapConfig,
+    swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
   ): Promise<SwapRoute | null>;
 }

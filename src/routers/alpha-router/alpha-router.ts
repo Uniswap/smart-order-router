@@ -214,13 +214,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    const methodParameters = this.buildMethodParameters(
-      currencyIn,
-      currencyOut,
-      TradeType.EXACT_INPUT,
-      routeAmounts,
-      swapConfig
-    );
+    let methodParameters: MethodParameters | undefined;
+
+    if (swapConfig) {
+      methodParameters = this.buildMethodParameters(
+        currencyIn,
+        currencyOut,
+        TradeType.EXACT_INPUT,
+        routeAmounts,
+        swapConfig
+      );
+    }
 
     metric.putMetric(
       'FindBestSwapRoute',
@@ -321,13 +325,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    const methodParameters = this.buildMethodParameters(
-      currencyIn,
-      currencyOut,
-      TradeType.EXACT_OUTPUT,
-      routeAmounts,
-      swapConfig
-    );
+    let methodParameters: MethodParameters | undefined;
+
+    if (swapConfig) {
+      methodParameters = this.buildMethodParameters(
+        currencyIn,
+        currencyOut,
+        TradeType.EXACT_OUTPUT,
+        routeAmounts,
+        swapConfig
+      );
+    }
 
     this.emitPoolSelectionMetrics(swapRouteRaw, poolsBySelection);
 
