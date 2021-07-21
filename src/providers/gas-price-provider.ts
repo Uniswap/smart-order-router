@@ -28,11 +28,9 @@ export type ETHGasStationResponse = {
 
 export class ETHGasStationInfoProvider extends IGasPriceProvider {
   private url: string;
-  constructor(apiKey?: string) {
+  constructor(url: string) {
     super();
-    this.url = `https://ethgasstation.info/api/ethgasAPI.json?api-key=${
-      apiKey ?? ''
-    }`;
+    this.url = url;
   }
 
   public async getGasPrice(): Promise<GasPrice> {
