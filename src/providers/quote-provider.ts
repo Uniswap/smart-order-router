@@ -1,5 +1,5 @@
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
-import retry from 'async-retry';
+import { default as AsyncRetry, default as retry } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { RouteSOR } from '../routers/router';
@@ -23,11 +23,8 @@ export type AmountQuote = {
 export class BlockConflictError extends Error {}
 
 const DEFAULT_CHUNK = 50;
-const RETRY_CONFIG = {
-  retries: 3,
-  minTimeout: 50,
-  maxTimeout: 500,
-};
+
+export type QuoteRetryOptions = AsyncRetry.Options;
 
 export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
 export type QuoteParams = {
@@ -48,7 +45,14 @@ export interface IQuoteProvider<P> {
 }
 
 export class QuoteProvider implements IQuoteProvider<QuoteParams> {
-  constructor(protected multicall2Provider: UniswapMulticallProvider) {}
+  constructor(
+    protected multicall2Provider: UniswapMulticallProvider,
+    protected retryOptions: QuoteRetryOptions = {
+      retries: 2,
+      minTimeout: 50,
+      maxTimeout: 500,
+    }
+  ) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
@@ -66,7 +70,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
         routes,
         additionalParams.multicallChunk
       );
-    }, RETRY_CONFIG);
+    }, this.retryOptions);
 
     const routesQuotes = this.processQuoteResults(
       quoteResults,
@@ -93,7 +97,7 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
         routes,
         additionalParams.multicallChunk
       );
-    }, RETRY_CONFIG);
+    }, this.retryOptions);
 
     const routesQuotes = this.processQuoteResults(
       quoteResults,
