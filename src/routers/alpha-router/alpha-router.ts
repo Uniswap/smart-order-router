@@ -873,7 +873,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         'DAI',
         'USDC',
         'USDT',
-        'WBTC'
+        'WBTC',
+        'WETH'
       )
     )
       .flatMap((token: Token) => {
@@ -894,15 +895,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
       .value();
 
-    addToAddressSet(topByBaseWithTokenIn);
-
     const topByBaseWithTokenOut = _(
       this.tokenListProvider.getTokensBySymbolIfExists(
         ChainId.MAINNET,
         'DAI',
         'USDC',
         'USDT',
-        'WBTC'
+        'WBTC',
+        'WETH'
       )
     )
       .flatMap((token: Token) => {
@@ -922,8 +922,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
       .value();
-
-    addToAddressSet(topByBaseWithTokenOut);
 
     const top2DirectSwapPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {

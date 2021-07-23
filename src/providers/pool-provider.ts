@@ -1,5 +1,6 @@
 import { Token } from '@uniswap/sdk-core';
 import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { default as AsyncRetry, default as retry } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
@@ -40,11 +41,20 @@ export type PoolAccessor = {
   getAllPools: () => Pool[];
 };
 
+export type PoolRetryOptions = AsyncRetry.Options;
+
 // Computing pool addresses is slow as it requires hashing, encoding etc.
 // Addresses never change so can always be cached.
 const POOL_ADDRESS_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class PoolProvider implements IPoolProvider {
-  constructor(protected multicall2Provider: IMulticallProvider) {}
+  constructor(
+    protected multicall2Provider: IMulticallProvider,
+    protected retryOptions: PoolRetryOptions = {
+      retries: 2,
+      minTimeout: 50,
+      maxTimeout: 500,
+    }
+  ) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][]
@@ -190,8 +200,8 @@ export class PoolProvider implements IPoolProvider {
     poolAddresses: string[],
     functionName: string
   ): Promise<Result<TReturn>[]> {
-    const { results, blockNumber } =
-      await this.multicall2Provider.callSameFunctionOnMultipleContracts<
+    const { results, blockNumber } = await retry(async () => {
+      return this.multicall2Provider.callSameFunctionOnMultipleContracts<
         undefined,
         TReturn
       >({
@@ -199,6 +209,7 @@ export class PoolProvider implements IPoolProvider {
         contractInterface: IUniswapV3PoolState__factory.createInterface(),
         functionName: functionName,
       });
+    }, this.retryOptions);
 
     log.debug(`Pool data fetched as of block ${blockNumber}`);
 

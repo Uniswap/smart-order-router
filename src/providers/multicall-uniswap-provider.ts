@@ -14,7 +14,10 @@ import {
 export class UniswapMulticallProvider extends IMulticallProvider {
   private multicallContract: UniswapInterfaceMulticall;
 
-  constructor(protected provider: providers.BaseProvider) {
+  constructor(
+    protected provider: providers.BaseProvider,
+    protected gasLimitPerCall = 1_000_000
+  ) {
     super();
     this.multicallContract = UniswapInterfaceMulticall__factory.connect(
       UNISWAP_MULTICALL_ADDRESS,
@@ -44,7 +47,7 @@ export class UniswapMulticallProvider extends IMulticallProvider {
       return {
         target: address,
         callData,
-        gasLimit: 1_000_000,
+        gasLimit: this.gasLimitPerCall,
       };
     });
 
@@ -112,7 +115,7 @@ export class UniswapMulticallProvider extends IMulticallProvider {
       return {
         target: address,
         callData,
-        gasLimit: 1_000_000,
+        gasLimit: this.gasLimitPerCall,
       };
     });
 
