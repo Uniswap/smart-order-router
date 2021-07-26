@@ -75,7 +75,7 @@ export class LegacyRouter implements IRouter<void> {
     currencyOut: Currency,
     amountIn: CurrencyAmount,
     swapConfig?: SwapConfig
-  ): Promise<SwapRoute | null> {
+  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
@@ -88,6 +88,13 @@ export class LegacyRouter implements IRouter<void> {
     if (!routeQuote) {
       return null;
     }
+
+    const trade = this.buildTrade<TradeType.EXACT_INPUT>(
+      currencyIn,
+      currencyOut,
+      TradeType.EXACT_INPUT,
+      routeQuote
+    );
 
     return {
       quote: routeQuote.quote,
@@ -105,6 +112,7 @@ export class LegacyRouter implements IRouter<void> {
         1
       ),
       gasPriceWei: BigNumber.from(0),
+      trade,
       methodParameters: swapConfig
         ? this.buildMethodParameters(
             currencyIn,
@@ -123,7 +131,7 @@ export class LegacyRouter implements IRouter<void> {
     currencyOut: Currency,
     amountOut: CurrencyAmount,
     swapConfig?: SwapConfig
-  ): Promise<SwapRoute | null> {
+  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut);
@@ -136,6 +144,13 @@ export class LegacyRouter implements IRouter<void> {
     if (!routeQuote) {
       return null;
     }
+
+    const trade = this.buildTrade<TradeType.EXACT_OUTPUT>(
+      currencyIn,
+      currencyOut,
+      TradeType.EXACT_OUTPUT,
+      routeQuote
+    );
 
     return {
       quote: routeQuote.quote,
@@ -153,6 +168,7 @@ export class LegacyRouter implements IRouter<void> {
         1
       ),
       gasPriceWei: BigNumber.from(0),
+      trade,
       methodParameters: swapConfig
         ? this.buildMethodParameters(
             currencyIn,
@@ -423,6 +439,81 @@ export class LegacyRouter implements IRouter<void> {
     }
 
     return allPaths;
+  }
+
+  private buildTrade<TTradeType extends TradeType>(
+    tokenInCurrency: Currency,
+    tokenOutCurrency: Currency,
+    tradeType: TTradeType,
+    routeAmount: RouteAmount
+  ): Trade<Currency, Currency, TTradeType> {
+    const { route, amount, quote } = routeAmount;
+
+    // The route, amount and quote are all in terms of wrapped tokens.
+    // When constructing the Trade object the inputAmount/outputAmount must
+    // use native currencies if necessary. This is so that the Trade knows to wrap/unwrap.
+    if (tradeType == TradeType.EXACT_INPUT) {
+      const amountCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenInCurrency,
+        amount.numerator,
+        amount.denominator
+      );
+      const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenOutCurrency,
+        quote.numerator,
+        quote.denominator
+      );
+
+      const routeCurrency = new Route(
+        route.pools,
+        amountCurrency.currency,
+        quoteCurrency.currency
+      );
+
+      const trade = Trade.createUncheckedTradeWithMultipleRoutes({
+        routes: [
+          {
+            route: routeCurrency,
+            inputAmount: amountCurrency,
+            outputAmount: quoteCurrency,
+          },
+        ],
+        tradeType,
+      });
+
+      return trade;
+    } else {
+      const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenInCurrency,
+        quote.numerator,
+        quote.denominator
+      );
+
+      const amountCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenOutCurrency,
+        amount.numerator,
+        amount.denominator
+      );
+
+      const routeCurrency = new Route(
+        route.pools,
+        quoteCurrency.currency,
+        amountCurrency.currency
+      );
+
+      const trade = Trade.createUncheckedTradeWithMultipleRoutes({
+        routes: [
+          {
+            route: routeCurrency,
+            inputAmount: quoteCurrency,
+            outputAmount: amountCurrency,
+          },
+        ],
+        tradeType,
+      });
+
+      return trade;
+    }
   }
 
   private buildMethodParameters(

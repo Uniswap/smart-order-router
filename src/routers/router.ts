@@ -1,5 +1,5 @@
-import { Currency, Percent, Token } from '@uniswap/sdk-core';
-import { MethodParameters, Route as RouteRaw } from '@uniswap/v3-sdk';
+import { Currency, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { MethodParameters, Route as RouteRaw, Trade } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 
@@ -7,22 +7,22 @@ export class RouteSOR extends RouteRaw<Token, Token> {}
 
 export type RouteAmount = {
   route: RouteSOR;
-  amount: CurrencyAmount; // Amount in or out from user.
+  amount: CurrencyAmount;
   quote: CurrencyAmount;
   quoteGasAdjusted: CurrencyAmount;
   estimatedGasUsed: BigNumber;
   estimatedGasUsedQuoteToken: CurrencyAmount;
   estimatedGasUsedUSD: CurrencyAmount;
-  percentage: number;
 };
 
-export type SwapRoute = {
+export type SwapRoute<TTradeType extends TradeType> = {
   quote: CurrencyAmount;
   quoteGasAdjusted: CurrencyAmount;
   estimatedGasUsed: BigNumber;
   estimatedGasUsedQuoteToken: CurrencyAmount;
   estimatedGasUsedUSD: CurrencyAmount;
   gasPriceWei: BigNumber;
+  trade: Trade<Currency, Currency, TTradeType>;
   routeAmounts: RouteAmount[];
   blockNumber: BigNumber;
   methodParameters?: MethodParameters;
@@ -55,7 +55,7 @@ export abstract class IRouter<RoutingConfig> {
     amountIn: CurrencyAmount,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
-  ): Promise<SwapRoute | null>;
+  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null>;
 
   abstract routeExactOut(
     currencyIn: Currency,
@@ -63,5 +63,5 @@ export abstract class IRouter<RoutingConfig> {
     amountOut: CurrencyAmount,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
-  ): Promise<SwapRoute | null>;
+  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null>;
 }

@@ -125,7 +125,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     amountIn: CurrencyAmount,
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
-  ): Promise<SwapRoute | null> {
+  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -193,6 +193,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const beforeBestSwap = Date.now();
     const swapRouteRaw = this.getBestSwapRoute(
+      amountIn,
       percents,
       routesWithQuotes,
       tokenOut,
@@ -214,16 +215,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
+    const trade = this.buildTrade<TradeType.EXACT_INPUT>(
+      currencyIn,
+      currencyOut,
+      TradeType.EXACT_INPUT,
+      routeAmounts
+    );
+
     let methodParameters: MethodParameters | undefined;
 
     if (swapConfig) {
-      methodParameters = this.buildMethodParameters(
-        currencyIn,
-        currencyOut,
-        TradeType.EXACT_INPUT,
-        routeAmounts,
-        swapConfig
-      );
+      methodParameters = this.buildMethodParameters(trade, swapConfig);
     }
 
     metric.putMetric(
@@ -242,6 +244,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedUSD,
       gasPriceWei,
       routeAmounts,
+      trade,
       methodParameters,
       blockNumber,
     };
@@ -253,7 +256,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     amountOut: CurrencyAmount,
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
-  ): Promise<SwapRoute | null> {
+  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -304,6 +307,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       });
 
     const swapRouteRaw = this.getBestSwapRoute(
+      amountOut,
       percents,
       routesWithQuotes,
       tokenIn,
@@ -325,16 +329,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
+    const trade = this.buildTrade<TradeType.EXACT_OUTPUT>(
+      currencyIn,
+      currencyOut,
+      TradeType.EXACT_OUTPUT,
+      routeAmounts
+    );
+
     let methodParameters: MethodParameters | undefined;
 
     if (swapConfig) {
-      methodParameters = this.buildMethodParameters(
-        currencyIn,
-        currencyOut,
-        TradeType.EXACT_OUTPUT,
-        routeAmounts,
-        swapConfig
-      );
+      methodParameters = this.buildMethodParameters(trade, swapConfig);
     }
 
     this.emitPoolSelectionMetrics(swapRouteRaw, poolsBySelection);
@@ -346,6 +351,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,
       gasPriceWei,
+      trade,
       routeAmounts,
       methodParameters,
       blockNumber,
@@ -353,6 +359,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   }
 
   private getBestSwapRoute(
+    amount: CurrencyAmount,
     percents: number[],
     routesWithQuotes: RouteWithQuotes[],
     quoteToken: Token,
@@ -438,6 +445,29 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     if (!swapRoute) {
       return null;
+    }
+
+    // Due to potential loss of precision when taking percentages of the input it is possible that the sum of the amounts of each
+    // route of our quote may not add up exactly to exactIn or exactOut. We check this here, and if there is a mismatch
+    // add the missing amount to a random route. The missing amount size should be neglible so the quote should still be accurate.
+    const { routeAmounts } = swapRoute;
+    const totalAmount = _.reduce(
+      routeAmounts,
+      (total, routeAmount) => total.add(routeAmount.amount),
+      CurrencyAmount.fromRawAmount(routeAmounts[0]!.amount.currency, 0)
+    );
+
+    const missingAmount = amount.subtract(totalAmount);
+    if (missingAmount.greaterThan(0)) {
+      log.info(
+        {
+          missingAmount: missingAmount.quotient.toString(),
+        },
+        `Optimal routes amounts did not equal total. Adding missing amount to last route in array.`
+      );
+
+      routeAmounts[routeAmounts.length - 1]!.amount =
+        routeAmounts[routeAmounts.length - 1]!.amount.add(missingAmount);
     }
 
     log.info(
@@ -738,9 +768,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           estimatedGasUsedUSD: rq.gasCostInUSD,
         };
       }
-    ).sort(
-      (routeAmountA, routeAmountB) =>
-        routeAmountB.percentage - routeAmountA.percentage
+    ).sort((routeAmountA, routeAmountB) =>
+      routeAmountB.amount.greaterThan(routeAmountA.amount) ? 1 : -1
     );
 
     metric.putMetric(
@@ -790,6 +819,9 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     );
   }
 
+  // Note multiplications here can result in a loss of precision in the amounts (e.g. taking 50% of 101)
+  // This is reconcilled at the end of the algorithm by adding any lost precision to one of
+  // the splits in the route.
   private getAmountDistribution(
     amount: CurrencyAmount,
     routingConfig: AlphaRouterConfig
@@ -1217,78 +1249,91 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     return routes;
   }
 
-  private buildMethodParameters(
+  private buildTrade<TTradeType extends TradeType>(
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
-    tradeType: TradeType,
-    routeAmounts: RouteAmount[],
+    tradeType: TTradeType,
+    routeAmounts: RouteAmount[]
+  ): Trade<Currency, Currency, TTradeType> {
+    const routes = _.map<
+      RouteAmount,
+      {
+        route: Route<Currency, Currency>;
+        inputAmount: CurrencyAmount;
+        outputAmount: CurrencyAmount;
+      }
+    >(routeAmounts, (routeAmount: RouteAmount) => {
+      const { route, amount, quote } = routeAmount;
+
+      // The route, amount and quote are all in terms of wrapped tokens.
+      // When constructing the Trade object the inputAmount/outputAmount must
+      // use native currencies if necessary. This is so that the Trade knows to wrap/unwrap.
+      if (tradeType == TradeType.EXACT_INPUT) {
+        const amountCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenInCurrency,
+          amount.numerator,
+          amount.denominator
+        );
+        const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenOutCurrency,
+          quote.numerator,
+          quote.denominator
+        );
+
+        const routeCurrency = new Route(
+          route.pools,
+          amountCurrency.currency,
+          quoteCurrency.currency
+        );
+
+        return {
+          route: routeCurrency,
+          inputAmount: amountCurrency,
+          outputAmount: quoteCurrency,
+        };
+      } else {
+        const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenInCurrency,
+          quote.numerator,
+          quote.denominator
+        );
+
+        const amountCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenOutCurrency,
+          amount.numerator,
+          amount.denominator
+        );
+
+        const routeCurrency = new Route(
+          route.pools,
+          quoteCurrency.currency,
+          amountCurrency.currency
+        );
+
+        return {
+          route: routeCurrency,
+          inputAmount: quoteCurrency,
+          outputAmount: amountCurrency,
+        };
+      }
+    });
+
+    const trade = Trade.createUncheckedTradeWithMultipleRoutes({
+      routes,
+      tradeType,
+    });
+
+    return trade;
+  }
+
+  private buildMethodParameters(
+    trade: Trade<Currency, Currency, TradeType>,
     swapConfig: SwapConfig
   ): MethodParameters {
-    const trades = _.map<RouteAmount, Trade<Currency, Currency, TradeType>>(
-      routeAmounts,
-      (routeAmount: RouteAmount) => {
-        const { route, amount, quote } = routeAmount;
-
-        // The route, amount and quote are all in terms of wrapped tokens.
-        // When constructing the Trade object the inputAmount/outputAmount must
-        // use native currencies if necessary. This is so that the Trade knows to wrap/unwrap.
-        if (tradeType == TradeType.EXACT_INPUT) {
-          const amountCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenInCurrency,
-            amount.numerator,
-            amount.denominator
-          );
-          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenOutCurrency,
-            quote.numerator,
-            quote.denominator
-          );
-
-          const routeCurrency = new Route(
-            route.pools,
-            amountCurrency.currency,
-            quoteCurrency.currency
-          );
-
-          return Trade.createUncheckedTrade({
-            route: routeCurrency,
-            tradeType: TradeType.EXACT_INPUT,
-            inputAmount: amountCurrency,
-            outputAmount: quoteCurrency,
-          });
-        } else {
-          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenInCurrency,
-            quote.numerator,
-            quote.denominator
-          );
-
-          const amountCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenOutCurrency,
-            amount.numerator,
-            amount.denominator
-          );
-
-          const routeCurrency = new Route(
-            route.pools,
-            quoteCurrency.currency,
-            amountCurrency.currency
-          );
-
-          return Trade.createUncheckedTrade({
-            route: routeCurrency,
-            tradeType: TradeType.EXACT_OUTPUT,
-            inputAmount: quoteCurrency,
-            outputAmount: amountCurrency,
-          });
-        }
-      }
-    );
-
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =
       swapConfig;
 
-    const methodParameters = SwapRouter.swapCallParameters(trades, {
+    const methodParameters = SwapRouter.swapCallParameters(trade, {
       recipient,
       slippageTolerance,
       deadline,

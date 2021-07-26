@@ -1,6 +1,8 @@
+import { Percent } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { RouteSOR, RouteAmount } from '../routers/router';
+import { CurrencyAmount } from '.';
+import { RouteAmount, RouteSOR } from '../routers/router';
 
 export const routeToString = (route: RouteSOR): string => {
   const routeStr = [];
@@ -20,9 +22,27 @@ export const routeToString = (route: RouteSOR): string => {
   return routeStr.join('');
 };
 
+export const routeAmountsToString = (routeAmounts: RouteAmount[]): string => {
+  const total = _.reduce(
+    routeAmounts,
+    (total: CurrencyAmount, cur: RouteAmount) => {
+      return total.add(cur.amount);
+    },
+    CurrencyAmount.fromRawAmount(routeAmounts[0]!.amount.currency, 0)
+  );
+
+  const routeStrings = _.map(routeAmounts, ({ route, amount }) => {
+    const portion = amount.divide(total);
+    const percent = new Percent(portion.numerator, portion.denominator);
+    return `${percent.toFixed(2)}% = ${routeToString(route)}`;
+  });
+
+  return _.join(routeStrings, ', ');
+};
+
 export const routeAmountToString = (routeAmount: RouteAmount): string => {
-  const { route, percentage } = routeAmount;
-  return `${percentage}% = ${routeToString(route)}`;
+  const { route, amount } = routeAmount;
+  return `${amount.toExact()} = ${routeToString(route)}`;
 };
 
 export const poolToString = (p: Pool): string => {
