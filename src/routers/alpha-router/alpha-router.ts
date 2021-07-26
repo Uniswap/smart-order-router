@@ -58,6 +58,7 @@ export type AlphaRouterConfig = {
   topN: number;
   topNTokenInOut: number;
   topNSecondHop: number;
+  topNWithBaseToken: number;
   maxSwapsPerPath: number;
   maxSplits: number;
   distributionPercent: number;
@@ -68,6 +69,7 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   topN: 4,
   topNTokenInOut: 4,
   topNSecondHop: 2,
+  topNWithBaseToken: 2,
   maxSwapsPerPath: 3,
   maxSplits: 3,
   distributionPercent: 5,
@@ -847,7 +849,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     poolAccessor: PoolAccessor;
     poolsBySelection: PoolsBySelection;
   }> {
-    const { topN, topNTokenInOut, topNSecondHop } = routingConfig;
+    const { topN, topNTokenInOut, topNSecondHop, topNWithBaseToken } = routingConfig;
     const tokenInAddress = tokenIn.address.toLowerCase();
     const tokenOutAddress = tokenOut.address.toLowerCase();
 
@@ -921,7 +923,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             );
           })
           .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
-          .slice(0, 1)
+          .slice(0, topNWithBaseToken)
           .value();
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
@@ -949,7 +951,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             );
           })
           .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
-          .slice(0, 1)
+          .slice(0, topNWithBaseToken)
           .value();
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
