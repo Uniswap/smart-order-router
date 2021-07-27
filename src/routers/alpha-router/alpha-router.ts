@@ -1,4 +1,4 @@
-import { Currency, Ether, Fraction, Token, TradeType } from '@uniswap/sdk-core';
+import { Currency, Fraction, Token, TradeType, WETH9 } from '@uniswap/sdk-core';
 import {
   FeeAmount,
   MethodParameters,
@@ -22,7 +22,13 @@ import {
   SubgraphPool,
 } from '../../providers/subgraph-provider';
 import { ITokenListProvider } from '../../providers/token-list-provider';
-import { ITokenProvider } from '../../providers/token-provider';
+import {
+  DAI,
+  ITokenProvider,
+  USDC,
+  USDT,
+  WBTC,
+} from '../../providers/token-provider';
 import { CurrencyAmount, parseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
@@ -48,17 +54,19 @@ export type AlphaRouterParams = {
   subgraphProvider: ISubgraphProvider;
   poolProvider: IPoolProvider;
   quoteProvider: IQuoteProvider<any>;
-  tokenListProvider: ITokenListProvider;
   tokenProvider: ITokenProvider;
   gasPriceProvider: IGasPriceProvider;
   gasModelFactory: IGasModelFactory;
+  blockedTokenListProvider?: ITokenListProvider;
 };
 
 export type AlphaRouterConfig = {
   topN: number;
   topNTokenInOut: number;
   topNSecondHop: number;
+  topNWithEachBaseToken: number;
   topNWithBaseToken: number;
+  topNWithBaseTokenInSet: boolean;
   maxSwapsPerPath: number;
   maxSplits: number;
   distributionPercent: number;
@@ -69,7 +77,9 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   topN: 4,
   topNTokenInOut: 4,
   topNSecondHop: 2,
-  topNWithBaseToken: 2,
+  topNWithEachBaseToken: 2,
+  topNWithBaseToken: 10,
+  topNWithBaseTokenInSet: false,
   maxSwapsPerPath: 3,
   maxSplits: 3,
   distributionPercent: 5,
@@ -95,9 +105,9 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   protected poolProvider: IPoolProvider;
   protected quoteProvider: IQuoteProvider<any>;
   protected tokenProvider: ITokenProvider;
-  protected tokenListProvider: ITokenListProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected gasModelFactory: IGasModelFactory;
+  protected blockedTokenListProvider?: ITokenListProvider;
 
   constructor({
     chainId,
@@ -105,7 +115,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     poolProvider,
     quoteProvider,
     tokenProvider,
-    tokenListProvider,
+    blockedTokenListProvider,
     subgraphProvider,
     gasPriceProvider,
     gasModelFactory,
@@ -114,7 +124,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     this.multicall2Provider = multicall2Provider;
     this.poolProvider = poolProvider;
     this.quoteProvider = quoteProvider;
-    this.tokenListProvider = tokenListProvider;
+    this.blockedTokenListProvider = blockedTokenListProvider;
     this.tokenProvider = tokenProvider;
     this.subgraphProvider = subgraphProvider;
     this.gasPriceProvider = gasPriceProvider;
@@ -151,7 +161,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     const gasModel = this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
-      this.tokenListProvider,
       poolAccessor,
       tokenOut
     );
@@ -282,7 +291,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     const gasModel = this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
-      this.tokenListProvider,
       poolAccessor,
       tokenIn
     );
@@ -849,7 +857,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     poolAccessor: PoolAccessor;
     poolsBySelection: PoolsBySelection;
   }> {
-    const { topN, topNTokenInOut, topNSecondHop, topNWithBaseToken } = routingConfig;
+    const {
+      topN,
+      topNTokenInOut,
+      topNSecondHop,
+      topNWithEachBaseToken,
+      topNWithBaseTokenInSet,
+      topNWithBaseToken,
+    } = routingConfig;
     const tokenInAddress = tokenIn.address.toLowerCase();
     const tokenOutAddress = tokenOut.address.toLowerCase();
 
@@ -880,15 +895,13 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     // Only consider pools where neither tokens are in the blocked token list.
     const subgraphPoolsSorted = _(allPools)
       .filter((pool) => {
+        if (!this.blockedTokenListProvider) {
+          return true;
+        }
+
         return (
-          !this.tokenListProvider.tokenBlockedBySymbol(
-            this.chainId,
-            pool.token0.symbol
-          ) &&
-          !this.tokenListProvider.tokenBlockedBySymbol(
-            this.chainId,
-            pool.token1.symbol
-          )
+          !this.blockedTokenListProvider.getTokenByAddress(pool.token0.id) &&
+          !this.blockedTokenListProvider.getTokenByAddress(pool.token1.id)
         );
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
@@ -901,16 +914,9 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
     };
 
-    const topByBaseWithTokenIn = _(
-      this.tokenListProvider.getTokensBySymbolIfExists(
-        ChainId.MAINNET,
-        'DAI',
-        'USDC',
-        'USDT',
-        'WBTC',
-        'WETH'
-      )
-    )
+    const baseTokens = [USDC, USDT, WBTC, DAI, WETH9[1]!];
+
+    const topByBaseWithTokenIn = _(baseTokens)
       .flatMap((token: Token) => {
         return _(subgraphPoolsSorted)
           .filter((subgraphPool) => {
@@ -923,22 +929,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             );
           })
           .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
-          .slice(0, topNWithBaseToken)
+          .slice(0, topNWithEachBaseToken)
           .value();
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+      .slice(0, topNWithBaseToken)
       .value();
 
-    const topByBaseWithTokenOut = _(
-      this.tokenListProvider.getTokensBySymbolIfExists(
-        ChainId.MAINNET,
-        'DAI',
-        'USDC',
-        'USDT',
-        'WBTC',
-        'WETH'
-      )
-    )
+    const topByBaseWithTokenOut = _(baseTokens)
       .flatMap((token: Token) => {
         return _(subgraphPoolsSorted)
           .filter((subgraphPool) => {
@@ -951,11 +949,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             );
           })
           .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
-          .slice(0, topNWithBaseToken)
+          .slice(0, topNWithEachBaseToken)
           .value();
       })
       .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+      .slice(0, topNWithBaseToken)
       .value();
+
+    if (topNWithBaseTokenInSet) {
+      addToAddressSet(topByBaseWithTokenIn);
+      addToAddressSet(topByBaseWithTokenOut);
+    }
 
     const top2DirectSwapPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
@@ -972,9 +976,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     addToAddressSet(top2DirectSwapPool);
 
-    const wethAddress = Ether.onChain(
-      this.chainId
-    ).wrapped.address.toLowerCase();
+    const wethAddress = WETH9[1]!.address;
 
     // Main reason we need this is for gas estimates, only needed if token out is not ETH.
     // We don't check the seen address set because if we've already added pools for getting ETH quotes
@@ -1126,18 +1128,26 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       .uniqBy((pool) => pool.id)
       .value();
 
+    const tokenAddresses = _(subgraphPools)
+      .flatMap((subgraphPool) => [
+        subgraphPool.token0.id,
+        subgraphPool.token1.id,
+      ])
+      .compact()
+      .value();
+
+    log.info(
+      `Getting the ${tokenAddresses.length} tokens within the pools for consideration`
+    );
+
+    const tokenAccessor = await this.tokenProvider.getTokens(tokenAddresses);
+
     const tokenPairsRaw = _.map<
       SubgraphPool,
       [Token, Token, FeeAmount] | undefined
     >(subgraphPools, (subgraphPool) => {
-      const tokenA = this.tokenListProvider.getTokenByAddressIfExists(
-        this.chainId,
-        subgraphPool.token0.id
-      );
-      const tokenB = this.tokenListProvider.getTokenByAddressIfExists(
-        this.chainId,
-        subgraphPool.token1.id
-      );
+      const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+      const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
       const fee = parseFeeAmount(subgraphPool.feeTier);
 
       if (!tokenA || !tokenB) {
@@ -1146,7 +1156,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             subgraphPool.token1.symbol
           }/${fee} because ${
             tokenA ? subgraphPool.token1.symbol : subgraphPool.token0.symbol
-          } not in token list`
+          } not found by token provider`
         );
         return undefined;
       }

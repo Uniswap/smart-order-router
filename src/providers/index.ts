@@ -8,3 +8,4 @@ export * from './quote-provider';
 export * from './subgraph-provider';
 export * from './token-list-provider';
 export * from './token-provider';
+export * from './token-provider-with-fallback';

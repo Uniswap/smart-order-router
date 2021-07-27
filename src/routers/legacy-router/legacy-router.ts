@@ -107,7 +107,7 @@ export class LegacyRouter implements IRouter<void> {
         1
       ),
       estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
-        this.tokenListProvider.getTokenBySymbol(this.chainId, 'DAI'),
+        this.tokenListProvider.getTokenBySymbol('DAI')!,
         0,
         1
       ),
@@ -163,7 +163,7 @@ export class LegacyRouter implements IRouter<void> {
         1
       ),
       estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
-        this.tokenListProvider.getTokenBySymbol(this.chainId, 'DAI'),
+        this.tokenListProvider.getTokenBySymbol('DAI')!,
         0,
         1
       ),
@@ -291,7 +291,7 @@ export class LegacyRouter implements IRouter<void> {
           1
         ),
         estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
-          this.tokenListProvider.getTokenBySymbol(this.chainId, 'DAI'),
+          this.tokenListProvider.getTokenBySymbol('DAI')!,
           0,
           1
         ),

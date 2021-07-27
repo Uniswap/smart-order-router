@@ -14,13 +14,10 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
   return {
     [ChainId.MAINNET]: [
       WETH9[ChainId.MAINNET],
-      ...tokenProvider.getTokensBySymbolIfExists(
-        ChainId.MAINNET,
-        'DAI',
-        'USDC',
-        'USDT',
-        'WBTC'
-      ),
+      tokenProvider.getTokenBySymbol('DAI')!,
+      tokenProvider.getTokenBySymbol('USDC')!,
+      tokenProvider.getTokenBySymbol('USDT')!,
+      tokenProvider.getTokenBySymbol('WBTC')!,
     ],
     [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]],
     [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]],
@@ -31,18 +28,14 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
 
 const getBasePairBySymbols = (
   tokenProvider: ITokenListProvider,
-  chainId: ChainId,
+  _chainId: ChainId,
   fromSymbol: string,
   ...toSymbols: string[]
 ): { [tokenAddress: string]: Token[] } => {
-  const fromToken: Token | undefined = tokenProvider.getTokenBySymbolIfExists(
-    chainId,
-    fromSymbol
-  );
+  const fromToken: Token | undefined =
+    tokenProvider.getTokenBySymbol(fromSymbol);
   const toTokens: Token[] = _(toSymbols)
-    .map((toSymbol) =>
-      tokenProvider.getTokenBySymbolIfExists(chainId, toSymbol)
-    )
+    .map((toSymbol) => tokenProvider.getTokenBySymbol(toSymbol))
     .compact()
     .value();
 
@@ -55,14 +48,11 @@ const getBasePairBySymbols = (
 
 const getBasePairByAddress = (
   tokenProvider: ITokenListProvider,
-  chainId: ChainId,
+  _chainId: ChainId,
   fromAddress: string,
   toSymbol: string
 ): { [tokenAddress: string]: Token[] } => {
-  const toToken: Token | undefined = tokenProvider.getTokenBySymbolIfExists(
-    chainId,
-    toSymbol
-  );
+  const toToken: Token | undefined = tokenProvider.getTokenBySymbol(toSymbol);
 
   if (!toToken) return {};
 

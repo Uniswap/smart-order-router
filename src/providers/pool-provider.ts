@@ -95,7 +95,6 @@ export class PoolProvider implements IPoolProvider {
     ]);
 
     log.info(
-      { liquidityResults, slot0Results },
       `Got liquidity and slot0s for ${poolAddressSet.size} pools.`
     );
 

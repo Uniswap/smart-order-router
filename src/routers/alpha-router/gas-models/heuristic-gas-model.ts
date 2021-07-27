@@ -3,7 +3,8 @@ import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { PoolAccessor } from '../../../providers/pool-provider';
-import { TokenListProvider } from '../../../providers/token-list-provider';
+import { DAI, USDC, USDT } from '../../../providers/token-provider';
+import { ChainId, WETH9 } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
@@ -27,20 +28,18 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   }
 
   protected _buildGasModel(
-    chainId: number,
+    chainId: ChainId,
     gasPriceWei: BigNumber,
-    tokenProvider: TokenListProvider,
     poolAccessor: PoolAccessor,
     token: Token
   ): GasModel {
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
     // We do return a gas use in USD however, so we still convert to usd.
-    if (token.symbol === 'WETH' || token.symbol === 'WETH9') {
+    if (token.equals(WETH9[chainId]!)) {
       const usdPool: Pool = this.getHighestLiquidityUSDPool(
         chainId,
-        poolAccessor,
-        tokenProvider
+        poolAccessor
       );
 
       const estimateGasCost = (
@@ -53,11 +52,10 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
         const { gasCostInEth, gasUse } = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
-          tokenProvider,
           chainId
         );
 
-        const ethToken0 = usdPool.token0.symbol == 'WETH';
+        const ethToken0 = usdPool.token0.address == WETH9[chainId]!.address;
 
         const ethTokenPrice = ethToken0
           ? usdPool.token0Price
@@ -84,14 +82,12 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     const ethPool: Pool = this.getHighestLiquidityEthPool(
       chainId,
       token,
-      poolAccessor,
-      tokenProvider
+      poolAccessor
     );
 
     const usdPool: Pool = this.getHighestLiquidityUSDPool(
       chainId,
-      poolAccessor,
-      tokenProvider
+      poolAccessor
     );
 
     const estimateGasCost = (
@@ -104,12 +100,10 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       const { gasCostInEth, gasUse } = this.estimateGas(
         routeWithValidQuote,
         gasPriceWei,
-        tokenProvider,
         chainId
       );
 
-      const ethToken0 =
-        ethPool.token0.symbol == 'WETH' || ethPool.token0.symbol == 'WETH9';
+      const ethToken0 = ethPool.token0.address == WETH9[chainId]!.address;
 
       const ethTokenPrice = ethToken0
         ? ethPool.token0Price
@@ -133,7 +127,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       }
 
       const ethToken0USDPool =
-        usdPool.token0.symbol == 'WETH' || usdPool.token0.symbol == 'WETH9';
+        usdPool.token0.address == WETH9[chainId]!.address;
 
       const ethTokenPriceUSDPool = ethToken0USDPool
         ? usdPool.token0Price
@@ -171,8 +165,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   private estimateGas(
     routeWithValidQuote: RouteWithValidQuote,
     gasPriceWei: BigNumber,
-    tokenListProvider: TokenListProvider,
-    chainId: number
+    chainId: ChainId
   ) {
     const totalInitializedTicksCrossed = _.sum(
       routeWithValidQuote.initializedTicksCrossedList
@@ -189,9 +182,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
 
     const totalGasCostWei = gasPriceWei.mul(gasUse);
 
-    const weth =
-      tokenListProvider.getTokenBySymbolIfExists(chainId, 'WETH') ??
-      tokenListProvider.getTokenBySymbol(chainId, 'WETH9');
+    const weth = WETH9[chainId]!;
 
     const gasCostInEth = CurrencyAmount.fromRawAmount(
       weth,
@@ -202,14 +193,11 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   }
 
   private getHighestLiquidityEthPool(
-    chainId: number,
+    chainId: ChainId,
     token: Token,
-    poolAccessor: PoolAccessor,
-    tokenListProvider: TokenListProvider
+    poolAccessor: PoolAccessor
   ): Pool {
-    const weth =
-      tokenListProvider.getTokenBySymbolIfExists(chainId, 'WETH') ??
-      tokenListProvider.getTokenBySymbol(chainId, 'WETH9');
+    const weth = WETH9[chainId]!;
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .map((feeAmount) => {
@@ -233,25 +221,21 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   }
 
   private getHighestLiquidityUSDPool(
-    chainId: number,
-    poolAccessor: PoolAccessor,
-    tokenListProvider: TokenListProvider
+    chainId: ChainId,
+    poolAccessor: PoolAccessor
   ): Pool {
-    const weth =
-      tokenListProvider.getTokenBySymbolIfExists(chainId, 'WETH') ??
-      tokenListProvider.getTokenBySymbol(chainId, 'WETH9');
-    const dai = tokenListProvider.getTokenBySymbolIfExists(chainId, 'DAI');
-    const usdc = tokenListProvider.getTokenBySymbolIfExists(chainId, 'USDC');
-    const usdt = tokenListProvider.getTokenBySymbolIfExists(chainId, 'USDT');
-
-    const usdTokens = _.compact([dai, usdc, usdt]);
+    const usdTokens = _.compact([DAI, USDC, USDT]);
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .flatMap((feeAmount) => {
         const pools = [];
 
         for (const usdToken of usdTokens) {
-          const pool = poolAccessor.getPool(weth, usdToken, feeAmount);
+          const pool = poolAccessor.getPool(
+            WETH9[chainId]!,
+            usdToken,
+            feeAmount
+          );
           if (pool) {
             pools.push(pool);
           }
