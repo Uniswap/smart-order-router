@@ -1,5 +1,6 @@
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
+import stats from 'stats-lite';
 import { UniswapInterfaceMulticall__factory } from '../types/v3/factories/UniswapInterfaceMulticall__factory';
 import { UniswapInterfaceMulticall } from '../types/v3/UniswapInterfaceMulticall';
 import { UNISWAP_MULTICALL_ADDRESS } from '../util/addresses';
@@ -109,6 +110,7 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
   ): Promise<{
     blockNumber: BigNumber;
     results: Result<TReturn>[];
+    approxGasUsedPerSuccessCall: number;
   }> {
     const {
       address,
@@ -145,8 +147,9 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
 
     const results: Result<TReturn>[] = [];
 
+    const gasUsedForSuccess: number[] = [];
     for (let i = 0; i < aggregateResults.length; i++) {
-      const { success, returnData } = aggregateResults[i]!;
+      const { success, returnData, gasUsed } = aggregateResults[i]!;
 
       // Return data "0x" is sometimes returned for invalid pools.
       if (!success || returnData.length <= 2) {
@@ -161,6 +164,8 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
         continue;
       }
 
+      gasUsedForSuccess.push(gasUsed.toNumber());
+
       results.push({
         success: true,
         result: contractInterface.decodeFunctionResult(
@@ -174,6 +179,10 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       { results, functionName, address },
       `Results for multicall for ${functionName} at address ${address} with ${functionParams.length} different sets of params. Results as of block ${blockNumber}`
     );
-    return { blockNumber, results };
+    return {
+      blockNumber,
+      results,
+      approxGasUsedPerSuccessCall: stats.percentile(gasUsedForSuccess, 99),
+    };
   }
 }

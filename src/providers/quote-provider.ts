@@ -2,6 +2,7 @@ import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import { default as AsyncRetry, default as retry } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
+import stats from 'stats-lite';
 import { RouteSOR } from '../routers/router';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { metric, MetricLoggerUnit } from '../util';
@@ -45,14 +46,14 @@ export class QuoteProvider implements IQuoteProvider {
     // Only supports Uniswap Multicall as it needs the gas limitting functionality.
     protected multicall2Provider: UniswapMulticallProvider,
     protected retryOptions: QuoteRetryOptions = {
-      retries: 3,
+      retries: 2,
       minTimeout: 25,
       maxTimeout: 250,
     },
     protected batchParams = {
       multicallChunk: 150,
       gasLimitPerCall: 1_000_000,
-      quoteMinSuccessRate: 0.9,
+      quoteMinSuccessRate: 0.2,
     }
   ) {}
 
@@ -63,37 +64,74 @@ export class QuoteProvider implements IQuoteProvider {
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
 
-    const { results: quoteResults, blockNumber } = await retry(
-      async () => {
+    let haveRetriedForSuccessRate = false;
+    let haveRetriedForOutOfGas = false;
+    let finalAttemptNumber = 1;
+
+    const {
+      results: quoteResults,
+      blockNumber,
+      approxGasUsedPerSuccessCall,
+    } = await retry(
+      async (_, attemptNumber) => {
+        finalAttemptNumber = attemptNumber;
+
         return this.getQuotesManyExactInsData(
           amountIns,
           routes,
           multicallChunk,
+          attemptNumber,
+          haveRetriedForSuccessRate,
           gasLimitOverride
         );
       },
       {
         ...this.retryOptions,
-        onRetry: (error: Error, attempt: number): any => {
-          // Low success rate often indicates too little gas given to each call.
-          if (error instanceof SuccessRateError) {
-            if (attempt == 1) {
+        onRetry: (error: Error, _attempt: number): any => {
+          if (error.message.includes('out of gas')) {
+            if (!haveRetriedForOutOfGas) {
               metric.putMetric(
-                'MulticallResultSuccessRateRetry',
+                'QuoteOutOfGasExceptionRetry',
                 1,
                 MetricLoggerUnit.Count
               );
+              haveRetriedForOutOfGas = true;
             }
-            if (attempt == 1 && gasLimitOverride < 750_000) {
-              gasLimitOverride = 1_000_000;
-              multicallChunk = 150;
-            } else {
-              gasLimitOverride = 1_500_000;
-              multicallChunk = 100;
+
+            log.info('Out of gas error when fetching quotes');
+            gasLimitOverride = 1_200_000;
+            multicallChunk = 120;
+          }
+
+          // Low success rate can indicate too little gas given to each call.
+          if (error instanceof SuccessRateError) {
+            if (!haveRetriedForSuccessRate) {
+              metric.putMetric(
+                'QuoteSuccessRateRetry',
+                1,
+                MetricLoggerUnit.Count
+              );
+              haveRetriedForSuccessRate = true;
             }
+
+            log.info('Success rate error when fetching quotes');
+            gasLimitOverride = 1_200_000;
+            multicallChunk = 120;
           }
         },
       }
+    );
+
+    metric.putMetric(
+      'QuoteApproxGasUsedPerSuccessfulCall',
+      approxGasUsedPerSuccessCall,
+      MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      'QuoteNumRetries',
+      finalAttemptNumber - 1,
+      MetricLoggerUnit.Count
     );
 
     const routesQuotes = this.processQuoteResults(
@@ -112,36 +150,72 @@ export class QuoteProvider implements IQuoteProvider {
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride: number = this.batchParams.gasLimitPerCall;
 
-    const { results: quoteResults, blockNumber } = await retry(
-      async () => {
+    let haveRetriedForSuccessRate = false;
+    let haveRetriedForOutOfGas = false;
+    let finalAttemptNumber = 1;
+
+    const {
+      results: quoteResults,
+      blockNumber,
+      approxGasUsedPerSuccessCall,
+    } = await retry(
+      async (_, attemptNumber) => {
+        finalAttemptNumber = attemptNumber;
+
         return this.getQuotesManyExactOutsData(
           amountOuts,
           routes,
           multicallChunk,
+          attemptNumber,
+          haveRetriedForSuccessRate,
           gasLimitOverride
         );
       },
       {
         ...this.retryOptions,
-        onRetry: (error: Error, attempt: number): any => {
-          if (error instanceof SuccessRateError) {
-            if (attempt == 1) {
+        onRetry: (error: Error, _attempt: number): any => {
+          if (error.message.includes('out of gas')) {
+            if (!haveRetriedForOutOfGas) {
               metric.putMetric(
-                'MulticallResultSuccessRateRetry',
+                'QuoteOutOfGasExceptionRetry',
                 1,
                 MetricLoggerUnit.Count
               );
+              haveRetriedForOutOfGas = true;
             }
-            if (attempt == 1 && gasLimitOverride < 750_000) {
-              gasLimitOverride = 1_000_000;
-              multicallChunk = 150;
-            } else {
-              gasLimitOverride = 1_500_000;
-              multicallChunk = 100;
+            log.info('Out of gas error when fetching quotes');
+            gasLimitOverride = 1_200_000;
+            multicallChunk = 120;
+          }
+
+          // Low success rate often indicates too little gas given to each call.
+          if (error instanceof SuccessRateError) {
+            if (!haveRetriedForSuccessRate) {
+              metric.putMetric(
+                'QuoteSuccessRateRetry',
+                1,
+                MetricLoggerUnit.Count
+              );
+              haveRetriedForSuccessRate = true;
             }
+            log.info('Success rate error when fetching quotes');
+            gasLimitOverride = 1_200_000;
+            multicallChunk = 120;
           }
         },
       }
+    );
+
+    metric.putMetric(
+      'QuoteApproxGasUsedPerSuccessfulCall',
+      approxGasUsedPerSuccessCall,
+      MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      'QuoteNumRetries',
+      finalAttemptNumber - 1,
+      MetricLoggerUnit.Count
     );
 
     const routesQuotes = this.processQuoteResults(
@@ -211,10 +285,13 @@ export class QuoteProvider implements IQuoteProvider {
     amountIns: CurrencyAmount[],
     routes: RouteSOR[],
     multicallChunk: number,
+    attemptNumber: number,
+    haveRetriedForSuccessRate: boolean,
     gasLimitOverride?: number
   ): Promise<{
     results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
     blockNumber: BigNumber;
+    approxGasUsedPerSuccessCall: number;
   }> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
@@ -230,7 +307,9 @@ export class QuoteProvider implements IQuoteProvider {
     const inputsChunked = _.chunk(inputs, multicallChunk);
 
     log.info(
-      `About to get ${inputs.length} quotes in chunks of ${multicallChunk} ${
+      `Attempt: ${attemptNumber}. About to get ${
+        inputs.length
+      } quotes in chunks of ${multicallChunk} ${
         gasLimitOverride
           ? `with a gas limit override of ${gasLimitOverride}`
           : ''
@@ -253,11 +332,15 @@ export class QuoteProvider implements IQuoteProvider {
     );
 
     this.validateBlockNumbers(results);
-    this.validateSuccessRate(results);
+    this.validateSuccessRate(results, haveRetriedForSuccessRate);
 
     return {
       results: _.flatMap(results, (result) => result.results),
       blockNumber: results[0]!.blockNumber,
+      approxGasUsedPerSuccessCall: stats.percentile(
+        _.map(results, (result) => result.approxGasUsedPerSuccessCall),
+        100
+      ),
     };
   }
 
@@ -265,10 +348,13 @@ export class QuoteProvider implements IQuoteProvider {
     amountOuts: CurrencyAmount[],
     routes: RouteSOR[],
     multicallChunk: number,
+    attemptNumber: number,
+    haveRetriedForSuccessRate: boolean,
     gasLimitOverride?: number
   ): Promise<{
     results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
     blockNumber: BigNumber;
+    approxGasUsedPerSuccessCall: number;
   }> {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
@@ -288,7 +374,9 @@ export class QuoteProvider implements IQuoteProvider {
         numQuoteMulticalls: inputsChunked.length,
         gasLimitOverride,
       },
-      `About to get ${inputs.length} quotes in chunks of ${multicallChunk} ${
+      `Attempt: ${attemptNumber}. About to get ${
+        inputs.length
+      } quotes in chunks of ${multicallChunk} ${
         gasLimitOverride
           ? `with a gas limit override of ${gasLimitOverride}`
           : ''
@@ -311,11 +399,15 @@ export class QuoteProvider implements IQuoteProvider {
     );
 
     this.validateBlockNumbers(results);
-    this.validateSuccessRate(results);
+    this.validateSuccessRate(results, haveRetriedForSuccessRate);
 
     return {
       results: _.flatMap(results, (result) => result.results),
       blockNumber: results[0]!.blockNumber,
+      approxGasUsedPerSuccessCall: stats.percentile(
+        _.map(results, (result) => result.approxGasUsedPerSuccessCall),
+        100
+      ),
     };
   }
 
@@ -339,20 +431,27 @@ export class QuoteProvider implements IQuoteProvider {
   private validateSuccessRate(
     results: {
       results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
-    }[]
+    }[],
+    haveRetriedForSuccessRate: boolean
   ): void {
     const allResults = _.flatMap(results, (result) => result.results);
     const numResults = allResults.length;
-    const successResults = allResults.filter((result) => result.success);
-    const numSuccessResults = successResults.length;
+    const numSuccessResults = allResults.filter(
+      (result) => result.success
+    ).length;
 
     const successRate = (1.0 * numSuccessResults) / numResults;
 
     const { quoteMinSuccessRate } = this.batchParams;
+    log.info(`Quote success rate: ${quoteMinSuccessRate}: ${successRate}`);
     if (successRate < quoteMinSuccessRate) {
-      log.info(
-        `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
-      );
+      if (haveRetriedForSuccessRate) {
+        log.info(
+          `Quote success rate still below threshold despite retry. Continuing. ${quoteMinSuccessRate}: ${successRate}`
+        );
+        return;
+      }
+
       throw new SuccessRateError(
         `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
       );

@@ -30,6 +30,7 @@
     "@types/bunyan": "^1.8.6",
     "@types/bunyan-blackhole": "^0.2.2",
     "@types/lodash": "^4.14.168",
+    "@types/stats-lite": "^2.2.0",
     "@uniswap/default-token-list": "^2.0.0",
     "@uniswap/token-lists": "*",
     "@uniswap/v3-periphery": "^1.1.1",
@@ -51,6 +52,7 @@
     "mnemonist": "^0.38.3",
     "node-cache": "^5.1.2",
     "prettier-plugin-organize-imports": "^2.1.0",
+    "stats-lite": "^2.2.0",
     "tslib": "^1.14.1"
   },
   "devDependencies": {
