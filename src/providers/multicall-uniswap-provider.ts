@@ -11,7 +11,11 @@ import {
   Result,
 } from './multicall-provider';
 
-export class UniswapMulticallProvider extends IMulticallProvider {
+export type UniswapMulticallConfig = {
+  gasLimitPerCallOverride?: number;
+};
+
+export class UniswapMulticallProvider extends IMulticallProvider<UniswapMulticallConfig> {
   private multicallContract: UniswapInterfaceMulticall;
 
   constructor(
@@ -27,7 +31,7 @@ export class UniswapMulticallProvider extends IMulticallProvider {
 
   public async callSameFunctionOnMultipleContracts<
     TFunctionParams extends any[] | undefined,
-    TReturn = any
+    TReturn
   >(
     params: CallSameFunctionOnMultipleContractsParams<TFunctionParams>
   ): Promise<{
@@ -96,15 +100,27 @@ export class UniswapMulticallProvider extends IMulticallProvider {
 
   public async callSameFunctionOnContractWithMultipleParams<
     TFunctionParams extends any[] | undefined,
-    TReturn = any
+    TReturn
   >(
-    params: CallSameFunctionOnContractWithMultipleParams<TFunctionParams>
+    params: CallSameFunctionOnContractWithMultipleParams<
+      TFunctionParams,
+      UniswapMulticallConfig
+    >
   ): Promise<{
     blockNumber: BigNumber;
     results: Result<TReturn>[];
   }> {
-    const { address, contractInterface, functionName, functionParams } = params;
+    const {
+      address,
+      contractInterface,
+      functionName,
+      functionParams,
+      additionalConfig,
+    } = params;
     const fragment = contractInterface.getFunction(functionName);
+
+    const gasLimitPerCall =
+      additionalConfig?.gasLimitPerCallOverride ?? this.gasLimitPerCall;
 
     const calls = _.map(functionParams, (functionParam) => {
       const callData = contractInterface.encodeFunctionData(
@@ -115,7 +131,7 @@ export class UniswapMulticallProvider extends IMulticallProvider {
       return {
         target: address,
         callData,
-        gasLimit: this.gasLimitPerCall,
+        gasLimit: gasLimitPerCall,
       };
     });
 
@@ -130,7 +146,12 @@ export class UniswapMulticallProvider extends IMulticallProvider {
     const results: Result<TReturn>[] = [];
 
     for (let i = 0; i < aggregateResults.length; i++) {
-      const { success, returnData } = aggregateResults[i]!;
+      const { success, returnData, gasUsed } = aggregateResults[i]!;
+
+      log.info(
+        { gasUsed: gasUsed.toString() },
+        `Success: ${success} Gas used by multicall ${gasUsed.toString()} with gas limit ${gasLimitPerCall}`
+      );
 
       // Return data "0x" is sometimes returned for invalid pools.
       if (!success || returnData.length <= 2) {

@@ -35,7 +35,7 @@ import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
   poolToString,
-  routeAmountToString,
+  routeAmountsToString,
   routeToString,
 } from '../../util/routes';
 import {
@@ -53,7 +53,7 @@ export type AlphaRouterParams = {
   multicall2Provider: UniswapMulticallProvider;
   subgraphProvider: ISubgraphProvider;
   poolProvider: IPoolProvider;
-  quoteProvider: IQuoteProvider<any>;
+  quoteProvider: IQuoteProvider;
   tokenProvider: ITokenProvider;
   gasPriceProvider: IGasPriceProvider;
   gasModelFactory: IGasModelFactory;
@@ -70,7 +70,6 @@ export type AlphaRouterConfig = {
   maxSwapsPerPath: number;
   maxSplits: number;
   distributionPercent: number;
-  multicallChunkSize: number;
 };
 
 export const DEFAULT_CONFIG: AlphaRouterConfig = {
@@ -83,7 +82,6 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   maxSwapsPerPath: 3,
   maxSplits: 3,
   distributionPercent: 5,
-  multicallChunkSize: 50,
 };
 
 type PoolsBySelection = {
@@ -103,7 +101,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   protected multicall2Provider: UniswapMulticallProvider;
   protected subgraphProvider: ISubgraphProvider;
   protected poolProvider: IPoolProvider;
-  protected quoteProvider: IQuoteProvider<any>;
+  protected quoteProvider: IQuoteProvider;
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected gasModelFactory: IGasModelFactory;
@@ -165,7 +163,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       tokenOut
     );
 
-    const { maxSwapsPerPath, multicallChunkSize } = routingConfig;
+    const { maxSwapsPerPath } = routingConfig;
     const routes = this.computeAllRoutes(
       tokenIn,
       tokenOut,
@@ -184,9 +182,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const beforeQuotes = Date.now();
     const { routesWithQuotes, blockNumber } =
-      await this.quoteProvider.getQuotesManyExactIn(amounts, routes, {
-        multicallChunk: multicallChunkSize,
-      });
+      await this.quoteProvider.getQuotesManyExactIn(amounts, routes);
 
     metric.putMetric(
       'QuotesLoad',
@@ -295,7 +291,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       tokenIn
     );
 
-    const { maxSwapsPerPath, multicallChunkSize } = routingConfig;
+    const { maxSwapsPerPath } = routingConfig;
     const routes = this.computeAllRoutes(
       tokenIn,
       tokenOut,
@@ -311,10 +307,15 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       amountOut,
       routingConfig
     );
+
+    const beforeQuotes = Date.now();
     const { routesWithQuotes, blockNumber } =
-      await this.quoteProvider.getQuotesManyExactOut(amounts, routes, {
-        multicallChunk: multicallChunkSize,
-      });
+      await this.quoteProvider.getQuotesManyExactOut(amounts, routes);
+    metric.putMetric(
+      'QuotesLoad',
+      Date.now() - beforeQuotes,
+      MetricLoggerUnit.Milliseconds
+    );
 
     const swapRouteRaw = this.getBestSwapRoute(
       amountOut,
@@ -482,9 +483,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     log.info(
       {
-        routes: _.map(swapRoute.routeAmounts, (routeAmount) =>
-          routeAmountToString(routeAmount)
-        ),
+        routes: routeAmountsToString(swapRoute.routeAmounts),
         numSplits: swapRoute.routeAmounts.length,
         quote: swapRoute.quote.toFixed(2),
         quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(2),
@@ -798,35 +797,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedQuoteToken,
       routeAmounts,
     };
-  }
-
-  private emitGasModelLog(routeWithQuotes: RouteWithValidQuote[]) {
-    if (routeWithQuotes.length > 1) {
-      return;
-    }
-
-    const routeWithQuote = routeWithQuotes[0]!;
-    const {
-      initializedTicksCrossedList,
-      quoterGasEstimate,
-      tradeType,
-      rawQuote,
-      route,
-    } = routeWithQuote;
-    const initTicksCrossedTotal = _.sum(initializedTicksCrossedList);
-
-    log.info(
-      {
-        initTicksCrossedTotal,
-        quoterGasEstimate: quoterGasEstimate.toString(),
-        tradeType,
-        rawQuote: rawQuote.toString(),
-        numPools: route.pools.length,
-        chainId: route.chainId,
-        gasInfo: true,
-      },
-      'Log for gas model'
-    );
   }
 
   // Note multiplications here can result in a loss of precision in the amounts (e.g. taking 50% of 101)
@@ -1393,6 +1363,35 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           MetricLoggerUnit.Count
         );
       }
+    );
+  }
+
+  private emitGasModelLog(routeWithQuotes: RouteWithValidQuote[]) {
+    if (routeWithQuotes.length > 1) {
+      return;
+    }
+
+    const routeWithQuote = routeWithQuotes[0]!;
+    const {
+      initializedTicksCrossedList,
+      quoterGasEstimate,
+      tradeType,
+      rawQuote,
+      route,
+    } = routeWithQuote;
+    const initTicksCrossedTotal = _.sum(initializedTicksCrossedList);
+
+    log.info(
+      {
+        initTicksCrossedTotal,
+        quoterGasEstimate: quoterGasEstimate.toString(),
+        tradeType,
+        rawQuote: rawQuote.toString(),
+        numPools: route.pools.length,
+        chainId: route.chainId,
+        gasInfo: true,
+      },
+      'Log for gas model'
     );
   }
 }

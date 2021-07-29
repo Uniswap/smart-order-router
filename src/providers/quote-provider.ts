@@ -21,56 +21,72 @@ export type AmountQuote = {
 };
 
 export class BlockConflictError extends Error {}
+export class SuccessRateError extends Error {}
 
-const DEFAULT_CHUNK = 50;
+const DEFAULT_CHUNK = 150;
 
 export type QuoteRetryOptions = AsyncRetry.Options;
 
 export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
-export type QuoteParams = {
-  multicallChunk: number;
-};
-export interface IQuoteProvider<P> {
+
+export interface IQuoteProvider {
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: RouteSOR[],
-    additionalParams: P
+    routes: RouteSOR[]
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: RouteSOR[],
-    additionalParams: P
+    routes: RouteSOR[]
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
-export class QuoteProvider implements IQuoteProvider<QuoteParams> {
+export class QuoteProvider implements IQuoteProvider {
   constructor(
     protected multicall2Provider: UniswapMulticallProvider,
     protected retryOptions: QuoteRetryOptions = {
       retries: 2,
       minTimeout: 50,
       maxTimeout: 500,
-    }
+    },
+    protected batchParams = { multicallChunk: DEFAULT_CHUNK }
   ) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: RouteSOR[],
-    additionalParams = { multicallChunk: DEFAULT_CHUNK }
+    routes: RouteSOR[]
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     log.info(
       { numAmounts: amountIns.length, numRoutes: routes.length },
       `About to get quotes for ${routes.length} routes, with ${amountIns.length} amounts per route.`
     );
 
-    const { results: quoteResults, blockNumber } = await retry(async () => {
-      return this.getQuotesManyExactInsData(
-        amountIns,
-        routes,
-        additionalParams.multicallChunk
-      );
-    }, this.retryOptions);
+    let multicallChunk = this.batchParams.multicallChunk;
+    let gasLimitOverride: number | undefined = undefined;
+
+    const { results: quoteResults, blockNumber } = await retry(
+      async () => {
+        return this.getQuotesManyExactInsData(
+          amountIns,
+          routes,
+          multicallChunk,
+          gasLimitOverride
+        );
+      },
+      {
+        ...this.retryOptions,
+        onRetry: (error: Error, _attempt: number): any => {
+          // Low success rate often indicates too little gas given to each call.
+          if (error instanceof SuccessRateError) {
+            log.info(
+              `Success rate error. Setting gas limit to 1.5m and chunk size to 100.`
+            );
+            gasLimitOverride = 1_500_000;
+            multicallChunk = 100;
+          }
+        },
+      }
+    );
 
     const routesQuotes = this.processQuoteResults(
       quoteResults,
@@ -83,21 +99,38 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
 
   public async getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: RouteSOR[],
-    additionalParams = { multicallChunk: DEFAULT_CHUNK }
+    routes: RouteSOR[]
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     log.info(
       { numAmounts: amountOuts.length, numRoutes: routes.length },
       `About to get quotes for ${routes.length} routes, with ${amountOuts.length} amounts per route.`
     );
 
-    const { results: quoteResults, blockNumber } = await retry(async () => {
-      return this.getQuotesManyExactOutsData(
-        amountOuts,
-        routes,
-        additionalParams.multicallChunk
-      );
-    }, this.retryOptions);
+    let multicallChunk = this.batchParams.multicallChunk;
+    let gasLimitOverride: number | undefined = undefined;
+
+    const { results: quoteResults, blockNumber } = await retry(
+      async () => {
+        return this.getQuotesManyExactOutsData(
+          amountOuts,
+          routes,
+          multicallChunk,
+          gasLimitOverride
+        );
+      },
+      {
+        ...this.retryOptions,
+        onRetry: (error: Error, _attempt: number): any => {
+          if (error instanceof SuccessRateError) {
+            log.info(
+              `Success rate error. Setting gas limit to 1.5m and chunk size to 100.`
+            );
+            gasLimitOverride = 1_500_000;
+            multicallChunk = 100;
+          }
+        },
+      }
+    );
 
     const routesQuotes = this.processQuoteResults(
       quoteResults,
@@ -165,7 +198,8 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
   private async getQuotesManyExactInsData(
     amountIns: CurrencyAmount[],
     routes: RouteSOR[],
-    multicallChunk: number
+    multicallChunk: number,
+    gasLimitOverride?: number
   ): Promise<{
     results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
     blockNumber: BigNumber;
@@ -184,11 +218,11 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
     const inputsChunked = _.chunk(inputs, multicallChunk);
 
     log.info(
-      {
-        quotesToGet: inputs.length,
-        numQuoteMulticalls: inputsChunked.length,
-      },
-      `About to get ${inputs.length} quotes in chunks of ${multicallChunk}. In total ${inputsChunked.length} multicalls.`
+      `About to get ${inputs.length} quotes in chunks of ${multicallChunk} ${
+        gasLimitOverride
+          ? `with a gas limit override of ${gasLimitOverride}`
+          : ''
+      }. In total ${inputsChunked.length} multicalls.`
     );
 
     const results = await Promise.all(
@@ -201,11 +235,13 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
           contractInterface: IQuoterV2__factory.createInterface(),
           functionName: 'quoteExactInput',
           functionParams: inputChunk,
+          additionalConfig: { gasLimitPerCallOverride: gasLimitOverride },
         });
       })
     );
 
     this.validateBlockNumbers(results);
+    this.validateSuccessRate(results);
 
     return {
       results: _.flatMap(results, (result) => result.results),
@@ -216,7 +252,8 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
   private async getQuotesManyExactOutsData(
     amountOuts: CurrencyAmount[],
     routes: RouteSOR[],
-    multicallChunk: number
+    multicallChunk: number,
+    gasLimitOverride?: number
   ): Promise<{
     results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
     blockNumber: BigNumber;
@@ -237,8 +274,13 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
       {
         quotesToGet: inputs.length,
         numQuoteMulticalls: inputsChunked.length,
+        gasLimitOverride,
       },
-      `About to get ${inputs.length} quotes in chunks of ${multicallChunk}. In total ${inputsChunked.length} multicalls.`
+      `About to get ${inputs.length} quotes in chunks of ${multicallChunk} ${
+        gasLimitOverride
+          ? `with a gas limit override of ${gasLimitOverride}`
+          : ''
+      }. In total ${inputsChunked.length} multicalls.`
     );
 
     const results = await Promise.all(
@@ -251,11 +293,13 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
           contractInterface: IQuoterV2__factory.createInterface(),
           functionName: 'quoteExactOutput',
           functionParams: inputChunk,
+          additionalConfig: { gasLimitPerCallOverride: gasLimitOverride },
         });
       })
     );
 
     this.validateBlockNumbers(results);
+    this.validateSuccessRate(results);
 
     return {
       results: _.flatMap(results, (result) => result.results),
@@ -277,6 +321,25 @@ export class QuoteProvider implements IQuoteProvider<QuoteParams> {
         'Quotes returned from different blocks.'
       );
       throw new BlockConflictError('Quotes returned from different blocks.');
+    }
+  }
+
+  private validateSuccessRate(
+    results: {
+      results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
+    }[]
+  ): void {
+    const allResults = _.flatMap(results, (result) => result.results);
+    const numResults = allResults.length;
+    const numSuccessResults = allResults.filter(
+      (result) => result.success
+    ).length;
+
+    const successRate = (1.0 * numSuccessResults) / numResults;
+
+    if (successRate < 0.95) {
+      log.info(`Success rate below threshold of 0.95: ${successRate}`);
+      throw new SuccessRateError('Quotes returned from different blocks.');
     }
   }
 }

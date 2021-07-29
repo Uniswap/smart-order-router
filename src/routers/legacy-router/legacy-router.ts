@@ -37,7 +37,7 @@ export type LegacyRouterParams = {
   chainId: ChainId;
   multicall2Provider: IMulticallProvider;
   poolProvider: IPoolProvider;
-  quoteProvider: IQuoteProvider<any>;
+  quoteProvider: IQuoteProvider;
   tokenListProvider: ITokenListProvider;
 };
 
@@ -53,7 +53,7 @@ export class LegacyRouter implements IRouter<void> {
   protected chainId: ChainId;
   protected multicall2Provider: IMulticallProvider;
   protected poolProvider: IPoolProvider;
-  protected quoteProvider: IQuoteProvider<any>;
+  protected quoteProvider: IQuoteProvider;
   protected tokenListProvider: ITokenListProvider;
 
   constructor({
@@ -188,11 +188,7 @@ export class LegacyRouter implements IRouter<void> {
     routes: RouteSOR[]
   ): Promise<RouteAmount | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactIn(
-        [amountIn],
-        routes,
-        undefined
-      );
+      await this.quoteProvider.getQuotesManyExactIn([amountIn], routes);
 
     const quotes100Percent = _.map(
       quotesRaw,
@@ -217,11 +213,7 @@ export class LegacyRouter implements IRouter<void> {
     routes: RouteSOR[]
   ): Promise<RouteAmount | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactOut(
-        [amountOut],
-        routes,
-        undefined
-      );
+      await this.quoteProvider.getQuotesManyExactOut([amountOut], routes);
     const bestQuote = await this.getBestQuote(
       routes,
       quotesRaw,

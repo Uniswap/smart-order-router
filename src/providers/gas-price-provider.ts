@@ -1,3 +1,4 @@
+import { default as retry } from 'async-retry';
 import axios from 'axios';
 import { BigNumber } from 'ethers';
 import { log } from '../util/log';
@@ -35,7 +36,13 @@ export class ETHGasStationInfoProvider extends IGasPriceProvider {
 
   public async getGasPrice(): Promise<GasPrice> {
     log.info(`About to get gas prices from gas station ${this.url}`);
-    const response = await axios.get<ETHGasStationResponse>(this.url);
+    const response = await retry(
+      async () => {
+        return axios.get<ETHGasStationResponse>(this.url);
+      },
+      { retries: 1 }
+    );
+
     const { data: gasPriceResponse, status } = response;
 
     if (status != 200) {

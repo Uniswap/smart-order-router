@@ -1,18 +1,26 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber } from 'ethers';
 
-export type CallSameFunctionOnMultipleContractsParams<TFunctionParams> = {
+export type CallSameFunctionOnMultipleContractsParams<
+  TFunctionParams,
+  TAdditionalConfig = any
+> = {
   addresses: string[];
   contractInterface: Interface;
   functionName: string;
   functionParams?: TFunctionParams;
+  additionalConfig?: TAdditionalConfig;
 };
 
-export type CallSameFunctionOnContractWithMultipleParams<TFunctionParams> = {
+export type CallSameFunctionOnContractWithMultipleParams<
+  TFunctionParams,
+  TAdditionalConfig = any
+> = {
   address: string;
   contractInterface: Interface;
   functionName: string;
   functionParams: TFunctionParams[];
+  additionalConfig?: TAdditionalConfig;
 };
 
 export type SuccessResult<TReturn> = {
@@ -27,12 +35,15 @@ export type FailResult = {
 
 export type Result<TReturn> = SuccessResult<TReturn> | FailResult;
 
-export abstract class IMulticallProvider {
+export abstract class IMulticallProvider<TMulticallConfig = any> {
   public abstract callSameFunctionOnMultipleContracts<
     TFunctionParams extends any[] | undefined,
     TReturn = any
   >(
-    params: CallSameFunctionOnMultipleContractsParams<TFunctionParams>
+    params: CallSameFunctionOnMultipleContractsParams<
+      TFunctionParams,
+      TMulticallConfig
+    >
   ): Promise<{
     blockNumber: BigNumber;
     results: Result<TReturn>[];
@@ -42,7 +53,10 @@ export abstract class IMulticallProvider {
     TFunctionParams extends any[] | undefined,
     TReturn = any
   >(
-    params: CallSameFunctionOnContractWithMultipleParams<TFunctionParams>
+    params: CallSameFunctionOnContractWithMultipleParams<
+      TFunctionParams,
+      TMulticallConfig
+    >
   ): Promise<{
     blockNumber: BigNumber;
     results: Result<TReturn>[];
