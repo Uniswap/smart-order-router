@@ -146,12 +146,7 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     const results: Result<TReturn>[] = [];
 
     for (let i = 0; i < aggregateResults.length; i++) {
-      const { success, returnData, gasUsed } = aggregateResults[i]!;
-
-      log.info(
-        { gasUsed: gasUsed.toString() },
-        `Success: ${success} Gas used by multicall ${gasUsed.toString()} with gas limit ${gasLimitPerCall}`
-      );
+      const { success, returnData } = aggregateResults[i]!;
 
       // Return data "0x" is sometimes returned for invalid pools.
       if (!success || returnData.length <= 2) {

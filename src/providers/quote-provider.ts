@@ -4,6 +4,7 @@ import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { RouteSOR } from '../routers/router';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
+import { metric, MetricLoggerUnit } from '../util';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
@@ -23,8 +24,6 @@ export type AmountQuote = {
 export class BlockConflictError extends Error {}
 export class SuccessRateError extends Error {}
 
-const DEFAULT_CHUNK = 150;
-
 export type QuoteRetryOptions = AsyncRetry.Options;
 
 export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
@@ -43,26 +42,26 @@ export interface IQuoteProvider {
 
 export class QuoteProvider implements IQuoteProvider {
   constructor(
+    // Only supports Uniswap Multicall as it needs the gas limitting functionality.
     protected multicall2Provider: UniswapMulticallProvider,
     protected retryOptions: QuoteRetryOptions = {
-      retries: 2,
-      minTimeout: 50,
-      maxTimeout: 500,
+      retries: 3,
+      minTimeout: 25,
+      maxTimeout: 250,
     },
-    protected batchParams = { multicallChunk: DEFAULT_CHUNK }
+    protected batchParams = {
+      multicallChunk: 150,
+      gasLimitPerCall: 1_000_000,
+      quoteMinSuccessRate: 0.9,
+    }
   ) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: RouteSOR[]
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
-    log.info(
-      { numAmounts: amountIns.length, numRoutes: routes.length },
-      `About to get quotes for ${routes.length} routes, with ${amountIns.length} amounts per route.`
-    );
-
     let multicallChunk = this.batchParams.multicallChunk;
-    let gasLimitOverride: number | undefined = undefined;
+    let gasLimitOverride = this.batchParams.gasLimitPerCall;
 
     const { results: quoteResults, blockNumber } = await retry(
       async () => {
@@ -75,14 +74,23 @@ export class QuoteProvider implements IQuoteProvider {
       },
       {
         ...this.retryOptions,
-        onRetry: (error: Error, _attempt: number): any => {
+        onRetry: (error: Error, attempt: number): any => {
           // Low success rate often indicates too little gas given to each call.
           if (error instanceof SuccessRateError) {
-            log.info(
-              `Success rate error. Setting gas limit to 1.5m and chunk size to 100.`
-            );
-            gasLimitOverride = 1_500_000;
-            multicallChunk = 100;
+            if (attempt == 1) {
+              metric.putMetric(
+                'MulticallResultSuccessRateRetry',
+                1,
+                MetricLoggerUnit.Count
+              );
+            }
+            if (attempt == 1 && gasLimitOverride < 750_000) {
+              gasLimitOverride = 1_000_000;
+              multicallChunk = 150;
+            } else {
+              gasLimitOverride = 1_500_000;
+              multicallChunk = 100;
+            }
           }
         },
       }
@@ -101,13 +109,8 @@ export class QuoteProvider implements IQuoteProvider {
     amountOuts: CurrencyAmount[],
     routes: RouteSOR[]
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
-    log.info(
-      { numAmounts: amountOuts.length, numRoutes: routes.length },
-      `About to get quotes for ${routes.length} routes, with ${amountOuts.length} amounts per route.`
-    );
-
     let multicallChunk = this.batchParams.multicallChunk;
-    let gasLimitOverride: number | undefined = undefined;
+    let gasLimitOverride: number = this.batchParams.gasLimitPerCall;
 
     const { results: quoteResults, blockNumber } = await retry(
       async () => {
@@ -120,13 +123,22 @@ export class QuoteProvider implements IQuoteProvider {
       },
       {
         ...this.retryOptions,
-        onRetry: (error: Error, _attempt: number): any => {
+        onRetry: (error: Error, attempt: number): any => {
           if (error instanceof SuccessRateError) {
-            log.info(
-              `Success rate error. Setting gas limit to 1.5m and chunk size to 100.`
-            );
-            gasLimitOverride = 1_500_000;
-            multicallChunk = 100;
+            if (attempt == 1) {
+              metric.putMetric(
+                'MulticallResultSuccessRateRetry',
+                1,
+                MetricLoggerUnit.Count
+              );
+            }
+            if (attempt == 1 && gasLimitOverride < 750_000) {
+              gasLimitOverride = 1_000_000;
+              multicallChunk = 150;
+            } else {
+              gasLimitOverride = 1_500_000;
+              multicallChunk = 100;
+            }
           }
         },
       }
@@ -331,15 +343,19 @@ export class QuoteProvider implements IQuoteProvider {
   ): void {
     const allResults = _.flatMap(results, (result) => result.results);
     const numResults = allResults.length;
-    const numSuccessResults = allResults.filter(
-      (result) => result.success
-    ).length;
+    const successResults = allResults.filter((result) => result.success);
+    const numSuccessResults = successResults.length;
 
     const successRate = (1.0 * numSuccessResults) / numResults;
 
-    if (successRate < 0.95) {
-      log.info(`Success rate below threshold of 0.95: ${successRate}`);
-      throw new SuccessRateError('Quotes returned from different blocks.');
+    const { quoteMinSuccessRate } = this.batchParams;
+    if (successRate < quoteMinSuccessRate) {
+      log.info(
+        `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
+      );
+      throw new SuccessRateError(
+        `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
+      );
     }
   }
 }
