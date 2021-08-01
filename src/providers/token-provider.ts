@@ -3,7 +3,7 @@ import _ from 'lodash';
 import NodeCache from 'node-cache';
 import { IERC20Metadata__factory } from '../types/v3';
 import { ChainId, log } from '../util';
-import { UniswapMulticallProvider } from './multicall-uniswap-provider';
+import { IMulticallProvider } from './multicall-provider';
 
 export interface ITokenProvider {
   getTokens(addresses: string[]): Promise<TokenAccessor>;
@@ -53,7 +53,7 @@ for (const token of [USDC, USDT, WBTC, DAI, WETH9[1]!]) {
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
-    protected multicall2Provider: UniswapMulticallProvider
+    protected multicall2Provider: IMulticallProvider
   ) {}
 
   public async getTokens(_addresses: string[]): Promise<TokenAccessor> {

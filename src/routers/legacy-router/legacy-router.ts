@@ -15,7 +15,7 @@ import {
   IQuoteProvider,
   RouteWithQuotes,
 } from '../../providers/quote-provider';
-import { ITokenListProvider } from '../../providers/token-list-provider';
+import { DAI, ITokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
@@ -38,7 +38,7 @@ export type LegacyRouterParams = {
   multicall2Provider: IMulticallProvider;
   poolProvider: IPoolProvider;
   quoteProvider: IQuoteProvider;
-  tokenListProvider: ITokenListProvider;
+  tokenProvider: ITokenProvider;
 };
 
 // Interface defaults to 2.
@@ -54,20 +54,20 @@ export class LegacyRouter implements IRouter<void> {
   protected multicall2Provider: IMulticallProvider;
   protected poolProvider: IPoolProvider;
   protected quoteProvider: IQuoteProvider;
-  protected tokenListProvider: ITokenListProvider;
+  protected tokenProvider: ITokenProvider;
 
   constructor({
     chainId,
     multicall2Provider,
     poolProvider,
     quoteProvider,
-    tokenListProvider,
+    tokenProvider,
   }: LegacyRouterParams) {
     this.chainId = chainId;
     this.multicall2Provider = multicall2Provider;
     this.poolProvider = poolProvider;
     this.quoteProvider = quoteProvider;
-    this.tokenListProvider = tokenListProvider;
+    this.tokenProvider = tokenProvider;
   }
 
   public async routeExactIn(
@@ -106,11 +106,7 @@ export class LegacyRouter implements IRouter<void> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
-        this.tokenListProvider.getTokenBySymbol('DAI')!,
-        0,
-        1
-      ),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI!, 0, 1),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
@@ -162,11 +158,7 @@ export class LegacyRouter implements IRouter<void> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
-        this.tokenListProvider.getTokenBySymbol('DAI')!,
-        0,
-        1
-      ),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI, 0, 1),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
@@ -282,11 +274,7 @@ export class LegacyRouter implements IRouter<void> {
           0,
           1
         ),
-        estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
-          this.tokenListProvider.getTokenBySymbol('DAI')!,
-          0,
-          1
-        ),
+        estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI!, 0, 1),
       };
     });
 
@@ -303,10 +291,8 @@ export class LegacyRouter implements IRouter<void> {
     tokenIn: Token,
     tokenOut: Token
   ): Promise<RouteSOR[]> {
-    const tokenPairs: [Token, Token, FeeAmount][] = this.getAllPossiblePairings(
-      tokenIn,
-      tokenOut
-    );
+    const tokenPairs: [Token, Token, FeeAmount][] =
+      await this.getAllPossiblePairings(tokenIn, tokenOut);
 
     const poolAccessor = await this.poolProvider.getPools(tokenPairs);
     const pools = poolAccessor.getAllPools();
@@ -330,18 +316,18 @@ export class LegacyRouter implements IRouter<void> {
     return routes;
   }
 
-  private getAllPossiblePairings(
+  private async getAllPossiblePairings(
     tokenIn: Token,
     tokenOut: Token
-  ): [Token, Token, FeeAmount][] {
+  ): Promise<[Token, Token, FeeAmount][]> {
     const common =
-      BASES_TO_CHECK_TRADES_AGAINST(this.tokenListProvider)[this.chainId] ?? [];
+      BASES_TO_CHECK_TRADES_AGAINST(this.tokenProvider)[this.chainId] ?? [];
     const additionalA =
-      ADDITIONAL_BASES(this.tokenListProvider)[this.chainId]?.[
+      (await ADDITIONAL_BASES(this.tokenProvider))[this.chainId]?.[
         tokenIn.address
       ] ?? [];
     const additionalB =
-      ADDITIONAL_BASES(this.tokenListProvider)[this.chainId]?.[
+      (await ADDITIONAL_BASES(this.tokenProvider))[this.chainId]?.[
         tokenOut.address
       ] ?? [];
     const bases = [...common, ...additionalA, ...additionalB];
@@ -350,6 +336,8 @@ export class LegacyRouter implements IRouter<void> {
       bases,
       (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
     );
+
+    const customBases = (await CUSTOM_BASES(this.tokenProvider))[this.chainId];
 
     const allPairs: [Token, Token, FeeAmount][] = _([
       // the direct pair
@@ -369,8 +357,6 @@ export class LegacyRouter implements IRouter<void> {
           tokenA.address !== tokenB.address && !tokenA.equals(tokenB)
       )
       .filter(([tokenA, tokenB]) => {
-        const customBases = CUSTOM_BASES(this.tokenListProvider)[this.chainId];
-
         const customBasesA: Token[] | undefined = customBases?.[tokenA.address];
         const customBasesB: Token[] | undefined = customBases?.[tokenB.address];
 

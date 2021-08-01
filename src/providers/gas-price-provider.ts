@@ -51,6 +51,11 @@ export class ETHGasStationInfoProvider extends IGasPriceProvider {
       throw new Error(`Unable to get gas price from ${this.url}`);
     }
 
+    log.info(
+      { gasPriceResponse },
+      'Gas price response from API. About to parse "fast" to big number'
+    );
+
     // Gas prices from ethgasstation are in GweiX10.
     const gasPriceWei = BigNumber.from(gasPriceResponse.fast)
       .div(BigNumber.from(10))

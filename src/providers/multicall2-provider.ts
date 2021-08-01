@@ -3,12 +3,18 @@ import _ from 'lodash';
 import { Multicall2, Multicall2__factory } from '../types/other';
 import { MULTICALL2_ADDRESS } from '../util/addresses';
 import { log } from '../util/log';
-import { CallSameFunctionOnContractWithMultipleParams, CallSameFunctionOnMultipleContractsParams, Result } from './multicall-provider';
+import {
+  CallSameFunctionOnContractWithMultipleParams,
+  CallSameFunctionOnMultipleContractsParams,
+  IMulticallProvider,
+  Result,
+} from './multicall-provider';
 
-export class Multicall2Provider {
+export class Multicall2Provider extends IMulticallProvider<void> {
   private multicallContract: Multicall2;
 
   constructor(protected provider: providers.BaseProvider) {
+    super();
     this.multicallContract = Multicall2__factory.connect(
       MULTICALL2_ADDRESS,
       this.provider

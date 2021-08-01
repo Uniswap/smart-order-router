@@ -1,6 +1,12 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
-import { ITokenListProvider } from '../../providers/token-list-provider';
+import {
+  DAI,
+  ITokenProvider,
+  USDC,
+  USDT,
+  WBTC,
+} from '../../providers/token-provider';
 import { WETH9 } from '../../util/addresses';
 import { ChainId } from '../../util/chains';
 
@@ -9,16 +15,10 @@ type ChainTokenList = {
 };
 
 export const BASES_TO_CHECK_TRADES_AGAINST = (
-  tokenProvider: ITokenListProvider
+  _tokenProvider: ITokenProvider
 ): ChainTokenList => {
   return {
-    [ChainId.MAINNET]: [
-      WETH9[ChainId.MAINNET],
-      tokenProvider.getTokenBySymbol('DAI')!,
-      tokenProvider.getTokenBySymbol('USDC')!,
-      tokenProvider.getTokenBySymbol('USDT')!,
-      tokenProvider.getTokenBySymbol('WBTC')!,
-    ],
+    [ChainId.MAINNET]: [WETH9[ChainId.MAINNET], DAI, USDC, USDT, WBTC],
     [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]],
     [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]],
     [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]],
@@ -26,33 +26,14 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
   };
 };
 
-const getBasePairBySymbols = (
-  tokenProvider: ITokenListProvider,
-  _chainId: ChainId,
-  fromSymbol: string,
-  ...toSymbols: string[]
-): { [tokenAddress: string]: Token[] } => {
-  const fromToken: Token | undefined =
-    tokenProvider.getTokenBySymbol(fromSymbol);
-  const toTokens: Token[] = _(toSymbols)
-    .map((toSymbol) => tokenProvider.getTokenBySymbol(toSymbol))
-    .compact()
-    .value();
-
-  if (!fromToken || _.isEmpty(toTokens)) return {};
-
-  return {
-    [fromToken.address]: toTokens,
-  };
-};
-
-const getBasePairByAddress = (
-  tokenProvider: ITokenListProvider,
+const getBasePairByAddress = async (
+  tokenProvider: ITokenProvider,
   _chainId: ChainId,
   fromAddress: string,
-  toSymbol: string
-): { [tokenAddress: string]: Token[] } => {
-  const toToken: Token | undefined = tokenProvider.getTokenBySymbol(toSymbol);
+  toAddress: string
+): Promise<{ [tokenAddress: string]: Token[] }> => {
+  const accessor = await tokenProvider.getTokens([toAddress]);
+  const toToken: Token | undefined = accessor.getTokenByAddress(toAddress);
 
   if (!toToken) return {};
 
@@ -61,31 +42,63 @@ const getBasePairByAddress = (
   };
 };
 
-export const ADDITIONAL_BASES = (
-  tokenProvider: ITokenListProvider
-): {
-  [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
-} => {
+export const ADDITIONAL_BASES = async (
+  tokenProvider: ITokenProvider
+): Promise<
+  {
+    [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
+  }
+> => {
   return {
     [ChainId.MAINNET]: {
-      ...getBasePairByAddress(
+      ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
         '0xA948E86885e12Fb09AfEF8C52142EBDbDf73cD18',
-        'UNI'
-      ),
-      ...getBasePairByAddress(
+        '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984'
+      )),
+      ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
         '0x561a4717537ff4AF5c687328c0f7E90a319705C0',
-        'UNI'
-      ),
-      ...getBasePairBySymbols(tokenProvider, ChainId.MAINNET, 'FEI', 'TRIBE'),
-      ...getBasePairBySymbols(tokenProvider, ChainId.MAINNET, 'TRIBE', 'FEI'),
-      ...getBasePairBySymbols(tokenProvider, ChainId.MAINNET, 'FRAX', 'FXS'),
-      ...getBasePairBySymbols(tokenProvider, ChainId.MAINNET, 'FXS', 'FRAX'),
-      ...getBasePairBySymbols(tokenProvider, ChainId.MAINNET, 'WBTC', 'renBTC'),
-      ...getBasePairBySymbols(tokenProvider, ChainId.MAINNET, 'renBTC', 'WBTC'),
+        '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984'
+      )),
+      ...(await getBasePairByAddress(
+        tokenProvider,
+        ChainId.MAINNET,
+        '0x956F47F50A910163D8BF957Cf5846D573E7f87CA',
+        '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'
+      )),
+      ...(await getBasePairByAddress(
+        tokenProvider,
+        ChainId.MAINNET,
+        '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
+        '0x956F47F50A910163D8BF957Cf5846D573E7f87CA'
+      )),
+      ...(await getBasePairByAddress(
+        tokenProvider,
+        ChainId.MAINNET,
+        '0x853d955acef822db058eb8505911ed77f175b99e',
+        '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0'
+      )),
+      ...(await getBasePairByAddress(
+        tokenProvider,
+        ChainId.MAINNET,
+        '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0',
+        '0x853d955acef822db058eb8505911ed77f175b99e'
+      )),
+      ...(await getBasePairByAddress(
+        tokenProvider,
+        ChainId.MAINNET,
+        '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+        '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d'
+      )),
+      ...(await getBasePairByAddress(
+        tokenProvider,
+        ChainId.MAINNET,
+        '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d',
+        '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'
+      )),
     },
   };
 };
@@ -94,19 +107,24 @@ export const ADDITIONAL_BASES = (
  * Some tokens can only be swapped via certain pairs, so we override the list of bases that are considered for these
  * tokens.
  */
-export const CUSTOM_BASES = (
-  tokenProvider: ITokenListProvider
-): {
+export const CUSTOM_BASES = async (
+  tokenProvider: ITokenProvider
+): Promise<{
   [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
-} => {
+}> => {
   return {
     [ChainId.MAINNET]: {
-      ...getBasePairBySymbols(
+      ...await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        'AMPL',
-        'DAI',
-        'ETH'
+        '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
+        DAI.address,
+      ),
+      ...await getBasePairByAddress(
+        tokenProvider,
+        ChainId.MAINNET,
+        '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
+        WETH9[1].address
       ),
     },
   };

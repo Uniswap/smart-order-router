@@ -1,3 +1,4 @@
+import { default as retry } from 'async-retry';
 import { gql, request } from 'graphql-request';
 import _ from 'lodash';
 import { log } from '../util/log';
@@ -47,7 +48,7 @@ export interface ISubgraphProvider {
   getPools(): Promise<SubgraphPool[]>;
 }
 export class SubgraphProvider implements ISubgraphProvider {
-  constructor() {}
+  constructor(protected blockNumber?: number, private retries = 1) {}
 
   public async getPools(): Promise<SubgraphPool[]> {
     const query = gql`
@@ -57,6 +58,7 @@ export class SubgraphProvider implements ISubgraphProvider {
           skip: $skip
           orderBy: totalValueLockedETH
           orderDirection: desc
+          ${this.blockNumber ? `block: { number: ${this.blockNumber} }` : ``}
         ) {
           id
           token0 {
@@ -79,23 +81,37 @@ export class SubgraphProvider implements ISubgraphProvider {
     let pools: RawSubgraphPool[] = [];
     let poolsPage: RawSubgraphPool[] = [];
 
-    log.info(`Getting pools from the subgraph with page size ${PAGE_SIZE}.`);
+    log.info(
+      `Getting pools from the subgraph with page size ${PAGE_SIZE}${
+        this.blockNumber ? ` as of block ${this.blockNumber}` : ''
+      }.`
+    );
+    await retry(
+      async () => {
+        do {
+          const poolsResult = await request<{ pools: RawSubgraphPool[] }>(
+            SUBGRAPH_URL,
+            query,
+            {
+              pageSize: PAGE_SIZE,
+              skip,
+            }
+          );
 
-    do {
-      const poolsResult = await request<{ pools: RawSubgraphPool[] }>(
-        SUBGRAPH_URL,
-        query,
-        {
-          pageSize: PAGE_SIZE,
-          skip,
-        }
-      );
+          poolsPage = poolsResult.pools;
 
-      poolsPage = poolsResult.pools;
-
-      pools = pools.concat(poolsPage);
-      skip = skip + PAGE_SIZE;
-    } while (poolsPage.length > 0);
+          pools = pools.concat(poolsPage);
+          skip = skip + PAGE_SIZE;
+        } while (poolsPage.length > 0);
+      },
+      {
+        retries: this.retries,
+        onRetry: () => {
+          skip = 0;
+          pools = [];
+        },
+      }
+    );
 
     log.info(`Got ${pools.length} pools from the subgraph.`);
 
@@ -119,5 +135,3 @@ export class SubgraphProvider implements ISubgraphProvider {
     return poolsSanitized;
   }
 }
-
-

@@ -7,10 +7,11 @@ import {
   SwapRouter,
   Trade,
 } from '@uniswap/v3-sdk';
-import { BigNumber } from 'ethers';
+import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
+import { FixedReverseHeap } from 'mnemonist';
+import { IMulticallProvider } from '../../providers';
 import { IGasPriceProvider } from '../../providers/gas-price-provider';
-import { UniswapMulticallProvider } from '../../providers/multicall-uniswap-provider';
 import { IPoolProvider, PoolAccessor } from '../../providers/pool-provider';
 import {
   IQuoteProvider,
@@ -33,11 +34,7 @@ import { CurrencyAmount, parseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import {
-  poolToString,
-  routeAmountsToString,
-  routeToString,
-} from '../../util/routes';
+import { routeAmountsToString, routeToString } from '../../util/routes';
 import {
   IRouter,
   RouteAmount,
@@ -50,7 +47,8 @@ import { GasModel, IGasModelFactory } from './gas-models/gas-model';
 
 export type AlphaRouterParams = {
   chainId: ChainId;
-  multicall2Provider: UniswapMulticallProvider;
+  provider: providers.BaseProvider;
+  multicall2Provider: IMulticallProvider;
   subgraphProvider: ISubgraphProvider;
   poolProvider: IPoolProvider;
   quoteProvider: IQuoteProvider;
@@ -98,7 +96,8 @@ type PoolsBySelection = {
 
 export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   protected chainId: ChainId;
-  protected multicall2Provider: UniswapMulticallProvider;
+  protected provider: providers.BaseProvider;
+  protected multicall2Provider: IMulticallProvider;
   protected subgraphProvider: ISubgraphProvider;
   protected poolProvider: IPoolProvider;
   protected quoteProvider: IQuoteProvider;
@@ -109,6 +108,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
   constructor({
     chainId,
+    provider,
     multicall2Provider,
     poolProvider,
     quoteProvider,
@@ -119,6 +119,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     gasModelFactory,
   }: AlphaRouterParams) {
     this.chainId = chainId;
+    this.provider = provider;
     this.multicall2Provider = multicall2Provider;
     this.poolProvider = poolProvider;
     this.quoteProvider = quoteProvider;
@@ -136,6 +137,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
+    const currentBlockNumber = this.provider.getBlockNumber();
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -182,7 +184,11 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const beforeQuotes = Date.now();
     const { routesWithQuotes, blockNumber } =
-      await this.quoteProvider.getQuotesManyExactIn(amounts, routes);
+      await this.quoteProvider.getQuotesManyExactIn(
+        amounts,
+        routes,
+        currentBlockNumber
+      );
 
     metric.putMetric(
       'QuotesLoad',
@@ -264,6 +270,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
+    const currentBlockNumber = this.provider.getBlockNumber();
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -310,7 +317,11 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const beforeQuotes = Date.now();
     const { routesWithQuotes, blockNumber } =
-      await this.quoteProvider.getQuotesManyExactOut(amounts, routes);
+      await this.quoteProvider.getQuotesManyExactOut(
+        amounts,
+        routes,
+        currentBlockNumber
+      );
     metric.putMetric(
       'QuotesLoad',
       Date.now() - beforeQuotes,
@@ -386,7 +397,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     routeAmounts: RouteAmount[];
   } | null {
     const now = Date.now();
-    log.info({ routingConfig }, 'Finding best swap');
     const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
     for (const routeWithQuote of routesWithQuotes) {
@@ -485,7 +495,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       {
         routes: routeAmountsToString(swapRoute.routeAmounts),
         numSplits: swapRoute.routeAmounts.length,
-        quote: swapRoute.quote.toFixed(2),
+        amount: amount.toExact(),
+        quote: swapRoute.quote.toExact(),
         quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(2),
         estimatedGasUSD: swapRoute.estimatedGasUsedUSD.toFixed(2),
         estimatedGasToken: swapRoute.estimatedGasUsedQuoteToken.toFixed(2),
@@ -565,7 +576,12 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     if (!percentToSortedQuotes[100]) {
       log.info(
-        { percentToSortedQuotes },
+        {
+          percentToSortedQuotes: _.mapValues(
+            percentToSortedQuotes,
+            (p) => p.length
+          ),
+        },
         'Did not find a valid route without any splits.'
       );
       return undefined;
@@ -580,9 +596,11 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         top: _.map(
           percentToSortedQuotes[100].slice(0, 5),
           (routeWithValidQuote) => {
-            return `${routeWithValidQuote.quoteAdjustedForGas.toFixed()}: ${routeToString(
-              routeWithValidQuote.route
-            )}`;
+            return `${routeWithValidQuote.quoteAdjustedForGas.toFixed()} [NoGas: ${routeWithValidQuote.quote.toFixed()}] [EstGas: ${
+              routeWithValidQuote.gasEstimate
+            }] [TicksCrossed: ${
+              routeWithValidQuote.initializedTicksCrossedList
+            }]: ${routeToString(routeWithValidQuote.route)}`;
           }
         ),
       },
@@ -598,6 +616,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     while (splits <= routingConfig.maxSplits) {
       if (splits == 2) {
+        const bestTwoSplits = new FixedReverseHeap<{
+          quote: CurrencyAmount;
+          routes: RouteWithValidQuote[];
+        }>(
+          Array,
+          (a, b) => {
+            return quoteCompFn(a.quote, b.quote) ? -1 : 1;
+          },
+          5
+        );
+
         const split2Now = Date.now();
         for (let i = percents.length - 1; i >= 0; i--) {
           const percentA = percents[i]!;
@@ -630,11 +659,29 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
           const newQuote = quoteA.add(by(routeWithQuoteB));
 
+          bestTwoSplits.push({
+            quote: newQuote,
+            routes: [routeWithQuoteA, routeWithQuoteB],
+          });
+
           if (quoteCompFn(newQuote, bestQuote)) {
             bestQuote = newQuote;
             bestSwap = [routeWithQuoteA, routeWithQuoteB];
           }
         }
+
+        log.info(
+          {
+            top5TwoSplits: _.map(
+              Array.from(bestTwoSplits.consume()),
+              (q) =>
+                `${q.quote.toExact()} (${_(q.routes)
+                  .map((r) => r.toString())
+                  .join(', ')})`
+            ),
+          },
+          'Top 5 with 2 splits'
+        );
 
         metric.putMetric(
           'Split2Done',
@@ -975,7 +1022,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             );
           }
         })
-        .slice(0, 2)
+        .slice(0, 1)
         .value();
     }
 
@@ -1224,7 +1271,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     computeRoutes(tokenIn, tokenOut, [], poolsUsed);
 
     log.info(
-      { pools: pools.map(poolToString), routes: routes.map(routeToString) },
+      { routes: routes.map(routeToString) },
       `Computed ${routes.length} possible routes.`
     );
 

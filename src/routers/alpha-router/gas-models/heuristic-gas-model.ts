@@ -79,7 +79,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
 
     // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <token>/ETH pool.
-    const ethPool: Pool = this.getHighestLiquidityEthPool(
+    const ethPool: Pool | null = this.getHighestLiquidityEthPool(
       chainId,
       token,
       poolAccessor
@@ -102,6 +102,17 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
         gasPriceWei,
         chainId
       );
+
+      if (!ethPool) {
+        log.info(
+          'Unable to find ETH pool with the quote token to produce gas adjusted costs. Route will not account for gas.'
+        );
+        return {
+          gasEstimate: gasUse,
+          gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      }
 
       const ethToken0 = ethPool.token0.address == WETH9[chainId]!.address;
 
@@ -158,7 +169,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     };
 
     return {
-      estimateGasCost,
+      estimateGasCost: estimateGasCost.bind(this),
     };
   }
 
@@ -167,8 +178,9 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     gasPriceWei: BigNumber,
     chainId: ChainId
   ) {
-    const totalInitializedTicksCrossed = _.sum(
-      routeWithValidQuote.initializedTicksCrossedList
+    const totalInitializedTicksCrossed = Math.max(
+      1,
+      _.sum(routeWithValidQuote.initializedTicksCrossedList)
     );
     const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
 
@@ -196,7 +208,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     chainId: ChainId,
     token: Token,
     poolAccessor: PoolAccessor
-  ): Pool {
+  ): Pool | null {
     const weth = WETH9[chainId]!;
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
@@ -210,9 +222,8 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       log.error(
         `Could not find a WETH pool with ${token.symbol} for computing gas costs.`
       );
-      throw new Error(
-        `Can't find WETH/${token.symbol} pool for computing gas costs.`
-      );
+
+      return null;
     }
 
     const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;

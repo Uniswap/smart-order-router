@@ -14,6 +14,7 @@ import {
 
 export type UniswapMulticallConfig = {
   gasLimitPerCallOverride?: number;
+  blockNumberOverride?: number;
 };
 
 export class UniswapMulticallProvider extends IMulticallProvider<UniswapMulticallConfig> {
@@ -21,11 +22,12 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
 
   constructor(
     protected provider: providers.BaseProvider,
-    protected gasLimitPerCall = 1_000_000
+    protected gasLimitPerCall = 1_000_000,
+    protected multicallAddress = UNISWAP_MULTICALL_ADDRESS
   ) {
     super();
     this.multicallContract = UniswapInterfaceMulticall__factory.connect(
-      UNISWAP_MULTICALL_ADDRESS,
+      this.multicallAddress,
       this.provider
     );
   }
@@ -123,6 +125,8 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
 
     const gasLimitPerCall =
       additionalConfig?.gasLimitPerCallOverride ?? this.gasLimitPerCall;
+    const blockNumberOverride =
+      additionalConfig?.blockNumberOverride ?? undefined;
 
     const calls = _.map(functionParams, (functionParam) => {
       const callData = contractInterface.encodeFunctionData(
@@ -143,7 +147,9 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     );
 
     const { blockNumber, returnData: aggregateResults } =
-      await this.multicallContract.callStatic.multicall(calls);
+      await this.multicallContract.callStatic.multicall(calls, {
+        blockTag: blockNumberOverride,
+      });
 
     const results: Result<TReturn>[] = [];
 

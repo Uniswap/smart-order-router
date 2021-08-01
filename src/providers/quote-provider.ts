@@ -1,6 +1,6 @@
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import { default as AsyncRetry, default as retry } from 'async-retry';
-import { BigNumber } from 'ethers';
+import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import stats from 'stats-lite';
 import { RouteSOR } from '../routers/router';
@@ -22,27 +22,73 @@ export type AmountQuote = {
   gasEstimate: BigNumber | null;
 };
 
-export class BlockConflictError extends Error {}
-export class SuccessRateError extends Error {}
+export class BlockConflictError extends Error {
+  public name = 'BlockConflictError';
+}
+export class SuccessRateError extends Error {
+  public name = 'SuccessRateError';
+}
+
+export class ProviderBlockHeaderError extends Error {
+  public name = 'ProviderBlockHeaderError';
+}
+
+export class ProviderTimeoutError extends Error {
+  public name = 'ProviderTimeoutError';
+}
+export class ProviderGasError extends Error {
+  public name = 'ProviderGasError';
+}
 
 export type QuoteRetryOptions = AsyncRetry.Options;
 
 export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
 
+type QuoteBatchSuccess = {
+  status: 'success';
+  inputs: [string, string][];
+  results: {
+    blockNumber: BigNumber;
+    results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
+    approxGasUsedPerSuccessCall: number;
+  };
+};
+
+type QuoteBatchFailed = {
+  status: 'failed';
+  inputs: [string, string][];
+  reason: Error;
+  results?: {
+    blockNumber: BigNumber;
+    results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
+    approxGasUsedPerSuccessCall: number;
+  };
+};
+
+type QuoteBatchPending = {
+  status: 'pending';
+  inputs: [string, string][];
+};
+
+type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
+
 export interface IQuoteProvider {
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: RouteSOR[]
+    routes: RouteSOR[],
+    blockNumber?: number | Promise<number>
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: RouteSOR[]
+    routes: RouteSOR[],
+    blockNumber?: number | Promise<number>
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
 export class QuoteProvider implements IQuoteProvider {
   constructor(
+    protected provider: providers.BaseProvider,
     // Only supports Uniswap Multicall as it needs the gas limitting functionality.
     protected multicall2Provider: UniswapMulticallProvider,
     protected retryOptions: QuoteRetryOptions = {
@@ -54,72 +100,386 @@ export class QuoteProvider implements IQuoteProvider {
       multicallChunk: 150,
       gasLimitPerCall: 1_000_000,
       quoteMinSuccessRate: 0.2,
-    }
+    },
+    protected quoterAddress = QUOTER_V2_ADDRESS
   ) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: RouteSOR[]
+    routes: RouteSOR[],
+    blockNumber?: number | Promise<number>
+  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
+    return this.getQuotesManyDataV2(
+      amountIns,
+      routes,
+      'quoteExactInput',
+      blockNumber
+    );
+  }
+
+  public async getQuotesManyExactOut(
+    amountOuts: CurrencyAmount[],
+    routes: RouteSOR[],
+    blockNumber?: number | Promise<number>
+  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
+    return this.getQuotesManyDataV2(
+      amountOuts,
+      routes,
+      'quoteExactOutput',
+      blockNumber
+    );
+  }
+
+  private async getQuotesManyDataV2(
+    amounts: CurrencyAmount[],
+    routes: RouteSOR[],
+    functionName: 'quoteExactInput' | 'quoteExactOutput',
+    blockNumberOverridePromise?: number | Promise<number>
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
 
+    let blockNumberOverride = await blockNumberOverridePromise;
+    log.info(`Original block number: ${blockNumberOverride}`);
+
+    blockNumberOverride = blockNumberOverride
+      ? blockNumberOverride /*  - 1 */
+      : undefined;
+
+    const inputs: [string, string][] = _(routes)
+      .flatMap((route) => {
+        const encodedRoute = encodeRouteToPath(
+          route,
+          functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
+        );
+        const routeInputs: [string, string][] = amounts.map((amount) => [
+          encodedRoute,
+          `0x${amount.quotient.toString(16)}`,
+        ]);
+        return routeInputs;
+      })
+      .value();
+
+    const normalizedChunk = Math.ceil(
+      inputs.length / Math.ceil(inputs.length / multicallChunk)
+    );
+
+    const inputsChunked = _.chunk(inputs, normalizedChunk);
+    let quoteStates: QuoteBatchState[] = _.map(inputsChunked, (inputChunk) => {
+      return {
+        status: 'pending',
+        inputs: inputChunk,
+      };
+    });
+
+    log.info(
+      `About to get ${
+        inputs.length
+      } quotes in chunks of ${normalizedChunk} [${_.map(
+        inputsChunked,
+        (i) => i.length
+      ).join(',')}] ${
+        gasLimitOverride
+          ? `with a gas limit override of ${gasLimitOverride}`
+          : ''
+      }. ${
+        blockNumberOverride
+          ? `Block number override: ${blockNumberOverride}.`
+          : ''
+      }`
+    );
+
     let haveRetriedForSuccessRate = false;
+    let haveRetriedForBlockHeader = false;
+    let blockHeaderRetryAttemptNumber: number | undefined;
+    let blockHeaderRolledBack = false;
+    let haveRetriedForBlockConflictError = false;
     let haveRetriedForOutOfGas = false;
+    let haveRetriedForTimeout = false;
+    let haveRetriedForUnknownReason = false;
     let finalAttemptNumber = 1;
+    let expectedCallsMade = quoteStates.length;
+    let totalCallsMade = 0;
 
     const {
       results: quoteResults,
       blockNumber,
       approxGasUsedPerSuccessCall,
     } = await retry(
-      async (_, attemptNumber) => {
+      async (_bail, attemptNumber) => {
         finalAttemptNumber = attemptNumber;
 
-        return this.getQuotesManyExactInsData(
-          amountIns,
-          routes,
-          multicallChunk,
-          attemptNumber,
-          haveRetriedForSuccessRate,
+        const [success, failed, pending] = this.partitionQuotes(quoteStates);
+
+        log.info(
+          `Starting attempt: ${attemptNumber}. 
+          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending. 
+          Gas limit override: ${gasLimitOverride} Block number override: ${blockNumberOverride}.`
+        );
+
+        quoteStates = await Promise.all(
+          _.map(
+            quoteStates,
+            async (quoteState: QuoteBatchState, idx: number) => {
+              if (quoteState.status == 'success') {
+                return quoteState;
+              }
+
+              // QuoteChunk is pending or failed, so we try again
+              const { inputs } = quoteState;
+
+              try {
+                totalCallsMade = totalCallsMade + 1;
+
+                const results =
+                  await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+                    [string, string],
+                    [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
+                  >({
+                    address: this.quoterAddress,
+                    contractInterface: IQuoterV2__factory.createInterface(),
+                    functionName,
+                    functionParams: inputs,
+                    additionalConfig: {
+                      gasLimitPerCallOverride: gasLimitOverride,
+                      blockNumberOverride,
+                    },
+                  });
+
+                const successRateError = this.validateSuccessRate(
+                  results.results,
+                  haveRetriedForSuccessRate
+                );
+
+                if (successRateError) {
+                  return {
+                    status: 'failed',
+                    inputs,
+                    reason: successRateError,
+                    results,
+                  } as QuoteBatchFailed;
+                }
+
+                return {
+                  status: 'success',
+                  inputs,
+                  results,
+                } as QuoteBatchSuccess;
+              } catch (err) {
+                // Error from providers have huge messages that include all the calldata and fill the logs.
+                // Catch them and rethrow with shorter message.
+                if (err.message.includes('header not found')) {
+                  return {
+                    status: 'failed',
+                    inputs,
+                    reason: new ProviderBlockHeaderError(
+                      err.message.slice(0, 500)
+                    ),
+                  } as QuoteBatchFailed;
+                }
+
+                if (err.message.includes('timeout')) {
+                  return {
+                    status: 'failed',
+                    inputs,
+                    reason: new ProviderTimeoutError(
+                      `Req ${idx}/${quoteStates.length}. Request had ${
+                        inputs.length
+                      } inputs. ${err.message.slice(0, 500)}`
+                    ),
+                  } as QuoteBatchFailed;
+                }
+
+                if (err.message.includes('out of gas')) {
+                  return {
+                    status: 'failed',
+                    inputs,
+                    reason: new ProviderGasError(err.message.slice(0, 500)),
+                  } as QuoteBatchFailed;
+                }
+
+                return {
+                  status: 'failed',
+                  inputs,
+                  reason: new Error(
+                    `Unknown error from provider: ${err.message.slice(0, 500)}`
+                  ),
+                } as QuoteBatchFailed;
+              }
+            }
+          )
+        );
+
+        const [successfulQuoteStates, failedQuoteStates, pendingQuoteStates] =
+          this.partitionQuotes(quoteStates);
+
+        if (pendingQuoteStates.length > 0) {
+          throw new Error('Pending quote after waiting for all promises.');
+        }
+
+        let retryAll = false;
+
+        const blockNumberError = this.validateBlockNumbers(
+          successfulQuoteStates,
+          inputsChunked.length,
           gasLimitOverride
         );
+
+        // If there is a block number conflict we retry all the quotes.
+        if (blockNumberError) {
+          retryAll = true;
+        }
+
+        const reasonForFailureStr = _.map(
+          failedQuoteStates,
+          (failedQuoteState) => failedQuoteState.reason.name
+        ).join(', ');
+
+        if (failedQuoteStates.length > 0) {
+          log.info(
+            `On attempt ${attemptNumber}: ${failedQuoteStates.length}/${quoteStates.length} quotes failed. Reasons: ${reasonForFailureStr}`
+          );
+
+          for (const failedQuoteState of failedQuoteStates) {
+            const { reason: error } = failedQuoteState;
+
+            log.info(
+              { error },
+              `[QuoteFetchError] Attempt ${attemptNumber}. ${error.message}`
+            );
+
+            if (error instanceof BlockConflictError) {
+              if (!haveRetriedForBlockConflictError) {
+                metric.putMetric(
+                  'QuoteBlockConflictErrorRetry',
+                  1,
+                  MetricLoggerUnit.Count
+                );
+                haveRetriedForBlockConflictError = true;
+              }
+
+              retryAll = true;
+            } else if (error instanceof ProviderBlockHeaderError) {
+              if (!haveRetriedForBlockHeader) {
+                metric.putMetric(
+                  'QuoteBlockHeaderNotFoundRetry',
+                  1,
+                  MetricLoggerUnit.Count
+                );
+                haveRetriedForBlockHeader = true;
+              }
+
+              if (
+                blockHeaderRetryAttemptNumber &&
+                blockHeaderRetryAttemptNumber < attemptNumber &&
+                !blockHeaderRolledBack
+              ) {
+                log.info(
+                  `Attempt ${attemptNumber}. Another block header error. Rolling back block number for next retry`
+                );
+                blockNumberOverride = blockNumberOverride
+                  ? blockNumberOverride - 1
+                  : await this.provider.getBlockNumber();
+
+                retryAll = true;
+                blockHeaderRolledBack = true;
+              }
+
+              blockHeaderRetryAttemptNumber = attemptNumber;
+            } else if (error instanceof ProviderTimeoutError) {
+              if (!haveRetriedForTimeout) {
+                metric.putMetric(
+                  'QuoteTimeoutRetry',
+                  1,
+                  MetricLoggerUnit.Count
+                );
+                haveRetriedForTimeout = true;
+              }
+            } else if (error instanceof ProviderGasError) {
+              if (!haveRetriedForOutOfGas) {
+                metric.putMetric(
+                  'QuoteOutOfGasExceptionRetry',
+                  1,
+                  MetricLoggerUnit.Count
+                );
+                haveRetriedForOutOfGas = true;
+              }
+              gasLimitOverride = 1_000_000;
+              multicallChunk = 140;
+            } else if (error instanceof SuccessRateError) {
+              if (!haveRetriedForSuccessRate) {
+                metric.putMetric(
+                  'QuoteSuccessRateRetry',
+                  1,
+                  MetricLoggerUnit.Count
+                );
+                haveRetriedForSuccessRate = true;
+
+                // Low success rate can indicate too little gas given to each call.
+                gasLimitOverride = 1_300_000;
+                multicallChunk = 110;
+                retryAll = true;
+              }
+            } else {
+              if (!haveRetriedForUnknownReason) {
+                metric.putMetric(
+                  'QuoteUnknownReasonRetry',
+                  1,
+                  MetricLoggerUnit.Count
+                );
+                haveRetriedForUnknownReason = true;
+              }
+            }
+          }
+        }
+
+        if (retryAll) {
+          log.info(
+            `Attempt ${attemptNumber}. Resetting all requests to pending for next attempt.`
+          );
+
+          const normalizedChunk = Math.ceil(
+            inputs.length / Math.ceil(inputs.length / multicallChunk)
+          );
+
+          const inputsChunked = _.chunk(inputs, normalizedChunk);
+          quoteStates = _.map(inputsChunked, (inputChunk) => {
+            return {
+              status: 'pending',
+              inputs: inputChunk,
+            };
+          });
+        }
+
+        if (failedQuoteStates.length > 0) {
+          throw new Error(
+            `Failed to get ${failedQuoteStates.length} quotes. Reasons: ${reasonForFailureStr}`
+          );
+        }
+
+        const callResults = _.map(
+          successfulQuoteStates,
+          (quoteState) => quoteState.results
+        );
+
+        return {
+          results: _.flatMap(callResults, (result) => result.results),
+          blockNumber: BigNumber.from(callResults[0]!.blockNumber),
+          approxGasUsedPerSuccessCall: stats.percentile(
+            _.map(callResults, (result) => result.approxGasUsedPerSuccessCall),
+            100
+          ),
+        };
       },
       {
         ...this.retryOptions,
-        onRetry: (error: Error, _attempt: number): any => {
-          if (error.message.includes('out of gas')) {
-            if (!haveRetriedForOutOfGas) {
-              metric.putMetric(
-                'QuoteOutOfGasExceptionRetry',
-                1,
-                MetricLoggerUnit.Count
-              );
-              haveRetriedForOutOfGas = true;
-            }
-
-            log.info('Out of gas error when fetching quotes');
-            gasLimitOverride = 1_200_000;
-            multicallChunk = 120;
-          }
-
-          // Low success rate can indicate too little gas given to each call.
-          if (error instanceof SuccessRateError) {
-            if (!haveRetriedForSuccessRate) {
-              metric.putMetric(
-                'QuoteSuccessRateRetry',
-                1,
-                MetricLoggerUnit.Count
-              );
-              haveRetriedForSuccessRate = true;
-            }
-
-            log.info('Success rate error when fetching quotes');
-            gasLimitOverride = 1_200_000;
-            multicallChunk = 120;
-          }
-        },
       }
+    );
+
+    const routesQuotes = this.processQuoteResults(
+      quoteResults,
+      routes,
+      amounts
     );
 
     metric.putMetric(
@@ -129,102 +489,76 @@ export class QuoteProvider implements IQuoteProvider {
     );
 
     metric.putMetric(
-      'QuoteNumRetries',
+      'QuoteNumRetryLoops',
       finalAttemptNumber - 1,
       MetricLoggerUnit.Count
     );
 
-    const routesQuotes = this.processQuoteResults(
-      quoteResults,
-      routes,
-      amountIns
+    metric.putMetric(
+      'QuoteTotalCallsToProvider',
+      totalCallsMade,
+      MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      'QuoteExpectedCallsToProvider',
+      expectedCallsMade,
+      MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      'QuoteNumRetriedCalls',
+      totalCallsMade - expectedCallsMade,
+      MetricLoggerUnit.Count
+    );
+
+    const [successfulQuotes, failedQuotes] = _(routesQuotes)
+      .flatMap((routeWithQuotes: RouteWithQuotes) => routeWithQuotes[1])
+      .partition((quote) => quote.quote != null)
+      .value();
+
+    log.info(
+      `Got ${successfulQuotes.length} successful quotes, ${
+        failedQuotes.length
+      } failed quotes. Took ${
+        finalAttemptNumber - 1
+      } attempt loops. Total calls made to provider: ${totalCallsMade}. Have retried for timeout: ${haveRetriedForTimeout}`
     );
 
     return { routesWithQuotes: routesQuotes, blockNumber };
   }
 
-  public async getQuotesManyExactOut(
-    amountOuts: CurrencyAmount[],
-    routes: RouteSOR[]
-  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
-    let multicallChunk = this.batchParams.multicallChunk;
-    let gasLimitOverride: number = this.batchParams.gasLimitPerCall;
-
-    let haveRetriedForSuccessRate = false;
-    let haveRetriedForOutOfGas = false;
-    let finalAttemptNumber = 1;
-
-    const {
-      results: quoteResults,
-      blockNumber,
-      approxGasUsedPerSuccessCall,
-    } = await retry(
-      async (_, attemptNumber) => {
-        finalAttemptNumber = attemptNumber;
-
-        return this.getQuotesManyExactOutsData(
-          amountOuts,
-          routes,
-          multicallChunk,
-          attemptNumber,
-          haveRetriedForSuccessRate,
-          gasLimitOverride
-        );
-      },
-      {
-        ...this.retryOptions,
-        onRetry: (error: Error, _attempt: number): any => {
-          if (error.message.includes('out of gas')) {
-            if (!haveRetriedForOutOfGas) {
-              metric.putMetric(
-                'QuoteOutOfGasExceptionRetry',
-                1,
-                MetricLoggerUnit.Count
-              );
-              haveRetriedForOutOfGas = true;
-            }
-            log.info('Out of gas error when fetching quotes');
-            gasLimitOverride = 1_200_000;
-            multicallChunk = 120;
-          }
-
-          // Low success rate often indicates too little gas given to each call.
-          if (error instanceof SuccessRateError) {
-            if (!haveRetriedForSuccessRate) {
-              metric.putMetric(
-                'QuoteSuccessRateRetry',
-                1,
-                MetricLoggerUnit.Count
-              );
-              haveRetriedForSuccessRate = true;
-            }
-            log.info('Success rate error when fetching quotes');
-            gasLimitOverride = 1_200_000;
-            multicallChunk = 120;
-          }
-        },
-      }
+  private partitionQuotes(
+    quoteStates: QuoteBatchState[]
+  ): [QuoteBatchSuccess[], QuoteBatchFailed[], QuoteBatchPending[]] {
+    const successfulQuoteStates: QuoteBatchSuccess[] = _.filter<
+      QuoteBatchState,
+      QuoteBatchSuccess
+    >(
+      quoteStates,
+      (quoteState): quoteState is QuoteBatchSuccess =>
+        quoteState.status == 'success'
     );
 
-    metric.putMetric(
-      'QuoteApproxGasUsedPerSuccessfulCall',
-      approxGasUsedPerSuccessCall,
-      MetricLoggerUnit.Count
+    const failedQuoteStates: QuoteBatchFailed[] = _.filter<
+      QuoteBatchState,
+      QuoteBatchFailed
+    >(
+      quoteStates,
+      (quoteState): quoteState is QuoteBatchFailed =>
+        quoteState.status == 'failed'
     );
 
-    metric.putMetric(
-      'QuoteNumRetries',
-      finalAttemptNumber - 1,
-      MetricLoggerUnit.Count
+    const pendingQuoteStates: QuoteBatchPending[] = _.filter<
+      QuoteBatchState,
+      QuoteBatchPending
+    >(
+      quoteStates,
+      (quoteState): quoteState is QuoteBatchPending =>
+        quoteState.status == 'pending'
     );
 
-    const routesQuotes = this.processQuoteResults(
-      quoteResults,
-      routes,
-      amountOuts
-    );
-
-    return { routesWithQuotes: routesQuotes, blockNumber };
+    return [successfulQuoteStates, failedQuoteStates, pendingQuoteStates];
   }
 
   private processQuoteResults(
@@ -281,160 +615,47 @@ export class QuoteProvider implements IQuoteProvider {
     return routesQuotes;
   }
 
-  private async getQuotesManyExactInsData(
-    amountIns: CurrencyAmount[],
-    routes: RouteSOR[],
-    multicallChunk: number,
-    attemptNumber: number,
-    haveRetriedForSuccessRate: boolean,
+  private validateBlockNumbers(
+    successfulQuoteStates: QuoteBatchSuccess[],
+    totalCalls: number,
     gasLimitOverride?: number
-  ): Promise<{
-    results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
-    blockNumber: BigNumber;
-    approxGasUsedPerSuccessCall: number;
-  }> {
-    const inputs: [string, string][] = _(routes)
-      .flatMap((route) => {
-        const encodedRoute = encodeRouteToPath(route, false);
-        const routeInputs: [string, string][] = amountIns.map((amountIn) => [
-          encodedRoute,
-          `0x${amountIn.quotient.toString(16)}`,
-        ]);
-        return routeInputs;
-      })
-      .value();
+  ): BlockConflictError | null {
+    if (successfulQuoteStates.length <= 1) {
+      return null;
+    }
 
-    const inputsChunked = _.chunk(inputs, multicallChunk);
-
-    log.info(
-      `Attempt: ${attemptNumber}. About to get ${
-        inputs.length
-      } quotes in chunks of ${multicallChunk} ${
-        gasLimitOverride
-          ? `with a gas limit override of ${gasLimitOverride}`
-          : ''
-      }. In total ${inputsChunked.length} multicalls.`
+    const results = _.map(
+      successfulQuoteStates,
+      (quoteState) => quoteState.results
     );
 
-    const results = await Promise.all(
-      _.map(inputsChunked, async (inputChunk) => {
-        return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-          [string, string],
-          [BigNumber, BigNumber[], number[], BigNumber] // amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
-        >({
-          address: QUOTER_V2_ADDRESS,
-          contractInterface: IQuoterV2__factory.createInterface(),
-          functionName: 'quoteExactInput',
-          functionParams: inputChunk,
-          additionalConfig: { gasLimitPerCallOverride: gasLimitOverride },
-        });
-      })
-    );
-
-    this.validateBlockNumbers(results);
-    this.validateSuccessRate(results, haveRetriedForSuccessRate);
-
-    return {
-      results: _.flatMap(results, (result) => result.results),
-      blockNumber: results[0]!.blockNumber,
-      approxGasUsedPerSuccessCall: stats.percentile(
-        _.map(results, (result) => result.approxGasUsedPerSuccessCall),
-        100
-      ),
-    };
-  }
-
-  private async getQuotesManyExactOutsData(
-    amountOuts: CurrencyAmount[],
-    routes: RouteSOR[],
-    multicallChunk: number,
-    attemptNumber: number,
-    haveRetriedForSuccessRate: boolean,
-    gasLimitOverride?: number
-  ): Promise<{
-    results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
-    blockNumber: BigNumber;
-    approxGasUsedPerSuccessCall: number;
-  }> {
-    const inputs: [string, string][] = _(routes)
-      .flatMap((route) => {
-        const routeInputs: [string, string][] = amountOuts.map((amountOut) => [
-          encodeRouteToPath(route, true),
-          `0x${amountOut.quotient.toString(16)}`,
-        ]);
-        return routeInputs;
-      })
-      .value();
-
-    const inputsChunked = _.chunk(inputs, multicallChunk);
-
-    log.info(
-      {
-        quotesToGet: inputs.length,
-        numQuoteMulticalls: inputsChunked.length,
-        gasLimitOverride,
-      },
-      `Attempt: ${attemptNumber}. About to get ${
-        inputs.length
-      } quotes in chunks of ${multicallChunk} ${
-        gasLimitOverride
-          ? `with a gas limit override of ${gasLimitOverride}`
-          : ''
-      }. In total ${inputsChunked.length} multicalls.`
-    );
-
-    const results = await Promise.all(
-      _.map(inputsChunked, async (inputChunk) => {
-        return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-          [string, string],
-          [BigNumber, BigNumber[], number[], BigNumber] // amountIn, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
-        >({
-          address: QUOTER_V2_ADDRESS,
-          contractInterface: IQuoterV2__factory.createInterface(),
-          functionName: 'quoteExactOutput',
-          functionParams: inputChunk,
-          additionalConfig: { gasLimitPerCallOverride: gasLimitOverride },
-        });
-      })
-    );
-
-    this.validateBlockNumbers(results);
-    this.validateSuccessRate(results, haveRetriedForSuccessRate);
-
-    return {
-      results: _.flatMap(results, (result) => result.results),
-      blockNumber: results[0]!.blockNumber,
-      approxGasUsedPerSuccessCall: stats.percentile(
-        _.map(results, (result) => result.approxGasUsedPerSuccessCall),
-        100
-      ),
-    };
-  }
-
-  private validateBlockNumbers(results: { blockNumber: BigNumber }[]): void {
     const blockNumbers = _.map(results, (result) => result.blockNumber);
 
-    const allBlockNumbersSame = _.every(
-      blockNumbers,
-      (blockNumber) => blockNumber.toString() == blockNumbers[0]!.toString()
-    );
+    const uniqBlocks = _(blockNumbers)
+      .map((blockNumber) => blockNumber.toNumber())
+      .uniq()
+      .value();
 
-    if (!allBlockNumbersSame) {
-      log.info(
-        { blocks: _.uniq(_.map(blockNumbers, (b) => b.toString())) },
-        'Quotes returned from different blocks.'
-      );
-      throw new BlockConflictError('Quotes returned from different blocks.');
+    if (uniqBlocks.length == 1) {
+      return null;
     }
+
+    /* if (
+      uniqBlocks.length == 2 &&
+      Math.abs(uniqBlocks[0]! - uniqBlocks[1]!) <= 1
+    ) {
+      return null;
+    } */
+
+    return new BlockConflictError(
+      `Quotes returned from different blocks. ${uniqBlocks}. ${totalCalls} calls were made with gas limit ${gasLimitOverride}`
+    );
   }
 
-  private validateSuccessRate(
-    results: {
-      results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
-    }[],
+  protected validateSuccessRate(
+    allResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     haveRetriedForSuccessRate: boolean
-  ): void {
-    const allResults = _.flatMap(results, (result) => result.results);
+  ): void | SuccessRateError {
     const numResults = allResults.length;
     const numSuccessResults = allResults.filter(
       (result) => result.success
@@ -443,7 +664,6 @@ export class QuoteProvider implements IQuoteProvider {
     const successRate = (1.0 * numSuccessResults) / numResults;
 
     const { quoteMinSuccessRate } = this.batchParams;
-    log.info(`Quote success rate: ${quoteMinSuccessRate}: ${successRate}`);
     if (successRate < quoteMinSuccessRate) {
       if (haveRetriedForSuccessRate) {
         log.info(
@@ -452,7 +672,7 @@ export class QuoteProvider implements IQuoteProvider {
         return;
       }
 
-      throw new SuccessRateError(
+      return new SuccessRateError(
         `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
       );
     }

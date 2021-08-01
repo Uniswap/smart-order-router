@@ -1,6 +1,7 @@
 import { Token, TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../../../util/amounts';
+import { routeToString } from '../../../util/routes';
 import { RouteSOR } from '../../router';
 import { GasModel } from '../gas-models/gas-model';
 
@@ -33,6 +34,14 @@ export class RouteWithValidQuote {
   public gasCostInToken: CurrencyAmount;
   public gasCostInUSD: CurrencyAmount;
   public tradeType: TradeType;
+
+  public toString(): string {
+    return `${this.percent.toFixed(
+      2
+    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] = ${routeToString(
+      this.route
+    )}`;
+  }
 
   constructor({
     amount,
