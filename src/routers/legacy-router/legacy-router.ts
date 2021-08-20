@@ -44,12 +44,16 @@ export type LegacyRouterParams = {
 // Interface defaults to 2.
 const MAX_HOPS = 2;
 
+export type LegacyRoutingConfig = {
+  blockNumber?: number;
+};
+
 /**
  * Replicates the router implemented in the V3 interface.
  * Code is mostly a copy from https://github.com/Uniswap/uniswap-interface/blob/0190b5a408c13016c87e1030ffc59326c085f389/src/hooks/useBestV3Trade.ts#L22-L23
  * with React/Redux hooks removed, and refactoring to allow re-use in other routers.
  */
-export class LegacyRouter implements IRouter<void> {
+export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   protected chainId: ChainId;
   protected multicall2Provider: IMulticallProvider;
   protected poolProvider: IPoolProvider;
@@ -74,15 +78,17 @@ export class LegacyRouter implements IRouter<void> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountIn: CurrencyAmount,
-    swapConfig?: SwapConfig
+    swapConfig?: SwapConfig,
+    routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
-    const routes = await this.getAllRoutes(tokenIn, tokenOut);
+    const routes = await this.getAllRoutes(tokenIn, tokenOut, routingConfig);
     const routeQuote = await this.findBestRouteExactIn(
       amountIn,
       tokenOut,
-      routes
+      routes,
+      routingConfig
     );
 
     if (!routeQuote) {
@@ -126,15 +132,17 @@ export class LegacyRouter implements IRouter<void> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountOut: CurrencyAmount,
-    swapConfig?: SwapConfig
+    swapConfig?: SwapConfig,
+    routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
-    const routes = await this.getAllRoutes(tokenIn, tokenOut);
+    const routes = await this.getAllRoutes(tokenIn, tokenOut, routingConfig);
     const routeQuote = await this.findBestRouteExactOut(
       amountOut,
       tokenIn,
-      routes
+      routes,
+      routingConfig
     );
 
     if (!routeQuote) {
@@ -177,10 +185,13 @@ export class LegacyRouter implements IRouter<void> {
   private async findBestRouteExactIn(
     amountIn: CurrencyAmount,
     tokenOut: Token,
-    routes: RouteSOR[]
+    routes: RouteSOR[],
+    routingConfig?: LegacyRoutingConfig
   ): Promise<RouteAmount | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactIn([amountIn], routes);
+      await this.quoteProvider.getQuotesManyExactIn([amountIn], routes, {
+        blockNumber: routingConfig?.blockNumber,
+      });
 
     const quotes100Percent = _.map(
       quotesRaw,
@@ -202,10 +213,13 @@ export class LegacyRouter implements IRouter<void> {
   private async findBestRouteExactOut(
     amountOut: CurrencyAmount,
     tokenIn: Token,
-    routes: RouteSOR[]
+    routes: RouteSOR[],
+    routingConfig?: LegacyRoutingConfig
   ): Promise<RouteAmount | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactOut([amountOut], routes);
+      await this.quoteProvider.getQuotesManyExactOut([amountOut], routes, {
+        blockNumber: routingConfig?.blockNumber,
+      });
     const bestQuote = await this.getBestQuote(
       routes,
       quotesRaw,
@@ -289,12 +303,15 @@ export class LegacyRouter implements IRouter<void> {
 
   private async getAllRoutes(
     tokenIn: Token,
-    tokenOut: Token
+    tokenOut: Token,
+    routingConfig?: LegacyRoutingConfig
   ): Promise<RouteSOR[]> {
     const tokenPairs: [Token, Token, FeeAmount][] =
       await this.getAllPossiblePairings(tokenIn, tokenOut);
 
-    const poolAccessor = await this.poolProvider.getPools(tokenPairs);
+    const poolAccessor = await this.poolProvider.getPools(tokenPairs, {
+      blockNumber: routingConfig?.blockNumber,
+    });
     const pools = poolAccessor.getAllPools();
 
     const routes: RouteSOR[] = this.computeAllRoutes(

@@ -1,7 +1,8 @@
 import { default as retry } from 'async-retry';
-import { gql, request } from 'graphql-request';
+import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 import { log } from '../util/log';
+import { ProviderConfig } from './provider';
 
 export interface SubgraphPool {
   id: string;
@@ -45,12 +46,22 @@ const SUBGRAPH_URL =
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 export interface ISubgraphProvider {
-  getPools(): Promise<SubgraphPool[]>;
+  getPools(providerConfig?: ProviderConfig): Promise<SubgraphPool[]>;
 }
 export class SubgraphProvider implements ISubgraphProvider {
-  constructor(protected blockNumber?: number, private retries = 1) {}
+  private abortController: AbortController;
+  private client: GraphQLClient;
 
-  public async getPools(): Promise<SubgraphPool[]> {
+  constructor(private retries = 2, private timeout = 5000) {
+    this.abortController = new AbortController();
+    this.client = new GraphQLClient(SUBGRAPH_URL, {
+      signal: this.abortController.signal,
+    });
+  }
+
+  public async getPools(
+    providerConfig?: ProviderConfig
+  ): Promise<SubgraphPool[]> {
     const query = gql`
       query getPools($pageSize: Int!, $skip: Int!) {
         pools(
@@ -58,7 +69,11 @@ export class SubgraphProvider implements ISubgraphProvider {
           skip: $skip
           orderBy: totalValueLockedETH
           orderDirection: desc
-          ${this.blockNumber ? `block: { number: ${this.blockNumber} }` : ``}
+          ${
+            providerConfig?.blockNumber
+              ? `block: { number: ${providerConfig?.blockNumber} }`
+              : ``
+          }
         ) {
           id
           token0 {
@@ -83,32 +98,50 @@ export class SubgraphProvider implements ISubgraphProvider {
 
     log.info(
       `Getting pools from the subgraph with page size ${PAGE_SIZE}${
-        this.blockNumber ? ` as of block ${this.blockNumber}` : ''
+        providerConfig?.blockNumber
+          ? ` as of block ${providerConfig?.blockNumber}`
+          : ''
       }.`
     );
+
+    let done = false;
+
     await retry(
-      async () => {
+      async (bail) => {
+        setTimeout(() => {
+          if (!done) {
+            log.info('Failed to get pools from subgraph due to timeout.');
+            bail(
+              new Error('Failed to get pools from subgraph due to timeout.')
+            );
+          }
+        }, this.timeout);
+
         do {
-          const poolsResult = await request<{ pools: RawSubgraphPool[] }>(
-            SUBGRAPH_URL,
-            query,
-            {
-              pageSize: PAGE_SIZE,
-              skip,
-            }
-          );
+          const poolsResult = await this.client.request<{
+            pools: RawSubgraphPool[];
+          }>(query, {
+            pageSize: PAGE_SIZE,
+            skip,
+          });
 
           poolsPage = poolsResult.pools;
 
           pools = pools.concat(poolsPage);
           skip = skip + PAGE_SIZE;
         } while (poolsPage.length > 0);
+
+        done = true;
       },
       {
         retries: this.retries,
-        onRetry: () => {
+        onRetry: (err, retry) => {
           skip = 0;
           pools = [];
+          log.info(
+            { err },
+            `Failed to get pools from subgraph. Retry attempt: ${retry}`
+          );
         },
       }
     );

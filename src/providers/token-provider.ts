@@ -4,9 +4,13 @@ import NodeCache from 'node-cache';
 import { IERC20Metadata__factory } from '../types/v3';
 import { ChainId, log } from '../util';
 import { IMulticallProvider } from './multicall-provider';
+import { LocalCacheEntry, ProviderConfig } from './provider';
 
 export interface ITokenProvider {
-  getTokens(addresses: string[]): Promise<TokenAccessor>;
+  getTokens(
+    addresses: string[],
+    providerConfig?: ProviderConfig
+  ): Promise<TokenAccessor>;
 }
 
 export type TokenAccessor = {
@@ -14,7 +18,7 @@ export type TokenAccessor = {
   getTokenBySymbol(symbol: string): Token | undefined;
 };
 
-// Token symbol and decimals never change so can always be cached.
+// Token symbol and decimals don't change so can be cached indefinitely.
 const TOKEN_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 
 export const USDC = new Token(
@@ -56,7 +60,10 @@ export class TokenProvider implements ITokenProvider {
     protected multicall2Provider: IMulticallProvider
   ) {}
 
-  public async getTokens(_addresses: string[]): Promise<TokenAccessor> {
+  public async getTokens(
+    _addresses: string[],
+    providerConfig?: ProviderConfig
+  ): Promise<TokenAccessor> {
     const addressToToken: { [address: string]: Token } = {};
     const symbolToToken: { [symbol: string]: Token } = {};
 
@@ -67,8 +74,18 @@ export class TokenProvider implements ITokenProvider {
     const addressesToFetch = [];
 
     for (const address of addresses) {
-      if (TOKEN_CACHE.has(address)) {
-        addressToToken[address] = TOKEN_CACHE.get<Token>(address)!;
+      if (!TOKEN_CACHE.has(address)) {
+        addressesToFetch.push(address);
+        continue;
+      }
+
+      const tokenCacheEntry = TOKEN_CACHE.get<LocalCacheEntry<Token>>(address)!;
+      if (
+        !providerConfig?.blockNumber ||
+        tokenCacheEntry.blockNumber > providerConfig?.blockNumber
+      ) {
+        addressToToken[address] =
+          TOKEN_CACHE.get<LocalCacheEntry<Token>>(address)!.entry;
       } else {
         addressesToFetch.push(address);
       }
@@ -92,6 +109,7 @@ export class TokenProvider implements ITokenProvider {
           addresses: addressesToFetch,
           contractInterface: IERC20Metadata__factory.createInterface(),
           functionName: 'symbol',
+          providerConfig,
         }),
         this.multicall2Provider.callSameFunctionOnMultipleContracts<
           undefined,
@@ -100,14 +118,15 @@ export class TokenProvider implements ITokenProvider {
           addresses: addressesToFetch,
           contractInterface: IERC20Metadata__factory.createInterface(),
           functionName: 'decimals',
+          providerConfig,
         }),
       ]);
 
       log.info(
-        `Got token symbol and decimals for ${addressesToFetch.length} tokens`
+        `Got token symbol and decimals for ${addressesToFetch.length} tokens ${providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''}`
       );
 
-      const { results: symbols } = symbolsResult;
+      const { results: symbols, blockNumber } = symbolsResult;
       const { results: decimals } = decimalsResult;
 
       for (let i = 0; i < addressesToFetch.length; i++) {
@@ -138,10 +157,10 @@ export class TokenProvider implements ITokenProvider {
         );
         symbolToToken[symbol.toLowerCase()] = addressToToken[address]!;
 
-        TOKEN_CACHE.set<Token>(
-          address.toLowerCase(),
-          addressToToken[address.toLowerCase()]!
-        );
+        TOKEN_CACHE.set<LocalCacheEntry<Token>>(address.toLowerCase(), {
+          blockNumber: blockNumber.toNumber(),
+          entry: addressToToken[address.toLowerCase()]!,
+        });
       }
     }
 

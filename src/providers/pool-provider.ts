@@ -9,6 +9,7 @@ import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
 import { log } from '../util/log';
 import { poolToString } from '../util/routes';
 import { IMulticallProvider, Result } from './multicall-provider';
+import { ProviderConfig } from './provider';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -23,7 +24,10 @@ type ISlot0 = {
 type ILiquidity = { liquidity: BigNumber };
 
 export interface IPoolProvider {
-  getPools(tokenPairs: [Token, Token, FeeAmount][]): Promise<PoolAccessor>;
+  getPools(
+    tokenPairs: [Token, Token, FeeAmount][],
+    providerConfig?: ProviderConfig
+  ): Promise<PoolAccessor>;
   getPoolAddress(
     tokenA: Token,
     tokenB: Token,
@@ -57,7 +61,8 @@ export class PoolProvider implements IPoolProvider {
   ) {}
 
   public async getPools(
-    tokenPairs: [Token, Token, FeeAmount][]
+    tokenPairs: [Token, Token, FeeAmount][],
+    providerConfig?: ProviderConfig
   ): Promise<PoolAccessor> {
     const poolAddressSet: Set<string> = new Set<string>();
     const sortedTokenPairs: Array<[Token, Token, FeeAmount]> = [];
@@ -86,16 +91,20 @@ export class PoolProvider implements IPoolProvider {
     );
 
     log.info(
-      `About to get liquidity and slot0s for ${poolAddressSet.size} pools.`
+      `About to get liquidity and slot0s for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
     );
 
     const [slot0Results, liquidityResults] = await Promise.all([
-      this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0'),
-      this.getPoolsData<[ILiquidity]>(sortedPoolAddresses, 'liquidity'),
+      this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0', providerConfig),
+      this.getPoolsData<[ILiquidity]>(
+        sortedPoolAddresses,
+        'liquidity',
+        providerConfig
+      ),
     ]);
 
     log.info(
-      `Got liquidity and slot0s for ${poolAddressSet.size} pools.`
+      `Got liquidity and slot0s for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
     );
 
     const poolAddressToPool: { [poolAddress: string]: Pool } = {};
@@ -197,7 +206,8 @@ export class PoolProvider implements IPoolProvider {
 
   private async getPoolsData<TReturn>(
     poolAddresses: string[],
-    functionName: string
+    functionName: string,
+    providerConfig?: ProviderConfig
   ): Promise<Result<TReturn>[]> {
     const { results, blockNumber } = await retry(async () => {
       return this.multicall2Provider.callSameFunctionOnMultipleContracts<
@@ -207,6 +217,7 @@ export class PoolProvider implements IPoolProvider {
         addresses: poolAddresses,
         contractInterface: IUniswapV3PoolState__factory.createInterface(),
         functionName: functionName,
+        providerConfig,
       });
     }, this.retryOptions);
 

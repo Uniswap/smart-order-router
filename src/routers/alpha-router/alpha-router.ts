@@ -59,6 +59,7 @@ export type AlphaRouterParams = {
 };
 
 export type AlphaRouterConfig = {
+  blockNumber?: number;
   topN: number;
   topNTokenInOut: number;
   topNSecondHop: number;
@@ -137,14 +138,50 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-    const currentBlockNumber = this.provider.getBlockNumber();
+    return this.route<TradeType.EXACT_INPUT>(
+      currencyIn,
+      currencyOut,
+      amountIn,
+      TradeType.EXACT_INPUT,
+      swapConfig,
+      routingConfig
+    );
+  }
+
+  public async routeExactOut(
+    currencyIn: Currency,
+    currencyOut: Currency,
+    amountOut: CurrencyAmount,
+    swapConfig: SwapConfig,
+    routingConfig = DEFAULT_CONFIG
+  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
+    return this.route<TradeType.EXACT_OUTPUT>(
+      currencyIn,
+      currencyOut,
+      amountOut,
+      TradeType.EXACT_OUTPUT,
+      swapConfig,
+      routingConfig
+    );
+  }
+
+  private async route<TTradeType extends TradeType>(
+    currencyIn: Currency,
+    currencyOut: Currency,
+    amount: CurrencyAmount,
+    swapType: TTradeType,
+    swapConfig: SwapConfig,
+    routingConfig = DEFAULT_CONFIG
+  ): Promise<SwapRoute<TTradeType> | null> {
+    const blockNumber =
+      routingConfig.blockNumber ?? this.provider.getBlockNumber();
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
     const { poolAccessor, poolsBySelection } = await this.getPoolsToConsider(
       tokenIn,
       tokenOut,
-      TradeType.EXACT_INPUT,
+      swapType,
       routingConfig
     );
     const pools = poolAccessor.getAllPools();
@@ -158,11 +195,13 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
+    const quoteToken = swapType == TradeType.EXACT_INPUT ? tokenOut : tokenIn;
+
     const gasModel = this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
       poolAccessor,
-      tokenOut
+      quoteToken
     );
 
     const { maxSwapsPerPath } = routingConfig;
@@ -178,17 +217,21 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     }
 
     const [percents, amounts] = this.getAmountDistribution(
-      amountIn,
+      amount,
       routingConfig
     );
 
+    const quoteFn =
+      swapType == TradeType.EXACT_INPUT
+        ? this.quoteProvider.getQuotesManyExactIn.bind(this.quoteProvider)
+        : this.quoteProvider.getQuotesManyExactOut.bind(this.quoteProvider);
+
     const beforeQuotes = Date.now();
-    const { routesWithQuotes, blockNumber } =
-      await this.quoteProvider.getQuotesManyExactIn(
-        amounts,
-        routes,
-        currentBlockNumber
-      );
+    const { routesWithQuotes, blockNumber: blockNumberBN } = await quoteFn(
+      amounts,
+      routes,
+      { blockNumber }
+    );
 
     metric.putMetric(
       'QuotesLoad',
@@ -206,11 +249,11 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const beforeBestSwap = Date.now();
     const swapRouteRaw = this.getBestSwapRoute(
-      amountIn,
+      amount,
       percents,
       routesWithQuotes,
-      tokenOut,
-      TradeType.EXACT_INPUT,
+      quoteToken,
+      swapType,
       gasModel,
       routingConfig
     );
@@ -228,10 +271,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    const trade = this.buildTrade<TradeType.EXACT_INPUT>(
+    const trade = this.buildTrade<TTradeType>(
       currencyIn,
       currencyOut,
-      TradeType.EXACT_INPUT,
+      swapType,
       routeAmounts
     );
 
@@ -259,124 +302,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       routeAmounts,
       trade,
       methodParameters,
-      blockNumber,
-    };
-  }
-
-  public async routeExactOut(
-    currencyIn: Currency,
-    currencyOut: Currency,
-    amountOut: CurrencyAmount,
-    swapConfig: SwapConfig,
-    routingConfig = DEFAULT_CONFIG
-  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
-    const currentBlockNumber = this.provider.getBlockNumber();
-    const tokenIn = currencyIn.wrapped;
-    const tokenOut = currencyOut.wrapped;
-
-    const { poolAccessor, poolsBySelection } = await this.getPoolsToConsider(
-      tokenIn,
-      tokenOut,
-      TradeType.EXACT_INPUT,
-      routingConfig
-    );
-    const pools = poolAccessor.getAllPools();
-
-    const beforeGas = Date.now();
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
-
-    metric.putMetric(
-      'GasPriceLoad',
-      Date.now() - beforeGas,
-      MetricLoggerUnit.Milliseconds
-    );
-
-    const gasModel = this.gasModelFactory.buildGasModel(
-      this.chainId,
-      gasPriceWei,
-      poolAccessor,
-      tokenIn
-    );
-
-    const { maxSwapsPerPath } = routingConfig;
-    const routes = this.computeAllRoutes(
-      tokenIn,
-      tokenOut,
-      pools,
-      maxSwapsPerPath
-    );
-
-    if (routes.length == 0) {
-      return null;
-    }
-
-    const [percents, amounts] = this.getAmountDistribution(
-      amountOut,
-      routingConfig
-    );
-
-    const beforeQuotes = Date.now();
-    const { routesWithQuotes, blockNumber } =
-      await this.quoteProvider.getQuotesManyExactOut(
-        amounts,
-        routes,
-        currentBlockNumber
-      );
-    metric.putMetric(
-      'QuotesLoad',
-      Date.now() - beforeQuotes,
-      MetricLoggerUnit.Milliseconds
-    );
-
-    const swapRouteRaw = this.getBestSwapRoute(
-      amountOut,
-      percents,
-      routesWithQuotes,
-      tokenIn,
-      TradeType.EXACT_OUTPUT,
-      gasModel,
-      routingConfig
-    );
-
-    if (!swapRouteRaw) {
-      return null;
-    }
-
-    const {
-      quote,
-      quoteGasAdjusted,
-      routeAmounts,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD,
-    } = swapRouteRaw;
-
-    const trade = this.buildTrade<TradeType.EXACT_OUTPUT>(
-      currencyIn,
-      currencyOut,
-      TradeType.EXACT_OUTPUT,
-      routeAmounts
-    );
-
-    let methodParameters: MethodParameters | undefined;
-
-    if (swapConfig) {
-      methodParameters = this.buildMethodParameters(trade, swapConfig);
-    }
-
-    this.emitPoolSelectionMetrics(swapRouteRaw, poolsBySelection);
-
-    return {
-      quote,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD,
-      gasPriceWei,
-      trade,
-      routeAmounts,
-      methodParameters,
-      blockNumber,
+      blockNumber: blockNumberBN,
     };
   }
 
@@ -397,8 +323,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     routeAmounts: RouteAmount[];
   } | null {
     const now = Date.now();
-    const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
 
+    // Build a map of percentage of the input to list of valid quotes.
+    // Quotes can be null for a variety of reasons (not enough liquidity etc), so we drop them here too.
+    const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
     for (const routeWithQuote of routesWithQuotes) {
       const [route, quotes] = routeWithQuote;
 
@@ -456,6 +384,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       MetricLoggerUnit.Milliseconds
     );
 
+    // Given all the valid quotes for each percentage find the optimal route.
     const swapRoute = this.getBestSwapRouteBy(
       routeType,
       percentToQuotes,
@@ -464,13 +393,16 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       routingConfig
     );
 
+    // It is possible we were unable to find any valid route given the quotes.
     if (!swapRoute) {
       return null;
     }
 
     // Due to potential loss of precision when taking percentages of the input it is possible that the sum of the amounts of each
-    // route of our quote may not add up exactly to exactIn or exactOut. We check this here, and if there is a mismatch
-    // add the missing amount to a random route. The missing amount size should be neglible so the quote should still be accurate.
+    // route of our optimal quote may not add up exactly to exactIn or exactOut.
+    //
+    // We check this here, and if there is a mismatch
+    // add the missing amount to a random route. The missing amount size should be neglible so the quote should still be highly accurate.
     const { routeAmounts } = swapRoute;
     const totalAmount = _.reduce(
       routeAmounts,
@@ -484,7 +416,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         {
           missingAmount: missingAmount.quotient.toString(),
         },
-        `Optimal routes amounts did not equal total. Adding missing amount to last route in array.`
+        `Optimal route's amounts did not equal exactIn/exactOut total. Adding missing amount to last route in array.`
       );
 
       routeAmounts[routeAmounts.length - 1]!.amount =
@@ -523,6 +455,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         routeAmounts: RouteAmount[];
       }
     | undefined {
+    // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
     const percentToSortedQuotes = _.mapValues(
       percentToQuotes,
       (routeQuotes: RouteWithValidQuote[]) => {
@@ -536,8 +469,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       }
     );
 
-    // Function that given a list of used routes for a current swap route candidate,
-    // finds the first route in a list that does not re-use an already used pool.
+    // We do not allow pools to be re-used across split routes, as swapping through a pool changes the pools state.
+    // Given a list of used routes, this function finds the first route in the list of candidate routes that does not re-use an already used pool.
     const findFirstRouteNotUsingUsedPools = (
       usedRoutes: RouteSOR[],
       candidateRouteQuotes: RouteWithValidQuote[]
@@ -616,6 +549,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     while (splits <= routingConfig.maxSplits) {
       if (splits == 2) {
+        // We track the top 5 best options we find for logging/debugging.
         const bestTwoSplits = new FixedReverseHeap<{
           quote: CurrencyAmount;
           routes: RouteWithValidQuote[];
@@ -632,15 +566,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           const percentA = percents[i]!;
 
           // At some point the amount * percentage is so small that the quoter is unable to get
-          // a quote. In this case there will be no quotes for that percentage.
+          // a quote. In this case there could be no quotes for that percentage.
           if (!percentToSortedQuotes[percentA]) {
             continue;
           }
 
+          // Get the best quote for the current percentage we are considering.
           const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
           const { route: routeA } = routeWithQuoteA;
           const quoteA = by(routeWithQuoteA);
 
+          // Get all the quotes for complimentary percentage to the current percentage.
           const percentB = 100 - percentA;
           const candidateRoutesB = percentToSortedQuotes[percentB]!;
 
@@ -648,6 +584,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
             continue;
           }
 
+          // Find the best route in the complimentary percentage that doesn't re-use a pool already
+          // used in the best route for the current percentage.
           const routeWithQuoteB = findFirstRouteNotUsingUsedPools(
             [routeA],
             candidateRoutesB
@@ -707,6 +645,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       if (splits == 3 && bestSwap.length == 2) {
         const split3Now = Date.now();
         for (let i = percents.length - 1; i >= 0; i--) {
+          // For our current percentage find the best route.
           const percentA = percents[i]!;
           const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
           const { route: routeA } = routeWithQuoteA;
@@ -714,6 +653,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
           const remainingPercent = 100 - percentA;
 
+          // For the complimentary percentage, we now look for the best combination of two routes
+          // that makes up the missing percentage, again ensuring we don't re-use pools.
           for (let j = i - 1; j >= 0; j--) {
             const percentB = percents[j]!;
             const candidateRoutesB = percentToSortedQuotes[percentB]!;
@@ -875,6 +816,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     poolsBySelection: PoolsBySelection;
   }> {
     const {
+      blockNumber,
       topN,
       topNTokenInOut,
       topNSecondHop,
@@ -887,7 +829,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     const beforeSubgraphPools = Date.now();
 
-    const allPoolsRaw = await this.subgraphProvider.getPools();
+    const allPoolsRaw = await this.subgraphProvider.getPools({ blockNumber });
 
     const allPools = _.map(allPoolsRaw, (pool) => {
       return {
@@ -1157,7 +1099,9 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       `Getting the ${tokenAddresses.length} tokens within the pools for consideration`
     );
 
-    const tokenAccessor = await this.tokenProvider.getTokens(tokenAddresses);
+    const tokenAccessor = await this.tokenProvider.getTokens(tokenAddresses, {
+      blockNumber,
+    });
 
     const tokenPairsRaw = _.map<
       SubgraphPool,

@@ -1,5 +1,6 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber } from 'ethers';
+import { ProviderConfig } from './provider';
 
 export type CallSameFunctionOnMultipleContractsParams<
   TFunctionParams,
@@ -9,6 +10,7 @@ export type CallSameFunctionOnMultipleContractsParams<
   contractInterface: Interface;
   functionName: string;
   functionParams?: TFunctionParams;
+  providerConfig?: ProviderConfig;
   additionalConfig?: TAdditionalConfig;
 };
 
@@ -20,6 +22,7 @@ export type CallSameFunctionOnContractWithMultipleParams<
   contractInterface: Interface;
   functionName: string;
   functionParams: TFunctionParams[];
+  providerConfig?: ProviderConfig;
   additionalConfig?: TAdditionalConfig;
 };
 

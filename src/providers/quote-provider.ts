@@ -12,6 +12,7 @@ import { log } from '../util/log';
 import { routeToString } from '../util/routes';
 import { Result } from './multicall-provider';
 import { UniswapMulticallProvider } from './multicall-uniswap-provider';
+import { ProviderConfig } from './provider';
 
 // Quotes can be null (e.g. pool did not have enough liquidity).
 export type AmountQuote = {
@@ -76,13 +77,13 @@ export interface IQuoteProvider {
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: RouteSOR[],
-    blockNumber?: number | Promise<number>
+    providerConfig?: ProviderConfig
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
     routes: RouteSOR[],
-    blockNumber?: number | Promise<number>
+    providerConfig?: ProviderConfig
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
@@ -101,32 +102,33 @@ export class QuoteProvider implements IQuoteProvider {
       gasLimitPerCall: 1_000_000,
       quoteMinSuccessRate: 0.2,
     },
-    protected quoterAddress = QUOTER_V2_ADDRESS
+    protected rollback: boolean = false,
+    protected quoterAddress: string = QUOTER_V2_ADDRESS
   ) {}
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: RouteSOR[],
-    blockNumber?: number | Promise<number>
+    providerConfig?: ProviderConfig
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     return this.getQuotesManyDataV2(
       amountIns,
       routes,
       'quoteExactInput',
-      blockNumber
+      providerConfig
     );
   }
 
   public async getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
     routes: RouteSOR[],
-    blockNumber?: number | Promise<number>
+    providerConfig?: ProviderConfig
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     return this.getQuotesManyDataV2(
       amountOuts,
       routes,
       'quoteExactOutput',
-      blockNumber
+      providerConfig
     );
   }
 
@@ -134,17 +136,16 @@ export class QuoteProvider implements IQuoteProvider {
     amounts: CurrencyAmount[],
     routes: RouteSOR[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
-    blockNumberOverridePromise?: number | Promise<number>
+    _providerConfig?: ProviderConfig
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
 
-    let blockNumberOverride = await blockNumberOverridePromise;
-    log.info(`Original block number: ${blockNumberOverride}`);
-
-    blockNumberOverride = blockNumberOverride
-      ? blockNumberOverride /*  - 1 */
-      : undefined;
+    const providerConfig: ProviderConfig = {
+      ..._providerConfig,
+      blockNumber:
+        _providerConfig?.blockNumber ?? (await this.provider.getBlockNumber()),
+    };
 
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
@@ -182,11 +183,7 @@ export class QuoteProvider implements IQuoteProvider {
         gasLimitOverride
           ? `with a gas limit override of ${gasLimitOverride}`
           : ''
-      }. ${
-        blockNumberOverride
-          ? `Block number override: ${blockNumberOverride}.`
-          : ''
-      }`
+      } and block number: ${await providerConfig.blockNumber}.`
     );
 
     let haveRetriedForSuccessRate = false;
@@ -214,7 +211,7 @@ export class QuoteProvider implements IQuoteProvider {
         log.info(
           `Starting attempt: ${attemptNumber}. 
           Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending. 
-          Gas limit override: ${gasLimitOverride} Block number override: ${blockNumberOverride}.`
+          Gas limit override: ${gasLimitOverride} Block number override: ${await providerConfig.blockNumber}.`
         );
 
         quoteStates = await Promise.all(
@@ -240,9 +237,9 @@ export class QuoteProvider implements IQuoteProvider {
                     contractInterface: IQuoterV2__factory.createInterface(),
                     functionName,
                     functionParams: inputs,
+                    providerConfig,
                     additionalConfig: {
                       gasLimitPerCallOverride: gasLimitOverride,
-                      blockNumberOverride,
                     },
                   });
 
@@ -372,14 +369,15 @@ export class QuoteProvider implements IQuoteProvider {
               if (
                 blockHeaderRetryAttemptNumber &&
                 blockHeaderRetryAttemptNumber < attemptNumber &&
-                !blockHeaderRolledBack
+                !blockHeaderRolledBack &&
+                this.rollback
               ) {
                 log.info(
                   `Attempt ${attemptNumber}. Another block header error. Rolling back block number for next retry`
                 );
-                blockNumberOverride = blockNumberOverride
-                  ? blockNumberOverride - 1
-                  : await this.provider.getBlockNumber();
+                providerConfig.blockNumber = providerConfig.blockNumber
+                  ? (await providerConfig.blockNumber) - 1
+                  : (await this.provider.getBlockNumber()) - 1;
 
                 retryAll = true;
                 blockHeaderRolledBack = true;

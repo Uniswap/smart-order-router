@@ -3,22 +3,15 @@ import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import NodeCache from 'node-cache';
 import { log } from '../util/log';
 import { IPoolProvider, PoolAccessor } from './pool-provider';
+import { ProviderConfig } from './provider';
 
 const POOL_CACHE = new NodeCache({ stdTTL: 900, useClones: false });
 
 export class CachingPoolProvider implements IPoolProvider {
   constructor(protected poolProvider: IPoolProvider) {}
 
-  public getPoolAddress(
-    tokenA: Token,
-    tokenB: Token,
-    feeAmount: FeeAmount
-  ): { poolAddress: string; token0: Token; token1: Token } {
-    return this.poolProvider.getPoolAddress(tokenA, tokenB, feeAmount);
-  }
-
   public async getPools(
-    tokenPairs: [Token, Token, FeeAmount][]
+    tokenPairs: [Token, Token, FeeAmount][], providerConfig: ProviderConfig
   ): Promise<PoolAccessor> {
     const poolAddressSet: Set<string> = new Set<string>();
     const poolsToGetTokenPairs: Array<[Token, Token, FeeAmount]> = [];
@@ -60,7 +53,8 @@ export class CachingPoolProvider implements IPoolProvider {
 
     if (poolsToGetAddresses.length > 0) {
       const poolAccessor = await this.poolProvider.getPools(
-        poolsToGetTokenPairs
+        poolsToGetTokenPairs,
+        providerConfig
       );
       for (const address of poolsToGetAddresses) {
         const pool = poolAccessor.getPoolByAddress(address);
@@ -84,5 +78,13 @@ export class CachingPoolProvider implements IPoolProvider {
         poolAddressToPool[address],
       getAllPools: (): Pool[] => Object.values(poolAddressToPool),
     };
+  }
+  
+  public getPoolAddress(
+    tokenA: Token,
+    tokenB: Token,
+    feeAmount: FeeAmount
+  ): { poolAddress: string; token0: Token; token1: Token } {
+    return this.poolProvider.getPoolAddress(tokenA, tokenB, feeAmount);
   }
 }

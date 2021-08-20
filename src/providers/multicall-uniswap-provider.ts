@@ -14,7 +14,6 @@ import {
 
 export type UniswapMulticallConfig = {
   gasLimitPerCallOverride?: number;
-  blockNumberOverride?: number;
 };
 
 export class UniswapMulticallProvider extends IMulticallProvider<UniswapMulticallConfig> {
@@ -41,8 +40,15 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     blockNumber: BigNumber;
     results: Result<TReturn>[];
   }> {
-    const { addresses, contractInterface, functionName, functionParams } =
-      params;
+    const {
+      addresses,
+      contractInterface,
+      functionName,
+      functionParams,
+      providerConfig,
+    } = params;
+
+    const blockNumberOverride = providerConfig?.blockNumber ?? undefined;
 
     const fragment = contractInterface.getFunction(functionName);
     const callData = contractInterface.encodeFunctionData(
@@ -64,7 +70,9 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     );
 
     const { blockNumber, returnData: aggregateResults } =
-      await this.multicallContract.callStatic.multicall(calls);
+      await this.multicallContract.callStatic.multicall(calls, {
+        blockTag: blockNumberOverride,
+      });
 
     const results: Result<TReturn>[] = [];
 
@@ -120,13 +128,13 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       functionName,
       functionParams,
       additionalConfig,
+      providerConfig,
     } = params;
     const fragment = contractInterface.getFunction(functionName);
 
     const gasLimitPerCall =
       additionalConfig?.gasLimitPerCallOverride ?? this.gasLimitPerCall;
-    const blockNumberOverride =
-      additionalConfig?.blockNumberOverride ?? undefined;
+    const blockNumberOverride = providerConfig?.blockNumber ?? undefined;
 
     const calls = _.map(functionParams, (functionParam) => {
       const callData = contractInterface.encodeFunctionData(

@@ -18,7 +18,9 @@
     "fix:prettier": "prettier \"src/**/*.ts\" --write",
     "fix:lint": "eslint src --ext .ts --fix",
     "version": "standard-version",
-    "prepare-release": "run-s cov:check doc:html version doc:publish"
+    "prepare-release": "run-s cov:check doc:html version doc:publish",
+    "test": "jest test/unit test/cdk",
+    "integ-test": "jest test/integ"
   },
   "engines": {
     "node": ">=10"
