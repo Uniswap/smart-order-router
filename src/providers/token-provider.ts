@@ -16,6 +16,7 @@ export interface ITokenProvider {
 export type TokenAccessor = {
   getTokenByAddress(address: string): Token | undefined;
   getTokenBySymbol(symbol: string): Token | undefined;
+  getAllTokens: () => Token[];
 };
 
 // Token symbol and decimals don't change so can be cached indefinitely.
@@ -51,7 +52,10 @@ export const DAI = new Token(
 );
 
 for (const token of [USDC, USDT, WBTC, DAI, WETH9[1]!]) {
-  TOKEN_CACHE.set<Token>(token.address.toLowerCase(), token);
+  TOKEN_CACHE.set<LocalCacheEntry<Token>>(token.address.toLowerCase(), {
+    blockNumber: 10000000,
+    entry: token,
+  });
 }
 
 export class TokenProvider implements ITokenProvider {
@@ -84,7 +88,7 @@ export class TokenProvider implements ITokenProvider {
         !providerConfig?.blockNumber ||
         tokenCacheEntry.blockNumber > providerConfig?.blockNumber
       ) {
-        addressToToken[address] =
+        addressToToken[address.toLowerCase()] =
           TOKEN_CACHE.get<LocalCacheEntry<Token>>(address)!.entry;
       } else {
         addressesToFetch.push(address);
@@ -92,7 +96,7 @@ export class TokenProvider implements ITokenProvider {
     }
 
     log.info(
-      { addresses },
+      { addressesFound: addresses, addressesToFetch },
       `Found ${
         addresses.length - addressesToFetch.length
       } tokens in local cache. About to fetch ${
@@ -123,7 +127,9 @@ export class TokenProvider implements ITokenProvider {
       ]);
 
       log.info(
-        `Got token symbol and decimals for ${addressesToFetch.length} tokens ${providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''}`
+        `Got token symbol and decimals for ${addressesToFetch.length} tokens ${
+          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
+        }`
       );
 
       const { results: symbols, blockNumber } = symbolsResult;
@@ -155,7 +161,8 @@ export class TokenProvider implements ITokenProvider {
           decimal,
           symbol
         );
-        symbolToToken[symbol.toLowerCase()] = addressToToken[address]!;
+        symbolToToken[symbol.toLowerCase()] =
+          addressToToken[address.toLowerCase()]!;
 
         TOKEN_CACHE.set<LocalCacheEntry<Token>>(address.toLowerCase(), {
           blockNumber: blockNumber.toNumber(),
@@ -170,6 +177,9 @@ export class TokenProvider implements ITokenProvider {
       },
       getTokenBySymbol: (symbol: string): Token | undefined => {
         return symbolToToken[symbol.toLowerCase()];
+      },
+      getAllTokens: (): Token[] => {
+        return Object.values(addressToToken);
       },
     };
   }

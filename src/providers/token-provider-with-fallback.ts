@@ -27,7 +27,7 @@ export class TokenProviderWithFallback implements ITokenProvider {
 
     for (const address of addresses) {
       if (TOKEN_CACHE.has(address)) {
-        addressToToken[address] = TOKEN_CACHE.get<Token>(address)!;
+        addressToToken[address.toLowerCase()] = TOKEN_CACHE.get<Token>(address)!;
         symbolToToken[addressToToken[address]!.symbol!] =
           TOKEN_CACHE.get<Token>(address)!;
       } else {
@@ -53,9 +53,9 @@ export class TokenProviderWithFallback implements ITokenProvider {
         const token = primaryTokenAccessor.getTokenByAddress(address);
 
         if (token) {
-          addressToToken[address] = token;
+          addressToToken[address.toLowerCase()] = token;
           symbolToToken[addressToToken[address]!.symbol!] = token;
-          TOKEN_CACHE.set<Token>(address, addressToToken[address]!);
+          TOKEN_CACHE.set<Token>(address.toLowerCase(), addressToToken[address]!);
         } else {
           addressesToFindInSecondary.push(address);
         }
@@ -79,9 +79,9 @@ export class TokenProviderWithFallback implements ITokenProvider {
       for (const address of addressesToFindInSecondary) {
         const token = secondaryTokenAccessor.getTokenByAddress(address);
         if (token) {
-          addressToToken[address] = token;
+          addressToToken[address.toLowerCase()] = token;
           symbolToToken[addressToToken[address]!.symbol!] = token;
-          TOKEN_CACHE.set<Token>(address, addressToToken[address]!);
+          TOKEN_CACHE.set<Token>(address.toLowerCase(), addressToToken[address]!);
         }
       }
     }
@@ -92,6 +92,9 @@ export class TokenProviderWithFallback implements ITokenProvider {
       },
       getTokenBySymbol: (symbol: string): Token | undefined => {
         return symbolToToken[symbol.toLowerCase()];
+      },
+      getAllTokens: (): Token[] => {
+        return Object.values(addressToToken);
       },
     };
   }

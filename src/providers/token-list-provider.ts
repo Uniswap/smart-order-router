@@ -123,6 +123,10 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
     return {
       getTokenByAddress: (address: string) => this.getTokenByAddress(address),
       getTokenBySymbol: (symbol: string) => this.getTokenBySymbol(symbol),
+      getAllTokens: (): Token[] => {
+        const tokenInfos = Object.values(this.chainSymbolToTokenInfo[this.chainId]);
+        return _.map(tokenInfos, this.buildToken);
+      },
     };
   }
 
