@@ -2,18 +2,9 @@ import { Currency, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { MethodParameters, Route as RouteRaw, Trade } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
+import { RouteWithValidQuote } from './alpha-router';
 
 export class RouteSOR extends RouteRaw<Token, Token> {}
-
-export type RouteAmount = {
-  route: RouteSOR;
-  amount: CurrencyAmount;
-  quote: CurrencyAmount;
-  quoteGasAdjusted: CurrencyAmount;
-  estimatedGasUsed: BigNumber;
-  estimatedGasUsedQuoteToken: CurrencyAmount;
-  estimatedGasUsedUSD: CurrencyAmount;
-};
 
 export type SwapRoute<TTradeType extends TradeType> = {
   quote: CurrencyAmount;
@@ -23,7 +14,7 @@ export type SwapRoute<TTradeType extends TradeType> = {
   estimatedGasUsedUSD: CurrencyAmount;
   gasPriceWei: BigNumber;
   trade: Trade<Currency, Currency, TTradeType>;
-  routeAmounts: RouteAmount[];
+  route: RouteWithValidQuote[];
   blockNumber: BigNumber;
   methodParameters?: MethodParameters;
 };

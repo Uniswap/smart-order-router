@@ -13,24 +13,10 @@ export type GasModel = {
 };
 
 export abstract class IGasModelFactory {
-  public buildGasModel(
+  public abstract buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
     poolProvider: PoolAccessor,
     inTermsOfToken: Token
-  ) {
-    return this._buildGasModel(
-      chainId,
-      gasPriceWei,
-      poolProvider,
-      inTermsOfToken
-    );
-  }
-
-  protected abstract _buildGasModel(
-    chainId: number,
-    gasPriceWei: BigNumber,
-    poolProvider: PoolAccessor,
-    token: Token
   ): GasModel;
 }

@@ -27,7 +27,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     super();
   }
 
-  protected _buildGasModel(
+  public buildGasModel(
     chainId: ChainId,
     gasPriceWei: BigNumber,
     poolAccessor: PoolAccessor,

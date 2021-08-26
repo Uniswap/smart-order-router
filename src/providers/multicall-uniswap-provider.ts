@@ -33,7 +33,7 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
 
   public async callSameFunctionOnMultipleContracts<
     TFunctionParams extends any[] | undefined,
-    TReturn
+    TReturn = any
   >(
     params: CallSameFunctionOnMultipleContractsParams<TFunctionParams>
   ): Promise<{

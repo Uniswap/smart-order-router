@@ -15,14 +15,14 @@ import {
   IQuoteProvider,
   RouteWithQuotes,
 } from '../../providers/quote-provider';
-import { DAI, ITokenProvider } from '../../providers/token-provider';
+import { DAI, ITokenProvider, USDC } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
+import { RouteWithValidQuote } from '../alpha-router';
 import {
   IRouter,
-  RouteAmount,
   RouteSOR,
   SwapConfig,
   SwapRoute,
@@ -105,7 +105,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     return {
       quote: routeQuote.quote,
       quoteGasAdjusted: routeQuote.quote,
-      routeAmounts: [routeQuote],
+      route: [routeQuote],
       estimatedGasUsed: BigNumber.from(0),
       estimatedGasUsedQuoteToken: CurrencyAmount.fromFractionalAmount(
         tokenOut,
@@ -159,7 +159,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     return {
       quote: routeQuote.quote,
       quoteGasAdjusted: routeQuote.quote,
-      routeAmounts: [routeQuote],
+      route: [routeQuote],
       estimatedGasUsed: BigNumber.from(0),
       estimatedGasUsedQuoteToken: CurrencyAmount.fromFractionalAmount(
         tokenIn,
@@ -187,7 +187,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenOut: Token,
     routes: RouteSOR[],
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteAmount | null> {
+  ): Promise<RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
       await this.quoteProvider.getQuotesManyExactIn([amountIn], routes, {
         blockNumber: routingConfig?.blockNumber,
@@ -215,7 +215,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenIn: Token,
     routes: RouteSOR[],
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteAmount | null> {
+  ): Promise<RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
       await this.quoteProvider.getQuotesManyExactOut([amountOut], routes, {
         blockNumber: routingConfig?.blockNumber,
@@ -235,7 +235,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     quotesRaw: RouteWithQuotes[],
     quoteToken: Token,
     routeType: TradeType
-  ): Promise<RouteAmount | null> {
+  ): Promise<RouteWithValidQuote | null> {
     log.debug(
       `Got ${
         _.filter(quotesRaw, ([_, quotes]) => !!quotes[0]).length
@@ -273,23 +273,18 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     });
 
     const routeQuotes = _.map(routeQuotesRaw, ({ route, quote, amount }) => {
-      return {
+      return new RouteWithValidQuote({
         route,
-        quote: CurrencyAmount.fromRawAmount(quoteToken, quote.toString()),
+        rawQuote: quote,
         amount,
-        percentage: 100,
-        quoteGasAdjusted: CurrencyAmount.fromRawAmount(
-          quoteToken,
-          quote.toString()
-        ),
-        estimatedGasUsed: BigNumber.from(0),
-        estimatedGasUsedQuoteToken: CurrencyAmount.fromFractionalAmount(
-          quoteToken,
-          0,
-          1
-        ),
-        estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI!, 0, 1),
-      };
+        percent: 100,
+        gasModel: { estimateGasCost: () => ({ gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0), gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0), gasEstimate: BigNumber.from(0) })},
+        sqrtPriceX96AfterList: [],
+        initializedTicksCrossedList: [],
+        quoterGasEstimate: BigNumber.from(0),
+        tradeType: routeType,
+        quoteToken
+      });
     });
 
     for (let rq of routeQuotes) {
@@ -440,7 +435,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
     tradeType: TTradeType,
-    routeAmount: RouteAmount
+    routeAmount: RouteWithValidQuote
   ): Trade<Currency, Currency, TTradeType> {
     const { route, amount, quote } = routeAmount;
 
@@ -515,7 +510,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
     tradeType: TradeType,
-    routeAmount: RouteAmount,
+    routeAmount: RouteWithValidQuote,
     swapConfig: SwapConfig
   ): MethodParameters {
     const { route, amount, quote } = routeAmount;

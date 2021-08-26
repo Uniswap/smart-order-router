@@ -2,7 +2,8 @@ import { Percent } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { CurrencyAmount } from '.';
-import { RouteAmount, RouteSOR } from '../routers/router';
+import { RouteWithValidQuote } from '../routers/alpha-router';
+import { RouteSOR } from '../routers/router';
 
 export const routeToString = (route: RouteSOR): string => {
   const routeStr = [];
@@ -22,10 +23,10 @@ export const routeToString = (route: RouteSOR): string => {
   return routeStr.join('');
 };
 
-export const routeAmountsToString = (routeAmounts: RouteAmount[]): string => {
+export const routeAmountsToString = (routeAmounts: RouteWithValidQuote[]): string => {
   const total = _.reduce(
     routeAmounts,
-    (total: CurrencyAmount, cur: RouteAmount) => {
+    (total: CurrencyAmount, cur: RouteWithValidQuote) => {
       return total.add(cur.amount);
     },
     CurrencyAmount.fromRawAmount(routeAmounts[0]!.amount.currency, 0)
@@ -40,7 +41,7 @@ export const routeAmountsToString = (routeAmounts: RouteAmount[]): string => {
   return _.join(routeStrings, ', ');
 };
 
-export const routeAmountToString = (routeAmount: RouteAmount): string => {
+export const routeAmountToString = (routeAmount: RouteWithValidQuote): string => {
   const { route, amount } = routeAmount;
   return `${amount.toExact()} = ${routeToString(route)}`;
 };

@@ -52,7 +52,7 @@ export class SubgraphProvider implements ISubgraphProvider {
   private abortController: AbortController;
   private client: GraphQLClient;
 
-  constructor(private retries = 2, private timeout = 5000) {
+  constructor(private retries = 2, private timeout = 7000) {
     this.abortController = new AbortController();
     this.client = new GraphQLClient(SUBGRAPH_URL, {
       signal: this.abortController.signal,
