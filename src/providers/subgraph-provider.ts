@@ -1,9 +1,9 @@
+import AbortController from 'abort-controller';
 import { default as retry } from 'async-retry';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 import { log } from '../util/log';
 import { ProviderConfig } from './provider';
-
 export interface SubgraphPool {
   id: string;
   feeTier: string;
@@ -110,7 +110,7 @@ export class SubgraphProvider implements ISubgraphProvider {
       async (bail) => {
         setTimeout(() => {
           if (!done) {
-            log.info('Failed to get pools from subgraph due to timeout.');
+            this.abortController.abort();
             bail(
               new Error('Failed to get pools from subgraph due to timeout.')
             );
