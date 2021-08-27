@@ -1,4 +1,4 @@
-import AbortController from 'abort-controller';
+import AbortControllerPoly from 'abort-controller';
 import { default as retry } from 'async-retry';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
@@ -53,7 +53,7 @@ export class SubgraphProvider implements ISubgraphProvider {
   private client: GraphQLClient;
 
   constructor(private retries = 2, private timeout = 7000) {
-    this.abortController = new AbortController();
+    this.abortController = new AbortControllerPoly();
     this.client = new GraphQLClient(SUBGRAPH_URL, {
       signal: this.abortController.signal,
     });
