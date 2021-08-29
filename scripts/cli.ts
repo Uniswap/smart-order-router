@@ -5,7 +5,7 @@ import { Currency, Ether, Percent } from '@uniswap/sdk-core';
 import { default as bunyan, default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 import dotenv from 'dotenv';
-import { ethers, providers } from 'ethers';
+import { ethers } from 'ethers';
 import {
   AlphaRouter,
   CachingGasStationProvider,
@@ -13,7 +13,7 @@ import {
   CachingSubgraphProvider,
   ChainId,
   CHAIN_IDS_LIST,
-  ETHGasStationInfoProvider,
+  EIP1559GasPriceProvider,
   HeuristicGasModelFactory,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
@@ -168,9 +168,9 @@ export class UniswapSORCLI extends Command {
     const chainName = ID_TO_NETWORK_NAME(chainIdNumb);
 
     const provider = new ethers.providers.JsonRpcProvider(
-      process.env.JSON_RPC_PROVIDER,
+      process.env.JSON_RPC_PROVIDER!,
       chainName
-    ) as providers.BaseProvider;
+    );
 
     let tokenListProvider: TokenListProvider;
     if (tokenListURI) {
@@ -243,9 +243,7 @@ export class UniswapSORCLI extends Command {
           }
         ),
         gasPriceProvider: new CachingGasStationProvider(
-          new ETHGasStationInfoProvider(
-            'https://data-api.defipulse.com/api/v1/egs/api/ethgasAPI.json'
-          )
+          new EIP1559GasPriceProvider(provider)
         ),
         gasModelFactory: new HeuristicGasModelFactory(),
         tokenProvider: tokenProvider,

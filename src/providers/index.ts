@@ -1,3 +1,4 @@
+export * from './eip-1559-gas-price-provider';
 export * from './caching-gas-provider';
 export * from './caching-pool-provider';
 export * from './caching-subgraph-provider';
