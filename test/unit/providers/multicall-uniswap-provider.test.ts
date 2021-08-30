@@ -1,10 +1,9 @@
-import { providers } from 'ethers';
-import createMockInstance from 'jest-create-mock-instance';
-import { mocked } from 'ts-jest/utils';
-import { UniswapMulticallProvider } from '../../../src/providers/multicall-uniswap-provider';
-import { IERC20Metadata__factory } from '../../../src/types/v3/factories/IERC20Metadata__factory';
-import { UniswapInterfaceMulticall__factory } from '../../../src/types/v3/factories/UniswapInterfaceMulticall__factory';
-import { UniswapInterfaceMulticall } from '../../../src/types/v3/UniswapInterfaceMulticall';
+// import { providers } from 'ethers';
+// import { mocked } from 'ts-jest/utils';
+// import { UniswapMulticallProvider } from '../../../src/providers/multicall-uniswap-provider';
+// import { IERC20Metadata__factory } from '../../../src/types/v3/factories/IERC20Metadata__factory';
+// import { UniswapInterfaceMulticall__factory } from '../../../src/types/v3/factories/UniswapInterfaceMulticall__factory';
+// import { UniswapInterfaceMulticall } from '../../../src/types/v3/UniswapInterfaceMulticall';
 
 /* jest.mock('../../src/types/v3/UniswapInterfaceMulticall', () => {
   return {
@@ -30,6 +29,11 @@ import { UniswapInterfaceMulticall } from '../../../src/types/v3/UniswapInterfac
 }); */
 
 describe.skip('uniswap multicall provider', () => {
+  test('placeholder', async () => {
+    return;
+  });
+
+  /*   
   let uniswapMulticallProvider: UniswapMulticallProvider;
   const erc20Interface = IERC20Metadata__factory.createInterface();
 
@@ -38,14 +42,14 @@ describe.skip('uniswap multicall provider', () => {
   let multicallMock: jest.Mocked<UniswapInterfaceMulticall>;
 
   beforeAll(() => {
-    /*multicallMock = createMockInstance(UniswapInterfaceMulticall);
+    multicallMock = createMockInstance(UniswapInterfaceMulticall);
 
     mocked(multicallMock.callStatic.multicall).mockResolvedValue({
       blockNumber: BigNumber.from(10000),
       returnData: [
         { success: true, gasUsed: BigNumber.from(100), returnData: '0x0' },
       ],
-    } as any); */
+    } as any);
 
     mocked(UniswapInterfaceMulticall__factory.connect).mockReturnValue(
       UniswapInterfaceMulticall as any
@@ -55,7 +59,7 @@ describe.skip('uniswap multicall provider', () => {
     uniswapMulticallProvider = new UniswapMulticallProvider(
       createMockInstance(providers.BaseProvider)
     );
-  });
+  }); 
 
   describe('callSameFunctionOnMultipleContracts', () => {
     test('succeeds', async () => {
@@ -77,4 +81,5 @@ describe.skip('uniswap multicall provider', () => {
       mockProvider;
     });
   });
+  */
 });
