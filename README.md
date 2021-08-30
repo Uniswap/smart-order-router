@@ -4,7 +4,14 @@ This repository contains routing logic for the Uniswap V3 protocol.
 
 It searches for the most efficient way to swap token A for token B, considering splitting swaps across multiple routes and gas costs.
 
-## CLI
+## Testing
+### Unit Tests
+
+```
+npm run test
+```
+
+### CLI
 
 The package can be run as a CLI for testing purposes.
 

@@ -18,12 +18,15 @@ export type FeeHistoryResponse = {
 };
 
 // We get the Xth percentile of priority fees for transactions successfully included in previous blocks.
-const PRIORITY_FEE_PERCENTILE = 50;
+const DEFAULT_PRIORITY_FEE_PERCENTILE = 50;
 // Infura docs say only past 4 blocks guaranteed to be available: https://infura.io/docs/ethereum#operation/eth_feeHistory
 const BLOCKS_TO_LOOK_BACK = 4;
 
 export class EIP1559GasPriceProvider extends IGasPriceProvider {
-  constructor(protected provider: providers.JsonRpcProvider) {
+  constructor(
+    protected provider: providers.JsonRpcProvider,
+    private priorityFeePercentile: number = DEFAULT_PRIORITY_FEE_PERCENTILE
+  ) {
     super();
   }
 
@@ -31,7 +34,7 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
     const feeHistoryRaw = (await this.provider.send('eth_feeHistory', [
       BLOCKS_TO_LOOK_BACK.toString(),
       'latest',
-      [PRIORITY_FEE_PERCENTILE],
+      [this.priorityFeePercentile],
     ])) as RawFeeHistoryResponse;
 
     const feeHistory: FeeHistoryResponse = {
@@ -56,6 +59,11 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
       {
         feeHistoryRaw,
         feeHistory,
+        feeHistoryReadable: {
+          baseFeePerGas: _.map(feeHistory.baseFeePerGas, (f) => f.toString()),
+          oldestBlock: feeHistory.oldestBlock.toString(),
+          reward: _.map(feeHistory.reward, (r) => r.toString()),
+        },
         nextBlockBaseFeePerGas,
         averagePriorityFeePerGas,
       },

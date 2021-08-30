@@ -150,11 +150,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     swapConfig?: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TTradeType> | null> {
-    const blockNumber =
-      routingConfig.blockNumber ?? this.provider.getBlockNumber();
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
+    // Get a block number to specify in all our calls. Ensures data we fetch from chain is
+    // from the same block.
+    const blockNumber =
+      routingConfig.blockNumber ?? this.provider.getBlockNumber();
+
+    // Fetch all the pools that we will consider routing via. There are thousands
+    // of pools, so we filter them to a set of candidate pools that we expect will
+    // result in good prices.
     const { poolAccessor, candidatePools } = await getCandidatePools({
       tokenIn,
       tokenOut,
@@ -167,6 +173,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     });
     const pools = poolAccessor.getAllPools();
 
+    // Get an estimate of the gas price to use when estimating gas cost of different routes.
     const beforeGas = Date.now();
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
 
@@ -185,6 +192,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       quoteToken
     );
 
+    // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
     const routes = computeAllRoutes(tokenIn, tokenOut, pools, maxSwapsPerPath);
 
@@ -192,11 +200,15 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       return null;
     }
 
+    // Generate our distribution of amounts, i.e. fractions of the input amount.
+    // We will get quotes for fractions of the input amount for different routes, then
+    // combine to generate split routes.
     const [percents, amounts] = this.getAmountDistribution(
       amount,
       routingConfig
     );
 
+    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
     const quoteFn =
       swapType == TradeType.EXACT_INPUT
         ? this.quoteProvider.getQuotesManyExactIn.bind(this.quoteProvider)
@@ -223,6 +235,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       MetricLoggerUnit.Count
     );
 
+    // Given all the quotes for all the amounts for all the routes, find the best combination.
     const beforeBestSwap = Date.now();
     const swapRouteRaw = getBestSwapRoute(
       amount,
@@ -250,6 +263,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
+    // Build Trade object that represents the optimal swap.
     const trade = this.buildTrade<TTradeType>(
       currencyIn,
       currencyOut,
@@ -259,6 +273,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
     let methodParameters: MethodParameters | undefined;
 
+    // If user provided recipient, deadline etc. we also generate the calldata required to execute
+    // the swap and return it too.
     if (swapConfig) {
       methodParameters = this.buildMethodParameters(trade, swapConfig);
     }
