@@ -5,6 +5,7 @@ import {
   Route,
   SwapRouter,
   Trade,
+  SqrtPriceMath
 } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
@@ -18,7 +19,7 @@ import {
 } from '../../providers/subgraph-provider';
 import { ITokenListProvider } from '../../providers/token-list-provider';
 import { ITokenProvider } from '../../providers/token-provider';
-import { CurrencyAmount } from '../../util/amounts';
+import { CurrencyAmount, parseAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
@@ -31,6 +32,8 @@ import {
   getCandidatePools,
 } from './functions/get-candidate-pools';
 import { IGasModelFactory } from './gas-models/gas-model';
+import bn from 'bignumber.js'
+import JSBI from 'jsbi'
 
 export type AlphaRouterParams = {
   chainId: ChainId;
@@ -106,6 +109,77 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     this.subgraphProvider = subgraphProvider;
     this.gasPriceProvider = gasPriceProvider;
     this.gasModelFactory = gasModelFactory;
+  }
+
+  public async routeToAmountsRatio(
+    currencyIn: Currency,
+    currencyOut: Currency,
+    currencyInBalance: CurrencyAmount,
+    currencyOutBalance: CurrencyAmount,
+    targetPool: string,
+    sqrtPriceX96: JSBI,
+    sqrtPriceX96Upper: JSBI,
+    sqrtPriceX96Lower: JSBI,
+    swapConfig: SwapConfig,
+    routingConfig = DEFAULT_CONFIG
+  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
+      const tokenIn = currencyIn.wrapped
+      const tokenOut = currencyOut.wrapped
+
+      const token0Proportion = SqrtPriceMath.getAmount0Delta(
+        sqrtPriceX96,
+        sqrtPriceX96Upper,
+        JSBI.BigInt('100000000'),
+        true
+      )
+      const token1Proportion = SqrtPriceMath.getAmount1Delta(
+        sqrtPriceX96,
+        sqrtPriceX96Lower,
+        JSBI.BigInt('100000000'),
+        true
+      )
+      const zeroForOne = tokenIn.address.toLowerCase() < tokenOut.address.toLowerCase()
+
+      const optimalRatio = zeroForOne ? new bn(token0Proportion.toString()).dividedBy(token1Proportion.toString()) : new bn(token1Proportion.toString()).dividedBy(token0Proportion.toString())
+      let decimalPrice = new bn(sqrtPriceX96.toString()).div(new bn(2).pow(new bn(96))).pow(2)
+      decimalPrice = zeroForOne ? decimalPrice : new bn(1).dividedBy(decimalPrice)
+      console.log('decimalPrice', decimalPrice.toString())
+      console.log('optimalRatio', optimalRatio.toString())
+      // currency amounts must include decimals to accurately determine amountIn for swap
+      const currencyInBalanceRaw = new bn(currencyInBalance.toFixed()).times(new bn(10).pow(new bn(tokenIn.decimals)))
+      const currencyOutBalanceRaw = new bn(currencyOutBalance.toFixed()).times(new bn(10).pow(new bn(tokenOut.decimals)))
+      const amountToSwap = currencyInBalanceRaw.minus(optimalRatio.times(currencyOutBalanceRaw)).dividedBy(optimalRatio.times(decimalPrice).plus(1))
+      console.log('amountToSwap', amountToSwap.toString())
+
+      // const optimalRatio = zeroForOne
+      //   ? new Fraction(token0Proportion, token1Proportion)
+      //   : new Fraction(token1Proportion, token0Proportion)
+      //
+      // const sqrtPrice = new Fraction(sqrtPriceX96, JSBI.exponentiate(JSBI.BigInt(2), JSBI.BigInt(96)))
+      // let decimalPrice = sqrtPrice.multiply(sqrtPrice)
+      // if (!zeroForOne) decimalPrice = decimalPrice.invert()
+      //
+      // console.log('decimalPrice', decimalPrice.toFixed(18))
+      // console.log('optimalRatio', optimalRatio.toFixed(18))
+      //
+      // const tokenInBalanceRaw = JSBI.multiply(JSBI.BigInt(currencyInBalance.toExact()), currencyInBalance.decimalScale)
+      // const tokenOutBalanceRaw = JSBI.multiply(JSBI.BigInt(currencyOutBalance.toExact()), currencyOutBalance.decimalScale)
+      //
+      // // formula: amountToSwap = (tokenInBalance - optimalRatio(tokenOutBalance)) / (optimalBalance(price) + 1)
+      // const amountToSwap = new Fraction(
+      //   new Fraction(JSBI.BigInt(tokenInBalanceRaw)).subtract(optimalRatio.multiply(tokenOutBalanceRaw)).quotient,
+      //   optimalRatio.multiply(decimalPrice).add(1).quotient
+      // )
+      // console.log('amountToSwap', amountToSwap.toFixed(18))
+
+      console.log(targetPool)
+      return this.routeExactIn(
+        currencyIn,
+        currencyOut,
+        parseAmount('100000000000000000000', currencyIn),
+        swapConfig,
+        routingConfig
+      )
   }
 
   public async routeExactIn(
