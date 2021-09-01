@@ -32,14 +32,14 @@ import {
   TokenProvider,
   TokenProviderWithFallback,
   UniswapMulticallProvider,
-} from '../src';
+} from '../../src';
 
 dotenv.config();
 
 ethers.utils.Logger.globalLogger();
 ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.DEBUG);
 
-export class UniswapSORCLI extends Command {
+export class Quote extends Command {
   static description = 'Uniswap Smart Order Router CLI';
 
   static flags = {
@@ -106,7 +106,7 @@ export class UniswapSORCLI extends Command {
   };
 
   async run() {
-    const { flags } = this.parse(UniswapSORCLI);
+    const { flags } = this.parse(Quote);
     const {
       tokenIn: tokenInStr,
       tokenOut: tokenOutStr,
@@ -253,6 +253,7 @@ export class UniswapSORCLI extends Command {
     let swapRoutes: SwapRoute<any> | null;
     if (exactIn) {
       const amountIn = parseAmount(amountStr, tokenIn);
+      log.info('amountIn', amountIn)
       //const amountIn = CurrencyAmount.fromRawAmount(tokenIn, amountStr);
       swapRoutes = await router.routeExactIn(
         tokenIn,

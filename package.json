@@ -96,5 +96,8 @@
   ],
   "prettier": {
     "singleQuote": true
+  },
+  "oclif": {
+    "commands": "./cli/commands"
   }
 }
