@@ -32,7 +32,6 @@ import {
   getCandidatePools,
 } from './functions/get-candidate-pools';
 import { IGasModelFactory } from './gas-models/gas-model';
-import bn from 'bignumber.js'
 import JSBI from 'jsbi'
 
 export type AlphaRouterParams = {
@@ -140,43 +139,38 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       )
       const zeroForOne = tokenIn.address.toLowerCase() < tokenOut.address.toLowerCase()
 
-      const optimalRatio = zeroForOne ? new bn(token0Proportion.toString()).dividedBy(token1Proportion.toString()) : new bn(token1Proportion.toString()).dividedBy(token0Proportion.toString())
-      let decimalPrice = new bn(sqrtPriceX96.toString()).div(new bn(2).pow(new bn(96))).pow(2)
-      decimalPrice = zeroForOne ? decimalPrice : new bn(1).dividedBy(decimalPrice)
-      console.log('decimalPrice', decimalPrice.toString())
-      console.log('optimalRatio', optimalRatio.toString())
-      // currency amounts must include decimals to accurately determine amountIn for swap
-      const currencyInBalanceRaw = new bn(currencyInBalance.toFixed()).times(new bn(10).pow(new bn(tokenIn.decimals)))
-      const currencyOutBalanceRaw = new bn(currencyOutBalance.toFixed()).times(new bn(10).pow(new bn(tokenOut.decimals)))
-      const amountToSwap = currencyInBalanceRaw.minus(optimalRatio.times(currencyOutBalanceRaw)).dividedBy(optimalRatio.times(decimalPrice).plus(1))
-      console.log('amountToSwap', amountToSwap.toString())
+      const optimalRatio = zeroForOne
+        ? new Fraction(token0Proportion, token1Proportion)
+        : new Fraction(token1Proportion, token0Proportion)
 
-      // const optimalRatio = zeroForOne
-      //   ? new Fraction(token0Proportion, token1Proportion)
-      //   : new Fraction(token1Proportion, token0Proportion)
-      //
-      // const sqrtPrice = new Fraction(sqrtPriceX96, JSBI.exponentiate(JSBI.BigInt(2), JSBI.BigInt(96)))
-      // let decimalPrice = sqrtPrice.multiply(sqrtPrice)
-      // if (!zeroForOne) decimalPrice = decimalPrice.invert()
-      //
-      // console.log('decimalPrice', decimalPrice.toFixed(18))
-      // console.log('optimalRatio', optimalRatio.toFixed(18))
-      //
-      // const tokenInBalanceRaw = JSBI.multiply(JSBI.BigInt(currencyInBalance.toExact()), currencyInBalance.decimalScale)
-      // const tokenOutBalanceRaw = JSBI.multiply(JSBI.BigInt(currencyOutBalance.toExact()), currencyOutBalance.decimalScale)
-      //
-      // // formula: amountToSwap = (tokenInBalance - optimalRatio(tokenOutBalance)) / (optimalBalance(price) + 1)
-      // const amountToSwap = new Fraction(
-      //   new Fraction(JSBI.BigInt(tokenInBalanceRaw)).subtract(optimalRatio.multiply(tokenOutBalanceRaw)).quotient,
-      //   optimalRatio.multiply(decimalPrice).add(1).quotient
-      // )
-      // console.log('amountToSwap', amountToSwap.toFixed(18))
+      const sqrtPrice = new Fraction(sqrtPriceX96, JSBI.exponentiate(JSBI.BigInt(2), JSBI.BigInt(96)))
+      let price = sqrtPrice.multiply(sqrtPrice)
+      if (!zeroForOne) price = price.invert()
+
+      const tokenInBalanceRaw = JSBI.multiply(
+        JSBI.BigInt(currencyInBalance.toExact()),
+        currencyInBalance.decimalScale
+      )
+      const tokenOutBalanceRaw = JSBI.multiply(
+        JSBI.BigInt(currencyOutBalance.toExact()),
+        currencyOutBalance.decimalScale
+      )
+
+      // formula: amountToSwap = (tokenInBalance - (optimalRatio * tokenOutBalance)) / ((optimalRatio * price) + 1))
+      const amountToSwapRaw = new Fraction(JSBI.BigInt(tokenInBalanceRaw)).subtract(optimalRatio.multiply(tokenOutBalanceRaw))
+          .divide(optimalRatio.multiply(price).add(1))
+
+      const amountToSwap = parseAmount(
+        // TODO: I'm losing precision here. Can I divide with JSBI and keep the decimal places?
+        JSBI.divide(JSBI.BigInt(amountToSwapRaw.toFixed(0)), currencyInBalance.decimalScale).toString(),
+        currencyIn
+      )
 
       console.log(targetPool)
       return this.routeExactIn(
         currencyIn,
         currencyOut,
-        parseAmount('100000000000000000000', currencyIn),
+        amountToSwap,
         swapConfig,
         routingConfig
       )
