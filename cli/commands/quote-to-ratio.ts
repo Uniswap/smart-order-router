@@ -38,7 +38,7 @@ dotenv.config();
 ethers.utils.Logger.globalLogger();
 ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.DEBUG);
 
-export class Quote extends Command {
+export class QuoteToRatio extends Command {
   static description = 'Uniswap Smart Order Router CLI';
 
   static flags = {
@@ -103,7 +103,7 @@ export class Quote extends Command {
   };
 
   async run() {
-    const { flags } = this.parse(Quote);
+    const { flags } = this.parse(QuoteToRatio);
     const {
       tokenIn: tokenInStr,
       tokenOut: tokenOutStr,
@@ -240,8 +240,6 @@ export class Quote extends Command {
 
     let swapRoutes: SwapRoute<any> | null;
     swapRoutes = await router.routeToAmountsRatio(
-      tokenIn,
-      tokenOut,
       tokenInBalance,
 			tokenOutBalance,
 			targetPool,

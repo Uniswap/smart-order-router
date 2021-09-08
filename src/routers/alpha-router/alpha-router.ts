@@ -19,7 +19,7 @@ import {
 } from '../../providers/subgraph-provider';
 import { ITokenListProvider } from '../../providers/token-list-provider';
 import { ITokenProvider } from '../../providers/token-provider';
-import { CurrencyAmount, parseAmount } from '../../util/amounts';
+import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
@@ -111,8 +111,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   }
 
   public async routeToAmountsRatio(
-    currencyIn: Currency,
-    currencyOut: Currency,
     currencyInBalance: CurrencyAmount,
     currencyOutBalance: CurrencyAmount,
     targetPool: string,
@@ -122,8 +120,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-      const tokenIn = currencyIn.wrapped
-      const tokenOut = currencyOut.wrapped
+      const currencyIn = currencyInBalance.currency
+      const currencyOut = currencyOutBalance.currency
 
       const token0Proportion = SqrtPriceMath.getAmount0Delta(
         sqrtPriceX96,
@@ -137,7 +135,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         JSBI.BigInt('100000000'),
         true
       )
-      const zeroForOne = tokenIn.address.toLowerCase() < tokenOut.address.toLowerCase()
+      const zeroForOne = currencyIn.wrapped.address.toLowerCase() < currencyOut.wrapped.address.toLowerCase()
 
       const optimalRatio = zeroForOne
         ? new Fraction(token0Proportion, token1Proportion)
@@ -147,24 +145,11 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       let price = sqrtPrice.multiply(sqrtPrice)
       if (!zeroForOne) price = price.invert()
 
-      const tokenInBalanceRaw = JSBI.multiply(
-        JSBI.BigInt(currencyInBalance.toExact()),
-        currencyInBalance.decimalScale
-      )
-      const tokenOutBalanceRaw = JSBI.multiply(
-        JSBI.BigInt(currencyOutBalance.toExact()),
-        currencyOutBalance.decimalScale
-      )
-
       // formula: amountToSwap = (tokenInBalance - (optimalRatio * tokenOutBalance)) / ((optimalRatio * price) + 1))
-      const amountToSwapRaw = new Fraction(JSBI.BigInt(tokenInBalanceRaw)).subtract(optimalRatio.multiply(tokenOutBalanceRaw))
+      const amountToSwapRaw = new Fraction(currencyInBalance.quotient)
+          .subtract(optimalRatio.multiply(currencyOutBalance.quotient))
           .divide(optimalRatio.multiply(price).add(1))
-
-      const amountToSwap = parseAmount(
-        // TODO: I'm losing precision here. Can I divide with JSBI and keep the decimal places?
-        JSBI.divide(JSBI.BigInt(amountToSwapRaw.toFixed(0)), currencyInBalance.decimalScale).toString(),
-        currencyIn
-      )
+      const amountToSwap = CurrencyAmount.fromRawAmount(currencyIn, JSBI.BigInt(amountToSwapRaw.toFixed(0)));
 
       console.log(targetPool)
       return this.routeExactIn(
