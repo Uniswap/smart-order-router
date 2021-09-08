@@ -143,9 +143,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         ? new Fraction(token0Proportion, token1Proportion)
         : new Fraction(token1Proportion, token0Proportion)
 
-      const sqrtPrice = new Fraction(sqrtPriceX96, JSBI.exponentiate(JSBI.BigInt(2), JSBI.BigInt(96)))
-      let price = sqrtPrice.multiply(sqrtPrice)
-      if (!zeroForOne) price = price.invert()
+      const price = zeroForOne ? position.pool.token0Price : position.pool.token1Price
 
       // formula: amountToSwap = (tokenInBalance - (optimalRatio * tokenOutBalance)) / ((optimalRatio * price) + 1))
       const amountToSwapRaw = new Fraction(currencyInBalance.quotient)
