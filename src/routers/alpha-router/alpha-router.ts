@@ -2,8 +2,10 @@ import { Currency, Fraction, TradeType } from '@uniswap/sdk-core';
 import {
   MethodParameters,
   Pool,
+  Position,
   Route,
   SwapRouter,
+  TickMath,
   Trade,
   SqrtPriceMath
 } from '@uniswap/v3-sdk';
@@ -113,15 +115,15 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   public async routeToAmountsRatio(
     currencyInBalance: CurrencyAmount,
     currencyOutBalance: CurrencyAmount,
-    pool: Pool,
-    sqrtPriceX96Upper: JSBI,
-    sqrtPriceX96Lower: JSBI,
+    position: Position,
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
       const currencyIn = currencyInBalance.currency
       const currencyOut = currencyOutBalance.currency
-      const sqrtPriceX96 = pool.sqrtRatioX96
+      const sqrtPriceX96 = position.pool.sqrtRatioX96
+      const sqrtPriceX96Lower = TickMath.getSqrtRatioAtTick(position.tickLower)
+      const sqrtPriceX96Upper = TickMath.getSqrtRatioAtTick(position.tickUpper)
 
       const token0Proportion = SqrtPriceMath.getAmount0Delta(
         sqrtPriceX96,

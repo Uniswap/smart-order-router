@@ -2,11 +2,11 @@
 import { Command, flags } from '@oclif/command';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Currency, Ether, Percent } from '@uniswap/sdk-core';
+import { Position } from '@uniswap/v3-sdk';
 import { default as bunyan, default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
-import JSBI from 'jsbi';
 import {
   AlphaRouter,
   CachingGasStationProvider,
@@ -50,8 +50,8 @@ export class QuoteToRatio extends Command {
     recipient: flags.string({ required: true }),
     tokenInBalance: flags.string({ required: true }),
     tokenOutBalance: flags.string({ required: true }),
-    sqrtPriceX96Lower: flags.string({ required: true }),
-    sqrtPriceX96Upper: flags.string({ required: true }),
+    tickLower: flags.integer({ required: true }),
+    tickUpper: flags.integer({ required: true }),
     topN: flags.integer({
       required: false,
       default: 3,
@@ -110,8 +110,8 @@ export class QuoteToRatio extends Command {
       tokenInBalance: tokenInBalanceStr,
       tokenOutBalance: tokenOutBalanceStr,
       feeAmount,
-      sqrtPriceX96Lower,
-      sqrtPriceX96Upper,
+      tickLower,
+      tickUpper,
       recipient,
       tokenListURI,
       debug,
@@ -223,6 +223,13 @@ export class QuoteToRatio extends Command {
       return;
     }
 
+    const position = new Position({
+      pool,
+      tickUpper,
+      tickLower,
+      liquidity: 1
+    })
+
     let router = new AlphaRouter({
       provider,
       chainId,
@@ -256,9 +263,7 @@ export class QuoteToRatio extends Command {
     swapRoutes = await router.routeToAmountsRatio(
       tokenInBalance,
       tokenOutBalance,
-      pool,
-      JSBI.BigInt(sqrtPriceX96Upper),
-      JSBI.BigInt(sqrtPriceX96Lower),
+      position,
       {
         deadline: 100,
         recipient,
