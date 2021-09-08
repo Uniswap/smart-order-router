@@ -253,7 +253,7 @@ export class Quote extends Command {
     let swapRoutes: SwapRoute<any> | null;
     if (exactIn) {
       const amountIn = parseAmount(amountStr, tokenIn);
-      log.info('amountIn', amountIn)
+      log.info('amountIn', amountIn);
       //const amountIn = CurrencyAmount.fromRawAmount(tokenIn, amountStr);
       swapRoutes = await router.routeExactIn(
         tokenIn,

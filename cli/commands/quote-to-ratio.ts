@@ -6,7 +6,7 @@ import { default as bunyan, default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
-import JSBI from 'jsbi'
+import JSBI from 'jsbi';
 import {
   AlphaRouter,
   CachingGasStationProvider,
@@ -19,10 +19,10 @@ import {
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
   MetricLogger,
+  parseAmount,
   PoolProvider,
   QuoteProvider,
   routeAmountsToString,
-	parseAmount,
   setGlobalLogger,
   setGlobalMetric,
   SubgraphProvider,
@@ -46,13 +46,12 @@ export class QuoteToRatio extends Command {
     help: flags.help({ char: 'h' }),
     tokenIn: flags.string({ char: 'i', required: true }),
     tokenOut: flags.string({ char: 'o', required: true }),
+    feeAmount: flags.integer({ char: 'f', required: true }),
     recipient: flags.string({ required: true }),
     tokenInBalance: flags.string({ required: true }),
     tokenOutBalance: flags.string({ required: true }),
-		targetPool: flags.string({ required: true }),
-		sqrtPriceX96: flags.string({ required: true}),
-		sqrtPriceX96Lower: flags.string({ required: true}),
-		sqrtPriceX96Upper: flags.string({ required: true}),
+    sqrtPriceX96Lower: flags.string({ required: true }),
+    sqrtPriceX96Upper: flags.string({ required: true }),
     topN: flags.integer({
       required: false,
       default: 3,
@@ -108,12 +107,11 @@ export class QuoteToRatio extends Command {
       tokenIn: tokenInStr,
       tokenOut: tokenOutStr,
       chainId: chainIdNumb,
-			tokenInBalance: tokenInBalanceStr,
-			tokenOutBalance: tokenOutBalanceStr,
-			targetPool,
-			sqrtPriceX96,
-			sqrtPriceX96Lower,
-			sqrtPriceX96Upper,
+      tokenInBalance: tokenInBalanceStr,
+      tokenOutBalance: tokenOutBalanceStr,
+      feeAmount,
+      sqrtPriceX96Lower,
+      sqrtPriceX96Upper,
       recipient,
       tokenListURI,
       debug,
@@ -201,8 +199,29 @@ export class QuoteToRatio extends Command {
         ? Ether.onChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
 
-    const multicall = new UniswapMulticallProvider(provider);
+    const tokenInBalance = parseAmount(tokenInBalanceStr, tokenIn);
+    const tokenOutBalance = parseAmount(tokenOutBalanceStr, tokenOut);
 
+    const multicall = new UniswapMulticallProvider(provider);
+    const poolProvider = new PoolProvider(multicall2Provider);
+
+    const poolAccessor = await poolProvider.getPools([
+      [tokenIn.wrapped, tokenOut.wrapped, 3000],
+    ]);
+
+    const pool = poolAccessor.getPool(
+      tokenIn.wrapped,
+      tokenOut.wrapped,
+      feeAmount
+    );
+    if (!pool) {
+      log.error(
+        `Could not find pool. ${
+          debug ? '' : 'Run in debug mode for more info'
+        }.`
+      );
+      return;
+    }
 
     let router = new AlphaRouter({
       provider,
@@ -211,9 +230,7 @@ export class QuoteToRatio extends Command {
         new SubgraphProvider(undefined, 10000)
       ),
       multicall2Provider: multicall,
-      poolProvider: new CachingPoolProvider(
-        new PoolProvider(multicall2Provider)
-      ),
+      poolProvider: new CachingPoolProvider(poolProvider),
       quoteProvider: new QuoteProvider(
         provider,
         multicall,
@@ -235,17 +252,13 @@ export class QuoteToRatio extends Command {
       tokenProvider: tokenProvider,
     });
 
-		const tokenInBalance = parseAmount(tokenInBalanceStr, tokenIn);
-		const tokenOutBalance = parseAmount(tokenOutBalanceStr, tokenOut);
-
     let swapRoutes: SwapRoute<any> | null;
     swapRoutes = await router.routeToAmountsRatio(
       tokenInBalance,
-			tokenOutBalance,
-			targetPool,
-			JSBI.BigInt(sqrtPriceX96),
-			JSBI.BigInt(sqrtPriceX96Upper),
-			JSBI.BigInt(sqrtPriceX96Lower),
+      tokenOutBalance,
+      pool,
+      JSBI.BigInt(sqrtPriceX96Upper),
+      JSBI.BigInt(sqrtPriceX96Lower),
       {
         deadline: 100,
         recipient,
@@ -253,7 +266,7 @@ export class QuoteToRatio extends Command {
       },
       {
         topN,
-				topNDirectSwaps: 2,
+        topNDirectSwaps: 2,
         topNTokenInOut,
         topNSecondHop,
         topNWithEachBaseToken,

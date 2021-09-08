@@ -113,8 +113,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   public async routeToAmountsRatio(
     currencyInBalance: CurrencyAmount,
     currencyOutBalance: CurrencyAmount,
-    targetPool: string,
-    sqrtPriceX96: JSBI,
+    pool: Pool,
     sqrtPriceX96Upper: JSBI,
     sqrtPriceX96Lower: JSBI,
     swapConfig: SwapConfig,
@@ -122,6 +121,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
       const currencyIn = currencyInBalance.currency
       const currencyOut = currencyOutBalance.currency
+      const sqrtPriceX96 = pool.sqrtRatioX96
 
       const token0Proportion = SqrtPriceMath.getAmount0Delta(
         sqrtPriceX96,
@@ -151,7 +151,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
           .divide(optimalRatio.multiply(price).add(1))
       const amountToSwap = CurrencyAmount.fromRawAmount(currencyIn, JSBI.BigInt(amountToSwapRaw.toFixed(0)));
 
-      console.log(targetPool)
       return this.routeExactIn(
         currencyIn,
         currencyOut,
