@@ -1,5 +1,5 @@
 import { Currency, Percent, Token, TradeType } from '@uniswap/sdk-core';
-import { MethodParameters, Route as RouteRaw, Trade } from '@uniswap/v3-sdk';
+import { MethodParameters, Position, Route as RouteRaw, Trade} from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 import { RouteWithValidQuote } from './alpha-router';
@@ -55,4 +55,12 @@ export abstract class IRouter<RoutingConfig> {
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
   ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null>;
+
+  abstract routeToAmountsRatio(
+    currencyInBalance: CurrencyAmount,
+    currencyOutBalance: CurrencyAmount,
+    position: Position,
+    swapConfig?: SwapConfig,
+    routingConfig?: RoutingConfig
+  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null>;
 }
