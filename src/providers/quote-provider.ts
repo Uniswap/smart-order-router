@@ -102,6 +102,10 @@ export class QuoteProvider implements IQuoteProvider {
       gasLimitPerCall: 1_000_000,
       quoteMinSuccessRate: 0.2,
     },
+    protected successRateFailureOverrides = {
+      gasLimitOverride: 1_300_000,
+      multicallChunk: 110,
+    },
     protected rollback: boolean = false,
     protected quoterAddress: string = QUOTER_V2_ADDRESS
   ) {}
@@ -414,8 +418,8 @@ export class QuoteProvider implements IQuoteProvider {
                 haveRetriedForSuccessRate = true;
 
                 // Low success rate can indicate too little gas given to each call.
-                gasLimitOverride = 1_300_000;
-                multicallChunk = 110;
+                gasLimitOverride = this.successRateFailureOverrides.gasLimitOverride;
+                multicallChunk = this.successRateFailureOverrides.multicallChunk;
                 retryAll = true;
               }
             } else {
@@ -568,7 +572,7 @@ export class QuoteProvider implements IQuoteProvider {
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
-    const debugFailedQuotes: string[] = [];
+    const debugFailedQuotes: {route: string, msg: string}[] = [];
 
     for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
@@ -583,9 +587,11 @@ export class QuoteProvider implements IQuoteProvider {
           if (!quoteResult.success) {
             const percent = (100 / amounts.length) * (index + 1);
 
-            debugFailedQuotes.push(`${percent}% via ${routeToString(
+            debugFailedQuotes.push({ msg: `${percent}% via ${routeToString(
               route
-            )} Amount: ${amount.toFixed(2)}`);
+            )} Amount: ${amount.toFixed(2)}`, route: routeToString(
+              route
+            ) });
 
             return {
               amount,
@@ -610,7 +616,8 @@ export class QuoteProvider implements IQuoteProvider {
     }
 
     _.forEach(_.chunk(debugFailedQuotes, 20), (quotes, idx) => {
-      log.info({ failedQuotes: quotes }, `Failed quotes part ${idx}`);
+      const routesInChunk = _(quotes).map(q => q.route).uniq().value();
+      log.info({ failedQuotes: _.map(quotes, q => q.msg) }, `Failed quotes for routes ${routesInChunk} Part ${idx}/${quotes.length}`);
     });
 
     return routesQuotes;
