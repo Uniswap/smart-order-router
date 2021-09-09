@@ -568,6 +568,8 @@ export class QuoteProvider implements IQuoteProvider {
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
+    const debugFailedQuotes: string[] = [];
+
     for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
       const quoteResults = quotesResultsByRoute[i]!;
@@ -579,14 +581,11 @@ export class QuoteProvider implements IQuoteProvider {
         ) => {
           const amount = amounts[index]!;
           if (!quoteResult.success) {
-            const { returnData } = quoteResult;
+            const percent = (100 / amounts.length) * (index + 1);
 
-            log.debug(
-              { result: returnData },
-              `Unable to get quote for ${routeToString(
-                route
-              )} with amount ${amount.toFixed(2)}`
-            );
+            debugFailedQuotes.push(`${percent}% via ${routeToString(
+              route
+            )} Amount: ${amount.toFixed(2)}`);
 
             return {
               amount,
@@ -609,6 +608,10 @@ export class QuoteProvider implements IQuoteProvider {
 
       routesQuotes.push([route, quotes]);
     }
+
+    _.forEach(_.chunk(debugFailedQuotes, 20), (quotes, idx) => {
+      log.info({ failedQuotes: quotes }, `Failed quotes part ${idx}`);
+    });
 
     return routesQuotes;
   }

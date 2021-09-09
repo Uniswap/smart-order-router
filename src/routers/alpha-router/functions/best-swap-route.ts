@@ -360,6 +360,18 @@ function getBestSwapRouteBy(
     }
 
     if (splits == 3 && bestSwap.length == 2) {
+      // We track the top 5 best options we find for logging/debugging.
+      const bestThreeSplits = new FixedReverseHeap<{
+        quote: CurrencyAmount;
+        routes: RouteWithValidQuote[];
+      }>(
+        Array,
+        (a, b) => {
+          return quoteCompFn(a.quote, b.quote) ? -1 : 1;
+        },
+        5
+      );
+
       const split3Now = Date.now();
       for (let i = percents.length - 1; i >= 0; i--) {
         // For our current percentage find the best route.
@@ -408,11 +420,29 @@ function getBestSwapRouteBy(
 
           const newQuote = quoteA.add(quoteB).add(quoteC);
 
+          bestThreeSplits.push({
+            quote: newQuote,
+            routes: [routeWithQuoteA, routeWithQuoteB, routeWithQuoteC],
+          });
+
           if (quoteCompFn(newQuote, bestQuote)) {
             bestQuote = newQuote;
             bestSwap = [routeWithQuoteA, routeWithQuoteB, routeWithQuoteC];
           }
         }
+
+        log.info(
+          {
+            top5ThreeSplits: _.map(
+              Array.from(bestThreeSplits.consume()),
+              (q) =>
+                `${q.quote.toExact()} (${_(q.routes)
+                  .map((r) => r.toString())
+                  .join(', ')})`
+            ),
+          },
+          'Top 5 with 3 splits'
+        );
       }
 
       metric.putMetric(
