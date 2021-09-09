@@ -430,20 +430,20 @@ function getBestSwapRouteBy(
             bestSwap = [routeWithQuoteA, routeWithQuoteB, routeWithQuoteC];
           }
         }
-
-        log.info(
-          {
-            top5ThreeSplits: _.map(
-              Array.from(bestThreeSplits.consume()),
-              (q) =>
-                `${q.quote.toExact()} (${_(q.routes)
-                  .map((r) => r.toString())
-                  .join(', ')})`
-            ),
-          },
-          'Top 5 with 3 splits'
-        );
       }
+
+      log.info(
+        {
+          top5ThreeSplits: _.map(
+            Array.from(bestThreeSplits.consume()),
+            (q) =>
+              `${q.quote.toExact()} (${_(q.routes)
+                .map((r) => r.toString())
+                .join(', ')})`
+          ),
+        },
+        'Top 5 with 3 splits'
+      );
 
       metric.putMetric(
         'Split3Done',
