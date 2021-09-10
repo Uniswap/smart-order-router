@@ -26,7 +26,7 @@ export const mockRoutingConfig = {
   topNWithBaseToken: 0,
   topNWithBaseTokenInSet: false,
   maxSwapsPerPath: 3,
-  maxSplits: 3,
+  maxSplits: 4,
   distributionPercent: 5,
 };
 
@@ -38,6 +38,16 @@ export const USDC_WETH_LOW = new Pool(
   500,
   0
 );
+
+export const USDC_WETH_MEDIUM = new Pool(
+  USDC,
+  WETH9[1],
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
 export const WETH9_USDT_LOW = new Pool(
   WETH9[1],
   USDT,

@@ -351,10 +351,9 @@ function getBestSwapRouteBy(
       log.info(
         'Did not improve on route with 2 splits. Not checking 3 splits.'
       );
-      const split3Now = Date.now();
       metric.putMetric(
         'Split3Done',
-        Date.now() - split3Now,
+        0,
         MetricLoggerUnit.Milliseconds
       );
     }
@@ -384,8 +383,13 @@ function getBestSwapRouteBy(
 
         // For the complimentary percentage, we now look for the best combination of two routes
         // that makes up the missing percentage, again ensuring we don't re-use pools.
-        for (let j = i - 1; j >= 0; j--) {
+        for (let j = i; j >= 0; j--) {
           const percentB = percents[j]!;
+          
+          if (percentB > remainingPercent) {
+            continue;
+          }
+
           const candidateRoutesB = percentToSortedQuotes[percentB]!;
 
           const routeWithQuoteB = findFirstRouteNotUsingUsedPools(
@@ -452,8 +456,145 @@ function getBestSwapRouteBy(
       );
     }
 
+    // If we didn't find a better route with 2 splits, we won't find one with 3 splits.
+    // Only continue if we managed to find a better route using 2 splits.
+    if (splits == 4 && bestSwap.length < 3) {
+      log.info(
+        'Did not improve on route with 3 splits. Not checking 4 splits.'
+      );
+      metric.putMetric(
+        'Split4Done',
+        0,
+        MetricLoggerUnit.Milliseconds
+      );
+    }
+
     if (splits == 4) {
-      throw new Error('Four splits is not supported');
+      // We track the top 5 best options we find for logging/debugging.
+      const bestFourSplits = new FixedReverseHeap<{
+        quote: CurrencyAmount;
+        routes: RouteWithValidQuote[];
+      }>(
+        Array,
+        (a, b) => {
+          return quoteCompFn(a.quote, b.quote) ? -1 : 1;
+        },
+        5
+      );
+
+      const split4Now = Date.now();
+      for (let i = percents.length - 1; i >= 0; i--) {
+        // For our current percentage find the best route.
+        const percentA = percents[i]!;
+        const routeWithQuoteA = percentToSortedQuotes[percentA]![0]!;
+        const { route: routeA } = routeWithQuoteA;
+        const quoteA = by(routeWithQuoteA);
+
+        let remainingPercent = 100 - percentA;
+
+        // For the complimentary percentage, we now look for the best combination of three routes
+        // that makes up the missing percentage, again ensuring we don't re-use pools.
+        for (let j = i; j >= 0; j--) {
+          const percentB = percents[j]!;
+
+          if (percentB > remainingPercent) {
+            continue;
+          }
+
+          const candidateRoutesB = percentToSortedQuotes[percentB]!;
+
+          if (!candidateRoutesB) {
+            continue;
+          }
+
+          const routeWithQuoteB = findFirstRouteNotUsingUsedPools(
+            [routeA],
+            candidateRoutesB
+          );
+
+          if (!routeWithQuoteB) {
+            continue;
+          }
+
+          const { route: routeB } = routeWithQuoteB;
+
+          const quoteB = by(routeWithQuoteB);
+
+          // Find best combination of two routes that makes up our remainder after picking 2 routes.
+          const remainingPercentB = remainingPercent - percentB;
+          for (let k = j; k >= 0; k--) {
+            const percentC = percents[k]!;
+
+            if (percentC > remainingPercentB) {
+              continue;
+            }
+            
+            const percentD = remainingPercentB - percentC;
+            const candidateRoutesC = percentToSortedQuotes[percentC]!;
+
+            if (!candidateRoutesC) {
+              continue;
+            }
+
+            const routeWithQuoteC = findFirstRouteNotUsingUsedPools(
+              [routeA, routeB],
+              candidateRoutesC
+            );
+  
+            if (!routeWithQuoteC) {
+              continue;
+            }
+  
+            const { route: routeC } = routeWithQuoteC;
+            const quoteC = by(routeWithQuoteC);
+
+            const candidateRoutesD = percentToSortedQuotes[percentD]!;
+            
+            if (!candidateRoutesD) {
+              continue;
+            }
+
+            const routeWithQuoteD = findFirstRouteNotUsingUsedPools([routeA, routeB, routeC], candidateRoutesD);
+
+            if (!routeWithQuoteD) {
+              continue;
+            }
+
+            const quoteD = by(routeWithQuoteD);
+
+            const newQuote = quoteA.add(quoteB).add(quoteC).add(quoteD);
+
+            bestFourSplits.push({
+              quote: newQuote,
+              routes: [routeWithQuoteA, routeWithQuoteB, routeWithQuoteC, routeWithQuoteD],
+            });
+
+            if (quoteCompFn(newQuote, bestQuote)) {
+              bestQuote = newQuote;
+              bestSwap = [routeWithQuoteA, routeWithQuoteB, routeWithQuoteC, routeWithQuoteD];
+            }
+          }
+        }
+      }
+
+      log.info(
+        {
+          top5FourSplits: _.map(
+            Array.from(bestFourSplits.consume()),
+            (q) =>
+              `${q.quote.toExact()} (${_(q.routes)
+                .map((r) => r.toString())
+                .join(', ')})`
+          ),
+        },
+        'Top 5 with 4 splits'
+      );
+
+      metric.putMetric(
+        'Split4Done',
+        Date.now() - split4Now,
+        MetricLoggerUnit.Milliseconds
+      );
     }
 
     splits += 1;
