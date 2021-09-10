@@ -113,15 +113,20 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     this.gasModelFactory = gasModelFactory;
   }
 
-  public async routeToAmountsRatio(
-    currencyInBalance: CurrencyAmount,
-    currencyOutBalance: CurrencyAmount,
+  public async routeToRatio(
+    token0Balance: CurrencyAmount,
+    token1Balance: CurrencyAmount,
     position: Position,
     swapConfig: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-      const currencyIn = currencyInBalance.currency
-      const currencyOut = currencyOutBalance.currency
+      if (
+        token0Balance.currency.wrapped.address.toLowerCase()
+        > token1Balance.currency.wrapped.address.toLowerCase()
+      ) {
+        [token0Balance, token1Balance] = [token1Balance, token0Balance]
+      }
+
       const sqrtPriceX96 = position.pool.sqrtRatioX96
       const sqrtPriceX96Lower = TickMath.getSqrtRatioAtTick(position.tickLower)
       const sqrtPriceX96Upper = TickMath.getSqrtRatioAtTick(position.tickUpper)
@@ -138,27 +143,21 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         JSBI.BigInt('100000000'),
         true
       )
-      const zeroForOne = currencyIn.wrapped.address.toLowerCase() < currencyOut.wrapped.address.toLowerCase()
-
-      // optimalRatio in terms of tokenIn/tokenOut
-      const optimalRatio = zeroForOne
-        ? new Fraction(token0Proportion, token1Proportion)
-        : new Fraction(token1Proportion, token0Proportion)
-
-      // price in terms of tokenIn per tokenOut
-      const price = zeroForOne ? position.pool.token0Price : position.pool.token1Price
 
       const amountToSwap = calculateRatioAmountIn(
-        optimalRatio,
-        price,
-        currencyInBalance,
-        currencyOutBalance,
+        new Fraction(token0Proportion, token1Proportion),
+        position.pool.token0Price,
+        token0Balance,
+        token1Balance,
       )
 
+      // if amountIn is negative, we are trading token1 for token0
+      const zeroForOne = !amountToSwap.lessThan(0)
+
       return this.routeExactIn(
-        currencyIn,
-        currencyOut,
-        amountToSwap,
+        zeroForOne ? token0Balance.currency : token1Balance.currency,
+        zeroForOne ? token1Balance.currency : token0Balance.currency,
+        zeroForOne ? amountToSwap : amountToSwap.multiply(-1).multiply(position.pool.token0Price),
         swapConfig,
         routingConfig
       )

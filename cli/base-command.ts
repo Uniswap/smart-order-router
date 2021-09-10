@@ -28,8 +28,8 @@ import {
   setGlobalLogger,
   setGlobalMetric,
   SubgraphProvider,
-  TokenAccessor,
   TokenListProvider,
+  ITokenProvider,
   TokenProvider,
   TokenProviderWithFallback,
   UniswapMulticallProvider,
@@ -93,7 +93,7 @@ export abstract class BaseCommand extends Command {
 
   private _log: Logger | null = null;
   private _router: IRouter<any> | null = null;
-  private _tokenAccessor: TokenAccessor | null = null;
+  private _tokenProvider: ITokenProvider | null = null;
   private _poolProvider: IPoolProvider | null = null;
 
   get logger() {
@@ -108,8 +108,8 @@ export abstract class BaseCommand extends Command {
     return this._router;
   }
 
-  get tokenAccessor() {
-    return this._tokenAccessor;
+  get tokenProvider() {
+    return this._tokenProvider;
   }
 
   get poolProvider() {
@@ -121,8 +121,6 @@ export abstract class BaseCommand extends Command {
     const {
       chainId: chainIdNumb,
       router: routerStr,
-      tokenIn: tokenInStr,
-      tokenOut: tokenOutStr,
       debug,
       debugJSON,
       tokenListURI,
@@ -188,17 +186,16 @@ export abstract class BaseCommand extends Command {
       return;
     }
 
+	   // initialize tokenProvider
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
-    const tokenProvider = new TokenProviderWithFallback(
+    this._tokenProvider = new TokenProviderWithFallback(
       tokenListProvider,
       tokenProviderOnChain
     );
-
-		// initialize tokenAccessor
-    this._tokenAccessor = await tokenProvider.getTokens([
-      tokenInStr,
-      tokenOutStr,
-    ]);
+    if (!this.tokenProvider) {
+      this.log('could not initialize tokenProvider');
+      return;
+    }
 
     // initialize router
     if (routerStr == 'legacy') {
@@ -207,7 +204,7 @@ export abstract class BaseCommand extends Command {
         multicall2Provider,
         poolProvider: new PoolProvider(multicall2Provider),
         quoteProvider: new QuoteProvider(provider, multicall2Provider),
-        tokenProvider,
+        tokenProvider: this.tokenProvider,
       });
     } else {
       this._router = new AlphaRouter({
@@ -238,7 +235,7 @@ export abstract class BaseCommand extends Command {
           new EIP1559GasPriceProvider(provider)
         ),
         gasModelFactory: new HeuristicGasModelFactory(),
-        tokenProvider,
+        tokenProvider: this.tokenProvider,
       });
     }
   }

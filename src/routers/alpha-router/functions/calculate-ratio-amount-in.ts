@@ -2,15 +2,18 @@ import { Fraction } from '@uniswap/sdk-core';
 import { CurrencyAmount } from '../../../util/amounts';
 
 export function calculateRatioAmountIn(
-	optimalRatio: Fraction,
-	price: Fraction,
-	currencyInBalance: CurrencyAmount,
-	currencyOutBalance: CurrencyAmount,
+  optimalRatio: Fraction,
+  token0Price: Fraction,
+  token0Balance: CurrencyAmount,
+  token1Balance: CurrencyAmount
 ): CurrencyAmount {
-	// formula: amountToSwap = (tokenInBalance - (optimalRatio * tokenOutBalance)) / ((optimalRatio * price) + 1))
-	const amountToSwapRaw = new Fraction(currencyInBalance.quotient)
-			.subtract(optimalRatio.multiply(currencyOutBalance.quotient))
-			.divide(optimalRatio.multiply(price).add(1))
+  // formula: amountToSwap = (token0Balance - (optimalRatio * token1Balance)) / ((optimalRatio * token0Price) + 1))
+  const amountToSwapRaw = new Fraction(token0Balance.quotient)
+    .subtract(optimalRatio.multiply(token1Balance.quotient))
+    .divide(optimalRatio.multiply(token0Price).add(1));
 
-	return CurrencyAmount.fromRawAmount(currencyInBalance.currency, amountToSwapRaw.quotient)
+  return CurrencyAmount.fromRawAmount(
+    token0Balance.currency,
+    amountToSwapRaw.quotient
+  );
 }

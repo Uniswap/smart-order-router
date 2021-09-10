@@ -19,12 +19,12 @@ export class QuoteToRatio extends BaseCommand {
     ...BaseCommand.flags,
     version: flags.version({ char: 'v' }),
     help: flags.help({ char: 'h' }),
-    tokenIn: flags.string({ char: 'i', required: true }),
-    tokenOut: flags.string({ char: 'o', required: true }),
+    token0: flags.string({ char: 'i', required: true }),
+    token1: flags.string({ char: 'o', required: true }),
     feeAmount: flags.integer({ char: 'f', required: true }),
+    token0Balance: flags.string({ required: true }),
+    token1Balance: flags.string({ required: true }),
     recipient: flags.string({ required: true }),
-    tokenInBalance: flags.string({ required: true }),
-    tokenOutBalance: flags.string({ required: true }),
     tickLower: flags.integer({ required: true }),
     tickUpper: flags.integer({ required: true }),
   };
@@ -33,10 +33,10 @@ export class QuoteToRatio extends BaseCommand {
     const { flags } = this.parse(QuoteToRatio);
     const {
       chainId: chainIdNumb,
-      tokenIn: tokenInStr,
-      tokenOut: tokenOutStr,
-      tokenInBalance: tokenInBalanceStr,
-      tokenOutBalance: tokenOutBalanceStr,
+      token0: token0Str,
+      token1: token1Str,
+      token0Balance: token0BalanceStr,
+      token1Balance: token1BalanceStr,
       feeAmount,
       tickLower,
       tickUpper,
@@ -55,29 +55,34 @@ export class QuoteToRatio extends BaseCommand {
 
     const log = this.logger;
     const router = this.router;
-    const tokenAccessor = this.tokenAccessor;
+    const tokenProvider = this.tokenProvider;
 
     if (!router) {
       log.error('router not initialized');
       return;
     }
-    if (!tokenAccessor) {
+    if (!tokenProvider) {
       log.error('tokenAccessor not initialized');
       return;
     }
 
+    const tokenAccessor = await tokenProvider.getTokens([
+      token0Str,
+      token1Str,
+    ]);
+
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const tokenIn: Currency =
-      tokenInStr == 'ETH'
+      token0Str == 'ETH'
         ? Ether.onChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenInStr)!;
+        : tokenAccessor.getTokenByAddress(token0Str)!;
     const tokenOut: Currency =
-      tokenOutStr == 'ETH'
+      token1Str == 'ETH'
         ? Ether.onChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenOutStr)!;
+        : tokenAccessor.getTokenByAddress(token1Str)!;
 
-    const tokenInBalance = parseAmount(tokenInBalanceStr, tokenIn);
-    const tokenOutBalance = parseAmount(tokenOutBalanceStr, tokenOut);
+    const tokenInBalance = parseAmount(token0BalanceStr, tokenIn);
+    const tokenOutBalance = parseAmount(token1BalanceStr, tokenOut);
 
     const poolAccessor = await this.poolProvider?.getPools([
       [tokenIn.wrapped, tokenOut.wrapped, 3000],
@@ -105,7 +110,7 @@ export class QuoteToRatio extends BaseCommand {
     });
 
     let swapRoutes: SwapRoute<any> | null;
-    swapRoutes = await router?.routeToAmountsRatio(
+    swapRoutes = await router?.routeToRatio(
       tokenInBalance,
       tokenOutBalance,
       position,

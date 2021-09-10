@@ -55,17 +55,22 @@ export class Quote extends BaseCommand {
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
 
     const log = this.logger;
-    const tokenAccessor = this.tokenAccessor;
+    const tokenProvider = this.tokenProvider;
     const router = this.router;
 
     if (!router) {
       log.error('router not initialized');
       return;
     }
-    if (!tokenAccessor) {
-      log.error('tokenAccessor not initialized');
+    if (!tokenProvider) {
+      log.error('tokenProvider not initialized');
       return;
     }
+
+    const tokenAccessor = await tokenProvider.getTokens([
+      tokenInStr,
+      tokenOutStr,
+    ]);
 
     const tokenIn: Currency =
       tokenInStr == 'ETH'

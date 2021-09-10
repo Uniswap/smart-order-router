@@ -186,7 +186,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     };
   }
 
-  public async routeToAmountsRatio(
+  public async routeToRatio(
     currencyInBalance: CurrencyAmount,
     currencyOutBalance: CurrencyAmount,
     position: Position,
