@@ -29,6 +29,7 @@ import { IRouter, SwapConfig, SwapRoute } from '../router';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { computeAllRoutes } from './functions/compute-all-routes';
+import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
   CandidatePoolsBySelectionCriteria,
   getCandidatePools,
@@ -139,17 +140,20 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       )
       const zeroForOne = currencyIn.wrapped.address.toLowerCase() < currencyOut.wrapped.address.toLowerCase()
 
+      // optimalRatio in terms of tokenIn/tokenOut
       const optimalRatio = zeroForOne
         ? new Fraction(token0Proportion, token1Proportion)
         : new Fraction(token1Proportion, token0Proportion)
 
+      // price in terms of tokenIn per tokenOut
       const price = zeroForOne ? position.pool.token0Price : position.pool.token1Price
 
-      // formula: amountToSwap = (tokenInBalance - (optimalRatio * tokenOutBalance)) / ((optimalRatio * price) + 1))
-      const amountToSwapRaw = new Fraction(currencyInBalance.quotient)
-          .subtract(optimalRatio.multiply(currencyOutBalance.quotient))
-          .divide(optimalRatio.multiply(price).add(1))
-      const amountToSwap = CurrencyAmount.fromRawAmount(currencyIn, JSBI.BigInt(amountToSwapRaw.toFixed(0)));
+      const amountToSwap = calculateRatioAmountIn(
+        optimalRatio,
+        price,
+        currencyInBalance,
+        currencyOutBalance,
+      )
 
       return this.routeExactIn(
         currencyIn,
