@@ -104,10 +104,12 @@ export class SubgraphProvider implements ISubgraphProvider {
       }.`
     );
 
-    let done = false;
+    
 
     await retry(
       async (bail) => {
+        let done = false;
+        
         setTimeout(() => {
           if (!done) {
             this.abortController.abort();

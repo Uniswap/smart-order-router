@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.37.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.36.1...v1.37.1) (2021-09-14)
+
+### [1.36.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.35.1...v1.36.1) (2021-09-14)
+
+### [1.35.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.34.1...v1.35.1) (2021-09-10)
+
+### [1.34.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.33.1...v1.34.1) (2021-09-10)
+
+### [1.33.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.32.1...v1.33.1) (2021-09-09)
+
+### [1.32.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.31.1...v1.32.1) (2021-09-09)
+
+### [1.31.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.30.1...v1.31.1) (2021-09-09)
+
 ### [1.30.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.29.1...v1.30.1) (2021-08-29)
 
 ### [1.29.1](https://github.com/Uniswap/uniswap-smart-order-router/compare/v1.28.1...v1.29.1) (2021-08-27)
