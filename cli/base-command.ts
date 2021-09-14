@@ -200,7 +200,6 @@ export abstract class BaseCommand extends Command {
       );
     }
 
-    const multicall = new UniswapMulticallProvider(provider);
     const multicall2Provider = new UniswapMulticallProvider(provider);
     this._poolProvider = new PoolProvider(multicall2Provider);
 
@@ -227,13 +226,13 @@ export abstract class BaseCommand extends Command {
         subgraphProvider: new CachingSubgraphProvider(
           new SubgraphProvider(undefined, 10000)
         ),
-        multicall2Provider: multicall,
+        multicall2Provider: multicall2Provider,
         poolProvider: new CachingPoolProvider(
           new PoolProvider(multicall2Provider)
         ),
         quoteProvider: new QuoteProvider(
           provider,
-          multicall,
+          multicall2Provider,
           {
             retries: 2,
             minTimeout: 25,
