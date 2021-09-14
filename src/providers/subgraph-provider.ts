@@ -1,9 +1,10 @@
-import AbortControllerPoly from 'abort-controller';
 import { default as retry } from 'async-retry';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 import { log } from '../util/log';
 import { ProviderConfig } from './provider';
+import Timeout from 'await-timeout';
+
 export interface SubgraphPool {
   id: string;
   feeTier: string;
@@ -49,14 +50,10 @@ export interface ISubgraphProvider {
   getPools(providerConfig?: ProviderConfig): Promise<SubgraphPool[]>;
 }
 export class SubgraphProvider implements ISubgraphProvider {
-  private abortController: AbortController;
   private client: GraphQLClient;
 
   constructor(private retries = 2, private timeout = 7000) {
-    this.abortController = new AbortControllerPoly();
-    this.client = new GraphQLClient(SUBGRAPH_URL, {
-      signal: this.abortController.signal,
-    });
+    this.client = new GraphQLClient(SUBGRAPH_URL);
   }
 
   public async getPools(
@@ -92,9 +89,7 @@ export class SubgraphProvider implements ISubgraphProvider {
       }
     `;
 
-    let skip = 0;
     let pools: RawSubgraphPool[] = [];
-    let poolsPage: RawSubgraphPool[] = [];
 
     log.info(
       `Getting pools from the subgraph with page size ${PAGE_SIZE}${
@@ -104,41 +99,47 @@ export class SubgraphProvider implements ISubgraphProvider {
       }.`
     );
 
-    
-
     await retry(
-      async (bail) => {
-        let done = false;
-        
-        setTimeout(() => {
-          if (!done) {
-            this.abortController.abort();
-            bail(
-              new Error('Failed to get pools from subgraph due to timeout.')
-            );
-          }
-        }, this.timeout);
+      async () => {
+        const timeout = new Timeout();
 
-        do {
-          const poolsResult = await this.client.request<{
-            pools: RawSubgraphPool[];
-          }>(query, {
-            pageSize: PAGE_SIZE,
-            skip,
-          });
+        const getPools = async (): Promise<RawSubgraphPool[]> => {
+          let skip = 0;
+          let pools: RawSubgraphPool[] = [];
+          let poolsPage: RawSubgraphPool[] = [];
+  
+          do {
+            const poolsResult = await this.client.request<{
+              pools: RawSubgraphPool[];
+            }>(query, {
+              pageSize: PAGE_SIZE,
+              skip,
+            });
+  
+            poolsPage = poolsResult.pools;
+  
+            pools = pools.concat(poolsPage);
+            skip = skip + PAGE_SIZE;
+          } while (poolsPage.length > 0);
 
-          poolsPage = poolsResult.pools;
+          return pools;
+        }
 
-          pools = pools.concat(poolsPage);
-          skip = skip + PAGE_SIZE;
-        } while (poolsPage.length > 0);
+        try {
+          const getPoolsPromise = getPools();
+          const timerPromise = timeout.set(this.timeout).then(() => { throw new Error(`Timed out getting pools from subgraph: ${this.timeout}`) });
+          pools = await Promise.race([getPoolsPromise, timerPromise]);
+          return;
+        } catch (err) {
+          throw err;
+        } finally {
+          timeout.clear();
+        }
 
-        done = true;
       },
       {
         retries: this.retries,
         onRetry: (err, retry) => {
-          skip = 0;
           pools = [];
           log.info(
             { err },
