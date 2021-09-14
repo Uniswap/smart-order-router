@@ -20,6 +20,7 @@ import {
   IPoolProvider,
   IRouter,
   ISwapToRatio,
+  ITokenProvider,
   LegacyRouter,
   MetricLogger,
   PoolProvider,
@@ -30,7 +31,6 @@ import {
   setGlobalMetric,
   SubgraphProvider,
   TokenListProvider,
-  ITokenProvider,
   TokenProvider,
   TokenProviderWithFallback,
   UniswapMulticallProvider,
@@ -107,19 +107,35 @@ export abstract class BaseCommand extends Command {
   }
 
   get router() {
-    return this._router;
+    if (this._router) {
+      return this._router;
+    } else {
+      throw 'router not initialized';
+    }
   }
 
   get swapToRatioRouter() {
-    return this._swapToRatioRouter;
+    if (this._swapToRatioRouter) {
+      return this._swapToRatioRouter;
+    } else {
+      throw 'swapToRatioRouter not initialized';
+    }
   }
 
   get tokenProvider() {
-    return this._tokenProvider;
+    if (this._tokenProvider) {
+      return this._tokenProvider;
+    } else {
+      throw 'tokenProvider not initialized';
+    }
   }
 
   get poolProvider() {
-    return this._poolProvider;
+    if (this._poolProvider) {
+      return this._poolProvider;
+    } else {
+      throw 'poolProvider not initialized';
+    }
   }
 
   async init() {
@@ -187,21 +203,13 @@ export abstract class BaseCommand extends Command {
     const multicall = new UniswapMulticallProvider(provider);
     const multicall2Provider = new UniswapMulticallProvider(provider);
     this._poolProvider = new PoolProvider(multicall2Provider);
-    if (!this.poolProvider) {
-      this.log('could not initialize poolProvider');
-      return;
-    }
 
-	   // initialize tokenProvider
+    // initialize tokenProvider
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
     this._tokenProvider = new TokenProviderWithFallback(
       tokenListProvider,
       tokenProviderOnChain
     );
-    if (!this.tokenProvider) {
-      this.log('could not initialize tokenProvider');
-      return;
-    }
 
     // initialize router
     if (routerStr == 'legacy') {
@@ -244,7 +252,9 @@ export abstract class BaseCommand extends Command {
         tokenProvider: this.tokenProvider,
       });
 
-      this.id == 'quote-to-ratio' ? this._swapToRatioRouter = router : this._router = router
+      this.id == 'quote-to-ratio'
+        ? (this._swapToRatioRouter = router)
+        : (this._router = router);
     }
   }
 

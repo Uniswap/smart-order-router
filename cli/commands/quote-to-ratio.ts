@@ -57,15 +57,6 @@ export class QuoteToRatio extends BaseCommand {
     const router = this.swapToRatioRouter;
     const tokenProvider = this.tokenProvider;
 
-    if (!router) {
-      log.error('router not initialized');
-      return;
-    }
-    if (!tokenProvider) {
-      log.error('tokenAccessor not initialized');
-      return;
-    }
-
     const tokenAccessor = await tokenProvider.getTokens([
       token0Str,
       token1Str,

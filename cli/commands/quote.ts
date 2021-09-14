@@ -58,15 +58,6 @@ export class Quote extends BaseCommand {
     const tokenProvider = this.tokenProvider;
     const router = this.router;
 
-    if (!router) {
-      log.error('router not initialized');
-      return;
-    }
-    if (!tokenProvider) {
-      log.error('tokenProvider not initialized');
-      return;
-    }
-
     const tokenAccessor = await tokenProvider.getTokens([
       tokenInStr,
       tokenOutStr,
