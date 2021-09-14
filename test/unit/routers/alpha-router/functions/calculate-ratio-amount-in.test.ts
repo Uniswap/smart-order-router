@@ -17,23 +17,24 @@ describe('calculate ratio amount in', () => {
   describe('when there is excess of token0', () => {
     it('returns correct amountIn with simple inputs', () => {
       const optimalRatio = new Fraction(1, 2);
-      const price = new Fraction(1, 2);
-      const currencyInAmount = parseAmount('20', token0);
-      const currencyOutAmount = parseAmount('5', token1);
+      const price = new Fraction(2, 1);
+      const token0Amount = parseAmount('20', token0);
+      const token1Amount = parseAmount('5', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('14' + '0'.repeat(18));
+      expect(amountIn.quotient.toString()).toEqual('5000000000000000000');
+      expect(amountIn.currency).toEqual(token0Amount.currency);
     });
 
-    it('returns correct amountIn when token1 has more decimal places', () => {
+    it('returns correct amountIn when token0 has more decimal places', () => {
       const optimalRatio = new Fraction(1, 2);
-      const price = new Fraction(1, 2);
+      const price = new Fraction(2, 1);
       const token1SixDecimals = new Token(
         1,
         ADDRESS_ZERO,
@@ -41,21 +42,22 @@ describe('calculate ratio amount in', () => {
         'TEST1',
         'Test Token 1'
       );
-      const currencyInAmount = parseAmount('20', token0);
-      const currencyOutAmount = parseAmount('5', token1SixDecimals);
+      const token0Amount = parseAmount('20', token0);
+      const token1Amount = parseAmount('5000000000000', token1SixDecimals);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('15999999999998000000');
+      expect(amountIn.quotient.toString()).toEqual('5000000000000000000');
+      expect(amountIn.currency).toEqual(token0Amount.currency);
     });
 
-    it('returns correct amountIn when token0 has more decimal places', () => {
-      const optimalRatio = new Fraction(1, `1${'0'.repeat(18)}`);
+    it('returns correct amountIn when token1 has more decimal places', () => {
+      const optimalRatio = new Fraction(1, 2);
       const price = new Fraction(1, 2);
       const token0SixDecimals = new Token(
         1,
@@ -64,49 +66,52 @@ describe('calculate ratio amount in', () => {
         'TEST1',
         'Test Token 1'
       );
-      const currencyInAmount = parseAmount('20', token0SixDecimals);
-      const currencyOutAmount = parseAmount('5', token1);
+      const token0Amount = parseAmount('20000000000000', token0SixDecimals);
+      const token1Amount = parseAmount('5', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('19999994');
+      expect(amountIn.quotient.toString()).toEqual('2000000000000000000');
+      expect(amountIn.currency).toEqual(token0Amount.currency);
     });
 
-    it('returns correct amountIn with with very high price', () => {
-      const optimalRatio = new Fraction(1, 2);
-      const price = new Fraction(1_000_000, 1);
-      const currencyInAmount = parseAmount('20', token0);
-      const currencyOutAmount = parseAmount('5', token1);
+    it('returns correct amountIn with price greater than 1', () => {
+      const optimalRatio = new Fraction(1, 1);
+      const price = new Fraction(2, 1);
+      const token0Amount = parseAmount('20', token0);
+      const token1Amount = parseAmount('5', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('34999930000139');
+      expect(amountIn.quotient.toString()).toEqual('10000000000000000000');
+      expect(amountIn.currency).toEqual(token0Amount.currency);
     });
 
-    it('returns correct amountIn with with very low price', () => {
+    it('returns correct amountIn when price is less than 1', () => {
       const optimalRatio = new Fraction(1, 2);
-      const price = new Fraction(1, 1_000_000);
-      const currencyInAmount = parseAmount('20', token0);
-      const currencyOutAmount = parseAmount('5', token1);
+      const price = new Fraction(1, 2);
+      const token0Amount = parseAmount('20', token0);
+      const token1Amount = parseAmount('5', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('17499991250004374997');
+      expect(amountIn.quotient.toString()).toEqual('2000000000000000000');
+      expect(amountIn.currency).toEqual(token0Amount.currency);
     });
   });
 
@@ -114,21 +119,22 @@ describe('calculate ratio amount in', () => {
     it('returns correct amountIn with simple inputs', () => {
       const optimalRatio = new Fraction(1, 2);
       const price = new Fraction(1, 2);
-      const currencyInAmount = parseAmount('5', token0);
-      const currencyOutAmount = parseAmount('20', token1);
+      const token0Amount = parseAmount('5', token0);
+      const token1Amount = parseAmount('20', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('-4' + '0'.repeat(18));
+      expect(amountIn.quotient.toString()).toEqual('14000000000000000000');
+      expect(amountIn.currency).toEqual(token1Amount.currency);
     });
 
-    it('returns correct amountIn when token1 has more decimal places', () => {
-      const optimalRatio = new Fraction(`1${'0'.repeat(18)}`, 1);
+    it('returns correct amountIn when token0 has more decimal places', () => {
+      const optimalRatio = new Fraction(1, 2);
       const price = new Fraction(1, 2);
       const token1SixDecimals = new Token(
         1,
@@ -137,20 +143,21 @@ describe('calculate ratio amount in', () => {
         'TEST1',
         'Test Token 1'
       );
-      const currencyInAmount = parseAmount('5', token0);
-      const currencyOutAmount = parseAmount('20', token1SixDecimals);
+      const token0Amount = parseAmount('5', token0);
+      const token1Amount = parseAmount('20000000000000', token1SixDecimals);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('-39999989');
+      expect(amountIn.quotient.toString()).toEqual('14000000000000000000');
+      expect(amountIn.currency).toEqual(token1Amount.currency);
     });
 
-    it('returns correct amountIn when token0 has more decimal places', () => {
+    it('returns correct amountIn when token1 has more decimal places', () => {
       const optimalRatio = new Fraction(1, 2);
       const price = new Fraction(1, 2);
       const token0SixDecimals = new Token(
@@ -160,49 +167,52 @@ describe('calculate ratio amount in', () => {
         'TEST1',
         'Test Token 1'
       );
-      const currencyInAmount = parseAmount('5', token0SixDecimals);
-      const currencyOutAmount = parseAmount('20', token1);
+      const token0Amount = parseAmount('5000000000000', token0SixDecimals);
+      const token1Amount = parseAmount('20', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('-7999999999996000000');
+      expect(amountIn.quotient.toString()).toEqual('14000000000000000000');
+      expect(amountIn.currency).toEqual(token1Amount.currency);
     });
 
-    it('returns correct amountIn with with very high price', () => {
-      const optimalRatio = new Fraction(1, 2);
-      const price = new Fraction(1_000_000, 1);
-      const currencyInAmount = parseAmount('5', token0);
-      const currencyOutAmount = parseAmount('20', token1);
+    it('returns correct amountIn with price greater than 1', () => {
+      const optimalRatio = new Fraction(1, 1);
+      const price = new Fraction(2, 1);
+      const token0Amount = parseAmount('5', token0);
+      const token1Amount = parseAmount('20', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('-9999980000039');
+      expect(amountIn.quotient.toString()).toEqual('5000000000000000000');
+      expect(amountIn.currency).toEqual(token1Amount.currency);
     });
 
-    it('returns correct amountIn with with very low price', () => {
+    it('returns correct amountIn when price is less than 1', () => {
       const optimalRatio = new Fraction(1, 2);
-      const price = new Fraction(1, 1_000_000);
-      const currencyInAmount = parseAmount('5', token0);
-      const currencyOutAmount = parseAmount('20', token1);
+      const price = new Fraction(1, 2);
+      const token0Amount = parseAmount('5', token0);
+      const token1Amount = parseAmount('20', token1);
 
       const amountIn = calculateRatioAmountIn(
         optimalRatio,
         price,
-        currencyInAmount,
-        currencyOutAmount
+        token1Amount,
+        token0Amount
       );
 
-      expect(amountIn.quotient.toString()).toEqual('-4999997500001249999');
+      expect(amountIn.quotient.toString()).toEqual('14000000000000000000');
+      expect(amountIn.currency).toEqual(token1Amount.currency);
     });
   });
 });

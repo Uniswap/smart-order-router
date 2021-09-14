@@ -19,7 +19,7 @@
     "fix:lint": "eslint src --ext .ts --fix",
     "version": "standard-version",
     "prepare-release": "run-s cov:check doc:html version doc:publish",
-    "test": "jest test/unit test/cdk",
+    "test": "jest",
     "integ-test": "jest test/integ"
   },
   "engines": {

@@ -12,8 +12,10 @@ export function calculateRatioAmountIn(
     .subtract(optimalRatio.multiply(token1Balance.quotient))
     .divide(optimalRatio.multiply(token0Price).add(1));
 
+  const zeroForOne = !amountToSwapRaw.lessThan(0)
+
   return CurrencyAmount.fromRawAmount(
-    token0Balance.currency,
-    amountToSwapRaw.quotient
+    zeroForOne ? token0Balance.currency : token1Balance.currency,
+    zeroForOne ? amountToSwapRaw.quotient : amountToSwapRaw.multiply(-1).multiply(token0Price).quotient
   );
 }

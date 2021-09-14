@@ -117,7 +117,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
-    swapConfig: SwapConfig,
+    swapConfig?: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
       if (
@@ -151,13 +151,12 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         token1Balance,
       )
 
-      // if amountIn is negative, we are trading token1 for token0
-      const zeroForOne = !amountToSwap.lessThan(0)
-
       return this.routeExactIn(
-        zeroForOne ? token0Balance.currency : token1Balance.currency,
-        zeroForOne ? token1Balance.currency : token0Balance.currency,
-        zeroForOne ? amountToSwap : amountToSwap.multiply(-1).multiply(position.pool.token0Price),
+        amountToSwap.currency,
+        amountToSwap.currency == token0Balance.currency
+          ? token1Balance.currency
+          : token0Balance.currency,
+        amountToSwap,
         swapConfig,
         routingConfig
       )
