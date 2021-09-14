@@ -293,7 +293,7 @@ export function getBestSwapRouteBy(
 
     startedSplit = Date.now();
 
-    if (splits >= 3 && bestSwap!.length < (splits - 1)) {
+    if (splits >= 3 && bestSwap && bestSwap.length < (splits - 1)) {
       log.info(
         `Did not improve on route with ${splits - 1} splits. Not checking ${splits} splits.`
       );
