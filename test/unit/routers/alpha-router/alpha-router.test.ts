@@ -106,11 +106,11 @@ describe('alpha router', () => {
         _providerConfig?: ProviderConfig
       ) => {
         const routesWithQuotes = _.map(routes, (r) => {
-          const amountQuotes = _.map(amountIns, (amountIn, idx) => {
+          const amountQuotes = _.map(amountIns, (amountIn) => {
             return {
               amount: amountIn,
               quote: BigNumber.from(
-                amountIn.multiply(idx + 1).quotient.toString()
+                amountIn.quotient.toString()
               ),
               sqrtPriceX96AfterList: [BigNumber.from(1)],
               initializedTicksCrossedList: [1],
@@ -133,11 +133,11 @@ describe('alpha router', () => {
         _providerConfig?: ProviderConfig
       ) => {
         const routesWithQuotes = _.map(routes, (r) => {
-          const amountQuotes = _.map(amountOuts, (amountIn, idx) => {
+          const amountQuotes = _.map(amountOuts, (amountOut) => {
             return {
-              amount: amountIn,
+              amount: amountOut,
               quote: BigNumber.from(
-                amountIn.multiply(idx + 1).quotient.toString()
+                amountOut.quotient.toString()
               ),
               sqrtPriceX96AfterList: [BigNumber.from(1)],
               initializedTicksCrossedList: [1],
