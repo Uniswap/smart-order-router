@@ -19,6 +19,7 @@ import {
   ID_TO_NETWORK_NAME,
   IPoolProvider,
   IRouter,
+  ISwapToRatio,
   LegacyRouter,
   MetricLogger,
   PoolProvider,
@@ -93,6 +94,7 @@ export abstract class BaseCommand extends Command {
 
   private _log: Logger | null = null;
   private _router: IRouter<any> | null = null;
+  private _swapToRatioRouter: ISwapToRatio<any> | null = null;
   private _tokenProvider: ITokenProvider | null = null;
   private _poolProvider: IPoolProvider | null = null;
 
@@ -106,6 +108,10 @@ export abstract class BaseCommand extends Command {
 
   get router() {
     return this._router;
+  }
+
+  get swapToRatioRouter() {
+    return this._swapToRatioRouter;
   }
 
   get tokenProvider() {
@@ -207,7 +213,7 @@ export abstract class BaseCommand extends Command {
         tokenProvider: this.tokenProvider,
       });
     } else {
-      this._router = new AlphaRouter({
+      const router = new AlphaRouter({
         provider,
         chainId,
         subgraphProvider: new CachingSubgraphProvider(
@@ -237,6 +243,8 @@ export abstract class BaseCommand extends Command {
         gasModelFactory: new HeuristicGasModelFactory(),
         tokenProvider: this.tokenProvider,
       });
+
+      this.id == 'quote-to-ratio' ? this._swapToRatioRouter = router : this._router = router
     }
   }
 

@@ -54,7 +54,7 @@ export class QuoteToRatio extends BaseCommand {
     } = flags;
 
     const log = this.logger;
-    const router = this.router;
+    const router = this.swapToRatioRouter;
     const tokenProvider = this.tokenProvider;
 
     if (!router) {

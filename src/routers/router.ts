@@ -55,10 +55,12 @@ export abstract class IRouter<RoutingConfig> {
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
   ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null>;
+}
 
+export abstract class ISwapToRatio<RoutingConfig> {
   abstract routeToRatio(
-    currencyInBalance: CurrencyAmount,
-    currencyOutBalance: CurrencyAmount,
+    token0Balance: CurrencyAmount,
+    token1Balance: CurrencyAmount,
     position: Position,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig

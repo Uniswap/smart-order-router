@@ -1,13 +1,10 @@
-import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
+import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import {
   FeeAmount,
   MethodParameters,
   Pool,
-  Position,
   Route,
-  SqrtPriceMath,
   SwapRouter,
-  TickMath,
   Trade,
 } from '@uniswap/v3-sdk';
 import { BigNumber, logger } from 'ethers';
@@ -35,7 +32,6 @@ import {
   BASES_TO_CHECK_TRADES_AGAINST,
   CUSTOM_BASES,
 } from './bases';
-import JSBI from 'jsbi'
 
 export type LegacyRouterParams = {
   chainId: ChainId;
@@ -184,54 +180,6 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         : undefined,
       blockNumber: BigNumber.from(0),
     };
-  }
-
-  public async routeToRatio(
-    currencyInBalance: CurrencyAmount,
-    currencyOutBalance: CurrencyAmount,
-    position: Position,
-    swapConfig?: SwapConfig,
-    routingConfig?: LegacyRoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-      const currencyIn = currencyInBalance.currency
-      const currencyOut = currencyOutBalance.currency
-      const sqrtPriceX96 = position.pool.sqrtRatioX96
-      const sqrtPriceX96Lower = TickMath.getSqrtRatioAtTick(position.tickLower)
-      const sqrtPriceX96Upper = TickMath.getSqrtRatioAtTick(position.tickUpper)
-
-      const token0Proportion = SqrtPriceMath.getAmount0Delta(
-        sqrtPriceX96,
-        sqrtPriceX96Upper,
-        JSBI.BigInt('100000000'),
-        true
-      )
-      const token1Proportion = SqrtPriceMath.getAmount1Delta(
-        sqrtPriceX96,
-        sqrtPriceX96Lower,
-        JSBI.BigInt('100000000'),
-        true
-      )
-      const zeroForOne = currencyIn.wrapped.address.toLowerCase() < currencyOut.wrapped.address.toLowerCase()
-
-      const optimalRatio = zeroForOne
-        ? new Fraction(token0Proportion, token1Proportion)
-        : new Fraction(token1Proportion, token0Proportion)
-
-      const price = zeroForOne ? position.pool.token0Price : position.pool.token1Price
-
-      // formula: amountToSwap = (tokenInBalance - (optimalRatio * tokenOutBalance)) / ((optimalRatio * price) + 1))
-      const amountToSwapRaw = new Fraction(currencyInBalance.quotient)
-          .subtract(optimalRatio.multiply(currencyOutBalance.quotient))
-          .divide(optimalRatio.multiply(price).add(1))
-      const amountToSwap = CurrencyAmount.fromRawAmount(currencyIn, JSBI.BigInt(amountToSwapRaw.toFixed(0)));
-
-      return this.routeExactIn(
-        currencyIn,
-        currencyOut,
-        amountToSwap,
-        swapConfig,
-        routingConfig
-      )
   }
 
   private async findBestRouteExactIn(
