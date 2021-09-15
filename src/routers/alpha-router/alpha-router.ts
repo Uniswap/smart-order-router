@@ -126,8 +126,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
 
       const { amount0, amount1 } = position.mintAmounts
 
-      console.log(new Fraction(amount0, amount1).toFixed(18).toString())
-
       const amountToSwap = calculateRatioAmountIn(
         new Fraction(amount0, amount1),
         position.pool.token0Price,
