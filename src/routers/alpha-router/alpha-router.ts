@@ -55,6 +55,7 @@ export type AlphaRouterConfig = {
   topNWithBaseToken: number;
   topNWithBaseTokenInSet: boolean;
   maxSwapsPerPath: number;
+  minSplits: number;
   maxSplits: number;
   distributionPercent: number;
 };
@@ -68,7 +69,8 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   topNWithBaseToken: 10,
   topNWithBaseTokenInSet: false,
   maxSwapsPerPath: 3,
-  maxSplits: 3,
+  minSplits: 1,
+  maxSplits: 5,
   distributionPercent: 5,
 };
 
@@ -170,6 +172,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
       routeType: swapType,
       subgraphProvider: this.subgraphProvider,
       routingConfig,
+      chainId: this.chainId,
     });
     const pools = poolAccessor.getAllPools();
 

@@ -10,11 +10,13 @@ import {
 } from '../../../providers/subgraph-provider';
 import {
   DAI,
+  DAI_RINKEBY,
   ITokenProvider,
   USDC,
   USDT,
   WBTC,
 } from '../../../providers/token-provider';
+import { ChainId } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -41,7 +43,13 @@ export type GetCandidatePoolsParams = {
   tokenProvider: ITokenProvider;
   poolProvider: IPoolProvider;
   blockedTokenListProvider?: ITokenListProvider;
+  chainId: ChainId;
 };
+
+const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
+  [ChainId.MAINNET]: [USDC, USDT, WBTC, DAI, WETH9[1]!],
+  [ChainId.RINKEBY]: [DAI_RINKEBY],
+}
 
 export async function getCandidatePools({
   tokenIn,
@@ -52,6 +60,7 @@ export async function getCandidatePools({
   tokenProvider,
   poolProvider,
   blockedTokenListProvider,
+  chainId,
 }: GetCandidatePoolsParams): Promise<{
   poolAccessor: PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
@@ -115,7 +124,7 @@ export async function getCandidatePools({
       .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
   };
 
-  const baseTokens = [USDC, USDT, WBTC, DAI, WETH9[1]!];
+  const baseTokens = baseTokensByChain[chainId] ?? [];
 
   const topByBaseWithTokenIn = _(baseTokens)
     .flatMap((token: Token) => {
@@ -177,7 +186,7 @@ export async function getCandidatePools({
 
   addToAddressSet(top2DirectSwapPool);
 
-  const wethAddress = WETH9[1]!.address;
+  const wethAddress = WETH9[chainId]!.address;
 
   // Main reason we need this is for gas estimates, only needed if token out is not ETH.
   // We don't check the seen address set because if we've already added pools for getting ETH quotes

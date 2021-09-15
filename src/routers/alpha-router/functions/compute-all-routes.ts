@@ -13,6 +13,8 @@ export function computeAllRoutes(
   const poolsUsed = Array<Boolean>(pools.length).fill(false);
   const routes: RouteSOR[] = [];
 
+  log.info({ tokenIn, tokenOut, pools, maxHops }, 'Computing all routes');
+
   const computeRoutes = (
     tokenIn: Token,
     tokenOut: Token,
@@ -41,6 +43,7 @@ export function computeAllRoutes(
       const previousTokenOut = _previousTokenOut ? _previousTokenOut : tokenIn;
 
       if (!curPool.involvesToken(previousTokenOut)) {
+        log.info({ curPool, previousTokenOut }, 'Pool did not involve token');
         continue;
       }
 

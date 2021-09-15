@@ -5,6 +5,7 @@ import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
 import { IUniswapV3PoolState__factory } from '../types/v3';
+import { ChainId } from '../util';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
 import { log } from '../util/log';
 import { poolToString } from '../util/routes';
@@ -52,6 +53,7 @@ export type PoolRetryOptions = AsyncRetry.Options;
 const POOL_ADDRESS_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class PoolProvider implements IPoolProvider {
   constructor(
+    protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,
     protected retryOptions: PoolRetryOptions = {
       retries: 2,
@@ -184,7 +186,7 @@ export class PoolProvider implements IPoolProvider {
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
 
-    const cacheKey = `${token0.address}/${token1.address}/${feeAmount}`;
+    const cacheKey = `${this.chainId}/${token0.address}/${token1.address}/${feeAmount}`;
 
     const cachedAddress = POOL_ADDRESS_CACHE.get<string>(cacheKey);
 

@@ -3,6 +3,7 @@ import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import sinon from 'sinon';
 import {
+  ChainId,
   DAI,
   PoolProvider,
   SubgraphPool,
@@ -40,6 +41,7 @@ describe('get candidate pools', () => {
     topNWithBaseToken: 0,
     topNWithBaseTokenInSet: false,
     maxSwapsPerPath: 3,
+    minSplits: 1,
     maxSplits: 3,
     distributionPercent: 5,
   };
@@ -81,6 +83,7 @@ describe('get candidate pools', () => {
       subgraphProvider: mockSubgraphProvider,
       tokenProvider: mockTokenProvider,
       blockedTokenListProvider: mockBlockTokenListProvider,
+      chainId: ChainId.MAINNET
     });
 
     expect(
@@ -104,6 +107,7 @@ describe('get candidate pools', () => {
       subgraphProvider: mockSubgraphProvider,
       tokenProvider: mockTokenProvider,
       blockedTokenListProvider: mockBlockTokenListProvider,
+      chainId: ChainId.MAINNET
     });
 
     expect(
@@ -127,6 +131,7 @@ describe('get candidate pools', () => {
       subgraphProvider: mockSubgraphProvider,
       tokenProvider: mockTokenProvider,
       blockedTokenListProvider: mockBlockTokenListProvider,
+      chainId: ChainId.MAINNET
     });
 
     expect(

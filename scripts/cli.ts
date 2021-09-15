@@ -79,6 +79,10 @@ export class UniswapSORCLI extends Command {
       required: false,
       default: 3,
     }),
+    minSplits: flags.integer({
+      required: false,
+      default: 1,
+    }),
     maxSplits: flags.integer({
       required: false,
       default: 3,
@@ -126,6 +130,7 @@ export class UniswapSORCLI extends Command {
       topNWithBaseToken,
       topNWithBaseTokenInSet,
       maxSwapsPerPath,
+      minSplits,
       maxSplits,
       distributionPercent,
     } = flags;
@@ -168,7 +173,7 @@ export class UniswapSORCLI extends Command {
     const chainName = ID_TO_NETWORK_NAME(chainIdNumb);
 
     const provider = new ethers.providers.JsonRpcProvider(
-      process.env.JSON_RPC_PROVIDER!,
+      chainId == ChainId.MAINNET ? process.env.JSON_RPC_PROVIDER! : process.env.JSON_RPC_PROVIDER_RINKEBY!,
       chainName
     );
 
@@ -184,10 +189,11 @@ export class UniswapSORCLI extends Command {
         DEFAULT_TOKEN_LIST
       );
     }
-    const multicall2Provider = new UniswapMulticallProvider(provider);
+    const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
 
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
     const tokenProvider = new TokenProviderWithFallback(
+      chainId,
       tokenListProvider,
       tokenProviderOnChain
     );
@@ -206,29 +212,30 @@ export class UniswapSORCLI extends Command {
         ? Ether.onChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
 
-    const multicall = new UniswapMulticallProvider(provider);
+    const multicall = new UniswapMulticallProvider(chainId, provider);
 
     let router: IRouter<any>;
     if (routerStr == 'legacy') {
       router = new LegacyRouter({
         chainId,
         multicall2Provider,
-        poolProvider: new PoolProvider(multicall2Provider),
-        quoteProvider: new QuoteProvider(provider, multicall2Provider),
+        poolProvider: new PoolProvider(chainId, multicall2Provider),
+        quoteProvider: new QuoteProvider(chainId, provider, multicall2Provider),
         tokenProvider,
       });
     } else {
       router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingSubgraphProvider(
-          new SubgraphProvider(undefined, 10000)
+        subgraphProvider: new CachingSubgraphProvider(chainId, 
+          new SubgraphProvider(chainId, undefined, 10000)
         ),
         multicall2Provider: multicall,
-        poolProvider: new CachingPoolProvider(
-          new PoolProvider(multicall2Provider)
+        poolProvider: new CachingPoolProvider(chainId,
+          new PoolProvider(chainId, multicall2Provider)
         ),
         quoteProvider: new QuoteProvider(
+          chainId,
           provider,
           multicall,
           {
@@ -242,7 +249,7 @@ export class UniswapSORCLI extends Command {
             quoteMinSuccessRate: 0.7,
           }
         ),
-        gasPriceProvider: new CachingGasStationProvider(
+        gasPriceProvider: new CachingGasStationProvider(chainId,
           new EIP1559GasPriceProvider(provider)
         ),
         gasModelFactory: new HeuristicGasModelFactory(),
@@ -271,6 +278,7 @@ export class UniswapSORCLI extends Command {
           topNWithBaseToken,
           topNWithBaseTokenInSet,
           maxSwapsPerPath,
+          minSplits,
           maxSplits,
           distributionPercent,
         }
@@ -294,6 +302,7 @@ export class UniswapSORCLI extends Command {
           topNWithBaseToken,
           topNWithBaseTokenInSet,
           maxSwapsPerPath,
+          minSplits,
           maxSplits,
           distributionPercent,
         }

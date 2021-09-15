@@ -4,6 +4,7 @@ import _ from 'lodash';
 import { log } from '../util/log';
 import { ProviderConfig } from './provider';
 import Timeout from 'await-timeout';
+import { ChainId } from '../util/chains';
 
 export interface SubgraphPool {
   id: string;
@@ -42,8 +43,10 @@ export type RawSubgraphPool = {
 export const printSubgraphPool = (s: SubgraphPool) =>
   `${s.token0.symbol}/${s.token1.symbol}/${s.feeTier}`;
 
-const SUBGRAPH_URL =
-  'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3';
+const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+  [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
+  [ChainId.RINKEBY]: 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
+}
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 export interface ISubgraphProvider {
@@ -52,8 +55,12 @@ export interface ISubgraphProvider {
 export class SubgraphProvider implements ISubgraphProvider {
   private client: GraphQLClient;
 
-  constructor(private retries = 2, private timeout = 7000) {
-    this.client = new GraphQLClient(SUBGRAPH_URL);
+  constructor(private chainId: ChainId, private retries = 2, private timeout = 7000) {
+    const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
+    if (!subgraphUrl) {
+      throw new Error(`No subgraph url for chain id: ${this.chainId}`);
+    }
+    this.client = new GraphQLClient(subgraphUrl);
   }
 
   public async getPools(
