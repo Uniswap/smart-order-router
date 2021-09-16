@@ -48,4 +48,4 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
   }
 };
 
-export const CHAIN_IDS_LIST = Object.values(ChainId) as string[];
+export const CHAIN_IDS_LIST = Object.values(ChainId).map(c => c.toString()) as string[];

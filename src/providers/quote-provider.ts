@@ -5,7 +5,7 @@ import _ from 'lodash';
 import stats from 'stats-lite';
 import { RouteSOR } from '../routers/router';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { metric, MetricLoggerUnit } from '../util';
+import { ChainId, metric, MetricLoggerUnit } from '../util';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
@@ -87,8 +87,15 @@ export interface IQuoteProvider {
   ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
+const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
+  [ChainId.MAINNET]: QUOTER_V2_ADDRESS,
+  [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf'
+}
+
 export class QuoteProvider implements IQuoteProvider {
+  protected quoterAddress: string;
   constructor(
+    protected chainId: ChainId,
     protected provider: providers.BaseProvider,
     // Only supports Uniswap Multicall as it needs the gas limitting functionality.
     protected multicall2Provider: UniswapMulticallProvider,
@@ -107,8 +114,16 @@ export class QuoteProvider implements IQuoteProvider {
       multicallChunk: 110,
     },
     protected rollback: boolean = false,
-    protected quoterAddress: string = QUOTER_V2_ADDRESS
-  ) {}
+    protected quoterAddressOverride?: string,
+  ) {
+    const quoterAddress = quoterAddressOverride ? quoterAddressOverride : chainToQuoterAddress[this.chainId];
+
+    if (!quoterAddress) {
+      throw new Error(`No address for Uniswap Multicall Contract on chain id: ${chainId}`);
+    }
+
+    this.quoterAddress = quoterAddress;
+  }
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
@@ -213,8 +228,8 @@ export class QuoteProvider implements IQuoteProvider {
         const [success, failed, pending] = this.partitionQuotes(quoteStates);
 
         log.info(
-          `Starting attempt: ${attemptNumber}. 
-          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending. 
+          `Starting attempt: ${attemptNumber}.
+          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending.
           Gas limit override: ${gasLimitOverride} Block number override: ${await providerConfig.blockNumber}.`
         );
 
@@ -266,7 +281,7 @@ export class QuoteProvider implements IQuoteProvider {
                   inputs,
                   results,
                 } as QuoteBatchSuccess;
-              } catch (err) {
+              } catch (err: any) {
                 // Error from providers have huge messages that include all the calldata and fill the logs.
                 // Catch them and rethrow with shorter message.
                 if (err.message.includes('header not found')) {

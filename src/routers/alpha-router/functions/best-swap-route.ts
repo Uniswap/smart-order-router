@@ -211,7 +211,9 @@ export function getBestSwapRouteBy(
     5
   );
 
-  if (!percentToSortedQuotes[100]) {
+  const { minSplits, maxSplits } = routingConfig;
+
+  if (!percentToSortedQuotes[100] || minSplits > 1) {
     log.info(
       {
         percentToSortedQuotes: _.mapValues(
@@ -300,7 +302,7 @@ export function getBestSwapRouteBy(
       break;
     }
 
-    if (splits > routingConfig.maxSplits) {
+    if (splits > maxSplits) {
       log.info('Max splits reached. Stopping search.');
       metric.putMetric(
         `MaxSplitsHitReached`,
@@ -347,7 +349,7 @@ export function getBestSwapRouteBy(
         const remainingPercentNew = remainingPercent - percentA;
         const curRoutesNew = [ ...curRoutes, routeWithQuoteA ];
 
-        if (remainingPercentNew == 0) {
+        if (remainingPercentNew == 0 && splits >= minSplits) {
           const quotesNew = _.map(curRoutesNew, r => by(r));
           const quoteNew = sum(quotesNew);
 

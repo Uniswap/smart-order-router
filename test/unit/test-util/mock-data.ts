@@ -26,6 +26,7 @@ export const mockRoutingConfig = {
   topNWithBaseToken: 0,
   topNWithBaseTokenInSet: false,
   maxSwapsPerPath: 3,
+  minSplits: 1,
   maxSplits: 4,
   distributionPercent: 5,
 };

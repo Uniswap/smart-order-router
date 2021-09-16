@@ -165,7 +165,7 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
   }
 
   private buildToken(tokenInfo: TokenInfo): Token {
-    const cacheKey = `${this.tokenList.name}/${this.tokenList.timestamp}/${
+    const cacheKey = `${this.chainId}/${this.tokenList.name}/${this.tokenList.timestamp}/${
       this.tokenList.version
     }/${tokenInfo.address.toLowerCase()}/${tokenInfo.decimals}/${
       tokenInfo.symbol

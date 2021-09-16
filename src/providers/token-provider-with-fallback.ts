@@ -1,14 +1,16 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { log } from '../util';
+import { ChainId, log } from '../util';
 import { ITokenProvider, TokenAccessor } from './token-provider';
 
 // Token symbol and decimals never change so can always be cached.
 const TOKEN_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
+const KEY = (chainId: ChainId, address: string) => `${chainId}${address}`;
 
 export class TokenProviderWithFallback implements ITokenProvider {
   constructor(
+    protected chainId: ChainId,
     protected primaryTokenProvider: ITokenProvider,
     protected fallbackTokenProvider: ITokenProvider
   ) {}
@@ -26,10 +28,10 @@ export class TokenProviderWithFallback implements ITokenProvider {
     const addressesToFindInSecondary = [];
 
     for (const address of addresses) {
-      if (TOKEN_CACHE.has(address)) {
-        addressToToken[address.toLowerCase()] = TOKEN_CACHE.get<Token>(address)!;
+      if (TOKEN_CACHE.has(KEY(this.chainId, address))) {
+        addressToToken[address.toLowerCase()] = TOKEN_CACHE.get<Token>(KEY(this.chainId, address))!;
         symbolToToken[addressToToken[address]!.symbol!] =
-          TOKEN_CACHE.get<Token>(address)!;
+          TOKEN_CACHE.get<Token>(KEY(this.chainId, address))!;
       } else {
         addressesToFindInPrimary.push(address);
       }
@@ -55,7 +57,7 @@ export class TokenProviderWithFallback implements ITokenProvider {
         if (token) {
           addressToToken[address.toLowerCase()] = token;
           symbolToToken[addressToToken[address]!.symbol!] = token;
-          TOKEN_CACHE.set<Token>(address.toLowerCase(), addressToToken[address]!);
+          TOKEN_CACHE.set<Token>(KEY(this.chainId, address.toLowerCase()), addressToToken[address]!);
         } else {
           addressesToFindInSecondary.push(address);
         }
@@ -81,7 +83,7 @@ export class TokenProviderWithFallback implements ITokenProvider {
         if (token) {
           addressToToken[address.toLowerCase()] = token;
           symbolToToken[addressToToken[address]!.symbol!] = token;
-          TOKEN_CACHE.set<Token>(address.toLowerCase(), addressToToken[address]!);
+          TOKEN_CACHE.set<Token>(KEY(this.chainId, address.toLowerCase()), addressToToken[address]!);
         }
       }
     }

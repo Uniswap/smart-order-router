@@ -1,14 +1,16 @@
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import NodeCache from 'node-cache';
+import { ChainId } from '../util/chains';
 import { log } from '../util/log';
 import { IPoolProvider, PoolAccessor } from './pool-provider';
 import { ProviderConfig } from './provider';
 
 const POOL_CACHE = new NodeCache({ stdTTL: 900, useClones: false });
+const POOL_KEY = (chainId: ChainId, address: string) => `${chainId}-${address}`;
 
 export class CachingPoolProvider implements IPoolProvider {
-  constructor(protected poolProvider: IPoolProvider) {}
+  constructor(protected chainId: ChainId, protected poolProvider: IPoolProvider) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][], providerConfig: ProviderConfig
@@ -33,7 +35,7 @@ export class CachingPoolProvider implements IPoolProvider {
 
       poolAddressSet.add(poolAddress);
 
-      const cachedPool = POOL_CACHE.get<Pool>(poolAddress);
+      const cachedPool = POOL_CACHE.get<Pool>(POOL_KEY(this.chainId, poolAddress));
       if (cachedPool) {
         poolAddressToPool[poolAddress] = cachedPool;
         continue;
@@ -60,7 +62,7 @@ export class CachingPoolProvider implements IPoolProvider {
         const pool = poolAccessor.getPoolByAddress(address);
         if (pool) {
           poolAddressToPool[address] = pool;
-          POOL_CACHE.set<Pool>(address, pool);
+          POOL_CACHE.set<Pool>(POOL_KEY(this.chainId, address), pool);
         }
       }
     }

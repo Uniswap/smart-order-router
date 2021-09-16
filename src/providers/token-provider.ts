@@ -22,6 +22,8 @@ export type TokenAccessor = {
 // Token symbol and decimals don't change so can be cached indefinitely.
 const TOKEN_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 
+const KEY = (chainId: ChainId, address: string) => `${chainId}-${address}`;
+
 export const USDC = new Token(
   ChainId.MAINNET,
   '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
@@ -51,18 +53,24 @@ export const DAI = new Token(
   'Dai Stablecoin'
 );
 
-for (const token of [USDC, USDT, WBTC, DAI, WETH9[1]!]) {
-  TOKEN_CACHE.set<LocalCacheEntry<Token>>(token.address.toLowerCase(), {
-    blockNumber: 10000000,
-    entry: token,
-  });
-}
+export const DAI_RINKEBY = new Token(ChainId.RINKEBY, '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea', 18, 'DAI', 'DAI');
+export const DAI_RINKEBY_2 = new Token(ChainId.RINKEBY, '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735', 18, 'DAI', 'DAI');
+
 
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) {}
+  ) {
+    if (chainId == ChainId.MAINNET) {
+      for (const token of [USDC, USDT, WBTC, DAI, WETH9[1]!]) {
+        TOKEN_CACHE.set<LocalCacheEntry<Token>>(KEY(this.chainId, token.address.toLowerCase()), {
+          blockNumber: 10000000,
+          entry: token,
+        });
+      }
+    }
+  }
 
   public async getTokens(
     _addresses: string[],
@@ -78,18 +86,18 @@ export class TokenProvider implements ITokenProvider {
     const addressesToFetch = [];
 
     for (const address of addresses) {
-      if (!TOKEN_CACHE.has(address)) {
+      if (!TOKEN_CACHE.has(KEY(this.chainId, address))) {
         addressesToFetch.push(address);
         continue;
       }
 
-      const tokenCacheEntry = TOKEN_CACHE.get<LocalCacheEntry<Token>>(address)!;
+      const tokenCacheEntry = TOKEN_CACHE.get<LocalCacheEntry<Token>>(KEY(this.chainId, address))!;
       if (
         !providerConfig?.blockNumber ||
         tokenCacheEntry.blockNumber > providerConfig?.blockNumber
       ) {
         addressToToken[address.toLowerCase()] =
-          TOKEN_CACHE.get<LocalCacheEntry<Token>>(address)!.entry;
+          TOKEN_CACHE.get<LocalCacheEntry<Token>>(KEY(this.chainId, address))!.entry;
       } else {
         addressesToFetch.push(address);
       }
@@ -164,7 +172,7 @@ export class TokenProvider implements ITokenProvider {
         symbolToToken[symbol.toLowerCase()] =
           addressToToken[address.toLowerCase()]!;
 
-        TOKEN_CACHE.set<LocalCacheEntry<Token>>(address.toLowerCase(), {
+        TOKEN_CACHE.set<LocalCacheEntry<Token>>(KEY(this.chainId, address.toLowerCase()), {
           blockNumber: blockNumber.toNumber(),
           entry: addressToToken[address.toLowerCase()]!,
         });

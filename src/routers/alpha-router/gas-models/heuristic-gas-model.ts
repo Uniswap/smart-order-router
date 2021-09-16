@@ -3,7 +3,7 @@ import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { PoolAccessor } from '../../../providers/pool-provider';
-import { DAI, USDC, USDT } from '../../../providers/token-provider';
+import { DAI, DAI_RINKEBY, DAI_RINKEBY_2, USDC, USDT } from '../../../providers/token-provider';
 import { ChainId, WETH9 } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -21,6 +21,12 @@ const COST_PER_UNINIT_TICK = BigNumber.from(0);
 
 // Constant per pool swap in the route.
 const COST_PER_HOP = BigNumber.from(80000);
+
+
+const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
+  [ChainId.MAINNET]: [DAI, USDC, USDT],
+  [ChainId.RINKEBY]: [DAI_RINKEBY, DAI_RINKEBY_2],
+}
 
 export class HeuristicGasModelFactory extends IGasModelFactory {
   constructor() {
@@ -90,6 +96,8 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       poolAccessor
     );
 
+    const usdToken = usdPool.token0.address == WETH9[chainId]!.address ? usdPool.token1 : usdPool.token0;
+
     const estimateGasCost = (
       routeWithValidQuote: RouteWithValidQuote
     ): {
@@ -110,7 +118,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
         return {
           gasEstimate: gasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
-          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
         };
       }
 
@@ -235,7 +243,13 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     chainId: ChainId,
     poolAccessor: PoolAccessor
   ): Pool {
-    const usdTokens = _.compact([DAI, USDC, USDT]);
+    const usdTokens = usdGasTokensByChain[chainId];
+    
+    if (!usdTokens) {
+      throw new Error(`Could not find a USD token for computing gas costs on ${chainId}`);
+    }
+
+    log.info({ pools: poolAccessor.getAllPools() }, 'Pools');
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .flatMap((feeAmount) => {

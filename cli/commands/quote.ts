@@ -43,6 +43,7 @@ export class Quote extends BaseCommand {
       topNWithBaseToken,
       topNWithBaseTokenInSet,
       maxSwapsPerPath,
+      minSplits,
       maxSplits,
       distributionPercent,
       chainId: chainIdNumb,
@@ -92,6 +93,7 @@ export class Quote extends BaseCommand {
           topNWithBaseToken,
           topNWithBaseTokenInSet,
           maxSwapsPerPath,
+          minSplits,
           maxSplits,
           distributionPercent,
         }
@@ -115,6 +117,7 @@ export class Quote extends BaseCommand {
           topNWithBaseToken,
           topNWithBaseTokenInSet,
           maxSwapsPerPath,
+          minSplits,
           maxSplits,
           distributionPercent,
         }
