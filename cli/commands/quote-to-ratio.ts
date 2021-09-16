@@ -6,7 +6,6 @@ import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import { ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
 import { BaseCommand } from '../base-command';
-import JSBI from 'jsbi'
 
 dotenv.config();
 
@@ -98,7 +97,7 @@ export class QuoteToRatio extends BaseCommand {
       pool,
       tickUpper,
       tickLower,
-      liquidity: JSBI.BigInt('1000000'),
+      liquidity: 1,
     });
 
     let swapRoutes: SwapRoute<any> | null;

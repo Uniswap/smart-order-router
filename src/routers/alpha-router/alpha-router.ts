@@ -5,7 +5,9 @@ import {
   Position,
   Route,
   SwapRouter,
+  TickMath,
   Trade,
+  SqrtPriceMath
 } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
@@ -33,6 +35,7 @@ import {
   getCandidatePools,
 } from './functions/get-candidate-pools';
 import { IGasModelFactory } from './gas-models/gas-model';
+import JSBI from 'jsbi'
 
 export type AlphaRouterParams = {
   chainId: ChainId;
@@ -126,10 +129,27 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
         [token0Balance, token1Balance] = [token1Balance, token0Balance]
       }
 
-      const { amount0, amount1 } = position.mintAmounts
+      const precision = JSBI.BigInt('1' + '0'.repeat(18))
+
+      const sqrtPriceX96 = position.pool.sqrtRatioX96
+      const sqrtPriceX96Lower = TickMath.getSqrtRatioAtTick(position.tickLower)
+      const sqrtPriceX96Upper = TickMath.getSqrtRatioAtTick(position.tickUpper)
+
+      const token0Proportion = SqrtPriceMath.getAmount0Delta(
+        sqrtPriceX96,
+        sqrtPriceX96Upper,
+        precision,
+        true
+      )
+      const token1Proportion = SqrtPriceMath.getAmount1Delta(
+        sqrtPriceX96,
+        sqrtPriceX96Lower,
+        precision,
+        true
+      )
 
       const amountToSwap = calculateRatioAmountIn(
-        new Fraction(amount0, amount1),
+        new Fraction(token0Proportion, token1Proportion),
         position.pool.token0Price,
         token0Balance,
         token1Balance,
