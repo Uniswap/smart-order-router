@@ -25,7 +25,7 @@ import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { IRouter, SwapConfig, SwapRoute } from '../router';
+import { IRouter, ISwapToRatio, SwapConfig, SwapRoute } from '../router';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { computeAllRoutes } from './functions/compute-all-routes';
@@ -79,7 +79,7 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   distributionPercent: 5,
 };
 
-export class AlphaRouter implements IRouter<AlphaRouterConfig> {
+export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig> {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
   protected multicall2Provider: IMulticallProvider;

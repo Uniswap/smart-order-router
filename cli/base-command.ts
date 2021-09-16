@@ -256,10 +256,9 @@ export abstract class BaseCommand extends Command {
         tokenProvider: this.tokenProvider,
       });
 
-      this.id == 'quote-to-ratio'
-        ? (this._swapToRatioRouter = router)
-        : (this._router = router);
-      }
+      this._swapToRatioRouter = router;
+      this._router = router;
+    }
   }
 
   logSwapResults(
