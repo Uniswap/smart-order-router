@@ -44,6 +44,7 @@ Value: 0x00
 
 
 ./bin/cli quote-to-ratio --token0 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48 --token1 0xdac17f958d2ee523a2206206994597c13d831ec7 --feeAmount 3000 --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B  --token0Balance 1000 --token1Balance 2000 --tickLower -120 --tickUpper 120
+
 Best Route:
 100.00% = USDT -- 0.05% --> USDC
 Raw Quote Exact In:
