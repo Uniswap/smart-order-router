@@ -119,6 +119,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
+    errorTolerance: Fraction,
     swapConfig?: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
@@ -147,23 +148,61 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         precision,
         true
       )
+      let optimalRatio = new Fraction(token0Proportion, token1Proportion)
 
-      const amountToSwap = calculateRatioAmountIn(
-        new Fraction(token0Proportion, token1Proportion),
-        position.pool.token0Price,
-        token0Balance,
-        token1Balance,
-      )
+      const zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(optimalRatio)
+      if (!zeroForOne) {
+        optimalRatio = optimalRatio.invert()
+      }
 
-      return this.routeExactIn(
-        amountToSwap.currency,
-        amountToSwap.currency == token0Balance.currency
-          ? token1Balance.currency
-          : token0Balance.currency,
-        amountToSwap,
-        swapConfig,
-        routingConfig
-      )
+      const [inputBalance, outputBalance] = zeroForOne
+        ? [token0Balance, token1Balance]
+        : [token1Balance, token0Balance]
+
+
+      let exchangeRate: Fraction = zeroForOne ? position.pool.token0Price : position.pool.token1Price
+      let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null
+      let ratioAchieved = false
+
+      while (!ratioAchieved) {
+        let amountToSwap = calculateRatioAmountIn(
+          optimalRatio,
+          exchangeRate,
+          inputBalance,
+          outputBalance,
+        )
+
+        swap = await this.routeExactIn(
+          inputBalance.currency,
+          outputBalance.currency,
+          amountToSwap,
+          swapConfig,
+          routingConfig
+        )
+        if (!swap) {
+          throw('did not fetch swap')
+        }
+
+        let inputBalanceUpdated = inputBalance.subtract(swap.trade.inputAmount)
+        let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount)
+        let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated)
+
+        console.log('\n\n\exchangeRate', exchangeRate.asFraction.toFixed(6))
+        console.log('inputBalance', inputBalance.toFixed(6))
+        console.log('outputBalance', outputBalance.toFixed(6))
+        console.log('amountToSwap', amountToSwap.toFixed(6))
+        console.log('inputAmount', swap.trade.inputAmount.toFixed(6))
+        console.log('outputAmount', swap.trade.outputAmount.toFixed(6))
+        console.log('inputBalanceUpdated', inputBalanceUpdated.toFixed(6))
+        console.log('outputBalanceUpdated',  outputBalanceUpdated.toFixed(6))
+        console.log('optimalRatio', optimalRatio.toFixed(6))
+        console.log('newRatio    ', newRatio.asFraction.toFixed(6))
+
+        ratioAchieved = newRatio.asFraction.divide(optimalRatio).subtract(1).lessThan(errorTolerance)
+        exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
+      }
+
+      return swap
   }
 
   public async routeExactIn(

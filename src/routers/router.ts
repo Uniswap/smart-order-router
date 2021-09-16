@@ -1,4 +1,4 @@
-import { Currency, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { Currency, Fraction, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { MethodParameters, Position, Route as RouteRaw, Trade} from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
@@ -62,6 +62,7 @@ export abstract class ISwapToRatio<RoutingConfig> {
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
+    errorTolerance: Fraction,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null>;
