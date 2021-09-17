@@ -1,11 +1,12 @@
 /// <reference types="./types/bunyan-debug-stream" />
 import { Command, flags } from '@oclif/command';
+import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { Currency, Ether, Percent } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
+import { MethodParameters } from '@uniswap/v3-sdk';
 import { default as bunyan, default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
-import dotenv from 'dotenv';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import {
   AlphaRouter,
   CachingGasStationProvider,
@@ -17,40 +18,27 @@ import {
   HeuristicGasModelFactory,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
+  IPoolProvider,
   IRouter,
+  ISwapToRatio,
+  ITokenProvider,
   LegacyRouter,
   MetricLogger,
-  parseAmount,
   PoolProvider,
   QuoteProvider,
   routeAmountsToString,
+  RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
   SubgraphProvider,
-  SwapRoute,
   TokenListProvider,
   TokenProvider,
   TokenProviderWithFallback,
   UniswapMulticallProvider,
 } from '../src';
 
-dotenv.config();
-
-ethers.utils.Logger.globalLogger();
-ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.DEBUG);
-
-export class UniswapSORCLI extends Command {
-  static description = 'Uniswap Smart Order Router CLI';
-
+export abstract class BaseCommand extends Command {
   static flags = {
-    version: flags.version({ char: 'v' }),
-    help: flags.help({ char: 'h' }),
-    tokenIn: flags.string({ char: 'i', required: true }),
-    tokenOut: flags.string({ char: 'o', required: true }),
-    recipient: flags.string({ required: true }),
-    amount: flags.string({ char: 'a', required: true }),
-    exactIn: flags.boolean({ required: false }),
-    exactOut: flags.boolean({ required: false }),
     topN: flags.integer({
       required: false,
       default: 3,
@@ -91,11 +79,6 @@ export class UniswapSORCLI extends Command {
       required: false,
       default: 5,
     }),
-    router: flags.string({
-      char: 's',
-      required: false,
-      default: 'alpha',
-    }),
     chainId: flags.integer({
       char: 'c',
       required: false,
@@ -105,42 +88,74 @@ export class UniswapSORCLI extends Command {
     tokenListURI: flags.string({
       required: false,
     }),
+    router: flags.string({
+      char: 's',
+      required: false,
+      default: 'alpha',
+    }),
     debug: flags.boolean(),
     debugJSON: flags.boolean(),
   };
 
-  async run() {
-    const { flags } = this.parse(UniswapSORCLI);
+  private _log: Logger | null = null;
+  private _router: IRouter<any> | null = null;
+  private _swapToRatioRouter: ISwapToRatio<any> | null = null;
+  private _tokenProvider: ITokenProvider | null = null;
+  private _poolProvider: IPoolProvider | null = null;
+
+  get logger() {
+    return this._log
+      ? this._log
+      : bunyan.createLogger({
+          name: 'Default Logger',
+        });
+  }
+
+  get router() {
+    if (this._router) {
+      return this._router;
+    } else {
+      throw 'router not initialized';
+    }
+  }
+
+  get swapToRatioRouter() {
+    if (this._swapToRatioRouter) {
+      return this._swapToRatioRouter;
+    } else {
+      throw 'swapToRatioRouter not initialized';
+    }
+  }
+
+  get tokenProvider() {
+    if (this._tokenProvider) {
+      return this._tokenProvider;
+    } else {
+      throw 'tokenProvider not initialized';
+    }
+  }
+
+  get poolProvider() {
+    if (this._poolProvider) {
+      return this._poolProvider;
+    } else {
+      throw 'poolProvider not initialized';
+    }
+  }
+
+  async init() {
+    const query: ParserOutput<any, any> = this.parse();
     const {
-      tokenIn: tokenInStr,
-      tokenOut: tokenOutStr,
       chainId: chainIdNumb,
       router: routerStr,
-      amount: amountStr,
-      exactIn,
-      exactOut,
-      recipient,
-      tokenListURI,
       debug,
       debugJSON,
-      topN,
-      topNTokenInOut,
-      topNSecondHop,
-      topNWithEachBaseToken,
-      topNWithBaseToken,
-      topNWithBaseTokenInSet,
-      maxSwapsPerPath,
-      minSplits,
-      maxSplits,
-      distributionPercent,
-    } = flags;
+      tokenListURI,
+    } = query.flags;
 
-    if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
-      throw new Error('Must set either --exactIn or --exactOut.');
-    }
-
+    // initialize logger
     const logLevel = debug || debugJSON ? bunyan.DEBUG : bunyan.INFO;
-    const log: Logger = bunyan.createLogger({
+    this._log = bunyan.createLogger({
       name: 'Uniswap Smart Order Router',
       serializers: bunyan.stdSerializers,
       level: logLevel,
@@ -163,7 +178,7 @@ export class UniswapSORCLI extends Command {
     });
 
     if (debug || debugJSON) {
-      setGlobalLogger(log);
+      setGlobalLogger(this.logger);
     }
 
     const metricLogger: MetricLogger = new MetricLogger();
@@ -189,55 +204,41 @@ export class UniswapSORCLI extends Command {
         DEFAULT_TOKEN_LIST
       );
     }
-    const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
 
+    const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
+    this._poolProvider = new PoolProvider(chainId, multicall2Provider);
+
+    // initialize tokenProvider
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
-    const tokenProvider = new TokenProviderWithFallback(
+    this._tokenProvider = new TokenProviderWithFallback(
       chainId,
       tokenListProvider,
       tokenProviderOnChain
     );
 
-    const tokenAccessor = await tokenProvider.getTokens([
-      tokenInStr,
-      tokenOutStr,
-    ]);
-
-    const tokenIn: Currency =
-      tokenInStr == 'ETH'
-        ? Ether.onChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenInStr)!;
-    const tokenOut: Currency =
-      tokenOutStr == 'ETH'
-        ? Ether.onChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenOutStr)!;
-
-    const multicall = new UniswapMulticallProvider(chainId, provider);
-
-    let router: IRouter<any>;
     if (routerStr == 'legacy') {
-      router = new LegacyRouter({
+      this._router = new LegacyRouter({
         chainId,
         multicall2Provider,
         poolProvider: new PoolProvider(chainId, multicall2Provider),
         quoteProvider: new QuoteProvider(chainId, provider, multicall2Provider),
-        tokenProvider,
+        tokenProvider: this.tokenProvider,
       });
     } else {
-      router = new AlphaRouter({
+      const router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingSubgraphProvider(chainId, 
+        subgraphProvider: new CachingSubgraphProvider(chainId,
           new SubgraphProvider(chainId, undefined, 10000)
         ),
-        multicall2Provider: multicall,
+        multicall2Provider: multicall2Provider,
         poolProvider: new CachingPoolProvider(chainId,
           new PoolProvider(chainId, multicall2Provider)
         ),
         quoteProvider: new QuoteProvider(
           chainId,
           provider,
-          multicall,
+          multicall2Provider,
           {
             retries: 2,
             minTimeout: 25,
@@ -253,95 +254,40 @@ export class UniswapSORCLI extends Command {
           new EIP1559GasPriceProvider(provider)
         ),
         gasModelFactory: new HeuristicGasModelFactory(),
-        tokenProvider: tokenProvider,
+        tokenProvider: this.tokenProvider,
       });
+
+      this._swapToRatioRouter = router;
+      this._router = router;
     }
+  }
 
-    let swapRoutes: SwapRoute<any> | null;
-    if (exactIn) {
-      const amountIn = parseAmount(amountStr, tokenIn);
-      //const amountIn = CurrencyAmount.fromRawAmount(tokenIn, amountStr);
-      swapRoutes = await router.routeExactIn(
-        tokenIn,
-        tokenOut,
-        amountIn,
-        {
-          deadline: 100,
-          recipient,
-          slippageTolerance: new Percent(5, 10_000),
-        },
-        {
-          topN,
-          topNTokenInOut,
-          topNSecondHop,
-          topNWithEachBaseToken,
-          topNWithBaseToken,
-          topNWithBaseTokenInSet,
-          maxSwapsPerPath,
-          minSplits,
-          maxSplits,
-          distributionPercent,
-        }
-      );
-    } else {
-      const amountOut = parseAmount(amountStr, tokenOut);
-      swapRoutes = await router.routeExactOut(
-        tokenIn,
-        tokenOut,
-        amountOut,
-        {
-          deadline: 100,
-          recipient,
-          slippageTolerance: new Percent(5, 10_000),
-        },
-        {
-          topN,
-          topNTokenInOut,
-          topNSecondHop,
-          topNWithEachBaseToken,
-          topNWithBaseToken,
-          topNWithBaseTokenInSet,
-          maxSwapsPerPath,
-          minSplits,
-          maxSplits,
-          distributionPercent,
-        }
-      );
-    }
+  logSwapResults(
+    routeAmounts: RouteWithValidQuote[],
+    quote: CurrencyAmount<Currency>,
+    quoteGasAdjusted: CurrencyAmount<Currency>,
+    estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
+    estimatedGasUsedUSD: CurrencyAmount<Currency>,
+    methodParameters: MethodParameters | undefined,
+    blockNumber: BigNumber,
+    estimatedGasUsed: BigNumber,
+    gasPriceWei: BigNumber
+  ) {
+    this.logger.info(`Best Route:`);
+    this.logger.info(`${routeAmountsToString(routeAmounts)}`);
 
-    if (!swapRoutes) {
-      log.error(
-        `Could not find route. ${
-          debug ? '' : 'Run in debug mode for more info'
-        }.`
-      );
-      return;
-    }
-
-    const {
-      blockNumber,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD,
-      gasPriceWei,
-      methodParameters,
-      quote,
-      quoteGasAdjusted,
-      route: routeAmounts,
-    } = swapRoutes;
-    log.info(`Best Route:`);
-    log.info(`${routeAmountsToString(routeAmounts)}`);
-
-    log.info(`\tRaw Quote ${exactIn ? 'Out' : 'In'}:`);
-    log.info(`\t\t${quote.toFixed(2)}`);
-    log.info(`\tGas Adjusted Quote ${exactIn ? 'Out' : 'In'}:`);
-    log.info(`\t\t${quoteGasAdjusted.toFixed(2)}`);
-    log.info(``);
-    log.info(`Gas Used Quote Token: ${estimatedGasUsedQuoteToken.toFixed(6)}`);
-    log.info(`Gas Used USD: ${estimatedGasUsedUSD.toFixed(6)}`);
-    log.info(`Calldata: ${methodParameters?.calldata}`);
-    log.info(`Value: ${methodParameters?.value}`);
-    log.info({
+    this.logger.info(`\tRaw Quote Exact In:`);
+    this.logger.info(`\t\t${quote.toFixed(2)}`);
+    this.logger.info(`\tGas Adjusted Quote In}:`);
+    this.logger.info(`\t\t${quoteGasAdjusted.toFixed(2)}`);
+    this.logger.info(``);
+    this.logger.info(
+      `Gas Used Quote Token: ${estimatedGasUsedQuoteToken.toFixed(6)}`
+    );
+    this.logger.info(`Gas Used USD: ${estimatedGasUsedUSD.toFixed(6)}`);
+    this.logger.info(`Calldata: ${methodParameters?.calldata}`);
+    this.logger.info(`Value: ${methodParameters?.value}`);
+    this.logger.info({
       blockNumber: blockNumber.toString(),
       estimatedGasUsed: estimatedGasUsed.toString(),
       gasPriceWei: gasPriceWei.toString(),

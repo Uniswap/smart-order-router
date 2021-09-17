@@ -117,7 +117,7 @@ export class QuoteProvider implements IQuoteProvider {
     protected quoterAddressOverride?: string,
   ) {
     const quoterAddress = quoterAddressOverride ? quoterAddressOverride : chainToQuoterAddress[this.chainId];
-    
+
     if (!quoterAddress) {
       throw new Error(`No address for Uniswap Multicall Contract on chain id: ${chainId}`);
     }
@@ -228,8 +228,8 @@ export class QuoteProvider implements IQuoteProvider {
         const [success, failed, pending] = this.partitionQuotes(quoteStates);
 
         log.info(
-          `Starting attempt: ${attemptNumber}. 
-          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending. 
+          `Starting attempt: ${attemptNumber}.
+          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending.
           Gas limit override: ${gasLimitOverride} Block number override: ${await providerConfig.blockNumber}.`
         );
 
@@ -281,7 +281,7 @@ export class QuoteProvider implements IQuoteProvider {
                   inputs,
                   results,
                 } as QuoteBatchSuccess;
-              } catch (err) {
+              } catch (err: any) {
                 // Error from providers have huge messages that include all the calldata and fill the logs.
                 // Catch them and rethrow with shorter message.
                 if (err.message.includes('header not found')) {

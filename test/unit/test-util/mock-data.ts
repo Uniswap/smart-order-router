@@ -73,6 +73,15 @@ export const USDC_DAI_MEDIUM = new Pool(
   8,
   0
 );
+export const USDC_USDT_MEDIUM = new Pool(
+  USDC,
+  USDT,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
 export const DAI_USDT_LOW = new Pool(
   DAI,
   USDT,

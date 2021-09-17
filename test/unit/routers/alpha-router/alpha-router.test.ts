@@ -1,5 +1,5 @@
 import { Fraction, Percent } from '@uniswap/sdk-core';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool, Position } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -12,6 +12,7 @@ import {
   ETHGasStationInfoProvider,
   HeuristicGasModelFactory,
   Multicall2Provider,
+  parseAmount,
   PoolProvider,
   QuoteProvider,
   RouteSOR,
@@ -30,12 +31,14 @@ import {
   buildMockPoolAccessor,
   buildMockTokenAccessor,
   DAI_USDT_LOW,
+  DAI_USDT_MEDIUM,
   mockBlock,
   mockBlockBN,
   mockGasPriceWeiBN,
   poolToSubgraphPool,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
+  USDC_USDT_MEDIUM,
   USDC_WETH_LOW,
   WETH9_USDT_LOW,
 } from '../../test-util/mock-data';
@@ -84,6 +87,7 @@ describe('alpha router', () => {
       USDC_WETH_LOW,
       WETH9_USDT_LOW,
       DAI_USDT_LOW,
+      USDC_USDT_MEDIUM,
     ];
     mockPoolProvider.getPools.resolves(buildMockPoolAccessor(mockPools));
     mockPoolProvider.getPoolAddress.callsFake((tA, tB, fee) => ({
@@ -400,4 +404,130 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
   });
+
+  describe('to ratio', () => {
+    describe('when token0Balance has excess tokens', () => {
+      test('calls routeExactIn with correct parameters', async () => {
+        const token0Balance = parseAmount('20', USDT);
+        const token1Balance = parseAmount('5', USDC);
+
+        const position = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+        await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          undefined,
+          ROUTING_CONFIG
+        );
+
+        const exactAmountInBalance = parseAmount('7.5', USDT)
+
+        const exactInputParameters = spy.firstCall.args
+        expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+        expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+      })
+    })
+
+    describe('when token1Balance has excess tokens', () => {
+      test('calls routeExactIn with correct parameters', async () => {
+        const token0Balance = parseAmount('5', USDT);
+        const token1Balance = parseAmount('20', USDC);
+
+        const position = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+        await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          undefined,
+          ROUTING_CONFIG
+        );
+
+        const exactAmountInBalance = parseAmount('7.5', USDC)
+
+        const exactInputParameters = spy.firstCall.args
+        expect(exactInputParameters[0]).toEqual(token1Balance.currency)
+        expect(exactInputParameters[1]).toEqual(token0Balance.currency)
+        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+      })
+    })
+
+    describe('when token0 has more decimal places than token1', () => {
+      test('calls routeExactIn with correct parameters', async () => {
+        const token0Balance = parseAmount('20', DAI);
+        const token1Balance = parseAmount('5' + '0'.repeat(12), USDT);
+
+        const position = new Position({
+          pool: DAI_USDT_MEDIUM,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+        await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          undefined,
+          ROUTING_CONFIG
+        );
+
+        const exactAmountInBalance = parseAmount('7.5', DAI)
+
+        const exactInputParameters = spy.firstCall.args
+        expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+        expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+      })
+    })
+
+    describe('when token1 has more decimal places than token0', () => {
+      test('calls routeExactIn with correct parameters', async () => {
+        const token0Balance = parseAmount('20' + '0'.repeat(12), USDC);
+        const token1Balance = parseAmount('5', WETH9[1]);
+
+        const position = new Position({
+          pool: USDC_WETH_LOW,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+        await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          undefined,
+          ROUTING_CONFIG
+        );
+
+        const exactAmountInBalance = parseAmount('7500000000000', USDC)
+
+        const exactInputParameters = spy.firstCall.args
+        expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+        expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+      })
+    })
+  })
 });

@@ -12,6 +12,5 @@ if (dev) {
   });
 }
 
-require(`../scripts/cli`)
-  .UniswapSORCLI.run()
-  .catch(require("@oclif/errors/handle"));
+require('@oclif/command').run()
+  .catch(require('@oclif/errors/handle'))

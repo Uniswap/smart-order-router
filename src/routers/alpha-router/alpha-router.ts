@@ -2,9 +2,12 @@ import { Currency, Fraction, TradeType } from '@uniswap/sdk-core';
 import {
   MethodParameters,
   Pool,
+  Position,
   Route,
   SwapRouter,
+  TickMath,
   Trade,
+  SqrtPriceMath
 } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
@@ -22,15 +25,17 @@ import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { IRouter, SwapConfig, SwapRoute } from '../router';
+import { IRouter, ISwapToRatio, SwapConfig, SwapRoute } from '../router';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { computeAllRoutes } from './functions/compute-all-routes';
+import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
   CandidatePoolsBySelectionCriteria,
   getCandidatePools,
 } from './functions/get-candidate-pools';
 import { IGasModelFactory } from './gas-models/gas-model';
+import JSBI from 'jsbi'
 
 export type AlphaRouterParams = {
   chainId: ChainId;
@@ -74,7 +79,7 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   distributionPercent: 5,
 };
 
-export class AlphaRouter implements IRouter<AlphaRouterConfig> {
+export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig> {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
   protected multicall2Provider: IMulticallProvider;
@@ -108,6 +113,57 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig> {
     this.subgraphProvider = subgraphProvider;
     this.gasPriceProvider = gasPriceProvider;
     this.gasModelFactory = gasModelFactory;
+  }
+
+  public async routeToRatio(
+    token0Balance: CurrencyAmount,
+    token1Balance: CurrencyAmount,
+    position: Position,
+    swapConfig?: SwapConfig,
+    routingConfig = DEFAULT_CONFIG
+  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
+      if (
+        token0Balance.currency.wrapped.address.toLowerCase()
+        > token1Balance.currency.wrapped.address.toLowerCase()
+      ) {
+        [token0Balance, token1Balance] = [token1Balance, token0Balance]
+      }
+
+      const precision = JSBI.BigInt('1' + '0'.repeat(18))
+
+      const sqrtPriceX96 = position.pool.sqrtRatioX96
+      const sqrtPriceX96Lower = TickMath.getSqrtRatioAtTick(position.tickLower)
+      const sqrtPriceX96Upper = TickMath.getSqrtRatioAtTick(position.tickUpper)
+
+      const token0Proportion = SqrtPriceMath.getAmount0Delta(
+        sqrtPriceX96,
+        sqrtPriceX96Upper,
+        precision,
+        true
+      )
+      const token1Proportion = SqrtPriceMath.getAmount1Delta(
+        sqrtPriceX96,
+        sqrtPriceX96Lower,
+        precision,
+        true
+      )
+
+      const amountToSwap = calculateRatioAmountIn(
+        new Fraction(token0Proportion, token1Proportion),
+        position.pool.token0Price,
+        token0Balance,
+        token1Balance,
+      )
+
+      return this.routeExactIn(
+        amountToSwap.currency,
+        amountToSwap.currency == token0Balance.currency
+          ? token1Balance.currency
+          : token0Balance.currency,
+        amountToSwap,
+        swapConfig,
+        routingConfig
+      )
   }
 
   public async routeExactIn(
