@@ -1,4 +1,3 @@
-/// <reference types="./types/bunyan-debug-stream" />
 import { flags } from '@oclif/command';
 import { Currency, Ether, Percent } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';

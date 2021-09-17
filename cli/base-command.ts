@@ -1,3 +1,4 @@
+/// <reference types="./types/bunyan-debug-stream" />
 import { Command, flags } from '@oclif/command';
 import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
