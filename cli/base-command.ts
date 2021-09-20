@@ -2,11 +2,12 @@
 import { Command, flags } from '@oclif/command';
 import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
-import { MethodParameters } from '@uniswap/v3-sdk';
+import { MethodParameters, Pool } from '@uniswap/v3-sdk';
+import { BigNumber, ethers } from 'ethers';
+import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
 import { default as bunyan, default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
-import { BigNumber, ethers } from 'ethers';
+import NodeCache from 'node-cache';
 import {
   AlphaRouter,
   CachingGasStationProvider,
@@ -30,11 +31,14 @@ import {
   RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
-  SubgraphProvider,
-  TokenListProvider,
   TokenProvider,
-  TokenProviderWithFallback,
+  CachingTokenListProvider,
   UniswapMulticallProvider,
+  NodeJSCache,
+  SubgraphPool,
+  GasPrice,
+  CachingTokenProviderWithFallback,
+  URISubgraphProvider,
 } from '../src';
 
 export abstract class BaseCommand extends Command {
@@ -191,17 +195,21 @@ export abstract class BaseCommand extends Command {
       chainId == ChainId.MAINNET ? process.env.JSON_RPC_PROVIDER! : process.env.JSON_RPC_PROVIDER_RINKEBY!,
       chainName
     );
+    
+    const tokenCache = new NodeJSCache<Token>(new NodeCache({ stdTTL: 3600, useClones: false }));
 
-    let tokenListProvider: TokenListProvider;
+    let tokenListProvider: CachingTokenListProvider;
     if (tokenListURI) {
-      tokenListProvider = await TokenListProvider.fromTokenListURI(
+      tokenListProvider = await CachingTokenListProvider.fromTokenListURI(
         chainId,
-        tokenListURI
+        tokenListURI,
+        tokenCache
       );
     } else {
-      tokenListProvider = await TokenListProvider.fromTokenList(
+      tokenListProvider = await CachingTokenListProvider.fromTokenList(
         chainId,
-        DEFAULT_TOKEN_LIST
+        DEFAULT_TOKEN_LIST,
+        tokenCache
       );
     }
 
@@ -210,8 +218,9 @@ export abstract class BaseCommand extends Command {
 
     // initialize tokenProvider
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
-    this._tokenProvider = new TokenProviderWithFallback(
+    this._tokenProvider = new CachingTokenProviderWithFallback(
       chainId,
+      tokenCache,
       tokenListProvider,
       tokenProviderOnChain
     );
@@ -225,15 +234,21 @@ export abstract class BaseCommand extends Command {
         tokenProvider: this.tokenProvider,
       });
     } else {
+      const subgraphCache = new NodeJSCache<SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
+      const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: true }));
+      const gasPriceCache = new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15, useClones: true }));
+      
       const router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingSubgraphProvider(chainId,
-          new SubgraphProvider(chainId, undefined, 10000)
+        subgraphProvider: new CachingSubgraphProvider(chainId, 
+          new URISubgraphProvider(chainId, 'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'),
+          subgraphCache
         ),
         multicall2Provider: multicall2Provider,
         poolProvider: new CachingPoolProvider(chainId,
-          new PoolProvider(chainId, multicall2Provider)
+          new PoolProvider(chainId, multicall2Provider),
+          poolCache
         ),
         quoteProvider: new QuoteProvider(
           chainId,
@@ -251,7 +266,8 @@ export abstract class BaseCommand extends Command {
           }
         ),
         gasPriceProvider: new CachingGasStationProvider(chainId,
-          new EIP1559GasPriceProvider(provider)
+          new EIP1559GasPriceProvider(provider),
+          gasPriceCache
         ),
         gasModelFactory: new HeuristicGasModelFactory(),
         tokenProvider: this.tokenProvider,

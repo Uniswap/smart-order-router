@@ -3,7 +3,6 @@ import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import { default as AsyncRetry, default as retry } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
-import NodeCache from 'node-cache';
 import { IUniswapV3PoolState__factory } from '../types/v3';
 import { ChainId } from '../util';
 import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
@@ -48,10 +47,11 @@ export type PoolAccessor = {
 
 export type PoolRetryOptions = AsyncRetry.Options;
 
-// Computing pool addresses is slow as it requires hashing, encoding etc.
-// Addresses never change so can always be cached.
-const POOL_ADDRESS_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
 export class PoolProvider implements IPoolProvider {
+  // Computing pool addresses is slow as it requires hashing, encoding etc.
+  // Addresses never change so can always be cached.
+  private POOL_ADDRESS_CACHE: { [key: string]: string } = {};
+
   constructor(
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,
@@ -59,7 +59,7 @@ export class PoolProvider implements IPoolProvider {
       retries: 2,
       minTimeout: 50,
       maxTimeout: 500,
-    }
+    },
   ) {}
 
   public async getPools(
@@ -188,7 +188,7 @@ export class PoolProvider implements IPoolProvider {
 
     const cacheKey = `${this.chainId}/${token0.address}/${token1.address}/${feeAmount}`;
 
-    const cachedAddress = POOL_ADDRESS_CACHE.get<string>(cacheKey);
+    const cachedAddress = this.POOL_ADDRESS_CACHE[cacheKey];
 
     if (cachedAddress) {
       return { poolAddress: cachedAddress, token0, token1 };
@@ -201,7 +201,7 @@ export class PoolProvider implements IPoolProvider {
       fee: feeAmount,
     });
 
-    POOL_ADDRESS_CACHE.set<string>(cacheKey, poolAddress);
+    this.POOL_ADDRESS_CACHE[cacheKey] = poolAddress;
 
     return { poolAddress, token0, token1 };
   }

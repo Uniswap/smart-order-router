@@ -20,19 +20,20 @@ export type FeeHistoryResponse = {
 // We get the Xth percentile of priority fees for transactions successfully included in previous blocks.
 const DEFAULT_PRIORITY_FEE_PERCENTILE = 50;
 // Infura docs say only past 4 blocks guaranteed to be available: https://infura.io/docs/ethereum#operation/eth_feeHistory
-const BLOCKS_TO_LOOK_BACK = 4;
+const DEFAULT_BLOCKS_TO_LOOK_BACK = 4;
 
 export class EIP1559GasPriceProvider extends IGasPriceProvider {
   constructor(
     protected provider: providers.JsonRpcProvider,
-    private priorityFeePercentile: number = DEFAULT_PRIORITY_FEE_PERCENTILE
+    private priorityFeePercentile: number = DEFAULT_PRIORITY_FEE_PERCENTILE,
+    private blocksToConsider: number = DEFAULT_BLOCKS_TO_LOOK_BACK,
   ) {
     super();
   }
 
   public async getGasPrice(): Promise<GasPrice> {
     const feeHistoryRaw = (await this.provider.send('eth_feeHistory', [
-      BLOCKS_TO_LOOK_BACK.toString(),
+      this.blocksToConsider.toString(),
       'latest',
       [this.priorityFeePercentile],
     ])) as RawFeeHistoryResponse;
@@ -57,22 +58,21 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
 
     log.info(
       {
-        feeHistoryRaw,
         feeHistory,
         feeHistoryReadable: {
           baseFeePerGas: _.map(feeHistory.baseFeePerGas, (f) => f.toString()),
           oldestBlock: feeHistory.oldestBlock.toString(),
           reward: _.map(feeHistory.reward, (r) => r.toString()),
         },
-        nextBlockBaseFeePerGas,
-        averagePriorityFeePerGas,
+        nextBlockBaseFeePerGas: nextBlockBaseFeePerGas.toString(),
+        averagePriorityFeePerGas: averagePriorityFeePerGas.toString(),
       },
       'Got fee history from provider and computed gas estimate'
     );
 
     const gasPriceWei = nextBlockBaseFeePerGas.add(averagePriorityFeePerGas);
 
-    const blockNumber = feeHistory.oldestBlock.add(BLOCKS_TO_LOOK_BACK);
+    const blockNumber = feeHistory.oldestBlock.add(this.blocksToConsider);
 
     log.info(
       `Estimated gas price in wei: ${gasPriceWei} as of block ${blockNumber.toString()}`

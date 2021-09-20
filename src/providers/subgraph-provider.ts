@@ -52,6 +52,7 @@ const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 export interface ISubgraphProvider {
   getPools(providerConfig?: ProviderConfig): Promise<SubgraphPool[]>;
 }
+
 export class SubgraphProvider implements ISubgraphProvider {
   private client: GraphQLClient;
 

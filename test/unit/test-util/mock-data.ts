@@ -1,15 +1,16 @@
 import { Token } from '@uniswap/sdk-core';
+import { TokenList } from '@uniswap/token-lists';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import {
-  DAI,
+  DAI_MAINNET as DAI,
   PoolAccessor,
   SubgraphPool,
   TokenAccessor,
-  USDC,
-  USDT,
-  WBTC,
+  USDC_MAINNET as USDC,
+  USDT_MAINNET as USDT,
+  WBTC_MAINNET as WBTC,
   WETH9,
 } from '../../../src';
 
@@ -167,4 +168,43 @@ export const buildMockTokenAccessor: (tokens: Token[]) => TokenAccessor = (
     getTokenBySymbol: (symbol) =>
       _.find(tokens, (t) => t.symbol!.toLowerCase() == symbol.toLowerCase()),
   };
+};
+
+export const mockTokenList: TokenList = {
+  "name": "Tokens",
+  "timestamp": "2021-01-05T20:47:02.923Z",
+  "version": {
+    "major": 1,
+    "minor": 0,
+    "patch": 0
+  },
+  "tags": {},
+  "logoURI": "ipfs://QmNa8mQkrNKp1WEEeGjFezDmDeodkWRevGFN8JCV7b4Xir",
+  "keywords": ["uniswap"],
+  "tokens": [
+    {
+      "name": "USD//C",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbol": "USDC",
+      "decimals": 6,
+      "chainId": 1,
+      "logoURI": ""
+    },
+    {
+      "name": "USDT",
+      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "symbol": "USDT",
+      "decimals": 6,
+      "chainId": 1,
+      "logoURI": ""
+    },
+    {
+      "name": "DAI",
+      "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      "symbol": "DAI",
+      "decimals": 18,
+      "chainId": 1,
+      "logoURI": ""
+    }
+  ],
 };

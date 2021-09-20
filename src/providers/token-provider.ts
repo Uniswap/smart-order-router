@@ -1,10 +1,9 @@
 import { Token, WETH9 } from '@uniswap/sdk-core';
 import _ from 'lodash';
-import NodeCache from 'node-cache';
 import { IERC20Metadata__factory } from '../types/v3';
 import { ChainId, log } from '../util';
 import { IMulticallProvider } from './multicall-provider';
-import { LocalCacheEntry, ProviderConfig } from './provider';
+import { ProviderConfig } from './provider';
 
 export interface ITokenProvider {
   getTokens(
@@ -19,33 +18,29 @@ export type TokenAccessor = {
   getAllTokens: () => Token[];
 };
 
-// Token symbol and decimals don't change so can be cached indefinitely.
-const TOKEN_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
-
-const KEY = (chainId: ChainId, address: string) => `${chainId}-${address}`;
-
-export const USDC = new Token(
+// Some well known tokens on each chain for seeding cache / testing.
+export const USDC_MAINNET = new Token(
   ChainId.MAINNET,
   '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
   6,
   'USDC',
   'USD//C'
 );
-export const USDT = new Token(
+export const USDT_MAINNET = new Token(
   ChainId.MAINNET,
   '0xdAC17F958D2ee523a2206206994597C13D831ec7',
   6,
   'USDT',
   'Tether USD'
 );
-export const WBTC = new Token(
+export const WBTC_MAINNET = new Token(
   ChainId.MAINNET,
   '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
   8,
   'WBTC',
   'Wrapped BTC'
 );
-export const DAI = new Token(
+export const DAI_MAINNET = new Token(
   ChainId.MAINNET,
   '0x6B175474E89094C44Da98b954EedeAC495271d0F',
   18,
@@ -53,23 +48,31 @@ export const DAI = new Token(
   'Dai Stablecoin'
 );
 
-export const DAI_RINKEBY = new Token(ChainId.RINKEBY, '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea', 18, 'DAI', 'DAI');
+export const DAI_RINKEBY_1 = new Token(ChainId.RINKEBY, '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea', 18, 'DAI', 'DAI')
 export const DAI_RINKEBY_2 = new Token(ChainId.RINKEBY, '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735', 18, 'DAI', 'DAI');
 
+export const TOKENS: {
+  [chainId in ChainId]?: { [symbol: string]: Token };
+} = {
+  [ChainId.MAINNET]: {
+    WETH: WETH9[ChainId.MAINNET]!,
+    USDC: USDC_MAINNET,
+    USDT: USDT_MAINNET,
+    WBTC: WBTC_MAINNET,
+    DAI: DAI_MAINNET
+  },
+  [ChainId.RINKEBY]: {
+    WETH: WETH9[ChainId.RINKEBY]!,
+    DAI_1: DAI_RINKEBY_1,
+    DAI_2: DAI_RINKEBY_2
+  }
+}
 
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
   ) {
-    if (chainId == ChainId.MAINNET) {
-      for (const token of [USDC, USDT, WBTC, DAI, WETH9[1]!]) {
-        TOKEN_CACHE.set<LocalCacheEntry<Token>>(KEY(this.chainId, token.address.toLowerCase()), {
-          blockNumber: 10000000,
-          entry: token,
-        });
-      }
-    }
   }
 
   public async getTokens(
@@ -83,42 +86,21 @@ export class TokenProvider implements ITokenProvider {
       .map((address) => address.toLowerCase())
       .uniq()
       .value();
-    const addressesToFetch = [];
-
-    for (const address of addresses) {
-      if (!TOKEN_CACHE.has(KEY(this.chainId, address))) {
-        addressesToFetch.push(address);
-        continue;
-      }
-
-      const tokenCacheEntry = TOKEN_CACHE.get<LocalCacheEntry<Token>>(KEY(this.chainId, address))!;
-      if (
-        !providerConfig?.blockNumber ||
-        tokenCacheEntry.blockNumber > providerConfig?.blockNumber
-      ) {
-        addressToToken[address.toLowerCase()] =
-          TOKEN_CACHE.get<LocalCacheEntry<Token>>(KEY(this.chainId, address))!.entry;
-      } else {
-        addressesToFetch.push(address);
-      }
-    }
 
     log.info(
-      { addressesFound: addresses, addressesToFetch },
-      `Found ${
-        addresses.length - addressesToFetch.length
-      } tokens in local cache. About to fetch ${
-        addressesToFetch.length
+      { addressesFound: addresses },
+      `About to fetch ${
+        addresses.length
       } tokens on-chain`
     );
 
-    if (addressesToFetch.length > 0) {
+    if (addresses.length > 0) {
       const [symbolsResult, decimalsResult] = await Promise.all([
         this.multicall2Provider.callSameFunctionOnMultipleContracts<
           undefined,
           [string]
         >({
-          addresses: addressesToFetch,
+          addresses,
           contractInterface: IERC20Metadata__factory.createInterface(),
           functionName: 'symbol',
           providerConfig,
@@ -127,24 +109,18 @@ export class TokenProvider implements ITokenProvider {
           undefined,
           [number]
         >({
-          addresses: addressesToFetch,
+          addresses,
           contractInterface: IERC20Metadata__factory.createInterface(),
           functionName: 'decimals',
           providerConfig,
         }),
       ]);
 
-      log.info(
-        `Got token symbol and decimals for ${addressesToFetch.length} tokens ${
-          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
-        }`
-      );
-
-      const { results: symbols, blockNumber } = symbolsResult;
+      const { results: symbols } = symbolsResult;
       const { results: decimals } = decimalsResult;
 
-      for (let i = 0; i < addressesToFetch.length; i++) {
-        const address = addressesToFetch[i]!;
+      for (let i = 0; i < addresses.length; i++) {
+        const address = addresses[i]!;
 
         const symbolResult = symbols[i];
         const decimalResult = decimals[i];
@@ -171,12 +147,13 @@ export class TokenProvider implements ITokenProvider {
         );
         symbolToToken[symbol.toLowerCase()] =
           addressToToken[address.toLowerCase()]!;
-
-        TOKEN_CACHE.set<LocalCacheEntry<Token>>(KEY(this.chainId, address.toLowerCase()), {
-          blockNumber: blockNumber.toNumber(),
-          entry: addressToToken[address.toLowerCase()]!,
-        });
       }
+
+      log.info(
+        `Got token symbol and decimals for ${Object.values(addressToToken).length} out of ${addresses.length} tokens ${
+          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
+        }`
+      );
     }
 
     return {

@@ -9,12 +9,12 @@ import {
   SubgraphPool,
 } from '../../../providers/subgraph-provider';
 import {
-  DAI,
-  DAI_RINKEBY,
+  DAI_MAINNET,
+  DAI_RINKEBY_1,
   ITokenProvider,
-  USDC,
-  USDT,
-  WBTC,
+  USDC_MAINNET,
+  USDT_MAINNET,
+  WBTC_MAINNET,
 } from '../../../providers/token-provider';
 import { ChainId } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
@@ -47,8 +47,8 @@ export type GetCandidatePoolsParams = {
 };
 
 const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
-  [ChainId.MAINNET]: [USDC, USDT, WBTC, DAI, WETH9[1]!],
-  [ChainId.RINKEBY]: [DAI_RINKEBY],
+  [ChainId.MAINNET]: [USDC_MAINNET, USDT_MAINNET, WBTC_MAINNET, DAI_MAINNET, WETH9[1]!],
+  [ChainId.RINKEBY]: [DAI_RINKEBY_1],
 }
 
 export async function getCandidatePools({
@@ -103,19 +103,26 @@ export async function getCandidatePools({
   );
 
   // Only consider pools where neither tokens are in the blocked token list.
-  const subgraphPoolsSorted = _(allPools)
-    .filter((pool) => {
-      if (!blockedTokenListProvider) {
-        return true;
+  let filteredPools: SubgraphPool[] = allPools;
+  if (blockedTokenListProvider) {
+    filteredPools = [];
+    for (const pool of allPools) {
+      const token0InBlocklist = await blockedTokenListProvider.getTokenByAddress(pool.token0.id);
+      const token1InBlocklist = await blockedTokenListProvider.getTokenByAddress(pool.token1.id);
+
+      if (token0InBlocklist || token1InBlocklist) {
+        continue;
       }
 
-      return (
-        !blockedTokenListProvider.getTokenByAddress(pool.token0.id) &&
-        !blockedTokenListProvider.getTokenByAddress(pool.token1.id)
-      );
-    })
+      filteredPools.push(pool);
+    }
+  }
+
+  const subgraphPoolsSorted = _(filteredPools)
     .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
     .value();
+
+  log.info(`After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`)
 
   const poolAddressesSoFar = new Set<string>();
   const addToAddressSet = (pools: SubgraphPool[]) => {

@@ -119,7 +119,7 @@ export class QuoteProvider implements IQuoteProvider {
     const quoterAddress = quoterAddressOverride ? quoterAddressOverride : chainToQuoterAddress[this.chainId];
 
     if (!quoterAddress) {
-      throw new Error(`No address for Uniswap Multicall Contract on chain id: ${chainId}`);
+      throw new Error(`No address for Uniswap Quoter V2 Contract on chain id: ${chainId}`);
     }
 
     this.quoterAddress = quoterAddress;

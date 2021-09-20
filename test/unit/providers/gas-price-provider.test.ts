@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { BigNumber } from 'ethers';
 import { mocked } from 'ts-jest/utils';
-import { ETHGasStationInfoProvider } from '../../../src/providers/gas-price-provider';
+import { ETHGasStationInfoProvider } from '../../../src/providers/eth-gas-station-info-gas-price-provider';
 
 jest.mock('axios');
 
