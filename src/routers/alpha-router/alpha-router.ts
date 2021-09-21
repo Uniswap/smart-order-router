@@ -131,34 +131,27 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       }
 
       const precision = JSBI.BigInt('1' + '0'.repeat(18))
-
-      const sqrtPriceX96 = position.pool.sqrtRatioX96
-      const sqrtPriceX96Lower = TickMath.getSqrtRatioAtTick(position.tickLower)
-      const sqrtPriceX96Upper = TickMath.getSqrtRatioAtTick(position.tickUpper)
-
-      const token0Proportion = SqrtPriceMath.getAmount0Delta(
-        sqrtPriceX96,
-        sqrtPriceX96Upper,
-        precision,
-        true
-      )
-      const token1Proportion = SqrtPriceMath.getAmount1Delta(
-        sqrtPriceX96,
-        sqrtPriceX96Lower,
-        precision,
-        true
-      )
-      let optimalRatio = new Fraction(token0Proportion, token1Proportion)
+      let optimalRatio = new Fraction(
+          SqrtPriceMath.getAmount0Delta(
+            position.pool.sqrtRatioX96,
+            TickMath.getSqrtRatioAtTick(position.tickUpper),
+            precision,
+            true
+          ),
+          SqrtPriceMath.getAmount1Delta(
+            position.pool.sqrtRatioX96,
+            TickMath.getSqrtRatioAtTick(position.tickLower),
+            precision,
+            true
+          )
+        )
 
       const zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(optimalRatio)
-      if (!zeroForOne) {
-        optimalRatio = optimalRatio.invert()
-      }
+      if (!zeroForOne) optimalRatio = optimalRatio.invert()
 
       const [inputBalance, outputBalance] = zeroForOne
         ? [token0Balance, token1Balance]
         : [token1Balance, token0Balance]
-
 
       let exchangeRate: Fraction = zeroForOne ? position.pool.token0Price : position.pool.token1Price
       let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null
@@ -180,23 +173,12 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           routingConfig
         )
         if (!swap) {
-          throw('did not fetch swap')
+          throw new Error('did not fetch swap')
         }
 
         let inputBalanceUpdated = inputBalance.subtract(swap.trade.inputAmount)
         let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount)
         let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated)
-
-        console.log('\n\n\exchangeRate', exchangeRate.asFraction.toFixed(6))
-        console.log('inputBalance', inputBalance.toFixed(6))
-        console.log('outputBalance', outputBalance.toFixed(6))
-        console.log('amountToSwap', amountToSwap.toFixed(6))
-        console.log('inputAmount', swap.trade.inputAmount.toFixed(6))
-        console.log('outputAmount', swap.trade.outputAmount.toFixed(6))
-        console.log('inputBalanceUpdated', inputBalanceUpdated.toFixed(6))
-        console.log('outputBalanceUpdated',  outputBalanceUpdated.toFixed(6))
-        console.log('optimalRatio', optimalRatio.toFixed(6))
-        console.log('newRatio    ', newRatio.asFraction.toFixed(6))
 
         ratioAchieved = newRatio.asFraction.divide(optimalRatio).subtract(1).lessThan(errorTolerance)
         exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
