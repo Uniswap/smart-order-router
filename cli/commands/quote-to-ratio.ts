@@ -48,6 +48,7 @@ export class QuoteToRatio extends BaseCommand {
       topNWithBaseToken,
       topNWithBaseTokenInSet,
       maxSwapsPerPath,
+      minSplits,
       maxSplits,
       distributionPercent,
     } = flags;
@@ -112,13 +113,13 @@ export class QuoteToRatio extends BaseCommand {
       },
       {
         topN,
-        topNDirectSwaps: 2,
         topNTokenInOut,
         topNSecondHop,
         topNWithEachBaseToken,
         topNWithBaseToken,
         topNWithBaseTokenInSet,
         maxSwapsPerPath,
+        minSplits,
         maxSplits,
         distributionPercent,
       }
