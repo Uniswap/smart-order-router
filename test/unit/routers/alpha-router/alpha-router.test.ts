@@ -424,6 +424,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
+          new Fraction(99, 100),
           undefined,
           ROUTING_CONFIG
         );
@@ -455,6 +456,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
+          new Fraction(99, 100),
           undefined,
           ROUTING_CONFIG
         );
@@ -486,6 +488,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
+          new Fraction(99, 100),
           undefined,
           ROUTING_CONFIG
         );
@@ -517,6 +520,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
+          new Fraction(99, 100),
           undefined,
           ROUTING_CONFIG
         );
