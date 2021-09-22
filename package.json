@@ -1,11 +1,14 @@
 {
   "name": "@uniswap/smart-order-router",
-  "version": "1.42.1",
+  "version": "1.43.1",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
-  "repository": { "type": "git", "url": "https://github.com/Uniswap/smart-order-router.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Uniswap/smart-order-router.git"
+  },
   "license": "GPL",
   "keywords": [],
   "scripts": {
