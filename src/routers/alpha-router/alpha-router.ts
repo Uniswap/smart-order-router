@@ -145,7 +145,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       let exchangeRate: Fraction = zeroForOne ? position.pool.token0Price : position.pool.token1Price
       let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null
       let ratioAchieved = false
-      console.log('sqrtPrice initial', position.pool.sqrtRatioX96.toString())
 
       while (!ratioAchieved) {
         let amountToSwap = calculateRatioAmountIn(
@@ -154,8 +153,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           inputBalance,
           outputBalance,
         )
-
-        console.log('\n\namountToSwap', amountToSwap.toFixed(6))
 
         swap = await this.routeExactIn(
           inputBalance.currency,
@@ -179,29 +176,20 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
               pool.token1 == position.pool.token1 &&
               pool.fee == position.pool.fee
             ) {
-              optimalRatio = this.calculateOptimalRatio(position, JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString()))
-              console.log('new sqrtRatio', route.sqrtPriceX96AfterList[i]?.toString())
-              console.log('\n')
+              optimalRatio = this.calculateOptimalRatio(
+                position,
+                JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString())
+              )
             }
           })
         })
 
-
-        console.log('inputBalanceUpdated   ', inputBalanceUpdated.toFixed(6))
-        console.log('outputBalanceUpdated   ', outputBalanceUpdated.toFixed(6))
-        console.log('exchangeRate ', exchangeRate.asFraction.toFixed(6))
-        console.log('newRatio    ', newRatio.asFraction.toFixed(18))
-        console.log('optimalRatio', optimalRatio.asFraction.toFixed(18))
-        console.log('% error', newRatio.asFraction.divide(optimalRatio).subtract(1).toFixed(6))
-        console.log('errorTolerance', errorTolerance.toFixed(6))
-
-        ratioAchieved = this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(errorTolerance)
+        ratioAchieved =
+          newRatio.equalTo(optimalRatio) ||
+          this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(errorTolerance)
         exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
       }
 
-
-
-      // console.log(swap?.route[0])
       return swap
   }
 
@@ -583,27 +571,30 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
   }
 
   private calculateOptimalRatio(position: Position, sqrtRatioX96: JSBI, zeroForOne: boolean = true): Fraction {
+    const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickUpper);
+    const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickLower);
+
+    // some assumptions here: swapping the input will only push the price in the direction
+    // of the output token, so if outputToken is token0 our sqrtRatioX96 would enter this
+    // condition if sqrt is higher than tick upper, if token1 is our output, then lower than tick lower
+    if (sqrtRatioX96 > upperSqrtRatioX96 || sqrtRatioX96 < lowerSqrtRatioX96) {
+      return new Fraction(0,1)
+    }
+
     const precision = JSBI.BigInt('1' + '0'.repeat(18))
-
-    const token0Proportion = SqrtPriceMath.getAmount0Delta(
-      sqrtRatioX96,
-      TickMath.getSqrtRatioAtTick(position.tickUpper),
-      precision,
-      true
-    )
-    const token1Proportion = SqrtPriceMath.getAmount1Delta(
-      sqrtRatioX96,
-      TickMath.getSqrtRatioAtTick(position.tickLower),
-      precision,
-      true
-    )
-
-    console.log('token0Delta', token0Proportion.toString())
-    console.log('token0Delta', token0Proportion.toString())
-
     let optimalRatio =  new Fraction(
-      token0Proportion,
-      token1Proportion
+      SqrtPriceMath.getAmount0Delta(
+        sqrtRatioX96,
+        upperSqrtRatioX96,
+        precision,
+        true
+      ),
+      SqrtPriceMath.getAmount1Delta(
+        sqrtRatioX96,
+        lowerSqrtRatioX96,
+        precision,
+        true
+      )
     )
     if (!zeroForOne) optimalRatio = optimalRatio.invert()
     return optimalRatio
