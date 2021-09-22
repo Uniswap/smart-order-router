@@ -76,7 +76,7 @@ export class QuoteToRatio extends BaseCommand {
     const tokenOutBalance = parseAmount(token1BalanceStr, tokenOut);
 
     const poolAccessor = await this.poolProvider.getPools([
-      [tokenIn.wrapped, tokenOut.wrapped, 3000],
+      [tokenIn.wrapped, tokenOut.wrapped, feeAmount],
     ]);
 
     const pool = poolAccessor?.getPool(
@@ -105,7 +105,7 @@ export class QuoteToRatio extends BaseCommand {
       tokenInBalance,
       tokenOutBalance,
       position,
-      new Fraction(99, 100),
+      new Fraction(1, 100),
       {
         deadline: 100,
         recipient,
