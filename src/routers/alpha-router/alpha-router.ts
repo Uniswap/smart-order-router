@@ -145,6 +145,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       let exchangeRate: Fraction = zeroForOne ? position.pool.token0Price : position.pool.token1Price
       let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null
       let ratioAchieved = false
+      console.log('sqrtPrice initial', position.pool.sqrtRatioX96.toString())
 
       while (!ratioAchieved) {
         let amountToSwap = calculateRatioAmountIn(
@@ -153,6 +154,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           inputBalance,
           outputBalance,
         )
+
+        console.log('\n\namountToSwap', amountToSwap.toFixed(6))
 
         swap = await this.routeExactIn(
           inputBalance.currency,
@@ -177,14 +180,28 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
               pool.fee == position.pool.fee
             ) {
               optimalRatio = this.calculateOptimalRatio(position, JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString()))
+              console.log('new sqrtRatio', route.sqrtPriceX96AfterList[i]?.toString())
+              console.log('\n')
             }
           })
         })
+
+
+        console.log('inputBalanceUpdated   ', inputBalanceUpdated.toFixed(6))
+        console.log('outputBalanceUpdated   ', outputBalanceUpdated.toFixed(6))
+        console.log('exchangeRate ', exchangeRate.asFraction.toFixed(6))
+        console.log('newRatio    ', newRatio.asFraction.toFixed(18))
+        console.log('optimalRatio', optimalRatio.asFraction.toFixed(18))
+        console.log('% error', newRatio.asFraction.divide(optimalRatio).subtract(1).toFixed(6))
+        console.log('errorTolerance', errorTolerance.toFixed(6))
 
         ratioAchieved = this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(errorTolerance)
         exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
       }
 
+
+
+      // console.log(swap?.route[0])
       return swap
   }
 
@@ -566,7 +583,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
   }
 
   private calculateOptimalRatio(position: Position, sqrtRatioX96: JSBI, zeroForOne: boolean = true): Fraction {
-    const precision = JSBI.BigInt('1' + '0'.repeat(50))
+    const precision = JSBI.BigInt('1' + '0'.repeat(18))
 
     const token0Proportion = SqrtPriceMath.getAmount0Delta(
       sqrtRatioX96,
@@ -582,7 +599,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     )
 
     console.log('token0Delta', token0Proportion.toString())
-    console.log('token1Delta', token1Proportion.toString())
+    console.log('token0Delta', token0Proportion.toString())
 
     let optimalRatio =  new Fraction(
       token0Proportion,
