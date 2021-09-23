@@ -294,7 +294,7 @@ export abstract class BaseCommand extends Command {
 
     this.logger.info(`\tRaw Quote Exact In:`);
     this.logger.info(`\t\t${quote.toFixed(2)}`);
-    this.logger.info(`\tGas Adjusted Quote In}:`);
+    this.logger.info(`\tGas Adjusted Quote In:`);
     this.logger.info(`\t\t${quoteGasAdjusted.toFixed(2)}`);
     this.logger.info(``);
     this.logger.info(
