@@ -123,10 +123,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     swapConfig?: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-      if (
-        token0Balance.currency.wrapped.address.toLowerCase()
-        > token1Balance.currency.wrapped.address.toLowerCase()
-      ) {
+      if (token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)) {
         [token0Balance, token1Balance] = [token1Balance, token0Balance]
       }
 
@@ -142,7 +139,9 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         ? [token0Balance, token1Balance]
         : [token1Balance, token0Balance]
 
-      let exchangeRate: Fraction = zeroForOne ? position.pool.token0Price : position.pool.token1Price
+      let exchangeRate: Fraction = zeroForOne
+        ? position.pool.token0Price
+        : position.pool.token1Price
       let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null
       let ratioAchieved = false
 
@@ -169,7 +168,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount)
         let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated)
 
-        swap?.route.forEach(route => {
+        swap.route.forEach(route => {
           route.route.pools.forEach((pool, i) => {
             if(
               pool.token0 == position.pool.token0 &&

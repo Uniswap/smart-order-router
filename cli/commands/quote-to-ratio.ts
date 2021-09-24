@@ -79,7 +79,7 @@ export class QuoteToRatio extends BaseCommand {
       [tokenIn.wrapped, tokenOut.wrapped, feeAmount],
     ]);
 
-    const pool = poolAccessor?.getPool(
+    const pool = poolAccessor.getPool(
       tokenIn.wrapped,
       tokenOut.wrapped,
       feeAmount
@@ -101,7 +101,7 @@ export class QuoteToRatio extends BaseCommand {
     });
 
     let swapRoutes: SwapRoute<any> | null;
-    swapRoutes = await router?.routeToRatio(
+    swapRoutes = await router.routeToRatio(
       tokenInBalance,
       tokenOutBalance,
       position,
