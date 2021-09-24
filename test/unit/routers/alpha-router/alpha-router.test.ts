@@ -437,10 +437,40 @@ describe('alpha router', () => {
           expect(exactInputParameters[1]).toEqual(token1Balance.currency)
           expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
         })
+
+        test('with out of range position calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('20', USDC);
+          const token1Balance = parseAmount('5', USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickLower: 60,
+            tickUpper: 120,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            new Fraction(1, 100),
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('20', USDC)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
       })
 
       describe('when token1Balance has excess tokens', () => {
-        test('calls routeExactIn with correct parameters', async () => {
+        test('with in range position calls routeExactIn with correct parameters', async () => {
           const token0Balance = parseAmount('5', USDC);
           const token1Balance = parseAmount('20', USDT);
 
@@ -463,6 +493,36 @@ describe('alpha router', () => {
           );
 
           const exactAmountInBalance = parseAmount('7.5', USDT)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+
+        test('with out of range position calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('5', USDC);
+          const token1Balance = parseAmount('20', USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickUpper: -60,
+            tickLower: -120,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            new Fraction(1, 100),
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('20', USDT)
 
           const exactInputParameters = spy.firstCall.args
           expect(exactInputParameters[0]).toEqual(token1Balance.currency)

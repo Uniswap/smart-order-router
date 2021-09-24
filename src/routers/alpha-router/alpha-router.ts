@@ -132,8 +132,15 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         position.pool.sqrtRatioX96
       )
 
-      const zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(optimalRatio)
-      if (!zeroForOne) optimalRatio = optimalRatio.invert()
+      let zeroForOne: boolean
+      if (position.pool.tickCurrent < position.tickLower) {
+        zeroForOne = true
+      } else if (position.pool.tickCurrent > position.tickUpper) {
+        zeroForOne = false
+      } else {
+        zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(optimalRatio)
+        if (!zeroForOne) optimalRatio = optimalRatio.invert()
+      }
 
       const [inputBalance, outputBalance] = zeroForOne
         ? [token0Balance, token1Balance]
