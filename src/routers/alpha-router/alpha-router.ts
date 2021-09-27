@@ -190,9 +190,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           })
         })
 
-        ratioAchieved =
+        ratioAchieved = (
           newRatio.equalTo(optimalRatio) ||
           this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(errorTolerance)
+        )
         exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
       }
 
