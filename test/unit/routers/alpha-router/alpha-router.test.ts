@@ -1,5 +1,5 @@
 import { Fraction, Percent } from '@uniswap/sdk-core';
-import { Pool, Position } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -42,6 +42,8 @@ import {
   USDC_WETH_LOW,
   WETH9_USDT_LOW,
 } from '../../test-util/mock-data';
+
+const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in')
 
 describe('alpha router', () => {
   let mockProvider: sinon.SinonStubbedInstance<providers.BaseProvider>;
@@ -105,31 +107,7 @@ describe('alpha router', () => {
 
     mockQuoteProvider = sinon.createStubInstance(QuoteProvider);
     mockQuoteProvider.getQuotesManyExactIn.callsFake(
-      async (
-        amountIns: CurrencyAmount[],
-        routes: RouteSOR[],
-        _providerConfig?: ProviderConfig
-      ) => {
-        const routesWithQuotes = _.map(routes, (r) => {
-          const amountQuotes = _.map(amountIns, (amountIn) => {
-            return {
-              amount: amountIn,
-              quote: BigNumber.from(
-                amountIn.quotient.toString()
-              ),
-              sqrtPriceX96AfterList: [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
-              initializedTicksCrossedList: [1],
-              gasEstimate: BigNumber.from(10000),
-            } as AmountQuote;
-          });
-          return [r, amountQuotes];
-        });
-
-        return {
-          routesWithQuotes: routesWithQuotes,
-          blockNumber: mockBlockBN,
-        } as { routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber };
-      }
+      getQuotesManyExactInFn()
     );
     mockQuoteProvider.getQuotesManyExactOut.callsFake(
       async (
@@ -595,5 +573,89 @@ describe('alpha router', () => {
         })
       })
     })
+
+    describe('iterative scenario', () => {
+      describe('when there is excess of token0', () => {
+        test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+            quoteMultiplier: new Fraction(1, 2)
+          }))
+          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn())
+          const token0Balance = parseAmount('20' + '0'.repeat(12), USDC);
+          const token1Balance = parseAmount('5', WETH9[1]);
+
+          const position = new Position({
+            pool: USDC_WETH_LOW,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(helper, 'calculateRatioAmountIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            new Fraction(1, 100),
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const firstCallParams = spy.firstCall.args
+          expect(firstCallParams[1].asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(firstCallParams[0].toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(firstCallParams[2]).toEqual(token0Balance)
+          expect(firstCallParams[3]).toEqual(token1Balance)
+
+          const secondCallParams = spy.secondCall.args
+          expect(secondCallParams[1].asFraction.toFixed(6)).toEqual(new Fraction(1, 2).toFixed(6))
+          // all other args remain equal
+          expect(secondCallParams[0].toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(secondCallParams[2]).toEqual(token0Balance)
+          expect(secondCallParams[3]).toEqual(token1Balance)
+        })
+      })
+    })
   })
 })
+
+type GetQuotesManyExactInFn = (
+  amountIns: CurrencyAmount[],
+  routes: RouteSOR[],
+  _providerConfig?: ProviderConfig | undefined
+) => Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber; }>
+
+type GetQuotesManyExactInFnParams = {
+  quoteMultiplier?: Fraction
+}
+
+function getQuotesManyExactInFn(options: GetQuotesManyExactInFnParams = {}): GetQuotesManyExactInFn {
+  return async (
+    amountIns: CurrencyAmount[],
+    routes: RouteSOR[],
+    _providerConfig?: ProviderConfig
+  ) => {
+    const oneX96 = BigNumber.from(encodeSqrtRatioX96(1, 1).toString())
+    const multiplier = options.quoteMultiplier || new Fraction(1, 1)
+    const routesWithQuotes = _.map(routes, (r) => {
+      const amountQuotes = _.map(amountIns, (amountIn) => {
+        return {
+          amount: amountIn,
+          quote: BigNumber.from(
+            amountIn.multiply(multiplier).quotient.toString()
+          ),
+          sqrtPriceX96AfterList: [oneX96, oneX96, oneX96],
+          initializedTicksCrossedList: [1],
+          gasEstimate: BigNumber.from(10000),
+        } as AmountQuote;
+      });
+      return [r, amountQuotes];
+    });
+
+    return {
+      routesWithQuotes: routesWithQuotes,
+      blockNumber: mockBlockBN,
+    } as { routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber };
+  }
+}
