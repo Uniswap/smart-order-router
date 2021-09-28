@@ -585,12 +585,45 @@ describe('alpha router', () => {
         spy.restore()
       })
 
+      test('it returns null when maxIterations has been exceeded', async () => {
+        // prompt many loops
+        mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+          quoteMultiplier: new Fraction(1, 2)
+        }))
+        mockQuoteProvider.getQuotesManyExactIn.onCall(2).callsFake(getQuotesManyExactInFn({
+          quoteMultiplier: new Fraction(1, 2)
+        }))
+        mockQuoteProvider.getQuotesManyExactIn.onCall(4).callsFake(getQuotesManyExactInFn({
+          quoteMultiplier: new Fraction(1, 2)
+        }))
+
+        const token0Balance = parseAmount('20', USDC);
+        const token1Balance = parseAmount('5', USDT);
+
+        const position = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+         const swap = await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          new Fraction(1, 100),
+          undefined,
+          ROUTING_CONFIG
+        )
+
+        expect(swap).toEqual(null)
+      })
+
       describe('when there is excess of token0', () => {
         test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
           mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
             quoteMultiplier: new Fraction(1, 2)
           }))
-          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn())
           const token0Balance = parseAmount('20', USDC);
           const token1Balance = parseAmount('5', USDT);
 
@@ -635,11 +668,13 @@ describe('alpha router', () => {
         })
 
         test('when trade moves sqrtPrice in target pool it calls again with new optimalRatio', async () => {
-          const oneAndHalfX96 = BigNumber.from(encodeSqrtRatioX96(4, 1).toString())
+          const sqrtFourX96 = BigNumber.from(encodeSqrtRatioX96(4, 1).toString())
           mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
-            sqrtPriceX96AfterList: [oneAndHalfX96, oneAndHalfX96, oneAndHalfX96]
+            sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96]
           }))
-          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn())
+          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn({
+            sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96]
+          }))
           const token0Balance = parseAmount('20', USDC);
           const token1Balance = parseAmount('5',USDT);
 
