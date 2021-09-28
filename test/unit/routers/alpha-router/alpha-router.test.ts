@@ -613,25 +613,25 @@ describe('alpha router', () => {
           const [
             optimalRatioFirst,
             exchangeRateFirst,
-            token0BalanceFirst,
-            token1BalanceFirst
+            inputBalanceFirst,
+            outputBalanceFirst
           ] = spy.firstCall.args
           expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
           expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
-          expect(token0BalanceFirst).toEqual(token0Balance)
-          expect(token1BalanceFirst).toEqual(token1Balance)
+          expect(inputBalanceFirst).toEqual(token0Balance)
+          expect(outputBalanceFirst).toEqual(token1Balance)
 
           const [
             optimalRatioSecond,
             exchangeRateSecond,
-            token0BalanceSecond,
-            token1BalanceSecond
+            inputBalanceSecond,
+            outputBalanceSecond
           ] = spy.secondCall.args
           expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 2).toFixed(6))
           // all other args remain equal
           expect(optimalRatioSecond.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
-          expect(token0BalanceSecond).toEqual(token0Balance)
-          expect(token1BalanceSecond).toEqual(token1Balance)
+          expect(inputBalanceSecond).toEqual(token0Balance)
+          expect(outputBalanceSecond).toEqual(token1Balance)
         })
 
         test('when trade moves sqrtPrice in target pool it calls again with new optimalRatio', async () => {
@@ -662,25 +662,124 @@ describe('alpha router', () => {
           const [
             optimalRatioFirst,
             exchangeRateFirst,
-            token0BalanceFirst,
-            token1BalanceFirst
+            inputBalanceFirst,
+            outputBalanceFirst
           ] = spy.firstCall.args
           expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
           expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
-          expect(token0BalanceFirst).toEqual(token0Balance)
-          expect(token1BalanceFirst).toEqual(token1Balance)
+          expect(inputBalanceFirst).toEqual(token0Balance)
+          expect(outputBalanceFirst).toEqual(token1Balance)
 
           const [
             optimalRatioSecond,
             exchangeRateSecond,
-            token0BalanceSecond,
-            token1BalanceSecond
+            inputBalanceSecond,
+            outputBalanceSecond
           ] = spy.secondCall.args
           expect(optimalRatioSecond).toEqual(new Fraction(0, 1))
           // all other params remain the same
           expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
-          expect(token0BalanceSecond).toEqual(token0Balance)
-          expect(token1BalanceSecond).toEqual(token1Balance)
+          expect(inputBalanceSecond).toEqual(token0Balance)
+          expect(outputBalanceSecond).toEqual(token1Balance)
+        })
+      })
+
+      describe('when there is excess of token1', () => {
+        test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+            quoteMultiplier: new Fraction(1, 2)
+          }))
+          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn())
+          const token0Balance = parseAmount('5', USDC);
+          const token1Balance = parseAmount('20', USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            new Fraction(1, 100),
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token1Balance)
+          expect(outputBalanceFirst).toEqual(token0Balance)
+
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 2).toFixed(6))
+          // all other args remain equal
+          expect(optimalRatioSecond.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token1Balance)
+          expect(outputBalanceSecond).toEqual(token0Balance)
+        })
+
+        test('when trade moves sqrtPrice in target pool it calls again with new optimalRatio', async () => {
+          const oneQuarterX96 = BigNumber.from(encodeSqrtRatioX96(1, 4).toString())
+          mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+            sqrtPriceX96AfterList: [oneQuarterX96, oneQuarterX96, oneQuarterX96]
+          }))
+          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn())
+          const token1Balance = parseAmount('5', DAI);
+          const token0Balance = parseAmount('20', USDC);
+
+          const position = new Position({
+            pool: USDC_DAI_LOW,
+            tickLower: -10_000,
+            tickUpper: 10_000,
+            liquidity: 1,
+          });
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            new Fraction(1, 100),
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token1Balance)
+          expect(outputBalanceFirst).toEqual(token0Balance)
+
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(optimalRatioSecond).toEqual(new Fraction(0, 1))
+          // all other params remain the same
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token1Balance)
+          expect(outputBalanceSecond).toEqual(token0Balance)
         })
       })
     })

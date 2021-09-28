@@ -178,8 +178,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         swap.route.forEach(route => {
           route.route.pools.forEach((pool, i) => {
             if(
-              pool.token0 == position.pool.token0 &&
-              pool.token1 == position.pool.token1 &&
+              pool.token0.equals(position.pool.token0) &&
+              pool.token1.equals(position.pool.token1) &&
               pool.fee == position.pool.fee
             ) {
               optimalRatio = this.calculateOptimalRatio(
