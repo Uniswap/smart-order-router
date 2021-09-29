@@ -20,6 +20,7 @@ import {
   RouteWithValidQuote,
   SubgraphPool,
   SubgraphProvider,
+  SwapAndAddConfig,
   TokenListProvider,
   TokenProvider,
   USDC,
@@ -70,6 +71,12 @@ describe('alpha router', () => {
     minSplits: 1,
     maxSplits: 3,
     distributionPercent: 25,
+  };
+
+
+  const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
+    errorTolerance: new Fraction(1, 100),
+    maxIterations: 6,
   };
 
   beforeEach(() => {
@@ -403,7 +410,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -433,7 +440,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -465,7 +472,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -495,7 +502,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -527,7 +534,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -559,7 +566,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -611,7 +618,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
-          new Fraction(1, 100),
+          SWAP_AND_ADD_CONFIG,
           undefined,
           ROUTING_CONFIG
         )
@@ -638,7 +645,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -689,7 +696,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -739,7 +746,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -788,7 +795,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            new Fraction(1, 100),
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );

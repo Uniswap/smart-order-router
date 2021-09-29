@@ -79,7 +79,12 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   distributionPercent: 5,
 };
 
-export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig> {
+export type SwapAndAddConfig = {
+  errorTolerance: Fraction;
+  maxIterations: number;
+}
+
+export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
   protected multicall2Provider: IMulticallProvider;
@@ -119,11 +124,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
-    errorTolerance: Fraction,
+    swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-      const maxIterations = 5
       if (token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)) {
         [token0Balance, token1Balance] = [token1Balance, token0Balance]
       }
@@ -168,7 +172,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
 
       while (!ratioAchieved) {
         n++
-        if (n > maxIterations) {
+        if (n > swapAndAddConfig.maxIterations) {
           return null;
         }
 
@@ -211,8 +215,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
 
         ratioAchieved = this.absoluteValue(
           newRatio.asFraction.divide(optimalRatio).subtract(1)
-        ).lessThan(errorTolerance)
+        ).lessThan(swapAndAddConfig.errorTolerance)
         exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
+        log.info({
+          optimalRatio: optimalRatio.asFraction.toFixed(18),
+          newRatio: newRatio.asFraction.toFixed(18),
+          errorTolerance: swapAndAddConfig.errorTolerance.toFixed(18),
+          iterationN: n.toString()
+        })
       }
 
       return swap
