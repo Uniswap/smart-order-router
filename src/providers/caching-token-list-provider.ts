@@ -2,34 +2,37 @@ import { Token } from '@uniswap/sdk-core';
 import { TokenInfo, TokenList } from '@uniswap/token-lists';
 import axios from 'axios';
 import _ from 'lodash';
-import NodeCache from 'node-cache';
 import { ChainId } from '../util/chains';
 import { log } from '../util/log';
 import { metric, MetricLoggerUnit } from '../util/metric';
+import { ICache } from './cache';
 import { ITokenProvider, TokenAccessor } from './token-provider';
 
 type StringToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
 type TokenInfoMapping = { [chainId in ChainId]: StringToTokenInfo };
 
-const TOKEN_LIST_CACHE = new NodeCache({ stdTTL: 600, useClones: false });
-
-// Constructing a new token object is slow as sdk-core does checksumming.
-const TOKEN_CACHE = new NodeCache({ stdTTL: 3600, useClones: false });
-
 export interface ITokenListProvider {
-  getTokenBySymbol(_symbol: string): Token | undefined;
-  getTokenByAddress(address: string): Token | undefined;
+  getTokenBySymbol(_symbol: string): Promise<Token | undefined>;
+  getTokenByAddress(address: string): Promise<Token | undefined>;
 }
 
-export class TokenListProvider implements ITokenProvider, ITokenListProvider {
+export class CachingTokenListProvider implements ITokenProvider, ITokenListProvider {
+  private CACHE_KEY = (tokenInfo: TokenInfo) => `token-list-token-${this.chainId}/${this.tokenList.name}/${this.tokenList.timestamp}/${
+    this.tokenList.version
+  }/${tokenInfo.address.toLowerCase()}/${tokenInfo.decimals}/${
+    tokenInfo.symbol
+  }/${tokenInfo.name}`;
+
   private chainId: ChainId;
   private chainToTokenInfos: ChainToTokenInfoList;
   private chainSymbolToTokenInfo: TokenInfoMapping;
   private chainAddressToTokenInfo: TokenInfoMapping;
   private tokenList: TokenList;
 
-  constructor(chainId: ChainId, tokenList: TokenList) {
+  // Token metadata (e.g. symbol and decimals) don't change so can be cached indefinitely.
+  // Constructing a new token object is slow as sdk-core does checksumming.
+  constructor(chainId: ChainId, tokenList: TokenList, private tokenCache: ICache<Token>) {
     this.chainId = chainId;
     this.tokenList = tokenList;
 
@@ -62,7 +65,11 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
     );
   }
 
-  public static async fromTokenListURI(chainId: ChainId, tokenListURI: string) {
+  public static async fromTokenListURI(
+    chainId: ChainId, 
+    tokenListURI: string, 
+    tokenCache: ICache<Token>,
+  ) {
     const now = Date.now();
     const tokenList = await this.buildTokenList(tokenListURI);
 
@@ -72,19 +79,12 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
       MetricLoggerUnit.Milliseconds
     );
 
-    return new TokenListProvider(chainId, tokenList);
+    return new CachingTokenListProvider(chainId, tokenList, tokenCache);
   }
 
   private static async buildTokenList(
-    tokenListURI: string
+    tokenListURI: string, 
   ): Promise<TokenList> {
-    const cachedTokenList = TOKEN_LIST_CACHE.get<TokenList>(tokenListURI);
-
-    if (cachedTokenList) {
-      log.info(`Found token list for ${tokenListURI} in local cache`);
-      return cachedTokenList;
-    }
-
     log.info(`Getting tokenList from ${tokenListURI}.`);
     const response = await axios.get(tokenListURI);
     log.info(`Got tokenList from ${tokenListURI}.`);
@@ -100,15 +100,17 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
       throw new Error(`Unable to get token list from ${tokenListURI}`);
     }
 
-    TOKEN_LIST_CACHE.set<TokenList>(tokenListURI, tokenList);
-
     return tokenList;
   }
 
-  public static async fromTokenList(chainId: ChainId, tokenList: TokenList) {
+  public static async fromTokenList(
+    chainId: ChainId, 
+    tokenList: TokenList, 
+    tokenCache: ICache<Token>,
+  ) {
     const now = Date.now();
 
-    const tokenProvider = new TokenListProvider(chainId, tokenList);
+    const tokenProvider = new CachingTokenListProvider(chainId, tokenList, tokenCache);
 
     metric.putMetric(
       'TokenListLoad',
@@ -120,17 +122,32 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
   }
 
   public async getTokens(_addresses: string[]): Promise<TokenAccessor> {
+    const addressToToken: { [address: string]: Token } = {};
+    const symbolToToken: { [symbol: string]: Token } = {};
+
+    for (const address of _addresses) {
+      const token = await this.getTokenByAddress(address);
+      if (!token) {
+        continue;
+      }
+      addressToToken[address.toLowerCase()] = token;
+
+      if (!token.symbol) {
+        continue;
+      }
+      symbolToToken[token.symbol.toLowerCase()] = token;
+    }
+    
     return {
-      getTokenByAddress: (address: string) => this.getTokenByAddress(address),
-      getTokenBySymbol: (symbol: string) => this.getTokenBySymbol(symbol),
+      getTokenByAddress: (address: string) => addressToToken[address.toLowerCase()],
+      getTokenBySymbol: (symbol: string) => symbolToToken[symbol.toLowerCase()],
       getAllTokens: (): Token[] => {
-        const tokenInfos = Object.values(this.chainSymbolToTokenInfo[this.chainId]);
-        return _.map(tokenInfos, this.buildToken);
+        return Object.values(addressToToken);
       },
     };
   }
 
-  public getTokenBySymbol(_symbol: string): Token | undefined {
+  public async getTokenBySymbol(_symbol: string): Promise<Token | undefined> {
     let symbol = _symbol;
 
     // We consider ETH as a regular ERC20 Token throughout this package. We don't use the NativeCurrency object from the sdk.
@@ -146,12 +163,12 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
       return undefined;
     }
 
-    const token: Token = this.buildToken(tokenInfo);
+    const token: Token = await this.buildToken(tokenInfo);
 
     return token;
   }
 
-  public getTokenByAddress(address: string): Token | undefined {
+  public async getTokenByAddress(address: string): Promise<Token | undefined> {
     const tokenInfo: TokenInfo | undefined =
       this.chainAddressToTokenInfo[this.chainId][address.toLowerCase()];
 
@@ -159,18 +176,14 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
       return undefined;
     }
 
-    const token: Token = this.buildToken(tokenInfo);
+    const token: Token = await this.buildToken(tokenInfo);
 
     return token;
   }
 
-  private buildToken(tokenInfo: TokenInfo): Token {
-    const cacheKey = `${this.chainId}/${this.tokenList.name}/${this.tokenList.timestamp}/${
-      this.tokenList.version
-    }/${tokenInfo.address.toLowerCase()}/${tokenInfo.decimals}/${
-      tokenInfo.symbol
-    }/${tokenInfo.name}`;
-    const cachedToken = TOKEN_CACHE.get<Token>(cacheKey);
+  private async buildToken(tokenInfo: TokenInfo): Promise<Token> {
+    const cacheKey = this.CACHE_KEY(tokenInfo);
+    const cachedToken = await this.tokenCache.get(cacheKey);
 
     if (cachedToken) {
       return cachedToken;
@@ -184,7 +197,7 @@ export class TokenListProvider implements ITokenProvider, ITokenListProvider {
       tokenInfo.name
     );
 
-    TOKEN_CACHE.set<Token>(cacheKey, token);
+    await this.tokenCache.set(cacheKey, token);
 
     return token;
   }

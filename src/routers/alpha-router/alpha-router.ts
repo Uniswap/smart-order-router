@@ -19,7 +19,7 @@ import {
   ISubgraphProvider,
   SubgraphPool,
 } from '../../providers/subgraph-provider';
-import { ITokenListProvider } from '../../providers/token-list-provider';
+import { ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { ITokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';

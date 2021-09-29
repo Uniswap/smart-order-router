@@ -1,28 +1,26 @@
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
-import NodeCache from 'node-cache';
 import { ChainId } from '../util/chains';
 import { log } from '../util/log';
+import { ICache } from './cache';
 import { IPoolProvider, PoolAccessor } from './pool-provider';
 import { ProviderConfig } from './provider';
 
-const POOL_CACHE = new NodeCache({ stdTTL: 900, useClones: false });
-const POOL_KEY = (chainId: ChainId, address: string) => `${chainId}-${address}`;
 
 export class CachingPoolProvider implements IPoolProvider {
-  constructor(protected chainId: ChainId, protected poolProvider: IPoolProvider) {}
+  private POOL_KEY = (chainId: ChainId, address: string) => `pool-${chainId}-${address}`;
+
+  constructor(protected chainId: ChainId, protected poolProvider: IPoolProvider, private cache: ICache<Pool>) {}
 
   public async getPools(
-    tokenPairs: [Token, Token, FeeAmount][], providerConfig: ProviderConfig
+    tokenPairs: [Token, Token, FeeAmount][], providerConfig?: ProviderConfig
   ): Promise<PoolAccessor> {
     const poolAddressSet: Set<string> = new Set<string>();
     const poolsToGetTokenPairs: Array<[Token, Token, FeeAmount]> = [];
     const poolsToGetAddresses: string[] = [];
     const poolAddressToPool: { [poolAddress: string]: Pool } = {};
 
-    for (let tokenPair of tokenPairs) {
-      const [tokenA, tokenB, feeAmount] = tokenPair;
-
+    for (const [tokenA, tokenB, feeAmount] of tokenPairs) {
       const { poolAddress, token0, token1 } = this.getPoolAddress(
         tokenA,
         tokenB,
@@ -35,7 +33,7 @@ export class CachingPoolProvider implements IPoolProvider {
 
       poolAddressSet.add(poolAddress);
 
-      const cachedPool = POOL_CACHE.get<Pool>(POOL_KEY(this.chainId, poolAddress));
+      const cachedPool = await this.cache.get(this.POOL_KEY(this.chainId, poolAddress));
       if (cachedPool) {
         poolAddressToPool[poolAddress] = cachedPool;
         continue;
@@ -62,7 +60,7 @@ export class CachingPoolProvider implements IPoolProvider {
         const pool = poolAccessor.getPoolByAddress(address);
         if (pool) {
           poolAddressToPool[address] = pool;
-          POOL_CACHE.set<Pool>(POOL_KEY(this.chainId, address), pool);
+          await this.cache.set(this.POOL_KEY(this.chainId, address), pool);
         }
       }
     }

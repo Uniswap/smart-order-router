@@ -1,5 +1,5 @@
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
-import { DAI, USDC, USDT, WBTC } from '../../../../../src';
+import { DAI_MAINNET as DAI, USDC_MAINNET as USDC, USDT_MAINNET as USDT, WBTC_MAINNET as WBTC } from '../../../../../src';
 import { computeAllRoutes } from '../../../../../src/routers/alpha-router/functions/compute-all-routes';
 import {
   DAI_USDT_LOW,

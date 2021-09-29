@@ -1,18 +1,15 @@
-import NodeCache from 'node-cache';
 import { ChainId } from '../util/chains';
 import { log } from '../util/log';
+import { ICache } from './cache';
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
-const GAS_CACHE = new NodeCache({ useClones: true });
-const GAS_KEY = (chainId: ChainId) => `gas${chainId}`;
-
-export class CachingGasStationProvider extends IGasPriceProvider {
-  constructor(protected chainId: ChainId, private gasPriceProvider: IGasPriceProvider, private ttlSeconds: number = 300) {
-    super();
-  }
+export class CachingGasStationProvider implements IGasPriceProvider {
+  private GAS_KEY = (chainId: ChainId) => `gasPrice-${chainId}`;
+  
+  constructor(protected chainId: ChainId, private gasPriceProvider: IGasPriceProvider, private cache: ICache<GasPrice>) {}
 
   public async getGasPrice(): Promise<GasPrice> {
-    const cachedGasPrice = GAS_CACHE.get<GasPrice>(GAS_KEY(this.chainId));
+    const cachedGasPrice = await this.cache.get(this.GAS_KEY(this.chainId));
 
     if (cachedGasPrice) {
       log.info(
@@ -25,7 +22,7 @@ export class CachingGasStationProvider extends IGasPriceProvider {
 
     log.info('Gas station price local cache miss.');
     const gasPrice = await this.gasPriceProvider.getGasPrice();
-    GAS_CACHE.set<GasPrice>(GAS_KEY(this.chainId), gasPrice, this.ttlSeconds);
+    await this.cache.set(this.GAS_KEY(this.chainId), gasPrice);
 
     return gasPrice;
   }

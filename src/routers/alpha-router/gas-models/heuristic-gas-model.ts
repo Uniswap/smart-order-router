@@ -3,7 +3,7 @@ import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { PoolAccessor } from '../../../providers/pool-provider';
-import { DAI, DAI_RINKEBY, DAI_RINKEBY_2, USDC, USDT } from '../../../providers/token-provider';
+import { DAI_MAINNET, DAI_RINKEBY_1, DAI_RINKEBY_2, USDC_MAINNET, USDT_MAINNET } from '../../../providers/token-provider';
 import { ChainId, WETH9 } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -24,8 +24,8 @@ const COST_PER_HOP = BigNumber.from(80000);
 
 
 const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
-  [ChainId.MAINNET]: [DAI, USDC, USDT],
-  [ChainId.RINKEBY]: [DAI_RINKEBY, DAI_RINKEBY_2],
+  [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
+  [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
 }
 
 export class HeuristicGasModelFactory extends IGasModelFactory {
@@ -227,7 +227,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       .value();
 
     if (pools.length == 0) {
-      log.error(
+      log.error({ pools },
         `Could not find a WETH pool with ${token.symbol} for computing gas costs.`
       );
 
@@ -248,8 +248,6 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     if (!usdTokens) {
       throw new Error(`Could not find a USD token for computing gas costs on ${chainId}`);
     }
-
-    log.info({ pools: poolAccessor.getAllPools() }, 'Pools');
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .flatMap((feeAmount) => {
@@ -272,7 +270,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       .value();
 
     if (pools.length == 0) {
-      log.error(`Could not find a USD/WETH pool for computing gas costs.`);
+      log.error({ pools }, `Could not find a USD/WETH pool for computing gas costs.`);
       throw new Error(`Can't find USD/WETH pool for computing gas costs.`);
     }
 

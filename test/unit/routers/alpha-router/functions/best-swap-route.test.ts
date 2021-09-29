@@ -10,7 +10,7 @@ import {
   PoolProvider,
   RouteSOR,
   RouteWithQuotes,
-  USDC,
+  USDC_MAINNET as USDC,
   WETH9,
 } from '../../../../../src';
 import { getBestSwapRoute } from '../../../../../src/routers/alpha-router/functions/best-swap-route';
@@ -363,6 +363,158 @@ describe('get best swap route', () => {
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(4);
+  });
+
+  test('succeeds to find best split route with min splits', async () => {
+    const amount = CurrencyAmount.fromRawAmount(USDC, 100000);
+    const percents = [25, 50, 75, 100];
+
+    // Should ignore the 50k 1 split route and find the 3 split route.
+    const routesWithQuotes: RouteWithQuotes[] = [
+      [
+        route1,
+        [
+          buildAmountQuote(USDC, 25000, 30),
+          buildAmountQuote(USDC, 50000, 1000),
+          buildAmountQuote(USDC, 75000, 52),
+          buildAmountQuote(USDC, 100000, 50000),
+        ],
+      ],
+      [
+        route2,
+        [
+          buildAmountQuote(USDC, 25000, 1000),
+          buildAmountQuote(USDC, 50000, 42),
+          buildAmountQuote(USDC, 75000, 34),
+          buildAmountQuote(USDC, 100000, 50),
+        ],
+      ],
+      [
+        route3,
+        [
+          buildAmountQuote(USDC, 25000, 1000),
+          buildAmountQuote(USDC, 50000, 40),
+          buildAmountQuote(USDC, 75000, 42),
+          buildAmountQuote(USDC, 100000, 50),
+        ],
+      ],
+      [
+        route4,
+        [
+          buildAmountQuote(USDC, 25000, 40),
+          buildAmountQuote(USDC, 50000, 42),
+          buildAmountQuote(USDC, 75000, 44),
+          buildAmountQuote(USDC, 100000, 56),
+        ]
+      ]
+    ];
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = getBestSwapRoute(
+      amount,
+      percents,
+      routesWithQuotes,
+      WETH9[1]!,
+      TradeType.EXACT_INPUT,
+      mockGasModel,
+      { ...mockRoutingConfig, distributionPercent: 25, minSplits: 2 },
+      mockPoolProvider
+    )!;
+
+    expect(quote.quotient.toString()).toBe('3000');
+    expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
+    expect(estimatedGasUsed.toString()).toBe('30000');
+    expect(
+      estimatedGasUsedUSD.equalTo(CurrencyAmount.fromRawAmount(USDC, 0))
+    ).toBeTruthy();
+    expect(
+      estimatedGasUsedQuoteToken.equalTo(
+        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+      )
+    ).toBeTruthy();
+    expect(routes).toHaveLength(3);
+  });
+
+  test('succeeds to find best split route with max splits', async () => {
+    const amount = CurrencyAmount.fromRawAmount(USDC, 100000);
+    const percents = [25, 50, 75, 100];
+
+    // Should ignore the 4 split route that returns 200k
+    const routesWithQuotes: RouteWithQuotes[] = [
+      [
+        route1,
+        [
+          buildAmountQuote(USDC, 25000, 50000),
+          buildAmountQuote(USDC, 50000, 10000),
+          buildAmountQuote(USDC, 75000, 52),
+          buildAmountQuote(USDC, 100000, 60),
+        ],
+      ],
+      [
+        route2,
+        [
+          buildAmountQuote(USDC, 25000, 50000),
+          buildAmountQuote(USDC, 50000, 42),
+          buildAmountQuote(USDC, 75000, 34),
+          buildAmountQuote(USDC, 100000, 50),
+        ],
+      ],
+      [
+        route3,
+        [
+          buildAmountQuote(USDC, 25000, 50000),
+          buildAmountQuote(USDC, 50000, 40),
+          buildAmountQuote(USDC, 75000, 42),
+          buildAmountQuote(USDC, 100000, 50),
+        ],
+      ],
+      [
+        route4,
+        [
+          buildAmountQuote(USDC, 25000, 50000),
+          buildAmountQuote(USDC, 50000, 42),
+          buildAmountQuote(USDC, 75000, 44),
+          buildAmountQuote(USDC, 100000, 56),
+        ]
+      ]
+    ];
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = getBestSwapRoute(
+      amount,
+      percents,
+      routesWithQuotes,
+      WETH9[1]!,
+      TradeType.EXACT_INPUT,
+      mockGasModel,
+      { ...mockRoutingConfig, distributionPercent: 25, minSplits: 2, maxSplits: 3 },
+      mockPoolProvider
+    )!;
+
+    expect(quote.quotient.toString()).toBe('110000');
+    expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
+    expect(estimatedGasUsed.toString()).toBe('30000');
+    expect(
+      estimatedGasUsedUSD.equalTo(CurrencyAmount.fromRawAmount(USDC, 0))
+    ).toBeTruthy();
+    expect(
+      estimatedGasUsedQuoteToken.equalTo(
+        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+      )
+    ).toBeTruthy();
+    expect(routes).toHaveLength(3);
   });
 
   test('succeeds to find best route accounting for gas', async () => {

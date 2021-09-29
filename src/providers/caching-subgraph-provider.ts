@@ -1,15 +1,14 @@
-import NodeCache from 'node-cache';
 import { ChainId } from '../util/chains';
+import { ICache } from './cache';
 import { ISubgraphProvider, SubgraphPool } from './subgraph-provider';
 
-const SUBGRAPH_POOL_CACHE = new NodeCache({ stdTTL: 900, useClones: true });
-const SUBGRAPH_KEY = (chainId: ChainId) => `${chainId}pools`;
-
 export class CachingSubgraphProvider implements ISubgraphProvider {
-  constructor(private chainId: ChainId, protected subgraphProvider: ISubgraphProvider) {}
+  private SUBGRAPH_KEY = (chainId: ChainId) => `subgraph-pools-${chainId}`;
+
+  constructor(private chainId: ChainId, protected subgraphProvider: ISubgraphProvider, private cache: ICache<SubgraphPool[]>) {}
 
   public async getPools(): Promise<SubgraphPool[]> {
-    const cachedPools = SUBGRAPH_POOL_CACHE.get<SubgraphPool[]>(SUBGRAPH_KEY(this.chainId));
+    const cachedPools = await this.cache.get(this.SUBGRAPH_KEY(this.chainId));
 
     if (cachedPools) {
       return cachedPools;
@@ -17,7 +16,7 @@ export class CachingSubgraphProvider implements ISubgraphProvider {
 
     const pools = await this.subgraphProvider.getPools();
 
-    SUBGRAPH_POOL_CACHE.set<SubgraphPool[]>(SUBGRAPH_KEY(this.chainId), pools);
+    await this.cache.set(this.SUBGRAPH_KEY(this.chainId), pools);
 
     return pools;
   }

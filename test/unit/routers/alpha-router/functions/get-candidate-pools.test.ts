@@ -4,14 +4,14 @@ import _ from 'lodash';
 import sinon from 'sinon';
 import {
   ChainId,
-  DAI,
+  DAI_MAINNET as DAI,
   PoolProvider,
   SubgraphPool,
   SubgraphProvider,
-  TokenListProvider,
+  CachingTokenListProvider,
   TokenProvider,
-  USDC,
-  USDT,
+  USDC_MAINNET as USDC,
+  USDT_MAINNET as USDT,
   WETH9,
 } from '../../../../../src';
 import { getCandidatePools } from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
@@ -30,7 +30,7 @@ describe('get candidate pools', () => {
   let mockPoolProvider: sinon.SinonStubbedInstance<PoolProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
   let mockSubgraphProvider: sinon.SinonStubbedInstance<SubgraphProvider>;
-  let mockBlockTokenListProvider: sinon.SinonStubbedInstance<TokenListProvider>;
+  let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
 
   const ROUTING_CONFIG = {
     topN: 0,
@@ -50,7 +50,7 @@ describe('get candidate pools', () => {
     mockPoolProvider = sinon.createStubInstance(PoolProvider);
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
     mockSubgraphProvider = sinon.createStubInstance(SubgraphProvider);
-    mockBlockTokenListProvider = sinon.createStubInstance(TokenListProvider);
+    mockBlockTokenListProvider = sinon.createStubInstance(CachingTokenListProvider);
 
     const mockTokens = [USDC, DAI, WETH9[1], USDT];
     const mockPools = [

@@ -188,7 +188,7 @@ export function getBestSwapRouteBy(
       ? (a: CurrencyAmount, b: CurrencyAmount) => a.greaterThan(b)
       : (a: CurrencyAmount, b: CurrencyAmount) => a.lessThan(b);
   
-  const sum = (currencyAmounts: CurrencyAmount[]): CurrencyAmount => {
+  const sumFn = (currencyAmounts: CurrencyAmount[]): CurrencyAmount => {
     let sum = currencyAmounts[0]!;
     for (let i = 1; i < currencyAmounts.length; i++) {
       sum = sum.add(currencyAmounts[i]!);
@@ -232,6 +232,7 @@ export function getBestSwapRouteBy(
     }
   }
 
+  // We do a BFS. Each additional node in a path represents us adding an additional split to the route.
   const queue = new Queue<{ 
     percentIndex: number;
     curRoutes: RouteWithValidQuote[];
@@ -239,6 +240,9 @@ export function getBestSwapRouteBy(
     special: boolean;
   }>()
 
+  // First we seed BFS queue with the best quotes for each percentage.
+  // i.e. [best quote when sending 10% of amount, best quote when sending 20% of amount, ...]
+  // We will explore the various combinations from each node.
   for (let i = percents.length; i >= 0; i--) {
     const percent = percents[i]!;
     
@@ -275,6 +279,8 @@ export function getBestSwapRouteBy(
       MetricLoggerUnit.Milliseconds
     );
 
+    startedSplit = Date.now();
+
     log.info(
       {
         top5: _.map(
@@ -290,11 +296,11 @@ export function getBestSwapRouteBy(
 
     bestSwapsPerSplit.clear();
 
+    // Size of the queue at this point is the number of potential routes we are investigating for the given number of splits.
     let layer = queue.size;
     splits++;
 
-    startedSplit = Date.now();
-
+    // If we didn't improve our quote by adding another split, very unlikely to improve it by splitting more after that.
     if (splits >= 3 && bestSwap && bestSwap.length < (splits - 1)) {
       log.info(
         `Did not improve on route with ${splits - 1} splits. Not checking ${splits} splits.`
@@ -312,13 +318,16 @@ export function getBestSwapRouteBy(
       break;
     }
 
-    log.info(`About to consider ${splits} splits. ${layer} combinations to iterate on.`);
-    
+    log.info(`About to consider ${splits} splits. ${layer} potential routes to iterate on.`);
+  
     while (layer > 0) {
       layer--;
 
       const { remainingPercent, curRoutes, percentIndex, special } = queue.dequeue()!
     
+      // For all other percentages, add a new potential route. 
+      // E.g. if our current aggregated route if missing 50%, we will create new nodes and add to the queue for:
+      // 50% + new 10% route, 50% + new 20% route, etc.
       for (let i = percentIndex; i >= 0; i--) {
         const percentA = percents[i]!;
     
@@ -335,7 +344,8 @@ export function getBestSwapRouteBy(
         const candidateRoutesA = percentToSortedQuotes[percentA]!;
     
         // Find the best route in the complimentary percentage that doesn't re-use a pool already
-        // used in the best route for the current percentage.
+        // used in the current route. Re-using pools is not allowed as each swap through a pool changes its liquidity,
+        // so it would make the quotes inaccurate.
         const routeWithQuoteA = findFirstRouteNotUsingUsedPools(
           poolProvider,
           curRoutes,
@@ -349,9 +359,10 @@ export function getBestSwapRouteBy(
         const remainingPercentNew = remainingPercent - percentA;
         const curRoutesNew = [ ...curRoutes, routeWithQuoteA ];
 
+        // If we've found a route combination that uses all 100%, and it has at least minSplits, update our best route.
         if (remainingPercentNew == 0 && splits >= minSplits) {
           const quotesNew = _.map(curRoutesNew, r => by(r));
-          const quoteNew = sum(quotesNew);
+          const quoteNew = sumFn(quotesNew);
 
           bestSwapsPerSplit.push({
             quote: quoteNew,
@@ -361,6 +372,8 @@ export function getBestSwapRouteBy(
           if (!bestQuote || quoteCompFn(quoteNew, bestQuote)) {
             bestQuote = quoteNew;
             bestSwap = curRoutesNew;
+
+            // Temporary experiment.
             if (special) {
               metric.putMetric(
                 `BestSwapNotPickingBestForPercent`,
@@ -389,7 +402,7 @@ export function getBestSwapRouteBy(
 
   const postSplitNow = Date.now();
 
-  const quoteGasAdjusted = sum(
+  const quoteGasAdjusted = sumFn(
     _.map(
       bestSwap,
       (routeWithValidQuote) => routeWithValidQuote.quoteAdjustedForGas
@@ -403,18 +416,18 @@ export function getBestSwapRouteBy(
       BigNumber.from(0)
     );
 
-  const estimatedGasUsedUSD = sum(
+  const estimatedGasUsedUSD = sumFn(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.gasCostInUSD)
   );
 
-  const estimatedGasUsedQuoteToken = sum(
+  const estimatedGasUsedQuoteToken = sumFn(
     _.map(
       bestSwap,
       (routeWithValidQuote) => routeWithValidQuote.gasCostInToken
     )
   );
 
-  const quote = sum(
+  const quote = sumFn(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
   );
 

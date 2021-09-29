@@ -8,11 +8,11 @@ import {
   AlphaRouterConfig,
   AmountQuote,
   CurrencyAmount,
-  DAI,
+  DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
   HeuristicGasModelFactory,
-  Multicall2Provider,
   parseAmount,
+  UniswapMulticallProvider,
   PoolProvider,
   QuoteProvider,
   RouteSOR,
@@ -21,10 +21,10 @@ import {
   SubgraphPool,
   SubgraphProvider,
   SwapAndAddConfig,
-  TokenListProvider,
+  CachingTokenListProvider,
   TokenProvider,
-  USDC,
-  USDT,
+  USDC_MAINNET as USDC,
+  USDT_MAINNET as USDT,
   WETH9,
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
@@ -48,14 +48,14 @@ const helper = require('../../../../src/routers/alpha-router/functions/calculate
 
 describe('alpha router', () => {
   let mockProvider: sinon.SinonStubbedInstance<providers.BaseProvider>;
-  let mockMulticallProvider: sinon.SinonStubbedInstance<Multicall2Provider>;
+  let mockMulticallProvider: sinon.SinonStubbedInstance<UniswapMulticallProvider>;
   let mockPoolProvider: sinon.SinonStubbedInstance<PoolProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
   let mockSubgraphProvider: sinon.SinonStubbedInstance<SubgraphProvider>;
   let mockQuoteProvider: sinon.SinonStubbedInstance<QuoteProvider>;
   let mockGasPriceProvider: sinon.SinonStubbedInstance<ETHGasStationInfoProvider>;
   let mockGasModelFactory: sinon.SinonStubbedInstance<HeuristicGasModelFactory>;
-  let mockBlockTokenListProvider: sinon.SinonStubbedInstance<TokenListProvider>;
+  let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
 
   let alphaRouter: AlphaRouter;
 
@@ -83,7 +83,7 @@ describe('alpha router', () => {
     mockProvider = sinon.createStubInstance(providers.BaseProvider);
     mockProvider.getBlockNumber.resolves(mockBlock);
 
-    mockMulticallProvider = sinon.createStubInstance(Multicall2Provider);
+    mockMulticallProvider = sinon.createStubInstance(UniswapMulticallProvider);
 
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
     const mockTokens = [USDC, DAI, WETH9[1], USDT];
@@ -169,7 +169,7 @@ describe('alpha router', () => {
     });
     mockGasModelFactory.buildGasModel.returns(mockGasModel);
 
-    mockBlockTokenListProvider = sinon.createStubInstance(TokenListProvider);
+    mockBlockTokenListProvider = sinon.createStubInstance(CachingTokenListProvider);
 
     alphaRouter = new AlphaRouter({
       chainId: 1,

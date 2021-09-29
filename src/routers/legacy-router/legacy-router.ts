@@ -15,7 +15,7 @@ import {
   IQuoteProvider,
   RouteWithQuotes,
 } from '../../providers/quote-provider';
-import { DAI, ITokenProvider, USDC } from '../../providers/token-provider';
+import { DAI_MAINNET, ITokenProvider, USDC_MAINNET } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
@@ -112,7 +112,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI!, 0, 1),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI_MAINNET!, 0, 1),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
@@ -166,7 +166,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI, 0, 1),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI_MAINNET, 0, 1),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
@@ -278,7 +278,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         rawQuote: quote,
         amount,
         percent: 100,
-        gasModel: { estimateGasCost: () => ({ gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0), gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0), gasEstimate: BigNumber.from(0) })},
+        gasModel: { estimateGasCost: () => ({ gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0), gasCostInUSD: CurrencyAmount.fromRawAmount(USDC_MAINNET, 0), gasEstimate: BigNumber.from(0) })},
         sqrtPriceX96AfterList: [],
         initializedTicksCrossedList: [],
         quoterGasEstimate: BigNumber.from(0),
