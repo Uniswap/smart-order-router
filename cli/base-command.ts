@@ -103,7 +103,7 @@ export abstract class BaseCommand extends Command {
 
   private _log: Logger | null = null;
   private _router: IRouter<any> | null = null;
-  private _swapToRatioRouter: ISwapToRatio<any> | null = null;
+  private _swapToRatioRouter: ISwapToRatio<any, any> | null = null;
   private _tokenProvider: ITokenProvider | null = null;
   private _poolProvider: IPoolProvider | null = null;
 
@@ -195,7 +195,7 @@ export abstract class BaseCommand extends Command {
       chainId == ChainId.MAINNET ? process.env.JSON_RPC_PROVIDER! : process.env.JSON_RPC_PROVIDER_RINKEBY!,
       chainName
     );
-    
+
     const tokenCache = new NodeJSCache<Token>(new NodeCache({ stdTTL: 3600, useClones: false }));
 
     let tokenListProvider: CachingTokenListProvider;
@@ -237,11 +237,11 @@ export abstract class BaseCommand extends Command {
       const subgraphCache = new NodeJSCache<SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
       const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: true }));
       const gasPriceCache = new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15, useClones: true }));
-      
+
       const router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingSubgraphProvider(chainId, 
+        subgraphProvider: new CachingSubgraphProvider(chainId,
           new URISubgraphProvider(chainId, 'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'),
           subgraphCache
         ),
