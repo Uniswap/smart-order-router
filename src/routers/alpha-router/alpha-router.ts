@@ -132,12 +132,13 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         [token0Balance, token1Balance] = [token1Balance, token0Balance]
       }
 
+      let zeroForOne = true
       let optimalRatio = this.calculateOptimalRatio(
         position,
-        position.pool.sqrtRatioX96
+        position.pool.sqrtRatioX96,
+        zeroForOne
       )
 
-      let zeroForOne: boolean
       if (position.pool.tickCurrent < position.tickLower) {
         return this.routeExactIn(
           token0Balance.currency,
@@ -608,7 +609,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     );
   }
 
-  private calculateOptimalRatio(position: Position, sqrtRatioX96: JSBI, zeroForOne: boolean = true): Fraction {
+  private calculateOptimalRatio(position: Position, sqrtRatioX96: JSBI, zeroForOne: boolean): Fraction {
     const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickUpper);
     const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickLower);
 
