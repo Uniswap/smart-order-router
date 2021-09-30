@@ -628,7 +628,7 @@ describe('alpha router', () => {
 
       describe('when there is excess of token0', () => {
         test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
-          mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
             quoteMultiplier: new Fraction(1, 2)
           }))
           const token0Balance = parseAmount('20', USDC);
@@ -649,6 +649,8 @@ describe('alpha router', () => {
             undefined,
             ROUTING_CONFIG
           );
+
+          expect(spy.calledTwice).toEqual(true)
 
           const [
             optimalRatioFirst,
@@ -701,6 +703,8 @@ describe('alpha router', () => {
             ROUTING_CONFIG
           );
 
+          expect(spy.calledTwice).toEqual(true)
+
           const [
             optimalRatioFirst,
             exchangeRateFirst,
@@ -728,10 +732,9 @@ describe('alpha router', () => {
 
       describe('when there is excess of token1', () => {
         test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
-          mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
             quoteMultiplier: new Fraction(1, 2)
           }))
-          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn())
           const token0Balance = parseAmount('5', USDC);
           const token1Balance = parseAmount('20', USDT);
 
@@ -750,6 +753,8 @@ describe('alpha router', () => {
             undefined,
             ROUTING_CONFIG
           );
+
+          expect(spy.calledTwice).toEqual(true)
 
           const [
             optimalRatioFirst,
@@ -776,18 +781,18 @@ describe('alpha router', () => {
         })
 
         test('when trade moves sqrtPrice in target pool it calls again with new optimalRatio', async () => {
-          const oneQuarterX96 = BigNumber.from(encodeSqrtRatioX96(1, 4).toString())
-          mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+          const oneQuarterX96 = BigNumber.from(encodeSqrtRatioX96(1, 2).toString())
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
             sqrtPriceX96AfterList: [oneQuarterX96, oneQuarterX96, oneQuarterX96]
           }))
-          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn())
-          const token1Balance = parseAmount('5', DAI);
-          const token0Balance = parseAmount('20', USDC);
+
+          const token1Balance = parseAmount('20' + '0'.repeat(12), USDC);
+          const token0Balance = parseAmount('5', DAI);
 
           const position = new Position({
             pool: USDC_DAI_LOW,
-            tickLower: -10_000,
-            tickUpper: 10_000,
+            tickLower: -120,
+            tickUpper: 120,
             liquidity: 1,
           });
 
@@ -799,6 +804,8 @@ describe('alpha router', () => {
             undefined,
             ROUTING_CONFIG
           );
+
+          expect(spy.calledTwice).toEqual(true)
 
           const [
             optimalRatioFirst,

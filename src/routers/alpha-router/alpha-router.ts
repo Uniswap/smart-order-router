@@ -207,16 +207,19 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
             ) {
               optimalRatio = this.calculateOptimalRatio(
                 position,
-                JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString())
+                JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString()),
+                zeroForOne,
               )
             }
           })
         })
 
-        ratioAchieved = this.absoluteValue(
-          newRatio.asFraction.divide(optimalRatio).subtract(1)
-        ).lessThan(swapAndAddConfig.errorTolerance)
+        ratioAchieved = (
+          newRatio.equalTo(optimalRatio) ||
+          this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(swapAndAddConfig.errorTolerance)
+        )
         exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
+
         log.info({
           optimalRatio: optimalRatio.asFraction.toFixed(18),
           newRatio: newRatio.asFraction.toFixed(18),

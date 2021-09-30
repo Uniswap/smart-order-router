@@ -108,6 +108,7 @@ export class QuoteToRatio extends BaseCommand {
       {
         errorTolerance: new Fraction(1, 100),
         maxIterations: 6
+      },
       {
         deadline: 100,
         recipient,
