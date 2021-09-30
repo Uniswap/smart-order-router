@@ -235,7 +235,7 @@ export abstract class BaseCommand extends Command {
       });
     } else {
       const subgraphCache = new NodeJSCache<SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
-      const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: true }));
+      const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: false }));
       const gasPriceCache = new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15, useClones: true }));
 
       const router = new AlphaRouter({
