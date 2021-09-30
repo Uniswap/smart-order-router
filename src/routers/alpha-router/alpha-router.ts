@@ -132,13 +132,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         [token0Balance, token1Balance] = [token1Balance, token0Balance]
       }
 
-      let zeroForOne = true
-      let optimalRatio = this.calculateOptimalRatio(
-        position,
-        position.pool.sqrtRatioX96,
-        zeroForOne
-      )
-
+      // exit early for out of range positions
       if (position.pool.tickCurrent < position.tickLower) {
         return this.routeExactIn(
           token0Balance.currency,
@@ -155,10 +149,17 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           swapConfig,
           routingConfig
         )
-      } else {
-        zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(optimalRatio)
-        if (!zeroForOne) optimalRatio = optimalRatio.invert()
       }
+
+      // set up parameters according to which token will be swapped
+      let zeroForOne = true
+      let optimalRatio = this.calculateOptimalRatio(
+        position,
+        position.pool.sqrtRatioX96,
+        zeroForOne
+      )
+      zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(optimalRatio)
+      if (!zeroForOne) optimalRatio = optimalRatio.invert()
 
       const [inputBalance, outputBalance] = zeroForOne
         ? [token0Balance, token1Balance]
@@ -171,6 +172,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       let ratioAchieved = false
       let n = 0
 
+      // iterate until we find a swap with a sufficient ratio or return null
       while (!ratioAchieved) {
         n++
         if (n > swapAndAddConfig.maxIterations) {
