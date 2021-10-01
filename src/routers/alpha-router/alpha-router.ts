@@ -609,9 +609,8 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickUpper);
     const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickLower);
 
-    // some assumptions here: swapping the input will only push the price in the direction
-    // of the output token, so if outputToken is token0 our sqrtRatioX96 would enter this
-    // condition if sqrt is higher than tick upper, if token1 is our output, then lower than tick lower
+    // returns Fraction(0, 1) for any out of range position regardless of zeroForOne. Cannot
+    // be used to determine the trading direction of out of range positions.
     if (JSBI.greaterThan(sqrtRatioX96, upperSqrtRatioX96) || JSBI.lessThan(sqrtRatioX96, lowerSqrtRatioX96)) {
       return new Fraction(0,1)
     }
