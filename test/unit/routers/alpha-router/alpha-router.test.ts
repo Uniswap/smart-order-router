@@ -429,8 +429,8 @@ describe('alpha router', () => {
 
           const position = new Position({
             pool: USDC_USDT_MEDIUM,
-            tickLower: 60,
-            tickUpper: 120,
+            tickLower: -120,
+            tickUpper: -60,
             liquidity: 1,
           });
 
@@ -491,8 +491,8 @@ describe('alpha router', () => {
 
           const position = new Position({
             pool: USDC_USDT_MEDIUM,
-            tickUpper: -60,
-            tickLower: -120,
+            tickUpper: 120,
+            tickLower: 60,
             liquidity: 1,
           });
 
