@@ -1,5 +1,5 @@
 import { flags } from '@oclif/command';
-import { Currency, Ether, Percent } from '@uniswap/sdk-core';
+import { Currency, Ether, Fraction, Percent } from '@uniswap/sdk-core';
 import { Position } from '@uniswap/v3-sdk';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
@@ -48,6 +48,7 @@ export class QuoteToRatio extends BaseCommand {
       topNWithBaseToken,
       topNWithBaseTokenInSet,
       maxSwapsPerPath,
+      minSplits,
       maxSplits,
       distributionPercent,
     } = flags;
@@ -74,11 +75,12 @@ export class QuoteToRatio extends BaseCommand {
     const tokenInBalance = parseAmount(token0BalanceStr, tokenIn);
     const tokenOutBalance = parseAmount(token1BalanceStr, tokenOut);
 
-    const poolAccessor = await this.poolProvider.getPools([
-      [tokenIn.wrapped, tokenOut.wrapped, 3000],
-    ]);
+    const poolAccessor = await this.poolProvider.getPools(
+      [[tokenIn.wrapped, tokenOut.wrapped, feeAmount]],
+      { blockNumber: this.blockNumber }
+    );
 
-    const pool = poolAccessor?.getPool(
+    const pool = poolAccessor.getPool(
       tokenIn.wrapped,
       tokenOut.wrapped,
       feeAmount
@@ -100,24 +102,29 @@ export class QuoteToRatio extends BaseCommand {
     });
 
     let swapRoutes: SwapRoute<any> | null;
-    swapRoutes = await router?.routeToRatio(
+    swapRoutes = await router.routeToRatio(
       tokenInBalance,
       tokenOutBalance,
       position,
+      {
+        errorTolerance: new Fraction(1, 100),
+        maxIterations: 6
+      },
       {
         deadline: 100,
         recipient,
         slippageTolerance: new Percent(5, 10_000),
       },
       {
+        blockNumber: this.blockNumber,
         topN,
-        topNDirectSwaps: 2,
         topNTokenInOut,
         topNSecondHop,
         topNWithEachBaseToken,
         topNWithBaseToken,
         topNWithBaseTokenInSet,
         maxSwapsPerPath,
+        minSplits,
         maxSplits,
         distributionPercent,
       }

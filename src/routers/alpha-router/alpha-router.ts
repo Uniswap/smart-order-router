@@ -79,7 +79,12 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   distributionPercent: 5,
 };
 
-export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig> {
+export type SwapAndAddConfig = {
+  errorTolerance: Fraction;
+  maxIterations: number;
+}
+
+export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
   protected multicall2Provider: IMulticallProvider;
@@ -119,51 +124,108 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
+    swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-      if (
-        token0Balance.currency.wrapped.address.toLowerCase()
-        > token1Balance.currency.wrapped.address.toLowerCase()
-      ) {
+      if (token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)) {
         [token0Balance, token1Balance] = [token1Balance, token0Balance]
       }
 
-      const precision = JSBI.BigInt('1' + '0'.repeat(18))
-
-      const sqrtPriceX96 = position.pool.sqrtRatioX96
-      const sqrtPriceX96Lower = TickMath.getSqrtRatioAtTick(position.tickLower)
-      const sqrtPriceX96Upper = TickMath.getSqrtRatioAtTick(position.tickUpper)
-
-      const token0Proportion = SqrtPriceMath.getAmount0Delta(
-        sqrtPriceX96,
-        sqrtPriceX96Upper,
-        precision,
-        true
-      )
-      const token1Proportion = SqrtPriceMath.getAmount1Delta(
-        sqrtPriceX96,
-        sqrtPriceX96Lower,
-        precision,
+      let preSwapOptimalRatio = this.calculateOptimalRatio(
+        position,
+        position.pool.sqrtRatioX96,
         true
       )
 
-      const amountToSwap = calculateRatioAmountIn(
-        new Fraction(token0Proportion, token1Proportion),
-        position.pool.token0Price,
-        token0Balance,
-        token1Balance,
-      )
+      // set up parameters according to which token will be swapped
+      let zeroForOne: boolean
+      if (position.pool.tickCurrent > position.tickUpper) {
+        zeroForOne = true
+      } else if (position.pool.tickCurrent < position.tickLower) {
+        zeroForOne = false
+      } else {
+        zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(preSwapOptimalRatio)
+        if (!zeroForOne) preSwapOptimalRatio = preSwapOptimalRatio.invert()
+      }
 
-      return this.routeExactIn(
-        amountToSwap.currency,
-        amountToSwap.currency == token0Balance.currency
-          ? token1Balance.currency
-          : token0Balance.currency,
-        amountToSwap,
-        swapConfig,
-        routingConfig
-      )
+      const [inputBalance, outputBalance] = zeroForOne
+        ? [token0Balance, token1Balance]
+        : [token1Balance, token0Balance]
+
+      let optimalRatio = preSwapOptimalRatio
+      let exchangeRate: Fraction = zeroForOne
+        ? position.pool.token0Price
+        : position.pool.token1Price
+      let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null
+      let ratioAchieved = false
+      let n = 0
+
+      // iterate until we find a swap with a sufficient ratio or return null
+      while (!ratioAchieved) {
+        n++
+        if (n > swapAndAddConfig.maxIterations) {
+          return null;
+        }
+
+        let amountToSwap = calculateRatioAmountIn(
+          optimalRatio,
+          exchangeRate,
+          inputBalance,
+          outputBalance,
+        )
+
+        swap = await this.routeExactIn(
+          inputBalance.currency,
+          outputBalance.currency,
+          amountToSwap,
+          swapConfig,
+          routingConfig
+        )
+        if (!swap) {
+          return null;
+        }
+
+        let inputBalanceUpdated = inputBalance.subtract(swap.trade.inputAmount)
+        let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount)
+        let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated)
+
+        let targetPoolHit = false
+        swap.route.forEach(route => {
+          route.route.pools.forEach((pool, i) => {
+            if(
+              pool.token0.equals(position.pool.token0) &&
+              pool.token1.equals(position.pool.token1) &&
+              pool.fee == position.pool.fee
+            ) {
+              targetPoolHit = true
+              optimalRatio = this.calculateOptimalRatio(
+                position,
+                JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString()),
+                zeroForOne,
+              )
+            }
+          })
+        })
+        if (!targetPoolHit) {
+          optimalRatio = preSwapOptimalRatio
+        }
+
+        ratioAchieved = (
+          newRatio.equalTo(optimalRatio) ||
+          this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(swapAndAddConfig.errorTolerance)
+        )
+        exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
+
+        log.info({
+          optimalRatio: optimalRatio.asFraction.toFixed(18),
+          newRatio: newRatio.asFraction.toFixed(18),
+          errorTolerance: swapAndAddConfig.errorTolerance.toFixed(18),
+          iterationN: n.toString()
+        })
+      }
+
+      return swap
   }
 
   public async routeExactIn(
@@ -541,5 +603,41 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       },
       'Log for gas model'
     );
+  }
+
+  private calculateOptimalRatio(position: Position, sqrtRatioX96: JSBI, zeroForOne: boolean): Fraction {
+    const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickUpper);
+    const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickLower);
+
+    // returns Fraction(0, 1) for any out of range position regardless of zeroForOne. Implication: function
+    // cannot be used to determine the trading direction of out of range positions.
+    if (JSBI.greaterThan(sqrtRatioX96, upperSqrtRatioX96) || JSBI.lessThan(sqrtRatioX96, lowerSqrtRatioX96)) {
+      return new Fraction(0,1)
+    }
+
+    const precision = JSBI.BigInt('1' + '0'.repeat(18))
+    let optimalRatio =  new Fraction(
+      SqrtPriceMath.getAmount0Delta(
+        sqrtRatioX96,
+        upperSqrtRatioX96,
+        precision,
+        true
+      ),
+      SqrtPriceMath.getAmount1Delta(
+        sqrtRatioX96,
+        lowerSqrtRatioX96,
+        precision,
+        true
+      )
+    )
+    if (!zeroForOne) optimalRatio = optimalRatio.invert()
+    return optimalRatio
+  }
+
+  private absoluteValue(fraction: Fraction): Fraction {
+    if (fraction.lessThan(0)) {
+      return fraction.multiply(-1)
+    }
+    return fraction
   }
 }
