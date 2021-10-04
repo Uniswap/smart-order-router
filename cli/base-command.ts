@@ -106,6 +106,7 @@ export abstract class BaseCommand extends Command {
   private _swapToRatioRouter: ISwapToRatio<any, any> | null = null;
   private _tokenProvider: ITokenProvider | null = null;
   private _poolProvider: IPoolProvider | null = null;
+  private _blockNumber: number | null = null;
 
   get logger() {
     return this._log
@@ -144,6 +145,14 @@ export abstract class BaseCommand extends Command {
       return this._poolProvider;
     } else {
       throw 'poolProvider not initialized';
+    }
+  }
+
+  get blockNumber() {
+    if (this._blockNumber) {
+      return this._blockNumber;
+    } else {
+      throw 'blockNumber not initialized';
     }
   }
 
@@ -195,6 +204,8 @@ export abstract class BaseCommand extends Command {
       chainId == ChainId.MAINNET ? process.env.JSON_RPC_PROVIDER! : process.env.JSON_RPC_PROVIDER_RINKEBY!,
       chainName
     );
+
+    this._blockNumber = await provider.getBlockNumber()
 
     const tokenCache = new NodeJSCache<Token>(new NodeCache({ stdTTL: 3600, useClones: false }));
 
