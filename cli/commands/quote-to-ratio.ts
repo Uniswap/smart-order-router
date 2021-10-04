@@ -116,6 +116,7 @@ export class QuoteToRatio extends BaseCommand {
         slippageTolerance: new Percent(5, 10_000),
       },
       {
+        blockNumber: this.blockNumber,
         topN,
         topNTokenInOut,
         topNSecondHop,
