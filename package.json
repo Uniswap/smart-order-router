@@ -1,6 +1,6 @@
 {
   "name": "@uniswap/smart-order-router",
-  "version": "1.45.1",
+  "version": "1.45.2",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
@@ -59,8 +59,6 @@
     "lodash": "^4.17.21",
     "mnemonist": "^0.38.3",
     "node-cache": "^5.1.2",
-    "prettier-plugin-organize-imports": "^2.1.0",
-    "sinon": "^11.1.2",
     "stats-lite": "^2.2.0",
     "tslib": "^1.14.1"
   },
@@ -83,6 +81,8 @@
     "npm-run-all": "^4.1.5",
     "open-cli": "^6.0.1",
     "prettier": "^2.1.1",
+    "prettier-plugin-organize-imports": "^2.1.0",
+    "sinon": "^11.1.2",
     "standard-version": "^9.0.0",
     "ts-jest": "^27.0.4",
     "ts-node": "^9.0.0",
@@ -105,3 +105,4 @@
     "commands": "./cli/commands"
   }
 }
+
