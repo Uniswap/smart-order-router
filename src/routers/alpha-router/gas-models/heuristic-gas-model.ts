@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { PoolAccessor } from '../../../providers/pool-provider';
+import { V3PoolAccessor } from '../../../providers/v3/pool-provider';
 import { DAI_MAINNET, DAI_RINKEBY_1, DAI_RINKEBY_2, USDC_MAINNET, USDT_MAINNET } from '../../../providers/token-provider';
 import { ChainId, WETH9 } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
@@ -36,7 +36,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   public buildGasModel(
     chainId: ChainId,
     gasPriceWei: BigNumber,
-    poolAccessor: PoolAccessor,
+    poolAccessor: V3PoolAccessor,
     token: Token
   ): GasModel {
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
@@ -215,7 +215,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   private getHighestLiquidityEthPool(
     chainId: ChainId,
     token: Token,
-    poolAccessor: PoolAccessor
+    poolAccessor: V3PoolAccessor
   ): Pool | null {
     const weth = WETH9[chainId]!;
 
@@ -241,7 +241,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
 
   private getHighestLiquidityUSDPool(
     chainId: ChainId,
-    poolAccessor: PoolAccessor
+    poolAccessor: V3PoolAccessor
   ): Pool {
     const usdTokens = usdGasTokensByChain[chainId];
     

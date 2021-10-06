@@ -2,12 +2,12 @@ import { Token, TradeType, WETH9 } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { ITokenListProvider } from '../../../providers';
-import { IPoolProvider, PoolAccessor } from '../../../providers/pool-provider';
+import { IV3PoolProvider, V3PoolAccessor } from '../../../providers/v3/pool-provider';
 import {
-  ISubgraphProvider,
+  IV3SubgraphProvider,
   printSubgraphPool,
-  SubgraphPool,
-} from '../../../providers/subgraph-provider';
+  V3SubgraphPool,
+} from '../../../providers/v3/subgraph-provider';
 import {
   DAI_MAINNET,
   DAI_RINKEBY_1,
@@ -23,15 +23,15 @@ import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
 
 export type CandidatePoolsBySelectionCriteria = {
-  topByBaseWithTokenIn: SubgraphPool[];
-  topByBaseWithTokenOut: SubgraphPool[];
-  top2DirectSwapPool: SubgraphPool[];
-  top2EthQuoteTokenPool: SubgraphPool[];
-  topByTVL: SubgraphPool[];
-  topByTVLUsingTokenIn: SubgraphPool[];
-  topByTVLUsingTokenOut: SubgraphPool[];
-  topByTVLUsingTokenInSecondHops: SubgraphPool[];
-  topByTVLUsingTokenOutSecondHops: SubgraphPool[];
+  topByBaseWithTokenIn: V3SubgraphPool[];
+  topByBaseWithTokenOut: V3SubgraphPool[];
+  top2DirectSwapPool: V3SubgraphPool[];
+  top2EthQuoteTokenPool: V3SubgraphPool[];
+  topByTVL: V3SubgraphPool[];
+  topByTVLUsingTokenIn: V3SubgraphPool[];
+  topByTVLUsingTokenOut: V3SubgraphPool[];
+  topByTVLUsingTokenInSecondHops: V3SubgraphPool[];
+  topByTVLUsingTokenOutSecondHops: V3SubgraphPool[];
 };
 
 export type GetCandidatePoolsParams = {
@@ -39,9 +39,9 @@ export type GetCandidatePoolsParams = {
   tokenOut: Token;
   routeType: TradeType;
   routingConfig: AlphaRouterConfig;
-  subgraphProvider: ISubgraphProvider;
+  subgraphProvider: IV3SubgraphProvider;
   tokenProvider: ITokenProvider;
-  poolProvider: IPoolProvider;
+  poolProvider: IV3PoolProvider;
   blockedTokenListProvider?: ITokenListProvider;
   chainId: ChainId;
 };
@@ -62,7 +62,7 @@ export async function getCandidatePools({
   blockedTokenListProvider,
   chainId,
 }: GetCandidatePoolsParams): Promise<{
-  poolAccessor: PoolAccessor;
+  poolAccessor: V3PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
 }> {
   const {
@@ -103,7 +103,7 @@ export async function getCandidatePools({
   );
 
   // Only consider pools where neither tokens are in the blocked token list.
-  let filteredPools: SubgraphPool[] = allPools;
+  let filteredPools: V3SubgraphPool[] = allPools;
   if (blockedTokenListProvider) {
     filteredPools = [];
     for (const pool of allPools) {
@@ -125,7 +125,7 @@ export async function getCandidatePools({
   log.info(`After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`)
 
   const poolAddressesSoFar = new Set<string>();
-  const addToAddressSet = (pools: SubgraphPool[]) => {
+  const addToAddressSet = (pools: V3SubgraphPool[]) => {
     _(pools)
       .map((pool) => pool.id)
       .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
@@ -198,7 +198,7 @@ export async function getCandidatePools({
   // Main reason we need this is for gas estimates, only needed if token out is not ETH.
   // We don't check the seen address set because if we've already added pools for getting ETH quotes
   // theres no need to add more.
-  let top2EthQuoteTokenPool: SubgraphPool[] = [];
+  let top2EthQuoteTokenPool: V3SubgraphPool[] = [];
   if (
     tokenOut.symbol != 'WETH' &&
     tokenOut.symbol != 'WETH9' &&
@@ -359,7 +359,7 @@ export async function getCandidatePools({
   });
 
   const tokenPairsRaw = _.map<
-    SubgraphPool,
+    V3SubgraphPool,
     [Token, Token, FeeAmount] | undefined
   >(subgraphPools, (subgraphPool) => {
     const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);

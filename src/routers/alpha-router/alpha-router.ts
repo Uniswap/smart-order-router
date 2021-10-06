@@ -13,12 +13,12 @@ import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import { IMulticallProvider } from '../../providers';
 import { IGasPriceProvider } from '../../providers/gas-price-provider';
-import { IPoolProvider } from '../../providers/pool-provider';
-import { IQuoteProvider } from '../../providers/quote-provider';
+import { IV3PoolProvider } from '../../providers/v3/pool-provider';
+import { IV3QuoteProvider } from '../../providers/v3/quote-provider';
 import {
-  ISubgraphProvider,
-  SubgraphPool,
-} from '../../providers/subgraph-provider';
+  IV3SubgraphProvider,
+  V3SubgraphPool,
+} from '../../providers/v3/subgraph-provider';
 import { ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { ITokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
@@ -41,9 +41,9 @@ export type AlphaRouterParams = {
   chainId: ChainId;
   provider: providers.BaseProvider;
   multicall2Provider: IMulticallProvider;
-  subgraphProvider: ISubgraphProvider;
-  poolProvider: IPoolProvider;
-  quoteProvider: IQuoteProvider;
+  subgraphProvider: IV3SubgraphProvider;
+  poolProvider: IV3PoolProvider;
+  quoteProvider: IV3QuoteProvider;
   tokenProvider: ITokenProvider;
   gasPriceProvider: IGasPriceProvider;
   gasModelFactory: IGasModelFactory;
@@ -88,9 +88,9 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
   protected multicall2Provider: IMulticallProvider;
-  protected subgraphProvider: ISubgraphProvider;
-  protected poolProvider: IPoolProvider;
-  protected quoteProvider: IQuoteProvider;
+  protected subgraphProvider: IV3SubgraphProvider;
+  protected poolProvider: IV3PoolProvider;
+  protected quoteProvider: IV3QuoteProvider;
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected gasModelFactory: IGasModelFactory;
@@ -562,7 +562,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
 
     _.forIn(
       poolsBySelection,
-      (pools: SubgraphPool[], topNSelection: string) => {
+      (pools: V3SubgraphPool[], topNSelection: string) => {
         const topNUsed =
           _.findLastIndex(pools, (pool) =>
             poolAddressesUsed.has(pool.id.toLowerCase())

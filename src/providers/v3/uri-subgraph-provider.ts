@@ -1,13 +1,13 @@
-import { ChainId } from '../util/chains';
-import { log } from '../util/log';
-import { ISubgraphProvider, SubgraphPool } from './subgraph-provider';
+import { ChainId } from '../../util/chains';
+import { log } from '../../util/log';
+import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 import axios from 'axios';
 
-export class URISubgraphProvider implements ISubgraphProvider
+export class URISubgraphProvider implements IV3SubgraphProvider
 {
   constructor(private chainId: ChainId, private uri: string) {}
 
-  public async getPools(): Promise<SubgraphPool[]> {
+  public async getPools(): Promise<V3SubgraphPool[]> {
     try {
       const response = await axios.get(this.uri);
       const { data: poolsBuffer, status } = response;
@@ -21,7 +21,7 @@ export class URISubgraphProvider implements ISubgraphProvider
         throw new Error(`Unable to get pools from ${this.uri}`);
       }
 
-      const pools = poolsBuffer as SubgraphPool[];
+      const pools = poolsBuffer as V3SubgraphPool[];
 
       log.info(
         { uri: this.uri, chain: this.chainId },

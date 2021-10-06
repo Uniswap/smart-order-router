@@ -5,7 +5,7 @@ import {
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { FixedReverseHeap, Queue } from 'mnemonist';
-import { IPoolProvider } from '../../../providers';
+import { IV3PoolProvider } from '../../../providers';
 import {
   RouteWithQuotes,
 } from '../../../providers/quote-provider';
@@ -25,7 +25,7 @@ export function getBestSwapRoute(
   routeType: TradeType,
   gasModel: GasModel,
   routingConfig: AlphaRouterConfig,
-  poolProvider: IPoolProvider,
+  poolProvider: IV3PoolProvider,
 ): {
   quote: CurrencyAmount;
   quoteGasAdjusted: CurrencyAmount;
@@ -158,7 +158,7 @@ export function getBestSwapRouteBy(
   percents: number[],
   by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
   routingConfig: AlphaRouterConfig,
-  poolProvider: IPoolProvider
+  poolProvider: IV3PoolProvider
 ):
   | {
       quote: CurrencyAmount;
@@ -454,7 +454,7 @@ export function getBestSwapRouteBy(
 // We do not allow pools to be re-used across split routes, as swapping through a pool changes the pools state.
   // Given a list of used routes, this function finds the first route in the list of candidate routes that does not re-use an already used pool.
 const findFirstRouteNotUsingUsedPools = (
-  poolProvider: IPoolProvider,
+  poolProvider: IV3PoolProvider,
   usedRoutes: RouteWithValidQuote[],
   candidateRouteQuotes: RouteWithValidQuote[]
 ): RouteWithValidQuote | null => {

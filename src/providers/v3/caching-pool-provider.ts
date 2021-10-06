@@ -1,20 +1,20 @@
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
-import { ChainId } from '../util/chains';
-import { log } from '../util/log';
-import { ICache } from './cache';
-import { IPoolProvider, PoolAccessor } from './pool-provider';
-import { ProviderConfig } from './provider';
+import { ChainId } from '../../util/chains';
+import { log } from '../../util/log';
+import { ICache } from './../cache';
+import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
+import { ProviderConfig } from './../provider';
 
 
-export class CachingPoolProvider implements IPoolProvider {
+export class CachingV3PoolProvider implements IV3PoolProvider {
   private POOL_KEY = (chainId: ChainId, address: string) => `pool-${chainId}-${address}`;
 
-  constructor(protected chainId: ChainId, protected poolProvider: IPoolProvider, private cache: ICache<Pool>) {}
+  constructor(protected chainId: ChainId, protected poolProvider: IV3PoolProvider, private cache: ICache<Pool>) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][], providerConfig?: ProviderConfig
-  ): Promise<PoolAccessor> {
+  ): Promise<V3PoolAccessor> {
     const poolAddressSet: Set<string> = new Set<string>();
     const poolsToGetTokenPairs: Array<[Token, Token, FeeAmount]> = [];
     const poolsToGetAddresses: string[] = [];

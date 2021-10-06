@@ -19,13 +19,13 @@ import {
   HeuristicGasModelFactory,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
-  IPoolProvider,
+  IV3PoolProvider,
   IRouter,
   ISwapToRatio,
   ITokenProvider,
   LegacyRouter,
   MetricLogger,
-  PoolProvider,
+  V3PoolProvider,
   QuoteProvider,
   routeAmountsToString,
   RouteWithValidQuote,
@@ -35,7 +35,7 @@ import {
   CachingTokenListProvider,
   UniswapMulticallProvider,
   NodeJSCache,
-  SubgraphPool,
+  V3SubgraphPool,
   GasPrice,
   CachingTokenProviderWithFallback,
   URISubgraphProvider,
@@ -105,7 +105,7 @@ export abstract class BaseCommand extends Command {
   private _router: IRouter<any> | null = null;
   private _swapToRatioRouter: ISwapToRatio<any, any> | null = null;
   private _tokenProvider: ITokenProvider | null = null;
-  private _poolProvider: IPoolProvider | null = null;
+  private _poolProvider: IV3PoolProvider | null = null;
   private _blockNumber: number | null = null;
 
   get logger() {
@@ -225,7 +225,7 @@ export abstract class BaseCommand extends Command {
     }
 
     const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
-    this._poolProvider = new PoolProvider(chainId, multicall2Provider);
+    this._poolProvider = new V3PoolProvider(chainId, multicall2Provider);
 
     // initialize tokenProvider
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
@@ -240,12 +240,12 @@ export abstract class BaseCommand extends Command {
       this._router = new LegacyRouter({
         chainId,
         multicall2Provider,
-        poolProvider: new PoolProvider(chainId, multicall2Provider),
+        poolProvider: new V3PoolProvider(chainId, multicall2Provider),
         quoteProvider: new QuoteProvider(chainId, provider, multicall2Provider),
         tokenProvider: this.tokenProvider,
       });
     } else {
-      const subgraphCache = new NodeJSCache<SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
+      const subgraphCache = new NodeJSCache<V3SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
       const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: false }));
       const gasPriceCache = new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15, useClones: true }));
 
@@ -258,7 +258,7 @@ export abstract class BaseCommand extends Command {
         ),
         multicall2Provider: multicall2Provider,
         poolProvider: new CachingPoolProvider(chainId,
-          new PoolProvider(chainId, multicall2Provider),
+          new V3PoolProvider(chainId, multicall2Provider),
           poolCache
         ),
         quoteProvider: new QuoteProvider(

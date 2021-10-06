@@ -10,11 +10,11 @@ import {
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
 import { IMulticallProvider } from '../../providers/multicall-provider';
-import { IPoolProvider } from '../../providers/pool-provider';
+import { IV3PoolProvider } from '../../providers/v3/pool-provider';
 import {
-  IQuoteProvider,
-  RouteWithQuotes,
-} from '../../providers/quote-provider';
+  IV3QuoteProvider,
+  V3RouteWithQuotes,
+} from '../../providers/v3/quote-provider';
 import { DAI_MAINNET, ITokenProvider, USDC_MAINNET } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
@@ -36,8 +36,8 @@ import {
 export type LegacyRouterParams = {
   chainId: ChainId;
   multicall2Provider: IMulticallProvider;
-  poolProvider: IPoolProvider;
-  quoteProvider: IQuoteProvider;
+  poolProvider: IV3PoolProvider;
+  quoteProvider: IV3QuoteProvider;
   tokenProvider: ITokenProvider;
 };
 
@@ -56,8 +56,8 @@ export type LegacyRoutingConfig = {
 export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   protected chainId: ChainId;
   protected multicall2Provider: IMulticallProvider;
-  protected poolProvider: IPoolProvider;
-  protected quoteProvider: IQuoteProvider;
+  protected poolProvider: IV3PoolProvider;
+  protected quoteProvider: IV3QuoteProvider;
   protected tokenProvider: ITokenProvider;
 
   constructor({
@@ -195,7 +195,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
     const quotes100Percent = _.map(
       quotesRaw,
-      ([route, quotes]: RouteWithQuotes) =>
+      ([route, quotes]: V3RouteWithQuotes) =>
         `${routeToString(route)} : ${quotes[0]?.quote?.toString()}`
     );
     log.info({ quotes100Percent }, '100% Quotes');
@@ -232,7 +232,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
   private async getBestQuote(
     routes: RouteSOR[],
-    quotesRaw: RouteWithQuotes[],
+    quotesRaw: V3RouteWithQuotes[],
     quoteToken: Token,
     routeType: TradeType
   ): Promise<RouteWithValidQuote | null> {

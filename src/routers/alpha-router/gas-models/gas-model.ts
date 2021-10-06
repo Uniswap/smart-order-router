@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
-import { PoolAccessor } from '../../../providers/pool-provider';
+import { V3PoolAccessor } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 
@@ -16,7 +16,7 @@ export abstract class IGasModelFactory {
   public abstract buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
-    poolProvider: PoolAccessor,
+    poolProvider: V3PoolAccessor,
     inTermsOfToken: Token
   ): GasModel;
 }

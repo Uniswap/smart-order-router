@@ -1,15 +1,14 @@
 import { Token } from '@uniswap/sdk-core';
-import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Pair } from '@uniswap/v2-sdk';
 import { default as AsyncRetry, default as retry } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
-import { IUniswapV3PoolState__factory } from '../types/v3';
-import { ChainId } from '../util';
-import { V3_CORE_FACTORY_ADDRESS } from '../util/addresses';
-import { log } from '../util/log';
-import { poolToString } from '../util/routes';
-import { IMulticallProvider, Result } from './multicall-provider';
-import { ProviderConfig } from './provider';
+import { IUniswapV3PoolState__factory } from '../../types/v3';
+import { ChainId, CurrencyAmount } from '../../util';
+import { log } from '../../util/log';
+import { poolToString } from '../../util/routes';
+import { IMulticallProvider, Result } from '../multicall-provider';
+import { ProviderConfig } from '../provider';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -23,31 +22,29 @@ type ISlot0 = {
 
 type ILiquidity = { liquidity: BigNumber };
 
-export interface IPoolProvider {
+export interface IV2PoolProvider {
   getPools(
-    tokenPairs: [Token, Token, FeeAmount][],
+    tokenPairs: [Token, Token][],
     providerConfig?: ProviderConfig
-  ): Promise<PoolAccessor>;
+  ): Promise<V2PoolAccessor>;
   getPoolAddress(
     tokenA: Token,
     tokenB: Token,
-    feeAmount: FeeAmount
   ): { poolAddress: string; token0: Token; token1: Token };
 }
 
-export type PoolAccessor = {
+export type V2PoolAccessor = {
   getPool: (
     tokenA: Token,
     tokenB: Token,
-    feeAmount: FeeAmount
-  ) => Pool | undefined;
-  getPoolByAddress: (address: string) => Pool | undefined;
-  getAllPools: () => Pool[];
+  ) => Pair | undefined;
+  getPoolByAddress: (address: string) => Pair | undefined;
+  getAllPools: () => Pair[];
 };
 
 export type PoolRetryOptions = AsyncRetry.Options;
 
-export class PoolProvider implements IPoolProvider {
+export class V2PoolProvider implements IV2PoolProvider {
   // Computing pool addresses is slow as it requires hashing, encoding etc.
   // Addresses never change so can always be cached.
   private POOL_ADDRESS_CACHE: { [key: string]: string } = {};
@@ -63,20 +60,19 @@ export class PoolProvider implements IPoolProvider {
   ) {}
 
   public async getPools(
-    tokenPairs: [Token, Token, FeeAmount][],
+    tokenPairs: [Token, Token][],
     providerConfig?: ProviderConfig
-  ): Promise<PoolAccessor> {
+  ): Promise<V2PoolAccessor> {
     const poolAddressSet: Set<string> = new Set<string>();
-    const sortedTokenPairs: Array<[Token, Token, FeeAmount]> = [];
+    const sortedTokenPairs: Array<[Token, Token]> = [];
     const sortedPoolAddresses: string[] = [];
 
     for (let tokenPair of tokenPairs) {
-      const [tokenA, tokenB, feeAmount] = tokenPair;
+      const [tokenA, tokenB] = tokenPair;
 
       const { poolAddress, token0, token1 } = this.getPoolAddress(
         tokenA,
         tokenB,
-        feeAmount
       );
 
       if (poolAddressSet.has(poolAddress)) {
@@ -84,7 +80,7 @@ export class PoolProvider implements IPoolProvider {
       }
 
       poolAddressSet.add(poolAddress);
-      sortedTokenPairs.push([token0, token1, feeAmount]);
+      sortedTokenPairs.push([token0, token1]);
       sortedPoolAddresses.push(poolAddress);
     }
 
@@ -109,9 +105,9 @@ export class PoolProvider implements IPoolProvider {
       `Got liquidity and slot0s for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
     );
 
-    const poolAddressToPool: { [poolAddress: string]: Pool } = {};
+    const poolAddressToPool: { [poolAddress: string]: Pair } = {};
 
-    const invalidPools: [Token, Token, FeeAmount][] = [];
+    const invalidPools: [Token, Token][] = [];
 
     for (let i = 0; i < sortedPoolAddresses.length; i++) {
       const slot0Result = slot0Results[i];
@@ -123,23 +119,17 @@ export class PoolProvider implements IPoolProvider {
         !liquidityResult?.success ||
         slot0Result.result.sqrtPriceX96.eq(0)
       ) {
-        const [token0, token1, fee] = sortedTokenPairs[i]!;
-        invalidPools.push([token0, token1, fee]);
+        const [token0, token1] = sortedTokenPairs[i]!;
+        invalidPools.push([token0, token1]);
 
         continue;
       }
 
-      const [token0, token1, fee] = sortedTokenPairs[i]!;
-      const slot0 = slot0Result.result;
-      const liquidity = liquidityResult.result[0];
+      const [token0, token1] = sortedTokenPairs[i]!;
 
-      const pool = new Pool(
-        token0,
-        token1,
-        fee,
-        slot0.sqrtPriceX96.toString(),
-        liquidity.toString(),
-        slot0.tick
+      const pool = new Pair(
+        CurrencyAmount.fromRawAmount(token0, 0),
+        CurrencyAmount.fromRawAmount(token1, 0),
       );
 
       const poolAddress = sortedPoolAddresses[i]!;
@@ -151,8 +141,8 @@ export class PoolProvider implements IPoolProvider {
       {
         invalidPools: _.map(
           invalidPools,
-          ([token0, token1, fee]) =>
-            `${token0.symbol}/${token1.symbol}/${fee / 10000}%`
+          ([token0, token1]) =>
+            `${token0.symbol}/${token1.symbol}`
         ),
       },
       `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
@@ -166,27 +156,25 @@ export class PoolProvider implements IPoolProvider {
       getPool: (
         tokenA: Token,
         tokenB: Token,
-        feeAmount: FeeAmount
-      ): Pool | undefined => {
-        const { poolAddress } = this.getPoolAddress(tokenA, tokenB, feeAmount);
+      ): Pair | undefined => {
+        const { poolAddress } = this.getPoolAddress(tokenA, tokenB);
         return poolAddressToPool[poolAddress];
       },
-      getPoolByAddress: (address: string): Pool | undefined =>
+      getPoolByAddress: (address: string): Pair | undefined =>
         poolAddressToPool[address],
-      getAllPools: (): Pool[] => Object.values(poolAddressToPool),
+      getAllPools: (): Pair[] => Object.values(poolAddressToPool),
     };
   }
 
   public getPoolAddress(
     tokenA: Token,
     tokenB: Token,
-    feeAmount: FeeAmount
   ): { poolAddress: string; token0: Token; token1: Token } {
     const [token0, token1] = tokenA.sortsBefore(tokenB)
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
 
-    const cacheKey = `${this.chainId}/${token0.address}/${token1.address}/${feeAmount}`;
+    const cacheKey = `${this.chainId}/${token0.address}/${token1.address}`;
 
     const cachedAddress = this.POOL_ADDRESS_CACHE[cacheKey];
 
@@ -194,12 +182,7 @@ export class PoolProvider implements IPoolProvider {
       return { poolAddress: cachedAddress, token0, token1 };
     }
 
-    const poolAddress = computePoolAddress({
-      factoryAddress: V3_CORE_FACTORY_ADDRESS,
-      tokenA: token0,
-      tokenB: token1,
-      fee: feeAmount,
-    });
+    const poolAddress = Pair.getAddress(token0, token1);
 
     this.POOL_ADDRESS_CACHE[cacheKey] = poolAddress;
 

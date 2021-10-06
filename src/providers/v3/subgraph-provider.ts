@@ -1,12 +1,12 @@
 import { default as retry } from 'async-retry';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
-import { log } from '../util/log';
-import { ProviderConfig } from './provider';
+import { log } from '../../util/log';
+import { ProviderConfig } from './../provider';
 import Timeout from 'await-timeout';
-import { ChainId } from '../util/chains';
+import { ChainId } from '../../util/chains';
 
-export interface SubgraphPool {
+export interface V3SubgraphPool {
   id: string;
   feeTier: string;
   liquidity: string;
@@ -24,7 +24,7 @@ export interface SubgraphPool {
   totalValueLockedUSDFloat: number;
 }
 
-export type RawSubgraphPool = {
+export type RawV3SubgraphPool = {
   id: string;
   feeTier: string;
   liquidity: string;
@@ -40,7 +40,7 @@ export type RawSubgraphPool = {
   totalValueLockedETH: string;
 };
 
-export const printSubgraphPool = (s: SubgraphPool) =>
+export const printSubgraphPool = (s: V3SubgraphPool) =>
   `${s.token0.symbol}/${s.token1.symbol}/${s.feeTier}`;
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
@@ -49,11 +49,11 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
 }
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
-export interface ISubgraphProvider {
-  getPools(providerConfig?: ProviderConfig): Promise<SubgraphPool[]>;
+export interface IV3SubgraphProvider {
+  getPools(providerConfig?: ProviderConfig): Promise<V3SubgraphPool[]>;
 }
 
-export class SubgraphProvider implements ISubgraphProvider {
+export class V3SubgraphProvider implements IV3SubgraphProvider {
   private client: GraphQLClient;
 
   constructor(private chainId: ChainId, private retries = 2, private timeout = 7000) {
@@ -66,7 +66,7 @@ export class SubgraphProvider implements ISubgraphProvider {
 
   public async getPools(
     providerConfig?: ProviderConfig
-  ): Promise<SubgraphPool[]> {
+  ): Promise<V3SubgraphPool[]> {
     const query = gql`
       query getPools($pageSize: Int!, $skip: Int!) {
         pools(
@@ -97,7 +97,7 @@ export class SubgraphProvider implements ISubgraphProvider {
       }
     `;
 
-    let pools: RawSubgraphPool[] = [];
+    let pools: RawV3SubgraphPool[] = [];
 
     log.info(
       `Getting pools from the subgraph with page size ${PAGE_SIZE}${
@@ -111,14 +111,14 @@ export class SubgraphProvider implements ISubgraphProvider {
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<RawSubgraphPool[]> => {
+        const getPools = async (): Promise<RawV3SubgraphPool[]> => {
           let skip = 0;
-          let pools: RawSubgraphPool[] = [];
-          let poolsPage: RawSubgraphPool[] = [];
+          let pools: RawV3SubgraphPool[] = [];
+          let poolsPage: RawV3SubgraphPool[] = [];
   
           do {
             const poolsResult = await this.client.request<{
-              pools: RawSubgraphPool[];
+              pools: RawV3SubgraphPool[];
             }>(query, {
               pageSize: PAGE_SIZE,
               skip,

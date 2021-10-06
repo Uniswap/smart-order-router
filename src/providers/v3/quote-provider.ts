@@ -3,19 +3,19 @@ import { default as AsyncRetry, default as retry } from 'async-retry';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import stats from 'stats-lite';
-import { RouteSOR } from '../routers/router';
-import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { ChainId, metric, MetricLoggerUnit } from '../util';
-import { QUOTER_V2_ADDRESS } from '../util/addresses';
-import { CurrencyAmount } from '../util/amounts';
-import { log } from '../util/log';
-import { routeToString } from '../util/routes';
-import { Result } from './multicall-provider';
-import { UniswapMulticallProvider } from './multicall-uniswap-provider';
-import { ProviderConfig } from './provider';
+import { RouteSOR } from '../../routers/router';
+import { IQuoterV2__factory } from '../../types/v3/factories/IQuoterV2__factory';
+import { ChainId, metric, MetricLoggerUnit } from '../../util';
+import { QUOTER_V2_ADDRESS } from '../../util/addresses';
+import { CurrencyAmount } from '../../util/amounts';
+import { log } from '../../util/log';
+import { routeToString } from '../../util/routes';
+import { Result } from './../multicall-provider';
+import { UniswapMulticallProvider } from './../multicall-uniswap-provider';
+import { ProviderConfig } from './../provider';
 
 // Quotes can be null (e.g. pool did not have enough liquidity).
-export type AmountQuote = {
+export type V3AmountQuote = {
   amount: CurrencyAmount;
   quote: BigNumber | null;
   sqrtPriceX96AfterList: BigNumber[] | null;
@@ -43,7 +43,7 @@ export class ProviderGasError extends Error {
 
 export type QuoteRetryOptions = AsyncRetry.Options;
 
-export type RouteWithQuotes = [RouteSOR, AmountQuote[]];
+export type V3RouteWithQuotes = [RouteSOR, V3AmountQuote[]];
 
 type QuoteBatchSuccess = {
   status: 'success';
@@ -73,18 +73,18 @@ type QuoteBatchPending = {
 
 type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 
-export interface IQuoteProvider {
+export interface IV3QuoteProvider {
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: RouteSOR[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
+  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
 
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
     routes: RouteSOR[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }>;
+  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
 const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
@@ -92,7 +92,7 @@ const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
   [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf'
 }
 
-export class QuoteProvider implements IQuoteProvider {
+export class V3QuoteProvider implements IV3QuoteProvider {
   protected quoterAddress: string;
   constructor(
     protected chainId: ChainId,
@@ -129,7 +129,7 @@ export class QuoteProvider implements IQuoteProvider {
     amountIns: CurrencyAmount[],
     routes: RouteSOR[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
+  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }> {
     return this.getQuotesManyDataV2(
       amountIns,
       routes,
@@ -142,7 +142,7 @@ export class QuoteProvider implements IQuoteProvider {
     amountOuts: CurrencyAmount[],
     routes: RouteSOR[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
+  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }> {
     return this.getQuotesManyDataV2(
       amountOuts,
       routes,
@@ -156,7 +156,7 @@ export class QuoteProvider implements IQuoteProvider {
     routes: RouteSOR[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
     _providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber }> {
+  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }> {
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
 
@@ -530,7 +530,7 @@ export class QuoteProvider implements IQuoteProvider {
     );
 
     const [successfulQuotes, failedQuotes] = _(routesQuotes)
-      .flatMap((routeWithQuotes: RouteWithQuotes) => routeWithQuotes[1])
+      .flatMap((routeWithQuotes: V3RouteWithQuotes) => routeWithQuotes[1])
       .partition((quote) => quote.quote != null)
       .value();
 
@@ -582,8 +582,8 @@ export class QuoteProvider implements IQuoteProvider {
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     routes: RouteSOR[],
     amounts: CurrencyAmount[]
-  ): RouteWithQuotes[] {
-    const routesQuotes: RouteWithQuotes[] = [];
+  ): V3RouteWithQuotes[] {
+    const routesQuotes: V3RouteWithQuotes[] = [];
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
@@ -592,7 +592,7 @@ export class QuoteProvider implements IQuoteProvider {
     for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
       const quoteResults = quotesResultsByRoute[i]!;
-      const quotes: AmountQuote[] = _.map(
+      const quotes: V3AmountQuote[] = _.map(
         quoteResults,
         (
           quoteResult: Result<[BigNumber, BigNumber[], number[], BigNumber]>,
