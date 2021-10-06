@@ -3,19 +3,19 @@ import { CurrencyAmount } from '../../../util/amounts';
 
 export function calculateRatioAmountIn(
   optimalRatio: Fraction,
-  token0Price: Fraction,
-  token0Balance: CurrencyAmount,
-  token1Balance: CurrencyAmount
+  inputTokenPrice: Fraction,
+  inputBalance: CurrencyAmount,
+  outputBalance: CurrencyAmount
 ): CurrencyAmount {
-  // formula: amountToSwap = (token0Balance - (optimalRatio * token1Balance)) / ((optimalRatio * token0Price) + 1))
-  const amountToSwapRaw = new Fraction(token0Balance.quotient)
-    .subtract(optimalRatio.multiply(token1Balance.quotient))
-    .divide(optimalRatio.multiply(token0Price).add(1));
+  // formula: amountToSwap = (inputBalance - (optimalRatio * outputBalance)) / ((optimalRatio * inputTokenPrice) + 1))
+  const amountToSwapRaw = new Fraction(inputBalance.quotient)
+    .subtract(optimalRatio.multiply(outputBalance.quotient))
+    .divide(optimalRatio.multiply(inputTokenPrice).add(1));
 
-  const zeroForOne = !amountToSwapRaw.lessThan(0)
+  if (amountToSwapRaw.lessThan(0)) {
+    // should never happen since we do checks before calling in
+    throw new Error('routeToRatio: insufficient input token amount')
+  }
 
-  return CurrencyAmount.fromRawAmount(
-    zeroForOne ? token0Balance.currency : token1Balance.currency,
-    zeroForOne ? amountToSwapRaw.quotient : amountToSwapRaw.multiply(-1).multiply(token0Price).quotient
-  );
+  return CurrencyAmount.fromRawAmount(inputBalance.currency, amountToSwapRaw.quotient)
 }

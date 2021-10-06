@@ -1,5 +1,5 @@
 import { Fraction, Percent } from '@uniswap/sdk-core';
-import { Pool, Position } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -20,6 +20,7 @@ import {
   RouteWithValidQuote,
   SubgraphPool,
   SubgraphProvider,
+  SwapAndAddConfig,
   CachingTokenListProvider,
   TokenProvider,
   USDC_MAINNET as USDC,
@@ -42,6 +43,8 @@ import {
   USDC_WETH_LOW,
   WETH9_USDT_LOW,
 } from '../../test-util/mock-data';
+
+const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in')
 
 describe('alpha router', () => {
   let mockProvider: sinon.SinonStubbedInstance<providers.BaseProvider>;
@@ -68,6 +71,12 @@ describe('alpha router', () => {
     minSplits: 1,
     maxSplits: 3,
     distributionPercent: 25,
+  };
+
+
+  const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
+    errorTolerance: new Fraction(1, 100),
+    maxIterations: 6,
   };
 
   beforeEach(() => {
@@ -105,31 +114,7 @@ describe('alpha router', () => {
 
     mockQuoteProvider = sinon.createStubInstance(QuoteProvider);
     mockQuoteProvider.getQuotesManyExactIn.callsFake(
-      async (
-        amountIns: CurrencyAmount[],
-        routes: RouteSOR[],
-        _providerConfig?: ProviderConfig
-      ) => {
-        const routesWithQuotes = _.map(routes, (r) => {
-          const amountQuotes = _.map(amountIns, (amountIn) => {
-            return {
-              amount: amountIn,
-              quote: BigNumber.from(
-                amountIn.quotient.toString()
-              ),
-              sqrtPriceX96AfterList: [BigNumber.from(1)],
-              initializedTicksCrossedList: [1],
-              gasEstimate: BigNumber.from(10000),
-            } as AmountQuote;
-          });
-          return [r, amountQuotes];
-        });
-
-        return {
-          routesWithQuotes: routesWithQuotes,
-          blockNumber: mockBlockBN,
-        } as { routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber };
-      }
+      getQuotesManyExactInFn()
     );
     mockQuoteProvider.getQuotesManyExactOut.callsFake(
       async (
@@ -144,7 +129,7 @@ describe('alpha router', () => {
               quote: BigNumber.from(
                 amountOut.quotient.toString()
               ),
-              sqrtPriceX96AfterList: [BigNumber.from(1)],
+              sqrtPriceX96AfterList: [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
               initializedTicksCrossedList: [1],
               gasEstimate: BigNumber.from(10000),
             } as AmountQuote;
@@ -406,10 +391,221 @@ describe('alpha router', () => {
   });
 
   describe('to ratio', () => {
-    describe('when token0Balance has excess tokens', () => {
-      test('calls routeExactIn with correct parameters', async () => {
-        const token0Balance = parseAmount('20', USDT);
-        const token1Balance = parseAmount('5', USDC);
+    describe('simple 1 swap scenario', () => {
+      describe('when token0Balance has excess tokens', () => {
+        test('with in range position calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('20', USDC);
+          const token1Balance = parseAmount('5', USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('7.5', USDC)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+
+        test('with out of range position calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('20', USDC);
+          const token1Balance = parseAmount('5', USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickLower: -120,
+            tickUpper: -60,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('20', USDC)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+      })
+
+      describe('when token1Balance has excess tokens', () => {
+        test('with in range position calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('5', USDC);
+          const token1Balance = parseAmount('20', USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('7.5', USDT)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+
+        test('with out of range position calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('5', USDC);
+          const token1Balance = parseAmount('20', USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickUpper: 120,
+            tickLower: 60,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('20', USDT)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+      })
+
+      describe('when token0 has more decimal places than token1', () => {
+        test('calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('20', DAI);
+          const token1Balance = parseAmount('5' + '0'.repeat(12), USDT);
+
+          const position = new Position({
+            pool: DAI_USDT_MEDIUM,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('7.5', DAI)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+      })
+
+      describe('when token1 has more decimal places than token0', () => {
+        test('calls routeExactIn with correct parameters', async () => {
+          const token0Balance = parseAmount('20' + '0'.repeat(12), USDC);
+          const token1Balance = parseAmount('5', WETH9[1]);
+
+          const position = new Position({
+            pool: USDC_WETH_LOW,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
+
+          const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          const exactAmountInBalance = parseAmount('7500000000000', USDC)
+
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+      })
+    })
+
+    describe('iterative scenario', () => {
+      let spy: sinon.SinonSpy<any[], any>
+
+      beforeEach(() => {
+        spy = sinon.spy(helper, 'calculateRatioAmountIn')
+      })
+
+      afterEach(() => {
+        spy.restore()
+      })
+
+      test('it returns null when maxIterations has been exceeded', async () => {
+        // prompt many loops
+        mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+          quoteMultiplier: new Fraction(1, 2)
+        }))
+        mockQuoteProvider.getQuotesManyExactIn.onCall(2).callsFake(getQuotesManyExactInFn({
+          quoteMultiplier: new Fraction(1, 2)
+        }))
+        mockQuoteProvider.getQuotesManyExactIn.onCall(4).callsFake(getQuotesManyExactInFn({
+          quoteMultiplier: new Fraction(1, 2)
+        }))
+
+        const token0Balance = parseAmount('20', USDC);
+        const token1Balance = parseAmount('5', USDT);
 
         const position = new Position({
           pool: USDC_USDT_MEDIUM,
@@ -418,116 +614,366 @@ describe('alpha router', () => {
           liquidity: 1,
         });
 
-        const spy = sinon.spy(alphaRouter, 'routeExactIn')
-
-        await alphaRouter.routeToRatio(
+         const swap = await alphaRouter.routeToRatio(
           token0Balance,
           token1Balance,
           position,
+          SWAP_AND_ADD_CONFIG,
           undefined,
           ROUTING_CONFIG
-        );
+        )
 
-        const exactAmountInBalance = parseAmount('7.5', USDT)
-
-        const exactInputParameters = spy.firstCall.args
-        expect(exactInputParameters[0]).toEqual(token0Balance.currency)
-        expect(exactInputParameters[1]).toEqual(token1Balance.currency)
-        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        expect(swap).toEqual(null)
       })
-    })
 
-    describe('when token1Balance has excess tokens', () => {
-      test('calls routeExactIn with correct parameters', async () => {
-        const token0Balance = parseAmount('5', USDT);
-        const token1Balance = parseAmount('20', USDC);
+      describe('when there is excess of token0', () => {
+        test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
+            quoteMultiplier: new Fraction(1, 2)
+          }))
+          const token0Balance = parseAmount('20', USDC);
+          const token1Balance = parseAmount('5', USDT);
 
-        const position = new Position({
-          pool: USDC_USDT_MEDIUM,
-          tickUpper: 120,
-          tickLower: -120,
-          liquidity: 1,
-        });
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
 
-        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
 
-        await alphaRouter.routeToRatio(
-          token0Balance,
-          token1Balance,
-          position,
-          undefined,
-          ROUTING_CONFIG
-        );
+          expect(spy.calledTwice).toEqual(true)
 
-        const exactAmountInBalance = parseAmount('7.5', USDC)
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token0Balance)
+          expect(outputBalanceFirst).toEqual(token1Balance)
 
-        const exactInputParameters = spy.firstCall.args
-        expect(exactInputParameters[0]).toEqual(token1Balance.currency)
-        expect(exactInputParameters[1]).toEqual(token0Balance.currency)
-        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 2).toFixed(6))
+          // all other args remain equal
+          expect(optimalRatioSecond.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token0Balance)
+          expect(outputBalanceSecond).toEqual(token1Balance)
+        })
+
+        test('when trade moves sqrtPrice in target pool within range it calls again with new optimalRatio', async () => {
+          const sqrtTwoX96 = BigNumber.from(encodeSqrtRatioX96(2, 1).toString())
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
+            sqrtPriceX96AfterList: [sqrtTwoX96, sqrtTwoX96, sqrtTwoX96]
+          }))
+
+          const token0Balance = parseAmount('20', USDC);
+          const token1Balance = parseAmount('5',USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickLower: -10020,
+            tickUpper: 10020,
+            liquidity: 1,
+          });
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          expect(spy.calledTwice).toEqual(true)
+
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token0Balance)
+          expect(outputBalanceFirst).toEqual(token1Balance)
+
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(optimalRatioSecond.toFixed(2)).toEqual(new Fraction(1, 8).toFixed(2))
+          // all other params remain the same
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token0Balance)
+          expect(outputBalanceSecond).toEqual(token1Balance)
+        })
+
+        test('when trade moves sqrtPrice in target pool out of range it calls again with new optimalRatio', async () => {
+          const sqrtFourX96 = BigNumber.from(encodeSqrtRatioX96(4, 1).toString())
+          mockQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(getQuotesManyExactInFn({
+            sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96]
+          }))
+          mockQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(getQuotesManyExactInFn({
+            sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96]
+          }))
+          const token0Balance = parseAmount('20', USDC);
+          const token1Balance = parseAmount('5',USDT);
+
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickLower: -10020,
+            tickUpper: 10020,
+            liquidity: 1,
+          });
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          expect(spy.calledTwice).toEqual(true)
+
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token0Balance)
+          expect(outputBalanceFirst).toEqual(token1Balance)
+
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(optimalRatioSecond).toEqual(new Fraction(0, 1))
+          // all other params remain the same
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token0Balance)
+          expect(outputBalanceSecond).toEqual(token1Balance)
+        })
       })
-    })
 
-    describe('when token0 has more decimal places than token1', () => {
-      test('calls routeExactIn with correct parameters', async () => {
-        const token0Balance = parseAmount('20', DAI);
-        const token1Balance = parseAmount('5' + '0'.repeat(12), USDT);
+      describe('when there is excess of token1', () => {
+        test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
+            quoteMultiplier: new Fraction(1, 2)
+          }))
+          const token0Balance = parseAmount('5', USDC);
+          const token1Balance = parseAmount('20', USDT);
 
-        const position = new Position({
-          pool: DAI_USDT_MEDIUM,
-          tickUpper: 120,
-          tickLower: -120,
-          liquidity: 1,
-        });
+          const position = new Position({
+            pool: USDC_USDT_MEDIUM,
+            tickUpper: 120,
+            tickLower: -120,
+            liquidity: 1,
+          });
 
-        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
 
-        await alphaRouter.routeToRatio(
-          token0Balance,
-          token1Balance,
-          position,
-          undefined,
-          ROUTING_CONFIG
-        );
+          expect(spy.calledTwice).toEqual(true)
 
-        const exactAmountInBalance = parseAmount('7.5', DAI)
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token1Balance)
+          expect(outputBalanceFirst).toEqual(token0Balance)
 
-        const exactInputParameters = spy.firstCall.args
-        expect(exactInputParameters[0]).toEqual(token0Balance.currency)
-        expect(exactInputParameters[1]).toEqual(token1Balance.currency)
-        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
-      })
-    })
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 2).toFixed(6))
+          // all other args remain equal
+          expect(optimalRatioSecond.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token1Balance)
+          expect(outputBalanceSecond).toEqual(token0Balance)
+        })
 
-    describe('when token1 has more decimal places than token0', () => {
-      test('calls routeExactIn with correct parameters', async () => {
-        const token0Balance = parseAmount('20' + '0'.repeat(12), USDC);
-        const token1Balance = parseAmount('5', WETH9[1]);
+        test('when trade moves sqrtPrice in target pool within range it calls again with new optimalRatio', async () => {
+          const oneHalfX96 = BigNumber.from(encodeSqrtRatioX96(1, 2).toString())
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
+            sqrtPriceX96AfterList: [oneHalfX96, oneHalfX96, oneHalfX96]
+          }))
 
-        const position = new Position({
-          pool: USDC_WETH_LOW,
-          tickUpper: 120,
-          tickLower: -120,
-          liquidity: 1,
-        });
+          const token1Balance = parseAmount('20' + '0'.repeat(12), USDC);
+          const token0Balance = parseAmount('5', DAI);
 
-        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+          const position = new Position({
+            pool: USDC_DAI_LOW,
+            tickLower: -100_000,
+            tickUpper: 100_000,
+            liquidity: 1,
+          });
 
-        await alphaRouter.routeToRatio(
-          token0Balance,
-          token1Balance,
-          position,
-          undefined,
-          ROUTING_CONFIG
-        );
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
 
-        const exactAmountInBalance = parseAmount('7500000000000', USDC)
+          expect(spy.calledTwice).toEqual(true)
 
-        const exactInputParameters = spy.firstCall.args
-        expect(exactInputParameters[0]).toEqual(token0Balance.currency)
-        expect(exactInputParameters[1]).toEqual(token1Balance.currency)
-        expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token1Balance)
+          expect(outputBalanceFirst).toEqual(token0Balance)
+
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(optimalRatioSecond.toFixed(1)).toEqual(new Fraction(1, 2).toFixed(1))
+          // all other params remain the same
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token1Balance)
+          expect(outputBalanceSecond).toEqual(token0Balance)
+        })
+
+        test('when trade moves sqrtPrice in target pool out of range it calls again with new optimalRatio of 0', async () => {
+          const oneQuarterX96 = BigNumber.from(encodeSqrtRatioX96(1, 2).toString())
+          mockQuoteProvider.getQuotesManyExactIn.callsFake(getQuotesManyExactInFn({
+            sqrtPriceX96AfterList: [oneQuarterX96, oneQuarterX96, oneQuarterX96]
+          }))
+
+          const token1Balance = parseAmount('20' + '0'.repeat(12), USDC);
+          const token0Balance = parseAmount('5', DAI);
+
+          const position = new Position({
+            pool: USDC_DAI_LOW,
+            tickLower: -120,
+            tickUpper: 120,
+            liquidity: 1,
+          });
+
+          await alphaRouter.routeToRatio(
+            token0Balance,
+            token1Balance,
+            position,
+            SWAP_AND_ADD_CONFIG,
+            undefined,
+            ROUTING_CONFIG
+          );
+
+          expect(spy.calledTwice).toEqual(true)
+
+          const [
+            optimalRatioFirst,
+            exchangeRateFirst,
+            inputBalanceFirst,
+            outputBalanceFirst
+          ] = spy.firstCall.args
+          expect(optimalRatioFirst.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceFirst).toEqual(token1Balance)
+          expect(outputBalanceFirst).toEqual(token0Balance)
+
+          const [
+            optimalRatioSecond,
+            exchangeRateSecond,
+            inputBalanceSecond,
+            outputBalanceSecond
+          ] = spy.secondCall.args
+          expect(optimalRatioSecond).toEqual(new Fraction(0, 1))
+          // all other params remain the same
+          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(new Fraction(1, 1).toFixed(6))
+          expect(inputBalanceSecond).toEqual(token1Balance)
+          expect(outputBalanceSecond).toEqual(token0Balance)
+        })
       })
     })
   })
-});
+})
+
+type GetQuotesManyExactInFn = (
+  amountIns: CurrencyAmount[],
+  routes: RouteSOR[],
+  _providerConfig?: ProviderConfig | undefined
+) => Promise<{ routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber; }>
+
+type GetQuotesManyExactInFnParams = {
+  quoteMultiplier?: Fraction
+  sqrtPriceX96AfterList?: BigNumber[]
+}
+
+function getQuotesManyExactInFn(options: GetQuotesManyExactInFnParams = {}): GetQuotesManyExactInFn {
+  return async (
+    amountIns: CurrencyAmount[],
+    routes: RouteSOR[],
+    _providerConfig?: ProviderConfig
+  ) => {
+    const oneX96 = BigNumber.from(encodeSqrtRatioX96(1, 1).toString())
+    const multiplier = options.quoteMultiplier || new Fraction(1, 1)
+    const routesWithQuotes = _.map(routes, (r) => {
+      const amountQuotes = _.map(amountIns, (amountIn) => {
+        return {
+          amount: amountIn,
+          quote: BigNumber.from(
+            amountIn.multiply(multiplier).quotient.toString()
+          ),
+          sqrtPriceX96AfterList: options.sqrtPriceX96AfterList || [oneX96, oneX96, oneX96],
+          initializedTicksCrossedList: [1],
+          gasEstimate: BigNumber.from(10000),
+        } as AmountQuote;
+      });
+      return [r, amountQuotes];
+    });
+
+    return {
+      routesWithQuotes: routesWithQuotes,
+      blockNumber: mockBlockBN,
+    } as { routesWithQuotes: RouteWithQuotes[]; blockNumber: BigNumber };
+  }
+}
