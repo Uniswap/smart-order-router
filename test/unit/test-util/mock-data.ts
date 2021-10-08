@@ -205,6 +205,22 @@ export const mockTokenList: TokenList = {
       "decimals": 18,
       "chainId": 1,
       "logoURI": ""
+    },
+    {
+      "name": "USDT",
+      "address": "0x110a13FC3efE6A245B50102D2d79B3E76125Ae83",
+      "symbol": "USDT",
+      "decimals": 18,
+      "chainId": 2,
+      "logoURI": ""
+    },
+    {
+      "name": "WBTC",
+      "address": "0x577D296678535e4903D59A4C929B718e1D575e0A",
+      "symbol": "WBTC",
+      "decimals": 18,
+      "chainId": 777,
+      "logoURI": ""
     }
   ],
 };

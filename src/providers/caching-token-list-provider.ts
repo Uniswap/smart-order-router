@@ -9,8 +9,10 @@ import { ICache } from './cache';
 import { ITokenProvider, TokenAccessor } from './token-provider';
 
 type StringToTokenInfo = { [index: string]: TokenInfo };
-type ChainToTokenInfoList = { [chainId in ChainId]: TokenInfo[] };
-type TokenInfoMapping = { [chainId in ChainId]: StringToTokenInfo };
+
+// Use string for chain id to support unknown chains.
+type ChainToTokenInfoList = { [chainId: string]: TokenInfo[] };
+type TokenInfoMapping = { [chainId: string]: StringToTokenInfo };
 
 export interface ITokenListProvider {
   getTokenBySymbol(_symbol: string): Promise<Token | undefined>;
@@ -32,25 +34,22 @@ export class CachingTokenListProvider implements ITokenProvider, ITokenListProvi
 
   // Token metadata (e.g. symbol and decimals) don't change so can be cached indefinitely.
   // Constructing a new token object is slow as sdk-core does checksumming.
-  constructor(chainId: ChainId, tokenList: TokenList, private tokenCache: ICache<Token>) {
+  constructor(chainId: ChainId | number, tokenList: TokenList, private tokenCache: ICache<Token>) {
     this.chainId = chainId;
     this.tokenList = tokenList;
 
     this.chainToTokenInfos = _.reduce(
       this.tokenList.tokens,
       (result: ChainToTokenInfoList, tokenInfo: TokenInfo) => {
-        // Filter out tokens on the blocklist.
-        result[tokenInfo.chainId as ChainId].push(tokenInfo);
+        const chainId = tokenInfo.chainId.toString();
+        if (!result[chainId]) {
+          result[chainId] = [];
+        }
+        result[chainId]!.push(tokenInfo);
 
         return result;
       },
-      {
-        [ChainId.MAINNET]: [],
-        [ChainId.KOVAN]: [],
-        [ChainId.RINKEBY]: [],
-        [ChainId.ROPSTEN]: [],
-        [ChainId.GÖRLI]: [],
-      }
+      {}
     );
 
     this.chainSymbolToTokenInfo = _.mapValues(
@@ -66,7 +65,7 @@ export class CachingTokenListProvider implements ITokenProvider, ITokenListProvi
   }
 
   public static async fromTokenListURI(
-    chainId: ChainId, 
+    chainId: ChainId | number, 
     tokenListURI: string, 
     tokenCache: ICache<Token>,
   ) {
@@ -104,7 +103,7 @@ export class CachingTokenListProvider implements ITokenProvider, ITokenListProvi
   }
 
   public static async fromTokenList(
-    chainId: ChainId, 
+    chainId: ChainId | number, 
     tokenList: TokenList, 
     tokenCache: ICache<Token>,
   ) {
@@ -156,8 +155,12 @@ export class CachingTokenListProvider implements ITokenProvider, ITokenListProvi
       symbol = 'WETH';
     }
 
+    if (!this.chainSymbolToTokenInfo[this.chainId.toString()]) {
+      return undefined;
+    }
+
     const tokenInfo: TokenInfo | undefined =
-      this.chainSymbolToTokenInfo[this.chainId][symbol];
+      this.chainSymbolToTokenInfo[this.chainId.toString()]![symbol];
 
     if (!tokenInfo) {
       return undefined;
@@ -169,8 +172,12 @@ export class CachingTokenListProvider implements ITokenProvider, ITokenListProvi
   }
 
   public async getTokenByAddress(address: string): Promise<Token | undefined> {
+    if (!this.chainAddressToTokenInfo[this.chainId.toString()]) {
+      return undefined;
+    }
+
     const tokenInfo: TokenInfo | undefined =
-      this.chainAddressToTokenInfo[this.chainId][address.toLowerCase()];
+      this.chainAddressToTokenInfo[this.chainId.toString()]![address.toLowerCase()];
 
     if (!tokenInfo) {
       return undefined;

@@ -38,6 +38,33 @@ describe('caching token list provider', () => {
       sinon.assert.calledOnce(mockCache.set);
     });
 
+    test('fails to get token that is in token list but not on the selected chain', async () => {
+      const nonMainnetToken = _.filter(mockTokenList.tokens, token => token.chainId != ChainId.MAINNET)![0];
+      const address = nonMainnetToken!.address;
+
+      const token = await cachingTokenListProvider.getTokenByAddress(address);
+      expect(token).toBeUndefined();
+      
+      sinon.assert.notCalled(mockCache.get);
+      sinon.assert.notCalled(mockCache.set);
+    });
+
+    test('succeeds for any chain id', async () => {
+      cachingTokenListProvider = await CachingTokenListProvider.fromTokenList(
+        777,
+        mockTokenList,
+        mockCache
+      );
+
+      const token = await cachingTokenListProvider.getTokenByAddress('0x577D296678535e4903D59A4C929B718e1D575e0A');
+      expect(token).toBeDefined();
+      expect(token!.symbol!).toEqual('WBTC');
+      
+      // Checks cache, then sets it with the token.
+      sinon.assert.calledOnce(mockCache.get);
+      sinon.assert.calledOnce(mockCache.set);
+    });
+
     test('succeeds and is non case sensistive', async () => {
       const address = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'.toLowerCase();
 
