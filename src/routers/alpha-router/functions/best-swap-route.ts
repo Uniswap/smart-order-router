@@ -7,8 +7,8 @@ import _ from 'lodash';
 import { FixedReverseHeap, Queue } from 'mnemonist';
 import { IV3PoolProvider } from '../../../providers';
 import {
-  RouteWithQuotes,
-} from '../../../providers/quote-provider';
+  V3RouteWithQuotes,
+} from '../../../providers/v3/quote-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -20,7 +20,7 @@ import { GasModel } from './../gas-models/gas-model';
 export function getBestSwapRoute(
   amount: CurrencyAmount,
   percents: number[],
-  routesWithQuotes: RouteWithQuotes[],
+  routesWithQuotes: V3RouteWithQuotes[],
   quoteToken: Token,
   routeType: TradeType,
   gasModel: GasModel,

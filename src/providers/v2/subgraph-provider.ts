@@ -6,10 +6,9 @@ import { ProviderConfig } from '../provider';
 import Timeout from 'await-timeout';
 import { ChainId } from '../../util/chains';
 
-export interface V3SubgraphPool {
+
+export interface V2SubgraphPool {
   id: string;
-  feeTier: string;
-  liquidity: string;
   token0: {
     symbol: string;
     id: string;
@@ -18,16 +17,13 @@ export interface V3SubgraphPool {
     symbol: string;
     id: string;
   };
-  totalValueLockedUSD: string;
-  totalValueLockedETH: string;
-  totalValueLockedETHFloat: number;
-  totalValueLockedUSDFloat: number;
+  totalSupply: number;
+  reserveETH: number;
+  trackedReserveETH: number;
 }
 
-export type RawV3SubgraphPool = {
+export type RawV2SubgraphPool = {
   id: string;
-  feeTier: string;
-  liquidity: string;
   token0: {
     symbol: string;
     id: string;
@@ -36,24 +32,24 @@ export type RawV3SubgraphPool = {
     symbol: string;
     id: string;
   };
-  totalValueLockedUSD: string;
-  totalValueLockedETH: string;
+  totalSupply: string;
+  reserveETH: string;
+  trackedReserveETH: string;
 };
 
-export const printSubgraphPool = (s: V3SubgraphPool) =>
-  `${s.token0.symbol}/${s.token1.symbol}/${s.feeTier}`;
+export const printSubgraphPool = (s: V2SubgraphPool) =>
+  `${s.token0.symbol}/${s.token1.symbol}`;
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
-  [ChainId.RINKEBY]: 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
+  [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
 }
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
-export interface IV3SubgraphProvider {
-  getPools(providerConfig?: ProviderConfig): Promise<V3SubgraphPool[]>;
+export interface IV2SubgraphProvider {
+  getPools(providerConfig?: ProviderConfig): Promise<V2SubgraphPool[]>;
 }
 
-export class V3SubgraphProvider implements IV3SubgraphProvider {
+export class V2SubgraphProvider implements IV2SubgraphProvider {
   private client: GraphQLClient;
 
   constructor(private chainId: ChainId, private retries = 2, private timeout = 7000) {
@@ -66,14 +62,14 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
 
   public async getPools(
     providerConfig?: ProviderConfig
-  ): Promise<V3SubgraphPool[]> {
+  ): Promise<V2SubgraphPool[]> {
     const query = gql`
       query getPools($pageSize: Int!, $skip: Int!) {
-        pools(
+        pairs(
+          orderBy: trackedReserveETH
+          orderDirection: desc
           first: $pageSize
           skip: $skip
-          orderBy: totalValueLockedETH
-          orderDirection: desc
           ${
             providerConfig?.blockNumber
               ? `block: { number: ${providerConfig?.blockNumber} }`
@@ -81,23 +77,16 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           }
         ) {
           id
-          token0 {
-            symbol
-            id
-          }
-          token1 {
-            symbol
-            id
-          }
-          feeTier
-          liquidity
-          totalValueLockedUSD
-          totalValueLockedETH
+          token0 { id, symbol }
+          token1 { id, symbol }
+          totalSupply
+          reserveETH
+          trackedReserveETH
         }
       }
     `;
 
-    let pools: RawV3SubgraphPool[] = [];
+    let pools: RawV2SubgraphPool[] = [];
 
     log.info(
       `Getting pools from the subgraph with page size ${PAGE_SIZE}${
@@ -111,26 +100,28 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<RawV3SubgraphPool[]> => {
+        const getPools = async (): Promise<RawV2SubgraphPool[]> => {
           let skip = 0;
-          let pools: RawV3SubgraphPool[] = [];
-          let poolsPage: RawV3SubgraphPool[] = [];
+          let pairs: RawV2SubgraphPool[] = [];
+          let pairsPage: RawV2SubgraphPool[] = [];
   
           do {
             const poolsResult = await this.client.request<{
-              pools: RawV3SubgraphPool[];
+              pairs: RawV2SubgraphPool[];
             }>(query, {
               pageSize: PAGE_SIZE,
               skip,
             });
-  
-            poolsPage = poolsResult.pools;
-  
-            pools = pools.concat(poolsPage);
-            skip = skip + PAGE_SIZE;
-          } while (poolsPage.length > 0);
 
-          return pools;
+            log.info({ poolsResult }, 'result');
+  
+            pairsPage = poolsResult.pairs;
+  
+            pairs = pairs.concat(pairsPage);
+            skip = skip + PAGE_SIZE;
+          } while (pairsPage.length > 0);
+
+          return pairs;
         }
 
         try {
@@ -159,7 +150,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
 
     log.info(`Got ${pools.length} pools from the subgraph.`);
 
-    const poolsSanitized = _.map(pools, (pool) => {
+    const poolsSanitized: V2SubgraphPool[] = _.map(pools, (pool) => {
       return {
         ...pool,
         id: pool.id.toLowerCase(),
@@ -171,8 +162,9 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           ...pool.token1,
           id: pool.token1.id.toLowerCase(),
         },
-        totalValueLockedETHFloat: parseFloat(pool.totalValueLockedETH),
-        totalValueLockedUSDFloat: parseFloat(pool.totalValueLockedUSD),
+        totalSupply: parseFloat(pool.totalSupply),
+        reserveETH: parseFloat(pool.reserveETH),
+        trackedReserveETH: parseFloat(pool.trackedReserveETH),
       };
     });
 

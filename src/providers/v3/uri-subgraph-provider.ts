@@ -3,8 +3,7 @@ import { log } from '../../util/log';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 import axios from 'axios';
 
-export class URISubgraphProvider implements IV3SubgraphProvider
-{
+export class URISubgraphProvider implements IV3SubgraphProvider {
   constructor(private chainId: ChainId, private uri: string) {}
 
   public async getPools(): Promise<V3SubgraphPool[]> {

@@ -11,8 +11,8 @@ import NodeCache from 'node-cache';
 import {
   AlphaRouter,
   CachingGasStationProvider,
-  CachingPoolProvider,
-  CachingSubgraphProvider,
+  CachingV3PoolProvider,
+  CachingV3SubgraphProvider,
   ChainId,
   CHAIN_IDS_LIST,
   EIP1559GasPriceProvider,
@@ -26,7 +26,7 @@ import {
   LegacyRouter,
   MetricLogger,
   V3PoolProvider,
-  QuoteProvider,
+  V3QuoteProvider,
   routeAmountsToString,
   RouteWithValidQuote,
   setGlobalLogger,
@@ -107,6 +107,7 @@ export abstract class BaseCommand extends Command {
   private _tokenProvider: ITokenProvider | null = null;
   private _poolProvider: IV3PoolProvider | null = null;
   private _blockNumber: number | null = null;
+  private _multicall2Provider: UniswapMulticallProvider | null = null;
 
   get logger() {
     return this._log
@@ -153,6 +154,14 @@ export abstract class BaseCommand extends Command {
       return this._blockNumber;
     } else {
       throw 'blockNumber not initialized';
+    }
+  }
+
+  get multicall2Provider() {
+    if (this._multicall2Provider) {
+      return this._multicall2Provider;
+    } else {
+      throw 'multicall2 not initialized'
     }
   }
 
@@ -225,6 +234,7 @@ export abstract class BaseCommand extends Command {
     }
 
     const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
+    this._multicall2Provider = multicall2Provider;
     this._poolProvider = new V3PoolProvider(chainId, multicall2Provider);
 
     // initialize tokenProvider
@@ -241,7 +251,7 @@ export abstract class BaseCommand extends Command {
         chainId,
         multicall2Provider,
         poolProvider: new V3PoolProvider(chainId, multicall2Provider),
-        quoteProvider: new QuoteProvider(chainId, provider, multicall2Provider),
+        quoteProvider: new V3QuoteProvider(chainId, provider, multicall2Provider),
         tokenProvider: this.tokenProvider,
       });
     } else {
@@ -252,16 +262,16 @@ export abstract class BaseCommand extends Command {
       const router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingSubgraphProvider(chainId,
+        subgraphProvider: new CachingV3SubgraphProvider(chainId,
           new URISubgraphProvider(chainId, 'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'),
           subgraphCache
         ),
         multicall2Provider: multicall2Provider,
-        poolProvider: new CachingPoolProvider(chainId,
+        poolProvider: new CachingV3PoolProvider(chainId,
           new V3PoolProvider(chainId, multicall2Provider),
           poolCache
         ),
-        quoteProvider: new QuoteProvider(
+        quoteProvider: new V3QuoteProvider(
           chainId,
           provider,
           multicall2Provider,

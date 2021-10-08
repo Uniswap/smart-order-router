@@ -8,8 +8,8 @@ import { ChainId } from '../../util';
 import { V3_CORE_FACTORY_ADDRESS } from '../../util/addresses';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
-import { IMulticallProvider, Result } from './../multicall-provider';
-import { ProviderConfig } from './../provider';
+import { IMulticallProvider, Result } from '../multicall-provider';
+import { ProviderConfig } from '../provider';
 
 type ISlot0 = {
   sqrtPriceX96: BigNumber;

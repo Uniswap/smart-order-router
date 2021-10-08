@@ -1,10 +1,13 @@
 import { Currency, Percent, Token, TradeType } from '@uniswap/sdk-core';
-import { MethodParameters, Position, Route as RouteRaw, Trade} from '@uniswap/v3-sdk';
+import { MethodParameters, Position, Route as V3RouteRaw, Trade} from '@uniswap/v3-sdk';
+import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 import { RouteWithValidQuote } from './alpha-router';
 
-export class RouteSOR extends RouteRaw<Token, Token> {}
+export class V3Route extends V3RouteRaw<Token, Token> {}
+
+export class V2Route extends V2RouteRaw<Token, Token> {}
 
 export type SwapRoute<TTradeType extends TradeType> = {
   quote: CurrencyAmount;

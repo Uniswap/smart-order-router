@@ -3,9 +3,9 @@ import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { CurrencyAmount } from '.';
 import { RouteWithValidQuote } from '../routers/alpha-router';
-import { RouteSOR } from '../routers/router';
+import { V3Route } from '../routers/router';
 
-export const routeToString = (route: RouteSOR): string => {
+export const routeToString = (route: V3Route): string => {
   const routeStr = [];
   const tokenPath = _.map(route.tokenPath, (token) => `${token.symbol}`);
   const poolFeePath = _.map(

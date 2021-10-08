@@ -2,7 +2,7 @@ import { Token, TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../../../util/amounts';
 import { routeToString } from '../../../util/routes';
-import { RouteSOR } from '../../router';
+import { V3Route } from '../../router';
 import { GasModel } from '../gas-models/gas-model';
 
 export type RouteWithValidQuoteParams = {
@@ -12,7 +12,7 @@ export type RouteWithValidQuoteParams = {
   initializedTicksCrossedList: number[];
   quoterGasEstimate: BigNumber;
   percent: number;
-  route: RouteSOR;
+  route: V3Route;
   gasModel: GasModel;
   quoteToken: Token;
   tradeType: TradeType;
@@ -27,7 +27,7 @@ export class RouteWithValidQuote {
   public initializedTicksCrossedList: number[];
   public quoterGasEstimate: BigNumber;
   public percent: number;
-  public route: RouteSOR;
+  public route: V3Route;
   public quoteToken: Token;
   public gasModel: GasModel;
   public gasEstimate: BigNumber;

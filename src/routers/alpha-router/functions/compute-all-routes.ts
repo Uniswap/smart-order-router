@@ -2,16 +2,16 @@ import { Token } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import { log } from '../../../util/log';
 import { routeToString } from '../../../util/routes';
-import { RouteSOR } from '../../router';
+import { V3Route } from '../../router';
 
 export function computeAllRoutes(
   tokenIn: Token,
   tokenOut: Token,
   pools: Pool[],
   maxHops: number
-): RouteSOR[] {
+): V3Route[] {
   const poolsUsed = Array<Boolean>(pools.length).fill(false);
-  const routes: RouteSOR[] = [];
+  const routes: V3Route[] = [];
 
   const computeRoutes = (
     tokenIn: Token,
@@ -28,7 +28,7 @@ export function computeAllRoutes(
       currentRoute.length > 0 &&
       currentRoute[currentRoute.length - 1]!.involvesToken(tokenOut)
     ) {
-      routes.push(new RouteSOR([...currentRoute], tokenIn, tokenOut));
+      routes.push(new V3Route([...currentRoute], tokenIn, tokenOut));
       return;
     }
 

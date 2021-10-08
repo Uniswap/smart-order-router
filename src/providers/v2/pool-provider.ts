@@ -3,24 +3,18 @@ import { Pair } from '@uniswap/v2-sdk';
 import { default as AsyncRetry, default as retry } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
-import { IUniswapV3PoolState__factory } from '../../types/v3';
+import { IUniswapV2Pair__factory } from '../../types/v2';
 import { ChainId, CurrencyAmount } from '../../util';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ProviderConfig } from '../provider';
 
-type ISlot0 = {
-  sqrtPriceX96: BigNumber;
-  tick: number;
-  observationIndex: number;
-  observationCardinality: number;
-  observationCardinalityNext: number;
-  feeProtocol: number;
-  unlocked: boolean;
+type IReserves = {
+  reserve0: BigNumber;
+  reserve1: BigNumber;
+  blockTimestampLast: number;
 };
-
-type ILiquidity = { liquidity: BigNumber };
 
 export interface IV2PoolProvider {
   getPools(
@@ -89,20 +83,13 @@ export class V2PoolProvider implements IV2PoolProvider {
     );
 
     log.info(
-      `About to get liquidity and slot0s for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
+      `About to get reserves for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
     );
 
-    const [slot0Results, liquidityResults] = await Promise.all([
-      this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0', providerConfig),
-      this.getPoolsData<[ILiquidity]>(
-        sortedPoolAddresses,
-        'liquidity',
-        providerConfig
-      ),
-    ]);
+    const reservesResults = await this.getPoolsData<IReserves>(sortedPoolAddresses, 'getReserves', providerConfig);
 
     log.info(
-      `Got liquidity and slot0s for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
+      `Got reserves for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
     );
 
     const poolAddressToPool: { [poolAddress: string]: Pair } = {};
@@ -110,15 +97,9 @@ export class V2PoolProvider implements IV2PoolProvider {
     const invalidPools: [Token, Token][] = [];
 
     for (let i = 0; i < sortedPoolAddresses.length; i++) {
-      const slot0Result = slot0Results[i];
-      const liquidityResult = liquidityResults[i];
+      const reservesResult = reservesResults[i]!;
 
-      // These properties tell us if a pool is valid and initialized or not.
-      if (
-        !slot0Result?.success ||
-        !liquidityResult?.success ||
-        slot0Result.result.sqrtPriceX96.eq(0)
-      ) {
+      if (!reservesResult?.success) {
         const [token0, token1] = sortedTokenPairs[i]!;
         invalidPools.push([token0, token1]);
 
@@ -126,10 +107,11 @@ export class V2PoolProvider implements IV2PoolProvider {
       }
 
       const [token0, token1] = sortedTokenPairs[i]!;
+      const { reserve0, reserve1 } = reservesResult.result;
 
       const pool = new Pair(
-        CurrencyAmount.fromRawAmount(token0, 0),
-        CurrencyAmount.fromRawAmount(token1, 0),
+        CurrencyAmount.fromRawAmount(token0, reserve0.toString()),
+        CurrencyAmount.fromRawAmount(token1, reserve1.toString()),
       );
 
       const poolAddress = sortedPoolAddresses[i]!;
@@ -200,7 +182,7 @@ export class V2PoolProvider implements IV2PoolProvider {
         TReturn
       >({
         addresses: poolAddresses,
-        contractInterface: IUniswapV3PoolState__factory.createInterface(),
+        contractInterface: IUniswapV2Pair__factory.createInterface(),
         functionName: functionName,
         providerConfig,
       });

@@ -3,11 +3,11 @@ import {
   MethodParameters,
   Pool,
   Position,
-  Route,
   SwapRouter,
   TickMath,
   Trade,
-  SqrtPriceMath
+  SqrtPriceMath,
+  Route as V3Route
 } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
@@ -36,6 +36,7 @@ import {
 } from './functions/get-candidate-pools';
 import { IGasModelFactory } from './gas-models/gas-model';
 import JSBI from 'jsbi'
+import { Protocol } from '../../util/protocols';
 
 export type AlphaRouterParams = {
   chainId: ChainId;
@@ -63,6 +64,7 @@ export type AlphaRouterConfig = {
   minSplits: number;
   maxSplits: number;
   distributionPercent: number;
+  protocols?: Protocol[];
 };
 
 export const DEFAULT_CONFIG: AlphaRouterConfig = {
@@ -450,7 +452,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     const routes = _.map<
       RouteWithValidQuote,
       {
-        route: Route<Currency, Currency>;
+        route: V3Route<Currency, Currency>;
         inputAmount: CurrencyAmount;
         outputAmount: CurrencyAmount;
       }
@@ -472,7 +474,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           quote.denominator
         );
 
-        const routeCurrency = new Route(
+        const routeCurrency = new V3Route(
           route.pools,
           amountCurrency.currency,
           quoteCurrency.currency
@@ -496,7 +498,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           amount.denominator
         );
 
-        const routeCurrency = new Route(
+        const routeCurrency = new V3Route(
           route.pools,
           quoteCurrency.currency,
           amountCurrency.currency

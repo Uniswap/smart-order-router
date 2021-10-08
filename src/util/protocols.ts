@@ -1,0 +1,16 @@
+
+export enum Protocol {
+  V3 = 'V3',
+  V2 = 'V2'
+}
+
+export const TO_PROTOCOL = (protocol: string): Protocol => {
+  switch (protocol.toLowerCase()) {
+    case 'v3':
+      return Protocol.V3;
+    case 'v2':
+      return Protocol.V2;
+    default:
+      throw new Error(`Unknown protocol: {id}`);
+  }
+};

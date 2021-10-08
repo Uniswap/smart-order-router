@@ -2,7 +2,11 @@ import { flags } from '@oclif/command';
 import { Currency, Ether, Percent } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
-import { ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
+import _ from 'lodash';
+import { ChainId, ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
+import { V2PoolProvider } from '../../src/providers/v2/pool-provider';
+import { V2SubgraphProvider } from '../../src/providers/v2/subgraph-provider';
+import { Protocol, TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
@@ -23,6 +27,7 @@ export class Quote extends BaseCommand {
     amount: flags.string({ char: 'a', required: true }),
     exactIn: flags.boolean({ required: false }),
     exactOut: flags.boolean({ required: false }),
+    protocols: flags.string({ required: false })
   };
 
   async run() {
@@ -46,10 +51,20 @@ export class Quote extends BaseCommand {
       maxSplits,
       distributionPercent,
       chainId: chainIdNumb,
+      protocols: protocolsStr,
     } = flags;
 
     if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
       throw new Error('Must set either --exactIn or --exactOut.');
+    }
+
+    let protocols: Protocol[] = [];
+    if (protocolsStr) {
+      try {
+        protocols = _.map(protocolsStr.split(','), protocolStr => TO_PROTOCOL(protocolStr));
+      } catch (err) {
+        throw new Error(`Protocols invalid. Valid options: ${Object.values(Protocol)}`);
+      }
     }
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
@@ -71,6 +86,19 @@ export class Quote extends BaseCommand {
       tokenOutStr == 'ETH'
         ? Ether.onChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
+
+
+    if (protocols.includes(Protocol.V2)) {
+      const v2PoolP = new V2PoolProvider(ChainId.MAINNET, this.multicall2Provider);
+      const acc = await v2PoolP.getPools([[tokenIn.wrapped, tokenOut.wrapped]]);
+      const pools = acc.getAllPools();
+      const p = pools[0]!;
+
+      const v2Sub = new V2SubgraphProvider(ChainId.MAINNET);
+      const v2Subpools = await v2Sub.getPools();
+      log.info({ p, ps: acc.getAllPools(), sps: v2Subpools.slice(0, 5) });
+      return;
+    }
 
     let swapRoutes: SwapRoute<any> | null;
     if (exactIn) {
@@ -95,6 +123,7 @@ export class Quote extends BaseCommand {
           minSplits,
           maxSplits,
           distributionPercent,
+          protocols
         }
       );
     } else {
@@ -119,6 +148,7 @@ export class Quote extends BaseCommand {
           minSplits,
           maxSplits,
           distributionPercent,
+          protocols
         }
       );
     }

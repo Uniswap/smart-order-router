@@ -23,7 +23,7 @@ import { routeToString } from '../../util/routes';
 import { RouteWithValidQuote } from '../alpha-router';
 import {
   IRouter,
-  RouteSOR,
+  V3Route,
   SwapConfig,
   SwapRoute,
 } from '../router';
@@ -185,7 +185,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   private async findBestRouteExactIn(
     amountIn: CurrencyAmount,
     tokenOut: Token,
-    routes: RouteSOR[],
+    routes: V3Route[],
     routingConfig?: LegacyRoutingConfig
   ): Promise<RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
@@ -213,7 +213,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   private async findBestRouteExactOut(
     amountOut: CurrencyAmount,
     tokenIn: Token,
-    routes: RouteSOR[],
+    routes: V3Route[],
     routingConfig?: LegacyRoutingConfig
   ): Promise<RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
@@ -231,7 +231,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   }
 
   private async getBestQuote(
-    routes: RouteSOR[],
+    routes: V3Route[],
     quotesRaw: V3RouteWithQuotes[],
     quoteToken: Token,
     routeType: TradeType
@@ -243,7 +243,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     );
 
     const routeQuotesRaw: {
-      route: RouteSOR;
+      route: V3Route;
       quote: BigNumber;
       amount: CurrencyAmount;
     }[] = [];
@@ -300,7 +300,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenIn: Token,
     tokenOut: Token,
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteSOR[]> {
+  ): Promise<V3Route[]> {
     const tokenPairs: [Token, Token, FeeAmount][] =
       await this.getAllPossiblePairings(tokenIn, tokenOut);
 
@@ -309,7 +309,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     });
     const pools = poolAccessor.getAllPools();
 
-    const routes: RouteSOR[] = this.computeAllRoutes(
+    const routes: V3Route[] = this.computeAllRoutes(
       tokenIn,
       tokenOut,
       pools,
@@ -399,10 +399,10 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     pools: Pool[],
     chainId: ChainId,
     currentPath: Pool[] = [],
-    allPaths: RouteSOR[] = [],
+    allPaths: V3Route[] = [],
     startTokenIn: Token = tokenIn,
     maxHops = 2
-  ): RouteSOR[] {
+  ): V3Route[] {
     for (const pool of pools) {
       if (currentPath.indexOf(pool) !== -1 || !pool.involvesToken(tokenIn))
         continue;
@@ -412,7 +412,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         : pool.token0;
       if (outputToken.equals(tokenOut)) {
         allPaths.push(
-          new RouteSOR([...currentPath, pool], startTokenIn, tokenOut)
+          new V3Route([...currentPath, pool], startTokenIn, tokenOut)
         );
       } else if (maxHops > 1) {
         this.computeAllRoutes(
