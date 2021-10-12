@@ -20,7 +20,7 @@ import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
-import { RouteWithValidQuote } from '../alpha-router';
+import { V3RouteWithValidQuote } from '../alpha-router';
 import {
   IRouter,
   V3Route,
@@ -187,7 +187,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenOut: Token,
     routes: V3Route[],
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteWithValidQuote | null> {
+  ): Promise<V3RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
       await this.quoteProvider.getQuotesManyExactIn([amountIn], routes, {
         blockNumber: routingConfig?.blockNumber,
@@ -215,7 +215,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenIn: Token,
     routes: V3Route[],
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteWithValidQuote | null> {
+  ): Promise<V3RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
       await this.quoteProvider.getQuotesManyExactOut([amountOut], routes, {
         blockNumber: routingConfig?.blockNumber,
@@ -235,7 +235,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     quotesRaw: V3RouteWithQuotes[],
     quoteToken: Token,
     routeType: TradeType
-  ): Promise<RouteWithValidQuote | null> {
+  ): Promise<V3RouteWithValidQuote | null> {
     log.debug(
       `Got ${
         _.filter(quotesRaw, ([_, quotes]) => !!quotes[0]).length
@@ -273,7 +273,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     });
 
     const routeQuotes = _.map(routeQuotesRaw, ({ route, quote, amount }) => {
-      return new RouteWithValidQuote({
+      return new V3RouteWithValidQuote({
         route,
         rawQuote: quote,
         amount,
@@ -435,7 +435,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
     tradeType: TTradeType,
-    routeAmount: RouteWithValidQuote
+    routeAmount: V3RouteWithValidQuote
   ): Trade<Currency, Currency, TTradeType> {
     const { route, amount, quote } = routeAmount;
 
@@ -510,7 +510,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
     tradeType: TradeType,
-    routeAmount: RouteWithValidQuote,
+    routeAmount: V3RouteWithValidQuote,
     swapConfig: SwapConfig
   ): MethodParameters {
     const { route, amount, quote } = routeAmount;

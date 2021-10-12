@@ -15,3 +15,4 @@ export * from './v3/quote-provider';
 export * from './v3/subgraph-provider';
 export * from './token-provider';
 export * from './v3/uri-subgraph-provider';
+export * from './v2/subgraph-provider';

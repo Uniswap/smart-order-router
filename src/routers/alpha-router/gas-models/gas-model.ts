@@ -2,10 +2,10 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { V3PoolAccessor } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
+import { V3RouteWithValidQuote } from '../entities/route-with-valid-quote';
 
 export type GasModel = {
-  estimateGasCost(routeWithValidQuote: RouteWithValidQuote): {
+  estimateGasCost(routeWithValidQuote: V3RouteWithValidQuote): {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;

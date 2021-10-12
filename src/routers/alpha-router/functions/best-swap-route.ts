@@ -14,7 +14,7 @@ import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { routeAmountsToString, routeToString } from '../../../util/routes';
 import { AlphaRouterConfig } from '../alpha-router';
-import { RouteWithValidQuote } from './../entities/route-with-valid-quote';
+import { V3RouteWithValidQuote } from './../entities/route-with-valid-quote';
 import { GasModel } from './../gas-models/gas-model';
 
 export function getBestSwapRoute(
@@ -32,13 +32,13 @@ export function getBestSwapRoute(
   estimatedGasUsed: BigNumber;
   estimatedGasUsedUSD: CurrencyAmount;
   estimatedGasUsedQuoteToken: CurrencyAmount;
-  routes: RouteWithValidQuote[];
+  routes: V3RouteWithValidQuote[];
 } | null {
   const now = Date.now();
 
   // Build a map of percentage of the input to list of valid quotes.
   // Quotes can be null for a variety of reasons (not enough liquidity etc), so we drop them here too.
-  const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
+  const percentToQuotes: { [percent: number]: V3RouteWithValidQuote[] } = {};
   for (const routeWithQuote of routesWithQuotes) {
     const [route, quotes] = routeWithQuote;
 
@@ -73,7 +73,7 @@ export function getBestSwapRoute(
         percentToQuotes[percent] = [];
       }
 
-      const routeWithValidQuote = new RouteWithValidQuote({
+      const routeWithValidQuote = new V3RouteWithValidQuote({
         route,
         rawQuote: quote,
         amount,
@@ -101,7 +101,7 @@ export function getBestSwapRoute(
     routeType,
     percentToQuotes,
     percents,
-    (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas,
+    (rq: V3RouteWithValidQuote) => rq.quoteAdjustedForGas,
     routingConfig,
     poolProvider
   );
@@ -154,9 +154,9 @@ export function getBestSwapRoute(
 
 export function getBestSwapRouteBy(
   routeType: TradeType,
-  percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
+  percentToQuotes: { [percent: number]: V3RouteWithValidQuote[] },
   percents: number[],
-  by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
+  by: (routeQuote: V3RouteWithValidQuote) => CurrencyAmount,
   routingConfig: AlphaRouterConfig,
   poolProvider: IV3PoolProvider
 ):
@@ -166,13 +166,13 @@ export function getBestSwapRouteBy(
       estimatedGasUsed: BigNumber;
       estimatedGasUsedUSD: CurrencyAmount;
       estimatedGasUsedQuoteToken: CurrencyAmount;
-      routes: RouteWithValidQuote[];
+      routes: V3RouteWithValidQuote[];
     }
   | undefined {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
   const percentToSortedQuotes = _.mapValues(
     percentToQuotes,
-    (routeQuotes: RouteWithValidQuote[]) => {
+    (routeQuotes: V3RouteWithValidQuote[]) => {
       return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return by(routeQuoteA).greaterThan(by(routeQuoteB)) ? -1 : 1;
@@ -197,12 +197,12 @@ export function getBestSwapRouteBy(
   };
 
   let bestQuote: CurrencyAmount | undefined;
-  let bestSwap: RouteWithValidQuote[] | undefined;
+  let bestSwap: V3RouteWithValidQuote[] | undefined;
 
   // Min-heap for tracking the 5 best swaps given some number of splits.
   const bestSwapsPerSplit = new FixedReverseHeap<{
     quote: CurrencyAmount;
-    routes: RouteWithValidQuote[];
+    routes: V3RouteWithValidQuote[];
   }>(
     Array,
     (a, b) => {
@@ -235,7 +235,7 @@ export function getBestSwapRouteBy(
   // We do a BFS. Each additional node in a path represents us adding an additional split to the route.
   const queue = new Queue<{ 
     percentIndex: number;
-    curRoutes: RouteWithValidQuote[];
+    curRoutes: V3RouteWithValidQuote[];
     remainingPercent: number;
     special: boolean;
   }>()
@@ -455,9 +455,9 @@ export function getBestSwapRouteBy(
   // Given a list of used routes, this function finds the first route in the list of candidate routes that does not re-use an already used pool.
 const findFirstRouteNotUsingUsedPools = (
   poolProvider: IV3PoolProvider,
-  usedRoutes: RouteWithValidQuote[],
-  candidateRouteQuotes: RouteWithValidQuote[]
-): RouteWithValidQuote | null => {
+  usedRoutes: V3RouteWithValidQuote[],
+  candidateRouteQuotes: V3RouteWithValidQuote[]
+): V3RouteWithValidQuote | null => {
   const getPoolAddress = (pool: Pool) => {
     return poolProvider.getPoolAddress(
       pool.token0,

@@ -26,7 +26,7 @@ import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { IRouter, ISwapToRatio, SwapConfig, SwapRoute } from '../router';
-import { RouteWithValidQuote } from './entities/route-with-valid-quote';
+import { V3RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { computeAllRoutes } from './functions/compute-all-routes';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
@@ -120,6 +120,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     this.subgraphProvider = subgraphProvider;
     this.gasPriceProvider = gasPriceProvider;
     this.gasModelFactory = gasModelFactory;
+  }
+
+  public static fromDefaulyProviders(chainId): AlphaRouter {
+
   }
 
   public async routeToRatio(
@@ -229,6 +233,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
 
       return swap
   }
+
+  public async route(
+
+  ): 
 
   public async routeExactIn(
     currencyIn: Currency,
@@ -447,16 +455,16 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
     tradeType: TTradeType,
-    routeAmounts: RouteWithValidQuote[]
+    routeAmounts: V3RouteWithValidQuote[]
   ): Trade<Currency, Currency, TTradeType> {
     const routes = _.map<
-      RouteWithValidQuote,
+      V3RouteWithValidQuote,
       {
         route: V3Route<Currency, Currency>;
         inputAmount: CurrencyAmount;
         outputAmount: CurrencyAmount;
       }
-    >(routeAmounts, (routeAmount: RouteWithValidQuote) => {
+    >(routeAmounts, (routeAmount: V3RouteWithValidQuote) => {
       const { route, amount, quote } = routeAmount;
 
       // The route, amount and quote are all in terms of wrapped tokens.
@@ -541,7 +549,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     swapRouteRaw: {
       quote: CurrencyAmount;
       quoteGasAdjusted: CurrencyAmount;
-      routes: RouteWithValidQuote[];
+      routes: V3RouteWithValidQuote[];
       estimatedGasUsed: BigNumber;
     },
     poolsBySelection: CandidatePoolsBySelectionCriteria
@@ -578,7 +586,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     );
   }
 
-  private emitGasModelLog(routeWithQuotes: RouteWithValidQuote[]) {
+  private emitGasModelLog(routeWithQuotes: V3RouteWithValidQuote[]) {
     if (routeWithQuotes.length > 1) {
       return;
     }

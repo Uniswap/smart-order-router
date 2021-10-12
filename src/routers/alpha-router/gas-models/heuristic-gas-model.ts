@@ -7,7 +7,7 @@ import { DAI_MAINNET, DAI_RINKEBY_1, DAI_RINKEBY_2, USDC_MAINNET, USDT_MAINNET }
 import { ChainId, WETH9 } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
-import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
+import { V3RouteWithValidQuote } from '../entities/route-with-valid-quote';
 import { GasModel, IGasModelFactory } from './gas-model';
 
 // Constant cost for doing any swap regardless of pools.
@@ -49,7 +49,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       );
 
       const estimateGasCost = (
-        routeWithValidQuote: RouteWithValidQuote
+        routeWithValidQuote: V3RouteWithValidQuote
       ): {
         gasEstimate: BigNumber;
         gasCostInToken: CurrencyAmount;
@@ -99,7 +99,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     const usdToken = usdPool.token0.address == WETH9[chainId]!.address ? usdPool.token1 : usdPool.token0;
 
     const estimateGasCost = (
-      routeWithValidQuote: RouteWithValidQuote
+      routeWithValidQuote: V3RouteWithValidQuote
     ): {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
@@ -182,7 +182,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   }
 
   private estimateGas(
-    routeWithValidQuote: RouteWithValidQuote,
+    routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId
   ) {

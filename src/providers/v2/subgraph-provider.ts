@@ -37,9 +37,6 @@ export type RawV2SubgraphPool = {
   trackedReserveETH: string;
 };
 
-export const printSubgraphPool = (s: V2SubgraphPool) =>
-  `${s.token0.symbol}/${s.token1.symbol}`;
-
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
 }
@@ -52,7 +49,7 @@ export interface IV2SubgraphProvider {
 export class V2SubgraphProvider implements IV2SubgraphProvider {
   private client: GraphQLClient;
 
-  constructor(private chainId: ChainId, private retries = 2, private timeout = 7000) {
+  constructor(private chainId: ChainId, private retries = 2, private timeout = 180000) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
@@ -63,7 +60,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
   public async getPools(
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
-    const query = gql`
+    /* const query = gql`
       query getPools($pageSize: Int!, $skip: Int!) {
         pairs(
           orderBy: trackedReserveETH
@@ -75,6 +72,27 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
               ? `block: { number: ${providerConfig?.blockNumber} }`
               : ``
           }
+        ) {
+          id
+          token0 { id, symbol }
+          token1 { id, symbol }
+          totalSupply
+          reserveETH
+          trackedReserveETH
+        }
+      }
+    `; */
+
+    const query2 = (id: string) => gql`
+      query getPools($pageSize: Int!) {
+        pairs(
+          first: $pageSize
+          ${
+            providerConfig?.blockNumber
+              ? `block: { number: ${providerConfig?.blockNumber} }`
+              : ``
+          }
+          ${id !== '' ? `where: { id_gt: "${id}" }` : ``}
         ) {
           id
           token0 { id, symbol }
@@ -101,24 +119,24 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         const timeout = new Timeout();
 
         const getPools = async (): Promise<RawV2SubgraphPool[]> => {
-          let skip = 0;
+          let lastId: string = "";
           let pairs: RawV2SubgraphPool[] = [];
           let pairsPage: RawV2SubgraphPool[] = [];
   
           do {
             const poolsResult = await this.client.request<{
               pairs: RawV2SubgraphPool[];
-            }>(query, {
+            }>(query2(lastId), {
               pageSize: PAGE_SIZE,
-              skip,
             });
 
-            log.info({ poolsResult }, 'result');
+            log.info({ poolsResult: poolsResult.pairs[0]! }, 'result');
   
             pairsPage = poolsResult.pairs;
   
             pairs = pairs.concat(pairsPage);
-            skip = skip + PAGE_SIZE;
+            lastId = pairs[pairs.length - 1]!.id;
+            log.info({ lastId }, `len: ${pairs.length} last id: ${lastId}`);
           } while (pairsPage.length > 0);
 
           return pairs;
