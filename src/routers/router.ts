@@ -1,13 +1,12 @@
 import { Currency, Percent, Token, TradeType } from '@uniswap/sdk-core';
-import { MethodParameters, Position, Route as V3RouteRaw, Trade} from '@uniswap/v3-sdk';
+import { MethodParameters, Position, Route as V3RouteRaw, Trade } from '@uniswap/v3-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 import { V3RouteWithValidQuote } from './alpha-router';
 
-export class V3Route extends V3RouteRaw<Token, Token> {}
-
-export class V2Route extends V2RouteRaw<Token, Token> {}
+export type V3Route = V3RouteRaw<Token, Token>
+export type V2Route = V2RouteRaw<Token, Token>
 
 export type SwapRoute<TTradeType extends TradeType> = {
   quote: CurrencyAmount;
@@ -27,21 +26,21 @@ export type SwapConfig = {
   slippageTolerance: Percent;
   deadline: number;
   inputTokenPermit?:
-    | {
-        v: 0 | 1 | 27 | 28;
-        r: string;
-        s: string;
-        amount: string;
-        deadline: string;
-      }
-    | {
-        v: 0 | 1 | 27 | 28;
-        r: string;
-        s: string;
-        nonce: string;
-        expiry: string;
-      };
+  {
+    v: 0 | 1 | 27 | 28;
+    r: string;
+    s: string;
+  } & ({
+    amount: string;
+    deadline: string;
+
+  } | {
+    nonce: string;
+    expiry: string;
+  }
+  )
 };
+
 export abstract class IRouter<RoutingConfig> {
   abstract routeExactIn(
     currencyIn: Currency,

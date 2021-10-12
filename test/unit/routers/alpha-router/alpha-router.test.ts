@@ -614,7 +614,7 @@ describe('alpha router', () => {
           liquidity: 1,
         });
 
-         const swap = await alphaRouter.routeToRatio(
+        const swap = await alphaRouter.routeToRatio(
           token0Balance,
           token1Balance,
           position,
@@ -683,7 +683,7 @@ describe('alpha router', () => {
           }))
 
           const token0Balance = parseAmount('20', USDC);
-          const token1Balance = parseAmount('5',USDT);
+          const token1Balance = parseAmount('5', USDT);
 
           const position = new Position({
             pool: USDC_USDT_MEDIUM,
@@ -736,7 +736,7 @@ describe('alpha router', () => {
             sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96]
           }))
           const token0Balance = parseAmount('20', USDC);
-          const token1Balance = parseAmount('5',USDT);
+          const token1Balance = parseAmount('5', USDT);
 
           const position = new Position({
             pool: USDC_USDT_MEDIUM,
