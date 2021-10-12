@@ -216,7 +216,7 @@ export class AlphaRouter
     position: Position,
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
-    routingConfig = DEFAULT_CONFIG
+    routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
     if (
       token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)
@@ -275,7 +275,7 @@ export class AlphaRouter
         outputBalance.currency,
         amountToSwap,
         swapConfig,
-        routingConfig
+        { ...DEFAULT_CONFIG, ...routingConfig }
       );
       if (!swap) {
         return null;
