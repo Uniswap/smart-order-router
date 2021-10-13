@@ -122,10 +122,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     this.gasModelFactory = gasModelFactory;
   }
 
-  public static fromDefaulyProviders(chainId): AlphaRouter {
-
-  }
-
   public async routeToRatio(
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
@@ -233,10 +229,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
 
       return swap
   }
-
-  public async route(
-
-  ): 
 
   public async routeExactIn(
     currencyIn: Currency,
