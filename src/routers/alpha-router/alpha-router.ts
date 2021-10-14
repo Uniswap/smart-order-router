@@ -1,53 +1,78 @@
+import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Currency, Fraction, TradeType } from '@uniswap/sdk-core';
+import { TokenList } from '@uniswap/token-lists';
 import {
   MethodParameters,
   Pool,
   Position,
+  Route as V3Route,
+  SqrtPriceMath,
   SwapRouter,
   TickMath,
   Trade,
-  SqrtPriceMath,
-  Route as V3Route
 } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
+import JSBI from 'jsbi';
 import _ from 'lodash';
-import { IMulticallProvider } from '../../providers';
-import { IGasPriceProvider } from '../../providers/gas-price-provider';
-import { IV3PoolProvider } from '../../providers/v3/pool-provider';
-import { IV3QuoteProvider } from '../../providers/v3/quote-provider';
+import NodeCache from 'node-cache';
+import { HeuristicGasModelFactory } from '.';
+import {
+  CachingGasStationProvider,
+  CachingTokenProviderWithFallback,
+  CachingV3PoolProvider,
+  EIP1559GasPriceProvider,
+  ETHGasStationInfoProvider,
+  NodeJSCache,
+  UniswapMulticallProvider,
+  URISubgraphProvider,
+} from '../../providers';
+import {
+  CachingTokenListProvider,
+  ITokenListProvider,
+} from '../../providers/caching-token-list-provider';
+import {
+  GasPrice,
+  IGasPriceProvider,
+} from '../../providers/gas-price-provider';
+import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
+import {
+  IV3PoolProvider,
+  V3PoolProvider,
+} from '../../providers/v3/pool-provider';
+import {
+  IV3QuoteProvider,
+  V3QuoteProvider,
+} from '../../providers/v3/quote-provider';
 import {
   IV3SubgraphProvider,
   V3SubgraphPool,
 } from '../../providers/v3/subgraph-provider';
-import { ITokenListProvider } from '../../providers/caching-token-list-provider';
-import { ITokenProvider } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
-import { ChainId } from '../../util/chains';
+import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
+import { Protocol } from '../../util/protocols';
 import { IRouter, ISwapToRatio, SwapConfig, SwapRoute } from '../router';
 import { V3RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
-import { computeAllRoutes } from './functions/compute-all-routes';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
+import { computeAllRoutes } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
   getCandidatePools,
 } from './functions/get-candidate-pools';
 import { IGasModelFactory } from './gas-models/gas-model';
-import JSBI from 'jsbi'
-import { Protocol } from '../../util/protocols';
 
 export type AlphaRouterParams = {
   chainId: ChainId;
   provider: providers.BaseProvider;
-  multicall2Provider: IMulticallProvider;
-  subgraphProvider: IV3SubgraphProvider;
-  poolProvider: IV3PoolProvider;
-  quoteProvider: IV3QuoteProvider;
-  tokenProvider: ITokenProvider;
-  gasPriceProvider: IGasPriceProvider;
-  gasModelFactory: IGasModelFactory;
+  multicall2Provider?: UniswapMulticallProvider;
+  subgraphProvider?: IV3SubgraphProvider;
+  poolProvider?: IV3PoolProvider;
+  quoteProvider?: IV3QuoteProvider;
+  tokenProvider?: ITokenProvider;
+  gasPriceProvider?: IGasPriceProvider;
+  gasModelFactory?: IGasModelFactory;
   blockedTokenListProvider?: ITokenListProvider;
 };
 
@@ -84,12 +109,20 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
 export type SwapAndAddConfig = {
   errorTolerance: Fraction;
   maxIterations: number;
-}
+};
 
-export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
+const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
+const IPFS_POOL_CACHE_URL =
+  'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4';
+
+export class AlphaRouter
+  implements
+    IRouter<AlphaRouterConfig>,
+    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
+{
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
-  protected multicall2Provider: IMulticallProvider;
+  protected multicall2Provider: UniswapMulticallProvider;
   protected subgraphProvider: IV3SubgraphProvider;
   protected poolProvider: IV3PoolProvider;
   protected quoteProvider: IV3QuoteProvider;
@@ -112,14 +145,72 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
-    this.multicall2Provider = multicall2Provider;
-    this.poolProvider = poolProvider;
-    this.quoteProvider = quoteProvider;
-    this.blockedTokenListProvider = blockedTokenListProvider;
-    this.tokenProvider = tokenProvider;
-    this.subgraphProvider = subgraphProvider;
-    this.gasPriceProvider = gasPriceProvider;
-    this.gasModelFactory = gasModelFactory;
+    this.multicall2Provider =
+      multicall2Provider ??
+      new UniswapMulticallProvider(chainId, provider, 375_000);
+    this.poolProvider =
+      poolProvider ??
+      new CachingV3PoolProvider(
+        this.chainId,
+        new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+      );
+    this.quoteProvider =
+      quoteProvider ??
+      new V3QuoteProvider(
+        this.chainId,
+        this.provider,
+        this.multicall2Provider,
+        {
+          retries: 2,
+          minTimeout: 100,
+          maxTimeout: 1000,
+        },
+        {
+          multicallChunk: 210, // 210
+          gasLimitPerCall: 705_000, // 705
+          quoteMinSuccessRate: 0.15,
+        },
+        {
+          gasLimitOverride: 2_000_000,
+          multicallChunk: 70,
+        }
+      );
+
+    this.blockedTokenListProvider =
+      blockedTokenListProvider ??
+      new CachingTokenListProvider(
+        chainId,
+        //TODO(judo): add unsupported
+        {} as TokenList,
+        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
+      );
+    this.tokenProvider =
+      tokenProvider ??
+      new CachingTokenProviderWithFallback(
+        chainId,
+        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
+        new CachingTokenListProvider(
+          chainId,
+          DEFAULT_TOKEN_LIST,
+          new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
+        ),
+        new TokenProvider(chainId, this.multicall2Provider)
+      );
+    this.subgraphProvider =
+      subgraphProvider ?? new URISubgraphProvider(chainId, IPFS_POOL_CACHE_URL);
+    this.gasPriceProvider =
+      gasPriceProvider ??
+      new CachingGasStationProvider(
+        chainId,
+        this.provider instanceof providers.JsonRpcProvider
+          ? new EIP1559GasPriceProvider(this.provider)
+          : new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL),
+        new NodeJSCache<GasPrice>(
+          new NodeCache({ stdTTL: 15_000, useClones: false })
+        )
+      );
+    this.gasModelFactory = gasModelFactory ?? new HeuristicGasModelFactory();
   }
 
   public async routeToRatio(
@@ -128,106 +219,112 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     position: Position,
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
-    routingConfig = DEFAULT_CONFIG
+    routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-      if (token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)) {
-        [token0Balance, token1Balance] = [token1Balance, token0Balance]
+    if (
+      token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)
+    ) {
+      [token0Balance, token1Balance] = [token1Balance, token0Balance];
+    }
+
+    let preSwapOptimalRatio = this.calculateOptimalRatio(
+      position,
+      position.pool.sqrtRatioX96,
+      true
+    );
+
+    // set up parameters according to which token will be swapped
+    let zeroForOne: boolean;
+    if (position.pool.tickCurrent > position.tickUpper) {
+      zeroForOne = true;
+    } else if (position.pool.tickCurrent < position.tickLower) {
+      zeroForOne = false;
+    } else {
+      zeroForOne = new Fraction(
+        token0Balance.quotient,
+        token1Balance.quotient
+      ).greaterThan(preSwapOptimalRatio);
+      if (!zeroForOne) preSwapOptimalRatio = preSwapOptimalRatio.invert();
+    }
+
+    const [inputBalance, outputBalance] = zeroForOne
+      ? [token0Balance, token1Balance]
+      : [token1Balance, token0Balance];
+
+    let optimalRatio = preSwapOptimalRatio;
+    let exchangeRate: Fraction = zeroForOne
+      ? position.pool.token0Price
+      : position.pool.token1Price;
+    let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null;
+    let ratioAchieved = false;
+    let n = 0;
+
+    // iterate until we find a swap with a sufficient ratio or return null
+    while (!ratioAchieved) {
+      n++;
+      if (n > swapAndAddConfig.maxIterations) {
+        return null;
       }
 
-      let preSwapOptimalRatio = this.calculateOptimalRatio(
-        position,
-        position.pool.sqrtRatioX96,
-        true
-      )
+      let amountToSwap = calculateRatioAmountIn(
+        optimalRatio,
+        exchangeRate,
+        inputBalance,
+        outputBalance
+      );
 
-      // set up parameters according to which token will be swapped
-      let zeroForOne: boolean
-      if (position.pool.tickCurrent > position.tickUpper) {
-        zeroForOne = true
-      } else if (position.pool.tickCurrent < position.tickLower) {
-        zeroForOne = false
-      } else {
-        zeroForOne = new Fraction(token0Balance.quotient, token1Balance.quotient).greaterThan(preSwapOptimalRatio)
-        if (!zeroForOne) preSwapOptimalRatio = preSwapOptimalRatio.invert()
+      swap = await this.routeExactIn(
+        inputBalance.currency,
+        outputBalance.currency,
+        amountToSwap,
+        swapConfig,
+        { ...DEFAULT_CONFIG, ...routingConfig }
+      );
+      if (!swap) {
+        return null;
       }
 
-      const [inputBalance, outputBalance] = zeroForOne
-        ? [token0Balance, token1Balance]
-        : [token1Balance, token0Balance]
+      let inputBalanceUpdated = inputBalance.subtract(swap.trade.inputAmount);
+      let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount);
+      let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated);
 
-      let optimalRatio = preSwapOptimalRatio
-      let exchangeRate: Fraction = zeroForOne
-        ? position.pool.token0Price
-        : position.pool.token1Price
-      let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null
-      let ratioAchieved = false
-      let n = 0
-
-      // iterate until we find a swap with a sufficient ratio or return null
-      while (!ratioAchieved) {
-        n++
-        if (n > swapAndAddConfig.maxIterations) {
-          return null;
-        }
-
-        let amountToSwap = calculateRatioAmountIn(
-          optimalRatio,
-          exchangeRate,
-          inputBalance,
-          outputBalance,
-        )
-
-        swap = await this.routeExactIn(
-          inputBalance.currency,
-          outputBalance.currency,
-          amountToSwap,
-          swapConfig,
-          routingConfig
-        )
-        if (!swap) {
-          return null;
-        }
-
-        let inputBalanceUpdated = inputBalance.subtract(swap.trade.inputAmount)
-        let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount)
-        let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated)
-
-        let targetPoolHit = false
-        swap.route.forEach(route => {
-          route.route.pools.forEach((pool, i) => {
-            if(
-              pool.token0.equals(position.pool.token0) &&
-              pool.token1.equals(position.pool.token1) &&
-              pool.fee == position.pool.fee
-            ) {
-              targetPoolHit = true
-              optimalRatio = this.calculateOptimalRatio(
-                position,
-                JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString()),
-                zeroForOne,
-              )
-            }
-          })
-        })
-        if (!targetPoolHit) {
-          optimalRatio = preSwapOptimalRatio
-        }
-
-        ratioAchieved = (
-          newRatio.equalTo(optimalRatio) ||
-          this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(swapAndAddConfig.errorTolerance)
-        )
-        exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
-
-        log.info({
-          optimalRatio: optimalRatio.asFraction.toFixed(18),
-          newRatio: newRatio.asFraction.toFixed(18),
-          errorTolerance: swapAndAddConfig.errorTolerance.toFixed(18),
-          iterationN: n.toString()
-        })
+      let targetPoolHit = false;
+      swap.route.forEach((route) => {
+        route.route.pools.forEach((pool, i) => {
+          if (
+            pool.token0.equals(position.pool.token0) &&
+            pool.token1.equals(position.pool.token1) &&
+            pool.fee == position.pool.fee
+          ) {
+            targetPoolHit = true;
+            optimalRatio = this.calculateOptimalRatio(
+              position,
+              JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString()),
+              zeroForOne
+            );
+          }
+        });
+      });
+      if (!targetPoolHit) {
+        optimalRatio = preSwapOptimalRatio;
       }
 
-      return swap
+      ratioAchieved =
+        newRatio.equalTo(optimalRatio) ||
+        this.absoluteValue(
+          newRatio.asFraction.divide(optimalRatio).subtract(1)
+        ).lessThan(swapAndAddConfig.errorTolerance);
+      exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount);
+
+      log.info({
+        optimalRatio: optimalRatio.asFraction.toFixed(18),
+        newRatio: newRatio.asFraction.toFixed(18),
+        errorTolerance: swapAndAddConfig.errorTolerance.toFixed(18),
+        iterationN: n.toString(),
+      });
+    }
+
+    return swap;
   }
 
   public async routeExactIn(
@@ -235,7 +332,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     currencyOut: Currency,
     amountIn: CurrencyAmount,
     swapConfig?: SwapConfig,
-    routingConfig = DEFAULT_CONFIG
+    routingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
     return this.route<TradeType.EXACT_INPUT>(
       currencyIn,
@@ -243,7 +340,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       amountIn,
       TradeType.EXACT_INPUT,
       swapConfig,
-      routingConfig
+      { ...DEFAULT_CONFIG, ...routingConfig }
     );
   }
 
@@ -252,7 +349,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     currencyOut: Currency,
     amountOut: CurrencyAmount,
     swapConfig?: SwapConfig,
-    routingConfig = DEFAULT_CONFIG
+    routingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
     return this.route<TradeType.EXACT_OUTPUT>(
       currencyIn,
@@ -260,18 +357,23 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       amountOut,
       TradeType.EXACT_OUTPUT,
       swapConfig,
-      routingConfig
+      { ...DEFAULT_CONFIG, ...routingConfig }
     );
   }
 
-  private async route<TTradeType extends TradeType>(
+  async route<TTradeType extends TradeType>(
     currencyIn: Currency,
     currencyOut: Currency,
     amount: CurrencyAmount,
     swapType: TTradeType,
     swapConfig?: SwapConfig,
-    routingConfig = DEFAULT_CONFIG
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute<TTradeType> | null> {
+    const routingConfig: AlphaRouterConfig = {
+      ...DEFAULT_CONFIG,
+      ...partialRoutingConfig,
+    };
+
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -607,18 +709,25 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     );
   }
 
-  private calculateOptimalRatio(position: Position, sqrtRatioX96: JSBI, zeroForOne: boolean): Fraction {
+  private calculateOptimalRatio(
+    position: Position,
+    sqrtRatioX96: JSBI,
+    zeroForOne: boolean
+  ): Fraction {
     const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickUpper);
     const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickLower);
 
     // returns Fraction(0, 1) for any out of range position regardless of zeroForOne. Implication: function
     // cannot be used to determine the trading direction of out of range positions.
-    if (JSBI.greaterThan(sqrtRatioX96, upperSqrtRatioX96) || JSBI.lessThan(sqrtRatioX96, lowerSqrtRatioX96)) {
-      return new Fraction(0,1)
+    if (
+      JSBI.greaterThan(sqrtRatioX96, upperSqrtRatioX96) ||
+      JSBI.lessThan(sqrtRatioX96, lowerSqrtRatioX96)
+    ) {
+      return new Fraction(0, 1);
     }
 
-    const precision = JSBI.BigInt('1' + '0'.repeat(18))
-    let optimalRatio =  new Fraction(
+    const precision = JSBI.BigInt('1' + '0'.repeat(18));
+    let optimalRatio = new Fraction(
       SqrtPriceMath.getAmount0Delta(
         sqrtRatioX96,
         upperSqrtRatioX96,
@@ -631,15 +740,15 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         precision,
         true
       )
-    )
-    if (!zeroForOne) optimalRatio = optimalRatio.invert()
-    return optimalRatio
+    );
+    if (!zeroForOne) optimalRatio = optimalRatio.invert();
+    return optimalRatio;
   }
 
   private absoluteValue(fraction: Fraction): Fraction {
     if (fraction.lessThan(0)) {
-      return fraction.multiply(-1)
+      return fraction.multiply(-1);
     }
-    return fraction
+    return fraction;
   }
 }
