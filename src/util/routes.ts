@@ -6,10 +6,11 @@ import { IRouteWithValidQuote } from '../routers/alpha-router';
 import { V2Route, V3Route } from '../routers/router';
 
 export const routeToString = (route: V3Route | V2Route): string => {
+  const isV3Route = (route: V3Route | V2Route): route is V3Route => (route as V3Route).pools != undefined;
   const routeStr = [];
-  const tokens = route instanceof V3Route ? route.tokenPath : route.path;
+  const tokens = isV3Route(route) ? route.tokenPath : route.path;
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
-  const pools = route instanceof V3Route ? route.pools : route.pairs;
+  const pools = isV3Route(route) ? route.pools : route.pairs;
   const poolFeePath = _.map(
     pools,
     (pool) => ` -- ${pool instanceof Pool ? pool.fee / 10000 : ''}% --> `

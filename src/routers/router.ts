@@ -5,8 +5,8 @@ import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 import { V3RouteWithValidQuote } from './alpha-router';
 
-export type V3Route = V3RouteRaw<Token, Token>
-export type V2Route = V2RouteRaw<Token, Token>
+export class V3Route extends V3RouteRaw<Token, Token> {}
+export class V2Route extends V2RouteRaw<Token, Token> {}
 
 export type SwapRoute<TTradeType extends TradeType> = {
   quote: CurrencyAmount;

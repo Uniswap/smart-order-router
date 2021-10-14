@@ -4,7 +4,7 @@ import { Route } from '@uniswap/v2-sdk';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import _ from 'lodash';
-import { ChainId, ID_TO_CHAIN_ID, parseAmount, SwapRoute, USDC_MAINNET, V2QuoteProvider, V2SubgraphProvider } from '../../src';
+import { ChainId, ID_TO_CHAIN_ID, parseAmount, SwapRoute, USDC_MAINNET, V2QuoteProvider, V2StaticSubgraphProvider } from '../../src';
 import { V2PoolProvider } from '../../src/providers/v2/pool-provider';
 import { Protocol, TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
@@ -106,7 +106,7 @@ export class Quote extends BaseCommand {
 
       log.info({ quotes }, 'Quotes');
 
-      const v2Sub = new V2SubgraphProvider(ChainId.MAINNET);
+      const v2Sub = new V2StaticSubgraphProvider();
       const v2Subpools = await v2Sub.getPools();
 
       log.info({ ps: acc.getAllPools(), sps: v2Subpools.slice(0, 5) });
