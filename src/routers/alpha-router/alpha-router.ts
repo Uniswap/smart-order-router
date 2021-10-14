@@ -21,6 +21,7 @@ import {
   CachingTokenProviderWithFallback,
   CachingV3PoolProvider,
   EIP1559GasPriceProvider,
+  ETHGasStationInfoProvider,
   NodeJSCache,
   UniswapMulticallProvider,
   URISubgraphProvider,
@@ -64,7 +65,7 @@ import { IGasModelFactory } from './gas-models/gas-model';
 
 export type AlphaRouterParams = {
   chainId: ChainId;
-  provider: providers.JsonRpcProvider;
+  provider: providers.BaseProvider;
   multicall2Provider?: UniswapMulticallProvider;
   subgraphProvider?: IV3SubgraphProvider;
   poolProvider?: IV3PoolProvider;
@@ -110,15 +111,17 @@ export type SwapAndAddConfig = {
   maxIterations: number;
 };
 
+const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
+const IPFS_POOL_CACHE_URL =
+  'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4';
+
 export class AlphaRouter
   implements
     IRouter<AlphaRouterConfig>,
     ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
 {
   protected chainId: ChainId;
-  // TODO(judo): support interface directly
-  protected provider: providers.JsonRpcProvider;
-  // TODO(judo): support interface directly
+  protected provider: providers.BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
   protected subgraphProvider: IV3SubgraphProvider;
   protected poolProvider: IV3PoolProvider;
@@ -150,7 +153,7 @@ export class AlphaRouter
       new CachingV3PoolProvider(
         this.chainId,
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
-        new NodeJSCache(new NodeCache())
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
     this.quoteProvider =
       quoteProvider ??
@@ -180,32 +183,32 @@ export class AlphaRouter
         chainId,
         //TODO(judo): add unsupported
         {} as TokenList,
-        new NodeJSCache(new NodeCache())
+        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
       );
     this.tokenProvider =
       tokenProvider ??
       new CachingTokenProviderWithFallback(
         chainId,
-        new NodeJSCache(new NodeCache()),
+        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
         new CachingTokenListProvider(
           chainId,
           DEFAULT_TOKEN_LIST,
-          new NodeJSCache(new NodeCache())
+          new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
         ),
         new TokenProvider(chainId, this.multicall2Provider)
       );
     this.subgraphProvider =
-      subgraphProvider ??
-      new URISubgraphProvider(
-        chainId,
-        'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'
-      );
+      subgraphProvider ?? new URISubgraphProvider(chainId, IPFS_POOL_CACHE_URL);
     this.gasPriceProvider =
       gasPriceProvider ??
       new CachingGasStationProvider(
         chainId,
-        new EIP1559GasPriceProvider(this.provider),
-        new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15_000 }))
+        this.provider instanceof providers.JsonRpcProvider
+          ? new EIP1559GasPriceProvider(this.provider)
+          : new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL),
+        new NodeJSCache<GasPrice>(
+          new NodeCache({ stdTTL: 15_000, useClones: false })
+        )
       );
     this.gasModelFactory = gasModelFactory ?? new HeuristicGasModelFactory();
   }
