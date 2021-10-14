@@ -1,11 +1,11 @@
 import { flags } from '@oclif/command';
 import { Currency, Ether, Percent } from '@uniswap/sdk-core';
+import { Route } from '@uniswap/v2-sdk';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import _ from 'lodash';
-import { ChainId, ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
+import { ChainId, ID_TO_CHAIN_ID, parseAmount, SwapRoute, USDC_MAINNET, V2QuoteProvider, V2SubgraphProvider } from '../../src';
 import { V2PoolProvider } from '../../src/providers/v2/pool-provider';
-import { V2SubgraphProvider } from '../../src/providers/v2/subgraph-provider';
 import { Protocol, TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
 
@@ -90,13 +90,27 @@ export class Quote extends BaseCommand {
 
     if (protocols.includes(Protocol.V2)) {
       const v2PoolP = new V2PoolProvider(ChainId.MAINNET, this.multicall2Provider);
-      const acc = await v2PoolP.getPools([[tokenIn.wrapped, tokenOut.wrapped]]);
-      const pools = acc.getAllPools();
-      const p = pools[0]!;
+      const acc = await v2PoolP.getPools([
+        [tokenIn.wrapped, tokenOut.wrapped], 
+        [tokenIn.wrapped, USDC_MAINNET], 
+        [USDC_MAINNET, tokenOut.wrapped]
+      ]);
+      const h1 = acc.getPool(tokenIn.wrapped, USDC_MAINNET); 
+      const h2 = acc.getPool(USDC_MAINNET, tokenOut.wrapped);
+
+      const r = new Route([h1!, h2!], tokenIn.wrapped, tokenOut.wrapped);
+
+      const v2QuoteP = new V2QuoteProvider();
+      const amountIn = parseAmount(amountStr, tokenIn);
+      const quotes = await v2QuoteP.getQuotesManyExactIn([amountIn], [r]);
+
+      log.info({ quotes }, 'Quotes');
 
       const v2Sub = new V2SubgraphProvider(ChainId.MAINNET);
       const v2Subpools = await v2Sub.getPools();
-      log.info({ p, ps: acc.getAllPools(), sps: v2Subpools.slice(0, 5) });
+
+      log.info({ ps: acc.getAllPools(), sps: v2Subpools.slice(0, 5) });
+
       return;
     }
 

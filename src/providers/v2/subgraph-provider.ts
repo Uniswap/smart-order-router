@@ -6,7 +6,6 @@ import { ProviderConfig } from '../provider';
 import Timeout from 'await-timeout';
 import { ChainId } from '../../util/chains';
 
-
 export interface V2SubgraphPool {
   id: string;
   token0: {
@@ -49,7 +48,7 @@ export interface IV2SubgraphProvider {
 export class V2SubgraphProvider implements IV2SubgraphProvider {
   private client: GraphQLClient;
 
-  constructor(private chainId: ChainId, private retries = 2, private timeout = 180000) {
+  constructor(private chainId: ChainId, private retries = 2, private timeout = 360000) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
@@ -124,19 +123,32 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           let pairsPage: RawV2SubgraphPool[] = [];
   
           do {
-            const poolsResult = await this.client.request<{
-              pairs: RawV2SubgraphPool[];
-            }>(query2(lastId), {
-              pageSize: PAGE_SIZE,
-            });
+            await retry(
+              async () => {
+                const poolsResult = await this.client.request<{
+                  pairs: RawV2SubgraphPool[];
+                }>(query2(lastId), {
+                  pageSize: PAGE_SIZE,
+                });
 
-            log.info({ poolsResult: poolsResult.pairs[0]! }, 'result');
-  
-            pairsPage = poolsResult.pairs;
-  
-            pairs = pairs.concat(pairsPage);
-            lastId = pairs[pairs.length - 1]!.id;
-            log.info({ lastId }, `len: ${pairs.length} last id: ${lastId}`);
+                log.info({ poolsResult: poolsResult.pairs[0]! }, 'result');
+      
+                pairsPage = poolsResult.pairs;
+      
+                pairs = pairs.concat(pairsPage);
+                lastId = pairs[pairs.length - 1]!.id;
+                log.info({ lastId }, `len: ${pairs.length} last id: ${lastId}`);
+            },
+            {
+              retries: this.retries,
+              onRetry: (err, retry) => {
+                pools = [];
+                log.info(
+                  { err },
+                  `Failed request for page of pools from subgraph. Retry attempt: ${retry}`
+                );
+              },
+            });
           } while (pairsPage.length > 0);
 
           return pairs;
@@ -188,4 +200,5 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
 
     return poolsSanitized;
   }
+
 }

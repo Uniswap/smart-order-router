@@ -1,7 +1,6 @@
 import { Token, TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../../../util/amounts';
-import { Protocol } from '../../../util/protocols';
 import { routeToString } from '../../../util/routes';
 import { V3Route, V2Route } from '../../router';
 import { GasModel } from '../gas-models/gas-model';
@@ -20,11 +19,11 @@ export type RouteWithValidQuoteParams = {
 };
 
 export interface IRouteWithValidQuote {
+  amount: CurrencyAmount;
   quoteAdjustedForGas: CurrencyAmount;
   quote: CurrencyAmount;
   route: V3Route | V2Route;
   gasEstimate: BigNumber;
-  protocol: Protocol;
 }
 
 export class V3RouteWithValidQuote {

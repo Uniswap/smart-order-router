@@ -28,7 +28,7 @@ import {
   V3PoolProvider,
   V3QuoteProvider,
   routeAmountsToString,
-  RouteWithValidQuote,
+  IRouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
   TokenProvider,
@@ -300,7 +300,7 @@ export abstract class BaseCommand extends Command {
   }
 
   logSwapResults(
-    routeAmounts: RouteWithValidQuote[],
+    routeAmounts: IRouteWithValidQuote[],
     quote: CurrencyAmount<Currency>,
     quoteGasAdjusted: CurrencyAmount<Currency>,
     estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
