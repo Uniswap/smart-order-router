@@ -119,7 +119,7 @@ export async function getCandidatePools({
   }
 
   const subgraphPoolsSorted = _(filteredPools)
-    .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
     .value();
 
   log.info(`After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`)
@@ -145,11 +145,11 @@ export async function getCandidatePools({
               subgraphPool.token0.id == tokenInAddress)
           );
         })
-        .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+        .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
         .slice(0, topNWithEachBaseToken)
         .value();
     })
-    .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
     .slice(0, topNWithBaseToken)
     .value();
 
@@ -165,11 +165,11 @@ export async function getCandidatePools({
               subgraphPool.token0.id == tokenOutAddress)
           );
         })
-        .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+        .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
         .slice(0, topNWithEachBaseToken)
         .value();
     })
-    .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
     .slice(0, topNWithBaseToken)
     .value();
 
@@ -215,10 +215,10 @@ export async function getCandidatePools({
           );
         } else {
           return (
-            (subgraphPool.token0.symbol == wethAddress &&
-              subgraphPool.token1.symbol == tokenIn.symbol) ||
-            (subgraphPool.token1.symbol == wethAddress &&
-              subgraphPool.token0.symbol == tokenIn.symbol)
+            (subgraphPool.token0.id == wethAddress &&
+              subgraphPool.token1.id == tokenInAddress) ||
+            (subgraphPool.token1.id == wethAddress &&
+              subgraphPool.token0.id == tokenInAddress)
           );
         }
       })
@@ -282,7 +282,7 @@ export async function getCandidatePools({
         .value();
     })
     .uniqBy((pool) => pool.id)
-    .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
     .slice(0, topNSecondHop)
     .value();
 
@@ -307,7 +307,7 @@ export async function getCandidatePools({
         .value();
     })
     .uniqBy((pool) => pool.id)
-    .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
     .slice(0, topNSecondHop)
     .value();
 
@@ -368,10 +368,10 @@ export async function getCandidatePools({
 
     if (!tokenA || !tokenB) {
       log.info(
-        `Dropping candidate pool for ${subgraphPool.token0.symbol}/${
-          subgraphPool.token1.symbol
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${
+          subgraphPool.token1.id
         }/${fee} because ${
-          tokenA ? subgraphPool.token1.symbol : subgraphPool.token0.symbol
+          tokenA ? subgraphPool.token1.id : subgraphPool.token0.id
         } not found by token provider`
       );
       return undefined;

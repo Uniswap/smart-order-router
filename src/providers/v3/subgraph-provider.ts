@@ -11,17 +11,13 @@ export interface V3SubgraphPool {
   feeTier: string;
   liquidity: string;
   token0: {
-    symbol: string;
     id: string;
   };
   token1: {
-    symbol: string;
     id: string;
   };
-  totalValueLockedUSD: string;
-  totalValueLockedETH: string;
-  totalValueLockedETHFloat: number;
-  totalValueLockedUSDFloat: number;
+  tvlETH: number;
+  tvlUSD: number;
 }
 
 export type RawV3SubgraphPool = {
@@ -41,7 +37,7 @@ export type RawV3SubgraphPool = {
 };
 
 export const printSubgraphPool = (s: V3SubgraphPool) =>
-  `${s.token0.symbol}/${s.token1.symbol}/${s.feeTier}`;
+  `${s.token0.id}/${s.token1.id}/${s.feeTier}`;
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
@@ -159,23 +155,22 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
 
     log.info(`Got ${pools.length} pools from the subgraph.`);
 
-    const poolsSanitized = _.map(pools, (pool) => {
-      return {
-        ...pool,
-        id: pool.id.toLowerCase(),
-        token0: {
-          ...pool.token0,
-          id: pool.token0.id.toLowerCase(),
-        },
-        token1: {
-          ...pool.token1,
-          id: pool.token1.id.toLowerCase(),
-        },
-        totalValueLockedETHFloat: parseFloat(pool.totalValueLockedETH),
-        totalValueLockedUSDFloat: parseFloat(pool.totalValueLockedUSD),
-      };
+    const poolsSanitized = pools.filter((pool) => parseInt(pool.liquidity) > 0).map((pool) => {
+    const { totalValueLockedETH, totalValueLockedUSD, ...rest } = pool;
+    
+    return {
+      ...rest,
+      id: pool.id.toLowerCase(),
+      token0: {
+        id: pool.token0.id.toLowerCase(),
+      },
+      token1: {
+        id: pool.token1.id.toLowerCase(),
+      },
+      tvlETH: parseFloat(totalValueLockedETH),
+      tvlUSD: parseFloat(totalValueLockedUSD),
+    };
     });
-
     return poolsSanitized;
   }
 }

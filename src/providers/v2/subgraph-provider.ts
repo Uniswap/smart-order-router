@@ -9,11 +9,9 @@ import { ChainId } from '../../util/chains';
 export interface V2SubgraphPool {
   id: string;
   token0: {
-    symbol: string;
     id: string;
   };
   token1: {
-    symbol: string;
     id: string;
   };
   totalSupply: number;
@@ -179,17 +177,16 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     );
 
     log.info(`Got ${pools.length} pools from the subgraph.`);
-
-    const poolsSanitized: V2SubgraphPool[] = _.map(pools, (pool) => {
+    // filter pools that have liquidity less than threshold
+    const threshold = 0.1
+    const poolsSanitized: V2SubgraphPool[] = pools.filter((pool) => parseFloat(pool.reserveETH) > threshold).map((pool) => {
       return {
         ...pool,
         id: pool.id.toLowerCase(),
         token0: {
-          ...pool.token0,
           id: pool.token0.id.toLowerCase(),
         },
         token1: {
-          ...pool.token1,
           id: pool.token1.id.toLowerCase(),
         },
         totalSupply: parseFloat(pool.totalSupply),
