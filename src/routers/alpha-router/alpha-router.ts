@@ -273,7 +273,7 @@ export class AlphaRouter
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
+  ): Promise<SwapRoute | null> {
     if (
       token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)
     ) {
@@ -308,7 +308,7 @@ export class AlphaRouter
     let exchangeRate: Fraction = zeroForOne
       ? position.pool.token0Price
       : position.pool.token1Price;
-    let swap: SwapRoute<TradeType.EXACT_INPUT> | null = null;
+    let swap: SwapRoute | null = null;
     let ratioAchieved = false;
     let n = 0;
 
@@ -326,13 +326,14 @@ export class AlphaRouter
         outputBalance
       );
 
-      swap = await this.routeExactIn(
-        inputBalance.currency,
-        outputBalance.currency,
+      swap = await this.route(
         amountToSwap,
+        outputBalance.currency,
+        TradeType.EXACT_INPUT,
         swapConfig,
         { ...DEFAULT_CONFIG, ...routingConfig, protocols: [Protocol.V3] } // TODO: Enable V2 once have trade object across v2/v3.
       );
+
       if (!swap) {
         return null;
       }
@@ -383,48 +384,13 @@ export class AlphaRouter
     return swap;
   }
 
-  public async routeExactIn(
-    currencyIn: Currency,
-    currencyOut: Currency,
-    amountIn: CurrencyAmount,
-    swapConfig?: SwapConfig,
-    routingConfig: Partial<AlphaRouterConfig> = {}
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
-    return this.route<TradeType.EXACT_INPUT>(
-      currencyIn,
-      currencyOut,
-      amountIn,
-      TradeType.EXACT_INPUT,
-      swapConfig,
-      routingConfig
-    );
-  }
-
-  public async routeExactOut(
-    currencyIn: Currency,
-    currencyOut: Currency,
-    amountOut: CurrencyAmount,
-    swapConfig?: SwapConfig,
-    routingConfig: Partial<AlphaRouterConfig> = {}
-  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
-    return this.route<TradeType.EXACT_OUTPUT>(
-      currencyIn,
-      currencyOut,
-      amountOut,
-      TradeType.EXACT_OUTPUT,
-      swapConfig,
-      routingConfig
-    );
-  }
-
-  public async route<TTradeType extends TradeType>(
-    currencyIn: Currency,
-    currencyOut: Currency,
+  public async route(
     amount: CurrencyAmount,
-    swapType: TTradeType,
+    quoteCurrency: Currency,
+    swapType: TradeType,
     swapConfig?: SwapConfig,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
-  ): Promise<SwapRoute<TTradeType> | null> {
+  ): Promise<SwapRoute | null> {
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
     const blockNumber =
@@ -437,6 +403,10 @@ export class AlphaRouter
       { blockNumber }
     );
 
+    const currencyIn =
+      swapType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
+    const currencyOut =
+      swapType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -458,7 +428,7 @@ export class AlphaRouter
       MetricLoggerUnit.Milliseconds
     );
 
-    const quoteToken = swapType == TradeType.EXACT_INPUT ? tokenOut : tokenIn;
+    const quoteToken = quoteCurrency.wrapped;
 
     const { protocols } = routingConfig;
 
@@ -568,11 +538,12 @@ export class AlphaRouter
       routeAmounts,
       (r) => r.protocol == Protocol.V3
     ) as V3RouteWithValidQuote[];
-    let trade: Trade<Currency, Currency, TTradeType> | undefined;
+
+    let trade: Trade<Currency, Currency, TradeType> | undefined;
     let methodParameters: MethodParameters | undefined;
     if (v3Routes.length > 0) {
       // Build Trade object that represents the optimal swap.
-      trade = this.buildTrade<TTradeType>(
+      trade = this.buildTrade<typeof swapType>(
         currencyIn,
         currencyOut,
         swapType,
