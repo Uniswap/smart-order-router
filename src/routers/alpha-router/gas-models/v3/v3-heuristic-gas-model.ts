@@ -2,13 +2,16 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { V3PoolAccessor } from '../../../providers/v3/pool-provider';
-import { DAI_MAINNET, DAI_RINKEBY_1, DAI_RINKEBY_2, USDC_MAINNET, USDT_MAINNET } from '../../../providers/token-provider';
-import { ChainId, WETH9 } from '../../../util';
-import { CurrencyAmount } from '../../../util/amounts';
-import { log } from '../../../util/log';
-import { V3RouteWithValidQuote } from '../entities/route-with-valid-quote';
-import { GasModel, IGasModelFactory } from './gas-model';
+import { V3PoolAccessor } from '../../../../providers/v3/pool-provider';
+import { ChainId, WETH9 } from '../../../../util';
+import { CurrencyAmount } from '../../../../util/amounts';
+import { log } from '../../../../util/log';
+import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
+import {
+  IGasModel,
+  IV3GasModelFactory,
+  usdGasTokensByChain,
+} from '../gas-model';
 
 // Constant cost for doing any swap regardless of pools.
 const BASE_SWAP_COST = BigNumber.from(2000);
@@ -22,13 +25,7 @@ const COST_PER_UNINIT_TICK = BigNumber.from(0);
 // Constant per pool swap in the route.
 const COST_PER_HOP = BigNumber.from(80000);
 
-
-const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
-  [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
-  [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
-}
-
-export class HeuristicGasModelFactory extends IGasModelFactory {
+export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
   constructor() {
     super();
   }
@@ -38,7 +35,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     gasPriceWei: BigNumber,
     poolAccessor: V3PoolAccessor,
     token: Token
-  ): GasModel {
+  ): IGasModel<V3RouteWithValidQuote> {
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
     // We do return a gas use in USD however, so we still convert to usd.
@@ -96,7 +93,10 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       poolAccessor
     );
 
-    const usdToken = usdPool.token0.address == WETH9[chainId]!.address ? usdPool.token1 : usdPool.token0;
+    const usdToken =
+      usdPool.token0.address == WETH9[chainId]!.address
+        ? usdPool.token1
+        : usdPool.token0;
 
     const estimateGasCost = (
       routeWithValidQuote: V3RouteWithValidQuote
@@ -227,7 +227,8 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       .value();
 
     if (pools.length == 0) {
-      log.error({ pools },
+      log.error(
+        { pools },
         `Could not find a WETH pool with ${token.symbol} for computing gas costs.`
       );
 
@@ -244,9 +245,11 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
     poolAccessor: V3PoolAccessor
   ): Pool {
     const usdTokens = usdGasTokensByChain[chainId];
-    
+
     if (!usdTokens) {
-      throw new Error(`Could not find a USD token for computing gas costs on ${chainId}`);
+      throw new Error(
+        `Could not find a USD token for computing gas costs on ${chainId}`
+      );
     }
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
@@ -270,7 +273,10 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       .value();
 
     if (pools.length == 0) {
-      log.error({ pools }, `Could not find a USD/WETH pool for computing gas costs.`);
+      log.error(
+        { pools },
+        `Could not find a USD/WETH pool for computing gas costs.`
+      );
       throw new Error(`Can't find USD/WETH pool for computing gas costs.`);
     }
 

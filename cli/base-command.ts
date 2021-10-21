@@ -16,7 +16,7 @@ import {
   ChainId,
   CHAIN_IDS_LIST,
   EIP1559GasPriceProvider,
-  HeuristicGasModelFactory,
+  V3HeuristicGasModelFactory,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
   IV3PoolProvider,
@@ -39,6 +39,7 @@ import {
   GasPrice,
   CachingTokenProviderWithFallback,
   URISubgraphProvider,
+  V2StaticSubgraphProvider,
 } from '../src';
 
 export abstract class BaseCommand extends Command {
@@ -66,6 +67,10 @@ export abstract class BaseCommand extends Command {
     topNWithBaseTokenInSet: flags.boolean({
       required: false,
       default: false,
+    }),
+    topNDirectSwaps: flags.integer({
+      required: false,
+      default: 2,
     }),
     maxSwapsPerPath: flags.integer({
       required: false,
@@ -262,16 +267,16 @@ export abstract class BaseCommand extends Command {
       const router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingV3SubgraphProvider(chainId,
+        v3SubgraphProvider: new CachingV3SubgraphProvider(chainId,
           new URISubgraphProvider(chainId, 'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'),
           subgraphCache
         ),
         multicall2Provider: multicall2Provider,
-        poolProvider: new CachingV3PoolProvider(chainId,
+        v3PoolProvider: new CachingV3PoolProvider(chainId,
           new V3PoolProvider(chainId, multicall2Provider),
           poolCache
         ),
-        quoteProvider: new V3QuoteProvider(
+        v3QuoteProvider: new V3QuoteProvider(
           chainId,
           provider,
           multicall2Provider,
@@ -290,8 +295,9 @@ export abstract class BaseCommand extends Command {
           new EIP1559GasPriceProvider(provider),
           gasPriceCache
         ),
-        gasModelFactory: new HeuristicGasModelFactory(),
+        v3GasModelFactory: new V3HeuristicGasModelFactory(),
         tokenProvider: this.tokenProvider,
+        v2SubgraphProvider: new V2StaticSubgraphProvider(),
       });
 
       this._swapToRatioRouter = router;

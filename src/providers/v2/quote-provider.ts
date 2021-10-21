@@ -4,7 +4,6 @@ import { V2Route } from '../../routers/router';
 import { CurrencyAmount } from '../../util/amounts';
 import { TradeType } from '@uniswap/sdk-core';
 import { InsufficientInputAmountError, InsufficientReservesError } from '@uniswap/v2-sdk';
-import { log } from '../../util';
 
 // Quotes can be null (e.g. pool did not have enough liquidity).
 export type V2AmountQuote = {
@@ -64,7 +63,6 @@ export class V2QuoteProvider implements IV2QuoteProvider {
 
             for (const pair of route.pairs) {
               const [outputAmountNew,] = pair.getOutputAmount(outputAmount);
-              log.info({ before: outputAmount.toExact(), after: outputAmountNew.toExact() }, 'Before after')
               outputAmount = outputAmountNew;
             }
 

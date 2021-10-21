@@ -1,6 +1,6 @@
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import { DAI_MAINNET as DAI, USDC_MAINNET as USDC, USDT_MAINNET as USDT, WBTC_MAINNET as WBTC } from '../../../../../src';
-import { computeAllRoutes } from '../../../../../src/routers/alpha-router/functions/compute-all-routes';
+import { computeAllV3Routes } from '../../../../../src/routers/alpha-router/functions/compute-all-routes';
 import {
   DAI_USDT_LOW,
   USDC_DAI_LOW,
@@ -9,7 +9,7 @@ import {
   WETH9_USDT_LOW,
 } from '../../../test-util/mock-data';
 
-describe('compute all routes', () => {
+describe('compute all v3 routes', () => {
   test('succeeds to compute all routes', async () => {
     const pools = [
       USDC_DAI_LOW,
@@ -18,7 +18,7 @@ describe('compute all routes', () => {
       WETH9_USDT_LOW,
       DAI_USDT_LOW,
     ];
-    const routes = computeAllRoutes(USDC, DAI, pools, 3);
+    const routes = computeAllV3Routes(USDC, DAI, pools, 3);
 
     expect(routes).toHaveLength(3);
   });
@@ -31,7 +31,7 @@ describe('compute all routes', () => {
       WETH9_USDT_LOW,
       DAI_USDT_LOW,
     ];
-    const routes = computeAllRoutes(USDC, DAI, pools, 1);
+    const routes = computeAllV3Routes(USDC, DAI, pools, 1);
 
     expect(routes).toHaveLength(2);
   });
@@ -47,7 +47,7 @@ describe('compute all routes', () => {
     ];
 
     // No way to get from USDC to WBTC in 2 hops
-    const routes = computeAllRoutes(USDC, WBTC, pools, 2);
+    const routes = computeAllV3Routes(USDC, WBTC, pools, 2);
 
     expect(routes).toHaveLength(0);
   });

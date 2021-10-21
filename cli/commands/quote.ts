@@ -1,11 +1,9 @@
 import { flags } from '@oclif/command';
 import { Currency, Ether, Percent } from '@uniswap/sdk-core';
-import { Route } from '@uniswap/v2-sdk';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import _ from 'lodash';
-import { ChainId, ID_TO_CHAIN_ID, parseAmount, SwapRoute, USDC_MAINNET, V2QuoteProvider, V2StaticSubgraphProvider } from '../../src';
-import { V2PoolProvider } from '../../src/providers/v2/pool-provider';
+import { AlphaRouter, ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
 import { Protocol, TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
 
@@ -46,6 +44,7 @@ export class Quote extends BaseCommand {
       topNWithEachBaseToken,
       topNWithBaseToken,
       topNWithBaseTokenInSet,
+      topNDirectSwaps,
       maxSwapsPerPath,
       minSplits,
       maxSplits,
@@ -71,7 +70,7 @@ export class Quote extends BaseCommand {
 
     const log = this.logger;
     const tokenProvider = this.tokenProvider;
-    const router = this.router;
+    const router = this.router as AlphaRouter;
 
     const tokenAccessor = await tokenProvider.getTokens([
       tokenInStr,
@@ -88,31 +87,31 @@ export class Quote extends BaseCommand {
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
 
 
-    if (protocols.includes(Protocol.V2)) {
-      const v2PoolP = new V2PoolProvider(ChainId.MAINNET, this.multicall2Provider);
-      const acc = await v2PoolP.getPools([
-        [tokenIn.wrapped, tokenOut.wrapped], 
-        [tokenIn.wrapped, USDC_MAINNET], 
-        [USDC_MAINNET, tokenOut.wrapped]
-      ]);
-      const h1 = acc.getPool(tokenIn.wrapped, USDC_MAINNET); 
-      const h2 = acc.getPool(USDC_MAINNET, tokenOut.wrapped);
+    // if (protocols.includes(Protocol.V2)) {
+    //   const v2PoolP = new V2PoolProvider(ChainId.MAINNET, this.multicall2Provider);
+    //   const acc = await v2PoolP.getPools([
+    //     [tokenIn.wrapped, tokenOut.wrapped], 
+    //     [tokenIn.wrapped, USDC_MAINNET], 
+    //     [USDC_MAINNET, tokenOut.wrapped]
+    //   ]);
+    //   const h1 = acc.getPool(tokenIn.wrapped, USDC_MAINNET); 
+    //   const h2 = acc.getPool(USDC_MAINNET, tokenOut.wrapped);
 
-      const r = new Route([h1!, h2!], tokenIn.wrapped, tokenOut.wrapped);
+    //   const r = new Route([h1!, h2!], tokenIn.wrapped, tokenOut.wrapped);
 
-      const v2QuoteP = new V2QuoteProvider();
-      const amountIn = parseAmount(amountStr, tokenIn);
-      const quotes = await v2QuoteP.getQuotesManyExactIn([amountIn], [r]);
+    //   const v2QuoteP = new V2QuoteProvider();
+    //   const amountIn = parseAmount(amountStr, tokenIn);
+    //   const quotes = await v2QuoteP.getQuotesManyExactIn([amountIn], [r]);
 
-      log.info({ quotes }, 'Quotes');
+    //   log.info({ quotes }, 'Quotes');
 
-      const v2Sub = new V2StaticSubgraphProvider();
-      const v2Subpools = await v2Sub.getPools();
+    //   const v2Sub = new V2StaticSubgraphProvider();
+    //   const v2Subpools = await v2Sub.getPools();
 
-      log.info({ ps: acc.getAllPools(), sps: v2Subpools.slice(0, 5) });
+    //   log.info({ ps: acc.getAllPools(), sps: v2Subpools.slice(0, 5) });
 
-      return;
-    }
+    //   return;
+    // }
 
     let swapRoutes: SwapRoute<any> | null;
     if (exactIn) {
@@ -127,12 +126,15 @@ export class Quote extends BaseCommand {
           slippageTolerance: new Percent(5, 10_000),
         },
         {
-          topN,
-          topNTokenInOut,
-          topNSecondHop,
-          topNWithEachBaseToken,
-          topNWithBaseToken,
-          topNWithBaseTokenInSet,
+          v3PoolSelection: {
+            topN,
+            topNTokenInOut,
+            topNSecondHop,
+            topNWithEachBaseToken,
+            topNWithBaseToken,
+            topNWithBaseTokenInSet,
+            topNDirectSwaps
+          },
           maxSwapsPerPath,
           minSplits,
           maxSplits,
@@ -152,12 +154,15 @@ export class Quote extends BaseCommand {
           slippageTolerance: new Percent(5, 10_000),
         },
         {
-          topN,
-          topNTokenInOut,
-          topNSecondHop,
-          topNWithEachBaseToken,
-          topNWithBaseToken,
-          topNWithBaseTokenInSet,
+          v3PoolSelection: {
+            topN,
+            topNTokenInOut,
+            topNSecondHop,
+            topNWithEachBaseToken,
+            topNWithBaseToken,
+            topNWithBaseTokenInSet,
+            topNDirectSwaps
+          },
           maxSwapsPerPath,
           minSplits,
           maxSplits,

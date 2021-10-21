@@ -13,7 +13,7 @@ export const routeToString = (route: V3Route | V2Route): string => {
   const pools = isV3Route(route) ? route.pools : route.pairs;
   const poolFeePath = _.map(
     pools,
-    (pool) => ` -- ${pool instanceof Pool ? pool.fee / 10000 : ''}% --> `
+    (pool) => `${pool instanceof Pool ? ` -- ${pool.fee / 10000}%` : ''} --> `
   );
 
   for (let i = 0; i < tokenPath.length; i++) {
@@ -35,10 +35,11 @@ export const routeAmountsToString = (routeAmounts: IRouteWithValidQuote[]): stri
     CurrencyAmount.fromRawAmount(routeAmounts[0]!.amount.currency, 0)
   );
 
-  const routeStrings = _.map(routeAmounts, ({ route, amount }) => {
+  const routeStrings = _.map(routeAmounts, ({ protocol, route, amount }) => {
+    
     const portion = amount.divide(total);
     const percent = new Percent(portion.numerator, portion.denominator);
-    return `${percent.toFixed(2)}% = ${routeToString(route)}`;
+    return `[${protocol}] ${percent.toFixed(2)}% = ${routeToString(route)}`;
   });
 
   return _.join(routeStrings, ', ');

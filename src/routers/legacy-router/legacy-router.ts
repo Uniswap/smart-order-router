@@ -283,7 +283,8 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         initializedTicksCrossedList: [],
         quoterGasEstimate: BigNumber.from(0),
         tradeType: routeType,
-        quoteToken
+        quoteToken,
+        v3PoolProvider: this.poolProvider
       });
     });
 
