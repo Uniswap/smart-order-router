@@ -268,7 +268,7 @@ export abstract class BaseCommand extends Command {
         provider,
         chainId,
         v3SubgraphProvider: new CachingV3SubgraphProvider(chainId,
-          new URISubgraphProvider(chainId, 'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'),
+          new URISubgraphProvider(chainId, 'https://gateway.ipfs.io/ipns/beta.api.uniswap.org/v1/pools/v3/mainnet.json'),
           subgraphCache
         ),
         multicall2Provider: multicall2Provider,
