@@ -57,10 +57,7 @@ export class QuoteToRatio extends BaseCommand {
     const router = this.swapToRatioRouter;
     const tokenProvider = this.tokenProvider;
 
-    const tokenAccessor = await tokenProvider.getTokens([
-      token0Str,
-      token1Str,
-    ]);
+    const tokenAccessor = await tokenProvider.getTokens([token0Str, token1Str]);
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const tokenIn: Currency =
@@ -101,14 +98,14 @@ export class QuoteToRatio extends BaseCommand {
       liquidity: 1,
     });
 
-    let swapRoutes: SwapRoute<any> | null;
+    let swapRoutes: SwapRoute | null;
     swapRoutes = await router.routeToRatio(
       tokenInBalance,
       tokenOutBalance,
       position,
       {
         errorTolerance: new Fraction(1, 100),
-        maxIterations: 6
+        maxIterations: 6,
       },
       {
         deadline: 100,

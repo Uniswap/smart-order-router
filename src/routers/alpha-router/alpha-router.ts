@@ -50,7 +50,10 @@ import {
   IV3QuoteProvider,
   V3QuoteProvider,
 } from '../../providers/v3/quote-provider';
-import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
+import {
+  IV3SubgraphProvider,
+  V3SubgraphProvider,
+} from '../../providers/v3/subgraph-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
 import { log } from '../../util/log';
@@ -70,10 +73,10 @@ import {
   computeAllV3Routes,
 } from './functions/compute-all-routes';
 import {
+  CandidatePoolsBySelectionCriteria,
   getV2CandidatePools,
   getV3CandidatePools as getV3CandidatePools,
-  V2CandidatePoolsBySelectionCriteria,
-  V3CandidatePoolsBySelectionCriteria,
+  PoolId,
 } from './functions/get-candidate-pools';
 import { IV2GasModelFactory, IV3GasModelFactory } from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
@@ -147,8 +150,11 @@ export type SwapAndAddConfig = {
 };
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
-const IPFS_POOL_CACHE_URL_BY_CHAIN =
-  'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4';
+// TODO: Change to prod once ready. Fill in other chains.
+const IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+  [ChainId.MAINNET]:
+    'https://gateway.ipfs.io/ipns/beta.api.uniswap.org/v1/pools/v3/mainnet.json',
+};
 
 export class AlphaRouter
   implements
@@ -247,8 +253,12 @@ export class AlphaRouter
         new TokenProvider(chainId, this.multicall2Provider)
       );
     this.v3SubgraphProvider =
-      v3SubgraphProvider ??
-      new URISubgraphProvider(chainId, IPFS_POOL_CACHE_URL_BY_CHAIN);
+      v3SubgraphProvider ?? IPFS_POOL_CACHE_URL_BY_CHAIN[this.chainId]
+        ? new URISubgraphProvider(
+            chainId,
+            IPFS_POOL_CACHE_URL_BY_CHAIN[this.chainId]!
+          )
+        : new V3SubgraphProvider(this.chainId);
     this.gasPriceProvider =
       gasPriceProvider ??
       new CachingGasStationProvider(
@@ -434,6 +444,7 @@ export class AlphaRouter
 
     const quotePromises: Promise<{
       routesWithValidQuotes: IRouteWithValidQuote[];
+      candidatePools: CandidatePoolsBySelectionCriteria;
     }>[] = [];
 
     if (!protocols || protocols.length == 0) {
@@ -495,11 +506,16 @@ export class AlphaRouter
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
 
     let allRoutesWithValidQuotes: IRouteWithValidQuote[] = [];
-    for (const { routesWithValidQuotes } of routesWithValidQuotesByProtocol) {
+    let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
+    for (const {
+      routesWithValidQuotes,
+      candidatePools,
+    } of routesWithValidQuotesByProtocol) {
       allRoutesWithValidQuotes = [
         ...allRoutesWithValidQuotes,
         ...routesWithValidQuotes,
       ];
+      allCandidatePools = [...allCandidatePools, candidatePools];
     }
 
     if (allRoutesWithValidQuotes.length == 0) {
@@ -522,8 +538,6 @@ export class AlphaRouter
       return null;
     }
 
-    // this.emitGasModelLog(swapRouteRaw.routes);
-
     const {
       quote,
       quoteGasAdjusted,
@@ -533,7 +547,7 @@ export class AlphaRouter
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    // TODO: Re-enable once have Trade object across v2/v3
+    // TODO: Re-enable once we have Trade object that supports both v2/v3.
     const v3Routes = _.filter(
       routeAmounts,
       (r) => r.protocol == Protocol.V3
@@ -566,7 +580,7 @@ export class AlphaRouter
       MetricLoggerUnit.Milliseconds
     );
 
-    // this.emitPoolSelectionMetrics(swapRouteRaw, v3CandidatePools);
+    this.emitPoolSelectionMetrics(swapRouteRaw, allCandidatePools);
 
     return {
       quote,
@@ -593,7 +607,7 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig
   ): Promise<{
     routesWithValidQuotes: V3RouteWithValidQuote[];
-    candidatePools: V3CandidatePoolsBySelectionCriteria;
+    candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
@@ -643,13 +657,13 @@ export class AlphaRouter
     );
 
     metric.putMetric(
-      'QuotesLoad',
+      'V3QuotesLoad',
       Date.now() - beforeQuotes,
       MetricLoggerUnit.Milliseconds
     );
 
     metric.putMetric(
-      'QuotesFetched',
+      'V3QuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
@@ -720,7 +734,7 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig
   ): Promise<{
     routesWithValidQuotes: V2RouteWithValidQuote[];
-    candidatePools: V2CandidatePoolsBySelectionCriteria;
+    candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
@@ -768,13 +782,13 @@ export class AlphaRouter
     );
 
     metric.putMetric(
-      'QuotesLoad',
+      'V2QuotesLoad',
       Date.now() - beforeQuotes,
       MetricLoggerUnit.Milliseconds
     );
 
     metric.putMetric(
-      'QuotesFetched',
+      'V2QuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
@@ -933,44 +947,45 @@ export class AlphaRouter
     return methodParameters;
   }
 
-  /* private emitPoolSelectionMetrics(
+  private emitPoolSelectionMetrics(
     swapRouteRaw: {
       quote: CurrencyAmount;
       quoteGasAdjusted: CurrencyAmount;
       routes: IRouteWithValidQuote[];
       estimatedGasUsed: BigNumber;
     },
-    poolsBySelection: V3CandidatePoolsBySelectionCriteria
+    allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
   ) {
-    const { routes: routeAmounts } = swapRouteRaw;
-    const poolAddressesUsed = new Set<string>();
+    for (const poolsBySelection of allPoolsBySelection) {
+      const { routes: routeAmounts } = swapRouteRaw;
+      const poolAddressesUsed = new Set<string>();
+      const { protocol } = poolsBySelection;
 
-    _(routeAmounts)
-      .flatMap((routeAmount) => {
-        const {
-          poolAddresses,
-        } = routeAmount;
-        return poolAddresses
-      })
-      .forEach((address: string) => {
-        poolAddressesUsed.add(address);
-      });
+      _(routeAmounts)
+        .flatMap((routeAmount) => {
+          const { poolAddresses } = routeAmount;
+          return poolAddresses;
+        })
+        .forEach((address: string) => {
+          poolAddressesUsed.add(address);
+        });
 
-    _.forIn(
-      poolsBySelection,
-      (pools: V3SubgraphPool[], topNSelection: string) => {
-        const topNUsed =
-          _.findLastIndex(pools, (pool) =>
-            poolAddressesUsed.has(pool.id.toLowerCase())
-          ) + 1;
-        metric.putMetric(
-          _.capitalize(topNSelection),
-          topNUsed,
-          MetricLoggerUnit.Count
-        );
-      }
-    );
-  } */
+      _.forIn(
+        poolsBySelection.selections,
+        (pools: PoolId[], topNSelection: string) => {
+          const topNUsed =
+            _.findLastIndex(pools, (pool) =>
+              poolAddressesUsed.has(pool.id.toLowerCase())
+            ) + 1;
+          metric.putMetric(
+            _.capitalize(`${protocol}${topNSelection}`),
+            topNUsed,
+            MetricLoggerUnit.Count
+          );
+        }
+      );
+    }
+  }
 
   private calculateOptimalRatio(
     position: Position,

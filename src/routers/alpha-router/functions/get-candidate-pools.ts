@@ -1,14 +1,11 @@
 import { Token, TradeType, WETH9 } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { ITokenListProvider, IV2SubgraphProvider, V2SubgraphPool } from '../../../providers';
-import { IV3PoolProvider, V3PoolAccessor } from '../../../providers/v3/pool-provider';
 import {
-  IV3SubgraphProvider,
-  printV3SubgraphPool,
-  printV2SubgraphPool,
-  V3SubgraphPool,
-} from '../../../providers/v3/subgraph-provider';
+  ITokenListProvider,
+  IV2SubgraphProvider,
+  V2SubgraphPool,
+} from '../../../providers';
 import {
   DAI_MAINNET,
   DAI_RINKEBY_1,
@@ -17,35 +14,41 @@ import {
   USDT_MAINNET,
   WBTC_MAINNET,
 } from '../../../providers/token-provider';
+import {
+  IV2PoolProvider,
+  V2PoolAccessor,
+} from '../../../providers/v2/pool-provider';
+import {
+  IV3PoolProvider,
+  V3PoolAccessor,
+} from '../../../providers/v3/pool-provider';
+import {
+  IV3SubgraphProvider,
+  printV2SubgraphPool,
+  printV3SubgraphPool,
+  V3SubgraphPool,
+} from '../../../providers/v3/subgraph-provider';
 import { ChainId } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
+import { Protocol } from '../../../util/protocols';
 import { AlphaRouterConfig } from '../alpha-router';
-import { IV2PoolProvider, V2PoolAccessor } from '../../../providers/v2/pool-provider';
 
-export type V3CandidatePoolsBySelectionCriteria = {
-  topByBaseWithTokenIn: V3SubgraphPool[];
-  topByBaseWithTokenOut: V3SubgraphPool[];
-  top2DirectSwapPool: V3SubgraphPool[];
-  top2EthQuoteTokenPool: V3SubgraphPool[];
-  topByTVL: V3SubgraphPool[];
-  topByTVLUsingTokenIn: V3SubgraphPool[];
-  topByTVLUsingTokenOut: V3SubgraphPool[];
-  topByTVLUsingTokenInSecondHops: V3SubgraphPool[];
-  topByTVLUsingTokenOutSecondHops: V3SubgraphPool[];
-};
-
-export type V2CandidatePoolsBySelectionCriteria = {
-  topByBaseWithTokenIn: V2SubgraphPool[];
-  topByBaseWithTokenOut: V2SubgraphPool[];
-  top2DirectSwapPool: V2SubgraphPool[];
-  top2EthQuoteTokenPool: V2SubgraphPool[];
-  topByTVL: V2SubgraphPool[];
-  topByTVLUsingTokenIn: V2SubgraphPool[];
-  topByTVLUsingTokenOut: V2SubgraphPool[];
-  topByTVLUsingTokenInSecondHops: V2SubgraphPool[];
-  topByTVLUsingTokenOutSecondHops: V2SubgraphPool[];
+export type PoolId = { id: string };
+export type CandidatePoolsBySelectionCriteria = {
+  protocol: Protocol;
+  selections: {
+    topByBaseWithTokenIn: PoolId[];
+    topByBaseWithTokenOut: PoolId[];
+    top2DirectSwapPool: PoolId[];
+    top2EthQuoteTokenPool: PoolId[];
+    topByTVL: PoolId[];
+    topByTVLUsingTokenIn: PoolId[];
+    topByTVLUsingTokenOut: PoolId[];
+    topByTVLUsingTokenInSecondHops: PoolId[];
+    topByTVLUsingTokenOutSecondHops: PoolId[];
+  };
 };
 
 export type V3GetCandidatePoolsParams = {
@@ -73,9 +76,15 @@ export type V2GetCandidatePoolsParams = {
 };
 
 const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
-  [ChainId.MAINNET]: [USDC_MAINNET, USDT_MAINNET, WBTC_MAINNET, DAI_MAINNET, WETH9[1]!],
+  [ChainId.MAINNET]: [
+    USDC_MAINNET,
+    USDT_MAINNET,
+    WBTC_MAINNET,
+    DAI_MAINNET,
+    WETH9[1]!,
+  ],
   [ChainId.RINKEBY]: [DAI_RINKEBY_1],
-}
+};
 
 export async function getV3CandidatePools({
   tokenIn,
@@ -89,7 +98,7 @@ export async function getV3CandidatePools({
   chainId,
 }: V3GetCandidatePoolsParams): Promise<{
   poolAccessor: V3PoolAccessor;
-  candidatePools: V3CandidatePoolsBySelectionCriteria;
+  candidatePools: CandidatePoolsBySelectionCriteria;
 }> {
   const {
     blockNumber,
@@ -101,7 +110,7 @@ export async function getV3CandidatePools({
       topNWithEachBaseToken,
       topNWithBaseTokenInSet,
       topNWithBaseToken,
-    }
+    },
   } = routingConfig;
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
@@ -125,7 +134,7 @@ export async function getV3CandidatePools({
   });
 
   metric.putMetric(
-    'SubgraphPoolsLoad',
+    'V3SubgraphPoolsLoad',
     Date.now() - beforeSubgraphPools,
     MetricLoggerUnit.Milliseconds
   );
@@ -135,8 +144,10 @@ export async function getV3CandidatePools({
   if (blockedTokenListProvider) {
     filteredPools = [];
     for (const pool of allPools) {
-      const token0InBlocklist = await blockedTokenListProvider.getTokenByAddress(pool.token0.id);
-      const token1InBlocklist = await blockedTokenListProvider.getTokenByAddress(pool.token1.id);
+      const token0InBlocklist =
+        await blockedTokenListProvider.getTokenByAddress(pool.token0.id);
+      const token1InBlocklist =
+        await blockedTokenListProvider.getTokenByAddress(pool.token1.id);
 
       if (token0InBlocklist || token1InBlocklist) {
         continue;
@@ -150,7 +161,9 @@ export async function getV3CandidatePools({
     .sortBy((tokenListPool) => -tokenListPool.totalValueLockedUSDFloat)
     .value();
 
-  log.info(`After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`)
+  log.info(
+    `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
+  );
 
   const poolAddressesSoFar = new Set<string>();
   const addToAddressSet = (pools: V3SubgraphPool[]) => {
@@ -415,21 +428,24 @@ export async function getV3CandidatePools({
   const poolAccessor = await poolProvider.getPools(tokenPairs);
 
   metric.putMetric(
-    'PoolsLoad',
+    'V3PoolsLoad',
     Date.now() - beforePoolsLoad,
     MetricLoggerUnit.Milliseconds
   );
 
-  const poolsBySelection: V3CandidatePoolsBySelectionCriteria = {
-    topByBaseWithTokenIn,
-    topByBaseWithTokenOut,
-    top2DirectSwapPool,
-    top2EthQuoteTokenPool,
-    topByTVL,
-    topByTVLUsingTokenIn,
-    topByTVLUsingTokenOut,
-    topByTVLUsingTokenInSecondHops,
-    topByTVLUsingTokenOutSecondHops,
+  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
+    protocol: Protocol.V3,
+    selections: {
+      topByBaseWithTokenIn,
+      topByBaseWithTokenOut,
+      top2DirectSwapPool,
+      top2EthQuoteTokenPool,
+      topByTVL,
+      topByTVLUsingTokenIn,
+      topByTVLUsingTokenOut,
+      topByTVLUsingTokenInSecondHops,
+      topByTVLUsingTokenOutSecondHops,
+    },
   };
 
   return { poolAccessor, candidatePools: poolsBySelection };
@@ -447,9 +463,9 @@ export async function getV2CandidatePools({
   chainId,
 }: V2GetCandidatePoolsParams): Promise<{
   poolAccessor: V2PoolAccessor;
-  candidatePools: V2CandidatePoolsBySelectionCriteria;
+  candidatePools: CandidatePoolsBySelectionCriteria;
 }> {
-  const { 
+  const {
     blockNumber,
     v2PoolSelection: {
       topN,
@@ -459,8 +475,8 @@ export async function getV2CandidatePools({
       topNWithEachBaseToken,
       topNWithBaseTokenInSet,
       topNWithBaseToken,
-    } 
-  }= routingConfig;
+    },
+  } = routingConfig;
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
 
@@ -483,7 +499,7 @@ export async function getV2CandidatePools({
   });
 
   metric.putMetric(
-    'SubgraphPoolsLoad',
+    'V2SubgraphPoolsLoad',
     Date.now() - beforeSubgraphPools,
     MetricLoggerUnit.Milliseconds
   );
@@ -493,8 +509,10 @@ export async function getV2CandidatePools({
   if (blockedTokenListProvider) {
     filteredPools = [];
     for (const pool of allPools) {
-      const token0InBlocklist = await blockedTokenListProvider.getTokenByAddress(pool.token0.id);
-      const token1InBlocklist = await blockedTokenListProvider.getTokenByAddress(pool.token1.id);
+      const token0InBlocklist =
+        await blockedTokenListProvider.getTokenByAddress(pool.token0.id);
+      const token1InBlocklist =
+        await blockedTokenListProvider.getTokenByAddress(pool.token1.id);
 
       if (token0InBlocklist || token1InBlocklist) {
         continue;
@@ -508,7 +526,9 @@ export async function getV2CandidatePools({
     .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
     .value();
 
-  log.info(`After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`)
+  log.info(
+    `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
+  );
 
   const poolAddressesSoFar = new Set<string>();
   const addToAddressSet = (pools: V2SubgraphPool[]) => {
@@ -744,24 +764,22 @@ export async function getV2CandidatePools({
     blockNumber,
   });
 
-  const tokenPairsRaw = _.map<
-    V2SubgraphPool,
-    [Token, Token] | undefined
-  >(subgraphPools, (subgraphPool) => {
-    const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
-    const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
+  const tokenPairsRaw = _.map<V2SubgraphPool, [Token, Token] | undefined>(
+    subgraphPools,
+    (subgraphPool) => {
+      const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+      const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
 
-    if (!tokenA || !tokenB) {
-      log.info(
-        `Dropping candidate pool for ${subgraphPool.token0.symbol}/${
-          subgraphPool.token1.symbol
-        }`
-      );
-      return undefined;
+      if (!tokenA || !tokenB) {
+        log.info(
+          `Dropping candidate pool for ${subgraphPool.token0.symbol}/${subgraphPool.token1.symbol}`
+        );
+        return undefined;
+      }
+
+      return [tokenA, tokenB];
     }
-
-    return [tokenA, tokenB];
-  });
+  );
 
   const tokenPairs = _.compact(tokenPairsRaw);
 
@@ -770,23 +788,25 @@ export async function getV2CandidatePools({
   const poolAccessor = await poolProvider.getPools(tokenPairs, { blockNumber });
 
   metric.putMetric(
-    'PoolsLoad',
+    'V2PoolsLoad',
     Date.now() - beforePoolsLoad,
     MetricLoggerUnit.Milliseconds
   );
 
-  const poolsBySelection: V2CandidatePoolsBySelectionCriteria = {
-    topByBaseWithTokenIn,
-    topByBaseWithTokenOut,
-    top2DirectSwapPool,
-    top2EthQuoteTokenPool,
-    topByTVL,
-    topByTVLUsingTokenIn,
-    topByTVLUsingTokenOut,
-    topByTVLUsingTokenInSecondHops,
-    topByTVLUsingTokenOutSecondHops,
+  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
+    protocol: Protocol.V2,
+    selections: {
+      topByBaseWithTokenIn,
+      topByBaseWithTokenOut,
+      top2DirectSwapPool,
+      top2EthQuoteTokenPool,
+      topByTVL,
+      topByTVLUsingTokenIn,
+      topByTVLUsingTokenOut,
+      topByTVLUsingTokenInSecondHops,
+      topByTVLUsingTokenOutSecondHops,
+    },
   };
 
   return { poolAccessor, candidatePools: poolsBySelection };
 }
-

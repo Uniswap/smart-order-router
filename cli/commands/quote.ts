@@ -1,9 +1,9 @@
 import { flags } from '@oclif/command';
-import { Currency, Ether, Percent } from '@uniswap/sdk-core';
+import { Currency, Ether, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import _ from 'lodash';
-import { AlphaRouter, ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
+import { ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
 import { Protocol, TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
 
@@ -25,7 +25,7 @@ export class Quote extends BaseCommand {
     amount: flags.string({ char: 'a', required: true }),
     exactIn: flags.boolean({ required: false }),
     exactOut: flags.boolean({ required: false }),
-    protocols: flags.string({ required: false })
+    protocols: flags.string({ required: false }),
   };
 
   async run() {
@@ -60,9 +60,13 @@ export class Quote extends BaseCommand {
     let protocols: Protocol[] = [];
     if (protocolsStr) {
       try {
-        protocols = _.map(protocolsStr.split(','), protocolStr => TO_PROTOCOL(protocolStr));
+        protocols = _.map(protocolsStr.split(','), (protocolStr) =>
+          TO_PROTOCOL(protocolStr)
+        );
       } catch (err) {
-        throw new Error(`Protocols invalid. Valid options: ${Object.values(Protocol)}`);
+        throw new Error(
+          `Protocols invalid. Valid options: ${Object.values(Protocol)}`
+        );
       }
     }
 
@@ -70,7 +74,7 @@ export class Quote extends BaseCommand {
 
     const log = this.logger;
     const tokenProvider = this.tokenProvider;
-    const router = this.router as AlphaRouter;
+    const router = this.router;
 
     const tokenAccessor = await tokenProvider.getTokens([
       tokenInStr,
@@ -86,40 +90,13 @@ export class Quote extends BaseCommand {
         ? Ether.onChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
 
-
-    // if (protocols.includes(Protocol.V2)) {
-    //   const v2PoolP = new V2PoolProvider(ChainId.MAINNET, this.multicall2Provider);
-    //   const acc = await v2PoolP.getPools([
-    //     [tokenIn.wrapped, tokenOut.wrapped], 
-    //     [tokenIn.wrapped, USDC_MAINNET], 
-    //     [USDC_MAINNET, tokenOut.wrapped]
-    //   ]);
-    //   const h1 = acc.getPool(tokenIn.wrapped, USDC_MAINNET); 
-    //   const h2 = acc.getPool(USDC_MAINNET, tokenOut.wrapped);
-
-    //   const r = new Route([h1!, h2!], tokenIn.wrapped, tokenOut.wrapped);
-
-    //   const v2QuoteP = new V2QuoteProvider();
-    //   const amountIn = parseAmount(amountStr, tokenIn);
-    //   const quotes = await v2QuoteP.getQuotesManyExactIn([amountIn], [r]);
-
-    //   log.info({ quotes }, 'Quotes');
-
-    //   const v2Sub = new V2StaticSubgraphProvider();
-    //   const v2Subpools = await v2Sub.getPools();
-
-    //   log.info({ ps: acc.getAllPools(), sps: v2Subpools.slice(0, 5) });
-
-    //   return;
-    // }
-
-    let swapRoutes: SwapRoute<any> | null;
+    let swapRoutes: SwapRoute | null;
     if (exactIn) {
       const amountIn = parseAmount(amountStr, tokenIn);
-      swapRoutes = await router.routeExactIn(
-        tokenIn,
-        tokenOut,
+      swapRoutes = await router.route(
         amountIn,
+        tokenOut,
+        TradeType.EXACT_INPUT,
         {
           deadline: 100,
           recipient,
@@ -133,21 +110,21 @@ export class Quote extends BaseCommand {
             topNWithEachBaseToken,
             topNWithBaseToken,
             topNWithBaseTokenInSet,
-            topNDirectSwaps
+            topNDirectSwaps,
           },
           maxSwapsPerPath,
           minSplits,
           maxSplits,
           distributionPercent,
-          protocols
+          protocols,
         }
       );
     } else {
       const amountOut = parseAmount(amountStr, tokenOut);
-      swapRoutes = await router.routeExactOut(
-        tokenIn,
-        tokenOut,
+      swapRoutes = await router.route(
         amountOut,
+        tokenIn,
+        TradeType.EXACT_OUTPUT,
         {
           deadline: 100,
           recipient,
@@ -161,13 +138,13 @@ export class Quote extends BaseCommand {
             topNWithEachBaseToken,
             topNWithBaseToken,
             topNWithBaseTokenInSet,
-            topNDirectSwaps
+            topNDirectSwaps,
           },
           maxSwapsPerPath,
           minSplits,
           maxSplits,
           distributionPercent,
-          protocols
+          protocols,
         }
       );
     }
