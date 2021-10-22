@@ -166,6 +166,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       while (!ratioAchieved) {
         n++
         if (n > swapAndAddConfig.maxIterations) {
+          log.info(`max iterations of ${n} exceeded`)
           return null;
         }
 
@@ -220,7 +221,6 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         )
 
         if (ratioAchieved && targetPoolHit) {
-          // this will only get hit on the final iteration.
           postSwapTargetPool = new Pool(
             position.pool.token0,
             position.pool.token1,
