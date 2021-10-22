@@ -192,8 +192,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount)
         let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated)
 
-        let targetPoolHit = false
-        let sqrtPriceX96AfterList: JSBI = JSBI.BigInt(0)
+        let targetPoolPriceUpdate
         swap.route.forEach(route => {
           route.route.pools.forEach((pool, i) => {
             if(
@@ -201,17 +200,16 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
               pool.token1.equals(position.pool.token1) &&
               pool.fee == position.pool.fee
             ) {
-              targetPoolHit = true
-              sqrtPriceX96AfterList = JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString())
+              targetPoolPriceUpdate = JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString())
               optimalRatio = this.calculateOptimalRatio(
                 position,
-                JSBI.BigInt(sqrtPriceX96AfterList!.toString()),
+                JSBI.BigInt(targetPoolPriceUpdate!.toString()),
                 zeroForOne,
               )
             }
           })
         })
-        if (!targetPoolHit) {
+        if (!targetPoolPriceUpdate) {
           optimalRatio = preSwapOptimalRatio
         }
 
@@ -220,14 +218,14 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(swapAndAddConfig.errorTolerance)
         )
 
-        if (ratioAchieved && targetPoolHit) {
+        if (ratioAchieved && targetPoolPriceUpdate) {
           postSwapTargetPool = new Pool(
             position.pool.token0,
             position.pool.token1,
             position.pool.fee,
-            sqrtPriceX96AfterList,
+            targetPoolPriceUpdate,
             position.pool.liquidity,
-            TickMath.getTickAtSqrtRatio(sqrtPriceX96AfterList),
+            TickMath.getTickAtSqrtRatio(targetPoolPriceUpdate),
             position.pool.tickDataProvider,
           )
         }
