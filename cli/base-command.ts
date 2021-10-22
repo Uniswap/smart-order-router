@@ -260,44 +260,16 @@ export abstract class BaseCommand extends Command {
         tokenProvider: this.tokenProvider,
       });
     } else {
-      const subgraphCache = new NodeJSCache<V3SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
-      const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: false }));
       const gasPriceCache = new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15, useClones: true }));
 
       const router = new AlphaRouter({
         provider,
         chainId,
-        v3SubgraphProvider: new CachingV3SubgraphProvider(chainId,
-          new URISubgraphProvider(chainId, 'https://gateway.ipfs.io/ipns/beta.api.uniswap.org/v1/pools/v3/mainnet.json'),
-          subgraphCache
-        ),
         multicall2Provider: multicall2Provider,
-        v3PoolProvider: new CachingV3PoolProvider(chainId,
-          new V3PoolProvider(chainId, multicall2Provider),
-          poolCache
-        ),
-        v3QuoteProvider: new V3QuoteProvider(
-          chainId,
-          provider,
-          multicall2Provider,
-          {
-            retries: 2,
-            minTimeout: 25,
-            maxTimeout: 250,
-          },
-          {
-            multicallChunk: 200,
-            gasLimitPerCall: 725_000,
-            quoteMinSuccessRate: 0.7,
-          }
-        ),
         gasPriceProvider: new CachingGasStationProvider(chainId,
           new EIP1559GasPriceProvider(provider),
           gasPriceCache
         ),
-        v3GasModelFactory: new V3HeuristicGasModelFactory(),
-        tokenProvider: this.tokenProvider,
-        v2SubgraphProvider: new V2StaticSubgraphProvider(),
       });
 
       this._swapToRatioRouter = router;
