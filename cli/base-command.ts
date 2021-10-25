@@ -16,7 +16,7 @@ import {
   ChainId,
   CHAIN_IDS_LIST,
   EIP1559GasPriceProvider,
-  HeuristicGasModelFactory,
+  V3HeuristicGasModelFactory,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
   IV3PoolProvider,
@@ -39,6 +39,7 @@ import {
   GasPrice,
   CachingTokenProviderWithFallback,
   URISubgraphProvider,
+  V2StaticSubgraphProvider,
 } from '../src';
 
 export abstract class BaseCommand extends Command {
@@ -66,6 +67,10 @@ export abstract class BaseCommand extends Command {
     topNWithBaseTokenInSet: flags.boolean({
       required: false,
       default: false,
+    }),
+    topNDirectSwaps: flags.integer({
+      required: false,
+      default: 2,
     }),
     maxSwapsPerPath: flags.integer({
       required: false,
@@ -255,43 +260,16 @@ export abstract class BaseCommand extends Command {
         tokenProvider: this.tokenProvider,
       });
     } else {
-      const subgraphCache = new NodeJSCache<V3SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
-      const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: false }));
       const gasPriceCache = new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15, useClones: true }));
 
       const router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingV3SubgraphProvider(chainId,
-          new URISubgraphProvider(chainId, 'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'),
-          subgraphCache
-        ),
         multicall2Provider: multicall2Provider,
-        poolProvider: new CachingV3PoolProvider(chainId,
-          new V3PoolProvider(chainId, multicall2Provider),
-          poolCache
-        ),
-        quoteProvider: new V3QuoteProvider(
-          chainId,
-          provider,
-          multicall2Provider,
-          {
-            retries: 2,
-            minTimeout: 25,
-            maxTimeout: 250,
-          },
-          {
-            multicallChunk: 200,
-            gasLimitPerCall: 725_000,
-            quoteMinSuccessRate: 0.7,
-          }
-        ),
         gasPriceProvider: new CachingGasStationProvider(chainId,
           new EIP1559GasPriceProvider(provider),
           gasPriceCache
         ),
-        gasModelFactory: new HeuristicGasModelFactory(),
-        tokenProvider: this.tokenProvider,
       });
 
       this._swapToRatioRouter = router;

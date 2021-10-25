@@ -5,21 +5,22 @@ import sinon from 'sinon';
 import {
   ChainId,
   DAI_MAINNET as DAI,
-  PoolProvider,
-  SubgraphPool,
-  SubgraphProvider,
+  V3PoolProvider,
+  V3SubgraphPool,
+  V3SubgraphProvider,
   CachingTokenListProvider,
   TokenProvider,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
   WETH9,
+  AlphaRouterConfig,
 } from '../../../../../src';
-import { getCandidatePools } from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
+import { getV3CandidatePools } from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
 import {
-  buildMockPoolAccessor,
+  buildMockV3PoolAccessor,
   buildMockTokenAccessor,
   DAI_USDT_LOW,
-  poolToSubgraphPool,
+  poolToV3SubgraphPool,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
   USDC_WETH_LOW,
@@ -27,19 +28,30 @@ import {
 } from '../../../test-util/mock-data';
 
 describe('get candidate pools', () => {
-  let mockPoolProvider: sinon.SinonStubbedInstance<PoolProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
-  let mockSubgraphProvider: sinon.SinonStubbedInstance<SubgraphProvider>;
+  let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
+  let mockV3SubgraphProvider: sinon.SinonStubbedInstance<V3SubgraphProvider>;
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
 
-  const ROUTING_CONFIG = {
-    topN: 0,
-    topNDirectSwaps: 0,
-    topNTokenInOut: 0,
-    topNSecondHop: 0,
-    topNWithEachBaseToken: 0,
-    topNWithBaseToken: 0,
-    topNWithBaseTokenInSet: false,
+  const ROUTING_CONFIG: AlphaRouterConfig = {
+    v3PoolSelection: {
+      topN: 0,
+      topNDirectSwaps: 0,
+      topNTokenInOut: 0,
+      topNSecondHop: 0,
+      topNWithEachBaseToken: 0,
+      topNWithBaseToken: 0,
+      topNWithBaseTokenInSet: false,
+    },
+    v2PoolSelection: {
+      topN: 0,
+      topNDirectSwaps: 0,
+      topNTokenInOut: 0,
+      topNSecondHop: 0,
+      topNWithEachBaseToken: 0,
+      topNWithBaseToken: 0,
+      topNWithBaseTokenInSet: false,
+    },
     maxSwapsPerPath: 3,
     minSplits: 1,
     maxSplits: 3,
@@ -47,9 +59,9 @@ describe('get candidate pools', () => {
   };
 
   beforeEach(() => {
-    mockPoolProvider = sinon.createStubInstance(PoolProvider);
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
-    mockSubgraphProvider = sinon.createStubInstance(SubgraphProvider);
+    mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+    mockV3SubgraphProvider = sinon.createStubInstance(V3SubgraphProvider);
     mockBlockTokenListProvider = sinon.createStubInstance(CachingTokenListProvider);
 
     const mockTokens = [USDC, DAI, WETH9[1], USDT];
@@ -60,34 +72,37 @@ describe('get candidate pools', () => {
       WETH9_USDT_LOW,
       DAI_USDT_LOW,
     ];
-    const mockSubgraphPools: SubgraphPool[] = _.map(
+    const mockSubgraphPools: V3SubgraphPool[] = _.map(
       mockPools,
-      poolToSubgraphPool
+      poolToV3SubgraphPool
     );
 
-    mockSubgraphProvider.getPools.resolves(mockSubgraphPools);
-    mockPoolProvider.getPools.resolves(buildMockPoolAccessor(mockPools));
+    mockV3SubgraphProvider.getPools.resolves(mockSubgraphPools);
+    mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(mockPools));
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
   });
 
   test('succeeds to get top pools by liquidity', async () => {
-    await getCandidatePools({
+    await getV3CandidatePools({
       tokenIn: USDC,
       tokenOut: DAI,
       routeType: TradeType.EXACT_INPUT,
       routingConfig: {
         ...ROUTING_CONFIG,
-        topN: 2,
+        v3PoolSelection: {
+          ...ROUTING_CONFIG.v3PoolSelection,
+          topN: 2
+        },
       },
-      poolProvider: mockPoolProvider,
-      subgraphProvider: mockSubgraphProvider,
+      poolProvider: mockV3PoolProvider,
+      subgraphProvider: mockV3SubgraphProvider,
       tokenProvider: mockTokenProvider,
       blockedTokenListProvider: mockBlockTokenListProvider,
       chainId: ChainId.MAINNET
     });
 
     expect(
-      mockPoolProvider.getPools.calledWithExactly([
+      mockV3PoolProvider.getPools.calledWithExactly([
         [USDC, WETH9[1], FeeAmount.LOW],
         [WETH9[1], USDT, FeeAmount.LOW],
       ])
@@ -95,23 +110,26 @@ describe('get candidate pools', () => {
   });
 
   test('succeeds to get top pools directly swapping token in for token out', async () => {
-    await getCandidatePools({
+    await getV3CandidatePools({
       tokenIn: USDC,
       tokenOut: DAI,
       routeType: TradeType.EXACT_INPUT,
       routingConfig: {
         ...ROUTING_CONFIG,
-        topNDirectSwaps: 2,
+        v3PoolSelection: {
+          ...ROUTING_CONFIG.v3PoolSelection,
+          topNDirectSwaps: 2,
+        },
       },
-      poolProvider: mockPoolProvider,
-      subgraphProvider: mockSubgraphProvider,
+      poolProvider: mockV3PoolProvider,
+      subgraphProvider: mockV3SubgraphProvider,
       tokenProvider: mockTokenProvider,
       blockedTokenListProvider: mockBlockTokenListProvider,
       chainId: ChainId.MAINNET
     });
 
     expect(
-      mockPoolProvider.getPools.calledWithExactly([
+      mockV3PoolProvider.getPools.calledWithExactly([
         [DAI, USDC, FeeAmount.LOW],
         [DAI, USDC, FeeAmount.MEDIUM],
       ])
@@ -119,23 +137,26 @@ describe('get candidate pools', () => {
   });
 
   test('succeeds to get top pools involving token in or token out', async () => {
-    await getCandidatePools({
+    await getV3CandidatePools({
       tokenIn: USDC,
       tokenOut: DAI,
       routeType: TradeType.EXACT_INPUT,
       routingConfig: {
         ...ROUTING_CONFIG,
-        topNTokenInOut: 1,
+        v3PoolSelection: {
+          ...ROUTING_CONFIG.v3PoolSelection,
+          topNTokenInOut: 1,
+        }
       },
-      poolProvider: mockPoolProvider,
-      subgraphProvider: mockSubgraphProvider,
+      poolProvider: mockV3PoolProvider,
+      subgraphProvider: mockV3SubgraphProvider,
       tokenProvider: mockTokenProvider,
       blockedTokenListProvider: mockBlockTokenListProvider,
       chainId: ChainId.MAINNET
     });
 
     expect(
-      mockPoolProvider.getPools.calledWithExactly([
+      mockV3PoolProvider.getPools.calledWithExactly([
         [USDC, WETH9[1], FeeAmount.LOW],
         [DAI, USDC, FeeAmount.LOW],
       ])

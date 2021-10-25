@@ -1,10 +1,10 @@
 import { default as retry } from 'async-retry';
+import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
+import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
-import Timeout from 'await-timeout';
-import { ChainId } from '../../util/chains';
 
 export interface V2SubgraphPool {
   id: string;
@@ -63,29 +63,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
   public async getPools(
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
-    /* const query = gql`
-      query getPools($pageSize: Int!, $skip: Int!) {
-        pairs(
-          orderBy: trackedReserveETH
-          orderDirection: desc
-          first: $pageSize
-          skip: $skip
-          ${
-            providerConfig?.blockNumber
-              ? `block: { number: ${providerConfig?.blockNumber} }`
-              : ``
-          }
-        ) {
-          id
-          token0 { id, symbol }
-          token1 { id, symbol }
-          totalSupply
-          reserveETH
-          trackedReserveETH
-        }
-      }
-    `; */
-
+    // Due to limitations with the Subgraph API this is the only way to parameterize the query.
     const query2 = (id: string) => gql`
       query getPools($pageSize: Int!) {
         pairs(
@@ -135,13 +113,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                   pageSize: PAGE_SIZE,
                 });
 
-                log.info({ poolsResult: poolsResult.pairs[0]! }, 'result');
-
                 pairsPage = poolsResult.pairs;
 
                 pairs = pairs.concat(pairsPage);
                 lastId = pairs[pairs.length - 1]!.id;
-                log.info({ lastId }, `len: ${pairs.length} last id: ${lastId}`);
               },
               {
                 retries: this.retries,

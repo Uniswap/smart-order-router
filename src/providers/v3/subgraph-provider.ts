@@ -5,6 +5,7 @@ import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
 import Timeout from 'await-timeout';
 import { ChainId } from '../../util/chains';
+import { V2SubgraphPool } from '../v2/subgraph-provider';
 
 export interface V3SubgraphPool {
   id: string;
@@ -36,15 +37,21 @@ export type RawV3SubgraphPool = {
   totalValueLockedETH: string;
 };
 
-export const printSubgraphPool = (s: V3SubgraphPool) =>
+export const printV3SubgraphPool = (s: V3SubgraphPool) =>
   `${s.token0.id}/${s.token1.id}/${s.feeTier}`;
 
+export const printV2SubgraphPool = (s: V2SubgraphPool) =>
+  `${s.token0.id}/${s.token1.id}`;
+
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
-  [ChainId.RINKEBY]: 'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
-}
+  [ChainId.MAINNET]:
+    'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
+  [ChainId.RINKEBY]:
+    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
+};
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
+
 export interface IV3SubgraphProvider {
   getPools(providerConfig?: ProviderConfig): Promise<V3SubgraphPool[]>;
 }
@@ -52,7 +59,11 @@ export interface IV3SubgraphProvider {
 export class V3SubgraphProvider implements IV3SubgraphProvider {
   private client: GraphQLClient;
 
-  constructor(private chainId: ChainId, private retries = 2, private timeout = 7000) {
+  constructor(
+    private chainId: ChainId,
+    private retries = 2,
+    private timeout = 7000
+  ) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
@@ -111,7 +122,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           let skip = 0;
           let pools: RawV3SubgraphPool[] = [];
           let poolsPage: RawV3SubgraphPool[] = [];
-  
+
           do {
             const poolsResult = await this.client.request<{
               pools: RawV3SubgraphPool[];
@@ -119,19 +130,23 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
               pageSize: PAGE_SIZE,
               skip,
             });
-  
+
             poolsPage = poolsResult.pools;
-  
+
             pools = pools.concat(poolsPage);
             skip = skip + PAGE_SIZE;
           } while (poolsPage.length > 0);
 
           return pools;
-        }
+        };
 
         try {
           const getPoolsPromise = getPools();
-          const timerPromise = timeout.set(this.timeout).then(() => { throw new Error(`Timed out getting pools from subgraph: ${this.timeout}`) });
+          const timerPromise = timeout.set(this.timeout).then(() => {
+            throw new Error(
+              `Timed out getting pools from subgraph: ${this.timeout}`
+            );
+          });
           pools = await Promise.race([getPoolsPromise, timerPromise]);
           return;
         } catch (err) {
@@ -139,7 +154,6 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
         } finally {
           timeout.clear();
         }
-
       },
       {
         retries: this.retries,
@@ -155,22 +169,24 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
 
     log.info(`Got ${pools.length} pools from the subgraph.`);
 
-    const poolsSanitized = pools.filter((pool) => parseInt(pool.liquidity) > 0).map((pool) => {
-    const { totalValueLockedETH, totalValueLockedUSD, ...rest } = pool;
-    
-    return {
-      ...rest,
-      id: pool.id.toLowerCase(),
-      token0: {
-        id: pool.token0.id.toLowerCase(),
-      },
-      token1: {
-        id: pool.token1.id.toLowerCase(),
-      },
-      tvlETH: parseFloat(totalValueLockedETH),
-      tvlUSD: parseFloat(totalValueLockedUSD),
-    };
-    });
+    const poolsSanitized = pools
+      .filter((pool) => parseInt(pool.liquidity) > 0)
+      .map((pool) => {
+        const { totalValueLockedETH, totalValueLockedUSD, ...rest } = pool;
+
+        return {
+          ...rest,
+          id: pool.id.toLowerCase(),
+          token0: {
+            id: pool.token0.id.toLowerCase(),
+          },
+          token1: {
+            id: pool.token1.id.toLowerCase(),
+          },
+          tvlETH: parseFloat(totalValueLockedETH),
+          tvlUSD: parseFloat(totalValueLockedUSD),
+        };
+      });
     return poolsSanitized;
   }
 }

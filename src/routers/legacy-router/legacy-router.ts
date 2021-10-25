@@ -10,23 +10,22 @@ import {
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
 import { IMulticallProvider } from '../../providers/multicall-provider';
+import {
+  DAI_MAINNET,
+  ITokenProvider,
+  USDC_MAINNET,
+} from '../../providers/token-provider';
 import { IV3PoolProvider } from '../../providers/v3/pool-provider';
 import {
   IV3QuoteProvider,
   V3RouteWithQuotes,
 } from '../../providers/v3/quote-provider';
-import { DAI_MAINNET, ITokenProvider, USDC_MAINNET } from '../../providers/token-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
 import { V3RouteWithValidQuote } from '../alpha-router';
-import {
-  IRouter,
-  V3Route,
-  SwapConfig,
-  SwapRoute,
-} from '../router';
+import { IRouter, SwapConfig, SwapRoute, V3Route } from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
@@ -73,6 +72,31 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     this.quoteProvider = quoteProvider;
     this.tokenProvider = tokenProvider;
   }
+  public async route(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    swapType: TradeType,
+    swapConfig?: SwapConfig,
+    partialRoutingConfig?: Partial<LegacyRoutingConfig>
+  ): Promise<SwapRoute | null> {
+    if (swapType == TradeType.EXACT_INPUT) {
+      return this.routeExactIn(
+        amount.currency,
+        quoteCurrency,
+        amount,
+        swapConfig,
+        partialRoutingConfig
+      );
+    }
+
+    return this.routeExactOut(
+      amount.currency,
+      quoteCurrency,
+      amount,
+      swapConfig,
+      partialRoutingConfig
+    );
+  }
 
   public async routeExactIn(
     currencyIn: Currency,
@@ -80,7 +104,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     amountIn: CurrencyAmount,
     swapConfig?: SwapConfig,
     routingConfig?: LegacyRoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
+  ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut, routingConfig);
@@ -112,7 +136,11 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI_MAINNET!, 0, 1),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
+        DAI_MAINNET!,
+        0,
+        1
+      ),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
@@ -134,7 +162,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     amountOut: CurrencyAmount,
     swapConfig?: SwapConfig,
     routingConfig?: LegacyRoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
+  ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut, routingConfig);
@@ -166,7 +194,11 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI_MAINNET, 0, 1),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
+        DAI_MAINNET,
+        0,
+        1
+      ),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
@@ -278,12 +310,19 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         rawQuote: quote,
         amount,
         percent: 100,
-        gasModel: { estimateGasCost: () => ({ gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0), gasCostInUSD: CurrencyAmount.fromRawAmount(USDC_MAINNET, 0), gasEstimate: BigNumber.from(0) })},
+        gasModel: {
+          estimateGasCost: () => ({
+            gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
+            gasCostInUSD: CurrencyAmount.fromRawAmount(USDC_MAINNET, 0),
+            gasEstimate: BigNumber.from(0),
+          }),
+        },
         sqrtPriceX96AfterList: [],
         initializedTicksCrossedList: [],
         quoterGasEstimate: BigNumber.from(0),
         tradeType: routeType,
-        quoteToken
+        quoteToken,
+        v3PoolProvider: this.poolProvider,
       });
     });
 
