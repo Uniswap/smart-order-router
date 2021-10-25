@@ -1,5 +1,5 @@
-import { Currency, Percent, Token, TradeType } from '@uniswap/sdk-core';
-import { MethodParameters, Position, Route as RouteRaw, Trade} from '@uniswap/v3-sdk';
+import { Currency, Fraction, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { MethodParameters, Pool, Position, Route as RouteRaw, Trade} from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 import { RouteWithValidQuote } from './alpha-router';
@@ -17,6 +17,11 @@ export type SwapRoute<TTradeType extends TradeType> = {
   route: RouteWithValidQuote[];
   blockNumber: BigNumber;
   methodParameters?: MethodParameters;
+};
+
+export type SwapToRatioRoute<TTradeType extends TradeType> = SwapRoute<TTradeType> & {
+  optimalRatio: Fraction;
+  postSwapTargetPool: Pool;
 };
 
 export type SwapConfig = {
@@ -65,5 +70,5 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null>;
+  ): Promise<SwapToRatioRoute<TradeType.EXACT_INPUT> | null>;
 }

@@ -25,7 +25,7 @@ import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { IRouter, ISwapToRatio, SwapConfig, SwapRoute } from '../router';
+import { IRouter, ISwapToRatio, SwapConfig, SwapRoute, SwapToRatioRoute } from '../router';
 import { RouteWithValidQuote } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { computeAllRoutes } from './functions/compute-all-routes';
@@ -127,7 +127,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig = DEFAULT_CONFIG
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
+  ): Promise<SwapToRatioRoute<TradeType.EXACT_INPUT> | null> {
       if (token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)) {
         [token0Balance, token1Balance] = [token1Balance, token0Balance]
       }
@@ -154,6 +154,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         : [token1Balance, token0Balance]
 
       let optimalRatio = preSwapOptimalRatio
+      let postSwapTargetPool = position.pool
       let exchangeRate: Fraction = zeroForOne
         ? position.pool.token0Price
         : position.pool.token1Price
@@ -165,6 +166,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
       while (!ratioAchieved) {
         n++
         if (n > swapAndAddConfig.maxIterations) {
+          log.info(`max iterations of ${n} exceeded`)
           return null;
         }
 
@@ -190,7 +192,7 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         let outputBalanceUpdated = outputBalance.add(swap.trade.outputAmount)
         let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated)
 
-        let targetPoolHit = false
+        let targetPoolPriceUpdate
         swap.route.forEach(route => {
           route.route.pools.forEach((pool, i) => {
             if(
@@ -198,16 +200,16 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
               pool.token1.equals(position.pool.token1) &&
               pool.fee == position.pool.fee
             ) {
-              targetPoolHit = true
+              targetPoolPriceUpdate = JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString())
               optimalRatio = this.calculateOptimalRatio(
                 position,
-                JSBI.BigInt(route.sqrtPriceX96AfterList[i]!.toString()),
+                JSBI.BigInt(targetPoolPriceUpdate!.toString()),
                 zeroForOne,
               )
             }
           })
         })
-        if (!targetPoolHit) {
+        if (!targetPoolPriceUpdate) {
           optimalRatio = preSwapOptimalRatio
         }
 
@@ -215,6 +217,18 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
           newRatio.equalTo(optimalRatio) ||
           this.absoluteValue(newRatio.asFraction.divide(optimalRatio).subtract(1)).lessThan(swapAndAddConfig.errorTolerance)
         )
+
+        if (ratioAchieved && targetPoolPriceUpdate) {
+          postSwapTargetPool = new Pool(
+            position.pool.token0,
+            position.pool.token1,
+            position.pool.fee,
+            targetPoolPriceUpdate,
+            position.pool.liquidity,
+            TickMath.getTickAtSqrtRatio(targetPoolPriceUpdate),
+            position.pool.tickDataProvider,
+          )
+        }
         exchangeRate = swap.trade.outputAmount.divide(swap.trade.inputAmount)
 
         log.info({
@@ -225,7 +239,10 @@ export class AlphaRouter implements IRouter<AlphaRouterConfig>, ISwapToRatio<Alp
         })
       }
 
-      return swap
+      if (!swap) {
+        return null;
+      }
+      return { ...swap, optimalRatio, postSwapTargetPool }
   }
 
   public async routeExactIn(
