@@ -189,7 +189,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     log.info(`Got ${pools.length} pools from the subgraph.`);
     // filter pools that have liquidity less than threshold
     const poolsSanitized: V2SubgraphPool[] = pools
-      .filter((pool) => parseFloat(pool.reserveETH) > threshold)
+      .filter((pool) => parseFloat(pool.trackedReserveETH) > threshold)
       .map((pool) => {
         return {
           ...pool,
@@ -201,7 +201,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             id: pool.token1.id.toLowerCase(),
           },
           supply: parseFloat(pool.totalSupply),
-          reserve: parseFloat(pool.reserveETH),
+          reserve: parseFloat(pool.trackedReserveETH),
         };
       });
 
