@@ -9,19 +9,16 @@ import { ProviderConfig } from '../provider';
 export interface V2SubgraphPool {
   id: string;
   token0: {
-    symbol: string;
     id: string;
   };
   token1: {
-    symbol: string;
     id: string;
   };
-  totalSupply: number;
-  reserveETH: number;
-  trackedReserveETH: number;
+  supply: number;
+  reserve: number;
 }
 
-export type RawV2SubgraphPool = {
+type RawV2SubgraphPool = {
   id: string;
   token0: {
     symbol: string;
@@ -40,6 +37,8 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
     'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
 };
+
+const threshold = 0.025;
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 export interface IV2SubgraphProvider {
@@ -163,24 +162,23 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     );
 
     log.info(`Got ${pools.length} pools from the subgraph.`);
-
-    const poolsSanitized: V2SubgraphPool[] = _.map(pools, (pool) => {
-      return {
-        ...pool,
-        id: pool.id.toLowerCase(),
-        token0: {
-          ...pool.token0,
-          id: pool.token0.id.toLowerCase(),
-        },
-        token1: {
-          ...pool.token1,
-          id: pool.token1.id.toLowerCase(),
-        },
-        totalSupply: parseFloat(pool.totalSupply),
-        reserveETH: parseFloat(pool.reserveETH),
-        trackedReserveETH: parseFloat(pool.trackedReserveETH),
-      };
-    });
+    // filter pools that have liquidity less than threshold
+    const poolsSanitized: V2SubgraphPool[] = pools
+      .filter((pool) => parseFloat(pool.trackedReserveETH) > threshold)
+      .map((pool) => {
+        return {
+          ...pool,
+          id: pool.id.toLowerCase(),
+          token0: {
+            id: pool.token0.id.toLowerCase(),
+          },
+          token1: {
+            id: pool.token1.id.toLowerCase(),
+          },
+          supply: parseFloat(pool.totalSupply),
+          reserve: parseFloat(pool.trackedReserveETH),
+        };
+      });
 
     return poolsSanitized;
   }
