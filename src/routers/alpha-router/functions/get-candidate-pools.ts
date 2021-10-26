@@ -523,7 +523,7 @@ export async function getV2CandidatePools({
   }
 
   const subgraphPoolsSorted = _(filteredPools)
-    .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
+    .sortBy((tokenListPool) => -tokenListPool.reserve)
     .value();
 
   log.info(
@@ -551,11 +551,11 @@ export async function getV2CandidatePools({
               subgraphPool.token0.id == tokenInAddress)
           );
         })
-        .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
+        .sortBy((tokenListPool) => -tokenListPool.reserve)
         .slice(0, topNWithEachBaseToken)
         .value();
     })
-    .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
+    .sortBy((tokenListPool) => -tokenListPool.reserve)
     .slice(0, topNWithBaseToken)
     .value();
 
@@ -571,11 +571,11 @@ export async function getV2CandidatePools({
               subgraphPool.token0.id == tokenOutAddress)
           );
         })
-        .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
+        .sortBy((tokenListPool) => -tokenListPool.reserve)
         .slice(0, topNWithEachBaseToken)
         .value();
     })
-    .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
+    .sortBy((tokenListPool) => -tokenListPool.reserve)
     .slice(0, topNWithBaseToken)
     .value();
 
@@ -621,10 +621,10 @@ export async function getV2CandidatePools({
           );
         } else {
           return (
-            (subgraphPool.token0.symbol == wethAddress &&
-              subgraphPool.token1.symbol == tokenIn.symbol) ||
-            (subgraphPool.token1.symbol == wethAddress &&
-              subgraphPool.token0.symbol == tokenIn.symbol)
+            (subgraphPool.token0.id == wethAddress &&
+              subgraphPool.token1.id == tokenInAddress) ||
+            (subgraphPool.token1.id == wethAddress &&
+              subgraphPool.token0.id == tokenInAddress)
           );
         }
       })
@@ -688,7 +688,7 @@ export async function getV2CandidatePools({
         .value();
     })
     .uniqBy((pool) => pool.id)
-    .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
+    .sortBy((tokenListPool) => -tokenListPool.reserve)
     .slice(0, topNSecondHop)
     .value();
 
@@ -713,7 +713,7 @@ export async function getV2CandidatePools({
         .value();
     })
     .uniqBy((pool) => pool.id)
-    .sortBy((tokenListPool) => -tokenListPool.trackedReserveETH)
+    .sortBy((tokenListPool) => -tokenListPool.reserve)
     .slice(0, topNSecondHop)
     .value();
 
@@ -772,7 +772,7 @@ export async function getV2CandidatePools({
 
       if (!tokenA || !tokenB) {
         log.info(
-          `Dropping candidate pool for ${subgraphPool.token0.symbol}/${subgraphPool.token1.symbol}`
+          `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}`
         );
         return undefined;
       }

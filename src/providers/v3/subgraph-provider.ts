@@ -21,7 +21,7 @@ export interface V3SubgraphPool {
   tvlUSD: number;
 }
 
-export type RawV3SubgraphPool = {
+type RawV3SubgraphPool = {
   id: string;
   feeTier: string;
   liquidity: string;

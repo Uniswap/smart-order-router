@@ -18,7 +18,7 @@ export interface V2SubgraphPool {
   reserve: number;
 }
 
-export type RawV2SubgraphPool = {
+type RawV2SubgraphPool = {
   id: string;
   token0: {
     symbol: string;
