@@ -376,6 +376,10 @@ export class AlphaRouter
         inputBalance,
         outputBalance
       );
+      if (amountToSwap.equalTo(0)) {
+        log.info(`no swap needed`)
+        return null;
+      }
 
       swap = await this.route(
         amountToSwap,
@@ -1170,9 +1174,12 @@ export class AlphaRouter
   }
 
   private absoluteValue(fraction: Fraction): Fraction {
-    if (fraction.lessThan(0)) {
-      return fraction.multiply(-1);
-    }
-    return fraction;
+    const numeratorAbs = JSBI.lessThan(fraction.numerator, JSBI.BigInt(0))
+      ? JSBI.unaryMinus(fraction.numerator)
+      : fraction.numerator
+    const denominatorAbs = JSBI.lessThan(fraction.denominator, JSBI.BigInt(0))
+      ? JSBI.unaryMinus(fraction.denominator)
+      : fraction.denominator
+    return new Fraction(numeratorAbs, denominatorAbs)
   }
 }

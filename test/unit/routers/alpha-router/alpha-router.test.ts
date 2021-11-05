@@ -1137,7 +1137,7 @@ describe('alpha router', () => {
 
         test('with out of range position calls routeExactIn with correct parameters', async () => {
           const token0Balance = parseAmount('20', USDC);
-          const token1Balance = parseAmount('5', USDT);
+          const token1Balance = parseAmount('0', USDT);
 
           const position = new Position({
             pool: USDC_USDT_MEDIUM,
@@ -1281,12 +1281,65 @@ describe('alpha router', () => {
 
           const exactAmountInBalance = parseAmount('7500000000000', USDC);
 
-          const exactInputParameters = spy.firstCall.args;
-          expect(exactInputParameters[0]).toEqual(exactAmountInBalance);
-          expect(exactInputParameters[1]).toEqual(token1Balance.currency);
+          const exactInputParameters = spy.firstCall.args
+          expect(exactInputParameters[0]).toEqual(token0Balance.currency)
+          expect(exactInputParameters[1]).toEqual(token1Balance.currency)
+          expect(exactInputParameters[2]).toEqual(exactAmountInBalance)
+        })
+      })
+
+      test('returns null for range order already fulfilled with token0', async () => {
+        const token0Balance = parseAmount('50', USDC);
+        const token1Balance = parseAmount('0', USDT);
+
+        const position = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickLower: 60,
+          tickUpper: 120,
+          liquidity: 1,
         });
-      });
-    });
+
+        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+        const result = await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          SWAP_AND_ADD_CONFIG,
+          undefined,
+          ROUTING_CONFIG
+        );
+
+        expect(spy.firstCall).toEqual(null)
+        expect(result).toEqual(null)
+      })
+
+      test('returns null for range order already fulfilled with token1', async () => {
+        const token0Balance = parseAmount('0', USDC);
+        const token1Balance = parseAmount('50', USDT);
+
+        const position = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickLower: -120,
+          tickUpper: -60,
+          liquidity: 1,
+        });
+
+        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+
+        const result = await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          SWAP_AND_ADD_CONFIG,
+          undefined,
+          ROUTING_CONFIG
+        );
+
+        expect(spy.firstCall).toEqual(null)
+        expect(result).toEqual(null)
+      })
+    })
 
     describe('iterative scenario', () => {
       let spy: sinon.SinonSpy<any[], any>;
