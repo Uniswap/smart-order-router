@@ -2,43 +2,39 @@
 import { Command, flags } from '@oclif/command';
 import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { MethodParameters, Pool } from '@uniswap/v3-sdk';
-import { BigNumber, ethers } from 'ethers';
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
+import { MethodParameters } from '@uniswap/v3-sdk';
 import { default as bunyan, default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
+import { BigNumber, ethers } from 'ethers';
 import NodeCache from 'node-cache';
 import {
   AlphaRouter,
   CachingGasStationProvider,
-  CachingPoolProvider,
-  CachingSubgraphProvider,
+  CachingTokenListProvider,
+  CachingTokenProviderWithFallback,
   ChainId,
   CHAIN_IDS_LIST,
   EIP1559GasPriceProvider,
-  HeuristicGasModelFactory,
+  GasPrice,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
-  IPoolProvider,
   IRouter,
+  IRouteWithValidQuote,
   ISwapToRatio,
   ITokenProvider,
+  IV3PoolProvider,
   LegacyRouter,
   MetricLogger,
-  PoolProvider,
-  QuoteProvider,
+  NodeJSCache,
   routeAmountsToString,
-  RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
   TokenProvider,
-  CachingTokenListProvider,
   UniswapMulticallProvider,
-  NodeJSCache,
-  SubgraphPool,
-  GasPrice,
-  CachingTokenProviderWithFallback,
-  URISubgraphProvider,
+  V2StaticSubgraphProvider,
+  V3PoolProvider,
+  V3QuoteProvider,
 } from '../src';
 
 export abstract class BaseCommand extends Command {
@@ -66,6 +62,10 @@ export abstract class BaseCommand extends Command {
     topNWithBaseTokenInSet: flags.boolean({
       required: false,
       default: false,
+    }),
+    topNDirectSwaps: flags.integer({
+      required: false,
+      default: 2,
     }),
     maxSwapsPerPath: flags.integer({
       required: false,
@@ -105,8 +105,9 @@ export abstract class BaseCommand extends Command {
   private _router: IRouter<any> | null = null;
   private _swapToRatioRouter: ISwapToRatio<any, any> | null = null;
   private _tokenProvider: ITokenProvider | null = null;
-  private _poolProvider: IPoolProvider | null = null;
+  private _poolProvider: IV3PoolProvider | null = null;
   private _blockNumber: number | null = null;
+  private _multicall2Provider: UniswapMulticallProvider | null = null;
 
   get logger() {
     return this._log
@@ -156,6 +157,14 @@ export abstract class BaseCommand extends Command {
     }
   }
 
+  get multicall2Provider() {
+    if (this._multicall2Provider) {
+      return this._multicall2Provider;
+    } else {
+      throw 'multicall2 not initialized';
+    }
+  }
+
   async init() {
     const query: ParserOutput<any, any> = this.parse();
     const {
@@ -201,13 +210,17 @@ export abstract class BaseCommand extends Command {
     const chainName = ID_TO_NETWORK_NAME(chainIdNumb);
 
     const provider = new ethers.providers.JsonRpcProvider(
-      chainId == ChainId.MAINNET ? process.env.JSON_RPC_PROVIDER! : process.env.JSON_RPC_PROVIDER_RINKEBY!,
+      chainId == ChainId.MAINNET
+        ? process.env.JSON_RPC_PROVIDER!
+        : process.env.JSON_RPC_PROVIDER_RINKEBY!,
       chainName
     );
 
-    this._blockNumber = await provider.getBlockNumber()
+    this._blockNumber = await provider.getBlockNumber();
 
-    const tokenCache = new NodeJSCache<Token>(new NodeCache({ stdTTL: 3600, useClones: false }));
+    const tokenCache = new NodeJSCache<Token>(
+      new NodeCache({ stdTTL: 3600, useClones: false })
+    );
 
     let tokenListProvider: CachingTokenListProvider;
     if (tokenListURI) {
@@ -225,7 +238,8 @@ export abstract class BaseCommand extends Command {
     }
 
     const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
-    this._poolProvider = new PoolProvider(chainId, multicall2Provider);
+    this._multicall2Provider = multicall2Provider;
+    this._poolProvider = new V3PoolProvider(chainId, multicall2Provider);
 
     // initialize tokenProvider
     const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
@@ -240,48 +254,29 @@ export abstract class BaseCommand extends Command {
       this._router = new LegacyRouter({
         chainId,
         multicall2Provider,
-        poolProvider: new PoolProvider(chainId, multicall2Provider),
-        quoteProvider: new QuoteProvider(chainId, provider, multicall2Provider),
+        poolProvider: new V3PoolProvider(chainId, multicall2Provider),
+        quoteProvider: new V3QuoteProvider(
+          chainId,
+          provider,
+          multicall2Provider
+        ),
         tokenProvider: this.tokenProvider,
       });
     } else {
-      const subgraphCache = new NodeJSCache<SubgraphPool[]>(new NodeCache({ stdTTL: 900, useClones: true }));
-      const poolCache = new NodeJSCache<Pool>(new NodeCache({ stdTTL: 900, useClones: false }));
-      const gasPriceCache = new NodeJSCache<GasPrice>(new NodeCache({ stdTTL: 15, useClones: true }));
+      const gasPriceCache = new NodeJSCache<GasPrice>(
+        new NodeCache({ stdTTL: 15, useClones: true })
+      );
 
       const router = new AlphaRouter({
         provider,
         chainId,
-        subgraphProvider: new CachingSubgraphProvider(chainId,
-          new URISubgraphProvider(chainId, 'https://ipfs.io/ipfs/QmfArMYESGVJpPALh4eQXnjF8HProSF1ky3v8RmuYLJZT4'),
-          subgraphCache
-        ),
         multicall2Provider: multicall2Provider,
-        poolProvider: new CachingPoolProvider(chainId,
-          new PoolProvider(chainId, multicall2Provider),
-          poolCache
-        ),
-        quoteProvider: new QuoteProvider(
+        gasPriceProvider: new CachingGasStationProvider(
           chainId,
-          provider,
-          multicall2Provider,
-          {
-            retries: 2,
-            minTimeout: 25,
-            maxTimeout: 250,
-          },
-          {
-            multicallChunk: 200,
-            gasLimitPerCall: 725_000,
-            quoteMinSuccessRate: 0.7,
-          }
-        ),
-        gasPriceProvider: new CachingGasStationProvider(chainId,
           new EIP1559GasPriceProvider(provider),
           gasPriceCache
         ),
-        gasModelFactory: new HeuristicGasModelFactory(),
-        tokenProvider: this.tokenProvider,
+        v2SubgraphProvider: new V2StaticSubgraphProvider(),
       });
 
       this._swapToRatioRouter = router;
@@ -290,7 +285,7 @@ export abstract class BaseCommand extends Command {
   }
 
   logSwapResults(
-    routeAmounts: RouteWithValidQuote[],
+    routeAmounts: IRouteWithValidQuote[],
     quote: CurrencyAmount<Currency>,
     quoteGasAdjusted: CurrencyAmount<Currency>,
     estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,

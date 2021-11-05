@@ -1,32 +1,25 @@
+import { SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
-import {
-  FeeAmount,
-  MethodParameters,
-  Pool,
-  Route,
-  SwapRouter,
-  Trade,
-} from '@uniswap/v3-sdk';
+import { FeeAmount, MethodParameters, Pool, Route } from '@uniswap/v3-sdk';
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
 import { IMulticallProvider } from '../../providers/multicall-provider';
-import { IPoolProvider } from '../../providers/pool-provider';
 import {
-  IQuoteProvider,
-  RouteWithQuotes,
-} from '../../providers/quote-provider';
-import { DAI_MAINNET, ITokenProvider, USDC_MAINNET } from '../../providers/token-provider';
+  DAI_MAINNET,
+  ITokenProvider,
+  USDC_MAINNET,
+} from '../../providers/token-provider';
+import { IV3PoolProvider } from '../../providers/v3/pool-provider';
+import {
+  IV3QuoteProvider,
+  V3RouteWithQuotes,
+} from '../../providers/v3/quote-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
-import { RouteWithValidQuote } from '../alpha-router';
-import {
-  IRouter,
-  RouteSOR,
-  SwapConfig,
-  SwapRoute,
-} from '../router';
+import { V3RouteWithValidQuote } from '../alpha-router';
+import { IRouter, SwapConfig, SwapRoute, V3Route } from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
@@ -36,8 +29,8 @@ import {
 export type LegacyRouterParams = {
   chainId: ChainId;
   multicall2Provider: IMulticallProvider;
-  poolProvider: IPoolProvider;
-  quoteProvider: IQuoteProvider;
+  poolProvider: IV3PoolProvider;
+  quoteProvider: IV3QuoteProvider;
   tokenProvider: ITokenProvider;
 };
 
@@ -56,8 +49,8 @@ export type LegacyRoutingConfig = {
 export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   protected chainId: ChainId;
   protected multicall2Provider: IMulticallProvider;
-  protected poolProvider: IPoolProvider;
-  protected quoteProvider: IQuoteProvider;
+  protected poolProvider: IV3PoolProvider;
+  protected quoteProvider: IV3QuoteProvider;
   protected tokenProvider: ITokenProvider;
 
   constructor({
@@ -73,6 +66,31 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     this.quoteProvider = quoteProvider;
     this.tokenProvider = tokenProvider;
   }
+  public async route(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    swapType: TradeType,
+    swapConfig?: SwapConfig,
+    partialRoutingConfig?: Partial<LegacyRoutingConfig>
+  ): Promise<SwapRoute | null> {
+    if (swapType == TradeType.EXACT_INPUT) {
+      return this.routeExactIn(
+        amount.currency,
+        quoteCurrency,
+        amount,
+        swapConfig,
+        partialRoutingConfig
+      );
+    }
+
+    return this.routeExactOut(
+      amount.currency,
+      quoteCurrency,
+      amount,
+      swapConfig,
+      partialRoutingConfig
+    );
+  }
 
   public async routeExactIn(
     currencyIn: Currency,
@@ -80,7 +98,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     amountIn: CurrencyAmount,
     swapConfig?: SwapConfig,
     routingConfig?: LegacyRoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null> {
+  ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut, routingConfig);
@@ -112,17 +130,15 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI_MAINNET!, 0, 1),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
+        DAI_MAINNET!,
+        0,
+        1
+      ),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? this.buildMethodParameters(
-            currencyIn,
-            currencyOut,
-            TradeType.EXACT_INPUT,
-            routeQuote,
-            swapConfig
-          )
+        ? this.buildMethodParameters(trade, swapConfig)
         : undefined,
       blockNumber: BigNumber.from(0),
     };
@@ -134,7 +150,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     amountOut: CurrencyAmount,
     swapConfig?: SwapConfig,
     routingConfig?: LegacyRoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null> {
+  ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
     const routes = await this.getAllRoutes(tokenIn, tokenOut, routingConfig);
@@ -166,17 +182,15 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         0,
         1
       ),
-      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(DAI_MAINNET, 0, 1),
+      estimatedGasUsedUSD: CurrencyAmount.fromFractionalAmount(
+        DAI_MAINNET,
+        0,
+        1
+      ),
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? this.buildMethodParameters(
-            currencyIn,
-            currencyOut,
-            TradeType.EXACT_OUTPUT,
-            routeQuote,
-            swapConfig
-          )
+        ? this.buildMethodParameters(trade, swapConfig)
         : undefined,
       blockNumber: BigNumber.from(0),
     };
@@ -185,9 +199,9 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   private async findBestRouteExactIn(
     amountIn: CurrencyAmount,
     tokenOut: Token,
-    routes: RouteSOR[],
+    routes: V3Route[],
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteWithValidQuote | null> {
+  ): Promise<V3RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
       await this.quoteProvider.getQuotesManyExactIn([amountIn], routes, {
         blockNumber: routingConfig?.blockNumber,
@@ -195,7 +209,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
     const quotes100Percent = _.map(
       quotesRaw,
-      ([route, quotes]: RouteWithQuotes) =>
+      ([route, quotes]: V3RouteWithQuotes) =>
         `${routeToString(route)} : ${quotes[0]?.quote?.toString()}`
     );
     log.info({ quotes100Percent }, '100% Quotes');
@@ -213,9 +227,9 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   private async findBestRouteExactOut(
     amountOut: CurrencyAmount,
     tokenIn: Token,
-    routes: RouteSOR[],
+    routes: V3Route[],
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteWithValidQuote | null> {
+  ): Promise<V3RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
       await this.quoteProvider.getQuotesManyExactOut([amountOut], routes, {
         blockNumber: routingConfig?.blockNumber,
@@ -231,11 +245,11 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   }
 
   private async getBestQuote(
-    routes: RouteSOR[],
-    quotesRaw: RouteWithQuotes[],
+    routes: V3Route[],
+    quotesRaw: V3RouteWithQuotes[],
     quoteToken: Token,
     routeType: TradeType
-  ): Promise<RouteWithValidQuote | null> {
+  ): Promise<V3RouteWithValidQuote | null> {
     log.debug(
       `Got ${
         _.filter(quotesRaw, ([_, quotes]) => !!quotes[0]).length
@@ -243,7 +257,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     );
 
     const routeQuotesRaw: {
-      route: RouteSOR;
+      route: V3Route;
       quote: BigNumber;
       amount: CurrencyAmount;
     }[] = [];
@@ -273,17 +287,24 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     });
 
     const routeQuotes = _.map(routeQuotesRaw, ({ route, quote, amount }) => {
-      return new RouteWithValidQuote({
+      return new V3RouteWithValidQuote({
         route,
         rawQuote: quote,
         amount,
         percent: 100,
-        gasModel: { estimateGasCost: () => ({ gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0), gasCostInUSD: CurrencyAmount.fromRawAmount(USDC_MAINNET, 0), gasEstimate: BigNumber.from(0) })},
+        gasModel: {
+          estimateGasCost: () => ({
+            gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
+            gasCostInUSD: CurrencyAmount.fromRawAmount(USDC_MAINNET, 0),
+            gasEstimate: BigNumber.from(0),
+          }),
+        },
         sqrtPriceX96AfterList: [],
         initializedTicksCrossedList: [],
         quoterGasEstimate: BigNumber.from(0),
         tradeType: routeType,
-        quoteToken
+        quoteToken,
+        v3PoolProvider: this.poolProvider,
       });
     });
 
@@ -300,7 +321,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenIn: Token,
     tokenOut: Token,
     routingConfig?: LegacyRoutingConfig
-  ): Promise<RouteSOR[]> {
+  ): Promise<V3Route[]> {
     const tokenPairs: [Token, Token, FeeAmount][] =
       await this.getAllPossiblePairings(tokenIn, tokenOut);
 
@@ -309,7 +330,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     });
     const pools = poolAccessor.getAllPools();
 
-    const routes: RouteSOR[] = this.computeAllRoutes(
+    const routes: V3Route[] = this.computeAllRoutes(
       tokenIn,
       tokenOut,
       pools,
@@ -399,10 +420,10 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     pools: Pool[],
     chainId: ChainId,
     currentPath: Pool[] = [],
-    allPaths: RouteSOR[] = [],
+    allPaths: V3Route[] = [],
     startTokenIn: Token = tokenIn,
     maxHops = 2
-  ): RouteSOR[] {
+  ): V3Route[] {
     for (const pool of pools) {
       if (currentPath.indexOf(pool) !== -1 || !pool.involvesToken(tokenIn))
         continue;
@@ -412,7 +433,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         : pool.token0;
       if (outputToken.equals(tokenOut)) {
         allPaths.push(
-          new RouteSOR([...currentPath, pool], startTokenIn, tokenOut)
+          new V3Route([...currentPath, pool], startTokenIn, tokenOut)
         );
       } else if (maxHops > 1) {
         this.computeAllRoutes(
@@ -435,7 +456,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
     tradeType: TTradeType,
-    routeAmount: RouteWithValidQuote
+    routeAmount: V3RouteWithValidQuote
   ): Trade<Currency, Currency, TTradeType> {
     const { route, amount, quote } = routeAmount;
 
@@ -460,18 +481,17 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         quoteCurrency.currency
       );
 
-      const trade = Trade.createUncheckedTradeWithMultipleRoutes({
-        routes: [
+      return new Trade({
+        v3Routes: [
           {
-            route: routeCurrency,
+            routev3: routeCurrency,
             inputAmount: amountCurrency,
             outputAmount: quoteCurrency,
           },
         ],
-        tradeType,
+        v2Routes: [],
+        tradeType: tradeType,
       });
-
-      return trade;
     } else {
       const quoteCurrency = CurrencyAmount.fromFractionalAmount(
         tokenInCurrency,
@@ -491,92 +511,30 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         amountCurrency.currency
       );
 
-      const trade = Trade.createUncheckedTradeWithMultipleRoutes({
-        routes: [
+      return new Trade({
+        v3Routes: [
           {
-            route: routeCurrency,
+            routev3: routeCurrency,
             inputAmount: quoteCurrency,
             outputAmount: amountCurrency,
           },
         ],
-        tradeType,
+        v2Routes: [],
+        tradeType: tradeType,
       });
-
-      return trade;
     }
   }
 
-  private buildMethodParameters(
-    tokenInCurrency: Currency,
-    tokenOutCurrency: Currency,
-    tradeType: TradeType,
-    routeAmount: RouteWithValidQuote,
+  private buildMethodParameters<TTradeType extends TradeType>(
+    trade: Trade<Currency, Currency, TTradeType>,
     swapConfig: SwapConfig
   ): MethodParameters {
-    const { route, amount, quote } = routeAmount;
-
-    let trade: Trade<Currency, Currency, TradeType>;
-
-    // The route, amount and quote are all in terms of wrapped tokens.
-    // When constructing the Trade object the inputAmount/outputAmount must
-    // use native currencies. This is so that the Trade knows to wrap/unwrap.
-    if (tradeType == TradeType.EXACT_INPUT) {
-      const amountCurrency = CurrencyAmount.fromFractionalAmount(
-        tokenInCurrency,
-        amount.numerator,
-        amount.denominator
-      );
-      const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-        tokenOutCurrency,
-        quote.numerator,
-        quote.denominator
-      );
-
-      const routeCurrency = new Route(
-        route.pools,
-        amountCurrency.currency,
-        quoteCurrency.currency
-      );
-
-      trade = Trade.createUncheckedTrade({
-        route: routeCurrency,
-        tradeType: TradeType.EXACT_INPUT,
-        inputAmount: amountCurrency,
-        outputAmount: quoteCurrency,
-      });
-    } else {
-      const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-        tokenInCurrency,
-        quote.numerator,
-        quote.denominator
-      );
-
-      const amountCurrency = CurrencyAmount.fromFractionalAmount(
-        tokenOutCurrency,
-        amount.numerator,
-        amount.denominator
-      );
-
-      const routeCurrency = new Route(
-        route.pools,
-        quoteCurrency.currency,
-        amountCurrency.currency
-      );
-
-      trade = Trade.createUncheckedTrade({
-        route: routeCurrency,
-        tradeType: TradeType.EXACT_OUTPUT,
-        inputAmount: quoteCurrency,
-        outputAmount: amountCurrency,
-      });
-    }
-
     const { recipient, slippageTolerance, deadline } = swapConfig;
 
-    const methodParameters = SwapRouter.swapCallParameters([trade], {
+    const methodParameters = SwapRouter.swapCallParameters(trade, {
       recipient,
       slippageTolerance,
-      deadline,
+      deadlineOrPreviousBlockhash: deadline,
       // ...(signatureData
       //   ? {
       //       inputTokenPermit:

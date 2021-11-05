@@ -1,25 +1,39 @@
-import { Currency, Fraction, Percent, Token, TradeType } from '@uniswap/sdk-core';
-import { MethodParameters, Pool, Position, Route as RouteRaw, Trade} from '@uniswap/v3-sdk';
+import {
+  Currency,
+  Fraction,
+  Percent,
+  Token,
+  TradeType,
+} from '@uniswap/sdk-core';
+import { Trade } from '@uniswap/router-sdk';
+import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
+import {
+  MethodParameters,
+  Pool,
+  Position,
+  Route as V3RouteRaw,
+} from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
-import { RouteWithValidQuote } from './alpha-router';
+import { IRouteWithValidQuote } from './alpha-router';
 
-export class RouteSOR extends RouteRaw<Token, Token> {}
+export class V3Route extends V3RouteRaw<Token, Token> {}
+export class V2Route extends V2RouteRaw<Token, Token> {}
 
-export type SwapRoute<TTradeType extends TradeType> = {
+export type SwapRoute = {
   quote: CurrencyAmount;
   quoteGasAdjusted: CurrencyAmount;
   estimatedGasUsed: BigNumber;
   estimatedGasUsedQuoteToken: CurrencyAmount;
   estimatedGasUsedUSD: CurrencyAmount;
   gasPriceWei: BigNumber;
-  trade: Trade<Currency, Currency, TTradeType>;
-  route: RouteWithValidQuote[];
+  trade: Trade<Currency, Currency, TradeType>;
+  route: IRouteWithValidQuote[];
   blockNumber: BigNumber;
   methodParameters?: MethodParameters;
 };
 
-export type SwapToRatioRoute<TTradeType extends TradeType> = SwapRoute<TTradeType> & {
+export type SwapToRatioRoute = SwapRoute & {
   optimalRatio: Fraction;
   postSwapTargetPool: Pool;
 };
@@ -28,38 +42,30 @@ export type SwapConfig = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
-  inputTokenPermit?:
+  inputTokenPermit?: {
+    v: 0 | 1 | 27 | 28;
+    r: string;
+    s: string;
+  } & (
     | {
-        v: 0 | 1 | 27 | 28;
-        r: string;
-        s: string;
         amount: string;
         deadline: string;
       }
     | {
-        v: 0 | 1 | 27 | 28;
-        r: string;
-        s: string;
         nonce: string;
         expiry: string;
-      };
+      }
+  );
 };
-export abstract class IRouter<RoutingConfig> {
-  abstract routeExactIn(
-    currencyIn: Currency,
-    currencyOut: Currency,
-    amountIn: CurrencyAmount,
-    swapConfig?: SwapConfig,
-    routingConfig?: RoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_INPUT> | null>;
 
-  abstract routeExactOut(
-    currencyIn: Currency,
-    currencyOut: Currency,
-    amountOut: CurrencyAmount,
+export abstract class IRouter<RoutingConfig> {
+  abstract route(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    swapType: TradeType,
     swapConfig?: SwapConfig,
-    routingConfig?: RoutingConfig
-  ): Promise<SwapRoute<TradeType.EXACT_OUTPUT> | null>;
+    partialRoutingConfig?: Partial<RoutingConfig>
+  ): Promise<SwapRoute | null>;
 }
 
 export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
@@ -70,5 +76,5 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
-  ): Promise<SwapToRatioRoute<TradeType.EXACT_INPUT> | null>;
+  ): Promise<SwapRoute | null>;
 }

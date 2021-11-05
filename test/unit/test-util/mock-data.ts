@@ -1,37 +1,55 @@
 import { Token } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
+import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import {
+  AlphaRouterConfig,
+  CurrencyAmount,
   DAI_MAINNET as DAI,
-  PoolAccessor,
-  SubgraphPool,
   TokenAccessor,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
+  V2SubgraphPool,
+  V3PoolAccessor,
+  V3SubgraphPool,
   WBTC_MAINNET as WBTC,
   WETH9,
 } from '../../../src';
+import { V2PoolAccessor } from '../../../src/providers/v2/pool-provider';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
 export const mockBlockBN = BigNumber.from(mockBlock);
 
-export const mockRoutingConfig = {
-  topN: 0,
-  topNDirectSwaps: 0,
-  topNTokenInOut: 0,
-  topNSecondHop: 0,
-  topNWithEachBaseToken: 0,
-  topNWithBaseToken: 0,
-  topNWithBaseTokenInSet: false,
+export const mockRoutingConfig: AlphaRouterConfig = {
+  v3PoolSelection: {
+    topN: 0,
+    topNDirectSwaps: 0,
+    topNTokenInOut: 0,
+    topNSecondHop: 0,
+    topNWithEachBaseToken: 0,
+    topNWithBaseToken: 0,
+    topNWithBaseTokenInSet: false,
+  },
+  v2PoolSelection: {
+    topN: 0,
+    topNDirectSwaps: 0,
+    topNTokenInOut: 0,
+    topNSecondHop: 0,
+    topNWithEachBaseToken: 0,
+    topNWithBaseToken: 0,
+    topNWithBaseTokenInSet: false,
+  },
   maxSwapsPerPath: 3,
   minSplits: 1,
   maxSplits: 4,
   distributionPercent: 5,
+  forceCrossProtocol: false,
 };
 
+// Mock V3 Pools
 export const USDC_WETH_LOW = new Pool(
   USDC,
   WETH9[1],
@@ -116,27 +134,69 @@ export const WBTC_WETH_MEDIUM = new Pool(
   0
 );
 
-export const poolToSubgraphPool = (pool: Pool, idx: number): SubgraphPool => {
+// Mock V2 Pools
+export const DAI_USDT = new Pair(
+  CurrencyAmount.fromRawAmount(DAI, 10000000000),
+  CurrencyAmount.fromRawAmount(USDT, 10000000000)
+);
+
+export const USDC_WETH = new Pair(
+  CurrencyAmount.fromRawAmount(USDC, 10000000000),
+  CurrencyAmount.fromRawAmount(WETH9[1]!, 10000000000)
+);
+
+export const WETH_USDT = new Pair(
+  CurrencyAmount.fromRawAmount(USDT, 10000000000),
+  CurrencyAmount.fromRawAmount(WETH9[1]!, 10000000000)
+);
+
+export const USDC_DAI = new Pair(
+  CurrencyAmount.fromRawAmount(USDC, 10000000000),
+  CurrencyAmount.fromRawAmount(DAI, 10000000000)
+);
+
+export const WBTC_WETH = new Pair(
+  CurrencyAmount.fromRawAmount(WBTC, 10000000000),
+  CurrencyAmount.fromRawAmount(WETH9[1]!, 10000000000)
+);
+
+export const poolToV3SubgraphPool = (
+  pool: Pool,
+  idx: number
+): V3SubgraphPool => {
   return {
     id: idx.toString(),
     feeTier: pool.fee.toString(),
     liquidity: pool.liquidity.toString(),
     token0: {
-      symbol: pool.token0.symbol!,
       id: pool.token0.address,
     },
     token1: {
-      symbol: pool.token1.symbol!,
       id: pool.token1.address,
     },
-    totalValueLockedUSD: pool.liquidity.toString(),
-    totalValueLockedETH: pool.liquidity.toString(),
-    totalValueLockedETHFloat: parseFloat(pool.liquidity.toString()),
-    totalValueLockedUSDFloat: parseFloat(pool.liquidity.toString()),
+    tvlETH: parseFloat(pool.liquidity.toString()),
+    tvlUSD: parseFloat(pool.liquidity.toString()),
   };
 };
 
-export const buildMockPoolAccessor: (pools: Pool[]) => PoolAccessor = (
+export const pairToV2SubgraphPool = (
+  pool: Pair,
+  idx: number
+): V2SubgraphPool => {
+  return {
+    id: idx.toString(),
+    token0: {
+      id: pool.token0.address,
+    },
+    token1: {
+      id: pool.token1.address,
+    },
+    reserve: 1000,
+    supply: 100,
+  };
+};
+
+export const buildMockV3PoolAccessor: (pools: Pool[]) => V3PoolAccessor = (
   pools: Pool[]
 ) => {
   return {
@@ -158,6 +218,27 @@ export const buildMockPoolAccessor: (pools: Pool[]) => PoolAccessor = (
   };
 };
 
+export const buildMockV2PoolAccessor: (pools: Pair[]) => V2PoolAccessor = (
+  pools: Pair[]
+) => {
+  return {
+    getAllPools: () => pools,
+    getPoolByAddress: (address: string) =>
+      _.find(
+        pools,
+        (p) =>
+          Pair.getAddress(p.token0, p.token1).toLowerCase() ==
+          address.toLowerCase()
+      ),
+    getPool: (tokenA, tokenB) =>
+      _.find(
+        pools,
+        (p) =>
+          Pair.getAddress(p.token0, p.token1) == Pair.getAddress(tokenA, tokenB)
+      ),
+  };
+};
+
 export const buildMockTokenAccessor: (tokens: Token[]) => TokenAccessor = (
   tokens
 ) => {
@@ -171,56 +252,56 @@ export const buildMockTokenAccessor: (tokens: Token[]) => TokenAccessor = (
 };
 
 export const mockTokenList: TokenList = {
-  "name": "Tokens",
-  "timestamp": "2021-01-05T20:47:02.923Z",
-  "version": {
-    "major": 1,
-    "minor": 0,
-    "patch": 0
+  name: 'Tokens',
+  timestamp: '2021-01-05T20:47:02.923Z',
+  version: {
+    major: 1,
+    minor: 0,
+    patch: 0,
   },
-  "tags": {},
-  "logoURI": "ipfs://QmNa8mQkrNKp1WEEeGjFezDmDeodkWRevGFN8JCV7b4Xir",
-  "keywords": ["uniswap"],
-  "tokens": [
+  tags: {},
+  logoURI: 'ipfs://QmNa8mQkrNKp1WEEeGjFezDmDeodkWRevGFN8JCV7b4Xir',
+  keywords: ['uniswap'],
+  tokens: [
     {
-      "name": "USD//C",
-      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-      "symbol": "USDC",
-      "decimals": 6,
-      "chainId": 1,
-      "logoURI": ""
+      name: 'USD//C',
+      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      symbol: 'USDC',
+      decimals: 6,
+      chainId: 1,
+      logoURI: '',
     },
     {
-      "name": "USDT",
-      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-      "symbol": "USDT",
-      "decimals": 6,
-      "chainId": 1,
-      "logoURI": ""
+      name: 'USDT',
+      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      symbol: 'USDT',
+      decimals: 6,
+      chainId: 1,
+      logoURI: '',
     },
     {
-      "name": "DAI",
-      "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-      "symbol": "DAI",
-      "decimals": 18,
-      "chainId": 1,
-      "logoURI": ""
+      name: 'DAI',
+      address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+      symbol: 'DAI',
+      decimals: 18,
+      chainId: 1,
+      logoURI: '',
     },
     {
-      "name": "USDT",
-      "address": "0x110a13FC3efE6A245B50102D2d79B3E76125Ae83",
-      "symbol": "USDT",
-      "decimals": 18,
-      "chainId": 2,
-      "logoURI": ""
+      name: 'USDT',
+      address: '0x110a13FC3efE6A245B50102D2d79B3E76125Ae83',
+      symbol: 'USDT',
+      decimals: 18,
+      chainId: 2,
+      logoURI: '',
     },
     {
-      "name": "WBTC",
-      "address": "0x577D296678535e4903D59A4C929B718e1D575e0A",
-      "symbol": "WBTC",
-      "decimals": 18,
-      "chainId": 777,
-      "logoURI": ""
-    }
+      name: 'WBTC',
+      address: '0x577D296678535e4903D59A4C929B718e1D575e0A',
+      symbol: 'WBTC',
+      decimals: 18,
+      chainId: 777,
+      logoURI: '',
+    },
   ],
 };

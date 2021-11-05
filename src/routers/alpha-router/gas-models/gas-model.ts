@@ -1,10 +1,28 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
-import { PoolAccessor } from '../../../providers/pool-provider';
+import {
+  DAI_MAINNET,
+  DAI_RINKEBY_1,
+  DAI_RINKEBY_2,
+  USDC_MAINNET,
+  USDT_MAINNET,
+} from '../../../providers/token-provider';
+import { V2PoolAccessor } from '../../../providers/v2/pool-provider';
+import { V3PoolAccessor } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
+import { ChainId } from '../../../util/chains';
+import {
+  IRouteWithValidQuote,
+  V2RouteWithValidQuote,
+  V3RouteWithValidQuote,
+} from '../entities/route-with-valid-quote';
 
-export type GasModel = {
+export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
+  [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
+  [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
+};
+
+export type IGasModel<RouteWithValidQuote extends IRouteWithValidQuote> = {
   estimateGasCost(routeWithValidQuote: RouteWithValidQuote): {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
@@ -12,11 +30,20 @@ export type GasModel = {
   };
 };
 
-export abstract class IGasModelFactory {
+export abstract class IV3GasModelFactory {
   public abstract buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
-    poolProvider: PoolAccessor,
+    poolProvider: V3PoolAccessor,
     inTermsOfToken: Token
-  ): GasModel;
+  ): IGasModel<V3RouteWithValidQuote>;
+}
+
+export abstract class IV2GasModelFactory {
+  public abstract buildGasModel(
+    chainId: number,
+    gasPriceWei: BigNumber,
+    poolProvider: V2PoolAccessor,
+    inTermsOfToken: Token
+  ): IGasModel<V2RouteWithValidQuote>;
 }

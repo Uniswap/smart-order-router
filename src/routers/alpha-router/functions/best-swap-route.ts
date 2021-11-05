@@ -1,93 +1,42 @@
-import { Token, TradeType } from '@uniswap/sdk-core';
-import {
-  Pool,
-} from '@uniswap/v3-sdk';
+import { TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
+import JSBI from 'jsbi';
 import _ from 'lodash';
 import { FixedReverseHeap, Queue } from 'mnemonist';
-import { IPoolProvider } from '../../../providers';
-import {
-  RouteWithQuotes,
-} from '../../../providers/quote-provider';
+import { ChainId } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { routeAmountsToString, routeToString } from '../../../util/routes';
 import { AlphaRouterConfig } from '../alpha-router';
-import { RouteWithValidQuote } from './../entities/route-with-valid-quote';
-import { GasModel } from './../gas-models/gas-model';
+import { usdGasTokensByChain } from '../gas-models';
+import { IRouteWithValidQuote } from './../entities/route-with-valid-quote';
 
 export function getBestSwapRoute(
   amount: CurrencyAmount,
   percents: number[],
-  routesWithQuotes: RouteWithQuotes[],
-  quoteToken: Token,
+  routesWithValidQuotes: IRouteWithValidQuote[],
   routeType: TradeType,
-  gasModel: GasModel,
-  routingConfig: AlphaRouterConfig,
-  poolProvider: IPoolProvider,
+  chainId: ChainId,
+  routingConfig: AlphaRouterConfig
 ): {
   quote: CurrencyAmount;
   quoteGasAdjusted: CurrencyAmount;
   estimatedGasUsed: BigNumber;
   estimatedGasUsedUSD: CurrencyAmount;
   estimatedGasUsedQuoteToken: CurrencyAmount;
-  routes: RouteWithValidQuote[];
+  routes: IRouteWithValidQuote[];
 } | null {
   const now = Date.now();
 
   // Build a map of percentage of the input to list of valid quotes.
   // Quotes can be null for a variety of reasons (not enough liquidity etc), so we drop them here too.
-  const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
-  for (const routeWithQuote of routesWithQuotes) {
-    const [route, quotes] = routeWithQuote;
-
-    for (let i = 0; i < quotes.length; i++) {
-      const percent = percents[i]!;
-      const amountQuote = quotes[i]!;
-      const {
-        quote,
-        amount,
-        sqrtPriceX96AfterList,
-        initializedTicksCrossedList,
-        gasEstimate,
-      } = amountQuote;
-
-      if (
-        !quote ||
-        !sqrtPriceX96AfterList ||
-        !initializedTicksCrossedList ||
-        !gasEstimate
-      ) {
-        log.debug(
-          {
-            route: routeToString(route),
-            amountQuote,
-          },
-          'Dropping a null quote for route.'
-        );
-        continue;
-      }
-
-      if (!percentToQuotes[percent]) {
-        percentToQuotes[percent] = [];
-      }
-
-      const routeWithValidQuote = new RouteWithValidQuote({
-        route,
-        rawQuote: quote,
-        amount,
-        percent,
-        sqrtPriceX96AfterList,
-        initializedTicksCrossedList,
-        quoterGasEstimate: gasEstimate,
-        gasModel,
-        quoteToken,
-        tradeType: routeType,
-      });
-
-      percentToQuotes[percent]!.push(routeWithValidQuote);
+  const percentToQuotes: { [percent: number]: IRouteWithValidQuote[] } = {};
+  for (const routeWithValidQuote of routesWithValidQuotes) {
+    if (!percentToQuotes[routeWithValidQuote.percent]) {
+      percentToQuotes[routeWithValidQuote.percent] = [];
     }
+    percentToQuotes[routeWithValidQuote.percent]!.push(routeWithValidQuote);
   }
 
   metric.putMetric(
@@ -101,9 +50,9 @@ export function getBestSwapRoute(
     routeType,
     percentToQuotes,
     percents,
-    (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas,
-    routingConfig,
-    poolProvider
+    chainId,
+    (rq: IRouteWithValidQuote) => rq.quoteAdjustedForGas,
+    routingConfig
   );
 
   // It is possible we were unable to find any valid route given the quotes.
@@ -154,11 +103,11 @@ export function getBestSwapRoute(
 
 export function getBestSwapRouteBy(
   routeType: TradeType,
-  percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
+  percentToQuotes: { [percent: number]: IRouteWithValidQuote[] },
   percents: number[],
-  by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
-  routingConfig: AlphaRouterConfig,
-  poolProvider: IPoolProvider
+  chainId: ChainId,
+  by: (routeQuote: IRouteWithValidQuote) => CurrencyAmount,
+  routingConfig: AlphaRouterConfig
 ):
   | {
       quote: CurrencyAmount;
@@ -166,13 +115,13 @@ export function getBestSwapRouteBy(
       estimatedGasUsed: BigNumber;
       estimatedGasUsedUSD: CurrencyAmount;
       estimatedGasUsedQuoteToken: CurrencyAmount;
-      routes: RouteWithValidQuote[];
+      routes: IRouteWithValidQuote[];
     }
   | undefined {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
   const percentToSortedQuotes = _.mapValues(
     percentToQuotes,
-    (routeQuotes: RouteWithValidQuote[]) => {
+    (routeQuotes: IRouteWithValidQuote[]) => {
       return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return by(routeQuoteA).greaterThan(by(routeQuoteB)) ? -1 : 1;
@@ -183,11 +132,25 @@ export function getBestSwapRouteBy(
     }
   );
 
+  log.info(
+    {
+      percentToTop5SortedQuotes: _.mapValues(percentToSortedQuotes, (ps) =>
+        _.map(ps.slice(0, 5), (p) => ({
+          protocol: p.protocol,
+          route: routeToString(p.route),
+          percent: p.percent,
+          quote: p.quoteAdjustedForGas.toFixed(2),
+        }))
+      ),
+    },
+    'Top 5 Quotes for each percentage'
+  );
+
   const quoteCompFn =
     routeType == TradeType.EXACT_INPUT
       ? (a: CurrencyAmount, b: CurrencyAmount) => a.greaterThan(b)
       : (a: CurrencyAmount, b: CurrencyAmount) => a.lessThan(b);
-  
+
   const sumFn = (currencyAmounts: CurrencyAmount[]): CurrencyAmount => {
     let sum = currencyAmounts[0]!;
     for (let i = 1; i < currencyAmounts.length; i++) {
@@ -197,12 +160,12 @@ export function getBestSwapRouteBy(
   };
 
   let bestQuote: CurrencyAmount | undefined;
-  let bestSwap: RouteWithValidQuote[] | undefined;
+  let bestSwap: IRouteWithValidQuote[] | undefined;
 
   // Min-heap for tracking the 5 best swaps given some number of splits.
   const bestSwapsPerSplit = new FixedReverseHeap<{
     quote: CurrencyAmount;
-    routes: RouteWithValidQuote[];
+    routes: IRouteWithValidQuote[];
   }>(
     Array,
     (a, b) => {
@@ -211,9 +174,9 @@ export function getBestSwapRouteBy(
     5
   );
 
-  const { minSplits, maxSplits } = routingConfig;
+  const { minSplits, maxSplits, forceCrossProtocol } = routingConfig;
 
-  if (!percentToSortedQuotes[100] || minSplits > 1) {
+  if (!percentToSortedQuotes[100] || minSplits > 1 || forceCrossProtocol) {
     log.info(
       {
         percentToSortedQuotes: _.mapValues(
@@ -228,36 +191,42 @@ export function getBestSwapRouteBy(
     bestSwap = [percentToSortedQuotes[100][0]!];
 
     for (const routeWithQuote of percentToSortedQuotes[100].slice(0, 5)) {
-      bestSwapsPerSplit.push({ quote: by(routeWithQuote), routes: [routeWithQuote] });
+      bestSwapsPerSplit.push({
+        quote: by(routeWithQuote),
+        routes: [routeWithQuote],
+      });
     }
   }
 
   // We do a BFS. Each additional node in a path represents us adding an additional split to the route.
-  const queue = new Queue<{ 
+  const queue = new Queue<{
     percentIndex: number;
-    curRoutes: RouteWithValidQuote[];
+    curRoutes: IRouteWithValidQuote[];
     remainingPercent: number;
     special: boolean;
-  }>()
+  }>();
 
   // First we seed BFS queue with the best quotes for each percentage.
   // i.e. [best quote when sending 10% of amount, best quote when sending 20% of amount, ...]
   // We will explore the various combinations from each node.
   for (let i = percents.length; i >= 0; i--) {
     const percent = percents[i]!;
-    
+
     if (!percentToSortedQuotes[percent]) {
       continue;
     }
-    
+
     queue.enqueue({
       curRoutes: [percentToSortedQuotes[percent]![0]!],
       percentIndex: i,
       remainingPercent: 100 - percent,
       special: false,
-    })
+    });
 
-    if (!percentToSortedQuotes[percent] || !percentToSortedQuotes[percent]![1]) {
+    if (
+      !percentToSortedQuotes[percent] ||
+      !percentToSortedQuotes[percent]![1]
+    ) {
       continue;
     }
 
@@ -266,13 +235,13 @@ export function getBestSwapRouteBy(
       percentIndex: i,
       remainingPercent: 100 - percent,
       special: true,
-    })
+    });
   }
 
   let splits = 1;
   let startedSplit = Date.now();
-  
-  while(queue.size > 0) {
+
+  while (queue.size > 0) {
     metric.putMetric(
       `Split${splits}Done`,
       Date.now() - startedSplit,
@@ -301,67 +270,68 @@ export function getBestSwapRouteBy(
     splits++;
 
     // If we didn't improve our quote by adding another split, very unlikely to improve it by splitting more after that.
-    if (splits >= 3 && bestSwap && bestSwap.length < (splits - 1)) {
+    if (splits >= 3 && bestSwap && bestSwap.length < splits - 1) {
       log.info(
-        `Did not improve on route with ${splits - 1} splits. Not checking ${splits} splits.`
+        `Did not improve on route with ${
+          splits - 1
+        } splits. Not checking ${splits} splits.`
       );
       break;
     }
 
     if (splits > maxSplits) {
       log.info('Max splits reached. Stopping search.');
-      metric.putMetric(
-        `MaxSplitsHitReached`,
-        1,
-        MetricLoggerUnit.Count
-      );
+      metric.putMetric(`MaxSplitsHitReached`, 1, MetricLoggerUnit.Count);
       break;
     }
 
-    log.info(`About to consider ${splits} splits. ${layer} potential routes to iterate on.`);
-  
+    log.info(
+      `About to consider ${splits} splits. ${layer} potential routes to iterate on.`
+    );
+
     while (layer > 0) {
       layer--;
 
-      const { remainingPercent, curRoutes, percentIndex, special } = queue.dequeue()!
-    
-      // For all other percentages, add a new potential route. 
+      const { remainingPercent, curRoutes, percentIndex, special } =
+        queue.dequeue()!;
+
+      // For all other percentages, add a new potential route.
       // E.g. if our current aggregated route if missing 50%, we will create new nodes and add to the queue for:
       // 50% + new 10% route, 50% + new 20% route, etc.
       for (let i = percentIndex; i >= 0; i--) {
         const percentA = percents[i]!;
-    
+
         if (percentA > remainingPercent) {
           continue;
         }
-    
+
         // At some point the amount * percentage is so small that the quoter is unable to get
         // a quote. In this case there could be no quotes for that percentage.
         if (!percentToSortedQuotes[percentA]) {
           continue;
         }
-    
+
         const candidateRoutesA = percentToSortedQuotes[percentA]!;
-    
+
         // Find the best route in the complimentary percentage that doesn't re-use a pool already
         // used in the current route. Re-using pools is not allowed as each swap through a pool changes its liquidity,
         // so it would make the quotes inaccurate.
         const routeWithQuoteA = findFirstRouteNotUsingUsedPools(
-          poolProvider,
           curRoutes,
-          candidateRoutesA
+          candidateRoutesA,
+          forceCrossProtocol
         );
-    
+
         if (!routeWithQuoteA) {
           continue;
         }
 
         const remainingPercentNew = remainingPercent - percentA;
-        const curRoutesNew = [ ...curRoutes, routeWithQuoteA ];
+        const curRoutesNew = [...curRoutes, routeWithQuoteA];
 
         // If we've found a route combination that uses all 100%, and it has at least minSplits, update our best route.
         if (remainingPercentNew == 0 && splits >= minSplits) {
-          const quotesNew = _.map(curRoutesNew, r => by(r));
+          const quotesNew = _.map(curRoutesNew, (r) => by(r));
           const quoteNew = sumFn(quotesNew);
 
           bestSwapsPerSplit.push({
@@ -387,16 +357,15 @@ export function getBestSwapRouteBy(
             curRoutes: curRoutesNew,
             remainingPercent: remainingPercentNew,
             percentIndex: i,
-            special
-          })
+            special,
+          });
         }
-
       }
     }
   }
 
   if (!bestSwap) {
-    log.info(`Could not find a valid swap`)
+    log.info(`Could not find a valid swap`);
     return undefined;
   }
 
@@ -416,15 +385,52 @@ export function getBestSwapRouteBy(
       BigNumber.from(0)
     );
 
-  const estimatedGasUsedUSD = sumFn(
-    _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.gasCostInUSD)
+  // Each route can use a different stablecoin to account its gas costs.
+  // They should all be pegged, and this is just an estimate, so we do a merge
+  // to an arbitrary stable.
+  if (!usdGasTokensByChain[chainId] || !usdGasTokensByChain[chainId]![0]) {
+    throw new Error(
+      `Could not find a USD token for computing gas costs on ${chainId}`
+    );
+  }
+  const usdToken = usdGasTokensByChain[chainId]![0]!;
+  const usdTokenDecimals = usdToken.decimals;
+
+  // For each gas estimate, normalize decimals to that of the chosen usd token.
+  const estimatedGasUsedUSDs = _(bestSwap)
+    .map((routeWithValidQuote) => {
+      const decimalsDiff =
+        usdTokenDecimals - routeWithValidQuote.gasCostInUSD.currency.decimals;
+
+      if (decimalsDiff == 0) {
+        return CurrencyAmount.fromRawAmount(
+          usdToken,
+          routeWithValidQuote.gasCostInUSD.quotient
+        );
+      }
+
+      return CurrencyAmount.fromRawAmount(
+        usdToken,
+        JSBI.multiply(
+          routeWithValidQuote.gasCostInUSD.quotient,
+          JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimalsDiff))
+        )
+      );
+    })
+    .value();
+
+  const estimatedGasUsedUSD = sumFn(estimatedGasUsedUSDs);
+  log.info(
+    {
+      estimatedGasUsedUSD: estimatedGasUsedUSD.toExact(),
+      normalizedUsdToken: usdToken,
+      routeUSDGasEstimates: _.map(bestSwap, (b) => b.gasCostInUSD),
+    },
+    'USD gas estimates of best route'
   );
 
   const estimatedGasUsedQuoteToken = sumFn(
-    _.map(
-      bestSwap,
-      (routeWithValidQuote) => routeWithValidQuote.gasCostInToken
-    )
+    _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.gasCostInToken)
   );
 
   const quote = sumFn(
@@ -452,35 +458,42 @@ export function getBestSwapRouteBy(
 }
 
 // We do not allow pools to be re-used across split routes, as swapping through a pool changes the pools state.
-  // Given a list of used routes, this function finds the first route in the list of candidate routes that does not re-use an already used pool.
+// Given a list of used routes, this function finds the first route in the list of candidate routes that does not re-use an already used pool.
 const findFirstRouteNotUsingUsedPools = (
-  poolProvider: IPoolProvider,
-  usedRoutes: RouteWithValidQuote[],
-  candidateRouteQuotes: RouteWithValidQuote[]
-): RouteWithValidQuote | null => {
-  const getPoolAddress = (pool: Pool) => {
-    return poolProvider.getPoolAddress(
-      pool.token0,
-      pool.token1,
-      pool.fee
-    ).poolAddress;
-  };
-
+  usedRoutes: IRouteWithValidQuote[],
+  candidateRouteQuotes: IRouteWithValidQuote[],
+  forceCrossProtocol: boolean
+): IRouteWithValidQuote | null => {
   const poolAddressSet = new Set();
   const usedPoolAddresses = _(usedRoutes)
-    .flatMap((r) => r.route.pools)
-    .map(getPoolAddress)
+    .flatMap((r) => r.poolAddresses)
     .value();
 
   for (let poolAddress of usedPoolAddresses) {
     poolAddressSet.add(poolAddress);
   }
 
+  const protocolsSet = new Set();
+  const usedProtocols = _(usedRoutes)
+    .flatMap((r) => r.protocol)
+    .uniq()
+    .value();
+
+  for (let protocol of usedProtocols) {
+    protocolsSet.add(protocol);
+  }
+
   for (const routeQuote of candidateRouteQuotes) {
-    const {
-      route: { pools },
-    } = routeQuote;
-    if (pools.some((pool) => poolAddressSet.has(getPoolAddress(pool)))) {
+    const { poolAddresses, protocol } = routeQuote;
+
+    if (poolAddresses.some((poolAddress) => poolAddressSet.has(poolAddress))) {
+      continue;
+    }
+
+    // This code is just for debugging. Allows us to force a cross-protocol split route by skipping
+    // consideration of routes that come from the same protocol as a used route.
+    const needToForce = forceCrossProtocol && protocolsSet.size == 1;
+    if (needToForce && protocolsSet.has(protocol)) {
       continue;
     }
 
@@ -489,5 +502,3 @@ const findFirstRouteNotUsingUsedPools = (
 
   return null;
 };
-
-

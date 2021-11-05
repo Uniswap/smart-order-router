@@ -1,8 +1,10 @@
 import { flags } from '@oclif/command';
-import { Currency, Ether, Percent } from '@uniswap/sdk-core';
+import { Currency, Ether, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
+import _ from 'lodash';
 import { ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
+import { Protocol, TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
@@ -23,6 +25,8 @@ export class Quote extends BaseCommand {
     amount: flags.string({ char: 'a', required: true }),
     exactIn: flags.boolean({ required: false }),
     exactOut: flags.boolean({ required: false }),
+    protocols: flags.string({ required: false }),
+    forceCrossProtocol: flags.boolean({ required: false, default: false }),
   };
 
   async run() {
@@ -41,15 +45,31 @@ export class Quote extends BaseCommand {
       topNWithEachBaseToken,
       topNWithBaseToken,
       topNWithBaseTokenInSet,
+      topNDirectSwaps,
       maxSwapsPerPath,
       minSplits,
       maxSplits,
       distributionPercent,
       chainId: chainIdNumb,
+      protocols: protocolsStr,
+      forceCrossProtocol,
     } = flags;
 
     if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
       throw new Error('Must set either --exactIn or --exactOut.');
+    }
+
+    let protocols: Protocol[] = [];
+    if (protocolsStr) {
+      try {
+        protocols = _.map(protocolsStr.split(','), (protocolStr) =>
+          TO_PROTOCOL(protocolStr)
+        );
+      } catch (err) {
+        throw new Error(
+          `Protocols invalid. Valid options: ${Object.values(Protocol)}`
+        );
+      }
     }
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
@@ -72,53 +92,65 @@ export class Quote extends BaseCommand {
         ? Ether.onChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
 
-    let swapRoutes: SwapRoute<any> | null;
+    let swapRoutes: SwapRoute | null;
     if (exactIn) {
       const amountIn = parseAmount(amountStr, tokenIn);
-      swapRoutes = await router.routeExactIn(
-        tokenIn,
-        tokenOut,
+      swapRoutes = await router.route(
         amountIn,
+        tokenOut,
+        TradeType.EXACT_INPUT,
         {
           deadline: 100,
           recipient,
           slippageTolerance: new Percent(5, 10_000),
         },
         {
-          topN,
-          topNTokenInOut,
-          topNSecondHop,
-          topNWithEachBaseToken,
-          topNWithBaseToken,
-          topNWithBaseTokenInSet,
+          blockNumber: this.blockNumber - 10,
+          v3PoolSelection: {
+            topN,
+            topNTokenInOut,
+            topNSecondHop,
+            topNWithEachBaseToken,
+            topNWithBaseToken,
+            topNWithBaseTokenInSet,
+            topNDirectSwaps,
+          },
           maxSwapsPerPath,
           minSplits,
           maxSplits,
           distributionPercent,
+          protocols,
+          forceCrossProtocol,
         }
       );
     } else {
       const amountOut = parseAmount(amountStr, tokenOut);
-      swapRoutes = await router.routeExactOut(
-        tokenIn,
-        tokenOut,
+      swapRoutes = await router.route(
         amountOut,
+        tokenIn,
+        TradeType.EXACT_OUTPUT,
         {
           deadline: 100,
           recipient,
           slippageTolerance: new Percent(5, 10_000),
         },
         {
-          topN,
-          topNTokenInOut,
-          topNSecondHop,
-          topNWithEachBaseToken,
-          topNWithBaseToken,
-          topNWithBaseTokenInSet,
+          blockNumber: this.blockNumber - 10,
+          v3PoolSelection: {
+            topN,
+            topNTokenInOut,
+            topNSecondHop,
+            topNWithEachBaseToken,
+            topNWithBaseToken,
+            topNWithBaseTokenInSet,
+            topNDirectSwaps,
+          },
           maxSwapsPerPath,
           minSplits,
           maxSplits,
           distributionPercent,
+          protocols,
+          forceCrossProtocol,
         }
       );
     }

@@ -1,22 +1,58 @@
 import { Token } from '@uniswap/sdk-core';
+import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { log } from '../../../util/log';
 import { routeToString } from '../../../util/routes';
-import { RouteSOR } from '../../router';
+import { V3Route, V2Route } from '../../router';
 
-export function computeAllRoutes(
+export function computeAllV3Routes(
   tokenIn: Token,
   tokenOut: Token,
   pools: Pool[],
   maxHops: number
-): RouteSOR[] {
+): V3Route[] {
+  return computeAllRoutes<Pool, V3Route>(
+    tokenIn, 
+    tokenOut, 
+    (route: Pool[], tokenIn: Token, tokenOut: Token) => {
+      return new V3Route(route, tokenIn, tokenOut);
+    }, 
+    pools, 
+    maxHops
+  );
+}
+
+export function computeAllV2Routes(
+  tokenIn: Token,
+  tokenOut: Token,
+  pools: Pair[],
+  maxHops: number
+): V2Route[] {
+  return computeAllRoutes<Pair, V2Route>(
+    tokenIn, 
+    tokenOut, 
+    (route: Pair[], tokenIn: Token, tokenOut: Token) => {
+      return new V2Route(route, tokenIn, tokenOut);
+    }, 
+    pools, 
+    maxHops
+  );
+}
+
+export function computeAllRoutes<TPool extends (Pair | Pool), TRoute extends (V3Route | V2Route)>(
+  tokenIn: Token,
+  tokenOut: Token,
+  buildRoute: (route: TPool[], tokenIn: Token, tokenOut: Token) => TRoute,
+  pools: TPool[],
+  maxHops: number
+): TRoute[] {
   const poolsUsed = Array<Boolean>(pools.length).fill(false);
-  const routes: RouteSOR[] = [];
+  const routes: TRoute[] = [];
 
   const computeRoutes = (
     tokenIn: Token,
     tokenOut: Token,
-    currentRoute: Pool[],
+    currentRoute: TPool[],
     poolsUsed: Boolean[],
     _previousTokenOut?: Token
   ) => {
@@ -28,7 +64,7 @@ export function computeAllRoutes(
       currentRoute.length > 0 &&
       currentRoute[currentRoute.length - 1]!.involvesToken(tokenOut)
     ) {
-      routes.push(new RouteSOR([...currentRoute], tokenIn, tokenOut));
+      routes.push(buildRoute([...currentRoute], tokenIn, tokenOut));
       return;
     }
 
