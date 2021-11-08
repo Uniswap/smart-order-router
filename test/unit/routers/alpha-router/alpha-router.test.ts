@@ -1299,7 +1299,7 @@ describe('alpha router', () => {
           liquidity: 1,
         });
 
-        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+        const spy = sinon.spy(alphaRouter, 'route')
 
         const result = await alphaRouter.routeToRatio(
           token0Balance,
@@ -1325,7 +1325,7 @@ describe('alpha router', () => {
           liquidity: 1,
         });
 
-        const spy = sinon.spy(alphaRouter, 'routeExactIn')
+        const spy = sinon.spy(alphaRouter, 'route')
 
         const result = await alphaRouter.routeToRatio(
           token0Balance,
