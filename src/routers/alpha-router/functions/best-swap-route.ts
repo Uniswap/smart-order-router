@@ -10,12 +10,12 @@ import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { routeAmountsToString, routeToString } from '../../../util/routes';
 import { AlphaRouterConfig } from '../alpha-router';
 import { usdGasTokensByChain } from '../gas-models';
-import { IRouteWithValidQuote } from './../entities/route-with-valid-quote';
+import { RouteWithValidQuote } from './../entities/route-with-valid-quote';
 
 export function getBestSwapRoute(
   amount: CurrencyAmount,
   percents: number[],
-  routesWithValidQuotes: IRouteWithValidQuote[],
+  routesWithValidQuotes: RouteWithValidQuote[],
   routeType: TradeType,
   chainId: ChainId,
   routingConfig: AlphaRouterConfig
@@ -25,13 +25,13 @@ export function getBestSwapRoute(
   estimatedGasUsed: BigNumber;
   estimatedGasUsedUSD: CurrencyAmount;
   estimatedGasUsedQuoteToken: CurrencyAmount;
-  routes: IRouteWithValidQuote[];
+  routes: RouteWithValidQuote[];
 } | null {
   const now = Date.now();
 
   // Build a map of percentage of the input to list of valid quotes.
   // Quotes can be null for a variety of reasons (not enough liquidity etc), so we drop them here too.
-  const percentToQuotes: { [percent: number]: IRouteWithValidQuote[] } = {};
+  const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
   for (const routeWithValidQuote of routesWithValidQuotes) {
     if (!percentToQuotes[routeWithValidQuote.percent]) {
       percentToQuotes[routeWithValidQuote.percent] = [];
@@ -51,7 +51,7 @@ export function getBestSwapRoute(
     percentToQuotes,
     percents,
     chainId,
-    (rq: IRouteWithValidQuote) => rq.quoteAdjustedForGas,
+    (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas,
     routingConfig
   );
 
@@ -103,10 +103,10 @@ export function getBestSwapRoute(
 
 export function getBestSwapRouteBy(
   routeType: TradeType,
-  percentToQuotes: { [percent: number]: IRouteWithValidQuote[] },
+  percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
   percents: number[],
   chainId: ChainId,
-  by: (routeQuote: IRouteWithValidQuote) => CurrencyAmount,
+  by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
   routingConfig: AlphaRouterConfig
 ):
   | {
@@ -115,13 +115,13 @@ export function getBestSwapRouteBy(
       estimatedGasUsed: BigNumber;
       estimatedGasUsedUSD: CurrencyAmount;
       estimatedGasUsedQuoteToken: CurrencyAmount;
-      routes: IRouteWithValidQuote[];
+      routes: RouteWithValidQuote[];
     }
   | undefined {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
   const percentToSortedQuotes = _.mapValues(
     percentToQuotes,
-    (routeQuotes: IRouteWithValidQuote[]) => {
+    (routeQuotes: RouteWithValidQuote[]) => {
       return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return by(routeQuoteA).greaterThan(by(routeQuoteB)) ? -1 : 1;
@@ -160,12 +160,12 @@ export function getBestSwapRouteBy(
   };
 
   let bestQuote: CurrencyAmount | undefined;
-  let bestSwap: IRouteWithValidQuote[] | undefined;
+  let bestSwap: RouteWithValidQuote[] | undefined;
 
   // Min-heap for tracking the 5 best swaps given some number of splits.
   const bestSwapsPerSplit = new FixedReverseHeap<{
     quote: CurrencyAmount;
-    routes: IRouteWithValidQuote[];
+    routes: RouteWithValidQuote[];
   }>(
     Array,
     (a, b) => {
@@ -201,7 +201,7 @@ export function getBestSwapRouteBy(
   // We do a BFS. Each additional node in a path represents us adding an additional split to the route.
   const queue = new Queue<{
     percentIndex: number;
-    curRoutes: IRouteWithValidQuote[];
+    curRoutes: RouteWithValidQuote[];
     remainingPercent: number;
     special: boolean;
   }>();
@@ -460,10 +460,10 @@ export function getBestSwapRouteBy(
 // We do not allow pools to be re-used across split routes, as swapping through a pool changes the pools state.
 // Given a list of used routes, this function finds the first route in the list of candidate routes that does not re-use an already used pool.
 const findFirstRouteNotUsingUsedPools = (
-  usedRoutes: IRouteWithValidQuote[],
-  candidateRouteQuotes: IRouteWithValidQuote[],
+  usedRoutes: RouteWithValidQuote[],
+  candidateRouteQuotes: RouteWithValidQuote[],
   forceCrossProtocol: boolean
-): IRouteWithValidQuote | null => {
+): RouteWithValidQuote | null => {
   const poolAddressSet = new Set();
   const usedPoolAddresses = _(usedRoutes)
     .flatMap((r) => r.poolAddresses)

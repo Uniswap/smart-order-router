@@ -10,7 +10,7 @@ import {
   CurrencyAmount,
   DAI_MAINNET,
   IGasModel,
-  IRouteWithValidQuote,
+  RouteWithValidQuote,
   USDC_MAINNET as USDC,
   V2Route,
   V2RouteWithValidQuote,
@@ -225,7 +225,7 @@ describe('get best swap route', () => {
   test('succeeds to find 1 split best route', async () => {
     const amount = CurrencyAmount.fromRawAmount(USDC, 100000);
     const percents = [25, 50, 75, 100];
-    const routesWithQuotes: IRouteWithValidQuote[] = [
+    const routesWithQuotes: RouteWithValidQuote[] = [
       ...buildV3RouteWithValidQuotes(
         v3Route1,
         TradeType.EXACT_INPUT,
@@ -283,7 +283,7 @@ describe('get best swap route', () => {
     const amount = CurrencyAmount.fromRawAmount(USDC, 100000);
     const percents = [25, 50, 75, 100];
 
-    const routesWithQuotes: IRouteWithValidQuote[] = [
+    const routesWithQuotes: RouteWithValidQuote[] = [
       ...buildV3RouteWithValidQuotes(
         v3Route1,
         TradeType.EXACT_INPUT,
@@ -341,7 +341,7 @@ describe('get best swap route', () => {
     const amount = CurrencyAmount.fromRawAmount(USDC, 100000);
     const percents = [25, 50, 75, 100];
 
-    const routesWithQuotes: IRouteWithValidQuote[] = [
+    const routesWithQuotes: RouteWithValidQuote[] = [
       ...buildV2RouteWithValidQuotes(
         v2Route1,
         TradeType.EXACT_INPUT,
@@ -399,7 +399,7 @@ describe('get best swap route', () => {
     const amount = CurrencyAmount.fromRawAmount(USDC, 100000);
     const percents = [25, 50, 75, 100];
 
-    const routesWithQuotes: IRouteWithValidQuote[] = [
+    const routesWithQuotes: RouteWithValidQuote[] = [
       ...buildV2RouteWithValidQuotes(
         v2Route1,
         TradeType.EXACT_INPUT,
@@ -469,7 +469,7 @@ describe('get best swap route', () => {
     const v2Route = new V2Route([USDC_WETH], USDC, WETH9[1]);
     const v3Route = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]);
 
-    const routesWithQuotes: IRouteWithValidQuote[] = [
+    const routesWithQuotes: RouteWithValidQuote[] = [
       ...buildV2RouteWithValidQuotes(
         v2Route,
         TradeType.EXACT_INPUT,

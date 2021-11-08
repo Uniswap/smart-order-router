@@ -12,7 +12,7 @@ import { V3PoolAccessor } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
 import {
-  IRouteWithValidQuote,
+  RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
@@ -22,8 +22,8 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
 };
 
-export type IGasModel<RouteWithValidQuote extends IRouteWithValidQuote> = {
-  estimateGasCost(routeWithValidQuote: RouteWithValidQuote): {
+export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
+  estimateGasCost(routeWithValidQuote: TRouteWithValidQuote): {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;

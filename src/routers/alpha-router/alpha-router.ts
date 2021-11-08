@@ -69,7 +69,7 @@ import {
   SwapToRatioRoute,
 } from '../router';
 import {
-  IRouteWithValidQuote,
+  RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from './entities/route-with-valid-quote';
@@ -471,7 +471,7 @@ export class AlphaRouter
     const { protocols } = routingConfig;
 
     const quotePromises: Promise<{
-      routesWithValidQuotes: IRouteWithValidQuote[];
+      routesWithValidQuotes: RouteWithValidQuote[];
       candidatePools: CandidatePoolsBySelectionCriteria;
     }>[] = [];
 
@@ -533,7 +533,7 @@ export class AlphaRouter
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
 
-    let allRoutesWithValidQuotes: IRouteWithValidQuote[] = [];
+    let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
     for (const {
       routesWithValidQuotes,
@@ -549,6 +549,11 @@ export class AlphaRouter
     if (allRoutesWithValidQuotes.length == 0) {
       log.info({ allRoutesWithValidQuotes }, 'Received no valid quotes');
       return null;
+    }
+
+    const test = allRoutesWithValidQuotes[0]!;
+    if (test.protocol == Protocol.V3) {
+      test.tokenPath;
     }
 
     // Given all the quotes for all the amounts for all the routes, find the best combination.
@@ -874,7 +879,7 @@ export class AlphaRouter
     tokenInCurrency: Currency,
     tokenOutCurrency: Currency,
     tradeType: TTradeType,
-    routeAmounts: IRouteWithValidQuote[]
+    routeAmounts: RouteWithValidQuote[]
   ): Trade<Currency, Currency, TTradeType> {
     const [v3RouteAmounts, v2RouteAmounts] = _.partition(
       routeAmounts,
@@ -1039,7 +1044,7 @@ export class AlphaRouter
     swapRouteRaw: {
       quote: CurrencyAmount;
       quoteGasAdjusted: CurrencyAmount;
-      routes: IRouteWithValidQuote[];
+      routes: RouteWithValidQuote[];
       estimatedGasUsed: BigNumber;
     },
     allPoolsBySelection: CandidatePoolsBySelectionCriteria[]

@@ -6,9 +6,33 @@ import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { Protocol } from '../../../util/protocols';
 import { routeToString } from '../../../util/routes';
-import { V3Route, V2Route } from '../../router';
+import { V2Route, V3Route } from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
 
+export interface IRouteWithValidQuote<Route extends V3Route | V2Route> {
+  amount: CurrencyAmount;
+  percent: number;
+  quoteAdjustedForGas: CurrencyAmount;
+  quote: CurrencyAmount;
+  route: Route;
+  gasEstimate: BigNumber;
+  gasCostInToken: CurrencyAmount;
+  gasCostInUSD: CurrencyAmount;
+  tradeType: TradeType;
+  poolAddresses: string[];
+  tokenPath: Token[];
+}
+
+// Discriminated unions on protocol field to narrow types.
+export type IV2RouteWithValidQuote = {
+  protocol: Protocol.V2;
+} & IRouteWithValidQuote<V2Route>;
+
+export type IV3RouteWithValidQuote = {
+  protocol: Protocol.V3;
+} & IRouteWithValidQuote<V3Route>;
+
+export type RouteWithValidQuote = V2RouteWithValidQuote | V3RouteWithValidQuote;
 
 export type V2RouteWithValidQuoteParams = {
   amount: CurrencyAmount;
@@ -20,25 +44,8 @@ export type V2RouteWithValidQuoteParams = {
   tradeType: TradeType;
   v2PoolProvider: IV2PoolProvider;
 };
-
-export interface IRouteWithValidQuoteRaw<Route extends (V3Route | V2Route)> {
-  protocol: Protocol;
-  amount: CurrencyAmount;
-  percent: number;
-  quoteAdjustedForGas: CurrencyAmount;
-  quote: CurrencyAmount;
-  route: Route;
-  gasEstimate: BigNumber;
-  gasCostInToken: CurrencyAmount;
-  gasCostInUSD: CurrencyAmount;
-  tradeType: TradeType;
-  poolAddresses: string[];
-}
-
-export interface IRouteWithValidQuote extends IRouteWithValidQuoteRaw<V3Route | V2Route> {}
-
-export class V2RouteWithValidQuote implements IRouteWithValidQuoteRaw<V2Route> {
-  public protocol = Protocol.V2;
+export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
+  public readonly protocol = Protocol.V2;
   public amount: CurrencyAmount;
   public rawQuote: BigNumber;
   public quote: CurrencyAmount;
@@ -52,6 +59,7 @@ export class V2RouteWithValidQuote implements IRouteWithValidQuoteRaw<V2Route> {
   public gasCostInUSD: CurrencyAmount;
   public tradeType: TradeType;
   public poolAddresses: string[];
+  public tokenPath: Token[];
 
   public toString(): string {
     return `${this.percent.toFixed(
@@ -96,7 +104,12 @@ export class V2RouteWithValidQuote implements IRouteWithValidQuoteRaw<V2Route> {
       this.quoteAdjustedForGas = quoteGasAdjusted;
     }
 
-    this.poolAddresses = _.map(route.pairs, p => v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress);
+    this.poolAddresses = _.map(
+      route.pairs,
+      (p) => v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress
+    );
+
+    this.tokenPath = this.route.path;
   }
 }
 
@@ -114,8 +127,8 @@ export type V3RouteWithValidQuoteParams = {
   v3PoolProvider: IV3PoolProvider;
 };
 
-export class V3RouteWithValidQuote implements IRouteWithValidQuoteRaw<V3Route> {
-  public protocol = Protocol.V3;
+export class V3RouteWithValidQuote implements V3RouteWithValidQuote {
+  public readonly protocol = Protocol.V3;
   public amount: CurrencyAmount;
   public rawQuote: BigNumber;
   public quote: CurrencyAmount;
@@ -132,6 +145,7 @@ export class V3RouteWithValidQuote implements IRouteWithValidQuoteRaw<V3Route> {
   public gasCostInUSD: CurrencyAmount;
   public tradeType: TradeType;
   public poolAddresses: string[];
+  public tokenPath: Token[];
 
   public toString(): string {
     return `${this.percent.toFixed(
@@ -182,6 +196,12 @@ export class V3RouteWithValidQuote implements IRouteWithValidQuoteRaw<V3Route> {
       this.quoteAdjustedForGas = quoteGasAdjusted;
     }
 
-    this.poolAddresses = _.map(route.pools, p => v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress);
+    this.poolAddresses = _.map(
+      route.pools,
+      (p) =>
+        v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress
+    );
+
+    this.tokenPath = this.route.tokenPath;
   }
 }

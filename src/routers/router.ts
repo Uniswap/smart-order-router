@@ -15,7 +15,7 @@ import {
 } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
-import { IRouteWithValidQuote } from './alpha-router';
+import { RouteWithValidQuote } from './alpha-router';
 
 export class V3Route extends V3RouteRaw<Token, Token> {}
 export class V2Route extends V2RouteRaw<Token, Token> {}
@@ -28,7 +28,7 @@ export type SwapRoute = {
   estimatedGasUsedUSD: CurrencyAmount;
   gasPriceWei: BigNumber;
   trade: Trade<Currency, Currency, TradeType>;
-  route: IRouteWithValidQuote[];
+  route: RouteWithValidQuote[];
   blockNumber: BigNumber;
   methodParameters?: MethodParameters;
 };
