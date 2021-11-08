@@ -76,5 +76,5 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
-  ): Promise<SwapRoute | null>;
+  ): Promise<SwapToRatioRoute | null>;
 }

@@ -1116,7 +1116,7 @@ describe('alpha router', () => {
 
           const spy = sinon.spy(alphaRouter, 'route');
 
-          await alphaRouter.routeToRatio(
+          const result = await alphaRouter.routeToRatio(
             token0Balance,
             token1Balance,
             position,
@@ -1124,6 +1124,9 @@ describe('alpha router', () => {
             undefined,
             ROUTING_CONFIG
           );
+
+          expect(result!.optimalRatio).toBeDefined();
+          expect(result!.postSwapTargetPool).toBeDefined();
 
           const exactAmountInBalance = parseAmount('7.5', USDC);
 
