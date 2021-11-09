@@ -28,6 +28,7 @@ import {
   MetricLogger,
   NodeJSCache,
   routeAmountsToString,
+  RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
   TokenProvider,
@@ -285,7 +286,7 @@ export abstract class BaseCommand extends Command {
   }
 
   logSwapResults(
-    routeAmounts: IRouteWithValidQuote[],
+    routeAmounts: RouteWithValidQuote[],
     quote: CurrencyAmount<Currency>,
     quoteGasAdjusted: CurrencyAmount<Currency>,
     estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,

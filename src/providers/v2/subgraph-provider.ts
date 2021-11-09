@@ -1,7 +1,6 @@
 import { default as retry } from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
-import _ from 'lodash';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
@@ -36,6 +35,8 @@ type RawV2SubgraphPool = {
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
     'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
+  [ChainId.RINKEBY]:
+    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-rinkeby',
 };
 
 const threshold = 0.025;
@@ -63,17 +64,15 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
   public async getPools(
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
-    const blockNumber = providerConfig?.blockNumber ? await providerConfig.blockNumber : undefined;
+    const blockNumber = providerConfig?.blockNumber
+      ? await providerConfig.blockNumber
+      : undefined;
     // Due to limitations with the Subgraph API this is the only way to parameterize the query.
     const query2 = (id: string) => gql`
       query getPools($pageSize: Int!) {
         pairs(
           first: $pageSize
-          ${
-            blockNumber
-              ? `block: { number: ${blockNumber} }`
-              : ``
-          }
+          ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
           ${id !== '' ? `where: { id_gt: "${id}" }` : ``}
         ) {
           id
