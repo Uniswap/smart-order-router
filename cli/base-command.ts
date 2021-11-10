@@ -20,7 +20,6 @@ import {
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
   IRouter,
-  IRouteWithValidQuote,
   ISwapToRatio,
   ITokenProvider,
   IV3PoolProvider,
