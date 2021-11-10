@@ -23,15 +23,12 @@ export interface IV2PoolProvider {
   ): Promise<V2PoolAccessor>;
   getPoolAddress(
     tokenA: Token,
-    tokenB: Token,
+    tokenB: Token
   ): { poolAddress: string; token0: Token; token1: Token };
 }
 
 export type V2PoolAccessor = {
-  getPool: (
-    tokenA: Token,
-    tokenB: Token,
-  ) => Pair | undefined;
+  getPool: (tokenA: Token, tokenB: Token) => Pair | undefined;
   getPoolByAddress: (address: string) => Pair | undefined;
   getAllPools: () => Pair[];
 };
@@ -50,7 +47,7 @@ export class V2PoolProvider implements IV2PoolProvider {
       retries: 2,
       minTimeout: 50,
       maxTimeout: 500,
-    },
+    }
   ) {}
 
   public async getPools(
@@ -66,7 +63,7 @@ export class V2PoolProvider implements IV2PoolProvider {
 
       const { poolAddress, token0, token1 } = this.getPoolAddress(
         tokenA,
-        tokenB,
+        tokenB
       );
 
       if (poolAddressSet.has(poolAddress)) {
@@ -86,10 +83,18 @@ export class V2PoolProvider implements IV2PoolProvider {
       `About to get reserves for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
     );
 
-    const reservesResults = await this.getPoolsData<IReserves>(sortedPoolAddresses, 'getReserves', providerConfig);
+    const reservesResults = await this.getPoolsData<IReserves>(
+      sortedPoolAddresses,
+      'getReserves',
+      providerConfig
+    );
 
     log.info(
-      `Got reserves for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
+      `Got reserves for ${poolAddressSet.size} pools ${
+        providerConfig?.blockNumber
+          ? `as of block: ${await providerConfig?.blockNumber}.`
+          : ``
+      }`
     );
 
     const poolAddressToPool: { [poolAddress: string]: Pair } = {};
@@ -111,7 +116,7 @@ export class V2PoolProvider implements IV2PoolProvider {
 
       const pool = new Pair(
         CurrencyAmount.fromRawAmount(token0, reserve0.toString()),
-        CurrencyAmount.fromRawAmount(token1, reserve1.toString()),
+        CurrencyAmount.fromRawAmount(token1, reserve1.toString())
       );
 
       const poolAddress = sortedPoolAddresses[i]!;
@@ -119,26 +124,24 @@ export class V2PoolProvider implements IV2PoolProvider {
       poolAddressToPool[poolAddress] = pool;
     }
 
-    log.info(
-      {
-        invalidPools: _.map(
-          invalidPools,
-          ([token0, token1]) =>
-            `${token0.symbol}/${token1.symbol}`
-        ),
-      },
-      `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
-    );
+    if (invalidPools) {
+      log.info(
+        {
+          invalidPools: _.map(
+            invalidPools,
+            ([token0, token1]) => `${token0.symbol}/${token1.symbol}`
+          ),
+        },
+        `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
+      );
+    }
 
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
     log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
 
     return {
-      getPool: (
-        tokenA: Token,
-        tokenB: Token,
-      ): Pair | undefined => {
+      getPool: (tokenA: Token, tokenB: Token): Pair | undefined => {
         const { poolAddress } = this.getPoolAddress(tokenA, tokenB);
         return poolAddressToPool[poolAddress];
       },
@@ -150,7 +153,7 @@ export class V2PoolProvider implements IV2PoolProvider {
 
   public getPoolAddress(
     tokenA: Token,
-    tokenB: Token,
+    tokenB: Token
   ): { poolAddress: string; token0: Token; token1: Token } {
     const [token0, token1] = tokenA.sortsBefore(tokenB)
       ? [tokenA, tokenB]

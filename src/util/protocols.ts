@@ -1,8 +1,4 @@
-
-export enum Protocol {
-  V3 = 'V3',
-  V2 = 'V2'
-}
+import { Protocol } from '@uniswap/router-sdk';
 
 export const TO_PROTOCOL = (protocol: string): Protocol => {
   switch (protocol.toLowerCase()) {

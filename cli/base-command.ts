@@ -35,6 +35,7 @@ import {
   V2StaticSubgraphProvider,
   V3PoolProvider,
   V3QuoteProvider,
+  V3SubgraphProvider,
 } from '../src';
 
 export abstract class BaseCommand extends Command {
@@ -277,6 +278,7 @@ export abstract class BaseCommand extends Command {
           gasPriceCache
         ),
         v2SubgraphProvider: new V2StaticSubgraphProvider(),
+        v3SubgraphProvider: new V3SubgraphProvider(chainId, undefined, 15000),
       });
 
       this._swapToRatioRouter = router;

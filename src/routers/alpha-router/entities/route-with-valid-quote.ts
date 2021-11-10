@@ -1,10 +1,10 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { Token, TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { Protocol } from '../../../util/protocols';
 import { routeToString } from '../../../util/routes';
 import { V2Route, V3Route } from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
@@ -64,7 +64,7 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
   public toString(): string {
     return `${this.percent.toFixed(
       2
-    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] = ${routeToString(
+    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] Gas[${this.gasEstimate.toString()}] = ${routeToString(
       this.route
     )}`;
   }
@@ -150,7 +150,7 @@ export class V3RouteWithValidQuote implements V3RouteWithValidQuote {
   public toString(): string {
     return `${this.percent.toFixed(
       2
-    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] = ${routeToString(
+    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] Gas[${this.gasEstimate.toString()}] = ${routeToString(
       this.route
     )}`;
   }

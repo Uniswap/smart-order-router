@@ -1,5 +1,5 @@
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { SwapRouter, Trade } from '@uniswap/router-sdk';
+import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
@@ -28,7 +28,6 @@ import {
   UniswapMulticallProvider,
   V2QuoteProvider,
   V2SubgraphProvider,
-  V3URISubgraphProvider,
 } from '../../providers';
 import {
   CachingTokenListProvider,
@@ -59,7 +58,6 @@ import { CurrencyAmount } from '../../util/amounts';
 import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { Protocol } from '../../util/protocols';
 import { routeToString } from '../../util/routes';
 import {
   IRouter,
@@ -160,10 +158,10 @@ export type SwapAndAddConfig = {
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
-const IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]:
-    'https://gateway.ipfs.io/ipns/beta.api.uniswap.org/v1/pools/v3/mainnet.json',
-};
+// const IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+//   [ChainId.MAINNET]:
+//     'https://cloudflare-ipfs.com/ipns/beta.api.uniswap.org/v1/pools/v3/mainnet.json',
+// };
 
 export class AlphaRouter
   implements
@@ -261,13 +259,11 @@ export class AlphaRouter
         ),
         new TokenProvider(chainId, this.multicall2Provider)
       );
-    this.v3SubgraphProvider =
-      v3SubgraphProvider ?? IPFS_POOL_CACHE_URL_BY_CHAIN[this.chainId]
-        ? new V3URISubgraphProvider(
-            chainId,
-            IPFS_POOL_CACHE_URL_BY_CHAIN[this.chainId]!
-          )
-        : new V3SubgraphProvider(this.chainId);
+
+    this.v3SubgraphProvider = v3SubgraphProvider
+      ? v3SubgraphProvider
+      : new V3SubgraphProvider(this.chainId);
+
     this.gasPriceProvider =
       gasPriceProvider ??
       new CachingGasStationProvider(
@@ -551,11 +547,6 @@ export class AlphaRouter
       return null;
     }
 
-    const test = allRoutesWithValidQuotes[0]!;
-    if (test.protocol == Protocol.V3) {
-      test.tokenPath;
-    }
-
     // Given all the quotes for all the amounts for all the routes, find the best combination.
     const beforeBestSwap = Date.now();
     const swapRouteRaw = getBestSwapRoute(
@@ -631,6 +622,7 @@ export class AlphaRouter
     routesWithValidQuotes: V3RouteWithValidQuote[];
     candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
+    log.info('Starting to get V3 quotes');
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
     // result in good prices.
@@ -667,6 +659,9 @@ export class AlphaRouter
         : this.v3QuoteProvider.getQuotesManyExactOut.bind(this.v3QuoteProvider);
 
     const beforeQuotes = Date.now();
+    log.info(
+      `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
+    );
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
@@ -758,6 +753,7 @@ export class AlphaRouter
     routesWithValidQuotes: V2RouteWithValidQuote[];
     candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
+    log.info('Starting to get V2 quotes');
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
     // result in good prices.
@@ -794,6 +790,10 @@ export class AlphaRouter
         : this.v2QuoteProvider.getQuotesManyExactOut.bind(this.v2QuoteProvider);
 
     const beforeQuotes = Date.now();
+
+    log.info(
+      `Getting quotes for V2 for ${routes.length} routes with ${amounts.length} amounts per route.`
+    );
     const { routesWithQuotes } = await quoteFn(amounts, routes);
 
     const gasModel = this.v2GasModelFactory.buildGasModel(

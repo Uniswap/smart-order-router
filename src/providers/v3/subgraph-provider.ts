@@ -189,6 +189,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           tvlUSD: parseFloat(totalValueLockedUSD),
         };
       });
+      
     return poolsSanitized;
   }
 }

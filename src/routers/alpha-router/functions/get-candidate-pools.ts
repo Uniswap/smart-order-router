@@ -1,3 +1,4 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { Token, TradeType, WETH9 } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
@@ -32,7 +33,6 @@ import { ChainId } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
-import { Protocol } from '../../../util/protocols';
 import { AlphaRouterConfig } from '../alpha-router';
 
 export type PoolId = { id: string };
@@ -117,7 +117,9 @@ export async function getV3CandidatePools({
 
   const beforeSubgraphPools = Date.now();
 
+  log.info('V3 About to get all pools from subgraph provider!');
   const allPoolsRaw = await subgraphProvider.getPools({ blockNumber });
+  log.info('V3 Got all pools from subgraph provider!');
 
   const allPools = _.map(allPoolsRaw, (pool) => {
     return {
@@ -389,10 +391,11 @@ export async function getV3CandidatePools({
   const tokenAddresses = _(subgraphPools)
     .flatMap((subgraphPool) => [subgraphPool.token0.id, subgraphPool.token1.id])
     .compact()
+    .uniq()
     .value();
 
   log.info(
-    `Getting the ${tokenAddresses.length} tokens within the pools for consideration`
+    `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} V3 pools we are considering`
   );
 
   const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {
@@ -757,7 +760,7 @@ export async function getV2CandidatePools({
     .value();
 
   log.info(
-    `Getting the ${tokenAddresses.length} tokens within the pools for consideration`
+    `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} V2 pools we are considering`
   );
 
   const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {

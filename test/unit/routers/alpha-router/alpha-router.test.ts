@@ -1,3 +1,4 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
@@ -39,7 +40,6 @@ import {
 import { ProviderConfig } from '../../../../src/providers/provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
-import { Protocol } from '../../../../src/util/protocols';
 import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,

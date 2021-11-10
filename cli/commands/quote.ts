@@ -1,10 +1,11 @@
 import { flags } from '@oclif/command';
+import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Ether, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import _ from 'lodash';
 import { ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
-import { Protocol, TO_PROTOCOL } from '../../src/util/protocols';
+import { TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
@@ -21,7 +22,7 @@ export class Quote extends BaseCommand {
     help: flags.help({ char: 'h' }),
     tokenIn: flags.string({ char: 'i', required: true }),
     tokenOut: flags.string({ char: 'o', required: true }),
-    recipient: flags.string({ required: true }),
+    recipient: flags.string({ required: false }),
     amount: flags.string({ char: 'a', required: true }),
     exactIn: flags.boolean({ required: false }),
     exactOut: flags.boolean({ required: false }),
@@ -99,11 +100,13 @@ export class Quote extends BaseCommand {
         amountIn,
         tokenOut,
         TradeType.EXACT_INPUT,
-        {
-          deadline: 100,
-          recipient,
-          slippageTolerance: new Percent(5, 10_000),
-        },
+        recipient
+          ? {
+              deadline: 100,
+              recipient,
+              slippageTolerance: new Percent(5, 10_000),
+            }
+          : undefined,
         {
           blockNumber: this.blockNumber - 10,
           v3PoolSelection: {
@@ -129,11 +132,13 @@ export class Quote extends BaseCommand {
         amountOut,
         tokenIn,
         TradeType.EXACT_OUTPUT,
-        {
-          deadline: 100,
-          recipient,
-          slippageTolerance: new Percent(5, 10_000),
-        },
+        recipient
+          ? {
+              deadline: 100,
+              recipient,
+              slippageTolerance: new Percent(5, 10_000),
+            }
+          : undefined,
         {
           blockNumber: this.blockNumber - 10,
           v3PoolSelection: {

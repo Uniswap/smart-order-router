@@ -424,7 +424,11 @@ export function getBestSwapRouteBy(
     {
       estimatedGasUsedUSD: estimatedGasUsedUSD.toExact(),
       normalizedUsdToken: usdToken,
-      routeUSDGasEstimates: _.map(bestSwap, (b) => b.gasCostInUSD),
+      routeUSDGasEstimates: _.map(
+        bestSwap,
+        (b) =>
+          `${b.percent}% ${routeToString(b.route)} ${b.gasCostInUSD.toExact()}`
+      ),
     },
     'USD gas estimates of best route'
   );
