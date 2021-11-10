@@ -383,6 +383,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
       })
       .flatMap<[Token, Token, FeeAmount]>(([tokenA, tokenB]) => {
         return [
+          [tokenA, tokenB, FeeAmount.LOWEST],
           [tokenA, tokenB, FeeAmount.LOW],
           [tokenA, tokenB, FeeAmount.MEDIUM],
           [tokenA, tokenB, FeeAmount.HIGH],

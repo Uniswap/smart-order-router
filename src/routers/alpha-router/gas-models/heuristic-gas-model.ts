@@ -219,7 +219,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
   ): Pool | null {
     const weth = WETH9[chainId]!;
 
-    const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
+    const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST])
       .map((feeAmount) => {
         return poolAccessor.getPool(weth, token, feeAmount);
       })
@@ -249,7 +249,7 @@ export class HeuristicGasModelFactory extends IGasModelFactory {
       throw new Error(`Could not find a USD token for computing gas costs on ${chainId}`);
     }
 
-    const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
+    const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST])
       .flatMap((feeAmount) => {
         const pools = [];
 
