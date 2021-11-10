@@ -14,7 +14,7 @@ import {
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
   parseAmount,
-  SwapAndAddConfig,
+  SwapAndAddOptions,
   SwapToRatioStatus,
   TokenProvider,
   UniswapMulticallProvider,
@@ -111,7 +111,7 @@ describe('alpha router', () => {
     forceCrossProtocol: false,
   };
 
-  const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
+  const SWAP_AND_ADD_CONFIG: SwapAndAddOptions = {
     errorTolerance: new Fraction(1, 100),
     maxIterations: 6,
   };

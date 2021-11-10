@@ -4,6 +4,7 @@ import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
+  AddLiquidityOptions,
   MethodParameters,
   Pool,
   Position,
@@ -272,10 +273,17 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   forceCrossProtocol: false,
 };
 
-export type SwapAndAddConfig = {
+export type SwapAndAddOptions = {
   errorTolerance: Fraction;
   maxIterations: number;
+  addLiquidityOptions: AddLiquidityOptions;
 };
+
+type swapAndAddParameters = SwapAndAddOptions & {
+  desiredPosition: Position;
+  approvalTypeTokenIn: number;
+  approvalTypeTokenOut: number;
+}
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
@@ -296,7 +304,7 @@ const V2_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
 export class AlphaRouter
   implements
     IRouter<AlphaRouterConfig>,
-    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
+    ISwapToRatio<AlphaRouterConfig, SwapAndAddOptions>
 {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
@@ -446,7 +454,7 @@ export class AlphaRouter
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
-    swapAndAddConfig: SwapAndAddConfig,
+    swapAndAddOptions: SwapAndAddOptions,
     swapConfig?: SwapConfig,
     routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
   ): Promise<SwapToRatioResponse> {
@@ -492,7 +500,7 @@ export class AlphaRouter
     // iterate until we find a swap with a sufficient ratio or return null
     while (!ratioAchieved) {
       n++;
-      if (n > swapAndAddConfig.maxIterations) {
+      if (n > swapAndAddOptions.maxIterations) {
         log.info('max iterations exceeded');
         return {
           status: SwapToRatioStatus.NO_ROUTE_FOUND,
@@ -562,7 +570,7 @@ export class AlphaRouter
         newRatio.equalTo(optimalRatio) ||
         this.absoluteValue(
           newRatio.asFraction.divide(optimalRatio).subtract(1)
-        ).lessThan(swapAndAddConfig.errorTolerance);
+        ).lessThan(swapAndAddOptions.errorTolerance);
 
       if (ratioAchieved && targetPoolPriceUpdate) {
         postSwapTargetPool = new Pool(
@@ -580,7 +588,7 @@ export class AlphaRouter
       log.info({
         optimalRatio: optimalRatio.asFraction.toFixed(18),
         newRatio: newRatio.asFraction.toFixed(18),
-        errorTolerance: swapAndAddConfig.errorTolerance.toFixed(18),
+        errorTolerance: swapAndAddOptions.errorTolerance.toFixed(18),
         iterationN: n.toString(),
       });
     }
@@ -1216,17 +1224,37 @@ export class AlphaRouter
 
   private buildMethodParameters(
     trade: Trade<Currency, Currency, TradeType>,
-    swapConfig: SwapConfig
+    swapConfig: SwapConfig,
+    swapAndAddOptions?: swapAndAddParameters
   ): MethodParameters {
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =
       swapConfig;
 
-    const methodParameters = SwapRouter.swapCallParameters(trade, {
-      recipient,
-      slippageTolerance,
-      deadlineOrPreviousBlockhash: deadline,
-      inputTokenPermit,
-    });
+    let methodParameters: MethodParameters
+    if (!!swapAndAddOptions) {
+      methodParameters = SwapRouter.swapAndAddCallParameters(
+        trade,
+        {
+          recipient,
+          slippageTolerance,
+          deadlineOrPreviousBlockhash: deadline,
+          inputTokenPermit,
+        },
+        swapAndAddOptions.desiredPosition,
+        swapAndAddOptions.addLiquidityOptions,
+        swapAndAddOptions.approvalTypeTokenIn,
+        swapAndAddOptions.approvalTypeTokenOut,
+
+      );
+    } else {
+      methodParameters = SwapRouter.swapCallParameters(trade, {
+        recipient,
+        slippageTolerance,
+        deadlineOrPreviousBlockhash: deadline,
+        inputTokenPermit,
+      });
+    }
+
 
     return methodParameters;
   }

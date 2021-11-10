@@ -102,6 +102,7 @@ export type SwapConfig = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
+  swapAndAdd?: boolean;
   inputTokenPermit?: {
     v: 0 | 1 | 27 | 28;
     r: string;
@@ -147,12 +148,12 @@ export abstract class IRouter<RoutingConfig> {
   ): Promise<SwapRoute | null>;
 }
 
-export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
+export abstract class ISwapToRatio<RoutingConfig, SwapAndAddOptions> {
   abstract routeToRatio(
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
-    swapAndAddConfig: SwapAndAddConfig,
+    swapAndAddConfig: SwapAndAddOptions,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
   ): Promise<SwapToRatioResponse>;
