@@ -89,8 +89,8 @@ export interface IV3QuoteProvider {
 
 const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]: QUOTER_V2_ADDRESS,
-  [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf'
-}
+  [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf',
+};
 
 export class V3QuoteProvider implements IV3QuoteProvider {
   protected quoterAddress: string;
@@ -114,12 +114,16 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       multicallChunk: 110,
     },
     protected rollback: boolean = false,
-    protected quoterAddressOverride?: string,
+    protected quoterAddressOverride?: string
   ) {
-    const quoterAddress = quoterAddressOverride ? quoterAddressOverride : chainToQuoterAddress[this.chainId];
+    const quoterAddress = quoterAddressOverride
+      ? quoterAddressOverride
+      : chainToQuoterAddress[this.chainId];
 
     if (!quoterAddress) {
-      throw new Error(`No address for Uniswap Quoter V2 Contract on chain id: ${chainId}`);
+      throw new Error(
+        `No address for Uniswap Quoter V2 Contract on chain id: ${chainId}`
+      );
     }
 
     this.quoterAddress = quoterAddress;
@@ -129,7 +133,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     amountIns: CurrencyAmount[],
     routes: V3Route[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }> {
+  ): Promise<{
+    routesWithQuotes: V3RouteWithQuotes[];
+    blockNumber: BigNumber;
+  }> {
     return this.getQuotesManyData(
       amountIns,
       routes,
@@ -142,7 +149,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     amountOuts: CurrencyAmount[],
     routes: V3Route[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }> {
+  ): Promise<{
+    routesWithQuotes: V3RouteWithQuotes[];
+    blockNumber: BigNumber;
+  }> {
     return this.getQuotesManyData(
       amountOuts,
       routes,
@@ -156,7 +166,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     routes: V3Route[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
     _providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }> {
+  ): Promise<{
+    routesWithQuotes: V3RouteWithQuotes[];
+    blockNumber: BigNumber;
+  }> {
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
 
@@ -166,6 +179,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
         _providerConfig?.blockNumber ?? (await this.provider.getBlockNumber()),
     };
 
+    log.info(
+      { amounts: amounts.map((a) => a.toExact()) },
+      'In quotes many data'
+    );
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const encodedRoute = encodeRouteToPath(
@@ -229,7 +246,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
         log.info(
           `Starting attempt: ${attemptNumber}.
-          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending.
+          Currently ${success.length} success, ${failed.length} failed, ${
+            pending.length
+          } pending.
           Gas limit override: ${gasLimitOverride} Block number override: ${await providerConfig.blockNumber}.`
         );
 
@@ -433,8 +452,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                 haveRetriedForSuccessRate = true;
 
                 // Low success rate can indicate too little gas given to each call.
-                gasLimitOverride = this.successRateFailureOverrides.gasLimitOverride;
-                multicallChunk = this.successRateFailureOverrides.multicallChunk;
+                gasLimitOverride =
+                  this.successRateFailureOverrides.gasLimitOverride;
+                multicallChunk =
+                  this.successRateFailureOverrides.multicallChunk;
                 retryAll = true;
               }
             } else {
@@ -587,7 +608,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
-    const debugFailedQuotes: {route: string, msg: string}[] = [];
+    const debugFailedQuotes: { route: string; msg: string }[] = [];
 
     for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
@@ -602,11 +623,12 @@ export class V3QuoteProvider implements IV3QuoteProvider {
           if (!quoteResult.success) {
             const percent = (100 / amounts.length) * (index + 1);
 
-            debugFailedQuotes.push({ msg: `${percent}% via ${routeToString(
-              route
-            )} Amount: ${amount.toFixed(2)}`, route: routeToString(
-              route
-            ) });
+            debugFailedQuotes.push({
+              msg: `${percent}% via ${routeToString(
+                route
+              )} Amount: ${amount.toFixed(2)}`,
+              route: routeToString(route),
+            });
 
             return {
               amount,
@@ -631,8 +653,16 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     }
 
     _.forEach(_.chunk(debugFailedQuotes, 20), (quotes, idx) => {
-      const routesInChunk = _(quotes).map(q => q.route).uniq().value();
-      log.info({ failedQuotes: _.map(quotes, q => q.msg) }, `Failed quotes for routes ${routesInChunk} Part ${idx}/${quotes.length}`);
+      const routesInChunk = _(quotes)
+        .map((q) => q.route)
+        .uniq()
+        .value();
+      log.info(
+        { failedQuotes: _.map(quotes, (q) => q.msg) },
+        `Failed quotes for routes ${routesInChunk.join(', ')} Part ${idx}/${
+          quotes.length
+        }`
+      );
     });
 
     return routesQuotes;

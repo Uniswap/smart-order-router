@@ -118,8 +118,13 @@ export async function getV3CandidatePools({
   const beforeSubgraphPools = Date.now();
 
   log.info('V3 About to get all pools from subgraph provider!');
-  const allPoolsRaw = await subgraphProvider.getPools({ blockNumber });
-  log.info('V3 Got all pools from subgraph provider!');
+  const allPoolsRaw = await subgraphProvider.getPools(tokenIn, tokenOut, {
+    blockNumber,
+  });
+  log.info(
+    { samplePools: allPoolsRaw.slice(0, 3) },
+    'V3 Got all pools from subgraph provider!'
+  );
 
   const allPools = _.map(allPoolsRaw, (pool) => {
     return {
@@ -408,7 +413,16 @@ export async function getV3CandidatePools({
   >(subgraphPools, (subgraphPool) => {
     const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
     const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
-    const fee = parseFeeAmount(subgraphPool.feeTier);
+    let fee: FeeAmount;
+    try {
+      fee = parseFeeAmount(subgraphPool.feeTier);
+    } catch (err) {
+      log.info(
+        { subgraphPool },
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}/${subgraphPool.feeTier} because fee tier not supported`
+      );
+      return undefined;
+    }
 
     if (!tokenA || !tokenB) {
       log.info(
@@ -485,7 +499,9 @@ export async function getV2CandidatePools({
 
   const beforeSubgraphPools = Date.now();
 
-  const allPoolsRaw = await subgraphProvider.getPools({ blockNumber });
+  const allPoolsRaw = await subgraphProvider.getPools(tokenIn, tokenOut, {
+    blockNumber,
+  });
 
   const allPools = _.map(allPoolsRaw, (pool) => {
     return {

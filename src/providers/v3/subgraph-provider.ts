@@ -1,10 +1,10 @@
+import { Token } from '@uniswap/sdk-core';
 import { default as retry } from 'async-retry';
+import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
-import _ from 'lodash';
+import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
-import Timeout from 'await-timeout';
-import { ChainId } from '../../util/chains';
 import { V2SubgraphPool } from '../v2/subgraph-provider';
 
 export interface V3SubgraphPool {
@@ -53,7 +53,11 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 
 export interface IV3SubgraphProvider {
-  getPools(providerConfig?: ProviderConfig): Promise<V3SubgraphPool[]>;
+  getPools(
+    tokenIn?: Token,
+    tokenOut?: Token,
+    providerConfig?: ProviderConfig
+  ): Promise<V3SubgraphPool[]>;
 }
 
 export class V3SubgraphProvider implements IV3SubgraphProvider {
@@ -72,9 +76,13 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
   }
 
   public async getPools(
+    _tokenIn?: Token,
+    _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V3SubgraphPool[]> {
-    const blockNumber = providerConfig?.blockNumber ? await providerConfig.blockNumber : undefined;
+    const blockNumber = providerConfig?.blockNumber
+      ? await providerConfig.blockNumber
+      : undefined;
 
     const query = gql`
       query getPools($pageSize: Int!, $skip: Int!) {
@@ -83,11 +91,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           skip: $skip
           orderBy: totalValueLockedETH
           orderDirection: desc
-          ${
-            blockNumber
-              ? `block: { number: ${blockNumber} }`
-              : ``
-          }
+          ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
         ) {
           id
           token0 {
@@ -189,7 +193,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           tvlUSD: parseFloat(totalValueLockedUSD),
         };
       });
-      
+
     return poolsSanitized;
   }
 }

@@ -1,3 +1,4 @@
+import { Token } from '@uniswap/sdk-core';
 import { default as retry } from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
@@ -43,7 +44,11 @@ const threshold = 0.025;
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 export interface IV2SubgraphProvider {
-  getPools(providerConfig?: ProviderConfig): Promise<V2SubgraphPool[]>;
+  getPools(
+    tokenIn?: Token,
+    tokenOut?: Token,
+    providerConfig?: ProviderConfig
+  ): Promise<V2SubgraphPool[]>;
 }
 
 export class V2SubgraphProvider implements IV2SubgraphProvider {
@@ -62,6 +67,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
   }
 
   public async getPools(
+    _tokenIn?: Token,
+    _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
     const blockNumber = providerConfig?.blockNumber

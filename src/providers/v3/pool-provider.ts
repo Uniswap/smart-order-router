@@ -45,7 +45,7 @@ export type V3PoolAccessor = {
   getAllPools: () => Pool[];
 };
 
-export type PoolRetryOptions = AsyncRetry.Options;
+export type V3PoolRetryOptions = AsyncRetry.Options;
 
 export class V3PoolProvider implements IV3PoolProvider {
   // Computing pool addresses is slow as it requires hashing, encoding etc.
@@ -55,7 +55,7 @@ export class V3PoolProvider implements IV3PoolProvider {
   constructor(
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,
-    protected retryOptions: PoolRetryOptions = {
+    protected retryOptions: V3PoolRetryOptions = {
       retries: 2,
       minTimeout: 50,
       maxTimeout: 500,
@@ -151,16 +151,18 @@ export class V3PoolProvider implements IV3PoolProvider {
       poolAddressToPool[poolAddress] = pool;
     }
 
-    log.info(
-      {
-        invalidPools: _.map(
-          invalidPools,
-          ([token0, token1, fee]) =>
-            `${token0.symbol}/${token1.symbol}/${fee / 10000}%`
-        ),
-      },
-      `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
-    );
+    if (invalidPools) {
+      log.info(
+        {
+          invalidPools: _.map(
+            invalidPools,
+            ([token0, token1, fee]) =>
+              `${token0.symbol}/${token1.symbol}/${fee / 10000}%`
+          ),
+        },
+        `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
+      );
+    }
 
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 

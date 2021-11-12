@@ -22,7 +22,24 @@ export function parseFeeAmount(feeAmountStr: string) {
       return FeeAmount.MEDIUM;
     case '500':
       return FeeAmount.LOW;
+    case '100':
+      return FeeAmount.LOWEST;
     default:
       throw new Error(`Fee amount ${feeAmountStr} not supported.`);
+  }
+}
+
+export function unparseFeeAmount(feeAmount: FeeAmount) {
+  switch (feeAmount) {
+    case FeeAmount.HIGH:
+      return '10000';
+    case FeeAmount.MEDIUM:
+      return '3000';
+    case FeeAmount.LOW:
+      return '500';
+    case FeeAmount.LOWEST:
+      return '100';
+    default:
+      throw new Error(`Fee amount ${feeAmount} not supported.`);
   }
 }

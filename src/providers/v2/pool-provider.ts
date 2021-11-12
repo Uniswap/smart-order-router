@@ -33,7 +33,7 @@ export type V2PoolAccessor = {
   getAllPools: () => Pair[];
 };
 
-export type PoolRetryOptions = AsyncRetry.Options;
+export type V2PoolRetryOptions = AsyncRetry.Options;
 
 export class V2PoolProvider implements IV2PoolProvider {
   // Computing pool addresses is slow as it requires hashing, encoding etc.
@@ -43,7 +43,7 @@ export class V2PoolProvider implements IV2PoolProvider {
   constructor(
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,
-    protected retryOptions: PoolRetryOptions = {
+    protected retryOptions: V2PoolRetryOptions = {
       retries: 2,
       minTimeout: 50,
       maxTimeout: 500,
@@ -77,10 +77,6 @@ export class V2PoolProvider implements IV2PoolProvider {
 
     log.debug(
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
-    );
-
-    log.info(
-      `About to get reserves for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
     );
 
     const reservesResults = await this.getPoolsData<IReserves>(

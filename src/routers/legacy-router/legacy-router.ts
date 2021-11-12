@@ -84,8 +84,8 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     }
 
     return this.routeExactOut(
-      amount.currency,
       quoteCurrency,
+      amount.currency,
       amount,
       swapConfig,
       partialRoutingConfig

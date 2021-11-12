@@ -1,16 +1,16 @@
 import { Token, WETH9 } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
+import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import {
   DAI_MAINNET,
-  DAI_RINKEBY_1,
-  DAI_RINKEBY_2,
   USDC_MAINNET,
   USDT_MAINNET,
   WBTC_MAINNET,
 } from '../token-provider';
-import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
+import { IV3PoolProvider } from './pool-provider';
+import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -25,18 +25,21 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WBTC_MAINNET,
   ],
   [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]!],
-  [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]!, DAI_RINKEBY_1, DAI_RINKEBY_2],
+  [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]!],
   [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]!],
   [ChainId.KOVAN]: [WETH9[ChainId.KOVAN]!],
 };
 
-export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
-  constructor(private chainId: ChainId) {}
+export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
+  constructor(
+    private chainId: ChainId,
+    private v3PoolProvider: IV3PoolProvider
+  ) {}
 
   public async getPools(
     tokenIn?: Token,
     tokenOut?: Token
-  ): Promise<V2SubgraphPool[]> {
+  ): Promise<V3SubgraphPool[]> {
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
     const basePairs: [Token, Token][] = _.flatMap(
@@ -50,7 +53,7 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
       basePairs.concat(bases.map((base): [Token, Token] => [tokenOut, base]));
     }
 
-    const pairs: [Token, Token][] = _(basePairs)
+    const pairs: [Token, Token, FeeAmount][] = _(basePairs)
       .filter((tokens): tokens is [Token, Token] =>
         Boolean(tokens[0] && tokens[1])
       )
@@ -58,28 +61,37 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
         ([tokenA, tokenB]) =>
           tokenA.address !== tokenB.address && !tokenA.equals(tokenB)
       )
+      .flatMap<[Token, Token, FeeAmount]>(([tokenA, tokenB]) => {
+        return [
+          [tokenA, tokenB, FeeAmount.LOWEST],
+          [tokenA, tokenB, FeeAmount.LOW],
+          [tokenA, tokenB, FeeAmount.MEDIUM],
+          [tokenA, tokenB, FeeAmount.HIGH],
+        ];
+      })
       .value();
 
-    const subgraphPools: V2SubgraphPool[] = _.map(pairs, ([tokenA, tokenB]) => {
-      const poolAddress = Pair.getAddress(tokenA, tokenB);
+    const subgraphPools: V3SubgraphPool[] = _.map(
+      pairs,
+      ([tokenA, tokenB, fee]) => {
+        const { poolAddress, token0, token1 } =
+          this.v3PoolProvider.getPoolAddress(tokenA, tokenB, fee);
 
-      const [token0, token1] = tokenA.sortsBefore(tokenB)
-        ? [tokenA, tokenB]
-        : [tokenB, tokenA];
-
-      return {
-        id: poolAddress,
-        liquidity: '100',
-        token0: {
-          id: token0.address,
-        },
-        token1: {
-          id: token1.address,
-        },
-        supply: 100,
-        reserve: 100,
-      };
-    });
+        return {
+          id: poolAddress,
+          feeTier: unparseFeeAmount(fee),
+          liquidity: '100',
+          token0: {
+            id: token0.address,
+          },
+          token1: {
+            id: token1.address,
+          },
+          tvlETH: 100,
+          tvlUSD: 100,
+        };
+      }
+    );
 
     return subgraphPools;
   }

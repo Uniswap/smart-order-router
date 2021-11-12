@@ -32,11 +32,11 @@ import {
   setGlobalMetric,
   TokenProvider,
   UniswapMulticallProvider,
-  V2StaticSubgraphProvider,
   V3PoolProvider,
   V3QuoteProvider,
   V3SubgraphProvider,
 } from '../src';
+import { V2StaticFileSubgraphProvider } from '../src/providers/v2/static-file-subgraph-provider';
 
 export abstract class BaseCommand extends Command {
   static flags = {
@@ -277,7 +277,7 @@ export abstract class BaseCommand extends Command {
           new EIP1559GasPriceProvider(provider),
           gasPriceCache
         ),
-        v2SubgraphProvider: new V2StaticSubgraphProvider(),
+        v2SubgraphProvider: new V2StaticFileSubgraphProvider(),
         v3SubgraphProvider: new V3SubgraphProvider(chainId, undefined, 15000),
       });
 

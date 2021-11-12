@@ -1078,6 +1078,26 @@ export class AlphaRouter
         }
       );
     }
+
+    const { routes: routeAmounts } = swapRouteRaw;
+    let hasV3Route = false;
+    let hasV2Route = false;
+    for (const routeAmount of routeAmounts) {
+      if (routeAmount.protocol == Protocol.V3) {
+        hasV3Route = true;
+      }
+      if (routeAmount.protocol == Protocol.V2) {
+        hasV2Route = true;
+      }
+    }
+
+    if (hasV3Route && hasV2Route) {
+      metric.putMetric(`V3AndV2Routes`, 1, MetricLoggerUnit.Count);
+    } else if (hasV3Route) {
+      metric.putMetric(`V3Routes`, 1, MetricLoggerUnit.Count);
+    } else if (hasV2Route) {
+      metric.putMetric(`V2Routes`, 1, MetricLoggerUnit.Count);
+    }
   }
 
   private calculateOptimalRatio(
