@@ -3,6 +3,7 @@ import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
+import { log } from '../../util/log';
 import {
   DAI_MAINNET,
   USDC_MAINNET,
@@ -40,17 +41,20 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     tokenIn?: Token,
     tokenOut?: Token
   ): Promise<V3SubgraphPool[]> {
+    log.info('In static subgraph provider for V3')
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
-    const basePairs: [Token, Token][] = _.flatMap(
+    let basePairs: [Token, Token][] = _.flatMap(
       bases,
       (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
     );
 
     if (tokenIn && tokenOut) {
-      basePairs.concat([tokenIn, tokenOut]);
-      basePairs.concat(bases.map((base): [Token, Token] => [tokenIn, base]));
-      basePairs.concat(bases.map((base): [Token, Token] => [tokenOut, base]));
+      basePairs.push(
+        [tokenIn, tokenOut],
+        ...bases.map((base): [Token, Token] => [tokenIn, base]),
+        ...bases.map((base): [Token, Token] => [tokenOut, base])
+      );
     }
 
     const pairs: [Token, Token, FeeAmount][] = _(basePairs)
@@ -71,11 +75,17 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
       })
       .value();
 
-    const subgraphPools: V3SubgraphPool[] = _.map(
-      pairs,
-      ([tokenA, tokenB, fee]) => {
+    const poolAddressSet = new Set<string>();
+
+    const subgraphPools: V3SubgraphPool[] = _(pairs)
+      .map(([tokenA, tokenB, fee]) => {
         const { poolAddress, token0, token1 } =
           this.v3PoolProvider.getPoolAddress(tokenA, tokenB, fee);
+
+        if (poolAddressSet.has(poolAddress)) {
+          return undefined;
+        }
+        poolAddressSet.add(poolAddress);
 
         return {
           id: poolAddress,
@@ -90,8 +100,9 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
           tvlETH: 100,
           tvlUSD: 100,
         };
-      }
-    );
+      })
+      .compact()
+      .value();
 
     return subgraphPools;
   }

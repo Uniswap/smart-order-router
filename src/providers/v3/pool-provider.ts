@@ -92,10 +92,6 @@ export class V3PoolProvider implements IV3PoolProvider {
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
     );
 
-    log.info(
-      `About to get liquidity and slot0s for ${poolAddressSet.size} pools as of block: ${providerConfig?.blockNumber}.`
-    );
-
     const [slot0Results, liquidityResults] = await Promise.all([
       this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0', providerConfig),
       this.getPoolsData<[ILiquidity]>(
@@ -151,7 +147,7 @@ export class V3PoolProvider implements IV3PoolProvider {
       poolAddressToPool[poolAddress] = pool;
     }
 
-    if (invalidPools) {
+    if (invalidPools.length > 0) {
       log.info(
         {
           invalidPools: _.map(

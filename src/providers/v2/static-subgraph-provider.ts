@@ -2,6 +2,7 @@ import { Token, WETH9 } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 import { ChainId } from '../../util/chains';
+import { log } from '../../util/log';
 import {
   DAI_MAINNET,
   DAI_RINKEBY_1,
@@ -37,17 +38,20 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
     tokenIn?: Token,
     tokenOut?: Token
   ): Promise<V2SubgraphPool[]> {
+    log.info('In static subgraph provider for V2');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
-    const basePairs: [Token, Token][] = _.flatMap(
+    let basePairs: [Token, Token][] = _.flatMap(
       bases,
       (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
     );
 
     if (tokenIn && tokenOut) {
-      basePairs.concat([tokenIn, tokenOut]);
-      basePairs.concat(bases.map((base): [Token, Token] => [tokenIn, base]));
-      basePairs.concat(bases.map((base): [Token, Token] => [tokenOut, base]));
+      basePairs.push(
+        [tokenIn, tokenOut],
+        ...bases.map((base): [Token, Token] => [tokenIn, base]),
+        ...bases.map((base): [Token, Token] => [tokenOut, base])
+      );
     }
 
     const pairs: [Token, Token][] = _(basePairs)
@@ -60,26 +64,36 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
       )
       .value();
 
-    const subgraphPools: V2SubgraphPool[] = _.map(pairs, ([tokenA, tokenB]) => {
-      const poolAddress = Pair.getAddress(tokenA, tokenB);
+    const poolAddressSet = new Set<string>();
 
-      const [token0, token1] = tokenA.sortsBefore(tokenB)
-        ? [tokenA, tokenB]
-        : [tokenB, tokenA];
+    const subgraphPools: V2SubgraphPool[] = _(pairs)
+      .map(([tokenA, tokenB]) => {
+        const poolAddress = Pair.getAddress(tokenA, tokenB);
 
-      return {
-        id: poolAddress,
-        liquidity: '100',
-        token0: {
-          id: token0.address,
-        },
-        token1: {
-          id: token1.address,
-        },
-        supply: 100,
-        reserve: 100,
-      };
-    });
+        if (poolAddressSet.has(poolAddress)) {
+          return undefined;
+        }
+        poolAddressSet.add(poolAddress);
+
+        const [token0, token1] = tokenA.sortsBefore(tokenB)
+          ? [tokenA, tokenB]
+          : [tokenB, tokenA];
+
+        return {
+          id: poolAddress,
+          liquidity: '100',
+          token0: {
+            id: token0.address,
+          },
+          token1: {
+            id: token1.address,
+          },
+          supply: 100,
+          reserve: 100,
+        };
+      })
+      .compact()
+      .value();
 
     return subgraphPools;
   }

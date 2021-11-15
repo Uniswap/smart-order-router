@@ -259,6 +259,7 @@ export function getBestSwapRouteBy(
               .map((r) => r.toString())
               .join(', ')})`
         ),
+        onQueue: queue.size,
       },
       `Top 5 with ${splits} splits`
     );
@@ -272,6 +273,7 @@ export function getBestSwapRouteBy(
     // If we didn't improve our quote by adding another split, very unlikely to improve it by splitting more after that.
     if (splits >= 3 && bestSwap && bestSwap.length < splits - 1) {
       log.info(
+        { splits, layer },
         `Did not improve on route with ${
           splits - 1
         } splits. Not checking ${splits} splits.`
@@ -284,10 +286,6 @@ export function getBestSwapRouteBy(
       metric.putMetric(`MaxSplitsHitReached`, 1, MetricLoggerUnit.Count);
       break;
     }
-
-    log.info(
-      `About to consider ${splits} splits. ${layer} potential routes to iterate on.`
-    );
 
     while (layer > 0) {
       layer--;

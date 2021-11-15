@@ -179,10 +179,6 @@ export class V3QuoteProvider implements IV3QuoteProvider {
         _providerConfig?.blockNumber ?? (await this.provider.getBlockNumber()),
     };
 
-    log.info(
-      { amounts: amounts.map((a) => a.toExact()) },
-      'In quotes many data'
-    );
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const encodedRoute = encodeRouteToPath(
@@ -652,7 +648,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       routesQuotes.push([route, quotes]);
     }
 
-    _.forEach(_.chunk(debugFailedQuotes, 20), (quotes, idx) => {
+    _.forEach(_.chunk(debugFailedQuotes, 40), (quotes, idx) => {
       const routesInChunk = _(quotes)
         .map((q) => q.route)
         .uniq()

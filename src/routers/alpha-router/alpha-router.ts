@@ -666,10 +666,10 @@ export class AlphaRouter
       blockNumber: routingConfig.blockNumber,
     });
 
-    const gasModel = this.v3GasModelFactory.buildGasModel(
+    const gasModel = await this.v3GasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
-      poolAccessor,
+      this.v3PoolProvider,
       quoteToken
     );
 
@@ -796,10 +796,10 @@ export class AlphaRouter
     );
     const { routesWithQuotes } = await quoteFn(amounts, routes);
 
-    const gasModel = this.v2GasModelFactory.buildGasModel(
+    const gasModel = await this.v2GasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
-      poolAccessor,
+      this.v2PoolProvider,
       quoteToken
     );
 
@@ -1049,20 +1049,19 @@ export class AlphaRouter
     },
     allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
   ) {
+    const poolAddressesUsed = new Set<string>();
+    const { routes: routeAmounts } = swapRouteRaw;
+    _(routeAmounts)
+      .flatMap((routeAmount) => {
+        const { poolAddresses } = routeAmount;
+        return poolAddresses;
+      })
+      .forEach((address: string) => {
+        poolAddressesUsed.add(address.toLowerCase());
+      });
+
     for (const poolsBySelection of allPoolsBySelection) {
-      const { routes: routeAmounts } = swapRouteRaw;
-      const poolAddressesUsed = new Set<string>();
       const { protocol } = poolsBySelection;
-
-      _(routeAmounts)
-        .flatMap((routeAmount) => {
-          const { poolAddresses } = routeAmount;
-          return poolAddresses;
-        })
-        .forEach((address: string) => {
-          poolAddressesUsed.add(address);
-        });
-
       _.forIn(
         poolsBySelection.selections,
         (pools: PoolId[], topNSelection: string) => {
@@ -1079,7 +1078,6 @@ export class AlphaRouter
       );
     }
 
-    const { routes: routeAmounts } = swapRouteRaw;
     let hasV3Route = false;
     let hasV2Route = false;
     for (const routeAmount of routeAmounts) {

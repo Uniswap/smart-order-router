@@ -270,7 +270,7 @@ describe('alpha router', () => {
         ),
       };
     });
-    mockV3GasModelFactory.buildGasModel.returns(v3MockGasModel);
+    mockV3GasModelFactory.buildGasModel.resolves(v3MockGasModel);
 
     mockV2GasModelFactory = sinon.createStubInstance(
       V2HeuristicGasModelFactory
@@ -291,7 +291,7 @@ describe('alpha router', () => {
         ),
       };
     });
-    mockV2GasModelFactory.buildGasModel.returns(v2MockGasModel);
+    mockV2GasModelFactory.buildGasModel.resolves(v2MockGasModel);
 
     mockBlockTokenListProvider = sinon.createStubInstance(
       CachingTokenListProvider

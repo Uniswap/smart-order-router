@@ -120,7 +120,7 @@ export class V2PoolProvider implements IV2PoolProvider {
       poolAddressToPool[poolAddress] = pool;
     }
 
-    if (invalidPools) {
+    if (invalidPools.length > 0) {
       log.info(
         {
           invalidPools: _.map(

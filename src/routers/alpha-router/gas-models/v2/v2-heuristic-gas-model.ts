@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
-import { V2PoolAccessor } from '../../../../providers/v2/pool-provider';
+import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
 import { ChainId, log, WETH9 } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { V2RouteWithValidQuote } from '../../entities/route-with-valid-quote';
@@ -23,23 +23,23 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     super();
   }
 
-  public buildGasModel(
+  public async buildGasModel(
     chainId: ChainId,
-    _gasPriceWei: BigNumber,
-    _poolAccessor: V2PoolAccessor,
+    gasPriceWei: BigNumber,
+    poolProvider: IV2PoolProvider,
     token: Token
-  ): IGasModel<V2RouteWithValidQuote> {
+  ): Promise<IGasModel<V2RouteWithValidQuote>> {
     if (token.equals(WETH9[chainId]!)) {
-      const usdPool: Pair = this.getHighestLiquidityUSDPool(
+      const usdPool: Pair = await this.getHighestLiquidityUSDPool(
         chainId,
-        _poolAccessor
+        poolProvider
       );
 
       return {
         estimateGasCost: (routeWithValidQuote: V2RouteWithValidQuote) => {
           const { gasCostInEth, gasUse } = this.estimateGas(
             routeWithValidQuote,
-            _gasPriceWei,
+            gasPriceWei,
             chainId
           );
 
@@ -64,11 +64,15 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
     // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <token>/ETH pool.
-    const ethPool: Pair | null = this.getEthPool(chainId, token, _poolAccessor);
-
-    const usdPool: Pair = this.getHighestLiquidityUSDPool(
+    const ethPool: Pair | null = await this.getEthPool(
       chainId,
-      _poolAccessor
+      token,
+      poolProvider
+    );
+
+    const usdPool: Pair = await this.getHighestLiquidityUSDPool(
+      chainId,
+      poolProvider
     );
 
     return {
@@ -80,7 +84,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
         const { gasCostInEth, gasUse } = this.estimateGas(
           routeWithValidQuote,
-          _gasPriceWei,
+          gasPriceWei,
           chainId
         );
 
@@ -171,13 +175,14 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     return { gasCostInEth, gasUse };
   }
 
-  private getEthPool(
+  private async getEthPool(
     chainId: ChainId,
     token: Token,
-    poolAccessor: V2PoolAccessor
-  ): Pair | null {
+    poolProvider: IV2PoolProvider
+  ): Promise<Pair | null> {
     const weth = WETH9[chainId]!;
 
+    const poolAccessor = await poolProvider.getPools([[weth, token]]);
     const pool = poolAccessor.getPool(weth, token);
 
     if (!pool) {
@@ -192,10 +197,10 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     return pool;
   }
 
-  private getHighestLiquidityUSDPool(
+  private async getHighestLiquidityUSDPool(
     chainId: ChainId,
-    poolAccessor: V2PoolAccessor
-  ): Pair {
+    poolProvider: IV2PoolProvider
+  ): Promise<Pair> {
     const usdTokens = usdGasTokensByChain[chainId];
 
     if (!usdTokens) {
@@ -204,14 +209,12 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       );
     }
 
-    const pools = [];
-
-    for (const usdToken of usdTokens) {
-      const pool = poolAccessor.getPool(WETH9[chainId]!, usdToken);
-      if (pool) {
-        pools.push(pool);
-      }
-    }
+    const usdPools = _.map<Token, [Token, Token]>(usdTokens, (usdToken) => [
+      usdToken,
+      WETH9[chainId]!,
+    ]);
+    const poolAccessor = await poolProvider.getPools(usdPools);
+    const pools = poolAccessor.getAllPools();
 
     if (pools.length == 0) {
       log.error(

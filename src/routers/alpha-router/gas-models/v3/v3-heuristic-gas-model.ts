@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { V3PoolAccessor } from '../../../../providers/v3/pool-provider';
+import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId, WETH9 } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { log } from '../../../../util/log';
@@ -30,19 +30,19 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     super();
   }
 
-  public buildGasModel(
+  public async buildGasModel(
     chainId: ChainId,
     gasPriceWei: BigNumber,
-    poolAccessor: V3PoolAccessor,
+    poolProvider: IV3PoolProvider,
     token: Token
-  ): IGasModel<V3RouteWithValidQuote> {
+  ): Promise<IGasModel<V3RouteWithValidQuote>> {
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
     // We do return a gas use in USD however, so we still convert to usd.
     if (token.equals(WETH9[chainId]!)) {
-      const usdPool: Pool = this.getHighestLiquidityUSDPool(
+      const usdPool: Pool = await this.getHighestLiquidityUSDPool(
         chainId,
-        poolAccessor
+        poolProvider
       );
 
       const estimateGasCost = (
@@ -82,15 +82,15 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
 
     // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <token>/ETH pool.
-    const ethPool: Pool | null = this.getHighestLiquidityEthPool(
+    const ethPool: Pool | null = await this.getHighestLiquidityEthPool(
       chainId,
       token,
-      poolAccessor
+      poolProvider
     );
 
-    const usdPool: Pool = this.getHighestLiquidityUSDPool(
+    const usdPool: Pool = await this.getHighestLiquidityUSDPool(
       chainId,
-      poolAccessor
+      poolProvider
     );
 
     const usdToken =
@@ -212,12 +212,20 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     return { gasCostInEth, gasUse };
   }
 
-  private getHighestLiquidityEthPool(
+  private async getHighestLiquidityEthPool(
     chainId: ChainId,
     token: Token,
-    poolAccessor: V3PoolAccessor
-  ): Pool | null {
+    poolProvider: IV3PoolProvider
+  ): Promise<Pool | null> {
     const weth = WETH9[chainId]!;
+
+    const ethPools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
+      .map<[Token, Token, FeeAmount]>((feeAmount) => {
+        return [weth, token, feeAmount];
+      })
+      .value();
+
+    const poolAccessor = await poolProvider.getPools(ethPools);
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .map((feeAmount) => {
@@ -240,10 +248,10 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     return maxPool;
   }
 
-  private getHighestLiquidityUSDPool(
+  private async getHighestLiquidityUSDPool(
     chainId: ChainId,
-    poolAccessor: V3PoolAccessor
-  ): Pool {
+    poolProvider: IV3PoolProvider
+  ): Promise<Pool> {
     const usdTokens = usdGasTokensByChain[chainId];
 
     if (!usdTokens) {
@@ -252,7 +260,28 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       );
     }
 
-    const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
+    const usdPools = _([
+      FeeAmount.HIGH,
+      FeeAmount.MEDIUM,
+      FeeAmount.LOW,
+      FeeAmount.LOWEST,
+    ])
+      .flatMap((feeAmount) => {
+        return _.map<Token, [Token, Token, FeeAmount]>(
+          usdTokens,
+          (usdToken) => [WETH9[chainId]!, usdToken, feeAmount]
+        );
+      })
+      .value();
+
+    const poolAccessor = await poolProvider.getPools(usdPools);
+
+    const pools = _([
+      FeeAmount.HIGH,
+      FeeAmount.MEDIUM,
+      FeeAmount.LOW,
+      FeeAmount.LOWEST,
+    ])
       .flatMap((feeAmount) => {
         const pools = [];
 

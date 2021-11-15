@@ -7,8 +7,8 @@ import {
   USDC_MAINNET,
   USDT_MAINNET,
 } from '../../../providers/token-provider';
-import { V2PoolAccessor } from '../../../providers/v2/pool-provider';
-import { V3PoolAccessor } from '../../../providers/v3/pool-provider';
+import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
+import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
 import {
@@ -34,16 +34,16 @@ export abstract class IV3GasModelFactory {
   public abstract buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
-    poolProvider: V3PoolAccessor,
+    poolProvider: IV3PoolProvider,
     inTermsOfToken: Token
-  ): IGasModel<V3RouteWithValidQuote>;
+  ): Promise<IGasModel<V3RouteWithValidQuote>>;
 }
 
 export abstract class IV2GasModelFactory {
   public abstract buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
-    poolProvider: V2PoolAccessor,
-    inTermsOfToken: Token
-  ): IGasModel<V2RouteWithValidQuote>;
+    poolProvider: IV2PoolProvider,
+    token: Token
+  ): Promise<IGasModel<V2RouteWithValidQuote>>;
 }

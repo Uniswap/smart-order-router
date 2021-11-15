@@ -48,8 +48,20 @@ export const DAI_MAINNET = new Token(
   'Dai Stablecoin'
 );
 
-export const DAI_RINKEBY_1 = new Token(ChainId.RINKEBY, '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea', 18, 'DAI', 'DAI')
-export const DAI_RINKEBY_2 = new Token(ChainId.RINKEBY, '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735', 18, 'DAI', 'DAI');
+export const DAI_RINKEBY_1 = new Token(
+  ChainId.RINKEBY,
+  '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea',
+  18,
+  'DAI',
+  'DAI'
+);
+export const DAI_RINKEBY_2 = new Token(
+  ChainId.RINKEBY,
+  '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735',
+  18,
+  'DAI',
+  'DAI'
+);
 
 export const TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
@@ -59,21 +71,20 @@ export const TOKENS: {
     USDC: USDC_MAINNET,
     USDT: USDT_MAINNET,
     WBTC: WBTC_MAINNET,
-    DAI: DAI_MAINNET
+    DAI: DAI_MAINNET,
   },
   [ChainId.RINKEBY]: {
     WETH: WETH9[ChainId.RINKEBY]!,
     DAI_1: DAI_RINKEBY_1,
-    DAI_2: DAI_RINKEBY_2
-  }
-}
+    DAI_2: DAI_RINKEBY_2,
+  },
+};
 
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) {
-  }
+  ) {}
 
   public async getTokens(
     _addresses: string[],
@@ -86,13 +97,6 @@ export class TokenProvider implements ITokenProvider {
       .map((address) => address.toLowerCase())
       .uniq()
       .value();
-
-    log.info(
-      { addressesFound: addresses },
-      `About to fetch ${
-        addresses.length
-      } tokens on-chain`
-    );
 
     if (addresses.length > 0) {
       const [symbolsResult, decimalsResult] = await Promise.all([
@@ -150,7 +154,9 @@ export class TokenProvider implements ITokenProvider {
       }
 
       log.info(
-        `Got token symbol and decimals for ${Object.values(addressToToken).length} out of ${addresses.length} tokens ${
+        `Got token symbol and decimals for ${
+          Object.values(addressToToken).length
+        } out of ${addresses.length} tokens on-chain ${
           providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
         }`
       );
