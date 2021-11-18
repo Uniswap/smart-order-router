@@ -38,6 +38,11 @@ export type SwapToRatioRoute = SwapRoute & {
   postSwapTargetPool: Pool;
 };
 
+export type SwapToRatioResponse = {
+  status: string;
+  result: SwapToRatioRoute | null
+}
+
 export type SwapConfig = {
   recipient: string;
   slippageTolerance: Percent;
@@ -76,5 +81,5 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
-  ): Promise<SwapToRatioRoute | null>;
+  ): Promise<SwapToRatioResponse>;
 }

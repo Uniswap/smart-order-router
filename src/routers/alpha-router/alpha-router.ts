@@ -63,7 +63,7 @@ import {
   ISwapToRatio,
   SwapConfig,
   SwapRoute,
-  SwapToRatioRoute,
+  SwapToRatioResponse,
 } from '../router';
 import {
   RouteWithValidQuote,
@@ -323,7 +323,7 @@ export class AlphaRouter
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
-  ): Promise<SwapToRatioRoute | null> {
+  ): Promise<SwapToRatioResponse> {
     if (
       token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)
     ) {
@@ -367,7 +367,10 @@ export class AlphaRouter
     while (!ratioAchieved) {
       n++;
       if (n > swapAndAddConfig.maxIterations) {
-        return null;
+        return {
+          status: 'NO_ROUTE_FOUND',
+          result: null
+        }
       }
 
       let amountToSwap = calculateRatioAmountIn(
@@ -378,7 +381,10 @@ export class AlphaRouter
       );
       if (amountToSwap.equalTo(0)) {
         log.info(`no swap needed`)
-        return null;
+        return {
+          status: 'NO_SWAP_NEEDED',
+          result: null
+        }
       }
 
       swap = await this.route(
@@ -390,7 +396,10 @@ export class AlphaRouter
       );
 
       if (!swap) {
-        return null;
+        return {
+          status: 'NO_ROUTE_FOUND',
+          result: null
+        }
       }
 
       let inputBalanceUpdated = inputBalance.subtract(swap.trade!.inputAmount);
@@ -451,10 +460,16 @@ export class AlphaRouter
     }
 
     if (!swap) {
-      return null;
+      return {
+        status: 'NO_ROUTE_FOUND',
+        result: null
+      }
     }
 
-    return { ...swap, optimalRatio, postSwapTargetPool };
+    return {
+      status: 'SUCCESS',
+      result: { ...swap, optimalRatio, postSwapTargetPool }
+    }
   }
 
   public async route(
