@@ -63,6 +63,7 @@ import {
   ISwapToRatio,
   SwapConfig,
   SwapRoute,
+  SwapToRatioStatus,
   SwapToRatioResponse,
 } from '../router';
 import {
@@ -367,9 +368,10 @@ export class AlphaRouter
     while (!ratioAchieved) {
       n++;
       if (n > swapAndAddConfig.maxIterations) {
+        log.info('max iterations exceeded')
         return {
-          status: 'NO_ROUTE_FOUND',
-          result: null
+          status: SwapToRatioStatus.NO_ROUTE_FOUND,
+          error:  'max iterations exceeded'
         }
       }
 
@@ -382,8 +384,7 @@ export class AlphaRouter
       if (amountToSwap.equalTo(0)) {
         log.info(`no swap needed`)
         return {
-          status: 'NO_SWAP_NEEDED',
-          result: null
+          status: SwapToRatioStatus.NO_SWAP_NEEDED,
         }
       }
 
@@ -397,8 +398,8 @@ export class AlphaRouter
 
       if (!swap) {
         return {
-          status: 'NO_ROUTE_FOUND',
-          result: null
+          status: SwapToRatioStatus.NO_ROUTE_FOUND,
+          error:  'no route found'
         }
       }
 
@@ -461,13 +462,13 @@ export class AlphaRouter
 
     if (!swap) {
       return {
-        status: 'NO_ROUTE_FOUND',
-        result: null
-      }
+          status: SwapToRatioStatus.NO_ROUTE_FOUND,
+          error:  'no route found'
+        }
     }
 
     return {
-      status: 'SUCCESS',
+      status: SwapToRatioStatus.SUCCESS,
       result: { ...swap, optimalRatio, postSwapTargetPool }
     }
   }

@@ -38,10 +38,27 @@ export type SwapToRatioRoute = SwapRoute & {
   postSwapTargetPool: Pool;
 };
 
-export type SwapToRatioResponse = {
-  status: string;
-  result: SwapToRatioRoute | null
+export enum SwapToRatioStatus {
+  SUCCESS = 1,
+  NO_ROUTE_FOUND = 2,
+  NO_SWAP_NEEDED = 3
 }
+
+export type SwapToRatioSuccess = {
+  status: SwapToRatioStatus.SUCCESS;
+  result: SwapToRatioRoute
+}
+
+export type SwapToRatioFail = {
+  status: SwapToRatioStatus.NO_ROUTE_FOUND;
+  error: string
+}
+
+export type SwapToRatioNoSwapNeeded = {
+  status: SwapToRatioStatus.NO_SWAP_NEEDED;
+}
+
+export type SwapToRatioResponse = SwapToRatioSuccess | SwapToRatioFail | SwapToRatioNoSwapNeeded
 
 export type SwapConfig = {
   recipient: string;

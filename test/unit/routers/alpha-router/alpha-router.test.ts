@@ -15,6 +15,7 @@ import {
   ETHGasStationInfoProvider,
   parseAmount,
   SwapAndAddConfig,
+  SwapToRatioStatus,
   TokenProvider,
   UniswapMulticallProvider,
   USDC_MAINNET as USDC,
@@ -1100,7 +1101,7 @@ describe('alpha router', () => {
     });
   });
 
-  describe('to ratio', () => {
+  describe.only('to ratio', () => {
     describe('simple 1 swap scenario', () => {
       describe('when token0Balance has excess tokens', () => {
         test('with in range position calls routeExactIn with correct parameters', async () => {
@@ -1734,12 +1735,16 @@ describe('alpha router', () => {
               ROUTING_CONFIG
             );
 
-            expect(swap?.optimalRatio.toFixed(1)).toEqual(
-              new Fraction(1, 2).toFixed(1)
-            );
-            expect(swap?.postSwapTargetPool.sqrtRatioX96).toEqual(
-              JSBI.BigInt(oneHalfX96.toString())
-            );
+            if (swap.status == SwapToRatioStatus.SUCCESS) {
+              expect(swap.result.optimalRatio.toFixed(1)).toEqual(
+                new Fraction(1, 2).toFixed(1)
+              );
+              expect(swap.result.postSwapTargetPool.sqrtRatioX96).toEqual(
+                JSBI.BigInt(oneHalfX96.toString())
+              );
+            } else {
+              throw('swap was not successful')
+            }
           });
 
           test('when trade moves sqrtPrice in target pool out of range it calls again with new optimalRatio of 0', async () => {
