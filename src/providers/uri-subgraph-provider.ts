@@ -12,7 +12,7 @@ export class URISubgraphProvider<
   constructor(
     private chainId: ChainId,
     private uri: string,
-    private timeout = 3000,
+    private timeout = 6000,
     private retries = 2
   ) {}
 
@@ -21,6 +21,8 @@ export class URISubgraphProvider<
       { uri: this.uri },
       `About to get subgraph pools from URI ${this.uri}`
     );
+
+    let allPools: TSubgraphPool[] = [];
 
     await retry(
       async () => {
@@ -56,7 +58,7 @@ export class URISubgraphProvider<
           `Got subgraph pools from uri. Num: ${pools.length}`
         );
 
-        return pools;
+        allPools = pools;
       },
       {
         retries: this.retries,
@@ -69,6 +71,6 @@ export class URISubgraphProvider<
       }
     );
 
-    throw new Error(`Unable to get pools from ${this.uri}`);
+    return allPools;
   }
 }

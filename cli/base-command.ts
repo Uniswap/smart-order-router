@@ -34,7 +34,7 @@ import {
   UniswapMulticallProvider,
   V3PoolProvider,
   V3QuoteProvider,
-  V3SubgraphProvider,
+  V3URISubgraphProvider,
 } from '../src';
 import { V2StaticFileSubgraphProvider } from '../src/providers/v2/static-file-subgraph-provider';
 
@@ -278,7 +278,10 @@ export abstract class BaseCommand extends Command {
           gasPriceCache
         ),
         v2SubgraphProvider: new V2StaticFileSubgraphProvider(),
-        v3SubgraphProvider: new V3SubgraphProvider(chainId, undefined, 15000),
+        v3SubgraphProvider: new V3URISubgraphProvider(
+          ChainId.MAINNET,
+          'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/mainnet.json'
+        ),
       });
 
       this._swapToRatioRouter = router;

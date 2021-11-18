@@ -28,6 +28,7 @@ import {
   UniswapMulticallProvider,
   V2QuoteProvider,
   V2SubgraphProvider,
+  V3URISubgraphProvider,
 } from '../../providers';
 import {
   CachingTokenListProvider,
@@ -42,6 +43,7 @@ import {
   IV2PoolProvider,
   V2PoolProvider,
 } from '../../providers/v2/pool-provider';
+import { V2URISubgraphProvider } from '../../providers/v2/uri-subgraph-provider';
 import {
   IV3PoolProvider,
   V3PoolProvider,
@@ -50,10 +52,7 @@ import {
   IV3QuoteProvider,
   V3QuoteProvider,
 } from '../../providers/v3/quote-provider';
-import {
-  IV3SubgraphProvider,
-  V3SubgraphProvider,
-} from '../../providers/v3/subgraph-provider';
+import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
 import { log } from '../../util/log';
@@ -158,10 +157,19 @@ export type SwapAndAddConfig = {
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
-// const IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-//   [ChainId.MAINNET]:
-//     'https://cloudflare-ipfs.com/ipns/beta.api.uniswap.org/v1/pools/v3/mainnet.json',
-// };
+const V3_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+  [ChainId.MAINNET]:
+    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v3/mainnet.json',
+  [ChainId.RINKEBY]:
+    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v3/rinkeby.json',
+};
+
+const V2_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+  [ChainId.MAINNET]:
+    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v2/mainnet.json',
+  [ChainId.RINKEBY]:
+    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v2/rinkeby.json',
+};
 
 export class AlphaRouter
   implements
@@ -236,6 +244,22 @@ export class AlphaRouter
     this.v2PoolProvider =
       v2PoolProvider ?? new V2PoolProvider(chainId, this.multicall2Provider);
     this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
+
+    if (v2SubgraphProvider) {
+      this.v2SubgraphProvider = v2SubgraphProvider;
+    } else {
+      if (!V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
+        throw new Error(
+          `No IPFS pool cache for V2 on ${chainId}. Provide your own provider.`
+        );
+      }
+
+      this.v2SubgraphProvider = new V2URISubgraphProvider(
+        chainId,
+        V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+      );
+    }
+
     this.v2SubgraphProvider =
       v2SubgraphProvider ?? new V2SubgraphProvider(chainId);
 
@@ -260,9 +284,20 @@ export class AlphaRouter
         new TokenProvider(chainId, this.multicall2Provider)
       );
 
-    this.v3SubgraphProvider = v3SubgraphProvider
-      ? v3SubgraphProvider
-      : new V3SubgraphProvider(this.chainId);
+    if (v3SubgraphProvider) {
+      this.v3SubgraphProvider = v3SubgraphProvider;
+    } else {
+      if (!V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
+        throw new Error(
+          `No IPFS pool cache for V3 on ${chainId}. Provide your own provider.`
+        );
+      }
+
+      this.v3SubgraphProvider = new V3URISubgraphProvider(
+        chainId,
+        V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+      );
+    }
 
     this.gasPriceProvider =
       gasPriceProvider ??
