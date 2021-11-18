@@ -3,7 +3,12 @@ import { Currency, Ether, Fraction, Percent } from '@uniswap/sdk-core';
 import { Position } from '@uniswap/v3-sdk';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
-import { ID_TO_CHAIN_ID, parseAmount, SwapToRatioResponse, SwapToRatioStatus } from '../../src';
+import {
+  ID_TO_CHAIN_ID,
+  parseAmount,
+  SwapToRatioResponse,
+  SwapToRatioStatus,
+} from '../../src';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
@@ -127,7 +132,7 @@ export class QuoteToRatio extends BaseCommand {
       }
     );
 
-    if (swapRoutes.status === SwapToRatioStatus.SUCCESS ) {
+    if (swapRoutes.status === SwapToRatioStatus.SUCCESS) {
       const {
         blockNumber,
         estimatedGasUsed,
@@ -161,9 +166,7 @@ export class QuoteToRatio extends BaseCommand {
       return;
     } else if (swapRoutes.status === SwapToRatioStatus.NO_SWAP_NEEDED) {
       log.error(
-        `no swap needed. ${
-          debug ? '' : 'Run in debug mode for more info'
-        }.`
+        `no swap needed. ${debug ? '' : 'Run in debug mode for more info'}.`
       );
       return;
     }
