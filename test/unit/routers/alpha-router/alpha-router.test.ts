@@ -1117,7 +1117,7 @@ describe('alpha router', () => {
 
           const spy = sinon.spy(alphaRouter, 'route');
 
-          const result = await alphaRouter.routeToRatio(
+          const route = await alphaRouter.routeToRatio(
             token0Balance,
             token1Balance,
             position,
@@ -1126,14 +1126,18 @@ describe('alpha router', () => {
             ROUTING_CONFIG
           );
 
-          expect(result!.optimalRatio).toBeDefined();
-          expect(result!.postSwapTargetPool).toBeDefined();
+          if (route.status === SwapToRatioStatus.SUCCESS) {
+            expect(route.result.optimalRatio).toBeDefined();
+            expect(route.result.postSwapTargetPool).toBeDefined();
 
-          const exactAmountInBalance = parseAmount('7.5', USDC);
+            const exactAmountInBalance = parseAmount('7.5', USDC);
 
-          const exactInputParameters = spy.firstCall.args;
-          expect(exactInputParameters[0]).toEqual(exactAmountInBalance);
-          expect(exactInputParameters[1]).toEqual(token1Balance.currency);
+            const exactInputParameters = spy.firstCall.args;
+            expect(exactInputParameters[0]).toEqual(exactAmountInBalance);
+            expect(exactInputParameters[1]).toEqual(token1Balance.currency);
+          } else {
+            throw('routeToRatio unsuccessful')
+          }
         });
 
         test('with out of range position calls routeExactIn with correct parameters', async () => {
