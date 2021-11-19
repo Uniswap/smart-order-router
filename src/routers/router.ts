@@ -1,3 +1,4 @@
+import { Trade } from '@uniswap/router-sdk';
 import {
   Currency,
   Fraction,
@@ -5,7 +6,6 @@ import {
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
-import { Trade } from '@uniswap/router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
   MethodParameters,
@@ -37,6 +37,31 @@ export type SwapToRatioRoute = SwapRoute & {
   optimalRatio: Fraction;
   postSwapTargetPool: Pool;
 };
+
+export enum SwapToRatioStatus {
+  SUCCESS = 1,
+  NO_ROUTE_FOUND = 2,
+  NO_SWAP_NEEDED = 3,
+}
+
+export type SwapToRatioSuccess = {
+  status: SwapToRatioStatus.SUCCESS;
+  result: SwapToRatioRoute;
+};
+
+export type SwapToRatioFail = {
+  status: SwapToRatioStatus.NO_ROUTE_FOUND;
+  error: string;
+};
+
+export type SwapToRatioNoSwapNeeded = {
+  status: SwapToRatioStatus.NO_SWAP_NEEDED;
+};
+
+export type SwapToRatioResponse =
+  | SwapToRatioSuccess
+  | SwapToRatioFail
+  | SwapToRatioNoSwapNeeded;
 
 export type SwapConfig = {
   recipient: string;
@@ -76,5 +101,5 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig?: RoutingConfig
-  ): Promise<SwapToRatioRoute | null>;
+  ): Promise<SwapToRatioResponse>;
 }

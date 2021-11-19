@@ -63,7 +63,8 @@ import {
   ISwapToRatio,
   SwapConfig,
   SwapRoute,
-  SwapToRatioRoute,
+  SwapToRatioStatus,
+  SwapToRatioResponse,
 } from '../router';
 import {
   RouteWithValidQuote,
@@ -323,7 +324,7 @@ export class AlphaRouter
     swapAndAddConfig: SwapAndAddConfig,
     swapConfig?: SwapConfig,
     routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
-  ): Promise<SwapToRatioRoute | null> {
+  ): Promise<SwapToRatioResponse> {
     if (
       token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)
     ) {
@@ -367,7 +368,11 @@ export class AlphaRouter
     while (!ratioAchieved) {
       n++;
       if (n > swapAndAddConfig.maxIterations) {
-        return null;
+        log.info('max iterations exceeded')
+        return {
+          status: SwapToRatioStatus.NO_ROUTE_FOUND,
+          error:  'max iterations exceeded'
+        }
       }
 
       let amountToSwap = calculateRatioAmountIn(
@@ -376,6 +381,12 @@ export class AlphaRouter
         inputBalance,
         outputBalance
       );
+      if (amountToSwap.equalTo(0)) {
+        log.info(`no swap needed`)
+        return {
+          status: SwapToRatioStatus.NO_SWAP_NEEDED,
+        }
+      }
 
       swap = await this.route(
         amountToSwap,
@@ -386,7 +397,10 @@ export class AlphaRouter
       );
 
       if (!swap) {
-        return null;
+        return {
+          status: SwapToRatioStatus.NO_ROUTE_FOUND,
+          error:  'no route found'
+        }
       }
 
       let inputBalanceUpdated = inputBalance.subtract(swap.trade!.inputAmount);
@@ -447,10 +461,16 @@ export class AlphaRouter
     }
 
     if (!swap) {
-      return null;
+      return {
+          status: SwapToRatioStatus.NO_ROUTE_FOUND,
+          error:  'no route found'
+        }
     }
 
-    return { ...swap, optimalRatio, postSwapTargetPool };
+    return {
+      status: SwapToRatioStatus.SUCCESS,
+      result: { ...swap, optimalRatio, postSwapTargetPool }
+    }
   }
 
   public async route(
@@ -1170,9 +1190,12 @@ export class AlphaRouter
   }
 
   private absoluteValue(fraction: Fraction): Fraction {
-    if (fraction.lessThan(0)) {
-      return fraction.multiply(-1);
-    }
-    return fraction;
+    const numeratorAbs = JSBI.lessThan(fraction.numerator, JSBI.BigInt(0))
+      ? JSBI.unaryMinus(fraction.numerator)
+      : fraction.numerator
+    const denominatorAbs = JSBI.lessThan(fraction.denominator, JSBI.BigInt(0))
+      ? JSBI.unaryMinus(fraction.denominator)
+      : fraction.denominator
+    return new Fraction(numeratorAbs, denominatorAbs)
   }
 }
