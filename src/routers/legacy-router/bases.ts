@@ -1,5 +1,4 @@
 import { Token } from '@uniswap/sdk-core';
-import _ from 'lodash';
 import {
   DAI_MAINNET,
   ITokenProvider,
@@ -18,7 +17,13 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
   _tokenProvider: ITokenProvider
 ): ChainTokenList => {
   return {
-    [ChainId.MAINNET]: [WETH9[ChainId.MAINNET], DAI_MAINNET, USDC_MAINNET, USDT_MAINNET, WBTC_MAINNET],
+    [ChainId.MAINNET]: [
+      WETH9[ChainId.MAINNET],
+      DAI_MAINNET,
+      USDC_MAINNET,
+      USDT_MAINNET,
+      WBTC_MAINNET,
+    ],
     [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]],
     [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]],
     [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]],
@@ -109,23 +114,25 @@ export const ADDITIONAL_BASES = async (
  */
 export const CUSTOM_BASES = async (
   tokenProvider: ITokenProvider
-): Promise<{
-  [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
-}> => {
+): Promise<
+  {
+    [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
+  }
+> => {
   return {
     [ChainId.MAINNET]: {
-      ...await getBasePairByAddress(
+      ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
         '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
-        DAI_MAINNET.address,
-      ),
-      ...await getBasePairByAddress(
+        DAI_MAINNET.address
+      )),
+      ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
         '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
         WETH9[1].address
-      ),
+      )),
     },
   };
 };

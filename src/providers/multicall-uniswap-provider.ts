@@ -22,8 +22,8 @@ const contractAddressByChain: { [chainId in ChainId]?: string } = {
   [ChainId.RINKEBY]: UNISWAP_MULTICALL_ADDRESS,
   [ChainId.KOVAN]: UNISWAP_MULTICALL_ADDRESS,
   [ChainId.ROPSTEN]: UNISWAP_MULTICALL_ADDRESS,
-  [ChainId.GÖRLI]: UNISWAP_MULTICALL_ADDRESS
-}
+  [ChainId.GÖRLI]: UNISWAP_MULTICALL_ADDRESS,
+};
 
 export class UniswapMulticallProvider extends IMulticallProvider<UniswapMulticallConfig> {
   private multicallContract: UniswapInterfaceMulticall;
@@ -35,10 +35,14 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     protected multicallAddressOverride = UNISWAP_MULTICALL_ADDRESS
   ) {
     super();
-    const multicallAddress = multicallAddressOverride ? multicallAddressOverride : contractAddressByChain[this.chainId];
-    
+    const multicallAddress = multicallAddressOverride
+      ? multicallAddressOverride
+      : contractAddressByChain[this.chainId];
+
     if (!multicallAddress) {
-      throw new Error(`No address for Uniswap Multicall Contract on chain id: ${chainId}`);
+      throw new Error(
+        `No address for Uniswap Multicall Contract on chain id: ${chainId}`
+      );
     }
 
     this.multicallContract = UniswapInterfaceMulticall__factory.connect(

@@ -5,8 +5,12 @@ import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 export class CachingGasStationProvider implements IGasPriceProvider {
   private GAS_KEY = (chainId: ChainId) => `gasPrice-${chainId}`;
-  
-  constructor(protected chainId: ChainId, private gasPriceProvider: IGasPriceProvider, private cache: ICache<GasPrice>) {}
+
+  constructor(
+    protected chainId: ChainId,
+    private gasPriceProvider: IGasPriceProvider,
+    private cache: ICache<GasPrice>
+  ) {}
 
   public async getGasPrice(): Promise<GasPrice> {
     const cachedGasPrice = await this.cache.get(this.GAS_KEY(this.chainId));
