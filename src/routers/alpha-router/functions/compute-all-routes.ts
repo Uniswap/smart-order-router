@@ -3,7 +3,7 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { log } from '../../../util/log';
 import { routeToString } from '../../../util/routes';
-import { V3Route, V2Route } from '../../router';
+import { V2Route, V3Route } from '../../router';
 
 export function computeAllV3Routes(
   tokenIn: Token,
@@ -12,12 +12,12 @@ export function computeAllV3Routes(
   maxHops: number
 ): V3Route[] {
   return computeAllRoutes<Pool, V3Route>(
-    tokenIn, 
-    tokenOut, 
+    tokenIn,
+    tokenOut,
     (route: Pool[], tokenIn: Token, tokenOut: Token) => {
       return new V3Route(route, tokenIn, tokenOut);
-    }, 
-    pools, 
+    },
+    pools,
     maxHops
   );
 }
@@ -29,17 +29,20 @@ export function computeAllV2Routes(
   maxHops: number
 ): V2Route[] {
   return computeAllRoutes<Pair, V2Route>(
-    tokenIn, 
-    tokenOut, 
+    tokenIn,
+    tokenOut,
     (route: Pair[], tokenIn: Token, tokenOut: Token) => {
       return new V2Route(route, tokenIn, tokenOut);
-    }, 
-    pools, 
+    },
+    pools,
     maxHops
   );
 }
 
-export function computeAllRoutes<TPool extends (Pair | Pool), TRoute extends (V3Route | V2Route)>(
+export function computeAllRoutes<
+  TPool extends Pair | Pool,
+  TRoute extends V3Route | V2Route
+>(
   tokenIn: Token,
   tokenOut: Token,
   buildRoute: (route: TPool[], tokenIn: Token, tokenOut: Token) => TRoute,

@@ -1136,7 +1136,7 @@ describe('alpha router', () => {
             expect(exactInputParameters[0]).toEqual(exactAmountInBalance);
             expect(exactInputParameters[1]).toEqual(token1Balance.currency);
           } else {
-            throw('routeToRatio unsuccessful')
+            throw 'routeToRatio unsuccessful';
           }
         });
 
@@ -1286,12 +1286,14 @@ describe('alpha router', () => {
 
           const exactAmountInBalance = parseAmount('7500000000000', USDC);
 
-          const exactInputParameters = spy.firstCall.args
-          expect(exactInputParameters[0].currency).toEqual(token0Balance.currency)
-          expect(exactInputParameters[1]).toEqual(token1Balance.currency)
-          expect(exactInputParameters[0]).toEqual(exactAmountInBalance)
-        })
-      })
+          const exactInputParameters = spy.firstCall.args;
+          expect(exactInputParameters[0].currency).toEqual(
+            token0Balance.currency
+          );
+          expect(exactInputParameters[1]).toEqual(token1Balance.currency);
+          expect(exactInputParameters[0]).toEqual(exactAmountInBalance);
+        });
+      });
 
       test('returns null for range order already fulfilled with token0', async () => {
         const token0Balance = parseAmount('50', USDC);
@@ -1304,7 +1306,7 @@ describe('alpha router', () => {
           liquidity: 1,
         });
 
-        const spy = sinon.spy(alphaRouter, 'route')
+        const spy = sinon.spy(alphaRouter, 'route');
 
         const result = await alphaRouter.routeToRatio(
           token0Balance,
@@ -1315,9 +1317,9 @@ describe('alpha router', () => {
           ROUTING_CONFIG
         );
 
-        expect(spy.firstCall).toEqual(null)
-        expect(result.status).toEqual(SwapToRatioStatus.NO_SWAP_NEEDED)
-      })
+        expect(spy.firstCall).toEqual(null);
+        expect(result.status).toEqual(SwapToRatioStatus.NO_SWAP_NEEDED);
+      });
 
       test('returns null for range order already fulfilled with token1', async () => {
         const token0Balance = parseAmount('0', USDC);
@@ -1330,7 +1332,7 @@ describe('alpha router', () => {
           liquidity: 1,
         });
 
-        const spy = sinon.spy(alphaRouter, 'route')
+        const spy = sinon.spy(alphaRouter, 'route');
 
         const result = await alphaRouter.routeToRatio(
           token0Balance,
@@ -1341,10 +1343,10 @@ describe('alpha router', () => {
           ROUTING_CONFIG
         );
 
-        expect(spy.firstCall).toEqual(null)
-        expect(result.status).toEqual(SwapToRatioStatus.NO_SWAP_NEEDED)
-      })
-    })
+        expect(spy.firstCall).toEqual(null);
+        expect(result.status).toEqual(SwapToRatioStatus.NO_SWAP_NEEDED);
+      });
+    });
 
     describe('iterative scenario', () => {
       let spy: sinon.SinonSpy<any[], any>;
@@ -1398,7 +1400,7 @@ describe('alpha router', () => {
           expect(swap.status).toEqual(SwapToRatioStatus.NO_ROUTE_FOUND);
           expect(swap.error).toEqual('max iterations exceeded');
         } else {
-          throw('routeToRatio: unexpected response')
+          throw 'routeToRatio: unexpected response';
         }
       });
 
@@ -1752,7 +1754,7 @@ describe('alpha router', () => {
                 JSBI.BigInt(oneHalfX96.toString())
               );
             } else {
-              throw('swap was not successful')
+              throw 'swap was not successful';
             }
           });
 

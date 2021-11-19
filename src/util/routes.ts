@@ -6,7 +6,8 @@ import { RouteWithValidQuote } from '../routers/alpha-router';
 import { V2Route, V3Route } from '../routers/router';
 
 export const routeToString = (route: V3Route | V2Route): string => {
-  const isV3Route = (route: V3Route | V2Route): route is V3Route => (route as V3Route).pools != undefined;
+  const isV3Route = (route: V3Route | V2Route): route is V3Route =>
+    (route as V3Route).pools != undefined;
   const routeStr = [];
   const tokens = isV3Route(route) ? route.tokenPath : route.path;
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
@@ -26,7 +27,9 @@ export const routeToString = (route: V3Route | V2Route): string => {
   return routeStr.join('');
 };
 
-export const routeAmountsToString = (routeAmounts: RouteWithValidQuote[]): string => {
+export const routeAmountsToString = (
+  routeAmounts: RouteWithValidQuote[]
+): string => {
   const total = _.reduce(
     routeAmounts,
     (total: CurrencyAmount, cur: RouteWithValidQuote) => {
@@ -36,7 +39,6 @@ export const routeAmountsToString = (routeAmounts: RouteWithValidQuote[]): strin
   );
 
   const routeStrings = _.map(routeAmounts, ({ protocol, route, amount }) => {
-    
     const portion = amount.divide(total);
     const percent = new Percent(portion.numerator, portion.denominator);
     return `[${protocol}] ${percent.toFixed(2)}% = ${routeToString(route)}`;
@@ -45,7 +47,9 @@ export const routeAmountsToString = (routeAmounts: RouteWithValidQuote[]): strin
   return _.join(routeStrings, ', ');
 };
 
-export const routeAmountToString = (routeAmount: RouteWithValidQuote): string => {
+export const routeAmountToString = (
+  routeAmount: RouteWithValidQuote
+): string => {
   const { route, amount } = routeAmount;
   return `${amount.toExact()} = ${routeToString(route)}`;
 };

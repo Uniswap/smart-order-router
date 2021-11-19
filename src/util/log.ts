@@ -1,7 +1,8 @@
 import Logger from 'bunyan';
 
 class NullLogger implements Logger {
-  private ERROR_MESSAGE = 'NullLogger does not support. Instantiate a valid logger using "setGlobalLogger"';
+  private ERROR_MESSAGE =
+    'NullLogger does not support. Instantiate a valid logger using "setGlobalLogger"';
   addStream(_stream: Logger.Stream): void {
     throw new Error(this.ERROR_MESSAGE);
   }
@@ -69,7 +70,10 @@ class NullLogger implements Logger {
   fatal(..._rest: any): boolean | void {
     return true;
   }
-  addListener(_event: string | symbol, _listener: (...args: any[]) => void): this {
+  addListener(
+    _event: string | symbol,
+    _listener: (...args: any[]) => void
+  ): this {
     throw new Error(this.ERROR_MESSAGE);
   }
   on(_event: string | symbol, _listener: (...args: any[]) => void): this {
@@ -78,7 +82,10 @@ class NullLogger implements Logger {
   once(_event: string | symbol, _listener: (...args: any[]) => void): this {
     throw new Error(this.ERROR_MESSAGE);
   }
-  removeListener(_event: string | symbol, _listener: (...args: any[]) => void): this {
+  removeListener(
+    _event: string | symbol,
+    _listener: (...args: any[]) => void
+  ): this {
     throw new Error(this.ERROR_MESSAGE);
   }
   off(_event: string | symbol, _listener: (...args: any[]) => void): this {
@@ -105,16 +112,21 @@ class NullLogger implements Logger {
   listenerCount(_event: string | symbol): number {
     throw new Error(this.ERROR_MESSAGE);
   }
-  prependListener(_event: string | symbol, _listener: (...args: any[]) => void): this {
+  prependListener(
+    _event: string | symbol,
+    _listener: (...args: any[]) => void
+  ): this {
     throw new Error(this.ERROR_MESSAGE);
   }
-  prependOnceListener(_event: string | symbol, _listener: (...args: any[]) => void): this {
+  prependOnceListener(
+    _event: string | symbol,
+    _listener: (...args: any[]) => void
+  ): this {
     throw new Error(this.ERROR_MESSAGE);
   }
   eventNames(): (string | symbol)[] {
     throw new Error(this.ERROR_MESSAGE);
   }
-  
 }
 
 export let log: Logger = new NullLogger();

@@ -42,7 +42,10 @@ describe('calculate ratio amount in', () => {
       'Test Token 1'
     );
     const inputTokenAmount = parseAmount('20', inputToken);
-    const outputTokenAmount = parseAmount('5000000000000', outputTokenSixDecimals);
+    const outputTokenAmount = parseAmount(
+      '5000000000000',
+      outputTokenSixDecimals
+    );
 
     const amountIn = calculateRatioAmountIn(
       optimalRatio,
@@ -65,7 +68,10 @@ describe('calculate ratio amount in', () => {
       'TEST1',
       'Test Token 1'
     );
-    const inputTokenAmount = parseAmount('20000000000000', inputTokenSixDecimals);
+    const inputTokenAmount = parseAmount(
+      '20000000000000',
+      inputTokenSixDecimals
+    );
     const outputTokenAmount = parseAmount('5', outputToken);
 
     const amountIn = calculateRatioAmountIn(
@@ -119,11 +125,13 @@ describe('calculate ratio amount in', () => {
     const inputTokenAmount = parseAmount('5', inputToken);
     const outputTokenAmount = parseAmount('20', outputToken);
 
-    expect(() => { calculateRatioAmountIn(
-      optimalRatio,
-      price,
-      inputTokenAmount,
-      outputTokenAmount
-    )}).toThrow('routeToRatio: insufficient input token amount');
-  })
+    expect(() => {
+      calculateRatioAmountIn(
+        optimalRatio,
+        price,
+        inputTokenAmount,
+        outputTokenAmount
+      );
+    }).toThrow('routeToRatio: insufficient input token amount');
+  });
 });

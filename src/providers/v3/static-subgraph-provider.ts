@@ -41,7 +41,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     tokenIn?: Token,
     tokenOut?: Token
   ): Promise<V3SubgraphPool[]> {
-    log.info('In static subgraph provider for V3')
+    log.info('In static subgraph provider for V3');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
     let basePairs: [Token, Token][] = _.flatMap(
