@@ -67,7 +67,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private retries = 2,
-    private timeout = 7000,
+    private timeout = 15000,
     private rollback = true
   ) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
@@ -184,8 +184,6 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       }
     );
 
-    log.info(`Got ${pools.length} pools from the subgraph.`);
-
     const poolsSanitized = pools
       .filter((pool) => parseInt(pool.liquidity) > 0)
       .map((pool) => {
@@ -204,6 +202,10 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           tvlUSD: parseFloat(totalValueLockedUSD),
         };
       });
+
+    log.info(
+      `Got ${pools.length} V3 pools from the subgraph. ${poolsSanitized.length} after filtering`
+    );
 
     return poolsSanitized;
   }

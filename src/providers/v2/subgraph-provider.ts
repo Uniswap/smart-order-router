@@ -36,7 +36,7 @@ type RawV2SubgraphPool = {
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
+    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswapv2',
   [ChainId.RINKEBY]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-rinkeby',
 };
@@ -180,7 +180,6 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       }
     );
 
-    log.info(`Got ${pools.length} pools from the subgraph.`);
     // filter pools that have liquidity less than threshold
     const poolsSanitized: V2SubgraphPool[] = pools
       .filter((pool) => parseFloat(pool.trackedReserveETH) > threshold)
@@ -198,6 +197,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           reserve: parseFloat(pool.trackedReserveETH),
         };
       });
+
+    log.info(
+      `Got ${pools.length} V2 pools from the subgraph. ${poolsSanitized.length} after filtering`
+    );
 
     return poolsSanitized;
   }
