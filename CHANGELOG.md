@@ -10,10 +10,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.46.1](https://github.com/Uniswap/smart-order-router/compare/v1.45.1...v1.46.1) (2021-10-06)
 
-
 ### Bug Fixes
 
-* move prettier-plugin-organize-imports and sinon to dev dependencies ([#18](https://github.com/Uniswap/smart-order-router/issues/18)) ([c9514cc](https://github.com/Uniswap/smart-order-router/commit/c9514cc8ba87b62aedf1402cfd8188fc59d4a363))
+- move prettier-plugin-organize-imports and sinon to dev dependencies ([#18](https://github.com/Uniswap/smart-order-router/issues/18)) ([c9514cc](https://github.com/Uniswap/smart-order-router/commit/c9514cc8ba87b62aedf1402cfd8188fc59d4a363))
 
 ### [1.45.1](https://github.com/Uniswap/smart-order-router/compare/v1.44.1...v1.45.1) (2021-09-28)
 

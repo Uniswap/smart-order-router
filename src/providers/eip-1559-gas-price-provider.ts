@@ -26,7 +26,7 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
   constructor(
     protected provider: providers.JsonRpcProvider,
     private priorityFeePercentile: number = DEFAULT_PRIORITY_FEE_PERCENTILE,
-    private blocksToConsider: number = DEFAULT_BLOCKS_TO_LOOK_BACK,
+    private blocksToConsider: number = DEFAULT_BLOCKS_TO_LOOK_BACK
   ) {
     super();
   }

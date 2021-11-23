@@ -2,6 +2,7 @@ import { Token } from '@uniswap/sdk-core';
 import { default as retry } from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
+import _ from 'lodash';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
@@ -35,7 +36,7 @@ type RawV2SubgraphPool = {
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
+    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswapv2',
   [ChainId.RINKEBY]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-rinkeby',
 };
@@ -57,7 +58,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private retries = 2,
-    private timeout = 360000
+    private timeout = 360000,
+    private rollback = true
   ) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
@@ -71,16 +73,16 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
-    const blockNumber = providerConfig?.blockNumber
+    let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
     // Due to limitations with the Subgraph API this is the only way to parameterize the query.
-    const query2 = (id: string) => gql`
-      query getPools($pageSize: Int!) {
+    const query2 = gql`
+      query getPools($pageSize: Int!, $id: String) {
         pairs(
           first: $pageSize
           ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          ${id !== '' ? `where: { id_gt: "${id}" }` : ``}
+          where: { id_gt: $id }
         ) {
           id
           token0 { id, symbol }
@@ -116,8 +118,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
               async () => {
                 const poolsResult = await this.client.request<{
                   pairs: RawV2SubgraphPool[];
-                }>(query2(lastId), {
+                }>(query2, {
                   pageSize: PAGE_SIZE,
+                  id: lastId,
                 });
 
                 pairsPage = poolsResult.pairs;
@@ -159,6 +162,16 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       {
         retries: this.retries,
         onRetry: (err, retry) => {
+          if (
+            this.rollback &&
+            blockNumber &&
+            _.includes(err.message, 'indexed up to')
+          ) {
+            blockNumber = blockNumber - 10;
+            log.info(
+              `Detected subgraph indexing error. Rolled back block number to: ${blockNumber}`
+            );
+          }
           pools = [];
           log.info(
             { err },
@@ -168,7 +181,6 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       }
     );
 
-    log.info(`Got ${pools.length} pools from the subgraph.`);
     // filter pools that have liquidity less than threshold
     const poolsSanitized: V2SubgraphPool[] = pools
       .filter((pool) => parseFloat(pool.trackedReserveETH) > threshold)
@@ -186,6 +198,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           reserve: parseFloat(pool.trackedReserveETH),
         };
       });
+
+    log.info(
+      `Got ${pools.length} V2 pools from the subgraph. ${poolsSanitized.length} after filtering`
+    );
 
     return poolsSanitized;
   }

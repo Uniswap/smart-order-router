@@ -2,6 +2,7 @@ import { Token } from '@uniswap/sdk-core';
 import { default as retry } from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
+import _ from 'lodash';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
@@ -69,7 +70,8 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private retries = 2,
-    private timeout = 7000
+    private timeout = 30000,
+    private rollback = true
   ) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
@@ -83,18 +85,16 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V3SubgraphPool[]> {
-    const blockNumber = providerConfig?.blockNumber
+    let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
 
     const query = gql`
-      query getPools($pageSize: Int!, $skip: Int!) {
+      query getPools($pageSize: Int!, $id: String) {
         pools(
           first: $pageSize
-          skip: $skip
-          orderBy: totalValueLockedETH
-          orderDirection: desc
           ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+          where: { id_gt: $id }
         ) {
           id
           token0 {
@@ -128,7 +128,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
         const timeout = new Timeout();
 
         const getPools = async (): Promise<RawV3SubgraphPool[]> => {
-          let skip = 0;
+          let lastId: string = '';
           let pools: RawV3SubgraphPool[] = [];
           let poolsPage: RawV3SubgraphPool[] = [];
 
@@ -137,13 +137,14 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
               pools: RawV3SubgraphPool[];
             }>(query, {
               pageSize: PAGE_SIZE,
-              skip,
+              id: lastId,
             });
 
             poolsPage = poolsResult.pools;
 
             pools = pools.concat(poolsPage);
-            skip = skip + PAGE_SIZE;
+
+            lastId = pools[pools.length - 1]!.id;
           } while (poolsPage.length > 0);
 
           return pools;
@@ -167,6 +168,16 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       {
         retries: this.retries,
         onRetry: (err, retry) => {
+          if (
+            this.rollback &&
+            blockNumber &&
+            _.includes(err.message, 'indexed up to')
+          ) {
+            blockNumber = blockNumber - 10;
+            log.info(
+              `Detected subgraph indexing error. Rolled back block number to: ${blockNumber}`
+            );
+          }
           pools = [];
           log.info(
             { err },
@@ -175,8 +186,6 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
         },
       }
     );
-
-    log.info(`Got ${pools.length} pools from the subgraph.`);
 
     const poolsSanitized = pools
       .filter((pool) => parseInt(pool.liquidity) > 0)
@@ -196,6 +205,10 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           tvlUSD: parseFloat(totalValueLockedUSD),
         };
       });
+
+    log.info(
+      `Got ${pools.length} V3 pools from the subgraph. ${poolsSanitized.length} after filtering`
+    );
 
     return poolsSanitized;
   }

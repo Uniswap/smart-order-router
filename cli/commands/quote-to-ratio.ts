@@ -3,7 +3,12 @@ import { Currency, Ether, Fraction, Percent } from '@uniswap/sdk-core';
 import { Position } from '@uniswap/v3-sdk';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
-import { ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
+import {
+  ID_TO_CHAIN_ID,
+  parseAmount,
+  SwapToRatioResponse,
+  SwapToRatioStatus,
+} from '../../src';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
@@ -98,7 +103,7 @@ export class QuoteToRatio extends BaseCommand {
       liquidity: 1,
     });
 
-    let swapRoutes: SwapRoute | null;
+    let swapRoutes: SwapToRatioResponse;
     swapRoutes = await router.routeToRatio(
       tokenInBalance,
       tokenOutBalance,
@@ -127,37 +132,43 @@ export class QuoteToRatio extends BaseCommand {
       }
     );
 
-    if (!swapRoutes) {
+    if (swapRoutes.status === SwapToRatioStatus.SUCCESS) {
+      const {
+        blockNumber,
+        estimatedGasUsed,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD,
+        gasPriceWei,
+        methodParameters,
+        quote,
+        quoteGasAdjusted,
+        route: routeAmounts,
+      } = swapRoutes.result;
+
+      this.logSwapResults(
+        routeAmounts,
+        quote,
+        quoteGasAdjusted,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD,
+        methodParameters,
+        blockNumber,
+        estimatedGasUsed,
+        gasPriceWei
+      );
+      return;
+    } else if (swapRoutes.status === SwapToRatioStatus.NO_ROUTE_FOUND) {
       log.error(
-        `Could not find route. ${
+        `${swapRoutes.error}. ${
           debug ? '' : 'Run in debug mode for more info'
         }.`
       );
       return;
+    } else if (swapRoutes.status === SwapToRatioStatus.NO_SWAP_NEEDED) {
+      log.error(
+        `no swap needed. ${debug ? '' : 'Run in debug mode for more info'}.`
+      );
+      return;
     }
-
-    const {
-      blockNumber,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD,
-      gasPriceWei,
-      methodParameters,
-      quote,
-      quoteGasAdjusted,
-      route: routeAmounts,
-    } = swapRoutes;
-
-    this.logSwapResults(
-      routeAmounts,
-      quote,
-      quoteGasAdjusted,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD,
-      methodParameters,
-      blockNumber,
-      estimatedGasUsed,
-      gasPriceWei
-    );
   }
 }

@@ -16,7 +16,7 @@ export class V3SubgraphProviderWithFallBacks implements IV3SubgraphProvider {
       try {
         return provider.getPools(tokenIn, tokenOut, providerConfig);
       } catch (err) {
-        log.info(`Failed to get subgraph pools for V3 from fallback #${i}`)
+        log.info(`Failed to get subgraph pools for V3 from fallback #${i}`);
         continue;
       }
     }
@@ -24,4 +24,3 @@ export class V3SubgraphProviderWithFallBacks implements IV3SubgraphProvider {
     throw new Error('Failed to get subgraph pools from any providers');
   }
 }
-

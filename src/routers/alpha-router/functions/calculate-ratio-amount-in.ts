@@ -14,8 +14,11 @@ export function calculateRatioAmountIn(
 
   if (amountToSwapRaw.lessThan(0)) {
     // should never happen since we do checks before calling in
-    throw new Error('routeToRatio: insufficient input token amount')
+    throw new Error('routeToRatio: insufficient input token amount');
   }
 
-  return CurrencyAmount.fromRawAmount(inputBalance.currency, amountToSwapRaw.quotient)
+  return CurrencyAmount.fromRawAmount(
+    inputBalance.currency,
+    amountToSwapRaw.quotient
+  );
 }
