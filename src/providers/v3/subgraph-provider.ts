@@ -141,12 +141,6 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
 
             pools = pools.concat(poolsPage);
 
-            console.log(
-              `Page with length: ${poolsPage.length}. Last id: ${
-                pools[pools.length - 1]!.id
-              }`
-            );
-
             lastId = pools[pools.length - 1]!.id;
           } while (poolsPage.length > 0);
 
