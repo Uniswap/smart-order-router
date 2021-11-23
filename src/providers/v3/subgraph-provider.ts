@@ -67,7 +67,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private retries = 2,
-    private timeout = 15000,
+    private timeout = 30000,
     private rollback = true
   ) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
