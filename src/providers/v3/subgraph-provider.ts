@@ -86,14 +86,12 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       ? await providerConfig.blockNumber
       : undefined;
 
-    const query = (id: string) => gql`
-      query getPools($pageSize: Int!) {
+    const query = gql`
+      query getPools($pageSize: Int!, $id: String) {
         pools(
           first: $pageSize
-          orderBy: totalValueLockedETH
-          orderDirection: desc
           ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          ${id !== '' ? `where: {id_gt: "${id}"}` : ``}
+          where: { id_gt: $id }
         ) {
           id
           token0 {
@@ -134,13 +132,21 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           do {
             const poolsResult = await this.client.request<{
               pools: RawV3SubgraphPool[];
-            }>(query(lastId), {
+            }>(query, {
               pageSize: PAGE_SIZE,
+              id: lastId,
             });
 
             poolsPage = poolsResult.pools;
 
             pools = pools.concat(poolsPage);
+
+            console.log(
+              `Page with length: ${poolsPage.length}. Last id: ${
+                pools[pools.length - 1]!.id
+              }`
+            );
+
             lastId = pools[pools.length - 1]!.id;
           } while (poolsPage.length > 0);
 

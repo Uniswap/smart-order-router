@@ -77,12 +77,12 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       ? await providerConfig.blockNumber
       : undefined;
     // Due to limitations with the Subgraph API this is the only way to parameterize the query.
-    const query2 = (id: string) => gql`
-      query getPools($pageSize: Int!) {
+    const query2 = gql`
+      query getPools($pageSize: Int!, $id: String) {
         pairs(
           first: $pageSize
           ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          ${id !== '' ? `where: { id_gt: "${id}" }` : ``}
+          where: { id_gt: $id }
         ) {
           id
           token0 { id, symbol }
@@ -118,8 +118,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
               async () => {
                 const poolsResult = await this.client.request<{
                   pairs: RawV2SubgraphPool[];
-                }>(query2(lastId), {
+                }>(query2, {
                   pageSize: PAGE_SIZE,
+                  id: lastId,
                 });
 
                 pairsPage = poolsResult.pairs;
