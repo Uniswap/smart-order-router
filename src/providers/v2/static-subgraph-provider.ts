@@ -29,6 +29,11 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]!, DAI_RINKEBY_1, DAI_RINKEBY_2],
   [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]!],
   [ChainId.KOVAN]: [WETH9[ChainId.KOVAN]!],
+  //v2 not deployed on optimism/arbitrum or their testnets
+  [ChainId.OPTIMISM]: [],
+  [ChainId.ARBITRUM_ONE]: [],
+  [ChainId.ARBITRUM_RINKEBY]: [],
+  [ChainId.OPTIMISTIC_KOVAN]: [],
 };
 
 export class StaticV2SubgraphProvider implements IV2SubgraphProvider {

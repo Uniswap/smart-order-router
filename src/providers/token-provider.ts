@@ -92,6 +92,80 @@ export const DAI_OPTIMISM = new Token(
   'Dai Stablecoin'
 );
 
+export const USDC_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0x4e62882864fB8CE54AFfcAf8D899A286762B011B',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0x2382a8f65b9120E554d1836a504808aC864E169d',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDC_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDC_ARBITRUM_RINKEBY = new Token(
+  ChainId.ARBITRUM_RINKEBY,
+  '0xB17736aA76003F4873D9f4366190E5c6678d9a52',
+  6,
+  'USDC',
+  'USD//C'
+);
+
+export const DAI_ARBITRUM_RINKEBY = new Token(
+  ChainId.ARBITRUM_RINKEBY,
+  '0x2f3C1B6A51A469051A22986aA0dDF98466cc8D3c',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 export const TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
 } = {
@@ -112,6 +186,18 @@ export const TOKENS: {
     USDT: USDT_OPTIMISM,
     WBTC: WBTC_OPTIMISM,
     DAI: DAI_OPTIMISM,
+  },
+  [ChainId.OPTIMISTIC_KOVAN]: {
+    USDC: USDC_OPTIMISM,
+    USDT: USDT_OPTIMISM,
+    WBTC: WBTC_OPTIMISM,
+    DAI: DAI_OPTIMISM,
+  },
+  [ChainId.ARBITRUM_ONE]: {
+    USDC: USDC_ARBITRUM,
+    USDT: USDT_ARBITRUM,
+    WBTC: WBTC_ARBITRUM,
+    DAI: DAI_ARBITRUM,
   },
 };
 

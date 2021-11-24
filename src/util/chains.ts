@@ -75,3 +75,10 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
 export const CHAIN_IDS_LIST = Object.values(ChainId).map((c) =>
   c.toString()
 ) as string[];
+
+export const V2_UNSUPPORTED: ChainId[] = [
+  ChainId.ARBITRUM_ONE,
+  ChainId.ARBITRUM_RINKEBY,
+  ChainId.OPTIMISM,
+  ChainId.OPTIMISTIC_KOVAN,
+];

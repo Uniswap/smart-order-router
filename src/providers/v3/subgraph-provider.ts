@@ -49,7 +49,8 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
   [ChainId.RINKEBY]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
-  [ChainId.OPTIMISM]: 'TODO',
+  [ChainId.OPTIMISM]:
+    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-optimism-dev',
   [ChainId.ARBITRUM_ONE]:
     'https://thegraph.com/hosted-service/subgraph/ianlapham/arbitrum-minimal',
 };

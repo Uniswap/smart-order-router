@@ -29,6 +29,10 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]!],
   [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]!],
   [ChainId.KOVAN]: [WETH9[ChainId.KOVAN]!],
+  [ChainId.OPTIMISM]: [WETH9[ChainId.OPTIMISM]!],
+  [ChainId.ARBITRUM_ONE]: [WETH9[ChainId.ARBITRUM_ONE]!],
+  [ChainId.ARBITRUM_RINKEBY]: [WETH9[ChainId.ARBITRUM_RINKEBY]!],
+  [ChainId.OPTIMISTIC_KOVAN]: [WETH9[ChainId.OPTIMISTIC_KOVAN]!],
 };
 
 export class StaticV3SubgraphProvider implements IV3SubgraphProvider {

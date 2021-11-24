@@ -54,7 +54,7 @@ import {
 } from '../../providers/v3/quote-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CurrencyAmount } from '../../util/amounts';
-import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
+import { ChainId, ID_TO_CHAIN_ID, V2_UNSUPPORTED } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { routeToString } from '../../util/routes';
@@ -492,6 +492,16 @@ export class AlphaRouter
       { blockNumber }
     );
 
+    const { protocols } = routingConfig;
+
+    if (
+      (!protocols || protocols.length == 0 || Protocol.V2 in protocols) &&
+      this.chainId in V2_UNSUPPORTED
+    ) {
+      log.error(`This chain ${this.chainId} does not support v2 trades`);
+      return null;
+    }
+
     const currencyIn =
       swapType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
     const currencyOut =
@@ -518,8 +528,6 @@ export class AlphaRouter
     );
 
     const quoteToken = quoteCurrency.wrapped;
-
-    const { protocols } = routingConfig;
 
     const quotePromises: Promise<{
       routesWithValidQuotes: RouteWithValidQuote[];
