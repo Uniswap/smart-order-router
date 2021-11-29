@@ -4,6 +4,13 @@ import { ChainId, log } from '../util';
 import { ICache } from './cache';
 import { ITokenProvider, TokenAccessor, TOKENS } from './token-provider';
 
+/**
+ * Provider for getting token metadata that falls back to a different provider
+ * in the event of failure.
+ *
+ * @export
+ * @class CachingTokenProviderWithFallback
+ */
 export class CachingTokenProviderWithFallback implements ITokenProvider {
   private CACHE_KEY = (chainId: ChainId, address: string) =>
     `token-${chainId}-${address}`;

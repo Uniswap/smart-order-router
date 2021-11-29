@@ -27,7 +27,6 @@ import {
   NodeJSCache,
   UniswapMulticallProvider,
   V2QuoteProvider,
-  V2SubgraphProvider,
   V3URISubgraphProvider,
 } from '../../providers';
 import {
@@ -103,52 +102,122 @@ export type AlphaRouterParams = {
   blockedTokenListProvider?: ITokenListProvider;
 };
 
+/**
+ * Determines the pools that the algorithm will consider when finding the optimal swap.
+ *
+ * All pools on each protocol are filtered based on the heuristics specified here to generate
+ * the set of candidate pools. The Top N pools are taken by Total Value Locked (TVL).
+ *
+ * Higher values here result in more pools to explore which results in higher latency.
+ */
 export type ProtocolPoolSelection = {
+  /**
+   * The top N pools by TVL out of all pools on the protocol.
+   */
   topN: number;
+  /**
+   * The top N pools by TVL of pools that consist of tokenIn and tokenOut.
+   */
   topNDirectSwaps: number;
+  /**
+   * The top N pools by TVL of pools where one token is tokenIn and the
+   * top N pools by TVL of pools where one token is tokenOut tokenOut.
+   */
   topNTokenInOut: number;
+  /**
+   * Given the topNTokenInOut pools, gets the top N pools that involve the other token.
+   * E.g. for a WETH -> USDC swap, if topNTokenInOut found WETH -> DAI and WETH -> USDT,
+   * a value of 2 would find the top 2 pools that involve DAI or USDT.
+   */
   topNSecondHop: number;
+  /**
+   * The top N pools for token in and token out that involve a token from a list of
+   * hardcoded 'base tokens'. These are standard tokens such as WETH, USDC, DAI, etc.
+   * This is similar to how the legacy routing algorithm used by Uniswap would select
+   * pools and is intended to make the new pool selection algorithm close to a superset
+   * of the old algorithm.
+   */
   topNWithEachBaseToken: number;
+  /**
+   * Given the topNWithEachBaseToken pools, takes the top N pools from the full list.
+   * E.g. for a WETH -> USDC swap, if topNWithEachBaseToken found WETH -0.05-> DAI,
+   * WETH -0.01-> DAI, WETH -0.05-> USDC, WETH -0.3-> USDC, a value of 2 would reduce
+   * this set to the top 2 pools from that full list.
+   */
   topNWithBaseToken: number;
-  topNWithBaseTokenInSet: boolean;
 };
 
 export type AlphaRouterConfig = {
+  /**
+   * The block number to use for all on-chain data. If not provided, the router will
+   * use the latest block returned by the provider.
+   */
   blockNumber?: number | Promise<number>;
+  /**
+   * The protocols to consider when finding the optimal swap. If not provided all protocols
+   * will be used.
+   */
   protocols?: Protocol[];
+  /**
+   * Config for selecting which pools to consider routing via on V2.
+   */
   v2PoolSelection: ProtocolPoolSelection;
+  /**
+   * Config for selecting which pools to consider routing via on V3.
+   */
   v3PoolSelection: ProtocolPoolSelection;
+  /**
+   * For each route, the maximum number of hops to consider. More hops will increase latency of the algorithm.
+   */
   maxSwapsPerPath: number;
-  minSplits: number;
+  /**
+   * The maximum number of splits in the returned route. A higher maximum will increase latency of the algorithm.
+   */
   maxSplits: number;
+  /**
+   * The minimum number of splits in the returned route.
+   * This parameters should always be set to 1. It is only included for testing purposes.
+   */
+  minSplits: number;
+  /**
+   * Forces the returned swap to route across all protocols.
+   * This parameter should always be false. It is only included for testing purposes.
+   */
   forceCrossProtocol: boolean;
+  /**
+   * The minimum percentage of the input token to use for each route in a split route.
+   * All routes will have a multiple of this value. For example is distribution percentage is 5,
+   * a potential return swap would be:
+   *
+   * 5% of input => Route 1
+   * 55% of input => Route 2
+   * 40% of input => Route 3
+   */
   distributionPercent: number;
 };
 
 export const DEFAULT_CONFIG: AlphaRouterConfig = {
-  v3PoolSelection: {
-    topN: 4,
-    topNDirectSwaps: 2,
-    topNTokenInOut: 4,
+  v2PoolSelection: {
+    topN: 3,
+    topNDirectSwaps: 1,
+    topNTokenInOut: 5,
     topNSecondHop: 2,
     topNWithEachBaseToken: 2,
-    topNWithBaseToken: 10,
-    topNWithBaseTokenInSet: false,
+    topNWithBaseToken: 6,
   },
-  v2PoolSelection: {
-    topN: 10,
-    topNDirectSwaps: 1,
-    topNTokenInOut: 8,
-    topNSecondHop: 6,
-    topNWithEachBaseToken: 2,
+  v3PoolSelection: {
+    topN: 2,
+    topNDirectSwaps: 2,
+    topNTokenInOut: 3,
+    topNSecondHop: 1,
+    topNWithEachBaseToken: 3,
     topNWithBaseToken: 5,
-    topNWithBaseTokenInSet: false,
   },
   maxSwapsPerPath: 3,
   minSplits: 1,
-  maxSplits: 5,
-  forceCrossProtocol: false,
+  maxSplits: 7,
   distributionPercent: 5,
+  forceCrossProtocol: false,
 };
 
 export type SwapAndAddConfig = {
@@ -260,9 +329,6 @@ export class AlphaRouter
         V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
       );
     }
-
-    this.v2SubgraphProvider =
-      v2SubgraphProvider ?? new V2SubgraphProvider(chainId);
 
     this.blockedTokenListProvider =
       blockedTokenListProvider ??
@@ -473,10 +539,13 @@ export class AlphaRouter
     };
   }
 
+  /**
+   * @inheritdoc IRouter
+   */
   public async route(
     amount: CurrencyAmount,
     quoteCurrency: Currency,
-    swapType: TradeType,
+    tradeType: TradeType,
     swapConfig?: SwapConfig,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
@@ -493,9 +562,9 @@ export class AlphaRouter
     );
 
     const currencyIn =
-      swapType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
+      tradeType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
     const currencyOut =
-      swapType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
+      tradeType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -527,7 +596,10 @@ export class AlphaRouter
     }>[] = [];
 
     if (!protocols || protocols.length == 0) {
-      log.info({ protocols, swapType }, 'Routing across all protocols');
+      log.info(
+        { protocols, swapType: tradeType },
+        'Routing across V3 and V2 protocols'
+      );
       quotePromises.push(
         this.getV3Quotes(
           tokenIn,
@@ -536,7 +608,7 @@ export class AlphaRouter
           percents,
           quoteToken,
           gasPriceWei,
-          swapType,
+          tradeType,
           routingConfig
         )
       );
@@ -548,41 +620,46 @@ export class AlphaRouter
           percents,
           quoteToken,
           gasPriceWei,
-          swapType,
+          tradeType,
           routingConfig
         )
       );
-    } else if (protocols.includes(Protocol.V3)) {
-      log.info({ protocols, swapType }, 'Routing across V3');
-      quotePromises.push(
-        this.getV3Quotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          gasPriceWei,
-          swapType,
-          routingConfig
-        )
-      );
-    } else if (protocols.includes(Protocol.V2)) {
-      log.info({ protocols, swapType }, 'Routing across V2');
-      quotePromises.push(
-        this.getV2Quotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          gasPriceWei,
-          swapType,
-          routingConfig
-        )
-      );
+    } else {
+      if (protocols.includes(Protocol.V3)) {
+        log.info({ protocols, swapType: tradeType }, 'Routing across V3');
+        quotePromises.push(
+          this.getV3Quotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            gasPriceWei,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
+      if (protocols.includes(Protocol.V2)) {
+        log.info({ protocols, swapType: tradeType }, 'Routing across V2');
+        quotePromises.push(
+          this.getV2Quotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            gasPriceWei,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
     }
 
+    log.info('Waiting for quotes');
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
+    log.info('Waiting for quotes promise resolved');
 
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
@@ -608,7 +685,7 @@ export class AlphaRouter
       amount,
       percents,
       allRoutesWithValidQuotes,
-      swapType,
+      tradeType,
       this.chainId,
       routingConfig
     );
@@ -627,10 +704,10 @@ export class AlphaRouter
     } = swapRouteRaw;
 
     // Build Trade object that represents the optimal swap.
-    const trade = this.buildTrade<typeof swapType>(
+    const trade = this.buildTrade<typeof tradeType>(
       currencyIn,
       currencyOut,
-      swapType,
+      tradeType,
       routeAmounts
     );
 
@@ -769,7 +846,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null quote for route.'
+            'Dropping a null V3 quote for route.'
           );
           continue;
         }
@@ -888,7 +965,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null quote for route.'
+            'Dropping a null V2 quote for route.'
           );
           continue;
         }

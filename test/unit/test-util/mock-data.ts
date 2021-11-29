@@ -31,7 +31,6 @@ export const mockRoutingConfig: AlphaRouterConfig = {
     topNSecondHop: 0,
     topNWithEachBaseToken: 0,
     topNWithBaseToken: 0,
-    topNWithBaseTokenInSet: false,
   },
   v2PoolSelection: {
     topN: 0,
@@ -40,7 +39,6 @@ export const mockRoutingConfig: AlphaRouterConfig = {
     topNSecondHop: 0,
     topNWithEachBaseToken: 0,
     topNWithBaseToken: 0,
-    topNWithBaseTokenInSet: false,
   },
   maxSwapsPerPath: 3,
   minSplits: 1,

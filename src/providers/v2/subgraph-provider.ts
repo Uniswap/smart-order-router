@@ -44,6 +44,13 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
 const threshold = 0.025;
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
+
+/**
+ * Provider for getting V2 pools from the Subgraph
+ *
+ * @export
+ * @interface IV2SubgraphProvider
+ */
 export interface IV2SubgraphProvider {
   getPools(
     tokenIn?: Token,
@@ -97,7 +104,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     let pools: RawV2SubgraphPool[] = [];
 
     log.info(
-      `Getting pools from the subgraph with page size ${PAGE_SIZE}${
+      `Getting V2 pools from the subgraph with page size ${PAGE_SIZE}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''

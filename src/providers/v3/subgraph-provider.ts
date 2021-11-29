@@ -53,6 +53,12 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 
+/**
+ * Provider for getting V3 pools from the Subgraph
+ *
+ * @export
+ * @interface IV3SubgraphProvider
+ */
 export interface IV3SubgraphProvider {
   getPools(
     tokenIn?: Token,
@@ -113,7 +119,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     let pools: RawV3SubgraphPool[] = [];
 
     log.info(
-      `Getting pools from the subgraph with page size ${PAGE_SIZE}${
+      `Getting V3 pools from the subgraph with page size ${PAGE_SIZE}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''

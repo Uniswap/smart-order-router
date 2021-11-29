@@ -9,13 +9,23 @@ import { routeToString } from '../../../util/routes';
 import { V2Route, V3Route } from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
 
+/**
+ * Represents a route, a quote for swapping some amount on it, and other
+ * metadata used by the routing algorithm.
+ *
+ * @export
+ * @interface IRouteWithValidQuote
+ * @template Route
+ */
 export interface IRouteWithValidQuote<Route extends V3Route | V2Route> {
   amount: CurrencyAmount;
   percent: number;
+  // If exact in, this is (quote - gasCostInToken). If exact out, this is (quote + gasCostInToken).
   quoteAdjustedForGas: CurrencyAmount;
   quote: CurrencyAmount;
   route: Route;
   gasEstimate: BigNumber;
+  // The gas cost in terms of the quote token.
   gasCostInToken: CurrencyAmount;
   gasCostInUSD: CurrencyAmount;
   tradeType: TradeType;
@@ -44,9 +54,18 @@ export type V2RouteWithValidQuoteParams = {
   tradeType: TradeType;
   v2PoolProvider: IV2PoolProvider;
 };
+/**
+ * Represents a quote for swapping on a V2 only route. Contains all information
+ * such as the route used, the amount specified by the user, the type of quote
+ * (exact in or exact out), the quote itself, and gas estimates.
+ *
+ * @export
+ * @class V2RouteWithValidQuote
+ */
 export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
   public readonly protocol = Protocol.V2;
   public amount: CurrencyAmount;
+  // The BigNumber representing the quote.
   public rawQuote: BigNumber;
   public quote: CurrencyAmount;
   public quoteAdjustedForGas: CurrencyAmount;
@@ -127,7 +146,15 @@ export type V3RouteWithValidQuoteParams = {
   v3PoolProvider: IV3PoolProvider;
 };
 
-export class V3RouteWithValidQuote implements V3RouteWithValidQuote {
+/**
+ * Represents a quote for swapping on a V3 only route. Contains all information
+ * such as the route used, the amount specified by the user, the type of quote
+ * (exact in or exact out), the quote itself, and gas estimates.
+ *
+ * @export
+ * @class V3RouteWithValidQuote
+ */
+export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
   public readonly protocol = Protocol.V3;
   public amount: CurrencyAmount;
   public rawQuote: BigNumber;

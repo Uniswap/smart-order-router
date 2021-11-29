@@ -6,10 +6,22 @@ import { ICache } from './../cache';
 import { ProviderConfig } from './../provider';
 import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
 
+/**
+ * Provider for getting V3 pools, with functionality for caching the results.
+ *
+ * @export
+ * @class CachingV3PoolProvider
+ */
 export class CachingV3PoolProvider implements IV3PoolProvider {
   private POOL_KEY = (chainId: ChainId, address: string) =>
     `pool-${chainId}-${address}`;
 
+  /**
+   * Creates an instance of CachingV3PoolProvider.
+   * @param chainId The chain id to use.
+   * @param poolProvider The provider to use to get the pools when not in the cache.
+   * @param cache Cache instance to hold cached pools.
+   */
   constructor(
     protected chainId: ChainId,
     protected poolProvider: IV3PoolProvider,

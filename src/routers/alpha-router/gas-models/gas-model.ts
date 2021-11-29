@@ -22,6 +22,21 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
 };
 
+/**
+ * Contains functions for generating gas estimates for given routes.
+ *
+ * We generally compute gas estimates off-chain because
+ *  1/ Calling eth_estimateGas for a swaps requires the caller to have
+ *     the full balance token being swapped, and approvals.
+ *  2/ Tracking gas used using a wrapper contract is not accurate with Multicall
+ *     due to EIP-2929
+ *  3/ For V2 we simulate all our swaps off-chain so have no way to track gas used.
+ *
+ * Generally these models should not depend on fetching external data,
+ * and shoudl be optimized to return quickly. This is because the functions are
+ * generally called once for every route and every amount that is considered in
+ * the algorithm.
+ */
 export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
   estimateGasCost(routeWithValidQuote: TRouteWithValidQuote): {
     gasEstimate: BigNumber;
@@ -30,6 +45,17 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
   };
 };
 
+/**
+ * Factory for building gas models that can be used with any route to generate
+ * gas estimates.
+ *
+ * Factory model is used so that any supporting data can be fetched once and
+ * returned as part of the model.
+ *
+ * @export
+ * @abstract
+ * @class IV3GasModelFactory
+ */
 export abstract class IV3GasModelFactory {
   public abstract buildGasModel(
     chainId: number,
@@ -39,6 +65,17 @@ export abstract class IV3GasModelFactory {
   ): Promise<IGasModel<V3RouteWithValidQuote>>;
 }
 
+/**
+ * Factory for building gas models that can be used with any route to generate
+ * gas estimates.
+ *
+ * Factory model is used so that any supporting data can be fetched once and
+ * returned as part of the model.
+ *
+ * @export
+ * @abstract
+ * @class IV2GasModelFactory
+ */
 export abstract class IV2GasModelFactory {
   public abstract buildGasModel(
     chainId: number,

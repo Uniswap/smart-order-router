@@ -22,6 +22,15 @@ const DEFAULT_PRIORITY_FEE_PERCENTILE = 50;
 // Infura docs say only past 4 blocks guaranteed to be available: https://infura.io/docs/ethereum#operation/eth_feeHistory
 const DEFAULT_BLOCKS_TO_LOOK_BACK = 4;
 
+/**
+ * Computes a gas estimate using on-chain data from the eth_feeHistory RPC endpoint.
+ * 
+ * Takes the average priority fee from the past `blocksToConsider` blocks, and adds it
+ * to the current base fee.
+ * 
+ * @export
+ * @class EIP1559GasPriceProvider
+ */
 export class EIP1559GasPriceProvider extends IGasPriceProvider {
   constructor(
     protected provider: providers.JsonRpcProvider,

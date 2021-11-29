@@ -39,8 +39,8 @@ export type CandidatePoolsBySelectionCriteria = {
   selections: {
     topByBaseWithTokenIn: PoolId[];
     topByBaseWithTokenOut: PoolId[];
-    top2DirectSwapPool: PoolId[];
-    top2EthQuoteTokenPool: PoolId[];
+    topByDirectSwapPool: PoolId[];
+    topByEthQuoteTokenPool: PoolId[];
     topByTVL: PoolId[];
     topByTVLUsingTokenIn: PoolId[];
     topByTVLUsingTokenOut: PoolId[];
@@ -106,7 +106,6 @@ export async function getV3CandidatePools({
       topNTokenInOut,
       topNSecondHop,
       topNWithEachBaseToken,
-      topNWithBaseTokenInSet,
       topNWithBaseToken,
     },
   } = routingConfig;
@@ -218,11 +217,6 @@ export async function getV3CandidatePools({
     .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
     .slice(0, topNWithBaseToken)
     .value();
-
-  if (topNWithBaseTokenInSet) {
-    addToAddressSet(topByBaseWithTokenIn);
-    addToAddressSet(topByBaseWithTokenOut);
-  }
 
   const top2DirectSwapPool = _(subgraphPoolsSorted)
     .filter((subgraphPool) => {
@@ -458,8 +452,8 @@ export async function getV3CandidatePools({
     selections: {
       topByBaseWithTokenIn,
       topByBaseWithTokenOut,
-      top2DirectSwapPool,
-      top2EthQuoteTokenPool,
+      topByDirectSwapPool: top2DirectSwapPool,
+      topByEthQuoteTokenPool: top2EthQuoteTokenPool,
       topByTVL,
       topByTVLUsingTokenIn,
       topByTVLUsingTokenOut,
@@ -493,7 +487,6 @@ export async function getV2CandidatePools({
       topNTokenInOut,
       topNSecondHop,
       topNWithEachBaseToken,
-      topNWithBaseTokenInSet,
       topNWithBaseToken,
     },
   } = routingConfig;
@@ -600,11 +593,6 @@ export async function getV2CandidatePools({
     .sortBy((tokenListPool) => -tokenListPool.reserve)
     .slice(0, topNWithBaseToken)
     .value();
-
-  if (topNWithBaseTokenInSet) {
-    addToAddressSet(topByBaseWithTokenIn);
-    addToAddressSet(topByBaseWithTokenOut);
-  }
 
   const top2DirectSwapPool = _(subgraphPoolsSorted)
     .filter((subgraphPool) => {
@@ -826,8 +814,8 @@ export async function getV2CandidatePools({
     selections: {
       topByBaseWithTokenIn,
       topByBaseWithTokenOut,
-      top2DirectSwapPool,
-      top2EthQuoteTokenPool,
+      topByDirectSwapPool: top2DirectSwapPool,
+      topByEthQuoteTokenPool: top2EthQuoteTokenPool,
       topByTVL,
       topByTVLUsingTokenIn,
       topByTVLUsingTokenOut,

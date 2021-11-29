@@ -41,7 +41,6 @@ describe('get candidate pools', () => {
       topNSecondHop: 0,
       topNWithEachBaseToken: 0,
       topNWithBaseToken: 0,
-      topNWithBaseTokenInSet: false,
     },
     v2PoolSelection: {
       topN: 0,
@@ -50,7 +49,6 @@ describe('get candidate pools', () => {
       topNSecondHop: 0,
       topNWithEachBaseToken: 0,
       topNWithBaseToken: 0,
-      topNWithBaseTokenInSet: false,
     },
     maxSwapsPerPath: 3,
     minSplits: 1,

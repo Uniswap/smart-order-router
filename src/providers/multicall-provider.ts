@@ -38,7 +38,27 @@ export type FailResult = {
 
 export type Result<TReturn> = SuccessResult<TReturn> | FailResult;
 
+/**
+ * Provider for fetching data on chain using multicall contracts.
+ *
+ * @export
+ * @abstract
+ * @class IMulticallProvider
+ * @template TMulticallConfig
+ */
 export abstract class IMulticallProvider<TMulticallConfig = any> {
+  /**
+   * Calls the same function on multiple contracts.
+   *
+   * For example, if you wanted to get the ERC-20 balance of 10 different tokens
+   * this can be used to call balance on the 10 contracts in a single multicall.
+   *
+   * @abstract
+   * @template TFunctionParams
+   * @template TReturn
+   * @param params
+   * @returns {*}
+   */
   public abstract callSameFunctionOnMultipleContracts<
     TFunctionParams extends any[] | undefined,
     TReturn = any
@@ -52,6 +72,18 @@ export abstract class IMulticallProvider<TMulticallConfig = any> {
     results: Result<TReturn>[];
   }>;
 
+  /**
+   * Calls a function on a single contract with different parameters.
+   *
+   * For example, if you wanted to call the Uniswap V3 Quoter with 10 different
+   * swap amounts this can be used to make the calls in a single multicall.
+   *
+   * @abstract
+   * @template TFunctionParams
+   * @template TReturn
+   * @param params
+   * @returns {*}
+   */
   public abstract callSameFunctionOnContractWithMultipleParams<
     TFunctionParams extends any[] | undefined,
     TReturn = any

@@ -14,12 +14,33 @@ import { Result } from '../multicall-provider';
 import { UniswapMulticallProvider } from '../multicall-uniswap-provider';
 import { ProviderConfig } from '../provider';
 
-// Quotes can be null (e.g. pool did not have enough liquidity).
+const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
+  [ChainId.MAINNET]: QUOTER_V2_ADDRESS,
+  [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf',
+};
+
+/**
+ * A quote for a swap on V3.
+ */
 export type V3AmountQuote = {
   amount: CurrencyAmount;
+  /**
+   * Quotes can be null (e.g. pool did not have enough liquidity).
+   */
   quote: BigNumber | null;
+  /**
+   * For each pool in the route, the sqrtPriceX96 after the swap.
+   */
   sqrtPriceX96AfterList: BigNumber[] | null;
+  /**
+   * For each pool in the route, the number of ticks crossed.
+   */
   initializedTicksCrossedList: number[] | null;
+  /**
+   * An estimate of the gas used by the swap. This is returned by the multicall
+   * and is not necessarily accurate due to EIP-2929 causing gas costs to vary
+   * depending on if the slot has already been loaded in the call.
+   */
   gasEstimate: BigNumber | null;
 };
 
@@ -37,12 +58,26 @@ export class ProviderBlockHeaderError extends Error {
 export class ProviderTimeoutError extends Error {
   public name = 'ProviderTimeoutError';
 }
+
+/**
+ * This error typically means that the gas used by the multicall has
+ * exceeded the total call gas limit set by the node provider.
+ *
+ * This can be resolved by modifying BatchParams to request fewer
+ * quotes per call, or to set a lower gas limit per quote.
+ *
+ * @export
+ * @class ProviderGasError
+ */
 export class ProviderGasError extends Error {
   public name = 'ProviderGasError';
 }
 
 export type QuoteRetryOptions = AsyncRetry.Options;
 
+/**
+ * The V3 route and a list of quotes for that route.
+ */
 export type V3RouteWithQuotes = [V3Route, V3AmountQuote[]];
 
 type QuoteBatchSuccess = {
@@ -73,13 +108,37 @@ type QuoteBatchPending = {
 
 type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 
+/**
+ * Provider for getting quotes on Uniswap V3.
+ *
+ * @export
+ * @interface IV3QuoteProvider
+ */
 export interface IV3QuoteProvider {
+  /**
+   * For every route, gets an exactIn quotes on V3 for every amount provided.
+   *
+   * @param amountIns The amounts to get quotes for.
+   * @param routes The routes to get quotes for.
+   * @param [providerConfig] The provider config.
+   * @returns For each route returns a V3RouteWithQuotes object that contains all the quotes.
+   * @returns The blockNumber used when generating the quotes.
+   */
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
     routes: V3Route[],
     providerConfig?: ProviderConfig
   ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
 
+  /**
+   * For every route, gets ane exactOut quote on V3 for every amount provided.
+   *
+   * @param amountOuts The amounts to get quotes for.
+   * @param routes The routes to get quotes for.
+   * @param [providerConfig] The provider config.
+   * @returns For each route returns a V3RouteWithQuotes object that contains all the quotes.
+   * @returns The blockNumber used when generating the quotes.
+   */
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
     routes: V3Route[],
@@ -87,13 +146,76 @@ export interface IV3QuoteProvider {
   ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
-const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]: QUOTER_V2_ADDRESS,
-  [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf',
+/**
+ * The parameters for the multicalls we make.
+ *
+ * It is important to ensure that (gasLimitPerCall * multicallChunk) < providers gas limit per call.
+ *
+ * V3 quotes can consume a lot of gas (if the swap is so large that it swaps through a large
+ * number of ticks), so there is a risk of exceeded gas limits in these multicalls.
+ */
+export type BatchParams = {
+  /**
+   * The number of quotes to fetch in each multicall.
+   */
+  multicallChunk: number;
+  /**
+   * The maximum call to consume for each quote in the multicall.
+   */
+  gasLimitPerCall: number;
+  /**
+   * The minimum success rate for all quotes across all multicalls.
+   * If we set our gasLimitPerCall too low it could result in a large number of
+   * quotes failing due to out of gas. This parameters will fail the overall request
+   * in this case.
+   */
+  quoteMinSuccessRate: number;
 };
 
+export type SuccessRateFailureOverrides = {
+  multicallChunk: number;
+  gasLimitOverride: number;
+};
+
+/**
+ * Computes quotes for V3. For V3, quotes are computed on-chain using
+ * the 'QuoterV2' smart contract. This is because computing quotes off-chain would
+ * require fetching all the tick data for each pool, which is a lot of data.
+ *
+ * To minimize the number of requests for quotes we use a Multicall contract. Generally
+ * the number of quotes to fetch exceeds the maximum we can fit in a single multicall
+ * while staying under gas limits, so we also batch these quotes across multiple multicalls.
+ *
+ * The biggest challenge with the quote provider is dealing with various gas limits.
+ * Each provider sets a limit on the amount of gas a call can consume (on Infura this
+ * is approximately 10x the block max size), so we must ensure each multicall does not
+ * exceed this limit. Additionally, each quote on V3 can consume a large number of gas if
+ * the pool lacks liquidity and the swap would cause all the ticks to be traversed.
+ *
+ * To ensure we don't exceed the node's call limit, we limit the gas used by each quote to
+ * a specific value, and we limit the number of quotes in each multicall request. Users of this
+ * class should set BatchParams such that multicallChunk * gasLimitPerCall is less than their node
+ * providers total gas limit per call.
+ *
+ * @export
+ * @class V3QuoteProvider
+ */
 export class V3QuoteProvider implements IV3QuoteProvider {
   protected quoterAddress: string;
+  /**
+   * Creates an instance of V3QuoteProvider.
+   *
+   * @param chainId The chain to get quotes for.
+   * @param provider The web 3 provider.
+   * @param multicall2Provider The multicall provider to use to get the quotes on-chain.
+   * Only supports the Uniswap Multicall contract as it needs the gas limitting functionality.
+   * @param retryOptions The retry options for each call to the multicall.
+   * @param batchParams The parameters for each batched call to the multicall.
+   * @param successRateFailureOverrides The parameters for retries when we fail to get quotes.
+   * @param [rollback=false] If true, if we fail to get quotes due to block header
+   *  errors (meaning the specified block wasn't found by the provider) we rollback the block number.
+   * @param [quoterAddressOverride] Overrides the address of the quoter contract to use.
+   */
   constructor(
     protected chainId: ChainId,
     protected provider: providers.BaseProvider,
@@ -104,12 +226,12 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       minTimeout: 25,
       maxTimeout: 250,
     },
-    protected batchParams = {
+    protected batchParams: BatchParams = {
       multicallChunk: 150,
       gasLimitPerCall: 1_000_000,
       quoteMinSuccessRate: 0.2,
     },
-    protected successRateFailureOverrides = {
+    protected successRateFailureOverrides: SuccessRateFailureOverrides = {
       gasLimitOverride: 1_300_000,
       multicallChunk: 110,
     },
@@ -122,7 +244,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
     if (!quoterAddress) {
       throw new Error(
-        `No address for Uniswap Quoter V2 Contract on chain id: ${chainId}`
+        `No address for Uniswap QuoterV2 Contract on chain id: ${chainId}`
       );
     }
 
