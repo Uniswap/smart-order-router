@@ -19,6 +19,7 @@ import {
   GasPrice,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
+  ID_TO_PROVIDER,
   IRouter,
   ISwapToRatio,
   ITokenProvider,
@@ -209,11 +210,10 @@ export abstract class BaseCommand extends Command {
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainName = ID_TO_NETWORK_NAME(chainIdNumb);
+    const chainProvider = ID_TO_PROVIDER(chainId);
 
     const provider = new ethers.providers.JsonRpcProvider(
-      chainId == ChainId.MAINNET
-        ? process.env.JSON_RPC_PROVIDER!
-        : process.env.JSON_RPC_PROVIDER_RINKEBY!,
+      chainProvider,
       chainName
     );
 

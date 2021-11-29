@@ -22,6 +22,18 @@ First create a `.env` file in the root of the project and configure:
 JSON_RPC_PROVIDER = '<JSON_RPC_PROVIDER>'
 ```
 
+To run on chains other than mainnet set up a connection by specifying the environment variable
+
+```JSON_RPC_PROVIDER_{CHAIN} = '<JSON_RPC_PROVIDER>'
+
+```
+
+For example, specifying a provider for Optimism :
+
+```
+JSON_RPC_PROVIDER_OPTIMISM = '<JSON_RPC_PROVIDER>'
+```
+
 Then from the root directory you can execute the CLI.
 
 ```

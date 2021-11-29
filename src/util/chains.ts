@@ -82,3 +82,28 @@ export const V2_UNSUPPORTED: ChainId[] = [
   ChainId.OPTIMISM,
   ChainId.OPTIMISTIC_KOVAN,
 ];
+
+export const ID_TO_PROVIDER = (id: number): string => {
+  switch (id) {
+    case 1:
+      return process.env.JSON_RPC_PROVIDER!;
+    case 3:
+      return process.env.JSON_RPC_PROVIDER_ROPSTEN!;
+    case 4:
+      return process.env.JSON_RPC_PROVIDER_RINKEBY!;
+    case 5:
+      return process.env.JSON_RPC_PROVIDER_GÖRLI!;
+    case 42:
+      return process.env.JSON_RPC_PROVIDER_KOVAN!;
+    case 10:
+      return process.env.JSON_RPC_PROVIDER_OPTIMISM!;
+    case 69:
+      return process.env.JSON_RPC_PROVIDER_OPTIMISTIC_KOVAN!;
+    case 42161:
+      return process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE!;
+    case 421611:
+      return process.env.JSON_RPC_PROVIDER_ARBITRUM_RINKEBY!;
+    default:
+      throw new Error(`Chain id: ${id} not supported`);
+  }
+};
