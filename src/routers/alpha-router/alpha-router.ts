@@ -496,7 +496,7 @@ export class AlphaRouter
 
     if (
       (!protocols || protocols.length == 0 || Protocol.V2 in protocols) &&
-      this.chainId in V2_UNSUPPORTED
+      V2_UNSUPPORTED.includes(this.chainId)
     ) {
       log.error(`This chain ${this.chainId} does not support v2 trades`);
       return null;
