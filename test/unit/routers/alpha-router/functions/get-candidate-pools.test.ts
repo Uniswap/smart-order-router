@@ -1,5 +1,5 @@
-import { TradeType } from '@uniswap/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+import { Token, TradeType } from '@uniswap/sdk-core';
+import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import sinon from 'sinon';
 import {
@@ -59,6 +59,15 @@ describe('get candidate pools', () => {
     forceCrossProtocol: false,
   };
 
+  const mockTokens = [USDC, DAI, WETH9[1], USDT];
+  const mockPools = [
+    USDC_DAI_LOW,
+    USDC_DAI_MEDIUM,
+    USDC_WETH_LOW,
+    WETH9_USDT_LOW,
+    DAI_USDT_LOW,
+  ];
+
   beforeEach(() => {
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
     mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
@@ -67,14 +76,6 @@ describe('get candidate pools', () => {
       CachingTokenListProvider
     );
 
-    const mockTokens = [USDC, DAI, WETH9[1], USDT];
-    const mockPools = [
-      USDC_DAI_LOW,
-      USDC_DAI_MEDIUM,
-      USDC_WETH_LOW,
-      WETH9_USDT_LOW,
-      DAI_USDT_LOW,
-    ];
     const mockSubgraphPools: V3SubgraphPool[] = _.map(
       mockPools,
       poolToV3SubgraphPool
@@ -82,6 +83,15 @@ describe('get candidate pools', () => {
 
     mockV3SubgraphProvider.getPools.resolves(mockSubgraphPools);
     mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(mockPools));
+    mockV3PoolProvider.getPoolAddress.callsFake(
+      (t1: Token, t2: Token, f: FeeAmount) => {
+        return {
+          poolAddress: Pool.getAddress(t1, t2, f),
+          token0: t1.sortsBefore(t2) ? t1 : t2,
+          token1: t1.sortsBefore(t2) ? t2 : t1,
+        };
+      }
+    );
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
   });
 
@@ -162,6 +172,63 @@ describe('get candidate pools', () => {
       mockV3PoolProvider.getPools.calledWithExactly([
         [USDC, WETH9[1], FeeAmount.LOW],
         [DAI, USDC, FeeAmount.LOW],
+      ])
+    ).toBeTruthy();
+  });
+
+  test('succeeds to get direct swap pools even if they dont exist in the subgraph', async () => {
+    // Mock so that DAI_WETH exists on chain, but not in the subgraph
+    const poolsOnSubgraph = [
+      USDC_DAI_LOW,
+      USDC_DAI_MEDIUM,
+      USDC_WETH_LOW,
+      WETH9_USDT_LOW,
+      DAI_USDT_LOW,
+    ];
+
+    const subgraphPools: V3SubgraphPool[] = _.map(
+      poolsOnSubgraph,
+      poolToV3SubgraphPool
+    );
+
+    mockV3SubgraphProvider.getPools.resolves(subgraphPools);
+
+    const DAI_WETH_LOW = new Pool(
+      DAI,
+      WETH9[1],
+      FeeAmount.LOW,
+      encodeSqrtRatioX96(1, 1),
+      10,
+      0
+    );
+    mockV3PoolProvider.getPools.resolves(
+      buildMockV3PoolAccessor([...poolsOnSubgraph, DAI_WETH_LOW])
+    );
+
+    await getV3CandidatePools({
+      tokenIn: WETH9[1],
+      tokenOut: DAI,
+      routeType: TradeType.EXACT_INPUT,
+      routingConfig: {
+        ...ROUTING_CONFIG,
+        v3PoolSelection: {
+          ...ROUTING_CONFIG.v3PoolSelection,
+          topNDirectSwaps: 1,
+        },
+      },
+      poolProvider: mockV3PoolProvider,
+      subgraphProvider: mockV3SubgraphProvider,
+      tokenProvider: mockTokenProvider,
+      blockedTokenListProvider: mockBlockTokenListProvider,
+      chainId: ChainId.MAINNET,
+    });
+
+    expect(
+      mockV3PoolProvider.getPools.calledWithExactly([
+        [DAI, WETH9[1], FeeAmount.HIGH],
+        [DAI, WETH9[1], FeeAmount.MEDIUM],
+        [DAI, WETH9[1], FeeAmount.LOW],
+        [DAI, WETH9[1], FeeAmount.LOWEST],
       ])
     ).toBeTruthy();
   });

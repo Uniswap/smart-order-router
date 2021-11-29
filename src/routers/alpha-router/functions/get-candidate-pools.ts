@@ -28,7 +28,7 @@ import {
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
 import { ChainId } from '../../../util';
-import { parseFeeAmount } from '../../../util/amounts';
+import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
@@ -224,7 +224,7 @@ export async function getV3CandidatePools({
     addToAddressSet(topByBaseWithTokenOut);
   }
 
-  const top2DirectSwapPool = _(subgraphPoolsSorted)
+  let top2DirectSwapPool = _(subgraphPoolsSorted)
     .filter((subgraphPool) => {
       return (
         !poolAddressesSoFar.has(subgraphPool.id) &&
@@ -236,6 +236,35 @@ export async function getV3CandidatePools({
     })
     .slice(0, topNDirectSwaps)
     .value();
+
+  if (top2DirectSwapPool.length == 0 && topNDirectSwaps > 0) {
+    // If we requested direct swap pools but did not find any in the subgraph query.
+    // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
+    // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
+    top2DirectSwapPool = _.map(
+      [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
+      (feeAmount) => {
+        const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
+          tokenIn,
+          tokenOut,
+          feeAmount
+        );
+        return {
+          id: poolAddress,
+          feeTier: unparseFeeAmount(feeAmount),
+          liquidity: '10000',
+          token0: {
+            id: token0.address,
+          },
+          token1: {
+            id: token1.address,
+          },
+          tvlETH: 10000,
+          tvlUSD: 10000,
+        };
+      }
+    );
+  }
 
   addToAddressSet(top2DirectSwapPool);
 
@@ -606,18 +635,30 @@ export async function getV2CandidatePools({
     addToAddressSet(topByBaseWithTokenOut);
   }
 
-  const top2DirectSwapPool = _(subgraphPoolsSorted)
-    .filter((subgraphPool) => {
-      return (
-        !poolAddressesSoFar.has(subgraphPool.id) &&
-        ((subgraphPool.token0.id == tokenInAddress &&
-          subgraphPool.token1.id == tokenOutAddress) ||
-          (subgraphPool.token1.id == tokenInAddress &&
-            subgraphPool.token0.id == tokenOutAddress))
-      );
-    })
-    .slice(0, topNDirectSwaps)
-    .value();
+  // Always add the direct swap pool into the mix regardless of if it exists in the subgraph pool list.
+  // Ensures that new pools can be swapped on immediately, and that if a pool was filtered out of the
+  // subgraph query for some reason (e.g. trackedReserveETH was 0), then we still consider it.
+  let top2DirectSwapPool: V2SubgraphPool[] = [];
+  if (topNDirectSwaps != 0) {
+    const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
+      tokenIn,
+      tokenOut
+    );
+
+    top2DirectSwapPool = [
+      {
+        id: poolAddress,
+        token0: {
+          id: token0.address,
+        },
+        token1: {
+          id: token1.address,
+        },
+        supply: 10000, // Not used. Set to arbitrary number.
+        reserve: 10000, // Not used. Set to arbitrary number.
+      },
+    ];
+  }
 
   addToAddressSet(top2DirectSwapPool);
 

@@ -181,9 +181,14 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       }
     );
 
-    // filter pools that have liquidity less than threshold
+    // Filter pools that have tracked reserve ETH less than threshold.
+    // trackedReserveETH filters pools that do not involve a pool from this
+    // allowlist: https://github.com/Uniswap/v2-subgraph/blob/7c82235cad7aee4cfce8ea82f0030af3d224833e/src/mappings/pricing.ts#L43
+    // Which helps filter pools with manipulated prices/liquidity.
     const poolsSanitized: V2SubgraphPool[] = pools
-      .filter((pool) => parseFloat(pool.trackedReserveETH) > threshold)
+      .filter((pool) => {
+        return parseFloat(pool.trackedReserveETH) > threshold;
+      })
       .map((pool) => {
         return {
           ...pool,
