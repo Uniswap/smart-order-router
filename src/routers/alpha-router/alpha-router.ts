@@ -251,7 +251,7 @@ export class AlphaRouter
     } else {
       if (!V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
         throw new Error(
-          `No IPFS pool cache for V2 on ${chainId}. Provide your own provider.`
+          `Can not create a default subgraph provider for V2 on ${chainId}. Provide your own V2SubgraphProvider.`
         );
       }
 
@@ -290,7 +290,7 @@ export class AlphaRouter
     } else {
       if (!V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
         throw new Error(
-          `No IPFS pool cache for V3 on ${chainId}. Provide your own provider.`
+          `Can not create a default subgraph provider for V3 on ${chainId}. Provide your own V3SubgraphProvider.`
         );
       }
 
@@ -526,7 +526,12 @@ export class AlphaRouter
       candidatePools: CandidatePoolsBySelectionCriteria;
     }>[] = [];
 
-    if (!protocols || protocols.length == 0) {
+    const protocolsSet = new Set(protocols ?? []);
+
+    if (
+      protocolsSet.size == 0 ||
+      (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))
+    ) {
       log.info({ protocols, swapType }, 'Routing across all protocols');
       quotePromises.push(
         this.getV3Quotes(
@@ -552,7 +557,7 @@ export class AlphaRouter
           routingConfig
         )
       );
-    } else if (protocols.includes(Protocol.V3)) {
+    } else if (protocolsSet.has(Protocol.V3)) {
       log.info({ protocols, swapType }, 'Routing across V3');
       quotePromises.push(
         this.getV3Quotes(
@@ -566,7 +571,7 @@ export class AlphaRouter
           routingConfig
         )
       );
-    } else if (protocols.includes(Protocol.V2)) {
+    } else if (protocolsSet.has(Protocol.V2)) {
       log.info({ protocols, swapType }, 'Routing across V2');
       quotePromises.push(
         this.getV2Quotes(
