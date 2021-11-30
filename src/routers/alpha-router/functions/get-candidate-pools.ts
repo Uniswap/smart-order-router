@@ -626,14 +626,14 @@ export async function getV2CandidatePools({
   // Always add the direct swap pool into the mix regardless of if it exists in the subgraph pool list.
   // Ensures that new pools can be swapped on immediately, and that if a pool was filtered out of the
   // subgraph query for some reason (e.g. trackedReserveETH was 0), then we still consider it.
-  let top2DirectSwapPool: V2SubgraphPool[] = [];
+  let topByDirectSwapPool: V2SubgraphPool[] = [];
   if (topNDirectSwaps != 0) {
     const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
       tokenIn,
       tokenOut
     );
 
-    top2DirectSwapPool = [
+    topByDirectSwapPool = [
       {
         id: poolAddress,
         token0: {
@@ -648,20 +648,20 @@ export async function getV2CandidatePools({
     ];
   }
 
-  addToAddressSet(top2DirectSwapPool);
+  addToAddressSet(topByDirectSwapPool);
 
   const wethAddress = WETH9[chainId]!.address;
 
   // Main reason we need this is for gas estimates, only needed if token out is not ETH.
   // We don't check the seen address set because if we've already added pools for getting ETH quotes
   // theres no need to add more.
-  let top2EthQuoteTokenPool: V2SubgraphPool[] = [];
+  let topByEthQuoteTokenPool: V2SubgraphPool[] = [];
   if (
     tokenOut.symbol != 'WETH' &&
     tokenOut.symbol != 'WETH9' &&
     tokenOut.symbol != 'ETH'
   ) {
-    top2EthQuoteTokenPool = _(subgraphPoolsSorted)
+    topByEthQuoteTokenPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return (
@@ -683,7 +683,7 @@ export async function getV2CandidatePools({
       .value();
   }
 
-  addToAddressSet(top2EthQuoteTokenPool);
+  addToAddressSet(topByEthQuoteTokenPool);
 
   const topByTVL = _(subgraphPoolsSorted)
     .filter((subgraphPool) => {
@@ -773,8 +773,8 @@ export async function getV2CandidatePools({
   const subgraphPools = _([
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
-    ...top2DirectSwapPool,
-    ...top2EthQuoteTokenPool,
+    ...topByDirectSwapPool,
+    ...topByEthQuoteTokenPool,
     ...topByTVL,
     ...topByTVLUsingTokenIn,
     ...topByTVLUsingTokenOut,
@@ -815,8 +815,8 @@ export async function getV2CandidatePools({
         topByTVLUsingTokenInSecondHops.map(printV2SubgraphPool),
       topByTVLUsingTokenOutSecondHops:
         topByTVLUsingTokenOutSecondHops.map(printV2SubgraphPool),
-      top2DirectSwap: top2DirectSwapPool.map(printV2SubgraphPool),
-      top2EthQuotePool: top2EthQuoteTokenPool.map(printV2SubgraphPool),
+      top2DirectSwap: topByDirectSwapPool.map(printV2SubgraphPool),
+      top2EthQuotePool: topByEthQuoteTokenPool.map(printV2SubgraphPool),
     },
     `V2 Candidate pools`
   );
@@ -855,8 +855,8 @@ export async function getV2CandidatePools({
     selections: {
       topByBaseWithTokenIn,
       topByBaseWithTokenOut,
-      topByDirectSwapPool: top2DirectSwapPool,
-      topByEthQuoteTokenPool: top2EthQuoteTokenPool,
+      topByDirectSwapPool,
+      topByEthQuoteTokenPool: topByEthQuoteTokenPool,
       topByTVL,
       topByTVLUsingTokenIn,
       topByTVLUsingTokenOut,

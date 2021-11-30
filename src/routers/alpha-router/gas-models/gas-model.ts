@@ -32,10 +32,11 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
  *     due to EIP-2929
  *  3/ For V2 we simulate all our swaps off-chain so have no way to track gas used.
  *
- * Generally these models should not depend on fetching external data,
- * and shoudl be optimized to return quickly. This is because the functions are
- * generally called once for every route and every amount that is considered in
- * the algorithm.
+ * Generally these models should be optimized to return quickly by performing any
+ * long running operations (like fetching external data) outside of the functions defined.
+ * This is because the functions in the model are called once for every route and every
+ * amount that is considered in the algorithm so it is important to minimize the number of
+ * long running operations.
  */
 export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
   estimateGasCost(routeWithValidQuote: TRouteWithValidQuote): {
