@@ -10,6 +10,7 @@ export * from './multicall-provider';
 export * from './multicall-uniswap-provider';
 export * from './token-provider';
 export * from './uri-subgraph-provider';
+export * from './v2/caching-subgraph-provider';
 export * from './v2/pool-provider';
 export * from './v2/quote-provider';
 export * from './v2/static-subgraph-provider';

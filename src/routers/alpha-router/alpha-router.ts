@@ -19,7 +19,9 @@ import { V3HeuristicGasModelFactory } from '.';
 import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
+  CachingV2SubgraphProvider,
   CachingV3PoolProvider,
+  CachingV3SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IV2QuoteProvider,
@@ -57,6 +59,7 @@ import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { routeToString } from '../../util/routes';
+import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
@@ -86,19 +89,68 @@ import { IV2GasModelFactory, IV3GasModelFactory } from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 export type AlphaRouterParams = {
+  /**
+   * The chain id for this instance of the Alpha Router.
+   */
   chainId: ChainId;
+  /**
+   * The Web3 provider for getting on-chain data.
+   */
   provider: providers.BaseProvider;
+  /**
+   * The provider to use for making multicalls. Used for getting on-chain data
+   * like pools, tokens, quotes in batch.
+   */
   multicall2Provider?: UniswapMulticallProvider;
+  /**
+   * The provider for getting all pools that exist on V3 from the Subgraph. The pools
+   * from this provider are filtered during the algorithm to a set of candidate pools.
+   */
   v3SubgraphProvider?: IV3SubgraphProvider;
+  /**
+   * The provider for getting data about V3 pools.
+   */
   v3PoolProvider?: IV3PoolProvider;
+  /**
+   * The provider for getting V3 quotes.
+   */
   v3QuoteProvider?: IV3QuoteProvider;
+  /**
+   * The provider for getting all pools that exist on V2 from the Subgraph. The pools
+   * from this provider are filtered during the algorithm to a set of candidate pools.
+   */
   v2SubgraphProvider?: IV2SubgraphProvider;
+  /**
+   * The provider for getting data about V2 pools.
+   */
   v2PoolProvider?: IV2PoolProvider;
+  /**
+   * The provider for getting V3 quotes.
+   */
   v2QuoteProvider?: IV2QuoteProvider;
+  /**
+   * The provider for getting data about Tokens.
+   */
   tokenProvider?: ITokenProvider;
+  /**
+   * The provider for getting the current gas price to use when account for gas in the
+   * algorithm.
+   */
   gasPriceProvider?: IGasPriceProvider;
+  /**
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V3 routes.
+   */
   v3GasModelFactory?: IV3GasModelFactory;
+  /**
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V2 routes.
+   */
   v2GasModelFactory?: IV2GasModelFactory;
+  /**
+   * A token list that specifies Token that should be blocked from routing through.
+   * Defaults to Uniswap's unsupported token list.
+   */
   blockedTokenListProvider?: ITokenListProvider;
 };
 
@@ -324,9 +376,13 @@ export class AlphaRouter
         );
       }
 
-      this.v2SubgraphProvider = new V2URISubgraphProvider(
+      this.v2SubgraphProvider = new CachingV2SubgraphProvider(
         chainId,
-        V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        new V2URISubgraphProvider(
+          chainId,
+          V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        ),
+        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
       );
     }
 
@@ -334,8 +390,7 @@ export class AlphaRouter
       blockedTokenListProvider ??
       new CachingTokenListProvider(
         chainId,
-        //TODO(judo): add unsupported
-        {} as TokenList,
+        UNSUPPORTED_TOKENS as TokenList,
         new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
       );
     this.tokenProvider =
@@ -360,9 +415,13 @@ export class AlphaRouter
         );
       }
 
-      this.v3SubgraphProvider = new V3URISubgraphProvider(
+      this.v3SubgraphProvider = new CachingV3SubgraphProvider(
         chainId,
-        V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        new V3URISubgraphProvider(
+          chainId,
+          V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        ),
+        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
       );
     }
 
