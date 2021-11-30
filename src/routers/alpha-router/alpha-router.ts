@@ -27,7 +27,6 @@ import {
   NodeJSCache,
   UniswapMulticallProvider,
   V2QuoteProvider,
-  V2SubgraphProvider,
   V3URISubgraphProvider,
 } from '../../providers';
 import {
@@ -260,9 +259,6 @@ export class AlphaRouter
         V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
       );
     }
-
-    this.v2SubgraphProvider =
-      v2SubgraphProvider ?? new V2SubgraphProvider(chainId);
 
     this.blockedTokenListProvider =
       blockedTokenListProvider ??
