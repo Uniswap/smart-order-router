@@ -320,7 +320,7 @@ export class AlphaRouter
     } else {
       if (!V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
         throw new Error(
-          `No IPFS pool cache for V2 on ${chainId}. Provide your own provider.`
+          `Can not create a default subgraph provider for V2 on ${chainId}. Provide your own V2SubgraphProvider.`
         );
       }
 
@@ -356,7 +356,7 @@ export class AlphaRouter
     } else {
       if (!V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
         throw new Error(
-          `No IPFS pool cache for V3 on ${chainId}. Provide your own provider.`
+          `Can not create a default subgraph provider for V3 on ${chainId}. Provide your own V3SubgraphProvider.`
         );
       }
 
@@ -595,11 +595,13 @@ export class AlphaRouter
       candidatePools: CandidatePoolsBySelectionCriteria;
     }>[] = [];
 
-    if (!protocols || protocols.length == 0) {
-      log.info(
-        { protocols, swapType: tradeType },
-        'Routing across V3 and V2 protocols'
-      );
+    const protocolsSet = new Set(protocols ?? []);
+
+    if (
+      protocolsSet.size == 0 ||
+      (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))
+    ) {
+      log.info({ protocols, tradeType }, 'Routing across all protocols');
       quotePromises.push(
         this.getV3Quotes(
           tokenIn,
@@ -625,7 +627,7 @@ export class AlphaRouter
         )
       );
     } else {
-      if (protocols.includes(Protocol.V3)) {
+      if (protocolsSet.has(Protocol.V3)) {
         log.info({ protocols, swapType: tradeType }, 'Routing across V3');
         quotePromises.push(
           this.getV3Quotes(
@@ -640,7 +642,7 @@ export class AlphaRouter
           )
         );
       }
-      if (protocols.includes(Protocol.V2)) {
+      if (protocolsSet.has(Protocol.V2)) {
         log.info({ protocols, swapType: tradeType }, 'Routing across V2');
         quotePromises.push(
           this.getV2Quotes(
@@ -657,9 +659,7 @@ export class AlphaRouter
       }
     }
 
-    log.info('Waiting for quotes');
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
-    log.info('Waiting for quotes promise resolved');
 
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];

@@ -315,7 +315,7 @@ describe('alpha router', () => {
   });
 
   describe('exact in', () => {
-    test('succeeds to route across all protocols', async () => {
+    test('succeeds to route across all protocols when no protocols specified', async () => {
       // Mock the quote providers so that for each protocol, one route and one
       // amount less than 100% of the input gives a huge quote.
       // Ensures a split route.
@@ -386,6 +386,157 @@ describe('alpha router', () => {
         TradeType.EXACT_INPUT,
         undefined,
         { ...ROUTING_CONFIG }
+      );
+      expect(swap).toBeDefined();
+
+      expect(mockProvider.getBlockNumber.called).toBeTruthy();
+      expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
+      expect(
+        mockV3GasModelFactory.buildGasModel.calledWith(
+          1,
+          mockGasPriceWeiBN,
+          sinon.match.any,
+          WETH9[1]!
+        )
+      ).toBeTruthy();
+      expect(
+        mockV2GasModelFactory.buildGasModel.calledWith(
+          1,
+          mockGasPriceWeiBN,
+          sinon.match.any,
+          WETH9[1]!
+        )
+      ).toBeTruthy();
+
+      sinon.assert.calledWith(
+        mockV3QuoteProvider.getQuotesManyExactIn,
+        sinon.match((value) => {
+          return value instanceof Array && value.length == 4;
+        }),
+        sinon.match.array,
+        sinon.match({ blockNumber: sinon.match.defined })
+      );
+      sinon.assert.calledWith(
+        mockV2QuoteProvider.getQuotesManyExactIn,
+        sinon.match((value) => {
+          return value instanceof Array && value.length == 4;
+        }),
+        sinon.match.array
+      );
+
+      for (const r of swap!.route) {
+        expect(r.route.input.equals(USDC)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+      }
+
+      expect(swap!.quote.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
+      expect(swap!.estimatedGasUsed.toString()).toEqual('20000');
+      expect(
+        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1]!)
+      ).toBeTruthy();
+      expect(
+        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      ).toBeTruthy();
+      expect(swap!.gasPriceWei.toString()).toEqual(
+        mockGasPriceWeiBN.toString()
+      );
+      expect(swap!.route).toHaveLength(2);
+
+      expect(
+        _.filter(swap!.route, (r) => r.protocol == Protocol.V3)
+      ).toHaveLength(1);
+      expect(
+        _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
+      ).toHaveLength(1);
+
+      expect(
+        _(swap!.route)
+          .map((r) => r.percent)
+          .sum()
+      ).toEqual(100);
+
+      expect(sumFn(_.map(swap!.route, (r) => r.amount)).equalTo(amount));
+
+      expect(swap!.trade).toBeDefined();
+      expect(swap!.methodParameters).not.toBeDefined();
+      expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
+    });
+
+    test('succeeds to route across all protocols when all protocols are specified', async () => {
+      // Mock the quote providers so that for each protocol, one route and one
+      // amount less than 100% of the input gives a huge quote.
+      // Ensures a split route.
+      mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
+        async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
+          const routesWithQuotes = _.map(routes, (r, routeIdx) => {
+            const amountQuotes = _.map(amountIns, (amountIn, idx) => {
+              const quote =
+                idx == 1 && routeIdx == 1
+                  ? BigNumber.from(amountIn.quotient.toString()).mul(10)
+                  : BigNumber.from(amountIn.quotient.toString());
+              return {
+                amount: amountIn,
+                quote,
+              } as V2AmountQuote;
+            });
+            return [r, amountQuotes];
+          });
+
+          return {
+            routesWithQuotes: routesWithQuotes,
+          } as { routesWithQuotes: V2RouteWithQuotes[] };
+        }
+      );
+
+      mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+        async (
+          amountIns: CurrencyAmount[],
+          routes: V3Route[],
+          _providerConfig?: ProviderConfig
+        ) => {
+          const routesWithQuotes = _.map(routes, (r, routeIdx) => {
+            const amountQuotes = _.map(amountIns, (amountIn, idx) => {
+              const quote =
+                idx == 1 && routeIdx == 1
+                  ? BigNumber.from(amountIn.quotient.toString()).mul(10)
+                  : BigNumber.from(amountIn.quotient.toString());
+              return {
+                amount: amountIn,
+                quote,
+                sqrtPriceX96AfterList: [
+                  BigNumber.from(1),
+                  BigNumber.from(1),
+                  BigNumber.from(1),
+                ],
+                initializedTicksCrossedList: [1],
+                gasEstimate: BigNumber.from(10000),
+              } as V3AmountQuote;
+            });
+            return [r, amountQuotes];
+          });
+
+          return {
+            routesWithQuotes: routesWithQuotes,
+            blockNumber: mockBlockBN,
+          } as {
+            routesWithQuotes: V3RouteWithQuotes[];
+            blockNumber: BigNumber;
+          };
+        }
+      );
+
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
+
+      const swap = await alphaRouter.route(
+        amount,
+        WETH9[1]!,
+        TradeType.EXACT_INPUT,
+        undefined,
+        { ...ROUTING_CONFIG, protocols: [Protocol.V2, Protocol.V3] }
       );
       expect(swap).toBeDefined();
 
