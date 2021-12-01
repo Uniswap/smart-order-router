@@ -10,6 +10,7 @@ import {
 import {
   DAI_MAINNET,
   DAI_RINKEBY_1,
+  FEI_MAINNET,
   ITokenProvider,
   USDC_MAINNET,
   USDT_MAINNET,
@@ -80,6 +81,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WBTC_MAINNET,
     DAI_MAINNET,
     WETH9[1]!,
+    FEI_MAINNET,
   ],
   [ChainId.RINKEBY]: [DAI_RINKEBY_1],
 };

@@ -726,7 +726,11 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
-    const debugFailedQuotes: { route: string; msg: string }[] = [];
+    const debugFailedQuotes: {
+      amount: string;
+      percent: number;
+      route: string;
+    }[] = [];
 
     for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
@@ -741,11 +745,12 @@ export class V3QuoteProvider implements IV3QuoteProvider {
           if (!quoteResult.success) {
             const percent = (100 / amounts.length) * (index + 1);
 
+            const amountStr = amount.toFixed(2);
+            const routeStr = routeToString(route);
             debugFailedQuotes.push({
-              msg: `${percent}% via ${routeToString(
-                route
-              )} Amount: ${amount.toFixed(2)}`,
-              route: routeToString(route),
+              route: routeStr,
+              percent,
+              amount: amountStr,
             });
 
             return {
@@ -770,16 +775,27 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       routesQuotes.push([route, quotes]);
     }
 
-    _.forEach(_.chunk(debugFailedQuotes, 40), (quotes, idx) => {
-      const routesInChunk = _(quotes)
-        .map((q) => q.route)
-        .uniq()
-        .value();
+    // For routes and amounts that we failed to get a quote for, group them by route
+    // and batch them together before logging to minimize number of logs.
+    const debugChunk = 80;
+    _.forEach(_.chunk(debugFailedQuotes, debugChunk), (quotes, idx) => {
+      const failedQuotesByRoute = _.groupBy(quotes, (q) => q.route);
+      const failedFlat = _.mapValues(failedQuotesByRoute, (f) =>
+        _(f)
+          .map((f) => `${f.percent}%[${f.amount}]`)
+          .join(',')
+      );
+
       log.info(
-        { failedQuotes: _.map(quotes, (q) => q.msg) },
-        `Failed quotes for routes ${routesInChunk.join(', ')} Part ${idx}/${
-          quotes.length
-        }`
+        {
+          failedQuotes: _.map(
+            failedFlat,
+            (amounts, routeStr) => `${routeStr} : ${amounts}`
+          ),
+        },
+        `Failed quotes for routes Part ${idx}/${Math.ceil(
+          debugFailedQuotes.length / debugChunk
+        )}`
       );
     });
 

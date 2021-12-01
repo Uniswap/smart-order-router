@@ -281,16 +281,16 @@ const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
 const V3_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v3/mainnet.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/mainnet.json',
   [ChainId.RINKEBY]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v3/rinkeby.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/rinkeby.json',
 };
 
 const V2_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v2/mainnet.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/mainnet.json',
   [ChainId.RINKEBY]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v2/rinkeby.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/rinkeby.json',
 };
 
 export class AlphaRouter
@@ -1281,11 +1281,19 @@ export class AlphaRouter
     }
 
     if (hasV3Route && hasV2Route) {
-      metric.putMetric(`V3AndV2Routes`, 1, MetricLoggerUnit.Count);
+      metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
     } else if (hasV3Route) {
-      metric.putMetric(`V3Routes`, 1, MetricLoggerUnit.Count);
+      if (routeAmounts.length > 1) {
+        metric.putMetric(`V3SplitRoute`, 1, MetricLoggerUnit.Count);
+      } else {
+        metric.putMetric(`V3Route`, 1, MetricLoggerUnit.Count);
+      }
     } else if (hasV2Route) {
-      metric.putMetric(`V2Routes`, 1, MetricLoggerUnit.Count);
+      if (routeAmounts.length > 1) {
+        metric.putMetric(`V2SplitRoute`, 1, MetricLoggerUnit.Count);
+      } else {
+        metric.putMetric(`V2Route`, 1, MetricLoggerUnit.Count);
+      }
     }
   }
 

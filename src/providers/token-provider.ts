@@ -60,6 +60,13 @@ export const DAI_MAINNET = new Token(
   'DAI',
   'Dai Stablecoin'
 );
+export const FEI_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x956F47F50A910163D8BF957Cf5846D573E7f87CA',
+  18,
+  'FEI',
+  'Fei USD'
+)
 
 export const DAI_RINKEBY_1 = new Token(
   ChainId.RINKEBY,
