@@ -66,7 +66,7 @@ export const FEI_MAINNET = new Token(
   18,
   'FEI',
   'Fei USD'
-)
+);
 
 export const DAI_RINKEBY_1 = new Token(
   ChainId.RINKEBY,
