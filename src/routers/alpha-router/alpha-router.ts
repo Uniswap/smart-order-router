@@ -4,7 +4,6 @@ import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  AddLiquidityOptions,
   MethodParameters,
   Pool,
   Position,
@@ -64,6 +63,8 @@ import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
+  SwapAndAddOptions,
+  SwapAndAddParameters,
   SwapConfig,
   SwapRoute,
   SwapToRatioResponse,
@@ -273,17 +274,6 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   forceCrossProtocol: false,
 };
 
-export type SwapAndAddOptions = {
-  errorTolerance: Fraction;
-  maxIterations: number;
-  addLiquidityOptions: AddLiquidityOptions;
-};
-
-type swapAndAddParameters = SwapAndAddOptions & {
-  desiredPosition: Position;
-  approvalTypeTokenIn: number;
-  approvalTypeTokenOut: number;
-}
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
@@ -526,7 +516,15 @@ export class AlphaRouter
         outputBalance.currency,
         TradeType.EXACT_INPUT,
         swapConfig,
-        { ...DEFAULT_CONFIG, ...routingConfig, protocols: [Protocol.V3] } // TODO: Enable V2 once have trade object across v2/v3.
+        { ...DEFAULT_CONFIG, ...routingConfig, protocols: [Protocol.V3] }, // TODO: Enable V2 once have trade object across v2/v3.
+        {
+          ...swapAndAddOptions,
+          initialBalanceTokenIn: inputBalance,
+          initialBalanceTokenOut: outputBalance,
+          preLiquidityPosition: position,
+          approvalTypeTokenIn: 0,
+          approvalTypeTokenOut: 0,
+        },
       );
 
       if (!swap) {
@@ -570,7 +568,7 @@ export class AlphaRouter
         newRatio.equalTo(optimalRatio) ||
         this.absoluteValue(
           newRatio.asFraction.divide(optimalRatio).subtract(1)
-        ).lessThan(swapAndAddOptions.errorTolerance);
+        ).lessThan(swapAndAddOptions.ratioErrorTolerance);
 
       if (ratioAchieved && targetPoolPriceUpdate) {
         postSwapTargetPool = new Pool(
@@ -588,7 +586,7 @@ export class AlphaRouter
       log.info({
         optimalRatio: optimalRatio.asFraction.toFixed(18),
         newRatio: newRatio.asFraction.toFixed(18),
-        errorTolerance: swapAndAddOptions.errorTolerance.toFixed(18),
+        ratioErrorTolerance: swapAndAddOptions.ratioErrorTolerance.toFixed(18),
         iterationN: n.toString(),
       });
     }
@@ -614,7 +612,8 @@ export class AlphaRouter
     quoteCurrency: Currency,
     tradeType: TradeType,
     swapConfig?: SwapConfig,
-    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {},
+    swapAndAddParameters?: SwapAndAddParameters,
   ): Promise<SwapRoute | null> {
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
@@ -783,7 +782,7 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      methodParameters = this.buildMethodParameters(trade, swapConfig);
+      methodParameters = this.buildMethodParameters(trade, swapConfig, swapAndAddParameters ?? undefined);
     }
 
     metric.putMetric(
@@ -1225,13 +1224,21 @@ export class AlphaRouter
   private buildMethodParameters(
     trade: Trade<Currency, Currency, TradeType>,
     swapConfig: SwapConfig,
-    swapAndAddOptions?: swapAndAddParameters
+    swapAndAddOptions?: SwapAndAddParameters
   ): MethodParameters {
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =
       swapConfig;
 
     let methodParameters: MethodParameters
     if (!!swapAndAddOptions) {
+      const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition
+
+      let finalBalanceToken0 = swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount)
+      let finalBalanceToken1 = swapAndAddOptions.initialBalanceTokenOut.add(trade.outputAmount)
+      if (preLiquidityPosition.pool.token0 > preLiquidityPosition.pool.token1) {
+        [finalBalanceToken0, finalBalanceToken1] = [finalBalanceToken1, finalBalanceToken0]
+      }
+
       methodParameters = SwapRouter.swapAndAddCallParameters(
         trade,
         {
@@ -1240,7 +1247,14 @@ export class AlphaRouter
           deadlineOrPreviousBlockhash: deadline,
           inputTokenPermit,
         },
-        swapAndAddOptions.desiredPosition,
+        Position.fromAmounts({
+          pool: preLiquidityPosition.pool,
+          tickLower: preLiquidityPosition.tickLower,
+          tickUpper: preLiquidityPosition.tickUpper,
+          amount0: finalBalanceToken0.quotient.toString(),
+          amount1: finalBalanceToken1.quotient.toString(),
+          useFullPrecision: false
+        }),
         swapAndAddOptions.addLiquidityOptions,
         swapAndAddOptions.approvalTypeTokenIn,
         swapAndAddOptions.approvalTypeTokenOut,

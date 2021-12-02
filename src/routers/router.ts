@@ -8,6 +8,7 @@ import {
 } from '@uniswap/sdk-core';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
+  AddLiquidityOptions,
   MethodParameters,
   Pool,
   Position,
@@ -119,6 +120,29 @@ export type SwapConfig = {
   );
 };
 
+// Options passed in to determine configurations on acceptable liquidity
+// to add to a position and max iterations on the route-finding algorithm
+export type SwapAndAddOptions = {
+  maxIterations: number;
+  ratioErrorTolerance: Fraction;
+  addLiquidityOptions: AddLiquidityOptions;
+};
+
+// SwapAndAddOptions plus all other parameters needed to encode the
+// on-chain swap-and-add process
+export type SwapAndAddParameters = SwapAndAddOptions & {
+  // starting balance for tokenIn which will inform the tokenIn position amount
+  initialBalanceTokenIn: CurrencyAmount;
+  // starting balance for tokenOut which will inform the tokenOut position amount
+  initialBalanceTokenOut: CurrencyAmount;
+  // position details needed to create a new Position with the known liquidity amounts
+  preLiquidityPosition: Position;
+  // approval method needed for tokenIn
+  approvalTypeTokenIn: number;
+  // approval method needed for tokenOut
+  approvalTypeTokenOut: number;
+}
+
 /**
  * Provides functionality for finding optimal swap routes on the Uniswap protocol.
  *
@@ -144,7 +168,8 @@ export abstract class IRouter<RoutingConfig> {
     quoteCurrency: Currency,
     swapType: TradeType,
     swapConfig?: SwapConfig,
-    partialRoutingConfig?: Partial<RoutingConfig>
+    partialRoutingConfig?: Partial<RoutingConfig>,
+    swapAndAddParameters?: SwapAndAddParameters,
   ): Promise<SwapRoute | null>;
 }
 

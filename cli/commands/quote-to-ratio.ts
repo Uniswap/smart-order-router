@@ -109,7 +109,7 @@ export class QuoteToRatio extends BaseCommand {
       tokenOutBalance,
       position,
       {
-        errorTolerance: new Fraction(1, 100),
+        ratioErrorTolerance: new Fraction(1, 100),
         maxIterations: 6,
       },
       {

@@ -112,8 +112,13 @@ describe('alpha router', () => {
   };
 
   const SWAP_AND_ADD_CONFIG: SwapAndAddOptions = {
-    errorTolerance: new Fraction(1, 100),
+    ratioErrorTolerance: new Fraction(1, 100),
     maxIterations: 6,
+    addLiquidityOptions: {
+      slippageTolerance: new Percent(500, 10_000),
+      deadline: 100,
+      recipient: `0x${'00'.repeat(18)}01`
+    }
   };
 
   const sumFn = (currencyAmounts: CurrencyAmount[]): CurrencyAmount => {
