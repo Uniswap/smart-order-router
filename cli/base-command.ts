@@ -38,6 +38,7 @@ import {
   URISubgraphProvider,
   V3PoolProvider,
   V3QuoteProvider,
+  V3SubgraphProvider,
   V3SubgraphProviderWithFallBacks,
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
@@ -291,6 +292,7 @@ export abstract class BaseCommand extends Command {
             chainId,
             `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
           ),
+          new V3SubgraphProvider(chainId),
           new StaticV3SubgraphProvider(chainId),
         ]),
       });

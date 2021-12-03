@@ -50,9 +50,9 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.RINKEBY]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
   [ChainId.OPTIMISM]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-optimism-dev',
+    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-optmism-regen',
   [ChainId.ARBITRUM_ONE]:
-    'https://thegraph.com/hosted-service/subgraph/ianlapham/arbitrum-minimal',
+    'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal',
 };
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
