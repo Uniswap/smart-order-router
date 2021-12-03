@@ -27,6 +27,7 @@ import {
   IV2QuoteProvider,
   IV2SubgraphProvider,
   NodeJSCache,
+  SwapRouterProvider,
   UniswapMulticallProvider,
   V2QuoteProvider,
   V3URISubgraphProvider,
@@ -307,6 +308,7 @@ export class AlphaRouter
   protected v2QuoteProvider: IV2QuoteProvider;
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
+  protected swapRouterProvider: SwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
   protected blockedTokenListProvider?: ITokenListProvider;
@@ -438,6 +440,8 @@ export class AlphaRouter
       v3GasModelFactory ?? new V3HeuristicGasModelFactory();
     this.v2GasModelFactory =
       v2GasModelFactory ?? new V2HeuristicGasModelFactory();
+
+    this.swapRouterProvider = new SwapRouterProvider(this.multicall2Provider);
   }
 
   public async routeToRatio(

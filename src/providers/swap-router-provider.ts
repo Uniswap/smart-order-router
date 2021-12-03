@@ -1,6 +1,5 @@
 import { CurrencyAmount, Currency } from '@uniswap/sdk-core';
 import { SwapRouter02__factory } from '../types/other';
-// import { ChainId } from '../util';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
@@ -15,7 +14,7 @@ type ApprovalTypes = {
  * @export
  * @interface IRouterProvider
  */
-export interface IRouterProvider {
+export interface ISwapRouterProvider {
   /**
    * Gets the token at each address. Any addresses that are not valid ERC-20 are ignored.
    *
@@ -26,11 +25,10 @@ export interface IRouterProvider {
   getApprovalType(
 		tokenInAmount: CurrencyAmount<Currency>,
     tokenOutAmount: CurrencyAmount<Currency>,
-    providerConfig?: ProviderConfig
   ): Promise<ApprovalTypes>;
 }
 
-export class RouterProvider implements IRouterProvider {
+export class SwapRouterProvider implements ISwapRouterProvider {
   constructor(
     protected multicall2Provider: IMulticallProvider
   ) {}
@@ -38,12 +36,13 @@ export class RouterProvider implements IRouterProvider {
   public async getApprovalType(
     tokenInAmount: CurrencyAmount<Currency>,
     tokenOutAmount: CurrencyAmount<Currency>,
-    providerConfig?: ProviderConfig
   ): Promise<ApprovalTypes> {
-		const functionParams = [
-			[tokenInAmount.currency.wrapped.address, tokenInAmount.quotient.toString()]
-			[tokenOutAmount.currency.wrapped.address, tokenOutAmount.quotient.toString()]
-		]
+		// const functionParams: string[][] = [
+		// 	[tokenInAmount.currency.wrapped.address, tokenInAmount.quotient.toString()]
+		// 	[tokenOutAmount.currency.wrapped.address, tokenOutAmount.quotient.toString()]
+		// ]
+		console.log(tokenInAmount)
+		console.log(tokenOutAmount)
 
 		// this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
 		// 	[string, string],
@@ -55,6 +54,7 @@ export class RouterProvider implements IRouterProvider {
 		// 	functionParams,
 		// 	providerConfig,
 		// })
+		return { tokenInApproval: 1, tokenOutApproval: 1}
 
   }
 }
