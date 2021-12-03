@@ -526,8 +526,6 @@ export class AlphaRouter
           initialBalanceTokenIn: inputBalance,
           initialBalanceTokenOut: outputBalance,
           preLiquidityPosition: position,
-          approvalTypeTokenIn: 0,
-          approvalTypeTokenOut: 0,
         },
       );
 
@@ -786,7 +784,7 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      methodParameters = this.buildMethodParameters(trade, swapConfig, swapAndAddParameters ?? undefined);
+      methodParameters = await this.buildMethodParameters(trade, swapConfig, swapAndAddParameters ?? undefined);
     }
 
     metric.putMetric(
@@ -1225,11 +1223,11 @@ export class AlphaRouter
     return trade;
   }
 
-  private buildMethodParameters(
+  private async buildMethodParameters(
     trade: Trade<Currency, Currency, TradeType>,
     swapConfig: SwapConfig,
     swapAndAddOptions?: SwapAndAddParameters
-  ): MethodParameters {
+  ): Promise<MethodParameters> {
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =
       swapConfig;
 
@@ -1237,11 +1235,10 @@ export class AlphaRouter
     if (!!swapAndAddOptions) {
       const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition
 
-      let finalBalanceToken0 = swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount)
-      let finalBalanceToken1 = swapAndAddOptions.initialBalanceTokenOut.add(trade.outputAmount)
-      if (preLiquidityPosition.pool.token0 > preLiquidityPosition.pool.token1) {
-        [finalBalanceToken0, finalBalanceToken1] = [finalBalanceToken1, finalBalanceToken0]
-      }
+      const finalBalanceTokenIn = swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount)
+      const finalBalanceTokenOut = swapAndAddOptions.initialBalanceTokenOut.add(trade.outputAmount)
+      const approvalTypes = await this.swapRouterProvider.getApprovalType(finalBalanceTokenIn, finalBalanceTokenOut)
+      const zeroForOne = finalBalanceTokenIn.currency.wrapped.address < finalBalanceTokenOut.currency.wrapped.address
 
       methodParameters = SwapRouter.swapAndAddCallParameters(
         trade,
@@ -1255,14 +1252,13 @@ export class AlphaRouter
           pool: preLiquidityPosition.pool,
           tickLower: preLiquidityPosition.tickLower,
           tickUpper: preLiquidityPosition.tickUpper,
-          amount0: finalBalanceToken0.quotient.toString(),
-          amount1: finalBalanceToken1.quotient.toString(),
+          amount0: zeroForOne ? finalBalanceTokenIn.quotient.toString() : finalBalanceTokenOut.quotient.toString(),
+          amount1: zeroForOne ? finalBalanceTokenOut.quotient.toString() : finalBalanceTokenIn.quotient.toString(),
           useFullPrecision: false
         }),
         swapAndAddOptions.addLiquidityOptions,
-        swapAndAddOptions.approvalTypeTokenIn,
-        swapAndAddOptions.approvalTypeTokenOut,
-
+        approvalTypes.approvalTokenIn,
+        approvalTypes.approvalTokenOut,
       );
     } else {
       methodParameters = SwapRouter.swapCallParameters(trade, {
@@ -1272,7 +1268,6 @@ export class AlphaRouter
         inputTokenPermit,
       });
     }
-
 
     return methodParameters;
   }

@@ -137,10 +137,6 @@ export type SwapAndAddParameters = SwapAndAddOptions & {
   initialBalanceTokenOut: CurrencyAmount;
   // position details needed to create a new Position with the known liquidity amounts
   preLiquidityPosition: Position;
-  // approval method needed for tokenIn
-  approvalTypeTokenIn: number;
-  // approval method needed for tokenOut
-  approvalTypeTokenOut: number;
 }
 
 /**

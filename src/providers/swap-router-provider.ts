@@ -4,8 +4,8 @@ import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
 type ApprovalTypes = {
-	tokenInApproval: number;
-	tokenOutApproval: number;
+	approvalTokenIn: number;
+	approvalTokenOut: number;
 }
 
 /**
@@ -54,7 +54,7 @@ export class SwapRouterProvider implements ISwapRouterProvider {
 		// 	functionParams,
 		// 	providerConfig,
 		// })
-		return { tokenInApproval: 1, tokenOutApproval: 1}
+		return { approvalTokenIn: 1, approvalTokenOut: 1}
 
   }
 }
