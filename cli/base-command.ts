@@ -40,8 +40,8 @@ import {
   V3QuoteProvider,
   V3SubgraphProviderWithFallBacks,
 } from '../src';
-import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
+import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
 
 export abstract class BaseCommand extends Command {
   static flags = {

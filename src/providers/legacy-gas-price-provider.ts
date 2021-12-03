@@ -9,7 +9,10 @@ export class LegacyGasPriceProvider extends IGasPriceProvider {
 
   public async getGasPrice(): Promise<GasPrice> {
     const gasPriceWei = await this.provider.getGasPrice();
-    log.info({ gasPriceWei }, `Got gas price ${gasPriceWei} using eth_gasPrice RPC`)
+    log.info(
+      { gasPriceWei },
+      `Got gas price ${gasPriceWei} using eth_gasPrice RPC`
+    );
 
     return {
       gasPriceWei,
