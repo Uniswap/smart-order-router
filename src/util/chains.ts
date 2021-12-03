@@ -76,13 +76,6 @@ export const CHAIN_IDS_LIST = Object.values(ChainId).map((c) =>
   c.toString()
 ) as string[];
 
-export const V2_UNSUPPORTED: ChainId[] = [
-  ChainId.ARBITRUM_ONE,
-  ChainId.ARBITRUM_RINKEBY,
-  ChainId.OPTIMISM,
-  ChainId.OPTIMISTIC_KOVAN,
-];
-
 export const ID_TO_PROVIDER = (id: ChainId): string => {
   switch (id) {
     case ChainId.MAINNET:

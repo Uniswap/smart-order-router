@@ -494,16 +494,6 @@ export class AlphaRouter
 
     const { protocols } = routingConfig;
 
-    /* 
-    if (
-      (!protocols || protocols.length == 0 || Protocol.V2 in protocols) &&
-      V2_UNSUPPORTED.includes(this.chainId)
-    ) {
-      log.error(`This chain ${this.chainId} does not support v2 trades`);
-      return null;
-    } 
-    */
-
     const currencyIn =
       swapType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
     const currencyOut =
