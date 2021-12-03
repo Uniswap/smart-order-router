@@ -117,8 +117,8 @@ describe('alpha router', () => {
     addLiquidityOptions: {
       slippageTolerance: new Percent(500, 10_000),
       deadline: 100,
-      recipient: `0x${'00'.repeat(18)}01`
-    }
+      recipient: `0x${'00'.repeat(18)}01`,
+    },
   };
 
   const sumFn = (currencyAmounts: CurrencyAmount[]): CurrencyAmount => {

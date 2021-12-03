@@ -137,7 +137,7 @@ export type SwapAndAddParameters = SwapAndAddOptions & {
   initialBalanceTokenOut: CurrencyAmount;
   // position details needed to create a new Position with the known liquidity amounts
   preLiquidityPosition: Position;
-}
+};
 
 /**
  * Provides functionality for finding optimal swap routes on the Uniswap protocol.
@@ -165,7 +165,7 @@ export abstract class IRouter<RoutingConfig> {
     swapType: TradeType,
     swapConfig?: SwapConfig,
     partialRoutingConfig?: Partial<RoutingConfig>,
-    swapAndAddParameters?: SwapAndAddParameters,
+    swapAndAddParameters?: SwapAndAddParameters
   ): Promise<SwapRoute | null>;
 }
 

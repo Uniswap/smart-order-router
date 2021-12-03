@@ -275,7 +275,6 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
   forceCrossProtocol: false,
 };
 
-
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
 const V3_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
@@ -524,7 +523,7 @@ export class AlphaRouter
           initialBalanceTokenIn: inputBalance,
           initialBalanceTokenOut: outputBalance,
           preLiquidityPosition: position,
-        },
+        }
       );
       if (!swap) {
         return {
@@ -611,7 +610,7 @@ export class AlphaRouter
     tradeType: TradeType,
     swapConfig?: SwapConfig,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {},
-    swapAndAddParameters?: SwapAndAddParameters,
+    swapAndAddParameters?: SwapAndAddParameters
   ): Promise<SwapRoute | null> {
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
@@ -780,7 +779,11 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      methodParameters = await this.buildMethodParameters(trade, swapConfig, swapAndAddParameters ?? undefined);
+      methodParameters = await this.buildMethodParameters(
+        trade,
+        swapConfig,
+        swapAndAddParameters ?? undefined
+      );
     }
 
     metric.putMetric(
@@ -1227,14 +1230,22 @@ export class AlphaRouter
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =
       swapConfig;
 
-    let methodParameters: MethodParameters
+    let methodParameters: MethodParameters;
     if (!!swapAndAddOptions) {
-      const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition
+      const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition;
 
-      const finalBalanceTokenIn = swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount)
-      const finalBalanceTokenOut = swapAndAddOptions.initialBalanceTokenOut.add(trade.outputAmount)
-      const approvalTypes = await this.swapRouterProvider.getApprovalType(finalBalanceTokenIn, finalBalanceTokenOut)
-      const zeroForOne = finalBalanceTokenIn.currency.wrapped.address < finalBalanceTokenOut.currency.wrapped.address
+      const finalBalanceTokenIn =
+        swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount);
+      const finalBalanceTokenOut = swapAndAddOptions.initialBalanceTokenOut.add(
+        trade.outputAmount
+      );
+      const approvalTypes = await this.swapRouterProvider.getApprovalType(
+        finalBalanceTokenIn,
+        finalBalanceTokenOut
+      );
+      const zeroForOne =
+        finalBalanceTokenIn.currency.wrapped.address <
+        finalBalanceTokenOut.currency.wrapped.address;
 
       methodParameters = SwapRouter.swapAndAddCallParameters(
         trade,
@@ -1248,13 +1259,17 @@ export class AlphaRouter
           pool: preLiquidityPosition.pool,
           tickLower: preLiquidityPosition.tickLower,
           tickUpper: preLiquidityPosition.tickUpper,
-          amount0: zeroForOne ? finalBalanceTokenIn.quotient.toString() : finalBalanceTokenOut.quotient.toString(),
-          amount1: zeroForOne ? finalBalanceTokenOut.quotient.toString() : finalBalanceTokenIn.quotient.toString(),
-          useFullPrecision: false
+          amount0: zeroForOne
+            ? finalBalanceTokenIn.quotient.toString()
+            : finalBalanceTokenOut.quotient.toString(),
+          amount1: zeroForOne
+            ? finalBalanceTokenOut.quotient.toString()
+            : finalBalanceTokenIn.quotient.toString(),
+          useFullPrecision: false,
         }),
         swapAndAddOptions.addLiquidityOptions,
         approvalTypes.approvalTokenIn,
-        approvalTypes.approvalTokenOut,
+        approvalTypes.approvalTokenOut
       );
     } else {
       methodParameters = SwapRouter.swapCallParameters(trade, {
