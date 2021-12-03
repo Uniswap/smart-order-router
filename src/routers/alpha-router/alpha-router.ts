@@ -463,7 +463,6 @@ export class AlphaRouter
       position.pool.sqrtRatioX96,
       true
     );
-
     // set up parameters according to which token will be swapped
     let zeroForOne: boolean;
     if (position.pool.tickCurrent > position.tickUpper) {
@@ -490,7 +489,6 @@ export class AlphaRouter
     let swap: SwapRoute | null = null;
     let ratioAchieved = false;
     let n = 0;
-
     // iterate until we find a swap with a sufficient ratio or return null
     while (!ratioAchieved) {
       n++;
@@ -528,7 +526,6 @@ export class AlphaRouter
           preLiquidityPosition: position,
         },
       );
-
       if (!swap) {
         return {
           status: SwapToRatioStatus.NO_ROUTE_FOUND,
@@ -565,7 +562,6 @@ export class AlphaRouter
       if (!targetPoolPriceUpdate) {
         optimalRatio = preSwapOptimalRatio;
       }
-
       ratioAchieved =
         newRatio.equalTo(optimalRatio) ||
         this.absoluteValue(

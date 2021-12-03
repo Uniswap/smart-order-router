@@ -33,7 +33,7 @@ describe.skip('uniswap multicall provider', () => {
     return;
   });
 
-  /*   
+  /*
   let uniswapMulticallProvider: UniswapMulticallProvider;
   const erc20Interface = IERC20Metadata__factory.createInterface();
 
@@ -59,7 +59,7 @@ describe.skip('uniswap multicall provider', () => {
     uniswapMulticallProvider = new UniswapMulticallProvider(
       createMockInstance(providers.BaseProvider)
     );
-  }); 
+  });
 
   describe('callSameFunctionOnMultipleContracts', () => {
     test('succeeds', async () => {
