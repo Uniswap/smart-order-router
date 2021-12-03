@@ -40,6 +40,8 @@ import {
   V3QuoteProvider,
   V3SubgraphProviderWithFallBacks,
 } from '../src';
+import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
+import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
 
 export abstract class BaseCommand extends Command {
   static flags = {
@@ -216,7 +218,7 @@ export abstract class BaseCommand extends Command {
 
     const provider = new ethers.providers.JsonRpcProvider(
       chainProvider,
-      chainName
+      chainId
     );
 
     this._blockNumber = await provider.getBlockNumber();
@@ -276,7 +278,11 @@ export abstract class BaseCommand extends Command {
         multicall2Provider: multicall2Provider,
         gasPriceProvider: new CachingGasStationProvider(
           chainId,
-          new EIP1559GasPriceProvider(provider),
+          new OnChainGasPriceProvider(
+            chainId,
+            new EIP1559GasPriceProvider(provider),
+            new LegacyGasPriceProvider(provider)
+          ),
           gasPriceCache
         ),
         v2SubgraphProvider: new StaticV2SubgraphProvider(chainId),

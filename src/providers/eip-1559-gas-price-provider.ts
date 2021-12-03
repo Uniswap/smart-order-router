@@ -78,6 +78,6 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
       `Estimated gas price in wei: ${gasPriceWei} as of block ${blockNumber.toString()}`
     );
 
-    return { gasPriceWei: gasPriceWei, blockNumber: blockNumber.toNumber() };
+    return { gasPriceWei: gasPriceWei };
   }
 }

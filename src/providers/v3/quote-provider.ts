@@ -87,11 +87,6 @@ export interface IV3QuoteProvider {
   ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
 }
 
-const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]: QUOTER_V2_ADDRESS,
-  [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf',
-};
-
 export class V3QuoteProvider implements IV3QuoteProvider {
   protected quoterAddress: string;
   constructor(
@@ -118,7 +113,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
   ) {
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
-      : chainToQuoterAddress[this.chainId];
+      : QUOTER_V2_ADDRESS;
 
     if (!quoterAddress) {
       throw new Error(
