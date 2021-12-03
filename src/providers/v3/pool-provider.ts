@@ -23,11 +23,33 @@ type ISlot0 = {
 
 type ILiquidity = { liquidity: BigNumber };
 
+/**
+ * Provider or getting V3 pools.
+ *
+ * @export
+ * @interface IV3PoolProvider
+ */
 export interface IV3PoolProvider {
+  /**
+   * Gets the specified pools.
+   *
+   * @param tokenPairs The token pairs and fee amount of the pools to get.
+   * @param [providerConfig] The provider config.
+   * @returns A pool accessor with methods for accessing the pools.
+   */
   getPools(
     tokenPairs: [Token, Token, FeeAmount][],
     providerConfig?: ProviderConfig
   ): Promise<V3PoolAccessor>;
+
+  /**
+   * Gets the pool address for the specified token pair and fee tier.
+   *
+   * @param tokenA Token A in the pool.
+   * @param tokenB Token B in the pool.
+   * @param feeAmount The fee amount of the pool.
+   * @returns The pool address and the two tokens.
+   */
   getPoolAddress(
     tokenA: Token,
     tokenB: Token,
@@ -52,6 +74,12 @@ export class V3PoolProvider implements IV3PoolProvider {
   // Addresses never change so can always be cached.
   private POOL_ADDRESS_CACHE: { [key: string]: string } = {};
 
+  /**
+   * Creates an instance of V3PoolProvider.
+   * @param chainId The chain id to use.
+   * @param multicall2Provider The multicall provider to use to get the pools.
+   * @param retryOptions The retry options for each call to the multicall.
+   */
   constructor(
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,

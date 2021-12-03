@@ -44,6 +44,13 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
 const threshold = 0.025;
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
+
+/**
+ * Provider for getting V2 pools from the Subgraph
+ *
+ * @export
+ * @interface IV2SubgraphProvider
+ */
 export interface IV2SubgraphProvider {
   getPools(
     tokenIn?: Token,
@@ -97,7 +104,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     let pools: RawV2SubgraphPool[] = [];
 
     log.info(
-      `Getting pools from the subgraph with page size ${PAGE_SIZE}${
+      `Getting V2 pools from the subgraph with page size ${PAGE_SIZE}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
@@ -181,9 +188,22 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       }
     );
 
-    // filter pools that have liquidity less than threshold
+    // Filter pools that have tracked reserve ETH less than threshold.
+    // trackedReserveETH filters pools that do not involve a pool from this allowlist:
+    // https://github.com/Uniswap/v2-subgraph/blob/7c82235cad7aee4cfce8ea82f0030af3d224833e/src/mappings/pricing.ts#L43
+    // Which helps filter pools with manipulated prices/liquidity.
+
+    // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
+    const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
+
     const poolsSanitized: V2SubgraphPool[] = pools
-      .filter((pool) => parseFloat(pool.trackedReserveETH) > threshold)
+      .filter((pool) => {
+        return (
+          pool.token0.id == FEI ||
+          pool.token1.id == FEI ||
+          parseFloat(pool.trackedReserveETH) > threshold
+        );
+      })
       .map((pool) => {
         return {
           ...pool,

@@ -272,12 +272,6 @@ export function getBestSwapRouteBy(
 
     // If we didn't improve our quote by adding another split, very unlikely to improve it by splitting more after that.
     if (splits >= 3 && bestSwap && bestSwap.length < splits - 1) {
-      log.info(
-        { splits, layer },
-        `Did not improve on route with ${
-          splits - 1
-        } splits. Not checking ${splits} splits.`
-      );
       break;
     }
 

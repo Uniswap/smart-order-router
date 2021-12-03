@@ -14,6 +14,12 @@ type StringToTokenInfo = { [index: string]: TokenInfo };
 type ChainToTokenInfoList = { [chainId: string]: TokenInfo[] };
 type TokenInfoMapping = { [chainId: string]: StringToTokenInfo };
 
+/**
+ * Provider for getting token data from a Token List.
+ *
+ * @export
+ * @interface ITokenListProvider
+ */
 export interface ITokenListProvider {
   getTokenBySymbol(_symbol: string): Promise<Token | undefined>;
   getTokenByAddress(address: string): Promise<Token | undefined>;
@@ -35,8 +41,14 @@ export class CachingTokenListProvider
   private chainAddressToTokenInfo: TokenInfoMapping;
   private tokenList: TokenList;
 
-  // Token metadata (e.g. symbol and decimals) don't change so can be cached indefinitely.
-  // Constructing a new token object is slow as sdk-core does checksumming.
+  /**
+   * Creates an instance of CachingTokenListProvider.
+   * Token metadata (e.g. symbol and decimals) generally don't change so can be cached indefinitely.
+   *
+   * @param chainId The chain id to use.
+   * @param tokenList The token list to get the tokens from.
+   * @param tokenCache Cache instance to hold cached tokens.
+   */
   constructor(
     chainId: ChainId | number,
     tokenList: TokenList,

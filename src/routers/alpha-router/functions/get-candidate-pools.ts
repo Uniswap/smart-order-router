@@ -14,6 +14,7 @@ import {
   DAI_OPTIMISM,
   DAI_OPTIMISTIC_KOVAN,
   DAI_RINKEBY_1,
+  FEI_MAINNET,
   ITokenProvider,
   USDC_ARBITRUM,
   USDC_ARBITRUM_RINKEBY,
@@ -42,7 +43,7 @@ import {
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
 import { ChainId } from '../../../util';
-import { parseFeeAmount } from '../../../util/amounts';
+import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
@@ -53,8 +54,8 @@ export type CandidatePoolsBySelectionCriteria = {
   selections: {
     topByBaseWithTokenIn: PoolId[];
     topByBaseWithTokenOut: PoolId[];
-    top2DirectSwapPool: PoolId[];
-    top2EthQuoteTokenPool: PoolId[];
+    topByDirectSwapPool: PoolId[];
+    topByEthQuoteTokenPool: PoolId[];
     topByTVL: PoolId[];
     topByTVLUsingTokenIn: PoolId[];
     topByTVLUsingTokenOut: PoolId[];
@@ -94,6 +95,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WBTC_MAINNET,
     DAI_MAINNET,
     WETH9[1]!,
+    FEI_MAINNET,
   ],
   [ChainId.RINKEBY]: [DAI_RINKEBY_1],
   [ChainId.OPTIMISM]: [
@@ -139,7 +141,6 @@ export async function getV3CandidatePools({
       topNTokenInOut,
       topNSecondHop,
       topNWithEachBaseToken,
-      topNWithBaseTokenInSet,
       topNWithBaseToken,
     },
   } = routingConfig;
@@ -252,12 +253,7 @@ export async function getV3CandidatePools({
     .slice(0, topNWithBaseToken)
     .value();
 
-  if (topNWithBaseTokenInSet) {
-    addToAddressSet(topByBaseWithTokenIn);
-    addToAddressSet(topByBaseWithTokenOut);
-  }
-
-  const top2DirectSwapPool = _(subgraphPoolsSorted)
+  let top2DirectSwapPool = _(subgraphPoolsSorted)
     .filter((subgraphPool) => {
       return (
         !poolAddressesSoFar.has(subgraphPool.id) &&
@@ -269,6 +265,35 @@ export async function getV3CandidatePools({
     })
     .slice(0, topNDirectSwaps)
     .value();
+
+  if (top2DirectSwapPool.length == 0 && topNDirectSwaps > 0) {
+    // If we requested direct swap pools but did not find any in the subgraph query.
+    // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
+    // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
+    top2DirectSwapPool = _.map(
+      [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
+      (feeAmount) => {
+        const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
+          tokenIn,
+          tokenOut,
+          feeAmount
+        );
+        return {
+          id: poolAddress,
+          feeTier: unparseFeeAmount(feeAmount),
+          liquidity: '10000',
+          token0: {
+            id: token0.address,
+          },
+          token1: {
+            id: token1.address,
+          },
+          tvlETH: 10000,
+          tvlUSD: 10000,
+        };
+      }
+    );
+  }
 
   addToAddressSet(top2DirectSwapPool);
 
@@ -491,8 +516,8 @@ export async function getV3CandidatePools({
     selections: {
       topByBaseWithTokenIn,
       topByBaseWithTokenOut,
-      top2DirectSwapPool,
-      top2EthQuoteTokenPool,
+      topByDirectSwapPool: top2DirectSwapPool,
+      topByEthQuoteTokenPool: top2EthQuoteTokenPool,
       topByTVL,
       topByTVLUsingTokenIn,
       topByTVLUsingTokenOut,
@@ -526,7 +551,6 @@ export async function getV2CandidatePools({
       topNTokenInOut,
       topNSecondHop,
       topNWithEachBaseToken,
-      topNWithBaseTokenInSet,
       topNWithBaseToken,
     },
   } = routingConfig;
@@ -634,38 +658,45 @@ export async function getV2CandidatePools({
     .slice(0, topNWithBaseToken)
     .value();
 
-  if (topNWithBaseTokenInSet) {
-    addToAddressSet(topByBaseWithTokenIn);
-    addToAddressSet(topByBaseWithTokenOut);
+  // Always add the direct swap pool into the mix regardless of if it exists in the subgraph pool list.
+  // Ensures that new pools can be swapped on immediately, and that if a pool was filtered out of the
+  // subgraph query for some reason (e.g. trackedReserveETH was 0), then we still consider it.
+  let topByDirectSwapPool: V2SubgraphPool[] = [];
+  if (topNDirectSwaps != 0) {
+    const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
+      tokenIn,
+      tokenOut
+    );
+
+    topByDirectSwapPool = [
+      {
+        id: poolAddress,
+        token0: {
+          id: token0.address,
+        },
+        token1: {
+          id: token1.address,
+        },
+        supply: 10000, // Not used. Set to arbitrary number.
+        reserve: 10000, // Not used. Set to arbitrary number.
+      },
+    ];
   }
 
-  const top2DirectSwapPool = _(subgraphPoolsSorted)
-    .filter((subgraphPool) => {
-      return (
-        !poolAddressesSoFar.has(subgraphPool.id) &&
-        ((subgraphPool.token0.id == tokenInAddress &&
-          subgraphPool.token1.id == tokenOutAddress) ||
-          (subgraphPool.token1.id == tokenInAddress &&
-            subgraphPool.token0.id == tokenOutAddress))
-      );
-    })
-    .slice(0, topNDirectSwaps)
-    .value();
-
-  addToAddressSet(top2DirectSwapPool);
+  addToAddressSet(topByDirectSwapPool);
 
   const wethAddress = WETH9[chainId]!.address;
 
   // Main reason we need this is for gas estimates, only needed if token out is not ETH.
   // We don't check the seen address set because if we've already added pools for getting ETH quotes
   // theres no need to add more.
-  let top2EthQuoteTokenPool: V2SubgraphPool[] = [];
+  let topByEthQuoteTokenPool: V2SubgraphPool[] = [];
   if (
     tokenOut.symbol != 'WETH' &&
     tokenOut.symbol != 'WETH9' &&
     tokenOut.symbol != 'ETH'
   ) {
-    top2EthQuoteTokenPool = _(subgraphPoolsSorted)
+    topByEthQuoteTokenPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return (
@@ -687,7 +718,7 @@ export async function getV2CandidatePools({
       .value();
   }
 
-  addToAddressSet(top2EthQuoteTokenPool);
+  addToAddressSet(topByEthQuoteTokenPool);
 
   const topByTVL = _(subgraphPoolsSorted)
     .filter((subgraphPool) => {
@@ -777,8 +808,8 @@ export async function getV2CandidatePools({
   const subgraphPools = _([
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
-    ...top2DirectSwapPool,
-    ...top2EthQuoteTokenPool,
+    ...topByDirectSwapPool,
+    ...topByEthQuoteTokenPool,
     ...topByTVL,
     ...topByTVLUsingTokenIn,
     ...topByTVLUsingTokenOut,
@@ -819,8 +850,8 @@ export async function getV2CandidatePools({
         topByTVLUsingTokenInSecondHops.map(printV2SubgraphPool),
       topByTVLUsingTokenOutSecondHops:
         topByTVLUsingTokenOutSecondHops.map(printV2SubgraphPool),
-      top2DirectSwap: top2DirectSwapPool.map(printV2SubgraphPool),
-      top2EthQuotePool: top2EthQuoteTokenPool.map(printV2SubgraphPool),
+      top2DirectSwap: topByDirectSwapPool.map(printV2SubgraphPool),
+      top2EthQuotePool: topByEthQuoteTokenPool.map(printV2SubgraphPool),
     },
     `V2 Candidate pools`
   );
@@ -859,8 +890,8 @@ export async function getV2CandidatePools({
     selections: {
       topByBaseWithTokenIn,
       topByBaseWithTokenOut,
-      top2DirectSwapPool,
-      top2EthQuoteTokenPool,
+      topByDirectSwapPool,
+      topByEthQuoteTokenPool: topByEthQuoteTokenPool,
       topByTVL,
       topByTVLUsingTokenIn,
       topByTVLUsingTokenOut,

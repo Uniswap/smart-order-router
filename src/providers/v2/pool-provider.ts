@@ -16,11 +16,32 @@ type IReserves = {
   blockTimestampLast: number;
 };
 
+/**
+ * Provider for getting V2 pools.
+ *
+ * @export
+ * @interface IV2PoolProvider
+ */
 export interface IV2PoolProvider {
+  /**
+   * Gets the pools for the specified token pairs.
+   *
+   * @param tokenPairs The token pairs to get.
+   * @param [providerConfig] The provider config.
+   * @returns A pool accessor with methods for accessing the pools.
+   */
   getPools(
     tokenPairs: [Token, Token][],
     providerConfig?: ProviderConfig
   ): Promise<V2PoolAccessor>;
+
+  /**
+   * Gets the pool address for the specified token pair.
+   *
+   * @param tokenA Token A in the pool.
+   * @param tokenB Token B in the pool.
+   * @returns The pool address and the two tokens.
+   */
   getPoolAddress(
     tokenA: Token,
     tokenB: Token
@@ -40,6 +61,12 @@ export class V2PoolProvider implements IV2PoolProvider {
   // Addresses never change so can always be cached.
   private POOL_ADDRESS_CACHE: { [key: string]: string } = {};
 
+  /**
+   * Creates an instance of V2PoolProvider.
+   * @param chainId The chain id to use.
+   * @param multicall2Provider The multicall provider to use to get the pools.
+   * @param retryOptions The retry options for each call to the multicall.
+   */
   constructor(
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,

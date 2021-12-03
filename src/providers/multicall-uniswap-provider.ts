@@ -25,6 +25,15 @@ const contractAddressByChain: { [chainId in ChainId]?: string } = {
   [ChainId.GÖRLI]: UNISWAP_MULTICALL_ADDRESS,
 };
 
+/**
+ * The UniswapMulticall contract has added functionality for limiting the amount of gas
+ * that each call within the multicall can consume. This is useful for operations where
+ * a call could consume such a large amount of gas that it causes the node to error out
+ * with an out of gas error.
+ *
+ * @export
+ * @class UniswapMulticallProvider
+ */
 export class UniswapMulticallProvider extends IMulticallProvider<UniswapMulticallConfig> {
   private multicallContract: UniswapInterfaceMulticall;
 

@@ -19,7 +19,9 @@ import { V3HeuristicGasModelFactory } from '.';
 import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
+  CachingV2SubgraphProvider,
   CachingV3PoolProvider,
+  CachingV3SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IV2QuoteProvider,
@@ -27,7 +29,6 @@ import {
   NodeJSCache,
   UniswapMulticallProvider,
   V2QuoteProvider,
-  V2SubgraphProvider,
   V3URISubgraphProvider,
 } from '../../providers';
 import {
@@ -58,6 +59,7 @@ import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { routeToString } from '../../util/routes';
+import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
@@ -87,68 +89,187 @@ import { IV2GasModelFactory, IV3GasModelFactory } from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 export type AlphaRouterParams = {
+  /**
+   * The chain id for this instance of the Alpha Router.
+   */
   chainId: ChainId;
+  /**
+   * The Web3 provider for getting on-chain data.
+   */
   provider: providers.BaseProvider;
+  /**
+   * The provider to use for making multicalls. Used for getting on-chain data
+   * like pools, tokens, quotes in batch.
+   */
   multicall2Provider?: UniswapMulticallProvider;
+  /**
+   * The provider for getting all pools that exist on V3 from the Subgraph. The pools
+   * from this provider are filtered during the algorithm to a set of candidate pools.
+   */
   v3SubgraphProvider?: IV3SubgraphProvider;
+  /**
+   * The provider for getting data about V3 pools.
+   */
   v3PoolProvider?: IV3PoolProvider;
+  /**
+   * The provider for getting V3 quotes.
+   */
   v3QuoteProvider?: IV3QuoteProvider;
+  /**
+   * The provider for getting all pools that exist on V2 from the Subgraph. The pools
+   * from this provider are filtered during the algorithm to a set of candidate pools.
+   */
   v2SubgraphProvider?: IV2SubgraphProvider;
+  /**
+   * The provider for getting data about V2 pools.
+   */
   v2PoolProvider?: IV2PoolProvider;
+  /**
+   * The provider for getting V3 quotes.
+   */
   v2QuoteProvider?: IV2QuoteProvider;
+  /**
+   * The provider for getting data about Tokens.
+   */
   tokenProvider?: ITokenProvider;
+  /**
+   * The provider for getting the current gas price to use when account for gas in the
+   * algorithm.
+   */
   gasPriceProvider?: IGasPriceProvider;
+  /**
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V3 routes.
+   */
   v3GasModelFactory?: IV3GasModelFactory;
+  /**
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V2 routes.
+   */
   v2GasModelFactory?: IV2GasModelFactory;
+  /**
+   * A token list that specifies Token that should be blocked from routing through.
+   * Defaults to Uniswap's unsupported token list.
+   */
   blockedTokenListProvider?: ITokenListProvider;
 };
 
+/**
+ * Determines the pools that the algorithm will consider when finding the optimal swap.
+ *
+ * All pools on each protocol are filtered based on the heuristics specified here to generate
+ * the set of candidate pools. The Top N pools are taken by Total Value Locked (TVL).
+ *
+ * Higher values here result in more pools to explore which results in higher latency.
+ */
 export type ProtocolPoolSelection = {
+  /**
+   * The top N pools by TVL out of all pools on the protocol.
+   */
   topN: number;
+  /**
+   * The top N pools by TVL of pools that consist of tokenIn and tokenOut.
+   */
   topNDirectSwaps: number;
+  /**
+   * The top N pools by TVL of pools where one token is tokenIn and the
+   * top N pools by TVL of pools where one token is tokenOut tokenOut.
+   */
   topNTokenInOut: number;
+  /**
+   * Given the topNTokenInOut pools, gets the top N pools that involve the other token.
+   * E.g. for a WETH -> USDC swap, if topNTokenInOut found WETH -> DAI and WETH -> USDT,
+   * a value of 2 would find the top 2 pools that involve DAI or USDT.
+   */
   topNSecondHop: number;
+  /**
+   * The top N pools for token in and token out that involve a token from a list of
+   * hardcoded 'base tokens'. These are standard tokens such as WETH, USDC, DAI, etc.
+   * This is similar to how the legacy routing algorithm used by Uniswap would select
+   * pools and is intended to make the new pool selection algorithm close to a superset
+   * of the old algorithm.
+   */
   topNWithEachBaseToken: number;
+  /**
+   * Given the topNWithEachBaseToken pools, takes the top N pools from the full list.
+   * E.g. for a WETH -> USDC swap, if topNWithEachBaseToken found WETH -0.05-> DAI,
+   * WETH -0.01-> DAI, WETH -0.05-> USDC, WETH -0.3-> USDC, a value of 2 would reduce
+   * this set to the top 2 pools from that full list.
+   */
   topNWithBaseToken: number;
-  topNWithBaseTokenInSet: boolean;
 };
 
 export type AlphaRouterConfig = {
+  /**
+   * The block number to use for all on-chain data. If not provided, the router will
+   * use the latest block returned by the provider.
+   */
   blockNumber?: number | Promise<number>;
+  /**
+   * The protocols to consider when finding the optimal swap. If not provided all protocols
+   * will be used.
+   */
   protocols?: Protocol[];
+  /**
+   * Config for selecting which pools to consider routing via on V2.
+   */
   v2PoolSelection: ProtocolPoolSelection;
+  /**
+   * Config for selecting which pools to consider routing via on V3.
+   */
   v3PoolSelection: ProtocolPoolSelection;
+  /**
+   * For each route, the maximum number of hops to consider. More hops will increase latency of the algorithm.
+   */
   maxSwapsPerPath: number;
-  minSplits: number;
+  /**
+   * The maximum number of splits in the returned route. A higher maximum will increase latency of the algorithm.
+   */
   maxSplits: number;
+  /**
+   * The minimum number of splits in the returned route.
+   * This parameters should always be set to 1. It is only included for testing purposes.
+   */
+  minSplits: number;
+  /**
+   * Forces the returned swap to route across all protocols.
+   * This parameter should always be false. It is only included for testing purposes.
+   */
   forceCrossProtocol: boolean;
+  /**
+   * The minimum percentage of the input token to use for each route in a split route.
+   * All routes will have a multiple of this value. For example is distribution percentage is 5,
+   * a potential return swap would be:
+   *
+   * 5% of input => Route 1
+   * 55% of input => Route 2
+   * 40% of input => Route 3
+   */
   distributionPercent: number;
 };
 
 export const DEFAULT_CONFIG: AlphaRouterConfig = {
-  v3PoolSelection: {
-    topN: 4,
-    topNDirectSwaps: 2,
-    topNTokenInOut: 4,
+  v2PoolSelection: {
+    topN: 3,
+    topNDirectSwaps: 1,
+    topNTokenInOut: 5,
     topNSecondHop: 2,
     topNWithEachBaseToken: 2,
-    topNWithBaseToken: 10,
-    topNWithBaseTokenInSet: false,
+    topNWithBaseToken: 6,
   },
-  v2PoolSelection: {
-    topN: 10,
-    topNDirectSwaps: 1,
-    topNTokenInOut: 8,
-    topNSecondHop: 6,
-    topNWithEachBaseToken: 2,
+  v3PoolSelection: {
+    topN: 2,
+    topNDirectSwaps: 2,
+    topNTokenInOut: 3,
+    topNSecondHop: 1,
+    topNWithEachBaseToken: 3,
     topNWithBaseToken: 5,
-    topNWithBaseTokenInSet: false,
   },
   maxSwapsPerPath: 3,
   minSplits: 1,
-  maxSplits: 5,
-  forceCrossProtocol: false,
+  maxSplits: 7,
   distributionPercent: 5,
+  forceCrossProtocol: false,
 };
 
 export type SwapAndAddConfig = {
@@ -160,16 +281,16 @@ const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
 const V3_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v3/mainnet.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/mainnet.json',
   [ChainId.RINKEBY]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v3/rinkeby.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/rinkeby.json',
 };
 
 const V2_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v2/mainnet.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/mainnet.json',
   [ChainId.RINKEBY]:
-    'https://gateway.ipfs.io/ipns/api.uniswap.org/v1/pools/v2/rinkeby.json',
+    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/rinkeby.json',
 };
 
 export class AlphaRouter
@@ -251,25 +372,25 @@ export class AlphaRouter
     } else {
       if (!V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
         throw new Error(
-          `No IPFS pool cache for V2 on ${chainId}. Provide your own provider.`
+          `Can not create a default subgraph provider for V2 on ${chainId}. Provide your own V2SubgraphProvider.`
         );
       }
 
-      this.v2SubgraphProvider = new V2URISubgraphProvider(
+      this.v2SubgraphProvider = new CachingV2SubgraphProvider(
         chainId,
-        V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        new V2URISubgraphProvider(
+          chainId,
+          V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        ),
+        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
       );
     }
-
-    this.v2SubgraphProvider =
-      v2SubgraphProvider ?? new V2SubgraphProvider(chainId);
 
     this.blockedTokenListProvider =
       blockedTokenListProvider ??
       new CachingTokenListProvider(
         chainId,
-        //TODO(judo): add unsupported
-        {} as TokenList,
+        UNSUPPORTED_TOKENS as TokenList,
         new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
       );
     this.tokenProvider =
@@ -290,13 +411,17 @@ export class AlphaRouter
     } else {
       if (!V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
         throw new Error(
-          `No IPFS pool cache for V3 on ${chainId}. Provide your own provider.`
+          `Can not create a default subgraph provider for V3 on ${chainId}. Provide your own V3SubgraphProvider.`
         );
       }
 
-      this.v3SubgraphProvider = new V3URISubgraphProvider(
+      this.v3SubgraphProvider = new CachingV3SubgraphProvider(
         chainId,
-        V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        new V3URISubgraphProvider(
+          chainId,
+          V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+        ),
+        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
       );
     }
 
@@ -473,10 +598,13 @@ export class AlphaRouter
     };
   }
 
+  /**
+   * @inheritdoc IRouter
+   */
   public async route(
     amount: CurrencyAmount,
     quoteCurrency: Currency,
-    swapType: TradeType,
+    tradeType: TradeType,
     swapConfig?: SwapConfig,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
@@ -495,9 +623,9 @@ export class AlphaRouter
     const { protocols } = routingConfig;
 
     const currencyIn =
-      swapType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
+      tradeType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
     const currencyOut =
-      swapType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
+      tradeType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -526,8 +654,13 @@ export class AlphaRouter
       candidatePools: CandidatePoolsBySelectionCriteria;
     }>[] = [];
 
-    if (!protocols || protocols.length == 0) {
-      log.info({ protocols, swapType }, 'Routing across all protocols');
+    const protocolsSet = new Set(protocols ?? []);
+
+    if (
+      protocolsSet.size == 0 ||
+      (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))
+    ) {
+      log.info({ protocols, tradeType }, 'Routing across all protocols');
       quotePromises.push(
         this.getV3Quotes(
           tokenIn,
@@ -536,7 +669,7 @@ export class AlphaRouter
           percents,
           quoteToken,
           gasPriceWei,
-          swapType,
+          tradeType,
           routingConfig
         )
       );
@@ -548,38 +681,41 @@ export class AlphaRouter
           percents,
           quoteToken,
           gasPriceWei,
-          swapType,
+          tradeType,
           routingConfig
         )
       );
-    } else if (protocols.includes(Protocol.V3)) {
-      log.info({ protocols, swapType }, 'Routing across V3');
-      quotePromises.push(
-        this.getV3Quotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          gasPriceWei,
-          swapType,
-          routingConfig
-        )
-      );
-    } else if (protocols.includes(Protocol.V2)) {
-      log.info({ protocols, swapType }, 'Routing across V2');
-      quotePromises.push(
-        this.getV2Quotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          gasPriceWei,
-          swapType,
-          routingConfig
-        )
-      );
+    } else {
+      if (protocolsSet.has(Protocol.V3)) {
+        log.info({ protocols, swapType: tradeType }, 'Routing across V3');
+        quotePromises.push(
+          this.getV3Quotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            gasPriceWei,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
+      if (protocolsSet.has(Protocol.V2)) {
+        log.info({ protocols, swapType: tradeType }, 'Routing across V2');
+        quotePromises.push(
+          this.getV2Quotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            gasPriceWei,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
     }
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
@@ -608,7 +744,7 @@ export class AlphaRouter
       amount,
       percents,
       allRoutesWithValidQuotes,
-      swapType,
+      tradeType,
       this.chainId,
       routingConfig
     );
@@ -627,10 +763,10 @@ export class AlphaRouter
     } = swapRouteRaw;
 
     // Build Trade object that represents the optimal swap.
-    const trade = this.buildTrade<typeof swapType>(
+    const trade = this.buildTrade<typeof tradeType>(
       currencyIn,
       currencyOut,
-      swapType,
+      tradeType,
       routeAmounts
     );
 
@@ -769,7 +905,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null quote for route.'
+            'Dropping a null V3 quote for route.'
           );
           continue;
         }
@@ -888,7 +1024,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null quote for route.'
+            'Dropping a null V2 quote for route.'
           );
           continue;
         }
@@ -1145,11 +1281,19 @@ export class AlphaRouter
     }
 
     if (hasV3Route && hasV2Route) {
-      metric.putMetric(`V3AndV2Routes`, 1, MetricLoggerUnit.Count);
+      metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
     } else if (hasV3Route) {
-      metric.putMetric(`V3Routes`, 1, MetricLoggerUnit.Count);
+      if (routeAmounts.length > 1) {
+        metric.putMetric(`V3SplitRoute`, 1, MetricLoggerUnit.Count);
+      } else {
+        metric.putMetric(`V3Route`, 1, MetricLoggerUnit.Count);
+      }
     } else if (hasV2Route) {
-      metric.putMetric(`V2Routes`, 1, MetricLoggerUnit.Count);
+      if (routeAmounts.length > 1) {
+        metric.putMetric(`V2SplitRoute`, 1, MetricLoggerUnit.Count);
+      } else {
+        metric.putMetric(`V2Route`, 1, MetricLoggerUnit.Count);
+      }
     }
   }
 

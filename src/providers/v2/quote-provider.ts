@@ -27,6 +27,13 @@ export interface IV2QuoteProvider {
   ): Promise<{ routesWithQuotes: V2RouteWithQuotes[] }>;
 }
 
+/**
+ * Computes quotes for V2 off-chain. Quotes are computed using the balances
+ * of the pools within each route provided.
+ *
+ * @export
+ * @class V2QuoteProvider
+ */
 export class V2QuoteProvider implements IV2QuoteProvider {
   constructor() {}
 

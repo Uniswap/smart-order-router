@@ -3,9 +3,21 @@ import { log } from '../util/log';
 import { ICache } from './cache';
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
+/**
+ * Provider for getting gas price, with functionality for caching the results.
+ *
+ * @export
+ * @class CachingV3SubgraphProvider
+ */
 export class CachingGasStationProvider implements IGasPriceProvider {
   private GAS_KEY = (chainId: ChainId) => `gasPrice-${chainId}`;
 
+  /**
+   * Creates an instance of CachingGasStationProvider.
+   * @param chainId The chain id to use.
+   * @param gasPriceProvider The provider to use to get the gas price when not in the cache.
+   * @param cache Cache instance to hold cached pools.
+   */
   constructor(
     protected chainId: ChainId,
     private gasPriceProvider: IGasPriceProvider,

@@ -34,6 +34,18 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.OPTIMISTIC_KOVAN]: [WETH9[ChainId.OPTIMISTIC_KOVAN]!],
 };
 
+/**
+ * Provider that does not get data from an external source and instead returns
+ * a hardcoded list of Subgraph pools.
+ *
+ * Since the pools are hardcoded, the liquidity/price values are dummys and should not
+ * be depended on.
+ *
+ * Useful for instances where other data sources are unavailable. E.g. subgraph not available.
+ *
+ * @export
+ * @class StaticV3SubgraphProvider
+ */
 export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
   constructor(private chainId: ChainId) {}
 
