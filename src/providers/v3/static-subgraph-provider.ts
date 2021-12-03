@@ -1,5 +1,5 @@
 import { Token, WETH9 } from '@uniswap/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
@@ -10,7 +10,6 @@ import {
   USDT_MAINNET,
   WBTC_MAINNET,
 } from '../token-provider';
-import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
 type ChainTokenList = {
@@ -36,10 +35,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
 };
 
 export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
-  constructor(
-    private chainId: ChainId,
-    private v3PoolProvider: IV3PoolProvider
-  ) {}
+  constructor(private chainId: ChainId) {}
 
   public async getPools(
     tokenIn?: Token,
@@ -83,8 +79,10 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
 
     const subgraphPools: V3SubgraphPool[] = _(pairs)
       .map(([tokenA, tokenB, fee]) => {
-        const { poolAddress, token0, token1 } =
-          this.v3PoolProvider.getPoolAddress(tokenA, tokenB, fee);
+        const poolAddress = Pool.getAddress(tokenA, tokenB, fee);
+        const [token0, token1] = tokenA.sortsBefore(tokenB)
+          ? [tokenA, tokenB]
+          : [tokenB, tokenA];
 
         if (poolAddressSet.has(poolAddress)) {
           return undefined;

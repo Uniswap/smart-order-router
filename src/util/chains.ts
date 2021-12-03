@@ -42,9 +42,9 @@ export enum ChainName {
   GÖRLI = 'goerli',
   KOVAN = 'kovan',
   OPTIMISM = 'optimism',
-  OPTIMISTIC_KOVAN = 'optimistic kovan',
+  OPTIMISTIC_KOVAN = 'optimistic-kovan',
   ARBITRUM_ONE = 'arbitrum',
-  ARBITRUM_RINKEBY = 'arbitrum rinkeby',
+  ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
 }
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {

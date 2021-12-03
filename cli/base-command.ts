@@ -31,13 +31,15 @@ import {
   RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
+  StaticV2SubgraphProvider,
+  StaticV3SubgraphProvider,
   TokenProvider,
   UniswapMulticallProvider,
+  URISubgraphProvider,
   V3PoolProvider,
   V3QuoteProvider,
-  V3URISubgraphProvider,
+  V3SubgraphProviderWithFallBacks,
 } from '../src';
-import { V2StaticFileSubgraphProvider } from '../src/providers/v2/static-file-subgraph-provider';
 
 export abstract class BaseCommand extends Command {
   static flags = {
@@ -277,11 +279,14 @@ export abstract class BaseCommand extends Command {
           new EIP1559GasPriceProvider(provider),
           gasPriceCache
         ),
-        v2SubgraphProvider: new V2StaticFileSubgraphProvider(),
-        v3SubgraphProvider: new V3URISubgraphProvider(
-          ChainId.MAINNET,
-          'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/mainnet.json'
-        ),
+        v2SubgraphProvider: new StaticV2SubgraphProvider(chainId),
+        v3SubgraphProvider: new V3SubgraphProviderWithFallBacks([
+          new URISubgraphProvider(
+            chainId,
+            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
+          ),
+          new StaticV3SubgraphProvider(chainId),
+        ]),
       });
 
       this._swapToRatioRouter = router;
