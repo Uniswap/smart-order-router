@@ -18,11 +18,11 @@ const SWAP_ROUTER_ADDRESS = '0x075B36dE1Bd11cb361c5B3B1E80A9ab0e7aa8a60';
  */
 export interface ISwapRouterProvider {
   /**
-   * Gets the token at each address. Any addresses that are not valid ERC-20 are ignored.
+   * Get the approval method needed for each token. Throws an error if either query fails.
    *
-   * @param addresses The token addresses to get.
-   * @param [providerConfig] The provider config.
-   * @returns A token accessor with methods for accessing the tokens.
+   * @param tokenInAmount The Currency Amount of tokenIn needed by the user
+   * @param tokenOutAmount The Currency Amount of tokenOut needed by the user
+   * @returns the Approval Types for each token.
    */
   getApprovalType(
     tokenInAmount: CurrencyAmount<Currency>,
