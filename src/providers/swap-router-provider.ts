@@ -2,10 +2,11 @@ import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
 import { SwapRouter02__factory } from '../types/other';
 import { log } from '../util';
 import { IMulticallProvider } from './multicall-provider';
+import { ApprovalTypes } from '@uniswap/router-sdk';
 
-type ApprovalTypes = {
-  approvalTokenIn: number;
-  approvalTokenOut: number;
+type TokenApprovalTypes = {
+  approvalTokenIn: ApprovalTypes;
+  approvalTokenOut: ApprovalTypes;
 };
 
 const SWAP_ROUTER_ADDRESS = '0x075B36dE1Bd11cb361c5B3B1E80A9ab0e7aa8a60';
@@ -27,7 +28,7 @@ export interface ISwapRouterProvider {
   getApprovalType(
     tokenInAmount: CurrencyAmount<Currency>,
     tokenOutAmount: CurrencyAmount<Currency>
-  ): Promise<ApprovalTypes>;
+  ): Promise<TokenApprovalTypes>;
 }
 
 export class SwapRouterProvider implements ISwapRouterProvider {
@@ -36,7 +37,7 @@ export class SwapRouterProvider implements ISwapRouterProvider {
   public async getApprovalType(
     tokenInAmount: CurrencyAmount<Currency>,
     tokenOutAmount: CurrencyAmount<Currency>
-  ): Promise<ApprovalTypes> {
+  ): Promise<TokenApprovalTypes> {
     const functionParams: [string, string][] = [
       [
         tokenInAmount.currency.wrapped.address,
@@ -51,7 +52,7 @@ export class SwapRouterProvider implements ISwapRouterProvider {
     const tx =
       await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
         [string, string],
-        number
+        ApprovalTypes
       >({
         address: SWAP_ROUTER_ADDRESS,
         contractInterface: SwapRouter02__factory.createInterface(),

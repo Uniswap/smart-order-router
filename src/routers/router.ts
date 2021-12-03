@@ -103,7 +103,6 @@ export type SwapConfig = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
-  swapAndAdd?: boolean;
   inputTokenPermit?: {
     v: 0 | 1 | 27 | 28;
     r: string;
