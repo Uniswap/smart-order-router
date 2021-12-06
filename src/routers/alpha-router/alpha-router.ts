@@ -525,7 +525,11 @@ export class AlphaRouter
         outputBalance.currency,
         TradeType.EXACT_INPUT,
         undefined,
-        { ...DEFAULT_CONFIG, ...routingConfig, protocols: [Protocol.V3] } // TODO: Enable V2 once have trade object across v2/v3.
+        {
+          ...DEFAULT_CONFIG,
+          ...routingConfig,
+          protocols: [Protocol.V3, Protocol.V2],
+        }
       );
       if (!swap) {
         return {

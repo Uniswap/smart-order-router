@@ -1521,6 +1521,25 @@ describe('alpha router', () => {
       });
 
       test('it returns null when maxIterations has been exceeded', async () => {
+        // prompt bad quotes from V2
+        mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
+          async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
+            const routesWithQuotes = _.map(routes, (r) => {
+              const amountQuotes = _.map(amountIns, (amountIn) => {
+                const quote = BigNumber.from(1).div(BigNumber.from(10));
+                return {
+                  amount: amountIn,
+                  quote,
+                } as V2AmountQuote;
+              });
+              return [r, amountQuotes];
+            });
+
+            return {
+              routesWithQuotes: routesWithQuotes,
+            } as { routesWithQuotes: V2RouteWithQuotes[] };
+          }
+        );
         // prompt many loops
         mockV3QuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
           getQuotesManyExactInFn({
@@ -1567,6 +1586,25 @@ describe('alpha router', () => {
 
       describe('when there is excess of token0', () => {
         test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          // prompt bad quotes from V2
+          mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
+            async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
+              const routesWithQuotes = _.map(routes, (r) => {
+                const amountQuotes = _.map(amountIns, (amountIn) => {
+                  const quote = BigNumber.from(1).div(BigNumber.from(10));
+                  return {
+                    amount: amountIn,
+                    quote,
+                  } as V2AmountQuote;
+                });
+                return [r, amountQuotes];
+              });
+
+              return {
+                routesWithQuotes: routesWithQuotes,
+              } as { routesWithQuotes: V2RouteWithQuotes[] };
+            }
+          );
           mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
             getQuotesManyExactInFn({
               quoteMultiplier: new Fraction(1, 2),
@@ -1756,6 +1794,25 @@ describe('alpha router', () => {
 
       describe('when there is excess of token1', () => {
         test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          // prompt bad quotes from V2
+          mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
+            async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
+              const routesWithQuotes = _.map(routes, (r) => {
+                const amountQuotes = _.map(amountIns, (amountIn) => {
+                  const quote = BigNumber.from(1).div(BigNumber.from(10));
+                  return {
+                    amount: amountIn,
+                    quote,
+                  } as V2AmountQuote;
+                });
+                return [r, amountQuotes];
+              });
+
+              return {
+                routesWithQuotes: routesWithQuotes,
+              } as { routesWithQuotes: V2RouteWithQuotes[] };
+            }
+          );
           mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
             getQuotesManyExactInFn({
               quoteMultiplier: new Fraction(1, 2),
