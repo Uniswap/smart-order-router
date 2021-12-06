@@ -24,9 +24,9 @@ import {
   CachingV3SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
+  ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
-  ISwapRouterProvider,
   NodeJSCache,
   SwapRouterProvider,
   UniswapMulticallProvider,
@@ -161,7 +161,7 @@ export type AlphaRouterParams = {
    * Calls lens function on SwapRouter02 to determind ERC20 approval types for
    * LP position tokens.
    */
-  swapRouterProvider?: ISwapRouterProvider
+  swapRouterProvider?: ISwapRouterProvider;
 };
 
 /**
@@ -448,7 +448,8 @@ export class AlphaRouter
     this.v2GasModelFactory =
       v2GasModelFactory ?? new V2HeuristicGasModelFactory();
 
-    this.swapRouterProvider = swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
+    this.swapRouterProvider =
+      swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
   }
 
   public async routeToRatio(
@@ -1253,9 +1254,9 @@ export class AlphaRouter
       const zeroForOne =
         finalBalanceTokenIn.currency.wrapped.address <
         finalBalanceTokenOut.currency.wrapped.address;
-// console.log('\n\ntrade!!!!', trade)
-// console.log('\n\swapConfig!!!!', swapConfig)
-// console.log('\n\swapAndAddOptions!!!!', swapAndAddOptions)
+      // console.log('\n\ntrade!!!!', trade)
+      // console.log('\n\swapConfig!!!!', swapConfig)
+      // console.log('\n\swapAndAddOptions!!!!', swapAndAddOptions)
       methodParameters = SwapRouter.swapAndAddCallParameters(
         trade,
         {

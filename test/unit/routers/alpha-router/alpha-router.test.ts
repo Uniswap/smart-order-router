@@ -302,7 +302,10 @@ describe('alpha router', () => {
       CachingTokenListProvider
     );
     const mockSwapRouterProvider = sinon.createStubInstance(SwapRouterProvider);
-    mockSwapRouterProvider.getApprovalType.resolves({ approvalTokenIn: 1, approvalTokenOut: 1 });
+    mockSwapRouterProvider.getApprovalType.resolves({
+      approvalTokenIn: 1,
+      approvalTokenOut: 1,
+    });
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
@@ -1997,7 +2000,7 @@ describe('alpha router', () => {
         });
 
         const spy = sinon.spy(SwapRouter, 'swapAndAddCallParameters');
-        console.log(spy)
+        console.log(spy);
         const swap = await alphaRouter.routeToRatio(
           token0Balance,
           token1Balance,
@@ -2017,8 +2020,8 @@ describe('alpha router', () => {
         } else {
           throw 'routeToRatio: unexpected response';
         }
-      })
-    })
+      });
+    });
   });
 });
 
