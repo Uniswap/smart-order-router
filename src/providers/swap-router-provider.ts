@@ -52,7 +52,7 @@ export class SwapRouterProvider implements ISwapRouterProvider {
     const tx =
       await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
         [string, string],
-        ApprovalTypes
+        [ApprovalTypes]
       >({
         address: SWAP_ROUTER_ADDRESS,
         contractInterface: SwapRouter02__factory.createInterface(),
@@ -73,6 +73,9 @@ export class SwapRouterProvider implements ISwapRouterProvider {
     const { result: approvalTokenIn } = tx.results![0];
     const { result: approvalTokenOut } = tx.results![1];
 
-    return { approvalTokenIn, approvalTokenOut };
+    return {
+      approvalTokenIn: approvalTokenIn[0],
+      approvalTokenOut: approvalTokenOut[0],
+    };
   }
 }
