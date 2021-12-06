@@ -8,6 +8,7 @@ export * from './eth-gas-station-info-gas-price-provider';
 export * from './gas-price-provider';
 export * from './multicall-provider';
 export * from './multicall-uniswap-provider';
+export * from './swap-router-provider';
 export * from './token-provider';
 export * from './uri-subgraph-provider';
 export * from './v2/caching-subgraph-provider';
