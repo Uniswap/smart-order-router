@@ -118,7 +118,7 @@ describe('alpha router', () => {
     addLiquidityOptions: {
       slippageTolerance: new Percent(500, 10_000),
       deadline: 100,
-      recipient: `0x${'00'.repeat(18)}01`,
+      recipient: `0x${'00'.repeat(19)}01`,
     },
   };
 
@@ -1987,38 +1987,65 @@ describe('alpha router', () => {
       });
     });
 
-    describe('with methodParameters', () => {
-      it('returns the constructed methodParameters', async () => {
-        const token0Balance = parseAmount('20', USDC);
+    describe('with methodParameters.swapAndAddCallParameters with the correct parameters', () => {
+      it('calls SwapRouter ', async () => {
+        const token0Balance = parseAmount('15', USDC);
         const token1Balance = parseAmount('5', USDT);
 
-        const position = new Position({
+        const positionPreLiquidity = new Position({
           pool: USDC_USDT_MEDIUM,
           tickUpper: 120,
           tickLower: -120,
           liquidity: 1,
         });
 
+        const positionPostLiquidity = Position.fromAmounts({
+          pool: positionPreLiquidity.pool,
+          tickLower: positionPreLiquidity.tickLower,
+          tickUpper: positionPreLiquidity.tickUpper,
+          amount0: parseAmount('10', USDC).quotient.toString(),
+          amount1: parseAmount('10', USDT).quotient.toString(),
+          useFullPrecision: false,
+        });
+
+        const SWAP_CONFIG = {
+          deadline: 100,
+          recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
+          slippageTolerance: new Percent(5, 10_000),
+        };
+
         const spy = sinon.spy(SwapRouter, 'swapAndAddCallParameters');
-        console.log(spy);
+
         const swap = await alphaRouter.routeToRatio(
           token0Balance,
           token1Balance,
-          position,
+          positionPreLiquidity,
           SWAP_AND_ADD_CONFIG,
-          {
-            deadline: 100,
-            recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
-            slippageTolerance: new Percent(5, 10_000),
-          },
+          SWAP_CONFIG,
           ROUTING_CONFIG
         );
 
-        if (swap.status === SwapToRatioStatus.NO_ROUTE_FOUND) {
-          expect(swap.status).toEqual(SwapToRatioStatus.NO_ROUTE_FOUND);
-          expect(swap.error).toEqual('max iterations exceeded');
+        if (swap.status == SwapToRatioStatus.SUCCESS) {
+          const [
+            trade,
+            _,
+            positionArg,
+            addLiquidityOptions,
+            approvalTypeIn,
+            approvalTypeOut,
+          ] = spy.firstCall.args;
+          expect(trade).toEqual(swap.result.trade);
+          expect(positionArg.pool).toEqual(positionPostLiquidity.pool);
+          expect(positionArg.liquidity).toEqual(
+            positionPostLiquidity.liquidity
+          );
+          expect(addLiquidityOptions).toEqual(
+            SWAP_AND_ADD_CONFIG.addLiquidityOptions
+          );
+          expect(approvalTypeIn).toEqual(1);
+          expect(approvalTypeOut).toEqual(1);
         } else {
-          throw 'routeToRatio: unexpected response';
+          throw 'swap was not successful';
         }
       });
     });

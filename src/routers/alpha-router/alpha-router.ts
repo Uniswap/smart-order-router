@@ -1251,12 +1251,9 @@ export class AlphaRouter
         finalBalanceTokenIn,
         finalBalanceTokenOut
       );
-      const zeroForOne =
-        finalBalanceTokenIn.currency.wrapped.address <
-        finalBalanceTokenOut.currency.wrapped.address;
-      // console.log('\n\ntrade!!!!', trade)
-      // console.log('\n\swapConfig!!!!', swapConfig)
-      // console.log('\n\swapAndAddOptions!!!!', swapAndAddOptions)
+      const zeroForOne = finalBalanceTokenIn.currency.wrapped.sortsBefore(
+        finalBalanceTokenOut.currency.wrapped
+      );
       methodParameters = SwapRouter.swapAndAddCallParameters(
         trade,
         {
