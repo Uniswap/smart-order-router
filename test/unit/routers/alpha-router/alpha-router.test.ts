@@ -2091,6 +2091,7 @@ describe('alpha router', () => {
             approvalTypeIn,
             approvalTypeOut,
           ] = spy.firstCall.args;
+          expect(swap.result.methodParameters).toBeTruthy()
           expect(trade).toEqual(swap.result.trade);
           expect(positionArg.pool).toEqual(positionPostLiquidity.pool);
           expect(positionArg.liquidity).toEqual(

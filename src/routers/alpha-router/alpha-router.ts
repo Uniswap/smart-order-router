@@ -602,7 +602,7 @@ export class AlphaRouter
     }
     let methodParameters: MethodParameters | undefined;
     if (swapConfig) {
-      methodParameters = await this.buildMethodParameters(
+      methodParameters = await this.buildSwapAndAddMethodParameters(
         swap.trade,
         swapConfig,
         {
@@ -797,7 +797,7 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      methodParameters = await this.buildMethodParameters(trade, swapConfig);
+      methodParameters = this.buildSwapMethodParameters(trade, swapConfig);
     }
 
     metric.putMetric(
@@ -1236,61 +1236,64 @@ export class AlphaRouter
     return trade;
   }
 
-  private async buildMethodParameters(
+  private buildSwapMethodParameters(
+    trade: Trade<Currency, Currency, TradeType>,
+    swapConfig: SwapConfig
+  ): MethodParameters {
+    const { recipient, slippageTolerance, deadline, inputTokenPermit } =
+      swapConfig;
+    return SwapRouter.swapCallParameters(trade, {
+      recipient,
+      slippageTolerance,
+      deadlineOrPreviousBlockhash: deadline,
+      inputTokenPermit,
+    });
+  }
+
+  private async buildSwapAndAddMethodParameters(
     trade: Trade<Currency, Currency, TradeType>,
     swapConfig: SwapConfig,
-    swapAndAddOptions?: SwapAndAddParameters
+    swapAndAddOptions: SwapAndAddParameters
   ): Promise<MethodParameters> {
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =
       swapConfig;
-    let methodParameters: MethodParameters;
-    if (!!swapAndAddOptions) {
-      const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition;
-      const finalBalanceTokenIn =
-        swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount);
-      const finalBalanceTokenOut = swapAndAddOptions.initialBalanceTokenOut.add(
-        trade.outputAmount
-      );
-      const approvalTypes = await this.swapRouterProvider.getApprovalType(
-        finalBalanceTokenIn,
-        finalBalanceTokenOut
-      );
-      const zeroForOne = finalBalanceTokenIn.currency.wrapped.sortsBefore(
-        finalBalanceTokenOut.currency.wrapped
-      );
-      methodParameters = SwapRouter.swapAndAddCallParameters(
-        trade,
-        {
-          recipient,
-          slippageTolerance,
-          deadlineOrPreviousBlockhash: deadline,
-          inputTokenPermit,
-        },
-        Position.fromAmounts({
-          pool: preLiquidityPosition.pool,
-          tickLower: preLiquidityPosition.tickLower,
-          tickUpper: preLiquidityPosition.tickUpper,
-          amount0: zeroForOne
-            ? finalBalanceTokenIn.quotient.toString()
-            : finalBalanceTokenOut.quotient.toString(),
-          amount1: zeroForOne
-            ? finalBalanceTokenOut.quotient.toString()
-            : finalBalanceTokenIn.quotient.toString(),
-          useFullPrecision: false,
-        }),
-        swapAndAddOptions.addLiquidityOptions,
-        approvalTypes.approvalTokenIn,
-        approvalTypes.approvalTokenOut
-      );
-    } else {
-      methodParameters = SwapRouter.swapCallParameters(trade, {
+    const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition;
+    const finalBalanceTokenIn =
+      swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount);
+    const finalBalanceTokenOut = swapAndAddOptions.initialBalanceTokenOut.add(
+      trade.outputAmount
+    );
+    const approvalTypes = await this.swapRouterProvider.getApprovalType(
+      finalBalanceTokenIn,
+      finalBalanceTokenOut
+    );
+    const zeroForOne = finalBalanceTokenIn.currency.wrapped.sortsBefore(
+      finalBalanceTokenOut.currency.wrapped
+    );
+    return SwapRouter.swapAndAddCallParameters(
+      trade,
+      {
         recipient,
         slippageTolerance,
         deadlineOrPreviousBlockhash: deadline,
         inputTokenPermit,
-      });
-    }
-    return methodParameters;
+      },
+      Position.fromAmounts({
+        pool: preLiquidityPosition.pool,
+        tickLower: preLiquidityPosition.tickLower,
+        tickUpper: preLiquidityPosition.tickUpper,
+        amount0: zeroForOne
+          ? finalBalanceTokenIn.quotient.toString()
+          : finalBalanceTokenOut.quotient.toString(),
+        amount1: zeroForOne
+          ? finalBalanceTokenOut.quotient.toString()
+          : finalBalanceTokenIn.quotient.toString(),
+        useFullPrecision: false,
+      }),
+      swapAndAddOptions.addLiquidityOptions,
+      approvalTypes.approvalTokenIn,
+      approvalTypes.approvalTokenOut
+    );
   }
 
   private emitPoolSelectionMetrics(
