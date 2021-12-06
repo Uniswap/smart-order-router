@@ -314,7 +314,7 @@ export class AlphaRouter
   protected v2QuoteProvider: IV2QuoteProvider;
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
-  protected swapRouterProvider: SwapRouterProvider;
+  protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
   protected blockedTokenListProvider?: ITokenListProvider;
