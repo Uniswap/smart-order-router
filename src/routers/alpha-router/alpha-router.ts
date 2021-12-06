@@ -516,14 +516,8 @@ export class AlphaRouter
         amountToSwap,
         outputBalance.currency,
         TradeType.EXACT_INPUT,
-        swapConfig,
-        { ...DEFAULT_CONFIG, ...routingConfig, protocols: [Protocol.V3] }, // TODO: Enable V2 once have trade object across v2/v3.
-        {
-          ...swapAndAddOptions,
-          initialBalanceTokenIn: inputBalance,
-          initialBalanceTokenOut: outputBalance,
-          preLiquidityPosition: position,
-        }
+        undefined,
+        { ...DEFAULT_CONFIG, ...routingConfig, protocols: [Protocol.V3] } // TODO: Enable V2 once have trade object across v2/v3.
       );
       if (!swap) {
         return {
@@ -595,9 +589,23 @@ export class AlphaRouter
       };
     }
 
+    let methodParameters: MethodParameters | undefined;
+    if (swapConfig) {
+      methodParameters = await this.buildMethodParameters(
+        swap.trade,
+        swapConfig,
+        {
+          ...swapAndAddOptions,
+          initialBalanceTokenIn: inputBalance,
+          initialBalanceTokenOut: outputBalance,
+          preLiquidityPosition: position,
+        }
+      );
+    }
+
     return {
       status: SwapToRatioStatus.SUCCESS,
-      result: { ...swap, optimalRatio, postSwapTargetPool },
+      result: { ...swap, methodParameters, optimalRatio, postSwapTargetPool },
     };
   }
 
@@ -609,8 +617,7 @@ export class AlphaRouter
     quoteCurrency: Currency,
     tradeType: TradeType,
     swapConfig?: SwapConfig,
-    partialRoutingConfig: Partial<AlphaRouterConfig> = {},
-    swapAndAddParameters?: SwapAndAddParameters
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
@@ -779,11 +786,7 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      methodParameters = await this.buildMethodParameters(
-        trade,
-        swapConfig,
-        swapAndAddParameters ?? undefined
-      );
+      methodParameters = await this.buildMethodParameters(trade, swapConfig);
     }
 
     metric.putMetric(
