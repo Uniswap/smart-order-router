@@ -26,6 +26,7 @@ import {
   ETHGasStationInfoProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
+  ISwapRouterProvider,
   NodeJSCache,
   SwapRouterProvider,
   UniswapMulticallProvider,
@@ -155,6 +156,12 @@ export type AlphaRouterParams = {
    * Defaults to Uniswap's unsupported token list.
    */
   blockedTokenListProvider?: ITokenListProvider;
+
+  /**
+   * Calls lens function on SwapRouter02 to determind ERC20 approval types for
+   * LP position tokens.
+   */
+  swapRouterProvider?: ISwapRouterProvider
 };
 
 /**
@@ -327,6 +334,7 @@ export class AlphaRouter
     gasPriceProvider,
     v3GasModelFactory,
     v2GasModelFactory,
+    swapRouterProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -440,7 +448,7 @@ export class AlphaRouter
     this.v2GasModelFactory =
       v2GasModelFactory ?? new V2HeuristicGasModelFactory();
 
-    this.swapRouterProvider = new SwapRouterProvider(this.multicall2Provider);
+    this.swapRouterProvider = swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
   }
 
   public async routeToRatio(
@@ -511,7 +519,6 @@ export class AlphaRouter
           status: SwapToRatioStatus.NO_SWAP_NEEDED,
         };
       }
-
       swap = await this.route(
         amountToSwap,
         outputBalance.currency,
@@ -588,7 +595,6 @@ export class AlphaRouter
         error: 'no route found',
       };
     }
-
     let methodParameters: MethodParameters | undefined;
     if (swapConfig) {
       methodParameters = await this.buildMethodParameters(
@@ -1232,11 +1238,9 @@ export class AlphaRouter
   ): Promise<MethodParameters> {
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =
       swapConfig;
-
     let methodParameters: MethodParameters;
     if (!!swapAndAddOptions) {
       const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition;
-
       const finalBalanceTokenIn =
         swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount);
       const finalBalanceTokenOut = swapAndAddOptions.initialBalanceTokenOut.add(
@@ -1249,7 +1253,9 @@ export class AlphaRouter
       const zeroForOne =
         finalBalanceTokenIn.currency.wrapped.address <
         finalBalanceTokenOut.currency.wrapped.address;
-
+// console.log('\n\ntrade!!!!', trade)
+// console.log('\n\swapConfig!!!!', swapConfig)
+// console.log('\n\swapAndAddOptions!!!!', swapAndAddOptions)
       methodParameters = SwapRouter.swapAndAddCallParameters(
         trade,
         {
@@ -1282,7 +1288,6 @@ export class AlphaRouter
         inputTokenPermit,
       });
     }
-
     return methodParameters;
   }
 

@@ -1,4 +1,4 @@
-import { Protocol } from '@uniswap/router-sdk';
+import { Protocol, SwapRouter } from '@uniswap/router-sdk';
 import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
@@ -15,6 +15,7 @@ import {
   ETHGasStationInfoProvider,
   parseAmount,
   SwapAndAddOptions,
+  SwapRouterProvider,
   SwapToRatioStatus,
   TokenProvider,
   UniswapMulticallProvider,
@@ -300,6 +301,8 @@ describe('alpha router', () => {
     mockBlockTokenListProvider = sinon.createStubInstance(
       CachingTokenListProvider
     );
+    const mockSwapRouterProvider = sinon.createStubInstance(SwapRouterProvider);
+    mockSwapRouterProvider.getApprovalType.resolves({ approvalTokenIn: 1, approvalTokenOut: 1 });
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
@@ -316,6 +319,7 @@ describe('alpha router', () => {
       v2PoolProvider: mockV2PoolProvider,
       v2QuoteProvider: mockV2QuoteProvider,
       v2SubgraphProvider: mockV2SubgraphProvider,
+      swapRouterProvider: mockSwapRouterProvider,
     });
   });
 
@@ -1979,6 +1983,42 @@ describe('alpha router', () => {
         });
       });
     });
+
+    describe('with methodParameters', () => {
+      it('returns the constructed methodParameters', async () => {
+        const token0Balance = parseAmount('20', USDC);
+        const token1Balance = parseAmount('5', USDT);
+
+        const position = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+        const spy = sinon.spy(SwapRouter, 'swapAndAddCallParameters');
+        console.log(spy)
+        const swap = await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          position,
+          SWAP_AND_ADD_CONFIG,
+          {
+            deadline: 100,
+            recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
+            slippageTolerance: new Percent(5, 10_000),
+          },
+          ROUTING_CONFIG
+        );
+
+        if (swap.status === SwapToRatioStatus.NO_ROUTE_FOUND) {
+          expect(swap.status).toEqual(SwapToRatioStatus.NO_ROUTE_FOUND);
+          expect(swap.error).toEqual('max iterations exceeded');
+        } else {
+          throw 'routeToRatio: unexpected response';
+        }
+      })
+    })
   });
 });
 
