@@ -14,6 +14,7 @@ import {
   DAI_OPTIMISM,
   DAI_OPTIMISTIC_KOVAN,
   DAI_RINKEBY_1,
+  DAI_RINKEBY_2,
   FEI_MAINNET,
   ITokenProvider,
   USDC_ARBITRUM,
@@ -97,7 +98,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WETH9[1]!,
     FEI_MAINNET,
   ],
-  [ChainId.RINKEBY]: [DAI_RINKEBY_1],
+  [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
   [ChainId.OPTIMISM]: [
     DAI_OPTIMISM,
     USDC_OPTIMISM,

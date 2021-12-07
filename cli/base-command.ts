@@ -25,6 +25,7 @@ import {
   ITokenProvider,
   IV3PoolProvider,
   LegacyRouter,
+  log,
   MetricLogger,
   NodeJSCache,
   routeAmountsToString,
@@ -273,6 +274,16 @@ export abstract class BaseCommand extends Command {
         new NodeCache({ stdTTL: 15, useClones: true })
       );
 
+      let v3SubgraphProvider;
+      try {
+        v3SubgraphProvider = new V3SubgraphProvider(chainId);
+      } catch (err) {
+        log.info(
+          'Unable to create subgraph provider. Will use URI or static in fallback',
+          err
+        );
+      }
+
       const router = new AlphaRouter({
         provider,
         chainId,
@@ -287,14 +298,22 @@ export abstract class BaseCommand extends Command {
           gasPriceCache
         ),
         v2SubgraphProvider: new StaticV2SubgraphProvider(chainId),
-        v3SubgraphProvider: new V3SubgraphProviderWithFallBacks([
-          new URISubgraphProvider(
-            chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
-          ),
-          new V3SubgraphProvider(chainId),
-          new StaticV3SubgraphProvider(chainId),
-        ]),
+        v3SubgraphProvider: v3SubgraphProvider
+          ? new V3SubgraphProviderWithFallBacks([
+              new URISubgraphProvider(
+                chainId,
+                `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
+              ),
+              v3SubgraphProvider,
+              new StaticV3SubgraphProvider(chainId),
+            ])
+          : new V3SubgraphProviderWithFallBacks([
+              new URISubgraphProvider(
+                chainId,
+                `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
+              ),
+              new StaticV3SubgraphProvider(chainId),
+            ]),
       });
 
       this._swapToRatioRouter = router;

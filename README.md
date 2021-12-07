@@ -36,6 +36,10 @@ JSON_RPC_PROVIDER_OPTIMISM = '<JSON_RPC_PROVIDER>'
 
 Then from the root directory you can execute the CLI.
 
+## Examples
+
+### Mainnet
+
 ```
 ./bin/cli quote --tokenIn 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48 --tokenOut 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 --amount 1000 --exactIn --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --protocols v2,v3
 
@@ -73,4 +77,32 @@ Calldata: 0x414bf389000000000000000000000000dac17f958d2ee523a2206206994597c13d83
 	blockNumber: "13239188"
 	estimatedGasUsed: "113000"
 	gasPriceWei: "116690684398"
+```
+
+## Rinkeby
+
+```
+./bin/cli quote --tokenIn 0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea --tokenOut 0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b --amount 200000 --exactIn --minSplits 1 --router alpha --chainId 4
+```
+
+## Optimism
+
+```
+./bin/cli quote --tokenIn 0x7F5c764cBc14f9669B88837ca1490cCa17c31607 --tokenOut 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1 --amount 200000 --exactIn --minSplits 1 --router alpha --chainId 10
+
+Best Route:
+[V3] 100.00% = USDC -- 0.05% --> DAI
+        Raw Quote Exact In:
+                200060.92
+        Gas Adjusted Quote In:
+                200060.92
+
+Gas Used Quote Token: 0.000756
+Gas Used USD: 0.000756
+Calldata: undefined
+Value: undefined
+
+  blockNumber: "866227"
+  estimatedGasUsed: "175000"
+  gasPriceWei: "1040767"
 ```
