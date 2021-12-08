@@ -3,20 +3,30 @@ import { Token } from '@uniswap/sdk-core';
 import {
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
+  DAI_GÖRLI,
+  DAI_KOVAN,
   DAI_MAINNET,
   DAI_OPTIMISM,
   DAI_OPTIMISTIC_KOVAN,
   DAI_RINKEBY_1,
   DAI_RINKEBY_2,
+  DAI_ROPSTEN,
   USDC_ARBITRUM,
-  USDC_ARBITRUM_RINKEBY,
+  USDC_GÖRLI,
+  USDC_KOVAN,
   USDC_MAINNET,
   USDC_OPTIMISM,
   USDC_OPTIMISTIC_KOVAN,
+  USDC_ROPSTEN,
   USDT_ARBITRUM,
+  USDT_ARBITRUM_RINKEBY,
+  USDT_GÖRLI,
+  USDT_KOVAN,
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISTIC_KOVAN,
+  USDT_ROPSTEN,
+  WBTC_GÖRLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
@@ -38,7 +48,10 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDC_OPTIMISTIC_KOVAN,
     USDT_OPTIMISTIC_KOVAN,
   ],
-  [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDC_ARBITRUM_RINKEBY],
+  [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDT_ARBITRUM_RINKEBY],
+  [ChainId.KOVAN]: [DAI_KOVAN, USDC_KOVAN, USDT_KOVAN],
+  [ChainId.GÖRLI]: [USDC_GÖRLI, USDT_GÖRLI, WBTC_GÖRLI, DAI_GÖRLI],
+  [ChainId.ROPSTEN]: [DAI_ROPSTEN, USDC_ROPSTEN, USDT_ROPSTEN],
 };
 
 /**

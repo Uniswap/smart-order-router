@@ -38,6 +38,8 @@ Then from the root directory you can execute the CLI.
 
 ## Examples
 
+Some examples to use for manual CLI testing.
+
 ### Mainnet
 
 ```
@@ -85,6 +87,18 @@ Calldata: 0x414bf389000000000000000000000000dac17f958d2ee523a2206206994597c13d83
 ./bin/cli quote --tokenIn 0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea --tokenOut 0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b --amount 200000 --exactIn --minSplits 1 --router alpha --chainId 4
 ```
 
+## Kovan
+
+```
+./bin/cli quote --tokenIn 0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa --tokenOut 0xd0a1e359811322d97991e03f863a0c30c2cf029c --amount 10 --exactIn --minSplits 1 --router alpha --chainId 42
+```
+
+## Ropsten
+
+```
+./bin/cli quote --tokenIn 0x07865c6e87b9f70255377e024ace6630c1eaa37f --tokenOut 0xc778417e063141139fce010982780140aa0cd5ab --amount 200000 --exactIn --minSplits 1 --router alpha --chainId 3
+```
+
 ## Optimism
 
 ```
@@ -105,4 +119,10 @@ Value: undefined
   blockNumber: "866227"
   estimatedGasUsed: "175000"
   gasPriceWei: "1040767"
+```
+
+## Optimistic-Kovan
+
+```
+./bin/cli quote --tokenIn 0x7F5c764cBc14f9669B88837ca1490cCa17c31607 --tokenOut 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1 --amount 200 --exactIn --minSplits 1 --router alpha --chainId 69
 ```

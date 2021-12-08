@@ -222,7 +222,6 @@ export abstract class BaseCommand extends Command {
       chainProvider,
       chainId
     );
-
     this._blockNumber = await provider.getBlockNumber();
 
     const tokenCache = new NodeJSCache<Token>(
