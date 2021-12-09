@@ -109,8 +109,13 @@ export class QuoteToRatio extends BaseCommand {
       tokenOutBalance,
       position,
       {
-        errorTolerance: new Fraction(1, 100),
+        ratioErrorTolerance: new Fraction(1, 100),
         maxIterations: 6,
+        addLiquidityOptions: {
+          slippageTolerance: new Percent(5, 10_000),
+          deadline: 100,
+          recipient: '0x0000000000000000000000000000000000000001',
+        },
       },
       {
         deadline: 100,

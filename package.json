@@ -1,6 +1,6 @@
 {
   "name": "@uniswap/smart-order-router",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/src/index.js",
   "typings": "build/main/src/index.d.ts",
@@ -14,8 +14,9 @@
   "scripts": {
     "compile-v3-types": "npx typechain --target ethers-v5 --out-dir src/types/v3 './node_modules/@uniswap/?(v3-core|v3-periphery)/artifacts/contracts/**/*.json'",
     "compile-v2-types": "npx typechain --target ethers-v5 --out-dir src/types/v2 './node_modules/@uniswap/?(v2-core|v2-periphery)/build/*UniswapV2*.json'",
+    "compile-router": "npx typechain --target ethers-v5 --out-dir src/types/other './node_modules/@uniswap/swap-router-contracts/artifacts/contracts/SwapRouter02.sol/SwapRouter02.json'",
     "compile-external-types": "npx typechain --target ethers-v5 --out-dir src/types/other 'src/abis/**/*.json'",
-    "build": "run-p compile-v3-types compile-v2-types compile-external-types && run-p build:*",
+    "build": "run-p compile-v3-types compile-v2-types compile-router compile-external-types && run-p build:*",
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "fix": "run-s fix:*",
@@ -42,7 +43,8 @@
     "@types/sinon": "^10.0.2",
     "@types/stats-lite": "^2.2.0",
     "@uniswap/default-token-list": "^2.0.0",
-    "@uniswap/router-sdk": "^1.0.1",
+    "@uniswap/router-sdk": "^1.0.2",
+    "@uniswap/swap-router-contracts": "1.0.0",
     "@uniswap/token-lists": "^1.0.0-beta.25",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",

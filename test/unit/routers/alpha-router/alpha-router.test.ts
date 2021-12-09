@@ -1,4 +1,4 @@
-import { Protocol } from '@uniswap/router-sdk';
+import { Protocol, SwapRouter } from '@uniswap/router-sdk';
 import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
@@ -14,7 +14,8 @@ import {
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
   parseAmount,
-  SwapAndAddConfig,
+  SwapAndAddOptions,
+  SwapRouterProvider,
   SwapToRatioStatus,
   TokenProvider,
   UniswapMulticallProvider,
@@ -111,9 +112,14 @@ describe('alpha router', () => {
     forceCrossProtocol: false,
   };
 
-  const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
-    errorTolerance: new Fraction(1, 100),
+  const SWAP_AND_ADD_CONFIG: SwapAndAddOptions = {
+    ratioErrorTolerance: new Fraction(1, 100),
     maxIterations: 6,
+    addLiquidityOptions: {
+      slippageTolerance: new Percent(500, 10_000),
+      deadline: 100,
+      recipient: `0x${'00'.repeat(19)}01`,
+    },
   };
 
   const sumFn = (currencyAmounts: CurrencyAmount[]): CurrencyAmount => {
@@ -294,6 +300,11 @@ describe('alpha router', () => {
     mockBlockTokenListProvider = sinon.createStubInstance(
       CachingTokenListProvider
     );
+    const mockSwapRouterProvider = sinon.createStubInstance(SwapRouterProvider);
+    mockSwapRouterProvider.getApprovalType.resolves({
+      approvalTokenIn: 1,
+      approvalTokenOut: 1,
+    });
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
@@ -310,6 +321,7 @@ describe('alpha router', () => {
       v2PoolProvider: mockV2PoolProvider,
       v2QuoteProvider: mockV2QuoteProvider,
       v2SubgraphProvider: mockV2SubgraphProvider,
+      swapRouterProvider: mockSwapRouterProvider,
     });
   });
 
@@ -1508,6 +1520,25 @@ describe('alpha router', () => {
       });
 
       test('it returns null when maxIterations has been exceeded', async () => {
+        // prompt bad quotes from V2
+        mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
+          async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
+            const routesWithQuotes = _.map(routes, (r) => {
+              const amountQuotes = _.map(amountIns, (amountIn) => {
+                const quote = BigNumber.from(1).div(BigNumber.from(10));
+                return {
+                  amount: amountIn,
+                  quote,
+                } as V2AmountQuote;
+              });
+              return [r, amountQuotes];
+            });
+
+            return {
+              routesWithQuotes: routesWithQuotes,
+            } as { routesWithQuotes: V2RouteWithQuotes[] };
+          }
+        );
         // prompt many loops
         mockV3QuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
           getQuotesManyExactInFn({
@@ -1554,6 +1585,25 @@ describe('alpha router', () => {
 
       describe('when there is excess of token0', () => {
         test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          // prompt bad quotes from V2
+          mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
+            async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
+              const routesWithQuotes = _.map(routes, (r) => {
+                const amountQuotes = _.map(amountIns, (amountIn) => {
+                  const quote = BigNumber.from(1).div(BigNumber.from(10));
+                  return {
+                    amount: amountIn,
+                    quote,
+                  } as V2AmountQuote;
+                });
+                return [r, amountQuotes];
+              });
+
+              return {
+                routesWithQuotes: routesWithQuotes,
+              } as { routesWithQuotes: V2RouteWithQuotes[] };
+            }
+          );
           mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
             getQuotesManyExactInFn({
               quoteMultiplier: new Fraction(1, 2),
@@ -1743,6 +1793,25 @@ describe('alpha router', () => {
 
       describe('when there is excess of token1', () => {
         test('when amountOut is less than expected it calls again with new exchangeRate', async () => {
+          // prompt bad quotes from V2
+          mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
+            async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
+              const routesWithQuotes = _.map(routes, (r) => {
+                const amountQuotes = _.map(amountIns, (amountIn) => {
+                  const quote = BigNumber.from(1).div(BigNumber.from(10));
+                  return {
+                    amount: amountIn,
+                    quote,
+                  } as V2AmountQuote;
+                });
+                return [r, amountQuotes];
+              });
+
+              return {
+                routesWithQuotes: routesWithQuotes,
+              } as { routesWithQuotes: V2RouteWithQuotes[] };
+            }
+          );
           mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
             getQuotesManyExactInFn({
               quoteMultiplier: new Fraction(1, 2),
@@ -1971,6 +2040,70 @@ describe('alpha router', () => {
             expect(outputBalanceSecond).toEqual(token0Balance);
           });
         });
+      });
+    });
+
+    describe('with methodParameters.swapAndAddCallParameters with the correct parameters', () => {
+      it('calls SwapRouter ', async () => {
+        const token0Balance = parseAmount('15', USDC);
+        const token1Balance = parseAmount('5', USDT);
+
+        const positionPreLiquidity = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+        const positionPostLiquidity = Position.fromAmounts({
+          pool: positionPreLiquidity.pool,
+          tickLower: positionPreLiquidity.tickLower,
+          tickUpper: positionPreLiquidity.tickUpper,
+          amount0: parseAmount('10', USDC).quotient.toString(),
+          amount1: parseAmount('10', USDT).quotient.toString(),
+          useFullPrecision: false,
+        });
+
+        const SWAP_CONFIG = {
+          deadline: 100,
+          recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
+          slippageTolerance: new Percent(5, 10_000),
+        };
+
+        const spy = sinon.spy(SwapRouter, 'swapAndAddCallParameters');
+
+        const swap = await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          positionPreLiquidity,
+          SWAP_AND_ADD_CONFIG,
+          SWAP_CONFIG,
+          ROUTING_CONFIG
+        );
+
+        if (swap.status == SwapToRatioStatus.SUCCESS) {
+          const [
+            trade,
+            _,
+            positionArg,
+            addLiquidityOptions,
+            approvalTypeIn,
+            approvalTypeOut,
+          ] = spy.firstCall.args;
+          expect(swap.result.methodParameters).toBeTruthy();
+          expect(trade).toEqual(swap.result.trade);
+          expect(positionArg.pool).toEqual(positionPostLiquidity.pool);
+          expect(positionArg.liquidity).toEqual(
+            positionPostLiquidity.liquidity
+          );
+          expect(addLiquidityOptions).toEqual(
+            SWAP_AND_ADD_CONFIG.addLiquidityOptions
+          );
+          expect(approvalTypeIn).toEqual(1);
+          expect(approvalTypeOut).toEqual(1);
+        } else {
+          throw 'swap was not successful';
+        }
       });
     });
   });

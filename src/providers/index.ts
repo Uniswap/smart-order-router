@@ -10,6 +10,7 @@ export * from './legacy-gas-price-provider';
 export * from './multicall-provider';
 export * from './multicall-uniswap-provider';
 export * from './on-chain-gas-price-provider';
+export * from './swap-router-provider';
 export * from './token-provider';
 export * from './uri-subgraph-provider';
 export * from './v2/caching-subgraph-provider';
