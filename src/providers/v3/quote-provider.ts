@@ -166,6 +166,20 @@ export type BatchParams = {
    */
   quoteMinSuccessRate: number;
 };
+/**
+ * The parameters for the multicalls we make after failing once due to insufficient gas.
+ *
+ */
+export type BatchParamsFallback = {
+  /**
+   * The number of quotes to fetch in each multicall.
+   */
+  multicallChunkFallback: number;
+  /**
+   * The maximum call to consume for each quote in the multicall.
+   */
+  gasLimitPerCallFallback: number;
+};
 
 export type SuccessRateFailureOverrides = {
   multicallChunk: number;
@@ -206,6 +220,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
    * Only supports the Uniswap Multicall contract as it needs the gas limitting functionality.
    * @param retryOptions The retry options for each call to the multicall.
    * @param batchParams The parameters for each batched call to the multicall.
+   * @param batchParamsFallback The parameters for each retried batched call upon failure.
    * @param successRateFailureOverrides The parameters for retries when we fail to get quotes.
    * @param [rollback=false] If true, if we fail to get quotes due to block header
    *  errors (meaning the specified block wasn't found by the provider) we rollback the block number.
@@ -225,6 +240,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       multicallChunk: 150,
       gasLimitPerCall: 1_000_000,
       quoteMinSuccessRate: 0.2,
+    },
+    protected batchParamsFallback: BatchParamsFallback = {
+      multicallChunkFallback: 100,
+      gasLimitPerCallFallback: 1_500_000,
     },
     protected successRateFailureOverrides: SuccessRateFailureOverrides = {
       gasLimitOverride: 1_300_000,
@@ -313,7 +332,6 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     const normalizedChunk = Math.ceil(
       inputs.length / Math.ceil(inputs.length / multicallChunk)
     );
-
     const inputsChunked = _.chunk(inputs, normalizedChunk);
     let quoteStates: QuoteBatchState[] = _.map(inputsChunked, (inputChunk) => {
       return {
@@ -553,8 +571,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                 );
                 haveRetriedForOutOfGas = true;
               }
-              gasLimitOverride = 1_000_000;
-              multicallChunk = 140;
+              gasLimitOverride =
+                this.batchParamsFallback.gasLimitPerCallFallback;
+              multicallChunk = this.batchParamsFallback.multicallChunkFallback;
+              retryAll = true;
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {
                 metric.putMetric(

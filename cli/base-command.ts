@@ -283,10 +283,38 @@ export abstract class BaseCommand extends Command {
         );
       }
 
+      const useDefaultQuoteProvider =
+        chainId != ChainId.ARBITRUM_ONE && chainId != ChainId.ARBITRUM_RINKEBY;
+
       const router = new AlphaRouter({
         provider,
         chainId,
         multicall2Provider: multicall2Provider,
+        v3QuoteProvider: useDefaultQuoteProvider
+          ? undefined
+          : new V3QuoteProvider(
+              chainId,
+              provider,
+              this.multicall2Provider,
+              {
+                retries: 2,
+                minTimeout: 100,
+                maxTimeout: 1000,
+              },
+              {
+                multicallChunk: 17,
+                gasLimitPerCall: 25_000_000,
+                quoteMinSuccessRate: 0.15,
+              },
+              {
+                gasLimitPerCallFallback: 30_000_000,
+                multicallChunkFallback: 8,
+              },
+              {
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 25,
+              }
+            ),
         gasPriceProvider: new CachingGasStationProvider(
           chainId,
           new OnChainGasPriceProvider(

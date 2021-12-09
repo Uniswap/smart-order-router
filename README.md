@@ -126,3 +126,15 @@ Value: undefined
 ```
 ./bin/cli quote --tokenIn 0x7F5c764cBc14f9669B88837ca1490cCa17c31607 --tokenOut 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1 --amount 200 --exactIn --minSplits 1 --router alpha --chainId 69
 ```
+
+## Arbitrum
+
+```
+./bin/cli quote --tokenIn 0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9 --tokenOut 0x82af49447d8a07e3bd95bd0d56f35241523fbab1 --amount 20000 --exactIn --minSplits 1 --router alpha --chainId 42161 --debug
+```
+
+## Arbitrum-Rinkeby
+
+```
+./bin/cli quote --tokenIn 0x09b98f8b2395d076514037ff7d39a091a536206c --tokenOut 0xb47e6a5f8b33b3f17603c83a0535a9dcd7e32681 --amount 200 --exactIn --minSplits 1 --router alpha --chainId 421611
+```
