@@ -24,8 +24,8 @@ JSON_RPC_PROVIDER = '<JSON_RPC_PROVIDER>'
 
 To run on chains other than mainnet set up a connection by specifying the environment variable
 
-```JSON_RPC_PROVIDER_{CHAIN} = '<JSON_RPC_PROVIDER>'
-
+```
+JSON_RPC_PROVIDER_{CHAIN} = '<JSON_RPC_PROVIDER>'
 ```
 
 For example, specifying a provider for Optimism :
