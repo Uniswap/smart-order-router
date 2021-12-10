@@ -166,22 +166,13 @@ export type BatchParams = {
    */
   quoteMinSuccessRate: number;
 };
+
 /**
- * The parameters for the multicalls we make after failing once due to insufficient gas.
+ * The fallback values for gasLimit and multicallChunk if any failures occur.
  *
  */
-export type BatchParamsFallback = {
-  /**
-   * The number of quotes to fetch in each multicall.
-   */
-  multicallChunkFallback: number;
-  /**
-   * The maximum call to consume for each quote in the multicall.
-   */
-  gasLimitPerCallFallback: number;
-};
 
-export type SuccessRateFailureOverrides = {
+export type FailureOverrides = {
   multicallChunk: number;
   gasLimitOverride: number;
 };
@@ -241,11 +232,11 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       gasLimitPerCall: 1_000_000,
       quoteMinSuccessRate: 0.2,
     },
-    protected batchParamsFallback: BatchParamsFallback = {
-      multicallChunkFallback: 100,
-      gasLimitPerCallFallback: 1_500_000,
+    protected gasErrorFailureOverride: FailureOverrides = {
+      gasLimitOverride: 1_500_000,
+      multicallChunk: 100,
     },
-    protected successRateFailureOverrides: SuccessRateFailureOverrides = {
+    protected successRateFailureOverrides: FailureOverrides = {
       gasLimitOverride: 1_300_000,
       multicallChunk: 110,
     },
@@ -571,9 +562,8 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                 );
                 haveRetriedForOutOfGas = true;
               }
-              gasLimitOverride =
-                this.batchParamsFallback.gasLimitPerCallFallback;
-              multicallChunk = this.batchParamsFallback.multicallChunkFallback;
+              gasLimitOverride = this.gasErrorFailureOverride.gasLimitOverride;
+              multicallChunk = this.gasErrorFailureOverride.multicallChunk;
               retryAll = true;
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {

@@ -104,21 +104,6 @@ Calldata: 0x414bf389000000000000000000000000dac17f958d2ee523a2206206994597c13d83
 ```
 ./bin/cli quote --tokenIn 0x7F5c764cBc14f9669B88837ca1490cCa17c31607 --tokenOut 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1 --amount 200000 --exactIn --minSplits 1 --router alpha --chainId 10
 
-Best Route:
-[V3] 100.00% = USDC -- 0.05% --> DAI
-        Raw Quote Exact In:
-                200060.92
-        Gas Adjusted Quote In:
-                200060.92
-
-Gas Used Quote Token: 0.000756
-Gas Used USD: 0.000756
-Calldata: undefined
-Value: undefined
-
-  blockNumber: "866227"
-  estimatedGasUsed: "175000"
-  gasPriceWei: "1040767"
 ```
 
 ## Optimistic-Kovan

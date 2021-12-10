@@ -365,8 +365,8 @@ export class AlphaRouter
           quoteMinSuccessRate: 0.15,
         },
         {
-          gasLimitPerCallFallback: 1_000_000,
-          multicallChunkFallback: 150,
+          gasLimitOverride: 1_000_000,
+          multicallChunk: 150,
         },
         {
           gasLimitOverride: 2_000_000,

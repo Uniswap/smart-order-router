@@ -307,8 +307,8 @@ export abstract class BaseCommand extends Command {
                 quoteMinSuccessRate: 0.15,
               },
               {
-                gasLimitPerCallFallback: 30_000_000,
-                multicallChunkFallback: 8,
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 8,
               },
               {
                 gasLimitOverride: 30_000_000,
