@@ -253,7 +253,6 @@ describe('alpha router', () => {
     mockGasPriceProvider = sinon.createStubInstance(ETHGasStationInfoProvider);
     mockGasPriceProvider.getGasPrice.resolves({
       gasPriceWei: mockGasPriceWeiBN,
-      blockNumber: mockBlock,
     });
 
     mockV3GasModelFactory = sinon.createStubInstance(

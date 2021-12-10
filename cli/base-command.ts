@@ -19,22 +19,31 @@ import {
   GasPrice,
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
+  ID_TO_PROVIDER,
   IRouter,
   ISwapToRatio,
   ITokenProvider,
   IV3PoolProvider,
   LegacyRouter,
+  log,
   MetricLogger,
   NodeJSCache,
   routeAmountsToString,
   RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
+  StaticV2SubgraphProvider,
+  StaticV3SubgraphProvider,
   TokenProvider,
   UniswapMulticallProvider,
+  URISubgraphProvider,
   V3PoolProvider,
   V3QuoteProvider,
+  V3SubgraphProvider,
+  V3SubgraphProviderWithFallBacks,
 } from '../src';
+import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
+import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
 
 export abstract class BaseCommand extends Command {
   static flags = {
@@ -207,14 +216,12 @@ export abstract class BaseCommand extends Command {
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainName = ID_TO_NETWORK_NAME(chainIdNumb);
+    const chainProvider = ID_TO_PROVIDER(chainId);
 
     const provider = new ethers.providers.JsonRpcProvider(
-      chainId == ChainId.MAINNET
-        ? process.env.JSON_RPC_PROVIDER!
-        : process.env.JSON_RPC_PROVIDER_RINKEBY!,
-      chainName
+      chainProvider,
+      chainId
     );
-
     this._blockNumber = await provider.getBlockNumber();
 
     const tokenCache = new NodeJSCache<Token>(
@@ -266,15 +273,74 @@ export abstract class BaseCommand extends Command {
         new NodeCache({ stdTTL: 15, useClones: true })
       );
 
+      let v3SubgraphProvider;
+      try {
+        v3SubgraphProvider = new V3SubgraphProvider(chainId);
+      } catch (err) {
+        log.info(
+          'Unable to create subgraph provider. Will use URI or static in fallback',
+          err
+        );
+      }
+
+      const useDefaultQuoteProvider =
+        chainId != ChainId.ARBITRUM_ONE && chainId != ChainId.ARBITRUM_RINKEBY;
+
       const router = new AlphaRouter({
         provider,
         chainId,
         multicall2Provider: multicall2Provider,
+        v3QuoteProvider: useDefaultQuoteProvider
+          ? undefined
+          : new V3QuoteProvider(
+              chainId,
+              provider,
+              this.multicall2Provider,
+              {
+                retries: 2,
+                minTimeout: 100,
+                maxTimeout: 1000,
+              },
+              {
+                multicallChunk: 17,
+                gasLimitPerCall: 25_000_000,
+                quoteMinSuccessRate: 0.15,
+              },
+              {
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 8,
+              },
+              {
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 25,
+              }
+            ),
         gasPriceProvider: new CachingGasStationProvider(
           chainId,
-          new EIP1559GasPriceProvider(provider),
+          new OnChainGasPriceProvider(
+            chainId,
+            new EIP1559GasPriceProvider(provider),
+            new LegacyGasPriceProvider(provider)
+          ),
           gasPriceCache
         ),
+        v2SubgraphProvider: new StaticV2SubgraphProvider(chainId),
+        v3SubgraphProvider: v3SubgraphProvider
+          ? new V3SubgraphProviderWithFallBacks([
+              new URISubgraphProvider(
+                chainId,
+                `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
+              ),
+              v3SubgraphProvider,
+              new StaticV3SubgraphProvider(chainId),
+            ])
+          : new V3SubgraphProviderWithFallBacks([
+              new URISubgraphProvider(
+                chainId,
+                `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
+              ),
+              new StaticV3SubgraphProvider(chainId),
+            ]),
       });
 
       this._swapToRatioRouter = router;

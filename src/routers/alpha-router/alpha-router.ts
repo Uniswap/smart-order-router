@@ -365,6 +365,10 @@ export class AlphaRouter
           quoteMinSuccessRate: 0.15,
         },
         {
+          gasLimitOverride: 1_000_000,
+          multicallChunk: 150,
+        },
+        {
           gasLimitOverride: 2_000_000,
           multicallChunk: 70,
         }
@@ -642,6 +646,8 @@ export class AlphaRouter
       { blockNumber }
     );
 
+    const { protocols } = routingConfig;
+
     const currencyIn =
       tradeType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
     const currencyOut =
@@ -668,8 +674,6 @@ export class AlphaRouter
     );
 
     const quoteToken = quoteCurrency.wrapped;
-
-    const { protocols } = routingConfig;
 
     const quotePromises: Promise<{
       routesWithValidQuotes: RouteWithValidQuote[];

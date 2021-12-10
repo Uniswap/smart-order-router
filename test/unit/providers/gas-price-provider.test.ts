@@ -30,7 +30,6 @@ describe('gas price provider', () => {
 
   test('succeeds to get gas price and converts it to wei', async () => {
     await expect(ethGasStationInfo.getGasPrice()).resolves.toMatchObject({
-      blockNumber: 10000000,
       gasPriceWei: BigNumber.from('1000000000000000'),
     });
   });

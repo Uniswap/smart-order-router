@@ -21,10 +21,14 @@ export class V3SubgraphProviderWithFallBacks implements IV3SubgraphProvider {
     for (let i = 0; i < this.fallbacks.length; i++) {
       const provider = this.fallbacks[i]!;
       try {
-        return provider.getPools(tokenIn, tokenOut, providerConfig);
+        const pools = await provider.getPools(
+          tokenIn,
+          tokenOut,
+          providerConfig
+        );
+        return pools;
       } catch (err) {
         log.info(`Failed to get subgraph pools for V3 from fallback #${i}`);
-        continue;
       }
     }
 

@@ -68,6 +68,28 @@ export const FEI_MAINNET = new Token(
   'Fei USD'
 );
 
+export const USDC_ROPSTEN = new Token(
+  ChainId.ROPSTEN,
+  '0x07865c6e87b9f70255377e024ace6630c1eaa37f',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_ROPSTEN = new Token(
+  ChainId.ROPSTEN,
+  '0x516de3a7a567d81737e3a46ec4ff9cfd1fcb0136',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const DAI_ROPSTEN = new Token(
+  ChainId.ROPSTEN,
+  '0xad6d458402f60fd3bd25163575031acdce07538d',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 export const DAI_RINKEBY_1 = new Token(
   ChainId.RINKEBY,
   '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea',
@@ -81,6 +103,189 @@ export const DAI_RINKEBY_2 = new Token(
   18,
   'DAI',
   'DAI'
+);
+export const USDC_RINKEBY = new Token(
+  ChainId.RINKEBY,
+  '0x30d7f32c41c880c538c592c339e7e9136a76c5df',
+  6,
+  'tUSDC',
+  'test USD//C'
+);
+export const USDT_RINKEBY = new Token(
+  ChainId.RINKEBY,
+  '0xa689352b7c1cad82864beb1d90679356d3962f4d',
+  18,
+  'USDT',
+  'Tether USD'
+);
+
+export const USDC_GÖRLI = new Token(
+  ChainId.GÖRLI,
+  '0x07865c6e87b9f70255377e024ace6630c1eaa37f',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_GÖRLI = new Token(
+  ChainId.GÖRLI,
+  '0xe583769738b6dd4e7caf8451050d1948be717679',
+  18,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_GÖRLI = new Token(
+  ChainId.GÖRLI,
+  '0xa0a5ad2296b38bd3e3eb59aaeaf1589e8d9a29a9',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_GÖRLI = new Token(
+  ChainId.GÖRLI,
+  '0x11fe4b6ae13d2a6055c8d9cf65c55bac32b5d844',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDC_KOVAN = new Token(
+  ChainId.KOVAN,
+  '0x31eeb2d0f9b6fd8642914ab10f4dd473677d80df',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_KOVAN = new Token(
+  ChainId.KOVAN,
+  '0xa325f1b1ebb748715dfbbaf62e0c6677e137f45d',
+  18,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_KOVAN = new Token(
+  ChainId.KOVAN,
+  '0xe36bc5d8b689ad6d80e78c3e736670e80d4b329d',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_KOVAN = new Token(
+  ChainId.KOVAN,
+  '0x9dc7b33c3b63fc00ed5472fbd7813edda6a64752',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDC_OPTIMISM = new Token(
+  ChainId.OPTIMISM,
+  '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_OPTIMISM = new Token(
+  ChainId.OPTIMISM,
+  '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_OPTIMISM = new Token(
+  ChainId.OPTIMISM,
+  '0x68f180fcCe6836688e9084f035309E29Bf0A2095',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_OPTIMISM = new Token(
+  ChainId.OPTIMISM,
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDC_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0x4e62882864fB8CE54AFfcAf8D899A286762B011B',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0x2382a8f65b9120E554d1836a504808aC864E169d',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_OPTIMISTIC_KOVAN = new Token(
+  ChainId.OPTIMISTIC_KOVAN,
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDC_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const DAI_ARBITRUM_RINKEBY = new Token(
+  ChainId.ARBITRUM_RINKEBY,
+  '0x2f3C1B6A51A469051A22986aA0dDF98466cc8D3c',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDT_ARBITRUM_RINKEBY = new Token(
+  ChainId.ARBITRUM_RINKEBY,
+  '0x920b9301c2de92186299cd2abc7199e25b9728b3',
+  6,
+  'UDST',
+  'Tether USD'
+);
+
+export const UNI_ARBITRUM_RINKEBY = new Token(
+  ChainId.ARBITRUM_RINKEBY,
+  '0x049251a7175071316e089d0616d8b6aacd2c93b8',
+  18,
+  'UNI',
+  'Uni token'
 );
 
 export const TOKENS: {
@@ -97,6 +302,29 @@ export const TOKENS: {
     WETH: WETH9[ChainId.RINKEBY]!,
     DAI_1: DAI_RINKEBY_1,
     DAI_2: DAI_RINKEBY_2,
+  },
+  [ChainId.OPTIMISM]: {
+    USDC: USDC_OPTIMISM,
+    USDT: USDT_OPTIMISM,
+    WBTC: WBTC_OPTIMISM,
+    DAI: DAI_OPTIMISM,
+  },
+  [ChainId.OPTIMISTIC_KOVAN]: {
+    USDC: USDC_OPTIMISTIC_KOVAN,
+    USDT: USDT_OPTIMISTIC_KOVAN,
+    WBTC: WBTC_OPTIMISTIC_KOVAN,
+    DAI: DAI_OPTIMISTIC_KOVAN,
+  },
+  [ChainId.ARBITRUM_ONE]: {
+    USDC: USDC_ARBITRUM,
+    USDT: USDT_ARBITRUM,
+    WBTC: WBTC_ARBITRUM,
+    DAI: DAI_ARBITRUM,
+  },
+  [ChainId.ARBITRUM_RINKEBY]: {
+    USDT: USDT_ARBITRUM_RINKEBY,
+    UNI: UNI_ARBITRUM_RINKEBY,
+    DAI: DAI_ARBITRUM_RINKEBY,
   },
 };
 

@@ -3,7 +3,7 @@ import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 import { ChainId } from './chains';
 
 export const V3_CORE_FACTORY_ADDRESS = FACTORY_ADDRESS;
-export const QUOTER_V2_ADDRESS = '0x0209c4Dc18B2A1439fD2427E34E7cF3c6B91cFB9';
+export const QUOTER_V2_ADDRESS = '0x61fFE014bA17989E743c5F6cB21bF9697530B21e';
 export const TICK_LENS_ADDRESS = '0xbfd8137f7d1516D3ea5cA83523914859ec47F573';
 export const NONFUNGIBLE_POSITION_MANAGER_ADDRESS =
   '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
@@ -46,6 +46,34 @@ export const WETH9: { [chainId in ChainId]: Token } = {
   [ChainId.KOVAN]: new Token(
     ChainId.KOVAN,
     '0xd0A1E359811322d97991E03f863a0C30C2cF029C',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.OPTIMISM]: new Token(
+    ChainId.OPTIMISM,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.OPTIMISTIC_KOVAN]: new Token(
+    ChainId.OPTIMISTIC_KOVAN,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ARBITRUM_ONE]: new Token(
+    ChainId.ARBITRUM_ONE,
+    '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ARBITRUM_RINKEBY]: new Token(
+    ChainId.ARBITRUM_RINKEBY,
+    '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681',
     18,
     'WETH',
     'Wrapped Ether'

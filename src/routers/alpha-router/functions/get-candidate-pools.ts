@@ -8,13 +8,28 @@ import {
   V2SubgraphPool,
 } from '../../../providers';
 import {
+  DAI_ARBITRUM,
+  DAI_ARBITRUM_RINKEBY,
   DAI_MAINNET,
+  DAI_OPTIMISM,
+  DAI_OPTIMISTIC_KOVAN,
   DAI_RINKEBY_1,
+  DAI_RINKEBY_2,
   FEI_MAINNET,
   ITokenProvider,
+  USDC_ARBITRUM,
   USDC_MAINNET,
+  USDC_OPTIMISM,
+  USDC_OPTIMISTIC_KOVAN,
+  USDT_ARBITRUM,
+  USDT_ARBITRUM_RINKEBY,
   USDT_MAINNET,
+  USDT_OPTIMISM,
+  USDT_OPTIMISTIC_KOVAN,
+  WBTC_ARBITRUM,
   WBTC_MAINNET,
+  WBTC_OPTIMISM,
+  WBTC_OPTIMISTIC_KOVAN,
 } from '../../../providers/token-provider';
 import {
   IV2PoolProvider,
@@ -83,7 +98,26 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WETH9[1]!,
     FEI_MAINNET,
   ],
-  [ChainId.RINKEBY]: [DAI_RINKEBY_1],
+  [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
+  [ChainId.OPTIMISM]: [
+    DAI_OPTIMISM,
+    USDC_OPTIMISM,
+    USDT_OPTIMISM,
+    WBTC_OPTIMISM,
+  ],
+  [ChainId.OPTIMISTIC_KOVAN]: [
+    DAI_OPTIMISTIC_KOVAN,
+    USDC_OPTIMISTIC_KOVAN,
+    WBTC_OPTIMISTIC_KOVAN,
+    USDT_OPTIMISTIC_KOVAN,
+  ],
+  [ChainId.ARBITRUM_ONE]: [
+    DAI_ARBITRUM,
+    USDC_ARBITRUM,
+    WBTC_ARBITRUM,
+    USDT_ARBITRUM,
+  ],
+  [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDT_ARBITRUM_RINKEBY],
 };
 
 export async function getV3CandidatePools({

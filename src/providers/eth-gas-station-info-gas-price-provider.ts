@@ -57,6 +57,6 @@ export class ETHGasStationInfoProvider extends IGasPriceProvider {
       `Gas price in wei: ${gasPriceWei} as of block ${gasPriceResponse.blockNum}`
     );
 
-    return { gasPriceWei: gasPriceWei, blockNumber: gasPriceResponse.blockNum };
+    return { gasPriceWei: gasPriceWei };
   }
 }

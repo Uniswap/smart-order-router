@@ -14,11 +14,6 @@ import { Result } from '../multicall-provider';
 import { UniswapMulticallProvider } from '../multicall-uniswap-provider';
 import { ProviderConfig } from '../provider';
 
-const chainToQuoterAddress: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]: QUOTER_V2_ADDRESS,
-  [ChainId.RINKEBY]: '0xbec7965F684FFdb309b9189BDc10C31337C37CBf',
-};
-
 /**
  * A quote for a swap on V3.
  */
@@ -172,7 +167,12 @@ export type BatchParams = {
   quoteMinSuccessRate: number;
 };
 
-export type SuccessRateFailureOverrides = {
+/**
+ * The fallback values for gasLimit and multicallChunk if any failures occur.
+ *
+ */
+
+export type FailureOverrides = {
   multicallChunk: number;
   gasLimitOverride: number;
 };
@@ -211,6 +211,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
    * Only supports the Uniswap Multicall contract as it needs the gas limitting functionality.
    * @param retryOptions The retry options for each call to the multicall.
    * @param batchParams The parameters for each batched call to the multicall.
+   * @param batchParamsFallback The parameters for each retried batched call upon failure.
    * @param successRateFailureOverrides The parameters for retries when we fail to get quotes.
    * @param [rollback=false] If true, if we fail to get quotes due to block header
    *  errors (meaning the specified block wasn't found by the provider) we rollback the block number.
@@ -231,7 +232,11 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       gasLimitPerCall: 1_000_000,
       quoteMinSuccessRate: 0.2,
     },
-    protected successRateFailureOverrides: SuccessRateFailureOverrides = {
+    protected gasErrorFailureOverride: FailureOverrides = {
+      gasLimitOverride: 1_500_000,
+      multicallChunk: 100,
+    },
+    protected successRateFailureOverrides: FailureOverrides = {
       gasLimitOverride: 1_300_000,
       multicallChunk: 110,
     },
@@ -240,7 +245,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
   ) {
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
-      : chainToQuoterAddress[this.chainId];
+      : QUOTER_V2_ADDRESS;
 
     if (!quoterAddress) {
       throw new Error(
@@ -318,7 +323,6 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     const normalizedChunk = Math.ceil(
       inputs.length / Math.ceil(inputs.length / multicallChunk)
     );
-
     const inputsChunked = _.chunk(inputs, normalizedChunk);
     let quoteStates: QuoteBatchState[] = _.map(inputsChunked, (inputChunk) => {
       return {
@@ -558,8 +562,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                 );
                 haveRetriedForOutOfGas = true;
               }
-              gasLimitOverride = 1_000_000;
-              multicallChunk = 140;
+              gasLimitOverride = this.gasErrorFailureOverride.gasLimitOverride;
+              multicallChunk = this.gasErrorFailureOverride.multicallChunk;
+              retryAll = true;
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {
                 metric.putMetric(
