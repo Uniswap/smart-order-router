@@ -113,18 +113,18 @@ describe('alpha router', () => {
     forceCrossProtocol: false,
   };
 
-  const SWAP_AND_ADD_OPTIONS: SwapAndAddOptions = {
+  const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
     ratioErrorTolerance: new Fraction(1, 100),
     maxIterations: 6,
   };
 
-  const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
-    addLiquidityConfig: {
+  const SWAP_AND_ADD_OPTIONS: SwapAndAddOptions = {
+    addLiquidityOptions: {
       slippageTolerance: new Percent(500, 10_000),
       deadline: 100,
       recipient: `0x${'00'.repeat(19)}01`,
     },
-    swapConfig: {
+    swapOptions: {
       deadline: 100,
       recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
       slippageTolerance: new Percent(5, 10_000),
@@ -1290,7 +1290,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1326,7 +1326,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1357,7 +1357,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1386,7 +1386,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1417,7 +1417,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1448,7 +1448,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1481,7 +1481,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
-          SWAP_AND_ADD_OPTIONS,
+          SWAP_AND_ADD_CONFIG,
           undefined,
           ROUTING_CONFIG
         );
@@ -1507,7 +1507,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
-          SWAP_AND_ADD_OPTIONS,
+          SWAP_AND_ADD_CONFIG,
           undefined,
           ROUTING_CONFIG
         );
@@ -1579,7 +1579,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           position,
-          SWAP_AND_ADD_OPTIONS,
+          SWAP_AND_ADD_CONFIG,
           undefined,
           ROUTING_CONFIG
         );
@@ -1632,7 +1632,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1695,7 +1695,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1762,7 +1762,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1840,7 +1840,7 @@ describe('alpha router', () => {
             token0Balance,
             token1Balance,
             position,
-            SWAP_AND_ADD_OPTIONS,
+            SWAP_AND_ADD_CONFIG,
             undefined,
             ROUTING_CONFIG
           );
@@ -1904,7 +1904,7 @@ describe('alpha router', () => {
               token0Balance,
               token1Balance,
               position,
-              SWAP_AND_ADD_OPTIONS,
+              SWAP_AND_ADD_CONFIG,
               undefined,
               ROUTING_CONFIG
             );
@@ -1967,7 +1967,7 @@ describe('alpha router', () => {
               token0Balance,
               token1Balance,
               position,
-              SWAP_AND_ADD_OPTIONS,
+              SWAP_AND_ADD_CONFIG,
               undefined,
               ROUTING_CONFIG
             );
@@ -2012,7 +2012,7 @@ describe('alpha router', () => {
               token0Balance,
               token1Balance,
               position,
-              SWAP_AND_ADD_OPTIONS,
+              SWAP_AND_ADD_CONFIG,
               undefined,
               ROUTING_CONFIG
             );
@@ -2087,8 +2087,8 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           positionPreLiquidity,
-          SWAP_AND_ADD_OPTIONS,
           SWAP_AND_ADD_CONFIG,
+          SWAP_AND_ADD_OPTIONS,
           ROUTING_CONFIG
         );
 
@@ -2108,7 +2108,7 @@ describe('alpha router', () => {
             positionPostLiquidity.liquidity
           );
           expect(addLiquidityOptions).toEqual(
-            SWAP_AND_ADD_CONFIG.addLiquidityConfig
+            SWAP_AND_ADD_OPTIONS.addLiquidityOptions
           );
           expect(approvalTypeIn).toEqual(1);
           expect(approvalTypeOut).toEqual(1);
@@ -2132,7 +2132,7 @@ describe('alpha router', () => {
           token0Balance,
           token1Balance,
           positionPreLiquidity,
-          SWAP_AND_ADD_OPTIONS,
+          SWAP_AND_ADD_CONFIG,
           undefined,
           ROUTING_CONFIG
         );

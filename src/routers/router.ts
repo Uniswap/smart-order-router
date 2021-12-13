@@ -8,7 +8,7 @@ import {
 } from '@uniswap/sdk-core';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  AddLiquidityConfig,
+  AddLiquidityOptions,
   MethodParameters,
   Pool,
   Position,
@@ -99,7 +99,7 @@ export type SwapToRatioResponse =
   | SwapToRatioFail
   | SwapToRatioNoSwapNeeded;
 
-export type SwapConfig = {
+export type SwapOptions = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
@@ -119,18 +119,18 @@ export type SwapConfig = {
   );
 };
 
-// Options passed in to determine configurations on acceptable liquidity
+// Config passed in to determine configurations on acceptable liquidity
 // to add to a position and max iterations on the route-finding algorithm
-export type SwapAndAddOptions = {
+export type SwapAndAddConfig = {
   maxIterations: number;
   ratioErrorTolerance: Fraction;
 };
 
-// Config for executing the swap and add.
+// Options for executing the swap and add.
 // If provided, calldata for executing the swap and add will also be returned.
-export type SwapAndAddConfig = {
-  swapConfig: SwapConfig;
-  addLiquidityConfig: AddLiquidityConfig;
+export type SwapAndAddOptions = {
+  swapOptions: SwapOptions;
+  addLiquidityOptions: AddLiquidityOptions;
 };
 
 // SwapAndAddOptions plus all other parameters needed to encode the
@@ -160,7 +160,7 @@ export abstract class IRouter<RoutingConfig> {
    * @param amount The amount specified by the user. For EXACT_IN swaps, this is the input token amount. For EXACT_OUT swaps, this is the output token.
    * @param quoteCurrency The currency of the token we are returning a quote for. For EXACT_IN swaps, this is the output token. For EXACT_OUT, this is the input token.
    * @param tradeType The type of the trade, either exact in or exact out.
-   * @param [swapConfig] Optional config for executing the swap. If provided, calldata for executing the swap will also be returned.
+   * @param [swapOptions] Optional config for executing the swap. If provided, calldata for executing the swap will also be returned.
    * @param [partialRoutingConfig] Optional config for finding the optimal route.
    * @returns The swap route.
    */
@@ -168,18 +168,18 @@ export abstract class IRouter<RoutingConfig> {
     amount: CurrencyAmount,
     quoteCurrency: Currency,
     swapType: TradeType,
-    swapConfig?: SwapConfig,
+    swapOptions?: SwapOptions,
     partialRoutingConfig?: Partial<RoutingConfig>
   ): Promise<SwapRoute | null>;
 }
 
-export abstract class ISwapToRatio<RoutingConfig, SwapAndAddOptions> {
+export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
   abstract routeToRatio(
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
-    swapAndAddOptions: SwapAndAddOptions,
-    swapAndAddConfig?: SwapAndAddConfig,
+    swapAndAddConfig: SwapAndAddConfig,
+    swapAndAddOptions?: SwapAndAddOptions,
     routingConfig?: RoutingConfig
   ): Promise<SwapToRatioResponse>;
 }

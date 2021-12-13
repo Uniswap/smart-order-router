@@ -19,7 +19,7 @@ import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
 import { V3RouteWithValidQuote } from '../alpha-router';
-import { IRouter, SwapConfig, SwapRoute, V3Route } from '../router';
+import { IRouter, SwapOptions, SwapRoute, V3Route } from '../router';
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
@@ -70,7 +70,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     amount: CurrencyAmount,
     quoteCurrency: Currency,
     swapType: TradeType,
-    swapConfig?: SwapConfig,
+    swapConfig?: SwapOptions,
     partialRoutingConfig?: Partial<LegacyRoutingConfig>
   ): Promise<SwapRoute | null> {
     if (swapType == TradeType.EXACT_INPUT) {
@@ -96,7 +96,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountIn: CurrencyAmount,
-    swapConfig?: SwapConfig,
+    swapConfig?: SwapOptions,
     routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
@@ -148,7 +148,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountOut: CurrencyAmount,
-    swapConfig?: SwapConfig,
+    swapConfig?: SwapOptions,
     routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
@@ -527,7 +527,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
   private buildMethodParameters<TTradeType extends TradeType>(
     trade: Trade<Currency, Currency, TTradeType>,
-    swapConfig: SwapConfig
+    swapConfig: SwapOptions
   ): MethodParameters {
     const { recipient, slippageTolerance, deadline } = swapConfig;
 

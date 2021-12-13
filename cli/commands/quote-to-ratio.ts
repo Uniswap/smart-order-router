@@ -113,12 +113,12 @@ export class QuoteToRatio extends BaseCommand {
         maxIterations: 6,
       },
       {
-        addLiquidityConfig: {
+        addLiquidityOptions: {
           slippageTolerance: new Percent(5, 10_000),
           deadline: 100,
           recipient: '0x0000000000000000000000000000000000000001',
         },
-        swapConfig: {
+        swapOptions: {
           deadline: 100,
           recipient,
           slippageTolerance: new Percent(5, 10_000),
