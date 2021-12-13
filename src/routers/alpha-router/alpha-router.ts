@@ -65,6 +65,7 @@ import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
+  SwapAndAddConfig,
   SwapAndAddOptions,
   SwapAndAddParameters,
   SwapConfig,
@@ -461,7 +462,7 @@ export class AlphaRouter
     token1Balance: CurrencyAmount,
     position: Position,
     swapAndAddOptions: SwapAndAddOptions,
-    swapConfig?: SwapConfig,
+    swapAndAddConfig?: SwapAndAddConfig,
     routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
   ): Promise<SwapToRatioResponse> {
     if (
@@ -605,12 +606,11 @@ export class AlphaRouter
       };
     }
     let methodParameters: MethodParameters | undefined;
-    if (swapConfig) {
+    if (swapAndAddConfig) {
       methodParameters = await this.buildSwapAndAddMethodParameters(
         swap.trade,
-        swapConfig,
+        swapAndAddConfig,
         {
-          ...swapAndAddOptions,
           initialBalanceTokenIn: inputBalance,
           initialBalanceTokenOut: outputBalance,
           preLiquidityPosition: position,
@@ -1256,11 +1256,14 @@ export class AlphaRouter
 
   private async buildSwapAndAddMethodParameters(
     trade: Trade<Currency, Currency, TradeType>,
-    swapConfig: SwapConfig,
+    swapAndAddConfig: SwapAndAddConfig,
     swapAndAddOptions: SwapAndAddParameters
   ): Promise<MethodParameters> {
-    const { recipient, slippageTolerance, deadline, inputTokenPermit } =
-      swapConfig;
+    const {
+      swapConfig: { recipient, slippageTolerance, deadline, inputTokenPermit },
+      addLiquidityConfig,
+    } = swapAndAddConfig;
+
     const preLiquidityPosition = swapAndAddOptions.preLiquidityPosition;
     const finalBalanceTokenIn =
       swapAndAddOptions.initialBalanceTokenIn.subtract(trade.inputAmount);
@@ -1294,7 +1297,7 @@ export class AlphaRouter
           : finalBalanceTokenIn.quotient.toString(),
         useFullPrecision: false,
       }),
-      swapAndAddOptions.addLiquidityOptions,
+      addLiquidityConfig,
       approvalTypes.approvalTokenIn,
       approvalTypes.approvalTokenOut
     );

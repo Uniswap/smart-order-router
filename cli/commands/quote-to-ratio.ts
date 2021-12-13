@@ -111,16 +111,18 @@ export class QuoteToRatio extends BaseCommand {
       {
         ratioErrorTolerance: new Fraction(1, 100),
         maxIterations: 6,
-        addLiquidityOptions: {
+      },
+      {
+        addLiquidityConfig: {
           slippageTolerance: new Percent(5, 10_000),
           deadline: 100,
           recipient: '0x0000000000000000000000000000000000000001',
         },
-      },
-      {
-        deadline: 100,
-        recipient,
-        slippageTolerance: new Percent(5, 10_000),
+        swapConfig: {
+          deadline: 100,
+          recipient,
+          slippageTolerance: new Percent(5, 10_000),
+        },
       },
       {
         blockNumber: this.blockNumber,

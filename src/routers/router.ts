@@ -8,7 +8,7 @@ import {
 } from '@uniswap/sdk-core';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  AddLiquidityOptions,
+  AddLiquidityConfig,
   MethodParameters,
   Pool,
   Position,
@@ -124,12 +124,18 @@ export type SwapConfig = {
 export type SwapAndAddOptions = {
   maxIterations: number;
   ratioErrorTolerance: Fraction;
-  addLiquidityOptions: AddLiquidityOptions;
+};
+
+// Config for executing the swap and add.
+// If provided, calldata for executing the swap and add will also be returned.
+export type SwapAndAddConfig = {
+  swapConfig: SwapConfig;
+  addLiquidityConfig: AddLiquidityConfig;
 };
 
 // SwapAndAddOptions plus all other parameters needed to encode the
 // on-chain swap-and-add process
-export type SwapAndAddParameters = SwapAndAddOptions & {
+export type SwapAndAddParameters = {
   // starting balance for tokenIn which will inform the tokenIn position amount
   initialBalanceTokenIn: CurrencyAmount;
   // starting balance for tokenOut which will inform the tokenOut position amount
@@ -163,8 +169,7 @@ export abstract class IRouter<RoutingConfig> {
     quoteCurrency: Currency,
     swapType: TradeType,
     swapConfig?: SwapConfig,
-    partialRoutingConfig?: Partial<RoutingConfig>,
-    swapAndAddParameters?: SwapAndAddParameters
+    partialRoutingConfig?: Partial<RoutingConfig>
   ): Promise<SwapRoute | null>;
 }
 
@@ -173,8 +178,8 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddOptions> {
     token0Balance: CurrencyAmount,
     token1Balance: CurrencyAmount,
     position: Position,
-    swapAndAddConfig: SwapAndAddOptions,
-    swapConfig?: SwapConfig,
+    swapAndAddOptions: SwapAndAddOptions,
+    swapAndAddConfig?: SwapAndAddConfig,
     routingConfig?: RoutingConfig
   ): Promise<SwapToRatioResponse>;
 }
