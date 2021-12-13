@@ -65,26 +65,26 @@ export class QuoteToRatio extends BaseCommand {
     const tokenAccessor = await tokenProvider.getTokens([token0Str, token1Str]);
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
-    const tokenIn: Currency =
+    const token0: Currency =
       token0Str == 'ETH'
         ? Ether.onChain(chainId)
         : tokenAccessor.getTokenByAddress(token0Str)!;
-    const tokenOut: Currency =
+    const token1: Currency =
       token1Str == 'ETH'
         ? Ether.onChain(chainId)
         : tokenAccessor.getTokenByAddress(token1Str)!;
 
-    const tokenInBalance = parseAmount(token0BalanceStr, tokenIn);
-    const tokenOutBalance = parseAmount(token1BalanceStr, tokenOut);
+    const token0Balance = parseAmount(token0BalanceStr, token0);
+    const token1Balance = parseAmount(token1BalanceStr, token1);
 
     const poolAccessor = await this.poolProvider.getPools(
-      [[tokenIn.wrapped, tokenOut.wrapped, feeAmount]],
+      [[token0.wrapped, token1.wrapped, feeAmount]],
       { blockNumber: this.blockNumber }
     );
 
     const pool = poolAccessor.getPool(
-      tokenIn.wrapped,
-      tokenOut.wrapped,
+      token0.wrapped,
+      token1.wrapped,
       feeAmount
     );
     if (!pool) {
@@ -105,8 +105,8 @@ export class QuoteToRatio extends BaseCommand {
 
     let swapRoutes: SwapToRatioResponse;
     swapRoutes = await router.routeToRatio(
-      tokenInBalance,
-      tokenOutBalance,
+      token0Balance,
+      token1Balance,
       position,
       {
         ratioErrorTolerance: new Fraction(1, 100),
