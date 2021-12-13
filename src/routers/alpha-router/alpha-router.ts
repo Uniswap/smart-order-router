@@ -57,7 +57,7 @@ import {
 } from '../../providers/v3/quote-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CurrencyAmount } from '../../util/amounts';
-import { ChainId, ID_TO_CHAIN_ID } from '../../util/chains';
+import { ChainId, ChainName, ID_TO_CHAIN_ID } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { routeToString } from '../../util/routes';
@@ -284,18 +284,17 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 // TODO: Change to prod once ready. Fill in other chains.
+
+// ipfs urls in the following format: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/${protocol}/${chainName}.json`;
 const V3_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]:
-    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/mainnet.json',
-  [ChainId.RINKEBY]:
-    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/rinkeby.json',
+  // add as more chains are supported in the ipfs cache
+  [ChainId.MAINNET]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${ChainName.MAINNET}.json`,
+  [ChainId.RINKEBY]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${ChainName.RINKEBY}.json`,
 };
 
 const V2_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]:
-    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/mainnet.json',
-  [ChainId.RINKEBY]:
-    'https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/rinkeby.json',
+  [ChainId.MAINNET]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${ChainName.MAINNET}.json`,
+  [ChainId.RINKEBY]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${ChainName.RINKEBY}.json`,
 };
 
 export class AlphaRouter

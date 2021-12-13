@@ -36,14 +36,15 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
 };
 
 export enum ChainName {
+  // ChainNames match infura network strings
   MAINNET = 'mainnet',
   ROPSTEN = 'ropsten',
   RINKEBY = 'rinkeby',
   GÖRLI = 'goerli',
   KOVAN = 'kovan',
-  OPTIMISM = 'optimism',
-  OPTIMISTIC_KOVAN = 'optimistic-kovan',
-  ARBITRUM_ONE = 'arbitrum',
+  OPTIMISM = 'optimism-mainnet',
+  OPTIMISTIC_KOVAN = 'optimism-kovan',
+  ARBITRUM_ONE = 'arbitrum-mainnet',
   ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
 }
 
