@@ -2117,7 +2117,7 @@ describe('alpha router', () => {
         }
       });
 
-      it('does not generate calldata if swap and add options are not provided', async () => {
+      it('does not generate calldata if swap and add config is not provided', async () => {
         const token0Balance = parseAmount('15', USDC);
         const token1Balance = parseAmount('5', USDT);
 
