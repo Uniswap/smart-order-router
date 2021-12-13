@@ -14,6 +14,7 @@ import {
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
   parseAmount,
+  SwapAndAddConfig,
   SwapAndAddOptions,
   SwapRouterProvider,
   SwapToRatioStatus,
@@ -112,13 +113,21 @@ describe('alpha router', () => {
     forceCrossProtocol: false,
   };
 
-  const SWAP_AND_ADD_CONFIG: SwapAndAddOptions = {
+  const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
     ratioErrorTolerance: new Fraction(1, 100),
     maxIterations: 6,
+  };
+
+  const SWAP_AND_ADD_OPTIONS: SwapAndAddOptions = {
     addLiquidityOptions: {
       slippageTolerance: new Percent(500, 10_000),
       deadline: 100,
       recipient: `0x${'00'.repeat(19)}01`,
+    },
+    swapOptions: {
+      deadline: 100,
+      recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
+      slippageTolerance: new Percent(5, 10_000),
     },
   };
 
@@ -2044,6 +2053,16 @@ describe('alpha router', () => {
     });
 
     describe('with methodParameters.swapAndAddCallParameters with the correct parameters', () => {
+      let spy: sinon.SinonSpy<any[], any>;
+
+      beforeEach(() => {
+        spy = sinon.spy(SwapRouter, 'swapAndAddCallParameters');
+      });
+
+      afterEach(() => {
+        spy.restore();
+      });
+
       it('calls SwapRouter ', async () => {
         const token0Balance = parseAmount('15', USDC);
         const token1Balance = parseAmount('5', USDT);
@@ -2064,20 +2083,12 @@ describe('alpha router', () => {
           useFullPrecision: false,
         });
 
-        const SWAP_CONFIG = {
-          deadline: 100,
-          recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
-          slippageTolerance: new Percent(5, 10_000),
-        };
-
-        const spy = sinon.spy(SwapRouter, 'swapAndAddCallParameters');
-
         const swap = await alphaRouter.routeToRatio(
           token0Balance,
           token1Balance,
           positionPreLiquidity,
           SWAP_AND_ADD_CONFIG,
-          SWAP_CONFIG,
+          SWAP_AND_ADD_OPTIONS,
           ROUTING_CONFIG
         );
 
@@ -2097,10 +2108,37 @@ describe('alpha router', () => {
             positionPostLiquidity.liquidity
           );
           expect(addLiquidityOptions).toEqual(
-            SWAP_AND_ADD_CONFIG.addLiquidityOptions
+            SWAP_AND_ADD_OPTIONS.addLiquidityOptions
           );
           expect(approvalTypeIn).toEqual(1);
           expect(approvalTypeOut).toEqual(1);
+        } else {
+          throw 'swap was not successful';
+        }
+      });
+
+      it('does not generate calldata if swap and add config is not provided', async () => {
+        const token0Balance = parseAmount('15', USDC);
+        const token1Balance = parseAmount('5', USDT);
+
+        const positionPreLiquidity = new Position({
+          pool: USDC_USDT_MEDIUM,
+          tickUpper: 120,
+          tickLower: -120,
+          liquidity: 1,
+        });
+
+        const swap = await alphaRouter.routeToRatio(
+          token0Balance,
+          token1Balance,
+          positionPreLiquidity,
+          SWAP_AND_ADD_CONFIG,
+          undefined,
+          ROUTING_CONFIG
+        );
+
+        if (swap.status == SwapToRatioStatus.SUCCESS) {
+          expect(swap.result.methodParameters).toBeFalsy();
         } else {
           throw 'swap was not successful';
         }
