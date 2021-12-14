@@ -28,10 +28,14 @@ import {
   IV2QuoteProvider,
   IV2SubgraphProvider,
   NodeJSCache,
+  StaticV2SubgraphProvider,
+  StaticV3SubgraphProvider,
   SwapRouterProvider,
   UniswapMulticallProvider,
+  URISubgraphProvider,
   V2QuoteProvider,
-  V3URISubgraphProvider,
+  V2SubgraphProviderWithFallBacks,
+  V3SubgraphProviderWithFallBacks,
 } from '../../providers';
 import {
   CachingTokenListProvider,
@@ -57,7 +61,7 @@ import {
 } from '../../providers/v3/quote-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CurrencyAmount } from '../../util/amounts';
-import { ChainId, ChainName, ID_TO_CHAIN_ID } from '../../util/chains';
+import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { routeToString } from '../../util/routes';
@@ -284,19 +288,6 @@ export const DEFAULT_CONFIG: AlphaRouterConfig = {
 };
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
-// TODO: Change to prod once ready. Fill in other chains.
-
-// ipfs urls in the following format: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/${protocol}/${chainName}.json`;
-const V3_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  // add as more chains are supported in the ipfs cache
-  [ChainId.MAINNET]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${ChainName.MAINNET}.json`,
-  [ChainId.RINKEBY]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${ChainName.RINKEBY}.json`,
-};
-
-const V2_IPFS_POOL_CACHE_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${ChainName.MAINNET}.json`,
-  [ChainId.RINKEBY]: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${ChainName.RINKEBY}.json`,
-};
 
 export class AlphaRouter
   implements
@@ -378,25 +369,6 @@ export class AlphaRouter
       v2PoolProvider ?? new V2PoolProvider(chainId, this.multicall2Provider);
     this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
 
-    if (v2SubgraphProvider) {
-      this.v2SubgraphProvider = v2SubgraphProvider;
-    } else {
-      if (!V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
-        throw new Error(
-          `Can not create a default subgraph provider for V2 on ${chainId}. Provide your own V2SubgraphProvider.`
-        );
-      }
-
-      this.v2SubgraphProvider = new CachingV2SubgraphProvider(
-        chainId,
-        new V2URISubgraphProvider(
-          chainId,
-          V2_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
-        ),
-        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-      );
-    }
-
     this.blockedTokenListProvider =
       blockedTokenListProvider ??
       new CachingTokenListProvider(
@@ -417,23 +389,39 @@ export class AlphaRouter
         new TokenProvider(chainId, this.multicall2Provider)
       );
 
+    const chainName = ID_TO_NETWORK_NAME(chainId);
+
+    // ipfs urls in the following format: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/${protocol}/${chainName}.json`;
+    if (v2SubgraphProvider) {
+      this.v2SubgraphProvider = v2SubgraphProvider;
+    } else {
+      this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
+        new CachingV2SubgraphProvider(
+          chainId,
+          new V2URISubgraphProvider(
+            chainId,
+            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`
+          ),
+          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+        ),
+        new StaticV2SubgraphProvider(chainId),
+      ]);
+    }
+
     if (v3SubgraphProvider) {
       this.v3SubgraphProvider = v3SubgraphProvider;
     } else {
-      if (!V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]) {
-        throw new Error(
-          `Can not create a default subgraph provider for V3 on ${chainId}. Provide your own V3SubgraphProvider.`
-        );
-      }
-
-      this.v3SubgraphProvider = new CachingV3SubgraphProvider(
-        chainId,
-        new V3URISubgraphProvider(
+      this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
+        new CachingV3SubgraphProvider(
           chainId,
-          V3_IPFS_POOL_CACHE_URL_BY_CHAIN[chainId]!
+          new URISubgraphProvider(
+            chainId,
+            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
+          ),
+          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
         ),
-        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-      );
+        new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
+      ]);
     }
 
     this.gasPriceProvider =

@@ -106,7 +106,7 @@ export const DAI_RINKEBY_2 = new Token(
 );
 export const USDC_RINKEBY = new Token(
   ChainId.RINKEBY,
-  '0x30d7f32c41c880c538c592c339e7e9136a76c5df',
+  '0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b',
   6,
   'tUSDC',
   'test USD//C'
@@ -280,6 +280,14 @@ export const USDT_ARBITRUM_RINKEBY = new Token(
   'Tether USD'
 );
 
+export const USDC_ARBITRUM_RINKEBY = new Token(
+  ChainId.ARBITRUM_RINKEBY,
+  '0xB17736aA76003F4873D9f4366190E5c6678d9a52',
+  6,
+  'USDC',
+  'USD//C'
+);
+
 export const UNI_ARBITRUM_RINKEBY = new Token(
   ChainId.ARBITRUM_RINKEBY,
   '0x049251a7175071316e089d0616d8b6aacd2c93b8',
@@ -325,6 +333,7 @@ export const TOKENS: {
     USDT: USDT_ARBITRUM_RINKEBY,
     UNI: UNI_ARBITRUM_RINKEBY,
     DAI: DAI_ARBITRUM_RINKEBY,
+    USDC: USDC_ARBITRUM_RINKEBY,
   },
 };
 

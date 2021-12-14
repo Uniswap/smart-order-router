@@ -1,5 +1,6 @@
 import { Token, WETH9 } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import JSBI from 'jsbi';
 import _ from 'lodash';
 import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
@@ -40,6 +41,7 @@ import {
   WBTC_OPTIMISM,
   WBTC_OPTIMISTIC_KOVAN,
 } from '../token-provider';
+import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
 type ChainTokenList = {
@@ -111,19 +113,21 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
 };
 
 /**
- * Provider that does not get data from an external source and instead returns
- * a hardcoded list of Subgraph pools.
+ * Provider that uses a hardcoded list of V3 pools to generate a list of subgraph pools.
  *
- * Since the pools are hardcoded, the liquidity/price values are dummys and should not
- * be depended on.
+ * Since the pools are hardcoded and the data does not come from the Subgraph, the TVL values
+ * are dummys and should not be depended on.
  *
- * Useful for instances where other data sources are unavailable. E.g. subgraph not available.
+ * Useful for instances where other data sources are unavailable. E.g. Subgraph not available.
  *
  * @export
  * @class StaticV3SubgraphProvider
  */
 export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
-  constructor(private chainId: ChainId) {}
+  constructor(
+    private chainId: ChainId,
+    private poolProvider: IV3PoolProvider
+  ) {}
 
   public async getPools(
     tokenIn?: Token,
@@ -163,32 +167,40 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
       })
       .value();
 
+    log.info(
+      `V3 Static subgraph provider about to get ${pairs.length} pools on-chain`
+    );
+    const poolAccessor = await this.poolProvider.getPools(pairs);
+    const pools = poolAccessor.getAllPools();
+
     const poolAddressSet = new Set<string>();
 
-    const subgraphPools: V3SubgraphPool[] = _(pairs)
-      .map(([tokenA, tokenB, fee]) => {
-        const poolAddress = Pool.getAddress(tokenA, tokenB, fee);
-        const [token0, token1] = tokenA.sortsBefore(tokenB)
-          ? [tokenA, tokenB]
-          : [tokenB, tokenA];
+    const subgraphPools: V3SubgraphPool[] = _(pools)
+      .map((pool) => {
+        const { token0, token1, fee, liquidity } = pool;
+
+        const poolAddress = Pool.getAddress(pool.token0, pool.token1, pool.fee);
 
         if (poolAddressSet.has(poolAddress)) {
           return undefined;
         }
         poolAddressSet.add(poolAddress);
 
+        const liquidityNumber = JSBI.toNumber(liquidity);
+
         return {
           id: poolAddress,
           feeTier: unparseFeeAmount(fee),
-          liquidity: '100',
+          liquidity: liquidity.toString(),
           token0: {
             id: token0.address,
           },
           token1: {
             id: token1.address,
           },
-          tvlETH: 100,
-          tvlUSD: 100,
+          // As a very rough proxy we just use liquidity for TVL.
+          tvlETH: liquidityNumber,
+          tvlUSD: liquidityNumber,
         };
       })
       .compact()
