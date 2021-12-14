@@ -1,8 +1,9 @@
 import { ChainId } from '../../util/chains';
 import { AlphaRouterConfig } from './alpha-router';
 
-
-export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId: ChainId): AlphaRouterConfig => {
+export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
+  chainId: ChainId
+): AlphaRouterConfig => {
   switch (chainId) {
     // Optimism
     case ChainId.OPTIMISM:
@@ -84,4 +85,5 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId: ChainId): AlphaRouterCo
       };
   }
 };
-export const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
+export const ETH_GAS_STATION_API_URL =
+  'https://ethgasstation.info/api/ethgasAPI.json';
