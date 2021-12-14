@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [2.4.3](https://github.com/Uniswap/smart-order-router/compare/v2.4.1...v2.4.3) (2021-12-14)
 
-
 ### Bug Fixes
 
-* add export ([609ae40](https://github.com/Uniswap/smart-order-router/commit/609ae40c4bb1af6a6cb682258f19171d427bdbf9))
+- add export ([609ae40](https://github.com/Uniswap/smart-order-router/commit/609ae40c4bb1af6a6cb682258f19171d427bdbf9))
 
 ### [2.4.1](https://github.com/Uniswap/smart-order-router/compare/v2.3.1...v2.4.1) (2021-12-14)
 
