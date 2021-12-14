@@ -27,7 +27,9 @@ import {
   ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
+  LegacyGasPriceProvider,
   NodeJSCache,
+  OnChainGasPriceProvider,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
   SwapRouterProvider,
@@ -50,7 +52,6 @@ import {
   IV2PoolProvider,
   V2PoolProvider,
 } from '../../providers/v2/pool-provider';
-import { V2URISubgraphProvider } from '../../providers/v2/uri-subgraph-provider';
 import {
   IV3PoolProvider,
   V3PoolProvider,
@@ -77,6 +78,10 @@ import {
   SwapToRatioResponse,
   SwapToRatioStatus,
 } from '../router';
+import {
+  DEFAULT_ROUTING_CONFIG_BY_CHAIN,
+  ETH_GAS_STATION_API_URL,
+} from './config';
 import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
@@ -263,32 +268,6 @@ export type AlphaRouterConfig = {
   distributionPercent: number;
 };
 
-export const DEFAULT_CONFIG: AlphaRouterConfig = {
-  v2PoolSelection: {
-    topN: 3,
-    topNDirectSwaps: 1,
-    topNTokenInOut: 5,
-    topNSecondHop: 2,
-    topNWithEachBaseToken: 2,
-    topNWithBaseToken: 6,
-  },
-  v3PoolSelection: {
-    topN: 2,
-    topNDirectSwaps: 2,
-    topNTokenInOut: 3,
-    topNSecondHop: 1,
-    topNWithEachBaseToken: 3,
-    topNWithBaseToken: 5,
-  },
-  maxSwapsPerPath: 3,
-  minSplits: 1,
-  maxSplits: 7,
-  distributionPercent: 5,
-  forceCrossProtocol: false,
-};
-
-const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
-
 export class AlphaRouter
   implements
     IRouter<AlphaRouterConfig>,
@@ -339,31 +318,94 @@ export class AlphaRouter
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-    this.v3QuoteProvider =
-      v3QuoteProvider ??
-      new V3QuoteProvider(
-        this.chainId,
-        this.provider,
-        this.multicall2Provider,
-        {
-          retries: 2,
-          minTimeout: 100,
-          maxTimeout: 1000,
-        },
-        {
-          multicallChunk: 210, // 210
-          gasLimitPerCall: 705_000, // 705
-          quoteMinSuccessRate: 0.15,
-        },
-        {
-          gasLimitOverride: 1_000_000,
-          multicallChunk: 150,
-        },
-        {
-          gasLimitOverride: 2_000_000,
-          multicallChunk: 70,
-        }
-      );
+
+    if (v3QuoteProvider) {
+      this.v3QuoteProvider = v3QuoteProvider;
+    } else {
+      switch (chainId) {
+        case ChainId.OPTIMISM:
+        case ChainId.OPTIMISTIC_KOVAN:
+          this.v3QuoteProvider = new V3QuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 130,
+              gasLimitPerCall: 1_000_000,
+              quoteMinSuccessRate: 0.1,
+            },
+            {
+              gasLimitOverride: 2_000_000,
+              multicallChunk: 65,
+            },
+            {
+              gasLimitOverride: 2_000_000,
+              multicallChunk: 65,
+            },
+            {
+              baseBlockOffset: 0,
+              rollback: {
+                enabled: true,
+                attemptsBeforeRollback: 1,
+                rollbackBlockOffset: 10,
+              },
+            }
+          );
+          break;
+        case ChainId.ARBITRUM_ONE:
+        case ChainId.ARBITRUM_RINKEBY:
+          this.v3QuoteProvider = new V3QuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 15,
+              gasLimitPerCall: 15_000_000,
+              quoteMinSuccessRate: 0.15,
+            },
+            {
+              gasLimitOverride: 30_000_000,
+              multicallChunk: 8,
+            },
+            {
+              gasLimitOverride: 30_000_000,
+              multicallChunk: 8,
+            }
+          );
+          break;
+        default:
+          this.v3QuoteProvider = new V3QuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 210,
+              gasLimitPerCall: 705_000,
+              quoteMinSuccessRate: 0.15,
+            },
+            {
+              gasLimitOverride: 2_000_000,
+              multicallChunk: 70,
+            }
+          );
+          break;
+      }
+    }
 
     this.v2PoolProvider =
       v2PoolProvider ?? new V2PoolProvider(chainId, this.multicall2Provider);
@@ -398,9 +440,11 @@ export class AlphaRouter
       this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
         new CachingV2SubgraphProvider(
           chainId,
-          new V2URISubgraphProvider(
+          new URISubgraphProvider(
             chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`
+            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
+            undefined,
+            0
           ),
           new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
         ),
@@ -416,7 +460,9 @@ export class AlphaRouter
           chainId,
           new URISubgraphProvider(
             chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
+            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
+            undefined,
+            0
           ),
           new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
         ),
@@ -429,10 +475,14 @@ export class AlphaRouter
       new CachingGasStationProvider(
         chainId,
         this.provider instanceof providers.JsonRpcProvider
-          ? new EIP1559GasPriceProvider(this.provider)
+          ? new OnChainGasPriceProvider(
+              chainId,
+              new EIP1559GasPriceProvider(this.provider),
+              new LegacyGasPriceProvider(this.provider)
+            )
           : new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL),
         new NodeJSCache<GasPrice>(
-          new NodeCache({ stdTTL: 15_000, useClones: false })
+          new NodeCache({ stdTTL: 15, useClones: false })
         )
       );
     this.v3GasModelFactory =
@@ -450,7 +500,9 @@ export class AlphaRouter
     position: Position,
     swapAndAddConfig: SwapAndAddConfig,
     swapAndAddOptions?: SwapAndAddOptions,
-    routingConfig: Partial<AlphaRouterConfig> = DEFAULT_CONFIG
+    routingConfig: Partial<AlphaRouterConfig> = DEFAULT_ROUTING_CONFIG_BY_CHAIN(
+      this.chainId
+    )
   ): Promise<SwapToRatioResponse> {
     if (
       token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)
@@ -518,7 +570,7 @@ export class AlphaRouter
         TradeType.EXACT_INPUT,
         undefined,
         {
-          ...DEFAULT_CONFIG,
+          ...DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
           ...routingConfig,
           protocols: [Protocol.V3, Protocol.V2],
         }
@@ -628,7 +680,7 @@ export class AlphaRouter
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {},
-      DEFAULT_CONFIG,
+      DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
       partialRoutingConfig,
       { blockNumber }
     );

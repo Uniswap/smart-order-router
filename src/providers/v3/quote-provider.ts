@@ -177,6 +177,29 @@ export type FailureOverrides = {
   gasLimitOverride: number;
 };
 
+export type BlockHeaderFailureOverridesDisabled = { enabled: false };
+export type BlockHeaderFailureOverridesEnabled = {
+  enabled: true;
+  // Number of blocks to rollback in the case of a block header failure.
+  rollbackBlockOffset: number;
+  // Number of batch failures due to block header before trying a rollback.
+  attemptsBeforeRollback: number;
+};
+export type BlockHeaderFailureOverrides =
+  | BlockHeaderFailureOverridesDisabled
+  | BlockHeaderFailureOverridesEnabled;
+
+/**
+ * Config around what block number to query and how to handle failures due to block header errors.
+ */
+export type BlockNumberConfig = {
+  // Applies an offset to the block number specified when fetching quotes. Useful for networks
+  // where the latest block may not be available on all nodes, causing frequent 'header not found' errors.
+  baseBlockOffset: number;
+  // Config for handling header not found errors.
+  rollback: BlockHeaderFailureOverrides;
+};
+
 /**
  * Computes quotes for V3. For V3, quotes are computed on-chain using
  * the 'QuoterV2' smart contract. This is because computing quotes off-chain would
@@ -211,10 +234,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
    * Only supports the Uniswap Multicall contract as it needs the gas limitting functionality.
    * @param retryOptions The retry options for each call to the multicall.
    * @param batchParams The parameters for each batched call to the multicall.
-   * @param batchParamsFallback The parameters for each retried batched call upon failure.
+   * @param gasErrorFailureOverride The gas and chunk parameters to use when retrying a batch that failed due to out of gas.
    * @param successRateFailureOverrides The parameters for retries when we fail to get quotes.
-   * @param [rollback=false] If true, if we fail to get quotes due to block header
-   *  errors (meaning the specified block wasn't found by the provider) we rollback the block number.
+   * @param blockNumberConfig Parameters for adjusting which block we get quotes from, and how to handle block header not found errors.
    * @param [quoterAddressOverride] Overrides the address of the quoter contract to use.
    */
   constructor(
@@ -240,7 +262,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       gasLimitOverride: 1_300_000,
       multicallChunk: 110,
     },
-    protected rollback: boolean = false,
+    protected blockNumberConfig: BlockNumberConfig = {
+      baseBlockOffset: 0,
+      rollback: { enabled: false },
+    },
     protected quoterAddressOverride?: string
   ) {
     const quoterAddress = quoterAddressOverride
@@ -299,11 +324,13 @@ export class V3QuoteProvider implements IV3QuoteProvider {
   }> {
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
+    const { baseBlockOffset, rollback } = this.blockNumberConfig;
 
     const providerConfig: ProviderConfig = {
       ..._providerConfig,
       blockNumber:
-        _providerConfig?.blockNumber ?? (await this.provider.getBlockNumber()),
+        _providerConfig?.blockNumber ??
+        (await this.provider.getBlockNumber()) + baseBlockOffset,
     };
 
     const inputs: [string, string][] = _(routes)
@@ -346,7 +373,8 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
     let haveRetriedForSuccessRate = false;
     let haveRetriedForBlockHeader = false;
-    let blockHeaderRetryAttemptNumber: number | undefined;
+    let blockHeaderRetryAttemptNumber = 0;
+    let haveIncrementedBlockHeaderFailureCounter = false;
     let blockHeaderRolledBack = false;
     let haveRetriedForBlockConflictError = false;
     let haveRetriedForOutOfGas = false;
@@ -362,6 +390,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       approxGasUsedPerSuccessCall,
     } = await retry(
       async (_bail, attemptNumber) => {
+        haveIncrementedBlockHeaderFailureCounter = false;
         finalAttemptNumber = attemptNumber;
 
         const [success, failed, pending] = this.partitionQuotes(quoteStates);
@@ -526,24 +555,36 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                 haveRetriedForBlockHeader = true;
               }
 
-              if (
-                blockHeaderRetryAttemptNumber &&
-                blockHeaderRetryAttemptNumber < attemptNumber &&
-                !blockHeaderRolledBack &&
-                this.rollback
-              ) {
-                log.info(
-                  `Attempt ${attemptNumber}. Another block header error. Rolling back block number for next retry`
-                );
-                providerConfig.blockNumber = providerConfig.blockNumber
-                  ? (await providerConfig.blockNumber) - 1
-                  : (await this.provider.getBlockNumber()) - 1;
-
-                retryAll = true;
-                blockHeaderRolledBack = true;
+              // Ensure that if multiple calls fail due to block header in the current pending batch,
+              // we only count once.
+              if (!haveIncrementedBlockHeaderFailureCounter) {
+                blockHeaderRetryAttemptNumber =
+                  blockHeaderRetryAttemptNumber + 1;
+                haveIncrementedBlockHeaderFailureCounter = true;
               }
 
-              blockHeaderRetryAttemptNumber = attemptNumber;
+              if (rollback.enabled) {
+                const { rollbackBlockOffset, attemptsBeforeRollback } =
+                  rollback;
+
+                if (
+                  blockHeaderRetryAttemptNumber >= attemptsBeforeRollback &&
+                  !blockHeaderRolledBack
+                ) {
+                  log.info(
+                    `Attempt ${attemptNumber}. Have failed due to block header ${
+                      blockHeaderRetryAttemptNumber - 1
+                    } times. Rolling back block number by ${rollbackBlockOffset} for next retry`
+                  );
+                  providerConfig.blockNumber = providerConfig.blockNumber
+                    ? (await providerConfig.blockNumber) - rollbackBlockOffset
+                    : (await this.provider.getBlockNumber()) -
+                      rollbackBlockOffset;
+
+                  retryAll = true;
+                  blockHeaderRolledBack = true;
+                }
+              }
             } else if (error instanceof ProviderTimeoutError) {
               if (!haveRetriedForTimeout) {
                 metric.putMetric(

@@ -25,10 +25,14 @@ export class V2SubgraphProviderWithFallBacks implements IV2SubgraphProvider {
     for (let i = 0; i < this.fallbacks.length; i++) {
       const provider = this.fallbacks[i]!;
       try {
-        return provider.getPools(tokenIn, tokenOut, providerConfig);
+        const pools = await provider.getPools(
+          tokenIn,
+          tokenOut,
+          providerConfig
+        );
+        return pools;
       } catch (err) {
         log.info(`Failed to get subgraph pools for V2 from fallback #${i}`);
-        continue;
       }
     }
 

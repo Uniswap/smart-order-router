@@ -18,7 +18,6 @@ import {
   EIP1559GasPriceProvider,
   GasPrice,
   ID_TO_CHAIN_ID,
-  ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
   IRouter,
   ISwapToRatio,
@@ -31,14 +30,10 @@ import {
   RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
-  StaticV2SubgraphProvider,
-  StaticV3SubgraphProvider,
   TokenProvider,
   UniswapMulticallProvider,
-  URISubgraphProvider,
   V3PoolProvider,
   V3QuoteProvider,
-  V3SubgraphProviderWithFallBacks,
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
 import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
@@ -214,7 +209,6 @@ export abstract class BaseCommand extends Command {
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainProvider = ID_TO_PROVIDER(chainId);
-    const chainName = ID_TO_NETWORK_NAME(chainId);
 
     const provider = new ethers.providers.JsonRpcProvider(
       chainProvider,
@@ -271,38 +265,13 @@ export abstract class BaseCommand extends Command {
         new NodeCache({ stdTTL: 15, useClones: true })
       );
 
-      const useDefaultQuoteProvider =
-        chainId != ChainId.ARBITRUM_ONE && chainId != ChainId.ARBITRUM_RINKEBY;
+      // const useDefaultQuoteProvider =
+      //   chainId != ChainId.ARBITRUM_ONE && chainId != ChainId.ARBITRUM_RINKEBY;
 
       const router = new AlphaRouter({
         provider,
         chainId,
         multicall2Provider: multicall2Provider,
-        v3QuoteProvider: useDefaultQuoteProvider
-          ? undefined
-          : new V3QuoteProvider(
-              chainId,
-              provider,
-              this.multicall2Provider,
-              {
-                retries: 2,
-                minTimeout: 100,
-                maxTimeout: 1000,
-              },
-              {
-                multicallChunk: 17,
-                gasLimitPerCall: 25_000_000,
-                quoteMinSuccessRate: 0.15,
-              },
-              {
-                gasLimitOverride: 30_000_000,
-                multicallChunk: 8,
-              },
-              {
-                gasLimitOverride: 30_000_000,
-                multicallChunk: 25,
-              }
-            ),
         gasPriceProvider: new CachingGasStationProvider(
           chainId,
           new OnChainGasPriceProvider(
@@ -312,17 +281,6 @@ export abstract class BaseCommand extends Command {
           ),
           gasPriceCache
         ),
-        v2SubgraphProvider: new StaticV2SubgraphProvider(chainId),
-        v3SubgraphProvider: new V3SubgraphProviderWithFallBacks([
-          new URISubgraphProvider(
-            chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`
-          ),
-          new StaticV3SubgraphProvider(
-            chainId,
-            new V3PoolProvider(chainId, multicall2Provider)
-          ),
-        ]),
       });
 
       this._swapToRatioRouter = router;

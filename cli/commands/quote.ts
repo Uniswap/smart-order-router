@@ -108,7 +108,7 @@ export class Quote extends BaseCommand {
             }
           : undefined,
         {
-          blockNumber: this.blockNumber - 10,
+          blockNumber: this.blockNumber,
           v3PoolSelection: {
             topN,
             topNTokenInOut,
