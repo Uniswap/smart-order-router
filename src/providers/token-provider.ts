@@ -273,7 +273,7 @@ export const DAI_ARBITRUM = new Token(
 // );
 
 // higher liquidity in dai-weth pool on arb-rinkeby
-const DAI_ARBITRUM_RINKEBY = new Token(
+export const DAI_ARBITRUM_RINKEBY = new Token(
   ChainId.ARBITRUM_RINKEBY,
   '0x5364dc963c402aaf150700f38a8ef52c1d7d7f14',
   18,
