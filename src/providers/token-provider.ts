@@ -208,7 +208,7 @@ export const DAI_OPTIMISM = new Token(
 
 export const USDC_OPTIMISTIC_KOVAN = new Token(
   ChainId.OPTIMISTIC_KOVAN,
-  '0x4e62882864fB8CE54AFfcAf8D899A286762B011B',
+  '0x3b8e53b3ab8e01fb57d0c9e893bc4d655aa67d84',
   6,
   'USDC',
   'USD//C'
@@ -264,9 +264,18 @@ export const DAI_ARBITRUM = new Token(
   'Dai Stablecoin'
 );
 
-export const DAI_ARBITRUM_RINKEBY = new Token(
+// export const DAI_ARBITRUM_RINKEBY = new Token(
+//   ChainId.ARBITRUM_RINKEBY,
+//   '0x2f3C1B6A51A469051A22986aA0dDF98466cc8D3c',
+//   18,
+//   'DAI',
+//   'Dai Stablecoin'
+// );
+
+// higher liquidity in dai-weth pool on arb-rinkeby
+const DAI_ARBITRUM_RINKEBY = new Token(
   ChainId.ARBITRUM_RINKEBY,
-  '0x2f3C1B6A51A469051A22986aA0dDF98466cc8D3c',
+  '0x5364dc963c402aaf150700f38a8ef52c1d7d7f14',
   18,
   'DAI',
   'Dai Stablecoin'
@@ -282,7 +291,7 @@ export const USDT_ARBITRUM_RINKEBY = new Token(
 
 export const USDC_ARBITRUM_RINKEBY = new Token(
   ChainId.ARBITRUM_RINKEBY,
-  '0xB17736aA76003F4873D9f4366190E5c6678d9a52',
+  '0x09b98f8b2395d076514037ff7d39a091a536206c',
   6,
   'USDC',
   'USD//C'
