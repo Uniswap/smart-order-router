@@ -114,8 +114,6 @@ export class QuoteToRatio extends BaseCommand {
       },
       {
         addLiquidityOptions: {
-          slippageTolerance: new Percent(5, 10_000),
-          deadline: 100,
           recipient: '0x0000000000000000000000000000000000000001',
         },
         swapOptions: {
