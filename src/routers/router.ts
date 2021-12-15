@@ -1,4 +1,4 @@
-import { Trade } from '@uniswap/router-sdk';
+import { CondensedAddLiquidityOptions, Trade } from '@uniswap/router-sdk';
 import {
   Currency,
   Fraction,
@@ -8,7 +8,6 @@ import {
 } from '@uniswap/sdk-core';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  AddLiquidityOptions,
   MethodParameters,
   Pool,
   Position,
@@ -130,7 +129,7 @@ export type SwapAndAddConfig = {
 // If provided, calldata for executing the swap and add will also be returned.
 export type SwapAndAddOptions = {
   swapOptions: SwapOptions;
-  addLiquidityOptions: AddLiquidityOptions;
+  addLiquidityOptions: CondensedAddLiquidityOptions;
 };
 
 // SwapAndAddOptions plus all other parameters needed to encode the

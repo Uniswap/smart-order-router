@@ -120,8 +120,6 @@ describe('alpha router', () => {
 
   const SWAP_AND_ADD_OPTIONS: SwapAndAddOptions = {
     addLiquidityOptions: {
-      slippageTolerance: new Percent(500, 10_000),
-      deadline: 100,
       recipient: `0x${'00'.repeat(19)}01`,
     },
     swapOptions: {
