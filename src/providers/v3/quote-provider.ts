@@ -180,7 +180,7 @@ export type FailureOverrides = {
 export type BlockHeaderFailureOverridesDisabled = { enabled: false };
 export type BlockHeaderFailureOverridesEnabled = {
   enabled: true;
-  // Number of blocks to rollback in the case of a block header failure.
+  // Offset to apply in the case of a block header failure. e.g. -10 means rollback by 10 blocks.
   rollbackBlockOffset: number;
   // Number of batch failures due to block header before trying a rollback.
   attemptsBeforeRollback: number;
@@ -193,12 +193,14 @@ export type BlockHeaderFailureOverrides =
  * Config around what block number to query and how to handle failures due to block header errors.
  */
 export type BlockNumberConfig = {
-  // Applies an offset to the block number specified when fetching quotes. Useful for networks
-  // where the latest block may not be available on all nodes, causing frequent 'header not found' errors.
+  // Applies an offset to the block number specified when fetching quotes. e.g. -10 means rollback by 10 blocks.
+  // Useful for networks where the latest block may not be available on all nodes, causing frequent 'header not found' errors.
   baseBlockOffset: number;
   // Config for handling header not found errors.
   rollback: BlockHeaderFailureOverrides;
 };
+
+const DEFAULT_BATCH_RETRIES = 2;
 
 /**
  * Computes quotes for V3. For V3, quotes are computed on-chain using
@@ -245,7 +247,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     // Only supports Uniswap Multicall as it needs the gas limitting functionality.
     protected multicall2Provider: UniswapMulticallProvider,
     protected retryOptions: QuoteRetryOptions = {
-      retries: 2,
+      retries: DEFAULT_BATCH_RETRIES,
       minTimeout: 25,
       maxTimeout: 250,
     },
@@ -326,11 +328,12 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
     const { baseBlockOffset, rollback } = this.blockNumberConfig;
 
+    // Apply the base block offset if provided
+    const originalBlockNumber = await this.provider.getBlockNumber();
     const providerConfig: ProviderConfig = {
       ..._providerConfig,
       blockNumber:
-        _providerConfig?.blockNumber ??
-        (await this.provider.getBlockNumber()) + baseBlockOffset,
+        _providerConfig?.blockNumber ?? originalBlockNumber + baseBlockOffset,
     };
 
     const inputs: [string, string][] = _(routes)
@@ -368,7 +371,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
         gasLimitOverride
           ? `with a gas limit override of ${gasLimitOverride}`
           : ''
-      } and block number: ${await providerConfig.blockNumber}.`
+      } and block number: ${await providerConfig.blockNumber} [Original before offset: ${originalBlockNumber}].`
     );
 
     let haveRetriedForSuccessRate = false;
@@ -397,10 +400,8 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
         log.info(
           `Starting attempt: ${attemptNumber}.
-          Currently ${success.length} success, ${failed.length} failed, ${
-            pending.length
-          } pending.
-          Gas limit override: ${gasLimitOverride} Block number override: ${await providerConfig.blockNumber}.`
+          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending.
+          Gas limit override: ${gasLimitOverride} Block number override: ${providerConfig.blockNumber}.`
         );
 
         quoteStates = await Promise.all(
@@ -577,8 +578,8 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                     } times. Rolling back block number by ${rollbackBlockOffset} for next retry`
                   );
                   providerConfig.blockNumber = providerConfig.blockNumber
-                    ? (await providerConfig.blockNumber) - rollbackBlockOffset
-                    : (await this.provider.getBlockNumber()) -
+                    ? (await providerConfig.blockNumber) + rollbackBlockOffset
+                    : (await this.provider.getBlockNumber()) +
                       rollbackBlockOffset;
 
                   retryAll = true;
@@ -654,6 +655,34 @@ export class V3QuoteProvider implements IV3QuoteProvider {
         }
 
         if (failedQuoteStates.length > 0) {
+          // TODO: Work with Arbitrum to find a solution for making large multicalls with gas limits that always
+          // successfully.
+          //
+          // On Arbitrum we can not set a gas limit for every call in the multicall and guarantee that
+          // we will not run out of gas on the node. This is because they have a different way of accounting
+          // for gas, that seperates storage and compute gas costs, and we can not cover both in a single limit.
+          //
+          // To work around this and avoid throwing errors when really we just couldn't get a quote, we catch this
+          // case and return 0 quotes found.
+          if (
+            (this.chainId == ChainId.ARBITRUM_ONE ||
+              this.chainId == ChainId.ARBITRUM_RINKEBY) &&
+            _.every(
+              failedQuoteStates,
+              (failedQuoteState) =>
+                failedQuoteState.reason instanceof ProviderGasError
+            ) &&
+            attemptNumber == this.retryOptions.retries
+          ) {
+            log.error(
+              `Failed to get quotes on Arbitrum due to provider gas error issue. Overriding error to return 0 quotes.`
+            );
+            return {
+              results: [],
+              blockNumber: BigNumber.from(0),
+              approxGasUsedPerSuccessCall: 0,
+            };
+          }
           throw new Error(
             `Failed to get ${failedQuoteStates.length} quotes. Reasons: ${reasonForFailureStr}`
           );
@@ -674,6 +703,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
         };
       },
       {
+        retries: DEFAULT_BATCH_RETRIES,
         ...this.retryOptions,
       }
     );
