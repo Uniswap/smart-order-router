@@ -673,6 +673,12 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
+    metric.putMetric(
+      `QuoteRequestedForChain${this.chainId}`,
+      1,
+      MetricLoggerUnit.Count
+    );
+
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
     const blockNumber =
@@ -847,6 +853,12 @@ export class AlphaRouter
       'FindBestSwapRoute',
       Date.now() - beforeBestSwap,
       MetricLoggerUnit.Milliseconds
+    );
+
+    metric.putMetric(
+      `QuoteFoundForChain${this.chainId}`,
+      1,
+      MetricLoggerUnit.Count
     );
 
     this.emitPoolSelectionMetrics(swapRouteRaw, allCandidatePools);
