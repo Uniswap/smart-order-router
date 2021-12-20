@@ -305,6 +305,46 @@ export const UNI_ARBITRUM_RINKEBY = new Token(
   'Uni token'
 );
 
+//polygon tokens
+export const WMATIC_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+  18,
+  'WMATIC',
+  'Wrapped MATIC'
+);
+
+export const USDC_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
+  6,
+  'USDC',
+  'USD Coin'
+);
+
+//polygon mumbai tokens
+export const WMATIC_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889',
+  18,
+  'WMATIC',
+  'Wrapped MATIC'
+);
+
+export const DAI_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0x001b3b4d0f3714ca98ba10f6042daebf0b1b7b6f',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const WRAPPED_NATIVE_CURRENCY: { [chainId: number]: Token } = {
+  ...WETH9,
+  [ChainId.POLYGON]: WMATIC_POLYGON,
+  [ChainId.POLYGON_MUMBAI]: WMATIC_POLYGON_MUMBAI,
+};
+
 export const TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
 } = {
@@ -343,6 +383,14 @@ export const TOKENS: {
     UNI: UNI_ARBITRUM_RINKEBY,
     DAI: DAI_ARBITRUM_RINKEBY,
     USDC: USDC_ARBITRUM_RINKEBY,
+  },
+  [ChainId.POLYGON]: {
+    WMATIC: WMATIC_POLYGON,
+    USDC: USDC_POLYGON,
+  },
+  [ChainId.POLYGON_MUMBAI]: {
+    WMATIC: WMATIC_POLYGON_MUMBAI,
+    DAI: DAI_POLYGON_MUMBAI,
   },
 };
 

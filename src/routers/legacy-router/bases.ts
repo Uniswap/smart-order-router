@@ -5,6 +5,8 @@ import {
   USDC_MAINNET,
   USDT_MAINNET,
   WBTC_MAINNET,
+  WMATIC_POLYGON,
+  WMATIC_POLYGON_MUMBAI,
 } from '../../providers/token-provider';
 import { WETH9 } from '../../util/addresses';
 import { ChainId } from '../../util/chains';
@@ -18,20 +20,22 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
 ): ChainTokenList => {
   return {
     [ChainId.MAINNET]: [
-      WETH9[ChainId.MAINNET],
+      WETH9[ChainId.MAINNET]!,
       DAI_MAINNET,
       USDC_MAINNET,
       USDT_MAINNET,
       WBTC_MAINNET,
     ],
-    [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]],
-    [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]],
-    [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]],
-    [ChainId.KOVAN]: [WETH9[ChainId.KOVAN]],
-    [ChainId.OPTIMISM]: [WETH9[ChainId.OPTIMISM]],
-    [ChainId.OPTIMISTIC_KOVAN]: [WETH9[ChainId.OPTIMISTIC_KOVAN]],
-    [ChainId.ARBITRUM_ONE]: [WETH9[ChainId.ARBITRUM_ONE]],
-    [ChainId.ARBITRUM_RINKEBY]: [WETH9[ChainId.ARBITRUM_RINKEBY]],
+    [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]!],
+    [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]!],
+    [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]!],
+    [ChainId.KOVAN]: [WETH9[ChainId.KOVAN]!],
+    [ChainId.OPTIMISM]: [WETH9[ChainId.OPTIMISM]!],
+    [ChainId.OPTIMISTIC_KOVAN]: [WETH9[ChainId.OPTIMISTIC_KOVAN]!],
+    [ChainId.ARBITRUM_ONE]: [WETH9[ChainId.ARBITRUM_ONE]!],
+    [ChainId.ARBITRUM_RINKEBY]: [WETH9[ChainId.ARBITRUM_RINKEBY]!],
+    [ChainId.POLYGON]: [WMATIC_POLYGON],
+    [ChainId.POLYGON_MUMBAI]: [WMATIC_POLYGON_MUMBAI],
   };
 };
 
@@ -135,7 +139,7 @@ export const CUSTOM_BASES = async (
         tokenProvider,
         ChainId.MAINNET,
         '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
-        WETH9[1].address
+        WETH9[1]!.address
       )),
     },
   };

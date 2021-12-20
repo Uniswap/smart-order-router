@@ -14,7 +14,7 @@ export const UNISWAP_MULTICALL_ADDRESS =
   '0x1F98415757620B543A52E61c46B32eB19261F984';
 export const MULTICALL2_ADDRESS = '0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696';
 
-export const WETH9: { [chainId in ChainId]: Token } = {
+export const WETH9: { [chainId in ChainId]?: Token } = {
   [ChainId.MAINNET]: new Token(
     ChainId.MAINNET,
     '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',

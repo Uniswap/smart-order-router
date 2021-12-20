@@ -1,3 +1,5 @@
+import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
+import { WRAPPED_NATIVE_CURRENCY } from '..';
 export enum ChainId {
   MAINNET = 1,
   ROPSTEN = 3,
@@ -8,6 +10,8 @@ export enum ChainId {
   OPTIMISTIC_KOVAN = 69,
   ARBITRUM_ONE = 42161,
   ARBITRUM_RINKEBY = 421611,
+  POLYGON = 137,
+  POLYGON_MUMBAI = 80001,
 }
 
 export const ID_TO_CHAIN_ID = (id: number): ChainId => {
@@ -30,6 +34,10 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.ARBITRUM_ONE;
     case 421611:
       return ChainId.ARBITRUM_RINKEBY;
+    case 137:
+      return ChainId.POLYGON;
+    case 80001:
+      return ChainId.POLYGON_MUMBAI;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -46,7 +54,44 @@ export enum ChainName {
   OPTIMISTIC_KOVAN = 'optimism-kovan',
   ARBITRUM_ONE = 'arbitrum-mainnet',
   ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
+  POLYGON = 'polygon-mainnet',
+  POLYGON_MUMBAI = 'polygon-mumbai',
 }
+
+export enum NativeCurrencyName {
+  // Strings match input for CLI
+  ETHER = 'ETH',
+  MATIC = 'MATIC',
+}
+
+export const ID_TO_NATIVE_CURRENCY = (id: number): NativeCurrencyName => {
+  switch (id) {
+    case 1:
+      return NativeCurrencyName.ETHER;
+    case 3:
+      return NativeCurrencyName.ETHER;
+    case 4:
+      return NativeCurrencyName.ETHER;
+    case 5:
+      return NativeCurrencyName.ETHER;
+    case 42:
+      return NativeCurrencyName.ETHER;
+    case 10:
+      return NativeCurrencyName.ETHER;
+    case 69:
+      return NativeCurrencyName.ETHER;
+    case 42161:
+      return NativeCurrencyName.ETHER;
+    case 421611:
+      return NativeCurrencyName.ETHER;
+    case 137:
+      return NativeCurrencyName.MATIC;
+    case 80001:
+      return NativeCurrencyName.MATIC;
+    default:
+      throw new Error(`Unknown chain id: ${id}`);
+  }
+};
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
   switch (id) {
@@ -68,6 +113,10 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.ARBITRUM_ONE;
     case 421611:
       return ChainName.ARBITRUM_RINKEBY;
+    case 137:
+      return ChainName.POLYGON;
+    case 80001:
+      return ChainName.POLYGON_MUMBAI;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -97,7 +146,52 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE!;
     case ChainId.ARBITRUM_RINKEBY:
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_RINKEBY!;
+    case ChainId.POLYGON:
+      return process.env.JSON_RPC_PROVIDER_POLYGON!;
+    case ChainId.POLYGON_MUMBAI:
+      return process.env.JSON_RPC_PROVIDER_POLYGON_MUMBAI!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
 };
+
+function isMatic(
+  chainId: number
+): chainId is ChainId.POLYGON | ChainId.POLYGON_MUMBAI {
+  return chainId === ChainId.POLYGON_MUMBAI || chainId === ChainId.POLYGON;
+}
+
+class MaticNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isMatic(this.chainId)) throw new Error('Not matic');
+    return WRAPPED_NATIVE_CURRENCY[this.chainId]!;
+  }
+
+  public constructor(chainId: number) {
+    if (!isMatic(chainId)) throw new Error('Not matic');
+    super(chainId, 18, 'MATIC', 'Polygon Matic');
+  }
+}
+
+export class ExtendedEther extends Ether {
+  public get wrapped(): Token {
+    if (this.chainId in WRAPPED_NATIVE_CURRENCY)
+      return WRAPPED_NATIVE_CURRENCY[this.chainId]!;
+    throw new Error('Unsupported chain ID');
+  }
+
+  private static _cachedNative: { [chainId: number]: NativeCurrency } = {};
+
+  public static onChain(chainId: number): ExtendedEther {
+    return (
+      this._cachedNative[chainId] ??
+      (this._cachedNative[chainId] = isMatic(chainId)
+        ? new MaticNativeCurrency(chainId)
+        : new ExtendedEther(chainId))
+    );
+  }
+}

@@ -2,8 +2,9 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../../providers/token-provider';
 import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
-import { ChainId, WETH9 } from '../../../../util';
+import { ChainId, ID_TO_NATIVE_CURRENCY } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { log } from '../../../../util/log';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
@@ -53,11 +54,16 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     gasPriceWei: BigNumber,
     poolProvider: IV3PoolProvider,
     token: Token
+    // this is the quoteToken
   ): Promise<IGasModel<V3RouteWithValidQuote>> {
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
     // We do return a gas use in USD however, so we still convert to usd.
-    if (token.equals(WETH9[chainId]!)) {
+
+    // POLYGON TODO
+    // WRAPPED_NATIVE_CURRENCY[chainId]
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    if (token.equals(nativeCurrency)) {
       const usdPool: Pool = await this.getHighestLiquidityUSDPool(
         chainId,
         poolProvider
@@ -70,25 +76,25 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         gasCostInToken: CurrencyAmount;
         gasCostInUSD: CurrencyAmount;
       } => {
-        const { gasCostInEth, gasUse } = this.estimateGas(
+        const { gasCostNativeCurrency, gasUse } = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
           chainId
         );
 
-        const ethToken0 = usdPool.token0.address == WETH9[chainId]!.address;
+        const token0 = usdPool.token0.address == nativeCurrency.address;
 
-        const ethTokenPrice = ethToken0
+        const nativeTokenPrice = token0
           ? usdPool.token0Price
           : usdPool.token1Price;
 
-        const gasCostInTermsOfUSD: CurrencyAmount = ethTokenPrice.quote(
-          gasCostInEth
+        const gasCostInTermsOfUSD: CurrencyAmount = nativeTokenPrice.quote(
+          gasCostNativeCurrency
         ) as CurrencyAmount;
 
         return {
           gasEstimate: gasUse,
-          gasCostInToken: gasCostInEth,
+          gasCostInToken: gasCostNativeCurrency,
           gasCostInUSD: gasCostInTermsOfUSD,
         };
       };
@@ -98,9 +104,9 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       };
     }
 
-    // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
-    // We do this by getting the highest liquidity <token>/ETH pool.
-    const ethPool: Pool | null = await this.getHighestLiquidityEthPool(
+    // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
+    // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
+    const nativePool: Pool | null = await this.getHighestLiquidityNativePool(
       chainId,
       token,
       poolProvider
@@ -112,7 +118,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     );
 
     const usdToken =
-      usdPool.token0.address == WETH9[chainId]!.address
+      usdPool.token0.address == nativeCurrency.address
         ? usdPool.token1
         : usdPool.token0;
 
@@ -123,15 +129,15 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       gasCostInToken: CurrencyAmount;
       gasCostInUSD: CurrencyAmount;
     } => {
-      const { gasCostInEth, gasUse } = this.estimateGas(
+      const { gasCostNativeCurrency, gasUse } = this.estimateGas(
         routeWithValidQuote,
         gasPriceWei,
         chainId
       );
 
-      if (!ethPool) {
+      if (!nativePool) {
         log.info(
-          'Unable to find ETH pool with the quote token to produce gas adjusted costs. Route will not account for gas.'
+          `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${token.symbol} to produce gas adjusted costs. Route will not account for gas.`
         );
         return {
           gasEstimate: gasUse,
@@ -140,47 +146,50 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         };
       }
 
-      const ethToken0 = ethPool.token0.address == WETH9[chainId]!.address;
+      const token0 = nativePool.token0.address == nativeCurrency.address;
 
-      const ethTokenPrice = ethToken0
-        ? ethPool.token0Price
-        : ethPool.token1Price;
+      // returns mid price in terms of the native currency (the ratio of quoteToken/nativeToken)
+      const nativeTokenPrice = token0
+        ? nativePool.token0Price
+        : nativePool.token1Price;
 
       let gasCostInTermsOfQuoteToken: CurrencyAmount;
       try {
-        gasCostInTermsOfQuoteToken = ethTokenPrice.quote(
-          gasCostInEth
+        // native token is base currency
+        gasCostInTermsOfQuoteToken = nativeTokenPrice.quote(
+          gasCostNativeCurrency
         ) as CurrencyAmount;
       } catch (err) {
         log.info(
           {
-            ethTokenPriceBase: ethTokenPrice.baseCurrency,
-            ethTokenPriceQuote: ethTokenPrice.quoteCurrency,
-            gasCostInEth: gasCostInEth.currency,
+            nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
+            nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
+            gasCostInEth: gasCostNativeCurrency.currency,
           },
           'Debug eth price token issue'
         );
         throw err;
       }
 
-      const ethToken0USDPool =
-        usdPool.token0.address == WETH9[chainId]!.address;
+      // true if token0 is the native currency
+      const token0USDPool = usdPool.token0.address == nativeCurrency.address;
 
-      const ethTokenPriceUSDPool = ethToken0USDPool
+      // gets the mid price of the pool in terms of the native token
+      const nativeTokenPriceUSDPool = token0USDPool
         ? usdPool.token0Price
         : usdPool.token1Price;
 
       let gasCostInTermsOfUSD: CurrencyAmount;
       try {
-        gasCostInTermsOfUSD = ethTokenPriceUSDPool.quote(
-          gasCostInEth
+        gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
+          gasCostNativeCurrency
         ) as CurrencyAmount;
       } catch (err) {
         log.info(
           {
             usdT1: usdPool.token0.symbol,
             usdT2: usdPool.token1.symbol,
-            gasCostInEthToken: gasCostInEth.currency.symbol,
+            gasCostInNativeToken: gasCostNativeCurrency.currency.symbol,
           },
           'Failed to compute USD gas price'
         );
@@ -220,34 +229,41 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
 
     const totalGasCostWei = gasPriceWei.mul(gasUse);
 
-    const weth = WETH9[chainId]!;
+    const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
-    const gasCostInEth = CurrencyAmount.fromRawAmount(
-      weth,
+    // TODO POLYGON
+    // test this estimation on polygon
+    const gasCostNativeCurrency = CurrencyAmount.fromRawAmount(
+      wrappedCurrency,
       totalGasCostWei.toString()
     );
+    log.info(
+      `Computing gas cost in ${ID_TO_NATIVE_CURRENCY(
+        chainId
+      )} : ${gasCostNativeCurrency}`
+    );
 
-    return { gasCostInEth, gasUse };
+    return { gasCostNativeCurrency, gasUse };
   }
 
-  private async getHighestLiquidityEthPool(
+  private async getHighestLiquidityNativePool(
     chainId: ChainId,
     token: Token,
     poolProvider: IV3PoolProvider
   ): Promise<Pool | null> {
-    const weth = WETH9[chainId]!;
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
-    const ethPools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
+    const nativePools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .map<[Token, Token, FeeAmount]>((feeAmount) => {
-        return [weth, token, feeAmount];
+        return [nativeCurrency, token, feeAmount];
       })
       .value();
 
-    const poolAccessor = await poolProvider.getPools(ethPools);
+    const poolAccessor = await poolProvider.getPools(nativePools);
 
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .map((feeAmount) => {
-        return poolAccessor.getPool(weth, token, feeAmount);
+        return poolAccessor.getPool(nativeCurrency, token, feeAmount);
       })
       .compact()
       .value();
@@ -255,7 +271,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     if (pools.length == 0) {
       log.error(
         { pools },
-        `Could not find a WETH pool with ${token.symbol} for computing gas costs.`
+        `Could not find a ${nativeCurrency.symbol} pool with ${token.symbol} for computing gas costs.`
       );
 
       return null;
@@ -271,6 +287,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     poolProvider: IV3PoolProvider
   ): Promise<Pool> {
     const usdTokens = usdGasTokensByChain[chainId];
+    const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
     if (!usdTokens) {
       throw new Error(
@@ -287,7 +304,8 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       .flatMap((feeAmount) => {
         return _.map<Token, [Token, Token, FeeAmount]>(
           usdTokens,
-          (usdToken) => [WETH9[chainId]!, usdToken, feeAmount]
+          // TODO POLYGON
+          (usdToken) => [wrappedCurrency, usdToken, feeAmount]
         );
       })
       .value();
@@ -305,7 +323,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
 
         for (const usdToken of usdTokens) {
           const pool = poolAccessor.getPool(
-            WETH9[chainId]!,
+            wrappedCurrency,
             usdToken,
             feeAmount
           );
@@ -322,9 +340,11 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     if (pools.length == 0) {
       log.error(
         { pools },
-        `Could not find a USD/WETH pool for computing gas costs.`
+        `Could not find a USD/${wrappedCurrency} pool for computing gas costs.`
       );
-      throw new Error(`Can't find USD/WETH pool for computing gas costs.`);
+      throw new Error(
+        `Can't find USD/${wrappedCurrency} pool for computing gas costs.`
+      );
     }
 
     const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;

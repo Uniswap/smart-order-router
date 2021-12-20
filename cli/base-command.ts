@@ -24,6 +24,7 @@ import {
   ITokenProvider,
   IV3PoolProvider,
   LegacyRouter,
+  log,
   MetricLogger,
   NodeJSCache,
   routeAmountsToString,
@@ -214,6 +215,7 @@ export abstract class BaseCommand extends Command {
       chainProvider,
       chainId
     );
+    log.info('getting block number for provider', provider);
     this._blockNumber = await provider.getBlockNumber();
 
     const tokenCache = new NodeJSCache<Token>(
