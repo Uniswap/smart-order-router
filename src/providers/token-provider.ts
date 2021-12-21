@@ -322,6 +322,14 @@ export const USDC_POLYGON = new Token(
   'USD Coin'
 );
 
+export const DAI_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 //polygon mumbai tokens
 export const WMATIC_POLYGON_MUMBAI = new Token(
   ChainId.POLYGON_MUMBAI,
@@ -329,6 +337,14 @@ export const WMATIC_POLYGON_MUMBAI = new Token(
   18,
   'WMATIC',
   'Wrapped MATIC'
+);
+
+export const USDC_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0xe11a86849d99f524cac3e7a0ec1241828e332c62',
+  6,
+  'USDC',
+  'USD Coin'
 );
 
 export const DAI_POLYGON_MUMBAI = new Token(

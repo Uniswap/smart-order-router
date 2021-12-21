@@ -64,6 +64,20 @@ export enum NativeCurrencyName {
   MATIC = 'MATIC',
 }
 
+export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
+  [ChainId.MAINNET]: NativeCurrencyName.ETHER,
+  [ChainId.ROPSTEN]: NativeCurrencyName.ETHER,
+  [ChainId.RINKEBY]: NativeCurrencyName.ETHER,
+  [ChainId.GÖRLI]: NativeCurrencyName.ETHER,
+  [ChainId.KOVAN]: NativeCurrencyName.ETHER,
+  [ChainId.OPTIMISM]: NativeCurrencyName.ETHER,
+  [ChainId.OPTIMISTIC_KOVAN]: NativeCurrencyName.ETHER,
+  [ChainId.ARBITRUM_ONE]: NativeCurrencyName.ETHER,
+  [ChainId.ARBITRUM_RINKEBY]: NativeCurrencyName.ETHER,
+  [ChainId.POLYGON]: NativeCurrencyName.MATIC,
+  [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
+};
+
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
   switch (id) {
     case 1:
