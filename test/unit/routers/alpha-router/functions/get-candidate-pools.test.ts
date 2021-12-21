@@ -57,7 +57,7 @@ describe('get candidate pools', () => {
     forceCrossProtocol: false,
   };
 
-  const mockTokens = [USDC, DAI, WETH9[1], USDT];
+  const mockTokens = [USDC, DAI, WETH9[1]!, USDT];
   const mockPools = [
     USDC_DAI_LOW,
     USDC_DAI_MEDIUM,
@@ -114,8 +114,8 @@ describe('get candidate pools', () => {
 
     expect(
       mockV3PoolProvider.getPools.calledWithExactly([
-        [USDC, WETH9[1], FeeAmount.LOW],
-        [WETH9[1], USDT, FeeAmount.LOW],
+        [USDC, WETH9[1]!, FeeAmount.LOW],
+        [WETH9[1]!, USDT, FeeAmount.LOW],
       ])
     ).toBeTruthy();
   });
@@ -168,7 +168,7 @@ describe('get candidate pools', () => {
 
     expect(
       mockV3PoolProvider.getPools.calledWithExactly([
-        [USDC, WETH9[1], FeeAmount.LOW],
+        [USDC, WETH9[1]!, FeeAmount.LOW],
         [DAI, USDC, FeeAmount.LOW],
       ])
     ).toBeTruthy();
@@ -193,7 +193,7 @@ describe('get candidate pools', () => {
 
     const DAI_WETH_LOW = new Pool(
       DAI,
-      WETH9[1],
+      WETH9[1]!,
       FeeAmount.LOW,
       encodeSqrtRatioX96(1, 1),
       10,
@@ -204,7 +204,7 @@ describe('get candidate pools', () => {
     );
 
     await getV3CandidatePools({
-      tokenIn: WETH9[1],
+      tokenIn: WETH9[1]!,
       tokenOut: DAI,
       routeType: TradeType.EXACT_INPUT,
       routingConfig: {
@@ -223,10 +223,10 @@ describe('get candidate pools', () => {
 
     expect(
       mockV3PoolProvider.getPools.calledWithExactly([
-        [DAI, WETH9[1], FeeAmount.HIGH],
-        [DAI, WETH9[1], FeeAmount.MEDIUM],
-        [DAI, WETH9[1], FeeAmount.LOW],
-        [DAI, WETH9[1], FeeAmount.LOWEST],
+        [DAI, WETH9[1]!, FeeAmount.HIGH],
+        [DAI, WETH9[1]!, FeeAmount.MEDIUM],
+        [DAI, WETH9[1]!, FeeAmount.LOW],
+        [DAI, WETH9[1]!, FeeAmount.LOWEST],
       ])
     ).toBeTruthy();
   });

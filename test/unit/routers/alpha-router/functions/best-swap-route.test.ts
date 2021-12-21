@@ -44,9 +44,9 @@ import {
 const v3Route1 = new V3Route(
   [USDC_DAI_LOW, DAI_USDT_LOW, WETH9_USDT_LOW],
   USDC,
-  WETH9[1]
+  WETH9[1]!
 );
-const v3Route2 = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]);
+const v3Route2 = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]!);
 const v3Route3 = new V3Route(
   [USDC_DAI_MEDIUM, DAI_USDT_MEDIUM, WBTC_USDT_MEDIUM, WBTC_WETH_MEDIUM],
   USDC,
@@ -54,12 +54,12 @@ const v3Route3 = new V3Route(
 );
 const v3Route4 = new V3Route([USDC_WETH_MEDIUM], USDC, WETH9[1]!);
 
-const v2Route1 = new V2Route([USDC_DAI, DAI_USDT, WETH_USDT], USDC, WETH9[1]);
-const v2Route2 = new V2Route([USDC_WETH], USDC, WETH9[1]);
+const v2Route1 = new V2Route([USDC_DAI, DAI_USDT, WETH_USDT], USDC, WETH9[1]!);
+const v2Route2 = new V2Route([USDC_WETH], USDC, WETH9[1]!);
 const v2Route3 = new V2Route(
   [USDC_DAI, DAI_USDT, WETH_USDT, WBTC_WETH],
   USDC,
-  WETH9[1]
+  WETH9[1]!
 );
 
 const mockPools = [
@@ -273,7 +273,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(1);
@@ -331,7 +331,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(2);
@@ -389,7 +389,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(3);
@@ -454,7 +454,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(4);
@@ -466,8 +466,8 @@ describe('get best swap route', () => {
 
     // Check that even though the pools in these routes use the same tokens,
     // since they are on different protocols we are fine to route in them.
-    const v2Route = new V2Route([USDC_WETH], USDC, WETH9[1]);
-    const v3Route = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]);
+    const v2Route = new V2Route([USDC_WETH], USDC, WETH9[1]!);
+    const v3Route = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]!);
 
     const routesWithQuotes: RouteWithValidQuote[] = [
       ...buildV2RouteWithValidQuotes(
@@ -517,7 +517,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(2);
@@ -583,7 +583,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(3);
@@ -654,7 +654,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 0)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(3);
@@ -723,7 +723,7 @@ describe('get best swap route', () => {
     expect(estimatedGasUsedUSD.quotient.toString()).toEqual('10000000000000');
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 10)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 10)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(1);
@@ -792,7 +792,7 @@ describe('get best swap route', () => {
     expect(estimatedGasUsedUSD.quotient.toString()).toEqual('10');
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1], 10)
+        CurrencyAmount.fromRawAmount(WETH9[1]!, 10)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(1);

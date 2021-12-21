@@ -50,7 +50,7 @@ export const mockRoutingConfig: AlphaRouterConfig = {
 // Mock V3 Pools
 export const USDC_WETH_LOW = new Pool(
   USDC,
-  WETH9[1],
+  WETH9[1]!,
   FeeAmount.LOW,
   encodeSqrtRatioX96(1, 1),
   500,
@@ -59,7 +59,7 @@ export const USDC_WETH_LOW = new Pool(
 
 export const USDC_WETH_MEDIUM = new Pool(
   USDC,
-  WETH9[1],
+  WETH9[1]!,
   FeeAmount.MEDIUM,
   encodeSqrtRatioX96(1, 1),
   500,
@@ -67,7 +67,7 @@ export const USDC_WETH_MEDIUM = new Pool(
 );
 
 export const WETH9_USDT_LOW = new Pool(
-  WETH9[1],
+  WETH9[1]!,
   USDT,
   FeeAmount.LOW,
   encodeSqrtRatioX96(1, 1),
@@ -124,7 +124,7 @@ export const WBTC_USDT_MEDIUM = new Pool(
   0
 );
 export const WBTC_WETH_MEDIUM = new Pool(
-  WETH9[1],
+  WETH9[1]!,
   WBTC,
   FeeAmount.MEDIUM,
   encodeSqrtRatioX96(1, 1),

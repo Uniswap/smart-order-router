@@ -144,7 +144,7 @@ describe('alpha router', () => {
     mockMulticallProvider = sinon.createStubInstance(UniswapMulticallProvider);
 
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
-    const mockTokens = [USDC, DAI, WETH9[1], USDT];
+    const mockTokens = [USDC, DAI, WETH9[1]!, USDT];
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
 
     mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
@@ -1431,7 +1431,7 @@ describe('alpha router', () => {
       describe('when token1 has more decimal places than token0', () => {
         test('calls routeExactIn with correct parameters', async () => {
           const token0Balance = parseAmount('20' + '0'.repeat(12), USDC);
-          const token1Balance = parseAmount('5', WETH9[1]);
+          const token1Balance = parseAmount('5', WETH9[1]!);
 
           const position = new Position({
             pool: USDC_WETH_LOW,
