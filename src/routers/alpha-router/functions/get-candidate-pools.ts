@@ -48,7 +48,7 @@ import {
   IV3SubgraphProvider,
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
-import { ChainId, ID_TO_NATIVE_CURRENCY } from '../../../util';
+import { ChainId } from '../../../util';
 import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -312,11 +312,11 @@ export async function getV3CandidatePools({
   // theres no need to add more.
   let top2EthQuoteTokenPool: V3SubgraphPool[] = [];
   if (
-    (ID_TO_NATIVE_CURRENCY(chainId) == 'ETH' &&
+    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WETH9[1]?.symbol &&
       tokenOut.symbol != 'WETH' &&
       tokenOut.symbol != 'WETH9' &&
       tokenOut.symbol != 'ETH') ||
-    (ID_TO_NATIVE_CURRENCY(chainId) == 'MATIC' &&
+    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
       tokenOut.symbol != 'MATIC' &&
       tokenOut.symbol != 'WMATIC')
   ) {

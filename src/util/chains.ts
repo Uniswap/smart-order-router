@@ -64,35 +64,6 @@ export enum NativeCurrencyName {
   MATIC = 'MATIC',
 }
 
-export const ID_TO_NATIVE_CURRENCY = (id: number): NativeCurrencyName => {
-  switch (id) {
-    case 1:
-      return NativeCurrencyName.ETHER;
-    case 3:
-      return NativeCurrencyName.ETHER;
-    case 4:
-      return NativeCurrencyName.ETHER;
-    case 5:
-      return NativeCurrencyName.ETHER;
-    case 42:
-      return NativeCurrencyName.ETHER;
-    case 10:
-      return NativeCurrencyName.ETHER;
-    case 69:
-      return NativeCurrencyName.ETHER;
-    case 42161:
-      return NativeCurrencyName.ETHER;
-    case 421611:
-      return NativeCurrencyName.ETHER;
-    case 137:
-      return NativeCurrencyName.MATIC;
-    case 80001:
-      return NativeCurrencyName.MATIC;
-    default:
-      throw new Error(`Unknown chain id: ${id}`);
-  }
-};
-
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
   switch (id) {
     case 1:
