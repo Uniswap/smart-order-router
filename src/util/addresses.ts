@@ -78,4 +78,18 @@ export const WETH9: { [chainId in ChainId]?: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
+  [ChainId.POLYGON]: new Token(
+    ChainId.POLYGON,
+    '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.POLYGON_MUMBAI]: new Token(
+    ChainId.POLYGON_MUMBAI,
+    '0xa6fa4fb5f76172d178d61b04b0ecd319c5d1c0aa',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
 };

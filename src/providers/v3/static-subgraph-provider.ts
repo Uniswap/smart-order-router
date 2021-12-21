@@ -1,7 +1,8 @@
-import { Token, WETH9 } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
+import { WETH9 } from '../../util/addresses';
 import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
@@ -42,6 +43,8 @@ import {
   WBTC_MAINNET,
   WBTC_OPTIMISM,
   WBTC_OPTIMISTIC_KOVAN,
+  WMATIC_POLYGON,
+  WMATIC_POLYGON_MUMBAI,
 } from '../token-provider';
 import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
@@ -112,8 +115,12 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDT_OPTIMISTIC_KOVAN,
     USDC_OPTIMISTIC_KOVAN,
   ],
-  [ChainId.POLYGON]: [USDC_POLYGON],
-  [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
+  [ChainId.POLYGON]: [USDC_POLYGON, WETH9[ChainId.POLYGON]!, WMATIC_POLYGON],
+  [ChainId.POLYGON_MUMBAI]: [
+    DAI_POLYGON_MUMBAI,
+    WETH9[ChainId.POLYGON_MUMBAI]!,
+    WMATIC_POLYGON_MUMBAI,
+  ],
 };
 
 /**

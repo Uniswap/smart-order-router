@@ -324,10 +324,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
           }
         }
 
-        log.info(
-          `Pool found for gas estimates: USD/${wrappedCurrency.symbol} pool`
-        );
-
         return pools;
       })
       .compact()
