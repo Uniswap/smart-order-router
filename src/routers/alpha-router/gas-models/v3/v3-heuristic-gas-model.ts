@@ -4,7 +4,7 @@ import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../../providers/token-provider';
 import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
-import { ChainId, ID_TO_NATIVE_CURRENCY } from '../../../../util';
+import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { log } from '../../../../util/log';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
@@ -231,16 +231,9 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
 
     const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
-    // TODO POLYGON
-    // test this estimation on polygon
     const gasCostNativeCurrency = CurrencyAmount.fromRawAmount(
       wrappedCurrency,
       totalGasCostWei.toString()
-    );
-    log.info(
-      `Computing gas cost in ${ID_TO_NATIVE_CURRENCY(
-        chainId
-      )} : ${gasCostNativeCurrency}`
     );
 
     return { gasCostNativeCurrency, gasUse };
@@ -304,7 +297,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       .flatMap((feeAmount) => {
         return _.map<Token, [Token, Token, FeeAmount]>(
           usdTokens,
-          // TODO POLYGON
           (usdToken) => [wrappedCurrency, usdToken, feeAmount]
         );
       })
@@ -332,6 +324,10 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
           }
         }
 
+        log.info(
+          `Pool found for gas estimates: USD/${wrappedCurrency.symbol} pool`
+        );
+
         return pools;
       })
       .compact()
@@ -340,10 +336,10 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     if (pools.length == 0) {
       log.error(
         { pools },
-        `Could not find a USD/${wrappedCurrency} pool for computing gas costs.`
+        `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`
       );
       throw new Error(
-        `Can't find USD/${wrappedCurrency} pool for computing gas costs.`
+        `Can't find USD/${wrappedCurrency.symbol} pool for computing gas costs.`
       );
     }
 
