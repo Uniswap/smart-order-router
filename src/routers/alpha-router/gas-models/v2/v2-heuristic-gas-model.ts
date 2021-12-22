@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Token, WETH9 } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
-import { ChainId, log } from '../../../../util';
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { V2RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
@@ -46,7 +46,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     poolProvider: IV2PoolProvider,
     token: Token
   ): Promise<IGasModel<V2RouteWithValidQuote>> {
-    if (token.equals(WETH9[chainId]!)) {
+    if (token.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
       const usdPool: Pair = await this.getHighestLiquidityUSDPool(
         chainId,
         poolProvider
@@ -60,7 +60,8 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
             chainId
           );
 
-          const ethToken0 = usdPool.token0.address == WETH9[chainId]!.address;
+          const ethToken0 =
+            usdPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address;
 
           const ethTokenPrice = ethToken0
             ? usdPool.token0Price
@@ -95,7 +96,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     return {
       estimateGasCost: (routeWithValidQuote: V2RouteWithValidQuote) => {
         const usdToken =
-          usdPool.token0.address == WETH9[chainId]!.address
+          usdPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address
             ? usdPool.token1
             : usdPool.token0;
 
@@ -116,7 +117,8 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           };
         }
 
-        const ethToken0 = ethPool.token0.address == WETH9[chainId]!.address;
+        const ethToken0 =
+          ethPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address;
 
         const ethTokenPrice = ethToken0
           ? ethPool.token0Price
@@ -140,7 +142,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         }
 
         const ethToken0USDPool =
-          usdPool.token0.address == WETH9[chainId]!.address;
+          usdPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address;
 
         const ethTokenPriceUSDPool = ethToken0USDPool
           ? usdPool.token0Price
@@ -182,7 +184,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
     const totalGasCostWei = gasPriceWei.mul(gasUse);
 
-    const weth = WETH9[chainId]!;
+    const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
     const gasCostInEth = CurrencyAmount.fromRawAmount(
       weth,
@@ -197,7 +199,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     token: Token,
     poolProvider: IV2PoolProvider
   ): Promise<Pair | null> {
-    const weth = WETH9[chainId]!;
+    const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
     const poolAccessor = await poolProvider.getPools([[weth, token]]);
     const pool = poolAccessor.getPool(weth, token);
@@ -228,7 +230,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
     const usdPools = _.map<Token, [Token, Token]>(usdTokens, (usdToken) => [
       usdToken,
-      WETH9[chainId]!,
+      WRAPPED_NATIVE_CURRENCY[chainId]!,
     ]);
     const poolAccessor = await poolProvider.getPools(usdPools);
     const pools = poolAccessor.getAllPools();
@@ -242,7 +244,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     }
 
     const maxPool = _.maxBy(pools, (pool) => {
-      if (pool.token0.equals(WETH9[chainId]!)) {
+      if (pool.token0.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
         return parseFloat(pool.reserve0.toSignificant(2));
       } else {
         return parseFloat(pool.reserve1.toSignificant(2));

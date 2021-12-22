@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { Token, TradeType, WETH9 } from '@uniswap/sdk-core';
+import { Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import {
@@ -99,7 +99,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_MAINNET,
     WBTC_MAINNET,
     DAI_MAINNET,
-    WETH9[1]!,
+    WRAPPED_NATIVE_CURRENCY[1]!,
     FEI_MAINNET,
   ],
   [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
@@ -312,7 +312,7 @@ export async function getV3CandidatePools({
   let top2EthQuoteTokenPool: V3SubgraphPool[] = [];
   if (
     (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol ==
-      WETH9[ChainId.MAINNET]?.symbol &&
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]?.symbol &&
       tokenOut.symbol != 'WETH' &&
       tokenOut.symbol != 'WETH9' &&
       tokenOut.symbol != 'ETH') ||
@@ -697,7 +697,7 @@ export async function getV2CandidatePools({
 
   addToAddressSet(topByDirectSwapPool);
 
-  const wethAddress = WETH9[chainId]!.address;
+  const wethAddress = WRAPPED_NATIVE_CURRENCY[chainId]!.address;
 
   // Main reason we need this is for gas estimates, only needed if token out is not ETH.
   // We don't check the seen address set because if we've already added pools for getting ETH quotes

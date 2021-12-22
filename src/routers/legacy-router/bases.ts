@@ -1,4 +1,4 @@
-import { Token, WETH9 } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import {
   DAI_MAINNET,
   ITokenProvider,
@@ -8,7 +8,7 @@ import {
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
 } from '../../providers/token-provider';
-import { ChainId } from '../../util/chains';
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -19,20 +19,24 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
 ): ChainTokenList => {
   return {
     [ChainId.MAINNET]: [
-      WETH9[ChainId.MAINNET]!,
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
       DAI_MAINNET,
       USDC_MAINNET,
       USDT_MAINNET,
       WBTC_MAINNET,
     ],
-    [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]!],
-    [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]!],
-    [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]!],
-    [ChainId.KOVAN]: [WETH9[ChainId.KOVAN]!],
-    [ChainId.OPTIMISM]: [WETH9[ChainId.OPTIMISM]!],
-    [ChainId.OPTIMISTIC_KOVAN]: [WETH9[ChainId.OPTIMISTIC_KOVAN]!],
-    [ChainId.ARBITRUM_ONE]: [WETH9[ChainId.ARBITRUM_ONE]!],
-    [ChainId.ARBITRUM_RINKEBY]: [WETH9[ChainId.ARBITRUM_RINKEBY]!],
+    [ChainId.ROPSTEN]: [WRAPPED_NATIVE_CURRENCY[ChainId.ROPSTEN]!],
+    [ChainId.RINKEBY]: [WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!],
+    [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
+    [ChainId.KOVAN]: [WRAPPED_NATIVE_CURRENCY[ChainId.KOVAN]!],
+    [ChainId.OPTIMISM]: [WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!],
+    [ChainId.OPTIMISTIC_KOVAN]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISTIC_KOVAN]!,
+    ],
+    [ChainId.ARBITRUM_ONE]: [WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_ONE]!],
+    [ChainId.ARBITRUM_RINKEBY]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_RINKEBY]!,
+    ],
     [ChainId.POLYGON]: [WMATIC_POLYGON],
     [ChainId.POLYGON_MUMBAI]: [WMATIC_POLYGON_MUMBAI],
   };
@@ -138,7 +142,7 @@ export const CUSTOM_BASES = async (
         tokenProvider,
         ChainId.MAINNET,
         '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
-        WETH9[1]!.address
+        WRAPPED_NATIVE_CURRENCY[1]!.address
       )),
     },
   };

@@ -1,7 +1,7 @@
-import { Token, WETH9 } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
-import { ChainId } from '../../util/chains';
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
   DAI_MAINNET,
@@ -19,16 +19,20 @@ type ChainTokenList = {
 
 const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.MAINNET]: [
-    WETH9[ChainId.MAINNET]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
     DAI_MAINNET,
     USDC_MAINNET,
     USDT_MAINNET,
     WBTC_MAINNET,
   ],
-  [ChainId.ROPSTEN]: [WETH9[ChainId.ROPSTEN]!],
-  [ChainId.RINKEBY]: [WETH9[ChainId.RINKEBY]!, DAI_RINKEBY_1, DAI_RINKEBY_2],
-  [ChainId.GÖRLI]: [WETH9[ChainId.GÖRLI]!],
-  [ChainId.KOVAN]: [WETH9[ChainId.KOVAN]!],
+  [ChainId.ROPSTEN]: [WRAPPED_NATIVE_CURRENCY[ChainId.ROPSTEN]!],
+  [ChainId.RINKEBY]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
+    DAI_RINKEBY_1,
+    DAI_RINKEBY_2,
+  ],
+  [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
+  [ChainId.KOVAN]: [WRAPPED_NATIVE_CURRENCY[ChainId.KOVAN]!],
   //v2 not deployed on optimism/arbitrum or their testnets
   [ChainId.OPTIMISM]: [],
   [ChainId.ARBITRUM_ONE]: [],

@@ -1,7 +1,7 @@
-import { Token, WETH9 } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import { IERC20Metadata__factory } from '../types/v3';
-import { ChainId, log } from '../util';
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
@@ -375,14 +375,14 @@ export const SEED_TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
 } = {
   [ChainId.MAINNET]: {
-    WETH: WETH9[ChainId.MAINNET]!,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
     USDC: USDC_MAINNET,
     USDT: USDT_MAINNET,
     WBTC: WBTC_MAINNET,
     DAI: DAI_MAINNET,
   },
   [ChainId.RINKEBY]: {
-    WETH: WETH9[ChainId.RINKEBY]!,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
     DAI_1: DAI_RINKEBY_1,
     DAI_2: DAI_RINKEBY_2,
   },

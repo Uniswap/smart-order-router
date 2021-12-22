@@ -17,7 +17,7 @@ import {
   V3PoolProvider,
   V3Route,
   V3RouteWithValidQuote,
-  WETH9,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
 import { V2PoolProvider } from '../../../../../src/providers/v2/pool-provider';
 import { getBestSwapRoute } from '../../../../../src/routers/alpha-router/functions/best-swap-route';
@@ -44,22 +44,30 @@ import {
 const v3Route1 = new V3Route(
   [USDC_DAI_LOW, DAI_USDT_LOW, WETH9_USDT_LOW],
   USDC,
-  WETH9[1]
+  WRAPPED_NATIVE_CURRENCY[1]
 );
-const v3Route2 = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]);
+const v3Route2 = new V3Route([USDC_WETH_LOW], USDC, WRAPPED_NATIVE_CURRENCY[1]);
 const v3Route3 = new V3Route(
   [USDC_DAI_MEDIUM, DAI_USDT_MEDIUM, WBTC_USDT_MEDIUM, WBTC_WETH_MEDIUM],
   USDC,
-  WETH9[1]
+  WRAPPED_NATIVE_CURRENCY[1]
 );
-const v3Route4 = new V3Route([USDC_WETH_MEDIUM], USDC, WETH9[1]);
+const v3Route4 = new V3Route(
+  [USDC_WETH_MEDIUM],
+  USDC,
+  WRAPPED_NATIVE_CURRENCY[1]
+);
 
-const v2Route1 = new V2Route([USDC_DAI, DAI_USDT, WETH_USDT], USDC, WETH9[1]);
-const v2Route2 = new V2Route([USDC_WETH], USDC, WETH9[1]);
+const v2Route1 = new V2Route(
+  [USDC_DAI, DAI_USDT, WETH_USDT],
+  USDC,
+  WRAPPED_NATIVE_CURRENCY[1]
+);
+const v2Route2 = new V2Route([USDC_WETH], USDC, WRAPPED_NATIVE_CURRENCY[1]);
 const v2Route3 = new V2Route(
   [USDC_DAI, DAI_USDT, WETH_USDT, WBTC_WETH],
   USDC,
-  WETH9[1]!
+  WRAPPED_NATIVE_CURRENCY[1]!
 );
 
 const mockPools = [
@@ -273,7 +281,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(1);
@@ -331,7 +339,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(2);
@@ -389,7 +397,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(3);
@@ -454,7 +462,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(4);
@@ -466,8 +474,12 @@ describe('get best swap route', () => {
 
     // Check that even though the pools in these routes use the same tokens,
     // since they are on different protocols we are fine to route in them.
-    const v2Route = new V2Route([USDC_WETH], USDC, WETH9[1]!);
-    const v3Route = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]!);
+    const v2Route = new V2Route([USDC_WETH], USDC, WRAPPED_NATIVE_CURRENCY[1]!);
+    const v3Route = new V3Route(
+      [USDC_WETH_LOW],
+      USDC,
+      WRAPPED_NATIVE_CURRENCY[1]!
+    );
 
     const routesWithQuotes: RouteWithValidQuote[] = [
       ...buildV2RouteWithValidQuotes(
@@ -517,7 +529,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(2);
@@ -583,7 +595,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(3);
@@ -654,7 +666,7 @@ describe('get best swap route', () => {
     ).toBeTruthy();
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 0)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 0)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(3);
@@ -723,7 +735,7 @@ describe('get best swap route', () => {
     expect(estimatedGasUsedUSD.quotient.toString()).toEqual('10000000000000');
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 10)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(1);
@@ -792,7 +804,7 @@ describe('get best swap route', () => {
     expect(estimatedGasUsedUSD.quotient.toString()).toEqual('10');
     expect(
       estimatedGasUsedQuoteToken.equalTo(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 10)
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10)
       )
     ).toBeTruthy();
     expect(routes).toHaveLength(1);
