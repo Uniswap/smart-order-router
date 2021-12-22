@@ -307,12 +307,13 @@ export async function getV3CandidatePools({
 
   const wrappedNativeAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address;
 
-  // Main reason we need this is for gas estimates, only needed if token out is not ETH.
-  // We don't check the seen address set because if we've already added pools for getting ETH quotes
+  // Main reason we need this is for gas estimates, only needed if token out is not native.
+  // We don't check the seen address set because if we've already added pools for getting native quotes
   // theres no need to add more.
   let top2EthQuoteTokenPool: V3SubgraphPool[] = [];
   if (
-    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WETH9[1]?.symbol &&
+    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol ==
+      WETH9[ChainId.MAINNET]?.symbol &&
       tokenOut.symbol != 'WETH' &&
       tokenOut.symbol != 'WETH9' &&
       tokenOut.symbol != 'ETH') ||

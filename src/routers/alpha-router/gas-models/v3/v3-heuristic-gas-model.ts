@@ -60,8 +60,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     // of the quote token in order to produce a gas adjusted amount.
     // We do return a gas use in USD however, so we still convert to usd.
 
-    // POLYGON TODO
-    // WRAPPED_NATIVE_CURRENCY[chainId]
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
     if (token.equals(nativeCurrency)) {
       const usdPool: Pool = await this.getHighestLiquidityUSDPool(

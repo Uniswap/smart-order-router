@@ -1,4 +1,4 @@
-import { Token, TradeType } from '@uniswap/sdk-core';
+import { Token, TradeType, WETH9 } from '@uniswap/sdk-core';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -13,7 +13,6 @@ import {
   V3PoolProvider,
   V3SubgraphPool,
   V3SubgraphProvider,
-  WETH9,
 } from '../../../../../src';
 import { getV3CandidatePools } from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
 import {

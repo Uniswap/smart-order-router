@@ -1,4 +1,4 @@
-import { Token } from '@uniswap/sdk-core';
+import { Token, WETH9 } from '@uniswap/sdk-core';
 import {
   DAI_MAINNET,
   ITokenProvider,
@@ -8,7 +8,6 @@ import {
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
 } from '../../providers/token-provider';
-import { WETH9 } from '../../util/addresses';
 import { ChainId } from '../../util/chains';
 
 type ChainTokenList = {

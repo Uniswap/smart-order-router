@@ -1,4 +1,4 @@
-import { Fraction, TradeType } from '@uniswap/sdk-core';
+import { Fraction, TradeType, WETH9 } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
@@ -17,7 +17,6 @@ import {
   V3PoolProvider,
   V3Route,
   V3RouteWithValidQuote,
-  WETH9,
 } from '../../../../../src';
 import { V2PoolProvider } from '../../../../../src/providers/v2/pool-provider';
 import { getBestSwapRoute } from '../../../../../src/routers/alpha-router/functions/best-swap-route';

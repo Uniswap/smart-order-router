@@ -1,5 +1,5 @@
 import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
+import { Fraction, Percent, TradeType, WETH9 } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
@@ -38,7 +38,6 @@ import {
   V3RouteWithValidQuote,
   V3SubgraphPool,
   V3SubgraphProvider,
-  WETH9,
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';

@@ -1,5 +1,5 @@
 import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
-import { WRAPPED_NATIVE_CURRENCY } from '..';
+import { WRAPPED_NATIVE_CURRENCY } from '../../src/providers/token-provider';
 export enum ChainId {
   MAINNET = 1,
   ROPSTEN = 3,
@@ -153,7 +153,11 @@ class MaticNativeCurrency extends NativeCurrency {
 
   get wrapped(): Token {
     if (!isMatic(this.chainId)) throw new Error('Not matic');
-    return WRAPPED_NATIVE_CURRENCY[this.chainId]!;
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
   }
 
   public constructor(chainId: number) {
@@ -169,14 +173,23 @@ export class ExtendedEther extends Ether {
     throw new Error('Unsupported chain ID');
   }
 
-  private static _cachedNative: { [chainId: number]: NativeCurrency } = {};
+  private static _cachedExtendedEther: { [chainId: number]: NativeCurrency } =
+    {};
 
   public static onChain(chainId: number): ExtendedEther {
     return (
-      this._cachedNative[chainId] ??
-      (this._cachedNative[chainId] = isMatic(chainId)
-        ? new MaticNativeCurrency(chainId)
-        : new ExtendedEther(chainId))
+      this._cachedExtendedEther[chainId] ??
+      (this._cachedExtendedEther[chainId] = new ExtendedEther(chainId))
     );
   }
+}
+
+const cachedNativeCurrency: { [chainId: number]: NativeCurrency } = {};
+export function nativeOnChain(chainId: number): NativeCurrency {
+  return (
+    cachedNativeCurrency[chainId] ??
+    (cachedNativeCurrency[chainId] = isMatic(chainId)
+      ? new MaticNativeCurrency(chainId)
+      : ExtendedEther.onChain(chainId))
+  );
 }

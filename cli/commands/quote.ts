@@ -5,9 +5,9 @@ import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import _ from 'lodash';
 import {
-  ExtendedEther,
   ID_TO_CHAIN_ID,
   NativeCurrencyName,
+  nativeOnChain,
   parseAmount,
   SwapRoute,
 } from '../../src';
@@ -93,11 +93,11 @@ export class Quote extends BaseCommand {
     // if the tokenIn str is 'ETH' or 'MATIC' or NATIVE_CURRENCY_STRING
     const tokenIn: Currency =
       tokenInStr in NativeCurrencyName
-        ? ExtendedEther.onChain(chainId)
+        ? nativeOnChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenInStr)!;
     const tokenOut: Currency =
       tokenOutStr in NativeCurrencyName
-        ? ExtendedEther.onChain(chainId)
+        ? nativeOnChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
 
     let swapRoutes: SwapRoute | null;

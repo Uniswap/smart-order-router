@@ -314,12 +314,20 @@ export const WMATIC_POLYGON = new Token(
   'Wrapped MATIC'
 );
 
+export const WETH_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+  18,
+  'WETH',
+  'Wrapped Ether'
+);
+
 export const USDC_POLYGON = new Token(
   ChainId.POLYGON,
   '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
   6,
   'USDC',
-  'USD Coin'
+  'USD//C'
 );
 
 export const DAI_POLYGON = new Token(
@@ -344,7 +352,7 @@ export const USDC_POLYGON_MUMBAI = new Token(
   '0xe11a86849d99f524cac3e7a0ec1241828e332c62',
   6,
   'USDC',
-  'USD Coin'
+  'USD//C'
 );
 
 export const DAI_POLYGON_MUMBAI = new Token(
@@ -355,13 +363,61 @@ export const DAI_POLYGON_MUMBAI = new Token(
   'Dai Stablecoin'
 );
 
+export const WETH_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0xa6fa4fb5f76172d178d61b04b0ecd319c5d1c0aa',
+  18,
+  'WETH',
+  'Wrapped Ether'
+);
+
 export const WRAPPED_NATIVE_CURRENCY: { [chainId: number]: Token } = {
   ...WETH9,
-  [ChainId.POLYGON]: WMATIC_POLYGON,
-  [ChainId.POLYGON_MUMBAI]: WMATIC_POLYGON_MUMBAI,
+  [ChainId.OPTIMISM]: new Token(
+    ChainId.OPTIMISM,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.OPTIMISTIC_KOVAN]: new Token(
+    ChainId.OPTIMISTIC_KOVAN,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ARBITRUM_ONE]: new Token(
+    ChainId.ARBITRUM_ONE,
+    '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ARBITRUM_RINKEBY]: new Token(
+    ChainId.ARBITRUM_RINKEBY,
+    '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.POLYGON]: new Token(
+    ChainId.POLYGON,
+    '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+    18,
+    'WMATIC',
+    'Wrapped MATIC'
+  ),
+  [ChainId.POLYGON_MUMBAI]: new Token(
+    ChainId.POLYGON_MUMBAI,
+    '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889',
+    18,
+    'WMATIC',
+    'Wrapped MATIC'
+  ),
 };
 
-export const TOKENS: {
+export const SEED_TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
 } = {
   [ChainId.MAINNET]: {

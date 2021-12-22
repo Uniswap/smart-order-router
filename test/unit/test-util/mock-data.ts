@@ -1,4 +1,4 @@
-import { Token } from '@uniswap/sdk-core';
+import { Token, WETH9 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
@@ -15,7 +15,6 @@ import {
   V3PoolAccessor,
   V3SubgraphPool,
   WBTC_MAINNET as WBTC,
-  WETH9,
 } from '../../../src';
 import { V2PoolAccessor } from '../../../src/providers/v2/pool-provider';
 

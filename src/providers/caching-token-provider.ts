@@ -2,7 +2,7 @@ import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import { ChainId, log } from '../util';
 import { ICache } from './cache';
-import { ITokenProvider, TokenAccessor, TOKENS } from './token-provider';
+import { ITokenProvider, SEED_TOKENS, TokenAccessor } from './token-provider';
 
 /**
  * Provider for getting token metadata that falls back to a different provider
@@ -25,7 +25,7 @@ export class CachingTokenProviderWithFallback implements ITokenProvider {
   ) {}
 
   public async getTokens(_addresses: string[]): Promise<TokenAccessor> {
-    const seedTokens = TOKENS[this.chainId];
+    const seedTokens = SEED_TOKENS[this.chainId];
 
     if (seedTokens) {
       for (const token of Object.values(seedTokens)) {
