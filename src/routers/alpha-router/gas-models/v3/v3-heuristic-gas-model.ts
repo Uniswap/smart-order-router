@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { WRAPPED_NATIVE_CURRENCY } from '../../../../providers/token-provider';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';

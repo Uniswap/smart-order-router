@@ -371,52 +371,6 @@ export const WETH_POLYGON_MUMBAI = new Token(
   'Wrapped Ether'
 );
 
-export const WRAPPED_NATIVE_CURRENCY: { [chainId: number]: Token } = {
-  ...WETH9,
-  [ChainId.OPTIMISM]: new Token(
-    ChainId.OPTIMISM,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.OPTIMISTIC_KOVAN]: new Token(
-    ChainId.OPTIMISTIC_KOVAN,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ARBITRUM_ONE]: new Token(
-    ChainId.ARBITRUM_ONE,
-    '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ARBITRUM_RINKEBY]: new Token(
-    ChainId.ARBITRUM_RINKEBY,
-    '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.POLYGON]: new Token(
-    ChainId.POLYGON,
-    '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-    18,
-    'WMATIC',
-    'Wrapped MATIC'
-  ),
-  [ChainId.POLYGON_MUMBAI]: new Token(
-    ChainId.POLYGON_MUMBAI,
-    '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889',
-    18,
-    'WMATIC',
-    'Wrapped MATIC'
-  ),
-};
-
 export const SEED_TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
 } = {

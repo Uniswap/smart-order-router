@@ -1,4 +1,4 @@
-import { Fraction, TradeType, WETH9 } from '@uniswap/sdk-core';
+import { Fraction, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
@@ -17,6 +17,7 @@ import {
   V3PoolProvider,
   V3Route,
   V3RouteWithValidQuote,
+  WETH9,
 } from '../../../../../src';
 import { V2PoolProvider } from '../../../../../src/providers/v2/pool-provider';
 import { getBestSwapRoute } from '../../../../../src/routers/alpha-router/functions/best-swap-route';
@@ -43,18 +44,18 @@ import {
 const v3Route1 = new V3Route(
   [USDC_DAI_LOW, DAI_USDT_LOW, WETH9_USDT_LOW],
   USDC,
-  WETH9[1]!
+  WETH9[1]
 );
-const v3Route2 = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]!);
+const v3Route2 = new V3Route([USDC_WETH_LOW], USDC, WETH9[1]);
 const v3Route3 = new V3Route(
   [USDC_DAI_MEDIUM, DAI_USDT_MEDIUM, WBTC_USDT_MEDIUM, WBTC_WETH_MEDIUM],
   USDC,
-  WETH9[1]!
+  WETH9[1]
 );
-const v3Route4 = new V3Route([USDC_WETH_MEDIUM], USDC, WETH9[1]!);
+const v3Route4 = new V3Route([USDC_WETH_MEDIUM], USDC, WETH9[1]);
 
-const v2Route1 = new V2Route([USDC_DAI, DAI_USDT, WETH_USDT], USDC, WETH9[1]!);
-const v2Route2 = new V2Route([USDC_WETH], USDC, WETH9[1]!);
+const v2Route1 = new V2Route([USDC_DAI, DAI_USDT, WETH_USDT], USDC, WETH9[1]);
+const v2Route2 = new V2Route([USDC_WETH], USDC, WETH9[1]);
 const v2Route3 = new V2Route(
   [USDC_DAI, DAI_USDT, WETH_USDT, WBTC_WETH],
   USDC,

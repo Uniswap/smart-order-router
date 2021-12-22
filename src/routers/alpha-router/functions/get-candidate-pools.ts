@@ -34,7 +34,6 @@ import {
   WBTC_OPTIMISTIC_KOVAN,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-  WRAPPED_NATIVE_CURRENCY,
 } from '../../../providers/token-provider';
 import {
   IV2PoolProvider,
@@ -48,7 +47,7 @@ import {
   IV3SubgraphProvider,
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
-import { ChainId } from '../../../util';
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';

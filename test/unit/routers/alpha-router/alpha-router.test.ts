@@ -1,5 +1,5 @@
 import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { Fraction, Percent, TradeType, WETH9 } from '@uniswap/sdk-core';
+import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
@@ -38,6 +38,7 @@ import {
   V3RouteWithValidQuote,
   V3SubgraphPool,
   V3SubgraphProvider,
+  WETH9,
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
@@ -143,7 +144,7 @@ describe('alpha router', () => {
     mockMulticallProvider = sinon.createStubInstance(UniswapMulticallProvider);
 
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
-    const mockTokens = [USDC, DAI, WETH9[1]!, USDT];
+    const mockTokens = [USDC, DAI, WETH9[1], USDT];
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
 
     mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
@@ -399,7 +400,7 @@ describe('alpha router', () => {
 
       const swap = await alphaRouter.route(
         amount,
-        WETH9[1]!,
+        WETH9[1],
         TradeType.EXACT_INPUT,
         undefined,
         { ...ROUTING_CONFIG }
@@ -413,7 +414,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
       expect(
@@ -421,7 +422,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
 
@@ -443,15 +444,15 @@ describe('alpha router', () => {
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
-      expect(swap!.quote.currency.equals(WETH9[1]!)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quote.currency.equals(WETH9[1])).toBeTruthy();
+      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1])).toBeTruthy();
       expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
       expect(swap!.estimatedGasUsed.toString()).toEqual('20000');
       expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1]!)
+        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1])
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
@@ -550,7 +551,7 @@ describe('alpha router', () => {
 
       const swap = await alphaRouter.route(
         amount,
-        WETH9[1]!,
+        WETH9[1],
         TradeType.EXACT_INPUT,
         undefined,
         { ...ROUTING_CONFIG, protocols: [Protocol.V2, Protocol.V3] }
@@ -564,7 +565,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
       expect(
@@ -572,7 +573,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
 
@@ -594,15 +595,15 @@ describe('alpha router', () => {
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
-      expect(swap!.quote.currency.equals(WETH9[1]!)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quote.currency.equals(WETH9[1])).toBeTruthy();
+      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1])).toBeTruthy();
       expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
       expect(swap!.estimatedGasUsed.toString()).toEqual('20000');
       expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1]!)
+        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1])
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
@@ -637,7 +638,7 @@ describe('alpha router', () => {
     test('succeeds to route on v3 only', async () => {
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(USDC, 10000),
-        WETH9[1]!,
+        WETH9[1],
         TradeType.EXACT_INPUT,
         undefined,
         { ...ROUTING_CONFIG, protocols: [Protocol.V3] }
@@ -651,7 +652,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
 
@@ -664,18 +665,18 @@ describe('alpha router', () => {
         sinon.match({ blockNumber: sinon.match.defined })
       );
 
-      expect(swap!.quote.currency.equals(WETH9[1]!)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quote.currency.equals(WETH9[1])).toBeTruthy();
+      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1])).toBeTruthy();
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
       expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
       expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1]!)
+        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1])
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
@@ -694,7 +695,7 @@ describe('alpha router', () => {
     test('succeeds to route on v2 only', async () => {
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(USDC, 10000),
-        WETH9[1]!,
+        WETH9[1],
         TradeType.EXACT_INPUT,
         undefined,
         { ...ROUTING_CONFIG, protocols: [Protocol.V2] }
@@ -708,7 +709,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
 
@@ -720,18 +721,18 @@ describe('alpha router', () => {
         sinon.match.array
       );
 
-      expect(swap!.quote.currency.equals(WETH9[1]!)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quote.currency.equals(WETH9[1])).toBeTruthy();
+      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1])).toBeTruthy();
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
       expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
       expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1]!)
+        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1])
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
@@ -756,7 +757,7 @@ describe('alpha router', () => {
 
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(USDC, 10000),
-        WETH9[1]!,
+        WETH9[1],
         TradeType.EXACT_INPUT,
         swapParams,
         { ...ROUTING_CONFIG, protocols: [Protocol.V3] }
@@ -770,7 +771,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
 
@@ -783,18 +784,18 @@ describe('alpha router', () => {
         sinon.match({ blockNumber: sinon.match.defined })
       );
 
-      expect(swap!.quote.currency.equals(WETH9[1]!)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quote.currency.equals(WETH9[1])).toBeTruthy();
+      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1])).toBeTruthy();
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
       expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
       expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1]!)
+        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1])
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
@@ -819,7 +820,7 @@ describe('alpha router', () => {
 
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(USDC, 10000),
-        WETH9[1]!,
+        WETH9[1],
         TradeType.EXACT_INPUT,
         swapParams,
         { ...ROUTING_CONFIG, protocols: [Protocol.V2] }
@@ -833,7 +834,7 @@ describe('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any,
-          WETH9[1]!
+          WETH9[1]
         )
       ).toBeTruthy();
 
@@ -845,18 +846,18 @@ describe('alpha router', () => {
         sinon.match.array
       );
 
-      expect(swap!.quote.currency.equals(WETH9[1]!)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1]!)).toBeTruthy();
+      expect(swap!.quote.currency.equals(WETH9[1])).toBeTruthy();
+      expect(swap!.quoteGasAdjusted.currency.equals(WETH9[1])).toBeTruthy();
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
       expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
       expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1]!)
+        swap!.estimatedGasUsedQuoteToken.currency.equals(WETH9[1])
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
@@ -940,7 +941,7 @@ describe('alpha router', () => {
       const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
 
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 10000),
+        CurrencyAmount.fromRawAmount(WETH9[1], 10000),
         USDC,
         TradeType.EXACT_OUTPUT,
         undefined,
@@ -988,7 +989,7 @@ describe('alpha router', () => {
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeTruthy();
@@ -1028,7 +1029,7 @@ describe('alpha router', () => {
 
     test('succeeds to route on v3 only', async () => {
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 10000),
+        CurrencyAmount.fromRawAmount(WETH9[1], 10000),
         USDC,
         TradeType.EXACT_OUTPUT,
         undefined,
@@ -1061,7 +1062,7 @@ describe('alpha router', () => {
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeTruthy();
@@ -1085,7 +1086,7 @@ describe('alpha router', () => {
 
     test('succeeds to route on v2 only', async () => {
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 10000),
+        CurrencyAmount.fromRawAmount(WETH9[1], 10000),
         USDC,
         TradeType.EXACT_OUTPUT,
         undefined,
@@ -1117,7 +1118,7 @@ describe('alpha router', () => {
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeTruthy();
@@ -1147,7 +1148,7 @@ describe('alpha router', () => {
       };
 
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 10000),
+        CurrencyAmount.fromRawAmount(WETH9[1], 10000),
         USDC,
         TradeType.EXACT_OUTPUT,
         swapParams,
@@ -1181,7 +1182,7 @@ describe('alpha router', () => {
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeTruthy();
@@ -1211,7 +1212,7 @@ describe('alpha router', () => {
       };
 
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(WETH9[1]!, 10000),
+        CurrencyAmount.fromRawAmount(WETH9[1], 10000),
         USDC,
         TradeType.EXACT_OUTPUT,
         swapParams,
@@ -1244,7 +1245,7 @@ describe('alpha router', () => {
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(r.route.output.equals(WETH9[1]!.wrapped)).toBeTruthy();
+        expect(r.route.output.equals(WETH9[1].wrapped)).toBeTruthy();
       }
 
       expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeTruthy();
@@ -1430,7 +1431,7 @@ describe('alpha router', () => {
       describe('when token1 has more decimal places than token0', () => {
         test('calls routeExactIn with correct parameters', async () => {
           const token0Balance = parseAmount('20' + '0'.repeat(12), USDC);
-          const token1Balance = parseAmount('5', WETH9[1]!);
+          const token1Balance = parseAmount('5', WETH9[1]);
 
           const position = new Position({
             pool: USDC_WETH_LOW,

@@ -65,6 +65,7 @@ export class QuoteToRatio extends BaseCommand {
     const tokenAccessor = await tokenProvider.getTokens([token0Str, token1Str]);
 
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
+    // TODO add support for polygon
     const token0: Currency =
       token0Str == 'ETH'
         ? Ether.onChain(chainId)
