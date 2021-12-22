@@ -1,9 +1,9 @@
-import { Token, WETH9 } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import { unparseFeeAmount } from '../../util/amounts';
-import { ChainId } from '../../util/chains';
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
   DAI_ARBITRUM,
@@ -13,6 +13,7 @@ import {
   DAI_MAINNET,
   DAI_OPTIMISM,
   DAI_OPTIMISTIC_KOVAN,
+  DAI_POLYGON_MUMBAI,
   DAI_RINKEBY_1,
   DAI_RINKEBY_2,
   DAI_ROPSTEN,
@@ -23,6 +24,7 @@ import {
   USDC_MAINNET,
   USDC_OPTIMISM,
   USDC_OPTIMISTIC_KOVAN,
+  USDC_POLYGON,
   USDC_RINKEBY,
   USDC_ROPSTEN,
   USDT_ARBITRUM,
@@ -40,6 +42,9 @@ import {
   WBTC_MAINNET,
   WBTC_OPTIMISM,
   WBTC_OPTIMISTIC_KOVAN,
+  WETH_POLYGON,
+  WMATIC_POLYGON,
+  WMATIC_POLYGON_MUMBAI,
 } from '../token-provider';
 import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
@@ -50,65 +55,71 @@ type ChainTokenList = {
 
 const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.MAINNET]: [
-    WETH9[ChainId.MAINNET]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
     DAI_MAINNET,
     USDC_MAINNET,
     USDT_MAINNET,
     WBTC_MAINNET,
   ],
   [ChainId.ROPSTEN]: [
-    WETH9[ChainId.ROPSTEN]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.ROPSTEN]!,
     DAI_ROPSTEN,
     USDT_ROPSTEN,
     USDC_ROPSTEN,
   ],
   [ChainId.RINKEBY]: [
-    WETH9[ChainId.RINKEBY]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
     DAI_RINKEBY_1,
     DAI_RINKEBY_2,
     USDC_RINKEBY,
     USDT_RINKEBY,
   ],
   [ChainId.GÖRLI]: [
-    WETH9[ChainId.GÖRLI]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!,
     USDT_GÖRLI,
     USDC_GÖRLI,
     WBTC_GÖRLI,
     DAI_GÖRLI,
   ],
   [ChainId.KOVAN]: [
-    WETH9[ChainId.KOVAN]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.KOVAN]!,
     USDC_KOVAN,
     USDT_KOVAN,
     WBTC_KOVAN,
     DAI_KOVAN,
   ],
   [ChainId.OPTIMISM]: [
-    WETH9[ChainId.OPTIMISM]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!,
     USDC_OPTIMISM,
     DAI_OPTIMISM,
     USDT_OPTIMISM,
     WBTC_OPTIMISM,
   ],
   [ChainId.ARBITRUM_ONE]: [
-    WETH9[ChainId.ARBITRUM_ONE]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_ONE]!,
     WBTC_ARBITRUM,
     DAI_ARBITRUM,
     USDC_ARBITRUM,
     USDT_ARBITRUM,
   ],
   [ChainId.ARBITRUM_RINKEBY]: [
-    WETH9[ChainId.ARBITRUM_RINKEBY]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_RINKEBY]!,
     DAI_ARBITRUM_RINKEBY,
     UNI_ARBITRUM_RINKEBY,
     USDT_ARBITRUM_RINKEBY,
   ],
   [ChainId.OPTIMISTIC_KOVAN]: [
-    WETH9[ChainId.OPTIMISTIC_KOVAN]!,
+    WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISTIC_KOVAN]!,
     DAI_OPTIMISTIC_KOVAN,
     WBTC_OPTIMISTIC_KOVAN,
     USDT_OPTIMISTIC_KOVAN,
     USDC_OPTIMISTIC_KOVAN,
+  ],
+  [ChainId.POLYGON]: [USDC_POLYGON, WETH_POLYGON, WMATIC_POLYGON],
+  [ChainId.POLYGON_MUMBAI]: [
+    DAI_POLYGON_MUMBAI,
+    WRAPPED_NATIVE_CURRENCY[ChainId.POLYGON_MUMBAI]!,
+    WMATIC_POLYGON_MUMBAI,
   ],
 };
 

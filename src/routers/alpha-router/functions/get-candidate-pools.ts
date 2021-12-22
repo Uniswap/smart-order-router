@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { Token, TradeType, WETH9 } from '@uniswap/sdk-core';
+import { Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import {
@@ -13,6 +13,7 @@ import {
   DAI_MAINNET,
   DAI_OPTIMISM,
   DAI_OPTIMISTIC_KOVAN,
+  DAI_POLYGON_MUMBAI,
   DAI_RINKEBY_1,
   DAI_RINKEBY_2,
   FEI_MAINNET,
@@ -21,6 +22,7 @@ import {
   USDC_MAINNET,
   USDC_OPTIMISM,
   USDC_OPTIMISTIC_KOVAN,
+  USDC_POLYGON,
   USDT_ARBITRUM,
   USDT_ARBITRUM_RINKEBY,
   USDT_MAINNET,
@@ -30,6 +32,8 @@ import {
   WBTC_MAINNET,
   WBTC_OPTIMISM,
   WBTC_OPTIMISTIC_KOVAN,
+  WMATIC_POLYGON,
+  WMATIC_POLYGON_MUMBAI,
 } from '../../../providers/token-provider';
 import {
   IV2PoolProvider,
@@ -43,7 +47,7 @@ import {
   IV3SubgraphProvider,
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
-import { ChainId } from '../../../util';
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -95,7 +99,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_MAINNET,
     WBTC_MAINNET,
     DAI_MAINNET,
-    WETH9[1]!,
+    WRAPPED_NATIVE_CURRENCY[1]!,
     FEI_MAINNET,
   ],
   [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
@@ -118,6 +122,8 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_ARBITRUM,
   ],
   [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDT_ARBITRUM_RINKEBY],
+  [ChainId.POLYGON]: [USDC_POLYGON, WMATIC_POLYGON],
+  [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI, WMATIC_POLYGON_MUMBAI],
 };
 
 export async function getV3CandidatePools({
@@ -298,31 +304,36 @@ export async function getV3CandidatePools({
 
   addToAddressSet(top2DirectSwapPool);
 
-  const wethAddress = WETH9[chainId]!.address;
+  const wrappedNativeAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address;
 
-  // Main reason we need this is for gas estimates, only needed if token out is not ETH.
-  // We don't check the seen address set because if we've already added pools for getting ETH quotes
+  // Main reason we need this is for gas estimates, only needed if token out is not native.
+  // We don't check the seen address set because if we've already added pools for getting native quotes
   // theres no need to add more.
   let top2EthQuoteTokenPool: V3SubgraphPool[] = [];
   if (
-    tokenOut.symbol != 'WETH' &&
-    tokenOut.symbol != 'WETH9' &&
-    tokenOut.symbol != 'ETH'
+    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol ==
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]?.symbol &&
+      tokenOut.symbol != 'WETH' &&
+      tokenOut.symbol != 'WETH9' &&
+      tokenOut.symbol != 'ETH') ||
+    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
+      tokenOut.symbol != 'MATIC' &&
+      tokenOut.symbol != 'WMATIC')
   ) {
     top2EthQuoteTokenPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return (
-            (subgraphPool.token0.id == wethAddress &&
+            (subgraphPool.token0.id == wrappedNativeAddress &&
               subgraphPool.token1.id == tokenOutAddress) ||
-            (subgraphPool.token1.id == wethAddress &&
+            (subgraphPool.token1.id == wrappedNativeAddress &&
               subgraphPool.token0.id == tokenOutAddress)
           );
         } else {
           return (
-            (subgraphPool.token0.id == wethAddress &&
+            (subgraphPool.token0.id == wrappedNativeAddress &&
               subgraphPool.token1.id == tokenInAddress) ||
-            (subgraphPool.token1.id == wethAddress &&
+            (subgraphPool.token1.id == wrappedNativeAddress &&
               subgraphPool.token0.id == tokenInAddress)
           );
         }
@@ -686,11 +697,12 @@ export async function getV2CandidatePools({
 
   addToAddressSet(topByDirectSwapPool);
 
-  const wethAddress = WETH9[chainId]!.address;
+  const wethAddress = WRAPPED_NATIVE_CURRENCY[chainId]!.address;
 
   // Main reason we need this is for gas estimates, only needed if token out is not ETH.
   // We don't check the seen address set because if we've already added pools for getting ETH quotes
   // theres no need to add more.
+  // Note: we do not need to check other native currencies for the V2 Protocol
   let topByEthQuoteTokenPool: V2SubgraphPool[] = [];
   if (
     tokenOut.symbol != 'WETH' &&

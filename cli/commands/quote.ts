@@ -1,10 +1,16 @@
 import { flags } from '@oclif/command';
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, Ether, Percent, TradeType } from '@uniswap/sdk-core';
+import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import _ from 'lodash';
-import { ID_TO_CHAIN_ID, parseAmount, SwapRoute } from '../../src';
+import {
+  ID_TO_CHAIN_ID,
+  NativeCurrencyName,
+  nativeOnChain,
+  parseAmount,
+  SwapRoute,
+} from '../../src';
 import { TO_PROTOCOL } from '../../src/util/protocols';
 import { BaseCommand } from '../base-command';
 
@@ -84,13 +90,14 @@ export class Quote extends BaseCommand {
       tokenOutStr,
     ]);
 
+    // if the tokenIn str is 'ETH' or 'MATIC' or NATIVE_CURRENCY_STRING
     const tokenIn: Currency =
-      tokenInStr == 'ETH'
-        ? Ether.onChain(chainId)
+      tokenInStr in NativeCurrencyName
+        ? nativeOnChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenInStr)!;
     const tokenOut: Currency =
-      tokenOutStr == 'ETH'
-        ? Ether.onChain(chainId)
+      tokenOutStr in NativeCurrencyName
+        ? nativeOnChain(chainId)
         : tokenAccessor.getTokenByAddress(tokenOutStr)!;
 
     let swapRoutes: SwapRoute | null;

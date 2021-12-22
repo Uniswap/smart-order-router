@@ -15,7 +15,7 @@ import {
   V3PoolAccessor,
   V3SubgraphPool,
   WBTC_MAINNET as WBTC,
-  WETH9,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../src';
 import { V2PoolAccessor } from '../../../src/providers/v2/pool-provider';
 
@@ -50,7 +50,7 @@ export const mockRoutingConfig: AlphaRouterConfig = {
 // Mock V3 Pools
 export const USDC_WETH_LOW = new Pool(
   USDC,
-  WETH9[1],
+  WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.LOW,
   encodeSqrtRatioX96(1, 1),
   500,
@@ -59,7 +59,7 @@ export const USDC_WETH_LOW = new Pool(
 
 export const USDC_WETH_MEDIUM = new Pool(
   USDC,
-  WETH9[1],
+  WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.MEDIUM,
   encodeSqrtRatioX96(1, 1),
   500,
@@ -67,7 +67,7 @@ export const USDC_WETH_MEDIUM = new Pool(
 );
 
 export const WETH9_USDT_LOW = new Pool(
-  WETH9[1],
+  WRAPPED_NATIVE_CURRENCY[1]!,
   USDT,
   FeeAmount.LOW,
   encodeSqrtRatioX96(1, 1),
@@ -124,7 +124,7 @@ export const WBTC_USDT_MEDIUM = new Pool(
   0
 );
 export const WBTC_WETH_MEDIUM = new Pool(
-  WETH9[1],
+  WRAPPED_NATIVE_CURRENCY[1]!,
   WBTC,
   FeeAmount.MEDIUM,
   encodeSqrtRatioX96(1, 1),
@@ -140,12 +140,12 @@ export const DAI_USDT = new Pair(
 
 export const USDC_WETH = new Pair(
   CurrencyAmount.fromRawAmount(USDC, 10000000000),
-  CurrencyAmount.fromRawAmount(WETH9[1]!, 10000000000)
+  CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
 );
 
 export const WETH_USDT = new Pair(
   CurrencyAmount.fromRawAmount(USDT, 10000000000),
-  CurrencyAmount.fromRawAmount(WETH9[1]!, 10000000000)
+  CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
 );
 
 export const USDC_DAI = new Pair(
@@ -155,7 +155,7 @@ export const USDC_DAI = new Pair(
 
 export const WBTC_WETH = new Pair(
   CurrencyAmount.fromRawAmount(WBTC, 10000000000),
-  CurrencyAmount.fromRawAmount(WETH9[1]!, 10000000000)
+  CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
 );
 
 export const poolToV3SubgraphPool = (

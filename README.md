@@ -123,3 +123,13 @@ Calldata: 0x414bf389000000000000000000000000dac17f958d2ee523a2206206994597c13d83
 ```
 ./bin/cli quote --tokenIn 0x09b98f8b2395d076514037ff7d39a091a536206c --tokenOut 0xb47e6a5f8b33b3f17603c83a0535a9dcd7e32681 --amount 200 --exactIn --minSplits 1 --router alpha --chainId 421611
 ```
+
+## Polygon Mumbai
+
+```
+./bin/cli quote --tokenIn 0x001b3b4d0f3714ca98ba10f6042daebf0b1b7b6f --tokenOut 0x9c3c9283d3e44854697cd22d3faa240cfb032889 --amount 1 --exactIn --protocols v3 --recipient 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B --minSplits 1 --router alpha --chainId 80001
+```
+
+# Polygon Mainnet
+
+./bin/cli quote --tokenIn 0x2791bca1f2de4661ed88a30c99a7a9449aa84174 --tokenOut 0x7ceb23fd6bc0add59e62ac25578270cff1b9f619 --amount 5 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 137

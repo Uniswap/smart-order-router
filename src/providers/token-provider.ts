@@ -1,7 +1,7 @@
-import { Token, WETH9 } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import { IERC20Metadata__factory } from '../types/v3';
-import { ChainId, log } from '../util';
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
@@ -305,18 +305,84 @@ export const UNI_ARBITRUM_RINKEBY = new Token(
   'Uni token'
 );
 
-export const TOKENS: {
+//polygon tokens
+export const WMATIC_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+  18,
+  'WMATIC',
+  'Wrapped MATIC'
+);
+
+export const WETH_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+  18,
+  'WETH',
+  'Wrapped Ether'
+);
+
+export const USDC_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
+  6,
+  'USDC',
+  'USD//C'
+);
+
+export const DAI_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+//polygon mumbai tokens
+export const WMATIC_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889',
+  18,
+  'WMATIC',
+  'Wrapped MATIC'
+);
+
+export const USDC_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0xe11a86849d99f524cac3e7a0ec1241828e332c62',
+  6,
+  'USDC',
+  'USD//C'
+);
+
+export const DAI_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0x001b3b4d0f3714ca98ba10f6042daebf0b1b7b6f',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const WETH_POLYGON_MUMBAI = new Token(
+  ChainId.POLYGON_MUMBAI,
+  '0xa6fa4fb5f76172d178d61b04b0ecd319c5d1c0aa',
+  18,
+  'WETH',
+  'Wrapped Ether'
+);
+
+export const SEED_TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
 } = {
   [ChainId.MAINNET]: {
-    WETH: WETH9[ChainId.MAINNET]!,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
     USDC: USDC_MAINNET,
     USDT: USDT_MAINNET,
     WBTC: WBTC_MAINNET,
     DAI: DAI_MAINNET,
   },
   [ChainId.RINKEBY]: {
-    WETH: WETH9[ChainId.RINKEBY]!,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
     DAI_1: DAI_RINKEBY_1,
     DAI_2: DAI_RINKEBY_2,
   },
@@ -343,6 +409,14 @@ export const TOKENS: {
     UNI: UNI_ARBITRUM_RINKEBY,
     DAI: DAI_ARBITRUM_RINKEBY,
     USDC: USDC_ARBITRUM_RINKEBY,
+  },
+  [ChainId.POLYGON]: {
+    WMATIC: WMATIC_POLYGON,
+    USDC: USDC_POLYGON,
+  },
+  [ChainId.POLYGON_MUMBAI]: {
+    WMATIC: WMATIC_POLYGON_MUMBAI,
+    DAI: DAI_POLYGON_MUMBAI,
   },
 };
 
