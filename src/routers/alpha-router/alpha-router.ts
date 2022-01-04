@@ -1404,17 +1404,42 @@ export class AlphaRouter
 
     if (hasV3Route && hasV2Route) {
       metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
+      metric.putMetric(
+        `V3AndV2SplitRouteForChain${this.chainId}`,
+        1,
+        MetricLoggerUnit.Count
+      );
     } else if (hasV3Route) {
       if (routeAmounts.length > 1) {
         metric.putMetric(`V3SplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `V3SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
       } else {
         metric.putMetric(`V3Route`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `V3RouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
       }
     } else if (hasV2Route) {
       if (routeAmounts.length > 1) {
         metric.putMetric(`V2SplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `V2SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
       } else {
         metric.putMetric(`V2Route`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `V2RouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
       }
     }
   }
