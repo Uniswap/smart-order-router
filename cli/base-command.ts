@@ -303,14 +303,26 @@ export abstract class BaseCommand extends Command {
     this.logger.info(`${routeAmountsToString(routeAmounts)}`);
 
     this.logger.info(`\tRaw Quote Exact In:`);
-    this.logger.info(`\t\t${quote.toFixed(2)}`);
+    this.logger.info(
+      `\t\t${quote.toFixed(Math.min(quote.currency.decimals, 2))}`
+    );
     this.logger.info(`\tGas Adjusted Quote In:`);
-    this.logger.info(`\t\t${quoteGasAdjusted.toFixed(2)}`);
+    this.logger.info(
+      `\t\t${quoteGasAdjusted.toFixed(
+        Math.min(quoteGasAdjusted.currency.decimals, 2)
+      )}`
+    );
     this.logger.info(``);
     this.logger.info(
-      `Gas Used Quote Token: ${estimatedGasUsedQuoteToken.toFixed(6)}`
+      `Gas Used Quote Token: ${estimatedGasUsedQuoteToken.toFixed(
+        Math.min(estimatedGasUsedQuoteToken.currency.decimals, 6)
+      )}`
     );
-    this.logger.info(`Gas Used USD: ${estimatedGasUsedUSD.toFixed(6)}`);
+    this.logger.info(
+      `Gas Used USD: ${estimatedGasUsedUSD.toFixed(
+        Math.min(estimatedGasUsedUSD.currency.decimals, 6)
+      )}`
+    );
     this.logger.info(`Calldata: ${methodParameters?.calldata}`);
     this.logger.info(`Value: ${methodParameters?.value}`);
     this.logger.info({

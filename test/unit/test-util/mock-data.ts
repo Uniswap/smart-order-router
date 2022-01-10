@@ -6,6 +6,7 @@ import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import {
   AlphaRouterConfig,
+  ChainId,
   CurrencyAmount,
   DAI_MAINNET as DAI,
   TokenAccessor,
@@ -47,7 +48,25 @@ export const mockRoutingConfig: AlphaRouterConfig = {
   forceCrossProtocol: false,
 };
 
+// Mock 0 decimal token
+export const MOCK_ZERO_DEC_TOKEN = new Token(
+  ChainId.MAINNET,
+  '0x11fe4b6ae13d2a6055c8d9cf65c55bac32b5d844',
+  0,
+  'MOCK',
+  'Mock Zero Dec'
+);
+
 // Mock V3 Pools
+export const USDC_MOCK_LOW = new Pool(
+  USDC,
+  MOCK_ZERO_DEC_TOKEN,
+  FeeAmount.LOW,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
 export const USDC_WETH_LOW = new Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
