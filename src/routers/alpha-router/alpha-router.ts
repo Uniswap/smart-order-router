@@ -559,7 +559,7 @@ export class AlphaRouter
         outputBalance
       );
       if (amountToSwap.equalTo(0)) {
-        log.info(`no swap needed`);
+        log.info(`no swap needed: amountToSwap = 0`);
         return {
           status: SwapToRatioStatus.NO_SWAP_NEEDED,
         };
@@ -630,12 +630,26 @@ export class AlphaRouter
       }
       exchangeRate = swap.trade!.outputAmount.divide(swap.trade!.inputAmount);
 
-      log.info({
-        optimalRatio: optimalRatio.asFraction.toFixed(18),
-        newRatio: newRatio.asFraction.toFixed(18),
-        ratioErrorTolerance: swapAndAddConfig.ratioErrorTolerance.toFixed(18),
-        iterationN: n.toString(),
-      });
+      log.info(
+        {
+          exchangeRate: exchangeRate.asFraction.toFixed(18),
+          optimalRatio: optimalRatio.asFraction.toFixed(18),
+          newRatio: newRatio.asFraction.toFixed(18),
+          inputBalanceUpdated: inputBalanceUpdated.asFraction.toFixed(18),
+          outputBalanceUpdated: outputBalanceUpdated.asFraction.toFixed(18),
+          ratioErrorTolerance: swapAndAddConfig.ratioErrorTolerance.toFixed(18),
+          iterationN: n.toString(),
+        },
+        'QuoteToRatio Iteration Parameters'
+      );
+
+      if (exchangeRate.equalTo(0)) {
+        log.info('exchangeRate to 0')
+        return {
+          status: SwapToRatioStatus.NO_ROUTE_FOUND,
+          error: 'insufficient liquidity to swap to optimal ratio',
+        };
+      }
     }
 
     if (!swap) {
