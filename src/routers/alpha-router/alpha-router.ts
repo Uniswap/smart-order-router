@@ -644,7 +644,7 @@ export class AlphaRouter
       );
 
       if (exchangeRate.equalTo(0)) {
-        log.info('exchangeRate to 0')
+        log.info('exchangeRate to 0');
         return {
           status: SwapToRatioStatus.NO_ROUTE_FOUND,
           error: 'insufficient liquidity to swap to optimal ratio',
