@@ -91,9 +91,15 @@ export function getBestSwapRoute(
       numSplits: routeAmounts.length,
       amount: amount.toExact(),
       quote: swapRoute.quote.toExact(),
-      quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(Math.min(swapRoute.quoteGasAdjusted.currency.decimals, 2)),
-      estimatedGasUSD: swapRoute.estimatedGasUsedUSD.toFixed(Math.min(swapRoute.estimatedGasUsedUSD.currency.decimals, 2)),
-      estimatedGasToken: swapRoute.estimatedGasUsedQuoteToken.toFixed(Math.min(swapRoute.estimatedGasUsedQuoteToken.currency.decimals, 2)),
+      quoteGasAdjusted: swapRoute.quoteGasAdjusted.toFixed(
+        Math.min(swapRoute.quoteGasAdjusted.currency.decimals, 2)
+      ),
+      estimatedGasUSD: swapRoute.estimatedGasUsedUSD.toFixed(
+        Math.min(swapRoute.estimatedGasUsedUSD.currency.decimals, 2)
+      ),
+      estimatedGasToken: swapRoute.estimatedGasUsedQuoteToken.toFixed(
+        Math.min(swapRoute.estimatedGasUsedQuoteToken.currency.decimals, 2)
+      ),
     },
     `Found best swap route. ${routeAmounts.length} split.`
   );
@@ -139,7 +145,9 @@ export function getBestSwapRouteBy(
           protocol: p.protocol,
           route: routeToString(p.route),
           percent: p.percent,
-          quote: p.quoteAdjustedForGas.toFixed(Math.min(p.quoteToken.decimals, 2)),
+          quote: p.quoteAdjustedForGas.toFixed(
+            Math.min(p.quoteToken.decimals, 2)
+          ),
         }))
       ),
     },
