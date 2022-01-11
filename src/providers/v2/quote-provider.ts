@@ -121,7 +121,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
 
       routesWithQuotes.push([route, amountQuotes]);
     }
-    
+
     if (debugStrs.length > 0) {
       log.info({ debugStrs }, `Failed quotes for V2 routes`);
     }
