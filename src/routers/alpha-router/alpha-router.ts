@@ -576,7 +576,7 @@ export class AlphaRouter
         }
       );
       if (!swap) {
-        log.info('no route found from this.route()')
+        log.info('no route found from this.route()');
         return {
           status: SwapToRatioStatus.NO_ROUTE_FOUND,
           error: 'no route found',
