@@ -871,7 +871,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
             (amounts, routeStr) => `${routeStr} : ${amounts}`
           ),
         },
-        `Failed quotes for routes Part ${idx}/${Math.ceil(
+        `Failed quotes for V3 routes Part ${idx}/${Math.ceil(
           debugFailedQuotes.length / debugChunk
         )}`
       );
