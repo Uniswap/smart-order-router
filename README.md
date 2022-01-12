@@ -8,6 +8,8 @@ It searches for the most efficient way to swap token A for token B, considering 
 
 ### Unit Tests
 
+First make sure you have run `npm install` and `npm run build`.
+
 ```
 npm run test
 ```
