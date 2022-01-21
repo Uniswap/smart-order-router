@@ -79,6 +79,9 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
   public tradeType: TradeType;
   public poolAddresses: string[];
   public tokenPath: Token[];
+  public initTicksCrossed: number;
+  public gasUseL1: BigNumber;
+  public gasCostL1: BigNumber;
 
   public toString(): string {
     return `${this.percent.toFixed(
@@ -107,12 +110,16 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
     this.quoteToken = quoteToken;
     this.tradeType = tradeType;
 
-    const { gasEstimate, gasCostInToken, gasCostInUSD } =
+    const { gasEstimate, gasCostInToken, gasCostInUSD, initTicksCrossed } =
       this.gasModel.estimateGasCost(this);
 
     this.gasCostInToken = gasCostInToken;
     this.gasCostInUSD = gasCostInUSD;
     this.gasEstimate = gasEstimate;
+    this.initTicksCrossed = initTicksCrossed!;
+    // these costs are from optimism which is not deployed on v2 so we ignore
+    this.gasUseL1 = BigNumber.from(0);
+    this.gasCostL1 = BigNumber.from(0);
 
     // If its exact out, we need to request *more* of the input token to account for the gas.
     if (this.tradeType == TradeType.EXACT_INPUT) {
@@ -173,6 +180,9 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
   public tradeType: TradeType;
   public poolAddresses: string[];
   public tokenPath: Token[];
+  public initTicksCrossed: number;
+  public gasUseL1: BigNumber;
+  public gasCostL1: BigNumber;
 
   public toString(): string {
     return `${this.percent.toFixed(
@@ -207,12 +217,21 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
     this.quoteToken = quoteToken;
     this.tradeType = tradeType;
 
-    const { gasEstimate, gasCostInToken, gasCostInUSD } =
-      this.gasModel.estimateGasCost(this);
+    const {
+      gasEstimate,
+      gasCostInToken,
+      gasCostInUSD,
+      initTicksCrossed,
+      gasUseL1,
+      gasCostL1,
+    } = this.gasModel.estimateGasCost(this);
 
     this.gasCostInToken = gasCostInToken;
     this.gasCostInUSD = gasCostInUSD;
     this.gasEstimate = gasEstimate;
+    this.initTicksCrossed = initTicksCrossed!;
+    this.gasUseL1 = gasUseL1!;
+    this.gasCostL1 = gasCostL1!;
 
     // If its exact out, we need to request *more* of the input token to account for the gas.
     if (this.tradeType == TradeType.EXACT_INPUT) {

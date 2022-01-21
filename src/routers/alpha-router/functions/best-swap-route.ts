@@ -26,6 +26,9 @@ export function getBestSwapRoute(
   estimatedGasUsedUSD: CurrencyAmount;
   estimatedGasUsedQuoteToken: CurrencyAmount;
   routes: RouteWithValidQuote[];
+  initTicksCrossed: BigNumber;
+  l1GasCost: BigNumber;
+  l1GasUse: BigNumber;
 } | null {
   const now = Date.now();
 
@@ -116,6 +119,9 @@ export function getBestSwapRouteBy(
       estimatedGasUsedUSD: CurrencyAmount;
       estimatedGasUsedQuoteToken: CurrencyAmount;
       routes: RouteWithValidQuote[];
+      initTicksCrossed: BigNumber;
+      l1GasUse: BigNumber;
+      l1GasCost: BigNumber;
     }
   | undefined {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
@@ -433,6 +439,24 @@ export function getBestSwapRouteBy(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
   );
 
+  const totalInitTicksCrossed = _.map(
+    bestSwap,
+    (routeWithValidQuote) => routeWithValidQuote.initTicksCrossed
+  ).reduce(
+    (sum, routeWithValidQuote) => sum.add(routeWithValidQuote),
+    BigNumber.from(0)
+  );
+
+  const totalL1GasUsed = _.map(bestSwap, (route) => route.gasUseL1).reduce(
+    (sum, route) => sum.add(route),
+    BigNumber.from(0)
+  );
+
+  const totalL1GasCost = _.map(bestSwap, (route) => route.gasCostL1).reduce(
+    (sum, route) => sum.add(route),
+    BigNumber.from(0)
+  );
+
   const routeWithQuotes = bestSwap.sort((routeAmountA, routeAmountB) =>
     routeAmountB.amount.greaterThan(routeAmountA.amount) ? 1 : -1
   );
@@ -450,6 +474,9 @@ export function getBestSwapRouteBy(
     estimatedGasUsedUSD,
     estimatedGasUsedQuoteToken,
     routes: routeWithQuotes,
+    initTicksCrossed: totalInitTicksCrossed,
+    l1GasCost: totalL1GasCost,
+    l1GasUse: totalL1GasUsed,
   };
 }
 

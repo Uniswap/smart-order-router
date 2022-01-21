@@ -109,9 +109,9 @@ export class Quote extends BaseCommand {
         TradeType.EXACT_INPUT,
         recipient
           ? {
-              deadline: 100,
+              deadline: 10000000000,
               recipient,
-              slippageTolerance: new Percent(5, 10_000),
+              slippageTolerance: new Percent(200000, 10_000),
             }
           : undefined,
         {
@@ -186,6 +186,9 @@ export class Quote extends BaseCommand {
       quote,
       quoteGasAdjusted,
       route: routeAmounts,
+      initTicksCrossed,
+      l1GasUse,
+      l1GasCost,
     } = swapRoutes;
 
     this.logSwapResults(
@@ -197,7 +200,10 @@ export class Quote extends BaseCommand {
       methodParameters,
       blockNumber,
       estimatedGasUsed,
-      gasPriceWei
+      gasPriceWei,
+      initTicksCrossed!,
+      l1GasUse!,
+      l1GasCost!
     );
   }
 }

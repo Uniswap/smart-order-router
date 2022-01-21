@@ -16,7 +16,6 @@ import {
 import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 import { RouteWithValidQuote } from './alpha-router';
-
 export class V3Route extends V3RouteRaw<Token, Token> {}
 export class V2Route extends V2RouteRaw<Token, Token> {}
 
@@ -66,6 +65,9 @@ export type SwapRoute = {
    * The calldata to execute the swap. Only returned if swapConfig was provided when calling the router.
    */
   methodParameters?: MethodParameters;
+  initTicksCrossed?: BigNumber;
+  l1GasCost?: BigNumber;
+  l1GasUse?: BigNumber;
 };
 
 export type SwapToRatioRoute = SwapRoute & {
@@ -116,6 +118,14 @@ export type SwapOptions = {
         expiry: string;
       }
   );
+};
+
+export type OptimismGasData = {
+  // l1GasPriceWei: BigNumber;
+  l1BaseFee: BigNumber;
+  scalar: BigNumber;
+  decimals: BigNumber;
+  overhead: BigNumber;
 };
 
 // Config passed in to determine configurations on acceptable liquidity

@@ -2,29 +2,29 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
+import {
+  OptimismGasData,
+  SwapOptions,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../../..';
 import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { log } from '../../../../util/log';
+import {
+  buildSwapMethodParameters,
+  buildTrade,
+} from '../../../../util/methodParameters';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   IGasModel,
   IV3GasModelFactory,
   usdGasTokensByChain,
 } from '../gas-model';
-
-// Constant cost for doing any swap regardless of pools.
-const BASE_SWAP_COST = BigNumber.from(2000);
-
-// Cost for crossing an initialized tick.
-const COST_PER_INIT_TICK = BigNumber.from(31000);
+import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
 // Cost for crossing an uninitialized tick.
 const COST_PER_UNINIT_TICK = BigNumber.from(0);
-
-// Constant per pool swap in the route.
-const COST_PER_HOP = BigNumber.from(80000);
 
 /**
  * Computes a gas estimate for a V3 swap using heuristics.
@@ -53,7 +53,9 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     chainId: ChainId,
     gasPriceWei: BigNumber,
     poolProvider: IV3PoolProvider,
-    token: Token
+    token: Token,
+    swapConfig?: SwapOptions,
+    gasData?: OptimismGasData
     // this is the quoteToken
   ): Promise<IGasModel<V3RouteWithValidQuote>> {
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
@@ -73,11 +75,22 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         gasEstimate: BigNumber;
         gasCostInToken: CurrencyAmount;
         gasCostInUSD: CurrencyAmount;
+        initTicksCrossed: number;
+        gasUseL1: BigNumber;
+        gasCostL1: BigNumber;
       } => {
-        const { gasCostNativeCurrency, gasUse } = this.estimateGas(
+        const {
+          totalGasCostNativeCurrency,
+          totalInitializedTicksCrossed,
+          l1GasUsed,
+          totalGasUse,
+          l1Fee,
+        } = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
-          chainId
+          chainId,
+          swapConfig,
+          gasData
         );
 
         const token0 = usdPool.token0.address == nativeCurrency.address;
@@ -87,13 +100,16 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
           : usdPool.token1Price;
 
         const gasCostInTermsOfUSD: CurrencyAmount = nativeTokenPrice.quote(
-          gasCostNativeCurrency
+          totalGasCostNativeCurrency
         ) as CurrencyAmount;
 
         return {
-          gasEstimate: gasUse,
-          gasCostInToken: gasCostNativeCurrency,
+          gasEstimate: totalGasUse,
+          gasCostInToken: totalGasCostNativeCurrency,
           gasCostInUSD: gasCostInTermsOfUSD,
+          initTicksCrossed: totalInitializedTicksCrossed,
+          gasUseL1: l1GasUsed,
+          gasCostL1: l1Fee,
         };
       };
 
@@ -126,11 +142,22 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
       gasCostInUSD: CurrencyAmount;
+      initTicksCrossed: number;
+      gasUseL1: BigNumber;
+      gasCostL1: BigNumber;
     } => {
-      const { gasCostNativeCurrency, gasUse } = this.estimateGas(
+      const {
+        totalGasCostNativeCurrency,
+        totalInitializedTicksCrossed,
+        l1GasUsed,
+        totalGasUse,
+        l1Fee,
+      } = this.estimateGas(
         routeWithValidQuote,
         gasPriceWei,
-        chainId
+        chainId,
+        swapConfig,
+        gasData
       );
 
       if (!nativePool) {
@@ -138,9 +165,12 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${token.symbol} to produce gas adjusted costs. Route will not account for gas.`
         );
         return {
-          gasEstimate: gasUse,
+          gasEstimate: totalGasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
           gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
+          initTicksCrossed: totalInitializedTicksCrossed,
+          gasUseL1: l1GasUsed,
+          gasCostL1: l1Fee,
         };
       }
 
@@ -155,14 +185,14 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       try {
         // native token is base currency
         gasCostInTermsOfQuoteToken = nativeTokenPrice.quote(
-          gasCostNativeCurrency
+          totalGasCostNativeCurrency
         ) as CurrencyAmount;
       } catch (err) {
         log.info(
           {
             nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
             nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-            gasCostInEth: gasCostNativeCurrency.currency,
+            gasCostInEth: totalGasCostNativeCurrency.currency,
           },
           'Debug eth price token issue'
         );
@@ -180,14 +210,14 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       let gasCostInTermsOfUSD: CurrencyAmount;
       try {
         gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
-          gasCostNativeCurrency
+          totalGasCostNativeCurrency
         ) as CurrencyAmount;
       } catch (err) {
         log.info(
           {
             usdT1: usdPool.token0.symbol,
             usdT2: usdPool.token1.symbol,
-            gasCostInNativeToken: gasCostNativeCurrency.currency.symbol,
+            gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
           },
           'Failed to compute USD gas price'
         );
@@ -195,9 +225,12 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       }
 
       return {
-        gasEstimate: gasUse,
+        gasEstimate: totalGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
         gasCostInUSD: gasCostInTermsOfUSD!,
+        initTicksCrossed: totalInitializedTicksCrossed,
+        gasUseL1: l1GasUsed,
+        gasCostL1: l1Fee,
       };
     };
 
@@ -206,10 +239,14 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     };
   }
 
+  // NOTE end of buildGasModel()
+
   private estimateGas(
     routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
-    chainId: ChainId
+    chainId: ChainId,
+    swapConfig?: SwapOptions,
+    gasData?: OptimismGasData
   ) {
     const totalInitializedTicksCrossed = Math.max(
       1,
@@ -217,24 +254,52 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     );
     const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
 
-    const hopsGasUse = COST_PER_HOP.mul(totalHops);
-    const tickGasUse = COST_PER_INIT_TICK.mul(totalInitializedTicksCrossed);
+    const hopsGasUse = COST_PER_HOP(chainId).mul(totalHops);
+    const tickGasUse = COST_PER_INIT_TICK(chainId).mul(
+      totalInitializedTicksCrossed
+    );
     const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
 
-    const gasUse = BASE_SWAP_COST.add(hopsGasUse)
+    let l1GasUsed = BigNumber.from(0);
+    let l1Fee = BigNumber.from(0);
+    if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
+      // account for the L1 security fee
+      if (!swapConfig) {
+        log.info('Skipping l1 security fee calculation');
+      } else {
+        [l1GasUsed, l1Fee] = this.calculateL1SecurityFee(
+          routeWithValidQuote,
+          swapConfig,
+          gasData!
+        );
+      }
+    }
+    const baseGasUse = BASE_SWAP_COST(chainId)
+      .add(hopsGasUse)
       .add(tickGasUse)
       .add(uninitializedTickGasUse);
 
-    const totalGasCostWei = gasPriceWei.mul(gasUse);
+    const baseGasCostWei = gasPriceWei.mul(baseGasUse);
+
+    const totalGasUse = l1GasUsed.add(baseGasUse);
+
+    // total gas cost including l1 security fee if on optimism
+    const totalGasCostWei = l1Fee.add(baseGasCostWei);
 
     const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
-    const gasCostNativeCurrency = CurrencyAmount.fromRawAmount(
+    const totalGasCostNativeCurrency = CurrencyAmount.fromRawAmount(
       wrappedCurrency,
       totalGasCostWei.toString()
     );
 
-    return { gasCostNativeCurrency, gasUse };
+    return {
+      totalGasCostNativeCurrency,
+      totalInitializedTicksCrossed,
+      l1GasUsed,
+      l1Fee,
+      totalGasUse,
+    };
   }
 
   private async getHighestLiquidityNativePool(
@@ -340,5 +405,47 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
 
     return maxPool;
+  }
+
+  private calculateL1SecurityFee(
+    route: V3RouteWithValidQuote,
+    swapConfig: SwapOptions,
+    gasData: OptimismGasData
+  ): [BigNumber, BigNumber] {
+    const { l1BaseFee, scalar, decimals, overhead } = gasData;
+
+    // build trade for swap calldata
+    const trade = buildTrade(
+      route.amount.currency,
+      route.quote.currency,
+      route.tradeType,
+      [route]
+    );
+    const data = buildSwapMethodParameters(trade, swapConfig).calldata;
+    const l1GasUsed = this.getL1GasUsed(data, overhead);
+    const l1Fee = l1GasUsed.mul(l1BaseFee);
+    const unscaled = l1Fee.mul(scalar);
+    // scaled = unscaled / (10 ** decimals)
+    const scaledConversion = BigNumber.from(10).pow(decimals);
+    const scaled = unscaled.div(scaledConversion);
+    return [l1GasUsed, scaled];
+  }
+
+  private getL1GasUsed(data: string, overhead: BigNumber): BigNumber {
+    // data is hex encoded
+    const dataArr: string[] = data.slice(2).match(/.{1,2}/g)!;
+    const numBytes = dataArr.length;
+    let count = 0;
+    for (let i = 0; i < numBytes; i += 1) {
+      const byte = parseInt(dataArr[i]!, 16);
+      if (byte == 0) {
+        count += 4;
+      } else {
+        count += 16;
+      }
+    }
+    const unsigned = overhead.add(count);
+    const signedConversion = 68 * 16;
+    return unsigned.add(signedConversion);
   }
 }

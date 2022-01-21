@@ -70,7 +70,7 @@ export abstract class BaseCommand extends Command {
     }),
     maxSwapsPerPath: flags.integer({
       required: false,
-      default: 3,
+      default: 1,
     }),
     minSplits: flags.integer({
       required: false,
@@ -78,7 +78,7 @@ export abstract class BaseCommand extends Command {
     }),
     maxSplits: flags.integer({
       required: false,
-      default: 3,
+      default: 1,
     }),
     distributionPercent: flags.integer({
       required: false,
@@ -297,7 +297,10 @@ export abstract class BaseCommand extends Command {
     methodParameters: MethodParameters | undefined,
     blockNumber: BigNumber,
     estimatedGasUsed: BigNumber,
-    gasPriceWei: BigNumber
+    gasPriceWei: BigNumber,
+    initTicksCrossed?: BigNumber,
+    l1GasUse?: BigNumber,
+    l1GasCost?: BigNumber
   ) {
     this.logger.info(`Best Route:`);
     this.logger.info(`${routeAmountsToString(routeAmounts)}`);
@@ -318,5 +321,10 @@ export abstract class BaseCommand extends Command {
       estimatedGasUsed: estimatedGasUsed.toString(),
       gasPriceWei: gasPriceWei.toString(),
     });
+    const hops = routeAmounts[0]?.poolAddresses.length;
+    this.logger.info(`Total hops ${hops}`);
+    this.logger.info(`Total initialized ticks crossed ${initTicksCrossed}`);
+    this.logger.info(`Optimism l1 gas cost: ${l1GasCost}`);
+    this.logger.info(`Optimism l1 gas use: ${l1GasUse}`);
   }
 }
