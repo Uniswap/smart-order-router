@@ -13,6 +13,14 @@ export enum ChainId {
   POLYGON_MUMBAI = 80001,
 }
 
+export const V2_SUPPORTED = [
+  ChainId.MAINNET,
+  ChainId.KOVAN,
+  ChainId.GÖRLI,
+  ChainId.RINKEBY,
+  ChainId.ROPSTEN,
+];
+
 export const ID_TO_CHAIN_ID = (id: number): ChainId => {
   switch (id) {
     case 1:
