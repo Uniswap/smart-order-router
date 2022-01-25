@@ -75,7 +75,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         gasEstimate: BigNumber;
         gasCostInToken: CurrencyAmount;
         gasCostInUSD: CurrencyAmount;
-        initTicksCrossed: number;
+        initTicksCrossed: BigNumber;
         gasUseL1: BigNumber;
         gasCostL1: BigNumber;
       } => {
@@ -142,7 +142,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
       gasCostInUSD: CurrencyAmount;
-      initTicksCrossed: number;
+      initTicksCrossed: BigNumber;
       gasUseL1: BigNumber;
       gasCostL1: BigNumber;
     } => {
@@ -248,9 +248,8 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     swapConfig?: SwapOptions,
     gasData?: OptimismGasData
   ) {
-    const totalInitializedTicksCrossed = Math.max(
-      1,
-      _.sum(routeWithValidQuote.initializedTicksCrossedList)
+    const totalInitializedTicksCrossed = BigNumber.from(
+      Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
     );
     const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
 

@@ -42,6 +42,7 @@ import {
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
+// import { GasDataProvider } from '../../../../src/providers/v3/gas-data-provider';
 import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   buildMockTokenAccessor,

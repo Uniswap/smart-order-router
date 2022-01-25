@@ -1,7 +1,7 @@
 import { BigNumber, providers } from 'ethers';
 import { OptimismGasData } from '../../routers';
 import { GasPriceOracle, GasPriceOracle__factory } from '../../types/other';
-import { ChainId, log, OVM_GASPRICE_ADDRESS } from '../../util';
+import { ChainId, OVM_GASPRICE_ADDRESS } from '../../util';
 
 export interface IGasDataProvider {
   getGasData(): Promise<OptimismGasData>;
@@ -39,12 +39,6 @@ export class GasDataProvider implements IGasDataProvider {
       decimals,
       overhead,
     };
-
-    log.debug('DATA FIELD');
-    log.debug(data.decimals);
-    log.debug(data.l1BaseFee);
-    log.debug(data.overhead);
-    log.debug(data.scalar);
 
     return data;
   }

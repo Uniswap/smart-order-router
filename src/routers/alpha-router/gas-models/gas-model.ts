@@ -80,7 +80,7 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;
-    initTicksCrossed?: number;
+    initTicksCrossed?: BigNumber;
     gasUseL1?: BigNumber;
     gasCostL1?: BigNumber;
   };

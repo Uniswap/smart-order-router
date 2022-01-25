@@ -75,7 +75,6 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
             gasEstimate: gasUse,
             gasCostInToken: gasCostInEth,
             gasCostInUSD: gasCostInTermsOfUSD,
-            initTicksCrossed: 0,
           };
         },
       };
@@ -115,7 +114,6 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
             gasEstimate: gasUse,
             gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
             gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
-            initTicksCrossed: 0,
           };
         }
 
@@ -171,7 +169,6 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           gasEstimate: gasUse,
           gasCostInToken: gasCostInTermsOfQuoteToken,
           gasCostInUSD: gasCostInTermsOfUSD!,
-          initTicksCrossed: 0,
         };
       },
     };

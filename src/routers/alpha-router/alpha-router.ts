@@ -178,6 +178,11 @@ export type AlphaRouterParams = {
    * LP position tokens.
    */
   swapRouterProvider?: ISwapRouterProvider;
+
+  /**
+   * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
+   */
+  optimismGasDataProvider?: IGasDataProvider;
 };
 
 /**
@@ -312,6 +317,7 @@ export class AlphaRouter
     v3GasModelFactory,
     v2GasModelFactory,
     swapRouterProvider,
+    optimismGasDataProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -500,11 +506,9 @@ export class AlphaRouter
     this.swapRouterProvider =
       swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
 
-    if (chainId == ChainId.OPTIMISM || ChainId.OPTIMISTIC_KOVAN) {
-      this.optimismGasDataProvider = new GasDataProvider(
-        chainId,
-        this.provider
-      );
+    if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
+      this.optimismGasDataProvider =
+        optimismGasDataProvider ?? new GasDataProvider(chainId, this.provider);
     }
   }
 
@@ -957,9 +961,15 @@ export class AlphaRouter
     });
 
     // only make contract calls once
-    const gasData = this.optimismGasDataProvider
-      ? await this.optimismGasDataProvider.getGasData()
-      : undefined;
+    let gasData;
+    if (
+      this.chainId == ChainId.OPTIMISM ||
+      this.chainId == ChainId.OPTIMISTIC_KOVAN
+    ) {
+      gasData = this.optimismGasDataProvider
+        ? await this.optimismGasDataProvider.getGasData()
+        : undefined;
+    }
 
     const gasModel = await this.v3GasModelFactory.buildGasModel(
       this.chainId,

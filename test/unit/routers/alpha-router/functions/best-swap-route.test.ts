@@ -110,6 +110,7 @@ describe('get best swap route', () => {
         gasEstimate: BigNumber.from(10000),
         gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
         gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        initTicksCrossed: BigNumber.from(1),
       };
     });
 
@@ -686,6 +687,7 @@ describe('get best swap route', () => {
           USDC,
           JSBI.multiply(JSBI.BigInt(10), JSBI.BigInt(hops))
         ),
+        initTicksCrossed: BigNumber.from(1),
       };
     });
 
@@ -755,6 +757,7 @@ describe('get best swap route', () => {
           DAI_MAINNET,
           JSBI.multiply(JSBI.BigInt(10), JSBI.BigInt(hops))
         ),
+        initTicksCrossed: BigNumber.from(1),
       };
     });
 
