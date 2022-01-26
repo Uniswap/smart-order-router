@@ -141,7 +141,6 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         ? this.buildMethodParameters(trade, swapConfig)
         : undefined,
       blockNumber: BigNumber.from(0),
-      initTicksCrossed: BigNumber.from(0),
     };
   }
 
@@ -194,7 +193,6 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
         ? this.buildMethodParameters(trade, swapConfig)
         : undefined,
       blockNumber: BigNumber.from(0),
-      initTicksCrossed: BigNumber.from(0),
     };
   }
 

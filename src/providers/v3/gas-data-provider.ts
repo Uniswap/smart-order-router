@@ -3,7 +3,18 @@ import { OptimismGasData } from '../../routers';
 import { GasPriceOracle, GasPriceOracle__factory } from '../../types/other';
 import { ChainId, OVM_GASPRICE_ADDRESS } from '../../util';
 
+/**
+ * Provider or getting Optimism gas constants.
+ *
+ * @export
+ * @interface IGasDataProvider
+ */
 export interface IGasDataProvider {
+  /**
+   * Gets the data constants needed to calculate the l1 security fee on Optimism.
+   * @returns An OptimismGasData object that includes the l1BaseFee,
+   * scalar, decimals, and overhead values.
+   */
   getGasData(): Promise<OptimismGasData>;
 }
 

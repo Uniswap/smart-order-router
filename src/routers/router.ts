@@ -121,7 +121,6 @@ export type SwapOptions = {
 };
 
 export type OptimismGasData = {
-  // l1GasPriceWei: BigNumber;
   l1BaseFee: BigNumber;
   scalar: BigNumber;
   decimals: BigNumber;

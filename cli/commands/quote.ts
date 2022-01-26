@@ -109,9 +109,9 @@ export class Quote extends BaseCommand {
         TradeType.EXACT_INPUT,
         recipient
           ? {
-              deadline: 10000000000,
+              deadline: 100,
               recipient,
-              slippageTolerance: new Percent(200000, 10_000),
+              slippageTolerance: new Percent(5, 10_000),
             }
           : undefined,
         {
