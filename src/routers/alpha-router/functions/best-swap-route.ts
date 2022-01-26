@@ -456,7 +456,8 @@ export function getBestSwapRouteBy(
   }
   // only need tick data for estimating gas on these chains
   if (
-    chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN ||
+    chainId == ChainId.OPTIMISM ||
+    chainId == ChainId.OPTIMISTIC_KOVAN ||
     chainId == ChainId.ARBITRUM_ONE ||
     chainId == ChainId.ARBITRUM_RINKEBY
   ) {
@@ -464,6 +465,7 @@ export function getBestSwapRouteBy(
       bestSwap,
       (routeWithValidQuote) => routeWithValidQuote.initTicksCrossed!
     ).reduce((sum, ticksCrossed) => sum.add(ticksCrossed), BigNumber.from(0));
+  }
 
   const routeWithQuotes = bestSwap.sort((routeAmountA, routeAmountB) =>
     routeAmountB.amount.greaterThan(routeAmountA.amount) ? 1 : -1
