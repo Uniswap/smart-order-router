@@ -70,7 +70,7 @@ export abstract class BaseCommand extends Command {
     }),
     maxSwapsPerPath: flags.integer({
       required: false,
-      default: 1,
+      default: 3,
     }),
     minSplits: flags.integer({
       required: false,
@@ -78,7 +78,7 @@ export abstract class BaseCommand extends Command {
     }),
     maxSplits: flags.integer({
       required: false,
-      default: 1,
+      default: 3,
     }),
     distributionPercent: flags.integer({
       required: false,

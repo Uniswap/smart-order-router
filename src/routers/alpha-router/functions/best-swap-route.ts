@@ -449,18 +449,21 @@ export function getBestSwapRouteBy(
       (sum, route) => sum.add(route),
       BigNumber.from(0)
     );
-    log.debug(totalL1GasUsed);
     totalL1GasCost = _.map(bestSwap, (route) => route.gasCostL1!).reduce(
       (sum, route) => sum.add(route),
       BigNumber.from(0)
     );
-    log.debug(totalL1GasCost);
-
+  }
+  // only need tick data for estimating gas on these chains
+  if (
+    chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN ||
+    chainId == ChainId.ARBITRUM_ONE ||
+    chainId == ChainId.ARBITRUM_RINKEBY
+  ) {
     totalInitTicksCrossed = _.map(
       bestSwap,
       (routeWithValidQuote) => routeWithValidQuote.initTicksCrossed!
     ).reduce((sum, ticksCrossed) => sum.add(ticksCrossed), BigNumber.from(0));
-  }
 
   const routeWithQuotes = bestSwap.sort((routeAmountA, routeAmountB) =>
     routeAmountB.amount.greaterThan(routeAmountA.amount) ? 1 : -1
