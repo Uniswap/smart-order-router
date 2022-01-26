@@ -4,7 +4,7 @@ import { GasPriceOracle, GasPriceOracle__factory } from '../../types/other';
 import { ChainId, OVM_GASPRICE_ADDRESS } from '../../util';
 
 /**
- * Provider or getting Optimism gas constants.
+ * Provider for getting Optimism gas constants.
  *
  * @export
  * @interface IGasDataProvider

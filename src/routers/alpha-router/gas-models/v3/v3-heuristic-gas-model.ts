@@ -239,8 +239,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     };
   }
 
-  // NOTE end of buildGasModel()
-
   private estimateGas(
     routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
