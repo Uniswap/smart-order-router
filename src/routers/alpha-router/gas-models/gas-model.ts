@@ -31,10 +31,10 @@ import {
   WBTC_GÖRLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
+import { IOptimismGasDataProvider } from '../../../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
-import { OptimismGasData, SwapOptions } from '../../router';
 import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
@@ -80,9 +80,6 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;
-    initTicksCrossed?: BigNumber;
-    gasUseL1?: BigNumber;
-    gasCostL1?: BigNumber;
   };
 };
 
@@ -103,8 +100,7 @@ export abstract class IV3GasModelFactory {
     gasPriceWei: BigNumber,
     poolProvider: IV3PoolProvider,
     inTermsOfToken: Token,
-    swapConfig?: SwapOptions,
-    gasData?: OptimismGasData
+    optimismGasDataProvider?: IOptimismGasDataProvider
   ): Promise<IGasModel<V3RouteWithValidQuote>>;
 }
 

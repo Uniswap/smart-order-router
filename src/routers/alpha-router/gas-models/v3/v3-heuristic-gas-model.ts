@@ -1,12 +1,12 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Token } from '@uniswap/sdk-core';
+import { Percent, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import {
+  IOptimismGasDataProvider,
   OptimismGasData,
-  SwapOptions,
-  WRAPPED_NATIVE_CURRENCY,
-} from '../../../..';
+} from '../../../../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
@@ -54,10 +54,13 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     gasPriceWei: BigNumber,
     poolProvider: IV3PoolProvider,
     token: Token,
-    swapConfig?: SwapOptions,
-    gasData?: OptimismGasData
+    optimismGasDataProvider?: IOptimismGasDataProvider
     // this is the quoteToken
   ): Promise<IGasModel<V3RouteWithValidQuote>> {
+    const optimismGasData = optimismGasDataProvider
+      ? await optimismGasDataProvider.getGasData()
+      : undefined;
+
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
     // We do return a gas use in USD however, so we still convert to usd.
@@ -75,22 +78,12 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         gasEstimate: BigNumber;
         gasCostInToken: CurrencyAmount;
         gasCostInUSD: CurrencyAmount;
-        initTicksCrossed: BigNumber;
-        gasUseL1: BigNumber;
-        gasCostL1: BigNumber;
       } => {
-        const {
-          totalGasCostNativeCurrency,
-          totalInitializedTicksCrossed,
-          l1GasUsed,
-          totalGasUse,
-          l1Fee,
-        } = this.estimateGas(
+        const { totalGasCostNativeCurrency, totalGasUse } = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
           chainId,
-          swapConfig,
-          gasData
+          optimismGasData
         );
 
         const token0 = usdPool.token0.address == nativeCurrency.address;
@@ -107,9 +100,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
           gasEstimate: totalGasUse,
           gasCostInToken: totalGasCostNativeCurrency,
           gasCostInUSD: gasCostInTermsOfUSD,
-          initTicksCrossed: totalInitializedTicksCrossed,
-          gasUseL1: l1GasUsed,
-          gasCostL1: l1Fee,
         };
       };
 
@@ -142,22 +132,12 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
       gasCostInUSD: CurrencyAmount;
-      initTicksCrossed: BigNumber;
-      gasUseL1: BigNumber;
-      gasCostL1: BigNumber;
     } => {
-      const {
-        totalGasCostNativeCurrency,
-        totalInitializedTicksCrossed,
-        l1GasUsed,
-        totalGasUse,
-        l1Fee,
-      } = this.estimateGas(
+      const { totalGasCostNativeCurrency, totalGasUse } = this.estimateGas(
         routeWithValidQuote,
         gasPriceWei,
         chainId,
-        swapConfig,
-        gasData
+        optimismGasData
       );
 
       if (!nativePool) {
@@ -168,9 +148,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
           gasEstimate: totalGasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
           gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
-          initTicksCrossed: totalInitializedTicksCrossed,
-          gasUseL1: l1GasUsed,
-          gasCostL1: l1Fee,
         };
       }
 
@@ -228,9 +205,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         gasEstimate: totalGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
         gasCostInUSD: gasCostInTermsOfUSD!,
-        initTicksCrossed: totalInitializedTicksCrossed,
-        gasUseL1: l1GasUsed,
-        gasCostL1: l1Fee,
       };
     };
 
@@ -243,7 +217,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId,
-    swapConfig?: SwapOptions,
     gasData?: OptimismGasData
   ) {
     const totalInitializedTicksCrossed = BigNumber.from(
@@ -261,15 +234,17 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     let l1Fee = BigNumber.from(0);
     if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
       // account for the L1 security fee
-      if (!swapConfig) {
-        log.info('Skipping l1 security fee calculation');
-      } else {
-        [l1GasUsed, l1Fee] = this.calculateL1SecurityFee(
-          routeWithValidQuote,
-          swapConfig,
-          gasData!
-        );
-      }
+      // create dummy swapConfig to get calldata bytes
+      const swapConfig: SwapOptions = {
+        recipient: '0x0000000000000000000000000000000000000001',
+        deadline: 100,
+        slippageTolerance: new Percent(5, 10_000),
+      };
+      [l1GasUsed, l1Fee] = this.calculateOptimismToL1SecurityFee(
+        routeWithValidQuote,
+        swapConfig,
+        gasData!
+      );
     }
     const baseGasUse = BASE_SWAP_COST(chainId)
       .add(hopsGasUse)
@@ -278,9 +253,8 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
-    const totalGasUse = l1GasUsed.add(baseGasUse);
-
     // total gas cost including l1 security fee if on optimism
+    const totalGasUse = l1GasUsed.add(baseGasUse);
     const totalGasCostWei = l1Fee.add(baseGasCostWei);
 
     const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -293,8 +267,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     return {
       totalGasCostNativeCurrency,
       totalInitializedTicksCrossed,
-      l1GasUsed,
-      l1Fee,
       totalGasUse,
     };
   }
@@ -404,7 +376,11 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     return maxPool;
   }
 
-  private calculateL1SecurityFee(
+  /**
+   * To avoid having a call to optimism's L1 security fee contract for every route and amount combination,
+   * we replicate the gas cost accounting here.
+   */
+  private calculateOptimismToL1SecurityFee(
     route: V3RouteWithValidQuote,
     swapConfig: SwapOptions,
     gasData: OptimismGasData
@@ -419,7 +395,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       [route]
     );
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
-    const l1GasUsed = this.getL1GasUsed(data, overhead);
+    const l1GasUsed = this.getOptimismToL1GasUsed(data, overhead);
     const l1Fee = l1GasUsed.mul(l1BaseFee);
     const unscaled = l1Fee.mul(scalar);
     // scaled = unscaled / (10 ** decimals)
@@ -428,7 +404,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     return [l1GasUsed, scaled];
   }
 
-  private getL1GasUsed(data: string, overhead: BigNumber): BigNumber {
+  private getOptimismToL1GasUsed(data: string, overhead: BigNumber): BigNumber {
     // data is hex encoded
     const dataArr: string[] = data.slice(2).match(/.{1,2}/g)!;
     const numBytes = dataArr.length;

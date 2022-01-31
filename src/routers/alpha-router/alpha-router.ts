@@ -796,8 +796,7 @@ export class AlphaRouter
             quoteToken,
             gasPriceWei,
             tradeType,
-            routingConfig,
-            swapConfig ?? undefined
+            routingConfig
           )
         );
       }
@@ -860,9 +859,6 @@ export class AlphaRouter
       routes: routeAmounts,
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,
-      initTicksCrossed,
-      l1GasCost,
-      l1GasUse,
     } = swapRouteRaw;
 
     // Build Trade object that represents the optimal swap.
@@ -906,9 +902,6 @@ export class AlphaRouter
       trade,
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
-      initTicksCrossed,
-      l1GasCost,
-      l1GasUse,
     };
   }
 
@@ -920,8 +913,7 @@ export class AlphaRouter
     quoteToken: Token,
     gasPriceWei: BigNumber,
     swapType: TradeType,
-    routingConfig: AlphaRouterConfig,
-    swapConfig?: SwapOptions
+    routingConfig: AlphaRouterConfig
   ): Promise<{
     routesWithValidQuotes: V3RouteWithValidQuote[];
     candidatePools: CandidatePoolsBySelectionCriteria;
@@ -970,24 +962,12 @@ export class AlphaRouter
       blockNumber: routingConfig.blockNumber,
     });
 
-    // only make contract calls once
-    let gasData;
-    if (
-      this.chainId == ChainId.OPTIMISM ||
-      this.chainId == ChainId.OPTIMISTIC_KOVAN
-    ) {
-      gasData = this.optimismGasDataProvider
-        ? await this.optimismGasDataProvider.getGasData()
-        : undefined;
-    }
-
     const gasModel = await this.v3GasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
       this.v3PoolProvider,
       quoteToken,
-      swapConfig,
-      gasData
+      this.optimismGasDataProvider
     );
 
     metric.putMetric(

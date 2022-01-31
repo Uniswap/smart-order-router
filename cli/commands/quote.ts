@@ -2,7 +2,7 @@ import { flags } from '@oclif/command';
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import _ from 'lodash';
 import {
   ID_TO_CHAIN_ID,
@@ -186,9 +186,6 @@ export class Quote extends BaseCommand {
       quote,
       quoteGasAdjusted,
       route: routeAmounts,
-      initTicksCrossed,
-      l1GasUse,
-      l1GasCost,
     } = swapRoutes;
 
     this.logSwapResults(
@@ -200,10 +197,7 @@ export class Quote extends BaseCommand {
       methodParameters,
       blockNumber,
       estimatedGasUsed,
-      gasPriceWei,
-      initTicksCrossed ?? BigNumber.from(0),
-      l1GasUse ?? BigNumber.from(0),
-      l1GasCost ?? BigNumber.from(0)!
+      gasPriceWei
     );
   }
 }

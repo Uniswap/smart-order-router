@@ -2,6 +2,7 @@
 import { Command, flags } from '@oclif/command';
 import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
+import { Protocol } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
 import { MethodParameters } from '@uniswap/v3-sdk';
 import { default as bunyan, default as Logger } from 'bunyan';
@@ -34,6 +35,7 @@ import {
   UniswapMulticallProvider,
   V3PoolProvider,
   V3QuoteProvider,
+  V3RouteWithValidQuote,
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
 import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
@@ -297,10 +299,7 @@ export abstract class BaseCommand extends Command {
     methodParameters: MethodParameters | undefined,
     blockNumber: BigNumber,
     estimatedGasUsed: BigNumber,
-    gasPriceWei: BigNumber,
-    initTicksCrossed?: BigNumber,
-    l1GasUse?: BigNumber,
-    l1GasCost?: BigNumber
+    gasPriceWei: BigNumber
   ) {
     this.logger.info(`Best Route:`);
     this.logger.info(`${routeAmountsToString(routeAmounts)}`);
@@ -323,8 +322,12 @@ export abstract class BaseCommand extends Command {
     });
     const hops = routeAmounts[0]?.poolAddresses.length;
     this.logger.info(`Total hops ${hops}`);
-    this.logger.info(`Total initialized ticks crossed ${initTicksCrossed}`);
-    this.logger.info(`Optimism l1 gas cost: ${l1GasCost}`);
-    this.logger.info(`Optimism l1 gas use: ${l1GasUse}`);
+
+    if (routeAmounts[0]?.protocol == Protocol.V3) {
+      const v3Route = routeAmounts[0] as V3RouteWithValidQuote;
+      this.logger.info(
+        `Total initialized ticks crossed ${v3Route.initializedTicksCrossedList.length}`
+      );
+    }
   }
 }

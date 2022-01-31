@@ -65,9 +65,6 @@ export type SwapRoute = {
    * The calldata to execute the swap. Only returned if swapConfig was provided when calling the router.
    */
   methodParameters?: MethodParameters;
-  initTicksCrossed?: BigNumber;
-  l1GasCost?: BigNumber;
-  l1GasUse?: BigNumber;
 };
 
 export type SwapToRatioRoute = SwapRoute & {
@@ -118,13 +115,6 @@ export type SwapOptions = {
         expiry: string;
       }
   );
-};
-
-export type OptimismGasData = {
-  l1BaseFee: BigNumber;
-  scalar: BigNumber;
-  decimals: BigNumber;
-  overhead: BigNumber;
 };
 
 // Config passed in to determine configurations on acceptable liquidity

@@ -26,9 +26,6 @@ export function getBestSwapRoute(
   estimatedGasUsedUSD: CurrencyAmount;
   estimatedGasUsedQuoteToken: CurrencyAmount;
   routes: RouteWithValidQuote[];
-  initTicksCrossed?: BigNumber;
-  l1GasCost?: BigNumber;
-  l1GasUse?: BigNumber;
 } | null {
   const now = Date.now();
 
@@ -119,9 +116,6 @@ export function getBestSwapRouteBy(
       estimatedGasUsedUSD: CurrencyAmount;
       estimatedGasUsedQuoteToken: CurrencyAmount;
       routes: RouteWithValidQuote[];
-      initTicksCrossed?: BigNumber;
-      l1GasUse?: BigNumber;
-      l1GasCost?: BigNumber;
     }
   | undefined {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
@@ -439,34 +433,6 @@ export function getBestSwapRouteBy(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
   );
 
-  let totalL1GasUsed = BigNumber.from(0);
-  let totalL1GasCost = BigNumber.from(0);
-  let totalInitTicksCrossed = BigNumber.from(0);
-  if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
-    // only need these values for optimism security fee l1
-    log.info('Calculating total tick and gas costs');
-    totalL1GasUsed = _.map(bestSwap, (route) => route.gasUseL1!).reduce(
-      (sum, route) => sum.add(route),
-      BigNumber.from(0)
-    );
-    totalL1GasCost = _.map(bestSwap, (route) => route.gasCostL1!).reduce(
-      (sum, route) => sum.add(route),
-      BigNumber.from(0)
-    );
-  }
-  // only need tick data for estimating gas on these chains
-  if (
-    chainId == ChainId.OPTIMISM ||
-    chainId == ChainId.OPTIMISTIC_KOVAN ||
-    chainId == ChainId.ARBITRUM_ONE ||
-    chainId == ChainId.ARBITRUM_RINKEBY
-  ) {
-    totalInitTicksCrossed = _.map(
-      bestSwap,
-      (routeWithValidQuote) => routeWithValidQuote.initTicksCrossed!
-    ).reduce((sum, ticksCrossed) => sum.add(ticksCrossed), BigNumber.from(0));
-  }
-
   const routeWithQuotes = bestSwap.sort((routeAmountA, routeAmountB) =>
     routeAmountB.amount.greaterThan(routeAmountA.amount) ? 1 : -1
   );
@@ -483,9 +449,6 @@ export function getBestSwapRouteBy(
     estimatedGasUsedUSD,
     estimatedGasUsedQuoteToken,
     routes: routeWithQuotes,
-    initTicksCrossed: totalInitTicksCrossed,
-    l1GasCost: totalL1GasCost,
-    l1GasUse: totalL1GasUsed,
   };
 }
 

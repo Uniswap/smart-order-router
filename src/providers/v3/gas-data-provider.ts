@@ -1,8 +1,14 @@
 import { BigNumber } from 'ethers';
-import { OptimismGasData } from '../../routers';
 import { GasPriceOracle__factory } from '../../types/other';
 import { ChainId, log, OVM_GASPRICE_ADDRESS } from '../../util';
 import { IMulticallProvider } from '../multicall-provider';
+
+export type OptimismGasData = {
+  l1BaseFee: BigNumber;
+  scalar: BigNumber;
+  decimals: BigNumber;
+  overhead: BigNumber;
+};
 
 /**
  * Provider for getting Optimism gas constants.
