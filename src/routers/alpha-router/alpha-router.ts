@@ -51,8 +51,8 @@ import {
   V2PoolProvider,
 } from '../../providers/v2/pool-provider';
 import {
-  GasDataProvider,
-  IGasDataProvider,
+  IOptimismGasDataProvider,
+  OptimismGasDataProvider,
 } from '../../providers/v3/gas-data-provider';
 import {
   IV3PoolProvider,
@@ -187,7 +187,7 @@ export type AlphaRouterParams = {
   /**
    * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
    */
-  optimismGasDataProvider?: IGasDataProvider;
+  optimismGasDataProvider?: IOptimismGasDataProvider;
 };
 
 /**
@@ -304,7 +304,7 @@ export class AlphaRouter
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
   protected blockedTokenListProvider?: ITokenListProvider;
-  protected optimismGasDataProvider?: IGasDataProvider;
+  protected optimismGasDataProvider?: IOptimismGasDataProvider;
 
   constructor({
     chainId,
@@ -513,7 +513,8 @@ export class AlphaRouter
 
     if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
       this.optimismGasDataProvider =
-        optimismGasDataProvider ?? new GasDataProvider(chainId, this.provider);
+        optimismGasDataProvider ??
+        new OptimismGasDataProvider(chainId, this.multicall2Provider);
     }
   }
 

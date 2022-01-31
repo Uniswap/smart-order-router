@@ -26,6 +26,18 @@ export type CallSameFunctionOnContractWithMultipleParams<
   additionalConfig?: TAdditionalConfig;
 };
 
+export type CallMultipleFunctionsOnSameContractParams<
+  TFunctionParams,
+  TAdditionalConfig = any
+> = {
+  address: string;
+  contractInterface: Interface;
+  functionNames: string[];
+  functionParams?: TFunctionParams[];
+  providerConfig?: ProviderConfig;
+  additionalConfig?: TAdditionalConfig;
+};
+
 export type SuccessResult<TReturn> = {
   success: true;
   result: TReturn;
@@ -89,6 +101,19 @@ export abstract class IMulticallProvider<TMulticallConfig = any> {
     TReturn = any
   >(
     params: CallSameFunctionOnContractWithMultipleParams<
+      TFunctionParams,
+      TMulticallConfig
+    >
+  ): Promise<{
+    blockNumber: BigNumber;
+    results: Result<TReturn>[];
+  }>;
+
+  public abstract callMultipleFunctionsOnSameContract<
+    TFunctionParams extends any[] | undefined,
+    TReturn = any
+  >(
+    params: CallMultipleFunctionsOnSameContractParams<
       TFunctionParams,
       TMulticallConfig
     >
