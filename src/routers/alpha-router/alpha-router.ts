@@ -2,12 +2,11 @@ import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { Pair, Route as V2RouteRaw } from '@uniswap/v2-sdk';
+import { Pair } from '@uniswap/v2-sdk';
 import {
   MethodParameters,
   Pool,
   Position,
-  Route as V3RouteRaw,
   SqrtPriceMath,
   TickMath,
 } from '@uniswap/v3-sdk';
@@ -58,6 +57,10 @@ import {
   V2PoolProvider,
 } from '../../providers/v2/pool-provider';
 import {
+  IOptimismGasDataProvider,
+  OptimismGasDataProvider,
+} from '../../providers/v3/gas-data-provider';
+import {
   IV3PoolProvider,
   V3PoolProvider,
 } from '../../providers/v3/pool-provider';
@@ -67,8 +70,17 @@ import {
 } from '../../providers/v3/quote-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CurrencyAmount } from '../../util/amounts';
-import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME } from '../../util/chains';
+import {
+  ChainId,
+  ID_TO_CHAIN_ID,
+  ID_TO_NETWORK_NAME,
+  V2_SUPPORTED,
+} from '../../util/chains';
 import { log } from '../../util/log';
+import {
+  buildSwapMethodParameters,
+  buildTrade,
+} from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { poolToString, routeToString } from '../../util/routes';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
@@ -178,6 +190,11 @@ export type AlphaRouterParams = {
    */
   swapRouterProvider?: ISwapRouterProvider;
 
+  /**
+   * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
+   */
+  optimismGasDataProvider?: IOptimismGasDataProvider;
+  
   /**
    * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
    */
@@ -299,6 +316,7 @@ export class AlphaRouter
   protected v2GasModelFactory: IV2GasModelFactory;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
+  protected optimismGasDataProvider?: IOptimismGasDataProvider;
 
   constructor({
     chainId,
@@ -316,6 +334,7 @@ export class AlphaRouter
     v3GasModelFactory,
     v2GasModelFactory,
     swapRouterProvider,
+    optimismGasDataProvider,
     tokenValidatorProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
@@ -505,6 +524,11 @@ export class AlphaRouter
     this.swapRouterProvider =
       swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
 
+    if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
+      this.optimismGasDataProvider =
+        optimismGasDataProvider ??
+        new OptimismGasDataProvider(chainId, this.multicall2Provider);
+    }
     if (tokenValidatorProvider) {
       this.tokenValidatorProvider = tokenValidatorProvider;
     } else if (this.chainId == ChainId.MAINNET) {
@@ -765,8 +789,9 @@ export class AlphaRouter
     const protocolsSet = new Set(protocols ?? []);
 
     if (
-      protocolsSet.size == 0 ||
-      (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))
+      (protocolsSet.size == 0 ||
+        (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))) &&
+      V2_SUPPORTED.includes(this.chainId)
     ) {
       log.info({ protocols, tradeType }, 'Routing across all protocols');
       quotePromises.push(
@@ -794,7 +819,10 @@ export class AlphaRouter
         )
       );
     } else {
-      if (protocolsSet.has(Protocol.V3)) {
+      if (
+        protocolsSet.has(Protocol.V3) ||
+        (protocolsSet.size == 0 && !V2_SUPPORTED.includes(this.chainId))
+      ) {
         log.info({ protocols, swapType: tradeType }, 'Routing across V3');
         quotePromises.push(
           this.getV3Quotes(
@@ -871,7 +899,7 @@ export class AlphaRouter
     } = swapRouteRaw;
 
     // Build Trade object that represents the optimal swap.
-    const trade = this.buildTrade<typeof tradeType>(
+    const trade = buildTrade<typeof tradeType>(
       currencyIn,
       currencyOut,
       tradeType,
@@ -883,7 +911,7 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      methodParameters = this.buildSwapMethodParameters(trade, swapConfig);
+      methodParameters = buildSwapMethodParameters(trade, swapConfig);
     }
 
     metric.putMetric(
@@ -1031,7 +1059,8 @@ export class AlphaRouter
       this.chainId,
       gasPriceWei,
       this.v3PoolProvider,
-      quoteToken
+      quoteToken,
+      this.optimismGasDataProvider
     );
 
     metric.putMetric(
@@ -1247,168 +1276,6 @@ export class AlphaRouter
     }
 
     return [percents, amounts];
-  }
-
-  private buildTrade<TTradeType extends TradeType>(
-    tokenInCurrency: Currency,
-    tokenOutCurrency: Currency,
-    tradeType: TTradeType,
-    routeAmounts: RouteWithValidQuote[]
-  ): Trade<Currency, Currency, TTradeType> {
-    const [v3RouteAmounts, v2RouteAmounts] = _.partition(
-      routeAmounts,
-      (routeAmount) => routeAmount.protocol == Protocol.V3
-    );
-
-    const v3Routes = _.map<
-      V3RouteWithValidQuote,
-      {
-        routev3: V3RouteRaw<Currency, Currency>;
-        inputAmount: CurrencyAmount;
-        outputAmount: CurrencyAmount;
-      }
-    >(
-      v3RouteAmounts as V3RouteWithValidQuote[],
-      (routeAmount: V3RouteWithValidQuote) => {
-        const { route, amount, quote } = routeAmount;
-
-        // The route, amount and quote are all in terms of wrapped tokens.
-        // When constructing the Trade object the inputAmount/outputAmount must
-        // use native currencies if specified by the user. This is so that the Trade knows to wrap/unwrap.
-        if (tradeType == TradeType.EXACT_INPUT) {
-          const amountCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenInCurrency,
-            amount.numerator,
-            amount.denominator
-          );
-          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenOutCurrency,
-            quote.numerator,
-            quote.denominator
-          );
-
-          const routeRaw = new V3RouteRaw(
-            route.pools,
-            amountCurrency.currency,
-            quoteCurrency.currency
-          );
-
-          return {
-            routev3: routeRaw,
-            inputAmount: amountCurrency,
-            outputAmount: quoteCurrency,
-          };
-        } else {
-          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenInCurrency,
-            quote.numerator,
-            quote.denominator
-          );
-
-          const amountCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenOutCurrency,
-            amount.numerator,
-            amount.denominator
-          );
-
-          const routeCurrency = new V3RouteRaw(
-            route.pools,
-            quoteCurrency.currency,
-            amountCurrency.currency
-          );
-
-          return {
-            routev3: routeCurrency,
-            inputAmount: quoteCurrency,
-            outputAmount: amountCurrency,
-          };
-        }
-      }
-    );
-
-    const v2Routes = _.map<
-      V2RouteWithValidQuote,
-      {
-        routev2: V2RouteRaw<Currency, Currency>;
-        inputAmount: CurrencyAmount;
-        outputAmount: CurrencyAmount;
-      }
-    >(
-      v2RouteAmounts as V2RouteWithValidQuote[],
-      (routeAmount: V2RouteWithValidQuote) => {
-        const { route, amount, quote } = routeAmount;
-
-        // The route, amount and quote are all in terms of wrapped tokens.
-        // When constructing the Trade object the inputAmount/outputAmount must
-        // use native currencies if specified by the user. This is so that the Trade knows to wrap/unwrap.
-        if (tradeType == TradeType.EXACT_INPUT) {
-          const amountCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenInCurrency,
-            amount.numerator,
-            amount.denominator
-          );
-          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenOutCurrency,
-            quote.numerator,
-            quote.denominator
-          );
-
-          const routeV2SDK = new V2RouteRaw(
-            route.pairs,
-            amountCurrency.currency,
-            quoteCurrency.currency
-          );
-
-          return {
-            routev2: routeV2SDK,
-            inputAmount: amountCurrency,
-            outputAmount: quoteCurrency,
-          };
-        } else {
-          const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenInCurrency,
-            quote.numerator,
-            quote.denominator
-          );
-
-          const amountCurrency = CurrencyAmount.fromFractionalAmount(
-            tokenOutCurrency,
-            amount.numerator,
-            amount.denominator
-          );
-
-          const routeV2SDK = new V2RouteRaw(
-            route.pairs,
-            quoteCurrency.currency,
-            amountCurrency.currency
-          );
-
-          return {
-            routev2: routeV2SDK,
-            inputAmount: quoteCurrency,
-            outputAmount: amountCurrency,
-          };
-        }
-      }
-    );
-
-    const trade = new Trade({ v2Routes, v3Routes, tradeType });
-
-    return trade;
-  }
-
-  private buildSwapMethodParameters(
-    trade: Trade<Currency, Currency, TradeType>,
-    swapConfig: SwapOptions
-  ): MethodParameters {
-    const { recipient, slippageTolerance, deadline, inputTokenPermit } =
-      swapConfig;
-    return SwapRouter.swapCallParameters(trade, {
-      recipient,
-      slippageTolerance,
-      deadlineOrPreviousBlockhash: deadline,
-      inputTokenPermit,
-    });
   }
 
   private async buildSwapAndAddMethodParameters(

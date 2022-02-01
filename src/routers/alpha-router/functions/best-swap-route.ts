@@ -450,7 +450,6 @@ export function getBestSwapRouteBy(
     Date.now() - postSplitNow,
     MetricLoggerUnit.Milliseconds
   );
-
   return {
     quote,
     quoteGasAdjusted,
