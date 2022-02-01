@@ -505,14 +505,15 @@ export class AlphaRouter
     this.swapRouterProvider =
       swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
 
-    this.tokenValidatorProvider =
-      tokenValidatorProvider ?? this.chainId == ChainId.MAINNET
-        ? new TokenValidatorProvider(
-            this.chainId,
-            this.multicall2Provider,
-            new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
-          )
-        : undefined;
+    if (tokenValidatorProvider) {
+      this.tokenValidatorProvider = tokenValidatorProvider;
+    } else if (this.chainId == ChainId.MAINNET) {
+      this.tokenValidatorProvider = new TokenValidatorProvider(
+        this.chainId,
+        this.multicall2Provider,
+        new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
+      );
+    }
   }
 
   public async routeToRatio(

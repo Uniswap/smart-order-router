@@ -41,6 +41,10 @@ import {
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
+import {
+  TokenValidationResult,
+  TokenValidatorProvider,
+} from '../../../../src/providers/token-validator-provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
@@ -88,6 +92,7 @@ describe('alpha router', () => {
   let mockGasPriceProvider: sinon.SinonStubbedInstance<ETHGasStationInfoProvider>;
 
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
+  let mockTokenValidatorProvider: sinon.SinonStubbedInstance<TokenValidatorProvider>;
 
   let alphaRouter: AlphaRouter;
 
@@ -322,6 +327,13 @@ describe('alpha router', () => {
       approvalTokenOut: 1,
     });
 
+    mockTokenValidatorProvider = sinon.createStubInstance(
+      TokenValidatorProvider
+    );
+    mockTokenValidatorProvider.validateTokens.resolves({
+      getValidationByToken: () => TokenValidationResult.UNKN,
+    });
+
     alphaRouter = new AlphaRouter({
       chainId: 1,
       provider: mockProvider,
@@ -338,6 +350,7 @@ describe('alpha router', () => {
       v2QuoteProvider: mockV2QuoteProvider,
       v2SubgraphProvider: mockV2SubgraphProvider,
       swapRouterProvider: mockSwapRouterProvider,
+      tokenValidatorProvider: mockTokenValidatorProvider,
     });
   });
 
