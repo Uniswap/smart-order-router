@@ -194,7 +194,7 @@ export type AlphaRouterParams = {
    * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
    */
   optimismGasDataProvider?: IOptimismGasDataProvider;
-  
+
   /**
    * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
    */
