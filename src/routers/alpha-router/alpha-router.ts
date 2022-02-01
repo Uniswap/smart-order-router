@@ -2,7 +2,7 @@ import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
+import { Pair, Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
   MethodParameters,
   Pool,
@@ -910,6 +910,46 @@ export class AlphaRouter
     };
   }
 
+  private async applyTokenValidatorToPools<T extends Pool | Pair>(
+    pools: T[],
+    isInvalidFn: (tokenValidation: TokenValidationResult | undefined) => boolean
+  ): Promise<T[]> {
+    if (!this.tokenValidatorProvider) {
+      return pools;
+    }
+
+    log.info(`Running token validator on ${pools.length} pools`);
+
+    const tokens = _.flatMap(pools, (pool) => [pool.token0, pool.token1]);
+
+    const tokenValidationResults =
+      await this.tokenValidatorProvider.validateTokens(tokens);
+
+    const poolsFiltered = _.filter(pools, (pool: T) => {
+      const token0Validation = tokenValidationResults.getValidationByToken(
+        pool.token0
+      );
+      const token1Validation = tokenValidationResults.getValidationByToken(
+        pool.token1
+      );
+
+      const token0Invalid = isInvalidFn(token0Validation);
+      const token1Invalid = isInvalidFn(token1Validation);
+
+      if (token0Invalid || token1Invalid) {
+        log.info(
+          `Dropping pool ${poolToString(pool)} because token is invalid. ${
+            pool.token0.symbol
+          }: ${token0Validation}, ${pool.token1.symbol}: ${token1Validation}`
+        );
+      }
+
+      return !token0Invalid && !token1Invalid;
+    });
+
+    return poolsFiltered;
+  }
+
   private async getV3Quotes(
     tokenIn: Token,
     tokenOut: Token,
@@ -938,45 +978,22 @@ export class AlphaRouter
       routingConfig,
       chainId: this.chainId,
     });
-    let pools = poolAccessor.getAllPools();
+    const poolsRaw = poolAccessor.getAllPools();
 
-    if (this.tokenValidatorProvider) {
-      log.info(`Running token validator on ${pools.length} V3 pools`);
-
-      const tokens = _.flatMap(pools, (pool) => [pool.token0, pool.token1]);
-
-      const tokenValidationResults =
-        await this.tokenValidatorProvider.validateTokens(tokens);
-
-      pools = _.filter(pools, (pool: Pool) => {
-        const token0Validation = tokenValidationResults.getValidationByToken(
-          pool.token0
-        );
-        const token1Validation = tokenValidationResults.getValidationByToken(
-          pool.token1
-        );
-
-        const isInvalid = (
-          tokenValidation: TokenValidationResult | undefined
-        ) =>
-          tokenValidation &&
-          (tokenValidation == TokenValidationResult.FOT ||
-            tokenValidation == TokenValidationResult.STF);
-
-        const token0Invalid = isInvalid(token0Validation);
-        const token1Invalid = isInvalid(token1Validation);
-
-        if (token0Invalid || token1Invalid) {
-          log.info(
-            `Dropping V3 pool ${poolToString(pool)} because token is invalid. ${
-              pool.token0.symbol
-            }: ${token0Validation}, ${pool.token1.symbol}: ${token1Validation}`
-          );
+    // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
+    const pools = await this.applyTokenValidatorToPools(
+      poolsRaw,
+      (tokenValidation: TokenValidationResult | undefined): boolean => {
+        if (!tokenValidation) {
+          return false;
         }
 
-        return !token0Invalid && !token1Invalid;
-      });
-    }
+        return (
+          tokenValidation == TokenValidationResult.FOT ||
+          tokenValidation == TokenValidationResult.STF
+        );
+      }
+    );
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
@@ -1107,7 +1124,19 @@ export class AlphaRouter
       routingConfig,
       chainId: this.chainId,
     });
-    const pools = poolAccessor.getAllPools();
+    const poolsRaw = poolAccessor.getAllPools();
+
+    // Drop any pools that contain tokens that can not be transferred according to the token validator.
+    const pools = await this.applyTokenValidatorToPools(
+      poolsRaw,
+      (tokenValidation: TokenValidationResult | undefined): boolean => {
+        if (!tokenValidation) {
+          return false;
+        }
+
+        return tokenValidation == TokenValidationResult.STF;
+      }
+    );
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;

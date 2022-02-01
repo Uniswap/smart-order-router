@@ -18,7 +18,7 @@ export interface TokenValidationResults {
 
 const TOKEN_VALIDATOR_ADDRESS = '0xb5ee1690b7dcc7859771148d0889be838fe108e0';
 const AMOUNT_TO_FLASH_BORROW = '1000';
-const GAS_LIMIT_PER_VALIDATE = 500_000;
+const GAS_LIMIT_PER_VALIDATE = 300_000;
 
 /**
  * Provider for getting token data.
@@ -59,6 +59,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
     tokens: Token[],
     providerConfig?: ProviderConfig
   ): Promise<TokenValidationResults> {
+    const tokenAddressToToken = _.keyBy(tokens, 'address');
     const addressesRaw = _(tokens)
       .map((token) => token.address)
       .uniq()
@@ -89,7 +90,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
       } tokens from cache. Getting ${addresses.length} on-chain.`
     );
 
-    const addressesChunked = _(addresses)
+    const functionParams = _(addresses)
       .map((address) => [address, this.BASES, AMOUNT_TO_FLASH_BORROW])
       .value() as [string, string[], string][];
 
@@ -103,7 +104,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
         address: this.tokenValidatorAddress,
         contractInterface: ITokenValidator__factory.createInterface(),
         functionName: 'validate',
-        functionParams: addressesChunked,
+        functionParams: functionParams,
         providerConfig,
         additionalConfig: {
           gasLimitPerCallOverride: GAS_LIMIT_PER_VALIDATE,
@@ -112,10 +113,10 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
 
     for (let i = 0; i < multicallResult.results.length; i++) {
       const resultWrapper = multicallResult.results[i]!;
+      const tokenAddress = addresses[i]!;
+      const token = tokenAddressToToken[tokenAddress]!;
 
-      const token = tokens[i]!;
-
-      // Could happen if the tokens transfer consumes too much gas. Just
+      // Could happen if the tokens transfer consumes too much gas so we revert. Just
       // drop the token in that case.
       if (!resultWrapper.success) {
         log.info(
