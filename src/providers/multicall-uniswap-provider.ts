@@ -258,10 +258,8 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
 
     const calls = _.map(functionNames, (functionName, i) => {
       const fragment = contractInterface.getFunction(functionName);
-      let callData;
       const param = functionParams ? functionParams[i] : [];
-      callData = contractInterface.encodeFunctionData(fragment, param);
-      log.debug(`fragment ${fragment}`);
+      const callData = contractInterface.encodeFunctionData(fragment, param);
       return {
         target: address,
         callData,

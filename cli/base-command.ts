@@ -2,7 +2,6 @@
 import { Command, flags } from '@oclif/command';
 import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { Protocol } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
 import { MethodParameters } from '@uniswap/v3-sdk';
 import { default as bunyan, default as Logger } from 'bunyan';
@@ -35,7 +34,6 @@ import {
   UniswapMulticallProvider,
   V3PoolProvider,
   V3QuoteProvider,
-  V3RouteWithValidQuote,
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
 import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
@@ -320,14 +318,5 @@ export abstract class BaseCommand extends Command {
       estimatedGasUsed: estimatedGasUsed.toString(),
       gasPriceWei: gasPriceWei.toString(),
     });
-    const hops = routeAmounts[0]?.poolAddresses.length;
-    this.logger.info(`Total hops ${hops}`);
-
-    if (routeAmounts[0]?.protocol == Protocol.V3) {
-      const v3Route = routeAmounts[0] as V3RouteWithValidQuote;
-      this.logger.info(
-        `Total initialized ticks crossed ${v3Route.initializedTicksCrossedList.length}`
-      );
-    }
   }
 }
