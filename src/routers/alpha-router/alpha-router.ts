@@ -173,11 +173,14 @@ export type AlphaRouterParams = {
   blockedTokenListProvider?: ITokenListProvider;
 
   /**
-   * Calls lens function on SwapRouter02 to determind ERC20 approval types for
+   * Calls lens function on SwapRouter02 to determine ERC20 approval types for
    * LP position tokens.
    */
   swapRouterProvider?: ISwapRouterProvider;
 
+  /**
+   * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
+   */
   tokenValidatorProvider?: ITokenValidatorProvider;
 };
 
@@ -984,6 +987,7 @@ export class AlphaRouter
     const pools = await this.applyTokenValidatorToPools(
       poolsRaw,
       (tokenValidation: TokenValidationResult | undefined): boolean => {
+        // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
           return false;
         }
@@ -1130,6 +1134,7 @@ export class AlphaRouter
     const pools = await this.applyTokenValidatorToPools(
       poolsRaw,
       (tokenValidation: TokenValidationResult | undefined): boolean => {
+        // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
           return false;
         }
