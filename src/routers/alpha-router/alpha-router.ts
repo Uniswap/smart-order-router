@@ -10,7 +10,8 @@ import {
   SqrtPriceMath,
   TickMath,
 } from '@uniswap/v3-sdk';
-import { BigNumber, providers } from 'ethers';
+import * as providers from '@ethersproject/providers'
+import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
