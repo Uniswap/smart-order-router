@@ -67,6 +67,8 @@ export const routeAmountToString = (
   return `${amount.toExact()} = ${routeToString(route)}`;
 };
 
-export const poolToString = (p: Pool): string => {
-  return `${p.token0.symbol}/${p.token1.symbol}/${p.fee / 10000}%`;
+export const poolToString = (p: Pool | Pair): string => {
+  return `${p.token0.symbol}/${p.token1.symbol}${
+    p instanceof Pool ? `/${p.fee / 10000}%` : ``
+  }`;
 };

@@ -2,7 +2,7 @@ import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
+import { Pair, Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
   MethodParameters,
   Pool,
@@ -49,6 +49,11 @@ import {
 } from '../../providers/gas-price-provider';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
+  ITokenValidatorProvider,
+  TokenValidationResult,
+  TokenValidatorProvider,
+} from '../../providers/token-validator-provider';
+import {
   IV2PoolProvider,
   V2PoolProvider,
 } from '../../providers/v2/pool-provider';
@@ -65,7 +70,7 @@ import { CurrencyAmount } from '../../util/amounts';
 import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME } from '../../util/chains';
 import { log } from '../../util/log';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { routeToString } from '../../util/routes';
+import { poolToString, routeToString } from '../../util/routes';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
@@ -168,10 +173,15 @@ export type AlphaRouterParams = {
   blockedTokenListProvider?: ITokenListProvider;
 
   /**
-   * Calls lens function on SwapRouter02 to determind ERC20 approval types for
+   * Calls lens function on SwapRouter02 to determine ERC20 approval types for
    * LP position tokens.
    */
   swapRouterProvider?: ISwapRouterProvider;
+
+  /**
+   * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
+   */
+  tokenValidatorProvider?: ITokenValidatorProvider;
 };
 
 /**
@@ -287,6 +297,7 @@ export class AlphaRouter
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
+  protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
 
   constructor({
@@ -305,6 +316,7 @@ export class AlphaRouter
     v3GasModelFactory,
     v2GasModelFactory,
     swapRouterProvider,
+    tokenValidatorProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -492,6 +504,16 @@ export class AlphaRouter
 
     this.swapRouterProvider =
       swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
+
+    if (tokenValidatorProvider) {
+      this.tokenValidatorProvider = tokenValidatorProvider;
+    } else if (this.chainId == ChainId.MAINNET) {
+      this.tokenValidatorProvider = new TokenValidatorProvider(
+        this.chainId,
+        this.multicall2Provider,
+        new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
+      );
+    }
   }
 
   public async routeToRatio(
@@ -892,6 +914,46 @@ export class AlphaRouter
     };
   }
 
+  private async applyTokenValidatorToPools<T extends Pool | Pair>(
+    pools: T[],
+    isInvalidFn: (tokenValidation: TokenValidationResult | undefined) => boolean
+  ): Promise<T[]> {
+    if (!this.tokenValidatorProvider) {
+      return pools;
+    }
+
+    log.info(`Running token validator on ${pools.length} pools`);
+
+    const tokens = _.flatMap(pools, (pool) => [pool.token0, pool.token1]);
+
+    const tokenValidationResults =
+      await this.tokenValidatorProvider.validateTokens(tokens);
+
+    const poolsFiltered = _.filter(pools, (pool: T) => {
+      const token0Validation = tokenValidationResults.getValidationByToken(
+        pool.token0
+      );
+      const token1Validation = tokenValidationResults.getValidationByToken(
+        pool.token1
+      );
+
+      const token0Invalid = isInvalidFn(token0Validation);
+      const token1Invalid = isInvalidFn(token1Validation);
+
+      if (token0Invalid || token1Invalid) {
+        log.info(
+          `Dropping pool ${poolToString(pool)} because token is invalid. ${
+            pool.token0.symbol
+          }: ${token0Validation}, ${pool.token1.symbol}: ${token1Validation}`
+        );
+      }
+
+      return !token0Invalid && !token1Invalid;
+    });
+
+    return poolsFiltered;
+  }
+
   private async getV3Quotes(
     tokenIn: Token,
     tokenOut: Token,
@@ -920,7 +982,23 @@ export class AlphaRouter
       routingConfig,
       chainId: this.chainId,
     });
-    const pools = poolAccessor.getAllPools();
+    const poolsRaw = poolAccessor.getAllPools();
+
+    // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
+    const pools = await this.applyTokenValidatorToPools(
+      poolsRaw,
+      (tokenValidation: TokenValidationResult | undefined): boolean => {
+        // If there is no available validation result we assume the token is fine.
+        if (!tokenValidation) {
+          return false;
+        }
+
+        return (
+          tokenValidation == TokenValidationResult.FOT ||
+          tokenValidation == TokenValidationResult.STF
+        );
+      }
+    );
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
@@ -1051,7 +1129,20 @@ export class AlphaRouter
       routingConfig,
       chainId: this.chainId,
     });
-    const pools = poolAccessor.getAllPools();
+    const poolsRaw = poolAccessor.getAllPools();
+
+    // Drop any pools that contain tokens that can not be transferred according to the token validator.
+    const pools = await this.applyTokenValidatorToPools(
+      poolsRaw,
+      (tokenValidation: TokenValidationResult | undefined): boolean => {
+        // If there is no available validation result we assume the token is fine.
+        if (!tokenValidation) {
+          return false;
+        }
+
+        return tokenValidation == TokenValidationResult.STF;
+      }
+    );
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
