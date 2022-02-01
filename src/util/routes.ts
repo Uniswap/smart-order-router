@@ -1,4 +1,5 @@
 import { Percent } from '@uniswap/sdk-core';
+import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { CurrencyAmount } from '.';
@@ -14,7 +15,19 @@ export const routeToString = (route: V3Route | V2Route): string => {
   const pools = isV3Route(route) ? route.pools : route.pairs;
   const poolFeePath = _.map(
     pools,
-    (pool) => `${pool instanceof Pool ? ` -- ${pool.fee / 10000}%` : ''} --> `
+    (pool) =>
+      `${
+        pool instanceof Pool
+          ? ` -- ${pool.fee / 10000}% [${Pool.getAddress(
+              pool.token0,
+              pool.token1,
+              pool.fee
+            )}]`
+          : ` -- [${Pair.getAddress(
+              (pool as Pair).token0,
+              (pool as Pair).token1
+            )}]`
+      } --> `
   );
 
   for (let i = 0; i < tokenPath.length; i++) {
@@ -54,6 +67,8 @@ export const routeAmountToString = (
   return `${amount.toExact()} = ${routeToString(route)}`;
 };
 
-export const poolToString = (p: Pool): string => {
-  return `${p.token0.symbol}/${p.token1.symbol}/${p.fee / 10000}%`;
+export const poolToString = (p: Pool | Pair): string => {
+  return `${p.token0.symbol}/${p.token1.symbol}${
+    p instanceof Pool ? `/${p.fee / 10000}%` : ``
+  }`;
 };

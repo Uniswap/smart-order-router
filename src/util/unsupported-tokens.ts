@@ -11,6 +11,14 @@ export const UNSUPPORTED_TOKENS = {
   keywords: ['uniswap', 'unsupported', 'broken'],
   tokens: [
     {
+      name: 'USD Token',
+      address: '0xd233d1f6fd11640081abb8db125f722b5dc729dc',
+      symbol: 'USD',
+      decimals: 9,
+      chainId: 1,
+      logoURI: '',
+    },
+    {
       name: 'UNI HODL',
       address: '0x4bf5dc91E2555449293D7824028Eb8Fe5879B689',
       symbol: 'UniH',

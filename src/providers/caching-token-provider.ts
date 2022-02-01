@@ -1,8 +1,97 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
-import { ChainId, log } from '../util';
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import { ICache } from './cache';
-import { ITokenProvider, SEED_TOKENS, TokenAccessor } from './token-provider';
+import {
+  DAI_ARBITRUM,
+  DAI_ARBITRUM_RINKEBY,
+  DAI_MAINNET,
+  DAI_OPTIMISM,
+  DAI_OPTIMISTIC_KOVAN,
+  DAI_POLYGON_MUMBAI,
+  DAI_RINKEBY_1,
+  DAI_RINKEBY_2,
+  ITokenProvider,
+  TokenAccessor,
+  UNI_ARBITRUM_RINKEBY,
+  USDC_ARBITRUM,
+  USDC_ARBITRUM_RINKEBY,
+  USDC_MAINNET,
+  USDC_OPTIMISM,
+  USDC_OPTIMISTIC_KOVAN,
+  USDC_POLYGON,
+  USDT_ARBITRUM,
+  USDT_ARBITRUM_RINKEBY,
+  USDT_MAINNET,
+  USDT_OPTIMISM,
+  USDT_OPTIMISTIC_KOVAN,
+  WBTC_ARBITRUM,
+  WBTC_MAINNET,
+  WBTC_OPTIMISM,
+  WBTC_OPTIMISTIC_KOVAN,
+  WMATIC_POLYGON,
+  WMATIC_POLYGON_MUMBAI,
+} from './token-provider';
+
+// These tokens will added to the Token cache on initialization.
+export const CACHE_SEED_TOKENS: {
+  [chainId in ChainId]?: { [symbol: string]: Token };
+} = {
+  [ChainId.MAINNET]: {
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
+    USDC: USDC_MAINNET,
+    USDT: USDT_MAINNET,
+    WBTC: WBTC_MAINNET,
+    DAI: DAI_MAINNET,
+    // This token stores its symbol as bytes32, therefore can not be fetched on-chain using
+    // our token providers.
+    // This workaround adds it to the cache, so we won't try to fetch it on-chain.
+    RING: new Token(
+      ChainId.MAINNET,
+      '0x9469D013805bFfB7D3DEBe5E7839237e535ec483',
+      18,
+      'RING',
+      'RING'
+    ),
+  },
+  [ChainId.RINKEBY]: {
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
+    DAI_1: DAI_RINKEBY_1,
+    DAI_2: DAI_RINKEBY_2,
+  },
+  [ChainId.OPTIMISM]: {
+    USDC: USDC_OPTIMISM,
+    USDT: USDT_OPTIMISM,
+    WBTC: WBTC_OPTIMISM,
+    DAI: DAI_OPTIMISM,
+  },
+  [ChainId.OPTIMISTIC_KOVAN]: {
+    USDC: USDC_OPTIMISTIC_KOVAN,
+    USDT: USDT_OPTIMISTIC_KOVAN,
+    WBTC: WBTC_OPTIMISTIC_KOVAN,
+    DAI: DAI_OPTIMISTIC_KOVAN,
+  },
+  [ChainId.ARBITRUM_ONE]: {
+    USDC: USDC_ARBITRUM,
+    USDT: USDT_ARBITRUM,
+    WBTC: WBTC_ARBITRUM,
+    DAI: DAI_ARBITRUM,
+  },
+  [ChainId.ARBITRUM_RINKEBY]: {
+    USDT: USDT_ARBITRUM_RINKEBY,
+    UNI: UNI_ARBITRUM_RINKEBY,
+    DAI: DAI_ARBITRUM_RINKEBY,
+    USDC: USDC_ARBITRUM_RINKEBY,
+  },
+  [ChainId.POLYGON]: {
+    WMATIC: WMATIC_POLYGON,
+    USDC: USDC_POLYGON,
+  },
+  [ChainId.POLYGON_MUMBAI]: {
+    WMATIC: WMATIC_POLYGON_MUMBAI,
+    DAI: DAI_POLYGON_MUMBAI,
+  },
+};
 
 /**
  * Provider for getting token metadata that falls back to a different provider
@@ -25,7 +114,7 @@ export class CachingTokenProviderWithFallback implements ITokenProvider {
   ) {}
 
   public async getTokens(_addresses: string[]): Promise<TokenAccessor> {
-    const seedTokens = SEED_TOKENS[this.chainId];
+    const seedTokens = CACHE_SEED_TOKENS[this.chainId];
 
     if (seedTokens) {
       for (const token of Object.values(seedTokens)) {

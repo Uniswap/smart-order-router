@@ -41,6 +41,10 @@ import {
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
+import {
+  TokenValidationResult,
+  TokenValidatorProvider,
+} from '../../../../src/providers/token-validator-provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
@@ -53,11 +57,13 @@ import {
   mockBlock,
   mockBlockBN,
   mockGasPriceWeiBN,
+  MOCK_ZERO_DEC_TOKEN,
   pairToV2SubgraphPool,
   poolToV3SubgraphPool,
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
+  USDC_MOCK_LOW,
   USDC_USDT_MEDIUM,
   USDC_WETH,
   USDC_WETH_LOW,
@@ -86,6 +92,7 @@ describe('alpha router', () => {
   let mockGasPriceProvider: sinon.SinonStubbedInstance<ETHGasStationInfoProvider>;
 
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
+  let mockTokenValidatorProvider: sinon.SinonStubbedInstance<TokenValidatorProvider>;
 
   let alphaRouter: AlphaRouter;
 
@@ -144,7 +151,13 @@ describe('alpha router', () => {
     mockMulticallProvider = sinon.createStubInstance(UniswapMulticallProvider);
 
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
-    const mockTokens = [USDC, DAI, WRAPPED_NATIVE_CURRENCY[1], USDT];
+    const mockTokens = [
+      USDC,
+      DAI,
+      WRAPPED_NATIVE_CURRENCY[1],
+      USDT,
+      MOCK_ZERO_DEC_TOKEN,
+    ];
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
 
     mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
@@ -155,6 +168,7 @@ describe('alpha router', () => {
       WETH9_USDT_LOW,
       DAI_USDT_LOW,
       USDC_USDT_MEDIUM,
+      USDC_MOCK_LOW,
     ];
     mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
     mockV3PoolProvider.getPoolAddress.callsFake((tA, tB, fee) => ({
@@ -313,6 +327,13 @@ describe('alpha router', () => {
       approvalTokenOut: 1,
     });
 
+    mockTokenValidatorProvider = sinon.createStubInstance(
+      TokenValidatorProvider
+    );
+    mockTokenValidatorProvider.validateTokens.resolves({
+      getValidationByToken: () => TokenValidationResult.UNKN,
+    });
+
     alphaRouter = new AlphaRouter({
       chainId: 1,
       provider: mockProvider,
@@ -329,6 +350,7 @@ describe('alpha router', () => {
       v2QuoteProvider: mockV2QuoteProvider,
       v2SubgraphProvider: mockV2SubgraphProvider,
       swapRouterProvider: mockSwapRouterProvider,
+      tokenValidatorProvider: mockTokenValidatorProvider,
     });
   });
 
@@ -649,6 +671,26 @@ describe('alpha router', () => {
       expect(swap!.trade).toBeDefined();
       expect(swap!.methodParameters).not.toBeDefined();
       expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
+    });
+
+    test('succeeds to route to and from token with 0 decimals', async () => {
+      const swapFrom = await alphaRouter.route(
+        CurrencyAmount.fromRawAmount(USDC, 10000),
+        MOCK_ZERO_DEC_TOKEN,
+        TradeType.EXACT_INPUT,
+        undefined,
+        { ...ROUTING_CONFIG }
+      );
+      expect(swapFrom).toBeDefined();
+
+      const swapTo = await alphaRouter.route(
+        CurrencyAmount.fromRawAmount(MOCK_ZERO_DEC_TOKEN, 10000),
+        USDC,
+        TradeType.EXACT_INPUT,
+        undefined,
+        { ...ROUTING_CONFIG }
+      );
+      expect(swapTo).toBeDefined();
     });
 
     test('succeeds to route on v3 only', async () => {

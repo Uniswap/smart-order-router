@@ -1,5 +1,5 @@
 import { BigNumber } from 'ethers';
-import { GasPriceOracle__factory } from '../../types/other';
+import { GasPriceOracle__factory } from '../../types/other/factories/GasPriceOracle__factory';
 import { ChainId, log, OVM_GASPRICE_ADDRESS } from '../../util';
 import { IMulticallProvider } from '../multicall-provider';
 

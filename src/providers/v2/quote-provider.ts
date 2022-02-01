@@ -6,6 +6,8 @@ import {
 import { BigNumber } from 'ethers';
 import { V2Route } from '../../routers/router';
 import { CurrencyAmount } from '../../util/amounts';
+import { log } from '../../util/log';
+import { routeToString } from '../../util/routes';
 
 // Quotes can be null (e.g. pool did not have enough liquidity).
 export type V2AmountQuote = {
@@ -58,9 +60,12 @@ export class V2QuoteProvider implements IV2QuoteProvider {
   ): Promise<{ routesWithQuotes: V2RouteWithQuotes[] }> {
     const routesWithQuotes: V2RouteWithQuotes[] = [];
 
+    let debugStrs: string[] = [];
     for (const route of routes) {
       const amountQuotes: V2AmountQuote[] = [];
 
+      let insufficientInputAmountErrorCount = 0;
+      let insufficientReservesErrorCount = 0;
       for (const amount of amounts) {
         try {
           if (tradeType == TradeType.EXACT_INPUT) {
@@ -90,10 +95,12 @@ export class V2QuoteProvider implements IV2QuoteProvider {
           }
         } catch (err) {
           // Can fail to get quotes, e.g. throws InsufficientReservesError or InsufficientInputAmountError.
-          if (
-            err instanceof InsufficientInputAmountError ||
-            err instanceof InsufficientReservesError
-          ) {
+          if (err instanceof InsufficientInputAmountError) {
+            insufficientInputAmountErrorCount =
+              insufficientInputAmountErrorCount + 1;
+            amountQuotes.push({ amount, quote: null });
+          } else if (err instanceof InsufficientReservesError) {
+            insufficientReservesErrorCount = insufficientReservesErrorCount + 1;
             amountQuotes.push({ amount, quote: null });
           } else {
             throw err;
@@ -101,7 +108,22 @@ export class V2QuoteProvider implements IV2QuoteProvider {
         }
       }
 
+      if (
+        insufficientInputAmountErrorCount > 0 ||
+        insufficientReservesErrorCount > 0
+      ) {
+        debugStrs.push(
+          `${[
+            routeToString(route),
+          ]} Input: ${insufficientInputAmountErrorCount} Reserves: ${insufficientReservesErrorCount} }`
+        );
+      }
+
       routesWithQuotes.push([route, amountQuotes]);
+    }
+
+    if (debugStrs.length > 0) {
+      log.info({ debugStrs }, `Failed quotes for V2 routes`);
     }
 
     return {

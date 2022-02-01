@@ -1,7 +1,7 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import { IERC20Metadata__factory } from '../types/v3';
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { ChainId, log } from '../util';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
@@ -370,55 +370,6 @@ export const WETH_POLYGON_MUMBAI = new Token(
   'WETH',
   'Wrapped Ether'
 );
-
-export const SEED_TOKENS: {
-  [chainId in ChainId]?: { [symbol: string]: Token };
-} = {
-  [ChainId.MAINNET]: {
-    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
-    USDC: USDC_MAINNET,
-    USDT: USDT_MAINNET,
-    WBTC: WBTC_MAINNET,
-    DAI: DAI_MAINNET,
-  },
-  [ChainId.RINKEBY]: {
-    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
-    DAI_1: DAI_RINKEBY_1,
-    DAI_2: DAI_RINKEBY_2,
-  },
-  [ChainId.OPTIMISM]: {
-    USDC: USDC_OPTIMISM,
-    USDT: USDT_OPTIMISM,
-    WBTC: WBTC_OPTIMISM,
-    DAI: DAI_OPTIMISM,
-  },
-  [ChainId.OPTIMISTIC_KOVAN]: {
-    USDC: USDC_OPTIMISTIC_KOVAN,
-    USDT: USDT_OPTIMISTIC_KOVAN,
-    WBTC: WBTC_OPTIMISTIC_KOVAN,
-    DAI: DAI_OPTIMISTIC_KOVAN,
-  },
-  [ChainId.ARBITRUM_ONE]: {
-    USDC: USDC_ARBITRUM,
-    USDT: USDT_ARBITRUM,
-    WBTC: WBTC_ARBITRUM,
-    DAI: DAI_ARBITRUM,
-  },
-  [ChainId.ARBITRUM_RINKEBY]: {
-    USDT: USDT_ARBITRUM_RINKEBY,
-    UNI: UNI_ARBITRUM_RINKEBY,
-    DAI: DAI_ARBITRUM_RINKEBY,
-    USDC: USDC_ARBITRUM_RINKEBY,
-  },
-  [ChainId.POLYGON]: {
-    WMATIC: WMATIC_POLYGON,
-    USDC: USDC_POLYGON,
-  },
-  [ChainId.POLYGON_MUMBAI]: {
-    WMATIC: WMATIC_POLYGON_MUMBAI,
-    DAI: DAI_POLYGON_MUMBAI,
-  },
-};
 
 export class TokenProvider implements ITokenProvider {
   constructor(

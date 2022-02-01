@@ -310,7 +310,9 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
     for (let rq of routeQuotes) {
       log.debug(
-        `Quote: ${rq.amount.toFixed(2)} Route: ${routeToString(rq.route)}`
+        `Quote: ${rq.amount.toFixed(
+          Math.min(rq.amount.currency.decimals, 2)
+        )} Route: ${routeToString(rq.route)}`
       );
     }
 

@@ -821,7 +821,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
           if (!quoteResult.success) {
             const percent = (100 / amounts.length) * (index + 1);
 
-            const amountStr = amount.toFixed(2);
+            const amountStr = amount.toFixed(
+              Math.min(amount.currency.decimals, 2)
+            );
             const routeStr = routeToString(route);
             debugFailedQuotes.push({
               route: routeStr,
@@ -869,7 +871,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
             (amounts, routeStr) => `${routeStr} : ${amounts}`
           ),
         },
-        `Failed quotes for routes Part ${idx}/${Math.ceil(
+        `Failed quotes for V3 routes Part ${idx}/${Math.ceil(
           debugFailedQuotes.length / debugChunk
         )}`
       );
