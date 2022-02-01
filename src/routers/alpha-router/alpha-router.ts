@@ -1,3 +1,4 @@
+import * as providers from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
@@ -10,7 +11,6 @@ import {
   SqrtPriceMath,
   TickMath,
 } from '@uniswap/v3-sdk';
-import * as providers from '@ethersproject/providers'
 import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
