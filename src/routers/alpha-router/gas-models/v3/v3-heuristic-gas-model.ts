@@ -387,16 +387,17 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
   ): [BigNumber, BigNumber] {
     const { l1BaseFee, scalar, decimals, overhead } = gasData;
 
-    const inputToken = route.tradeType == TradeType.EXACT_INPUT ? route.amount.currency : route.quote.currency
-    const outputToken = route.tradeType == TradeType.EXACT_INPUT ? route.quote.currency : route.amount.currency
+    const inputToken =
+      route.tradeType == TradeType.EXACT_INPUT
+        ? route.amount.currency
+        : route.quote.currency;
+    const outputToken =
+      route.tradeType == TradeType.EXACT_INPUT
+        ? route.quote.currency
+        : route.amount.currency;
 
     // build trade for swap calldata
-    const trade = buildTrade(
-      inputToken,      
-      outputToken,
-      route.tradeType,
-      [route]
-    );
+    const trade = buildTrade(inputToken, outputToken, route.tradeType, [route]);
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
     const l1GasUsed = this.getOptimismToL1GasUsed(data, overhead);
     const l1Fee = l1GasUsed.mul(l1BaseFee);
