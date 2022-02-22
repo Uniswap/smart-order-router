@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Percent, Token } from '@uniswap/sdk-core';
+import { Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
@@ -409,13 +409,17 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
   ): [BigNumber, BigNumber] {
     const { l1BaseFee, scalar, decimals, overhead } = gasData;
 
+    const inputToken =
+      route.tradeType == TradeType.EXACT_INPUT
+        ? route.amount.currency
+        : route.quote.currency;
+    const outputToken =
+      route.tradeType == TradeType.EXACT_INPUT
+        ? route.quote.currency
+        : route.amount.currency;
+
     // build trade for swap calldata
-    const trade = buildTrade(
-      route.amount.currency,
-      route.quote.currency,
-      route.tradeType,
-      [route]
-    );
+    const trade = buildTrade(inputToken, outputToken, route.tradeType, [route]);
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
     const l1GasUsed = this.getOptimismToL1GasUsed(data, overhead);
     const l1Fee = l1GasUsed.mul(l1BaseFee);

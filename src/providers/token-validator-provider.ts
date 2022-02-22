@@ -18,7 +18,7 @@ export interface TokenValidationResults {
 
 const TOKEN_VALIDATOR_ADDRESS = '0xb5ee1690b7dcc7859771148d0889be838fe108e0';
 const AMOUNT_TO_FLASH_BORROW = '1000';
-const GAS_LIMIT_PER_VALIDATE = 300_000;
+const GAS_LIMIT_PER_VALIDATE = 1_000_000;
 
 /**
  * Provider for getting token data.
@@ -50,7 +50,9 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,
     private tokenValidationCache: ICache<TokenValidationResult>,
-    private tokenValidatorAddress = TOKEN_VALIDATOR_ADDRESS
+    private tokenValidatorAddress = TOKEN_VALIDATOR_ADDRESS,
+    private gasLimitPerCall = GAS_LIMIT_PER_VALIDATE,
+    private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW
   ) {
     this.BASES = [WRAPPED_NATIVE_CURRENCY[this.chainId]!.address];
   }
@@ -91,7 +93,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
     );
 
     const functionParams = _(addresses)
-      .map((address) => [address, this.BASES, AMOUNT_TO_FLASH_BORROW])
+      .map((address) => [address, this.BASES, this.amountToFlashBorrow])
       .value() as [string, string[], string][];
 
     // We use the validate function instead of batchValidate to avoid poison pill problem.
@@ -107,7 +109,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
         functionParams: functionParams,
         providerConfig,
         additionalConfig: {
-          gasLimitPerCallOverride: GAS_LIMIT_PER_VALIDATE,
+          gasLimitPerCallOverride: this.gasLimitPerCall,
         },
       });
 
