@@ -6,6 +6,11 @@ import { ICache } from './cache';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
+const DEFAULT_ALLOWLIST = new Set<string>([
+  // RYOSHI. Does not allow transfers between contracts so fails validation.
+  '0x777E2ae845272a2F540ebf6a3D03734A5a8f618e'.toLowerCase(),
+]);
+
 export enum TokenValidationResult {
   UNKN = 0,
   FOT = 1,
@@ -52,7 +57,8 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
     private tokenValidationCache: ICache<TokenValidationResult>,
     private tokenValidatorAddress = TOKEN_VALIDATOR_ADDRESS,
     private gasLimitPerCall = GAS_LIMIT_PER_VALIDATE,
-    private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW
+    private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW,
+    private allowList = DEFAULT_ALLOWLIST
   ) {
     this.BASES = [WRAPPED_NATIVE_CURRENCY[this.chainId]!.address];
   }
@@ -118,6 +124,17 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
       const tokenAddress = addresses[i]!;
       const token = tokenAddressToToken[tokenAddress]!;
 
+      if (this.allowList.has(token.address.toLowerCase())) {
+        tokenToResult[token.address.toLowerCase()] = TokenValidationResult.UNKN;
+
+        await this.tokenValidationCache.set(
+          this.CACHE_KEY(this.chainId, token.address.toLowerCase()),
+          tokenToResult[token.address.toLowerCase()]!
+        );
+
+        continue;
+      }
+
       // Could happen if the tokens transfer consumes too much gas so we revert. Just
       // drop the token in that case.
       if (!resultWrapper.success) {
@@ -129,10 +146,10 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
         continue;
       }
 
-      const validationResults = resultWrapper.result[0]!;
+      const validationResult = resultWrapper.result[0]!;
 
       tokenToResult[token.address.toLowerCase()] =
-        validationResults as TokenValidationResult;
+        validationResult as TokenValidationResult;
 
       await this.tokenValidationCache.set(
         this.CACHE_KEY(this.chainId, token.address.toLowerCase()),

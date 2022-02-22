@@ -87,6 +87,11 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       token,
       poolProvider
     );
+    if (!ethPool) {
+      log.info(
+        'Unable to find ETH pool with the quote token to produce gas adjusted costs. Route will not account for gas.'
+      );
+    }
 
     const usdPool: Pair = await this.getHighestLiquidityUSDPool(
       chainId,
@@ -107,9 +112,6 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         );
 
         if (!ethPool) {
-          log.info(
-            'Unable to find ETH pool with the quote token to produce gas adjusted costs. Route will not account for gas.'
-          );
           return {
             gasEstimate: gasUse,
             gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
@@ -204,10 +206,15 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     const poolAccessor = await poolProvider.getPools([[weth, token]]);
     const pool = poolAccessor.getPool(weth, token);
 
-    if (!pool) {
+    if (!pool || pool.reserve0.equalTo(0) || pool.reserve1.equalTo(0)) {
       log.error(
-        { weth, token },
-        `Could not find a WETH pool with ${token.symbol} for computing gas costs.`
+        {
+          weth,
+          token,
+          reserve0: pool?.reserve0.toExact(),
+          reserve1: pool?.reserve1.toExact(),
+        },
+        `Could not find a valid WETH pool with ${token.symbol} for computing gas costs.`
       );
 
       return null;
@@ -233,7 +240,11 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       WRAPPED_NATIVE_CURRENCY[chainId]!,
     ]);
     const poolAccessor = await poolProvider.getPools(usdPools);
-    const pools = poolAccessor.getAllPools();
+    const poolsRaw = poolAccessor.getAllPools();
+    const pools = _.filter(
+      poolsRaw,
+      (pool) => pool.reserve0.greaterThan(0) && pool.reserve1.greaterThan(0)
+    );
 
     if (pools.length == 0) {
       log.error(
