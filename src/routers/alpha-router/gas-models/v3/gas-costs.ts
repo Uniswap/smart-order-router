@@ -14,7 +14,7 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
       return BigNumber.from(2000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_RINKEBY:
-      return BigNumber.from(700000);
+      return BigNumber.from(5000);
     case ChainId.POLYGON:
     case ChainId.POLYGON_MUMBAI:
       return BigNumber.from(2000);
@@ -33,7 +33,7 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
       return BigNumber.from(31000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_RINKEBY:
-      return BigNumber.from(54000);
+      return BigNumber.from(15000);
     case ChainId.POLYGON:
     case ChainId.POLYGON_MUMBAI:
       return BigNumber.from(31000);

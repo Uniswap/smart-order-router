@@ -31,7 +31,11 @@ import {
   WBTC_GÖRLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
-import { IOptimismGasDataProvider } from '../../../providers/v3/gas-data-provider';
+import {
+  ArbitrumGasData,
+  IL2GasDataProvider,
+  OptimismGasData,
+} from '../../../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
@@ -100,7 +104,9 @@ export abstract class IV3GasModelFactory {
     gasPriceWei: BigNumber,
     poolProvider: IV3PoolProvider,
     inTermsOfToken: Token,
-    optimismGasDataProvider?: IOptimismGasDataProvider
+    l2GasDataProvider?:
+      | IL2GasDataProvider<OptimismGasData>
+      | IL2GasDataProvider<ArbitrumGasData>
   ): Promise<IGasModel<V3RouteWithValidQuote>>;
 }
 
