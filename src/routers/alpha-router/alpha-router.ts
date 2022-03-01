@@ -119,7 +119,11 @@ import {
   getV3CandidatePools as getV3CandidatePools,
   PoolId,
 } from './functions/get-candidate-pools';
-import { IV2GasModelFactory, IV3GasModelFactory } from './gas-models/gas-model';
+import {
+  IGasModel,
+  IV2GasModelFactory,
+  IV3GasModelFactory,
+} from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 export type AlphaRouterParams = {
@@ -875,6 +879,14 @@ export class AlphaRouter
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
 
+    // get the gasModel to pass in when finding the best route between all routes
+    // only need the gasModel if we're routing a V3 Route on an L2
+    const gasModel: IGasModel<V3RouteWithValidQuote> | undefined =
+      protocolsSet.has(Protocol.V2)
+        ? undefined
+        : (routesWithValidQuotesByProtocol[0]?.routesWithValidQuotes[0]
+            ?.gasModel as IGasModel<V3RouteWithValidQuote>);
+
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
     for (const {
@@ -895,13 +907,14 @@ export class AlphaRouter
 
     // Given all the quotes for all the amounts for all the routes, find the best combination.
     const beforeBestSwap = Date.now();
-    const swapRouteRaw = getBestSwapRoute(
+    const swapRouteRaw = await getBestSwapRoute(
       amount,
       percents,
       allRoutesWithValidQuotes,
       tradeType,
       this.chainId,
-      routingConfig
+      routingConfig,
+      gasModel
     );
 
     if (!swapRouteRaw) {

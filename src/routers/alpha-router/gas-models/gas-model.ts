@@ -63,6 +63,12 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
 };
 
+export type L2ToL1GasCosts = {
+  gasUsedL1: BigNumber;
+  gasCostL1USD: CurrencyAmount;
+  gasCostL1QuoteToken: CurrencyAmount;
+};
+
 /**
  * Contains functions for generating gas estimates for given routes.
  *
@@ -85,6 +91,7 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;
   };
+  calculateL1GasFees?(routes: TRouteWithValidQuote[]): Promise<L2ToL1GasCosts>;
 };
 
 /**
