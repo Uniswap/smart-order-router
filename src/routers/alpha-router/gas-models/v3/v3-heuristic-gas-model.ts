@@ -91,13 +91,11 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         );
       } else if (chainId == ChainId.ARBITRUM_ONE) {
         // the fee returned still needs to be multiplied by `gasPriceWei`
-        let l1Fee;
-        [l1Used, l1Fee] = this.calculateArbitrumToL1SecurityFee(
+        [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(
           route,
           swapOptions,
           l2GasData as ArbitrumGasData
         );
-        l1FeeInWei = l1Fee.mul(gasPriceWei);
       }
 
       // wrap fee to native currency
@@ -106,8 +104,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
         nativeCurrency,
         l1FeeInWei.toString()
       );
-
-      console.log(costNativeCurrency.toFixed());
 
       // convert fee into usd
       const nativeTokenPrice =
@@ -471,7 +467,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     swapConfig: SwapOptions,
     gasData: ArbitrumGasData
   ): [BigNumber, BigNumber] {
-    const { perL1CalldataFee } = gasData;
+    const { perL2TxFee, perL1CalldataFee } = gasData;
 
     const route: V3RouteWithValidQuote = routes[0]!;
 
@@ -485,9 +481,10 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
     // calculates gas amounts based on bytes of calldata, use 0 as overhead.
     const l1GasUsed = this.getL2ToL1GasUsed(data, BigNumber.from(0));
-    // multiply by the fee per calldata
-    const l1Fee = l1GasUsed.mul(perL1CalldataFee);
-    // the l1Fee needs to still be multiplied by the gasPrice
+    // multiply by the fee per calldata and add the flat l2 fee
+    let l1Fee = l1GasUsed.mul(perL1CalldataFee);
+    l1Fee = l1Fee.add(perL2TxFee);
+    // the l1Fee needs to still be multiplied by the gasPrice?
     return [l1GasUsed, l1Fee];
   }
 
