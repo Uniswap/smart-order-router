@@ -496,12 +496,14 @@ export async function getBestSwapRouteBy(
   // Adjust the quoteGasAdjusted for the l1 fee
   const tradeType = bestSwap[0]?.tradeType;
   if (tradeType == TradeType.EXACT_INPUT) {
-    const quoteGasAdjustedForL1 = quote.subtract(
+    const quoteGasAdjustedForL1 = quoteGasAdjusted.subtract(
       gasCostsL1.gasCostL1QuoteToken
     );
     quoteGasAdjusted = quoteGasAdjustedForL1;
   } else {
-    const quoteGasAdjustedForL1 = quote.add(gasCostsL1.gasCostL1QuoteToken);
+    const quoteGasAdjustedForL1 = quoteGasAdjusted.add(
+      gasCostsL1.gasCostL1QuoteToken
+    );
     quoteGasAdjusted = quoteGasAdjustedForL1;
   }
 

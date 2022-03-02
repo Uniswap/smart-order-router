@@ -264,7 +264,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -322,7 +322,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -380,7 +380,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -445,7 +445,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -512,7 +512,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -578,7 +578,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -644,7 +644,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -719,7 +719,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -788,7 +788,7 @@ describe('get best swap route', () => {
       estimatedGasUsed,
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    } = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
