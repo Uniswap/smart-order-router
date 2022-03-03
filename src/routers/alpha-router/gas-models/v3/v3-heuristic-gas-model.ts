@@ -484,7 +484,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     // multiply by the fee per calldata and add the flat l2 fee
     let l1Fee = l1GasUsed.mul(perL1CalldataFee);
     l1Fee = l1Fee.add(perL2TxFee);
-    // the l1Fee needs to still be multiplied by the gasPrice?
     return [l1GasUsed, l1Fee];
   }
 
