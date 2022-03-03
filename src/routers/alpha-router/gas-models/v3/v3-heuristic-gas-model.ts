@@ -90,7 +90,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
           l2GasData as OptimismGasData
         );
       } else if (chainId == ChainId.ARBITRUM_ONE) {
-        // the fee returned still needs to be multiplied by `gasPriceWei`
         [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(
           route,
           swapOptions,
@@ -454,6 +453,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
     const l1GasUsed = this.getL2ToL1GasUsed(data, overhead);
+    // l1BaseFee is L1 Gas Price on etherscan
     const l1Fee = l1GasUsed.mul(l1BaseFee);
     const unscaled = l1Fee.mul(scalar);
     // scaled = unscaled / (10 ** decimals)

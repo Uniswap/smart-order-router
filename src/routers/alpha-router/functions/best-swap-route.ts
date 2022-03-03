@@ -1,3 +1,4 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
@@ -9,7 +10,7 @@ import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { routeAmountsToString, routeToString } from '../../../util/routes';
 import { AlphaRouterConfig } from '../alpha-router';
-import { IGasModel, L2ToL1GasCosts, usdGasTokensByChain } from '../gas-models';
+import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 import {
   RouteWithValidQuote,
   V3RouteWithValidQuote,
@@ -407,7 +408,7 @@ export async function getBestSwapRouteBy(
   const usdTokenDecimals = usdToken.decimals;
 
   // if on L2, calculate the L1 security fee
-  let gasCostsL1: L2ToL1GasCosts = {
+  let gasCostsL1ToL2: L1ToL2GasCosts = {
     gasUsedL1: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
     gasCostL1QuoteToken: CurrencyAmount.fromRawAmount(
@@ -417,18 +418,27 @@ export async function getBestSwapRouteBy(
   };
   if (
     chainId == ChainId.OPTIMISM ||
-    chainId === ChainId.OPTIMISTIC_KOVAN ||
+    chainId == ChainId.OPTIMISTIC_KOVAN ||
     chainId == ChainId.ARBITRUM_ONE ||
     chainId == ChainId.ARBITRUM_RINKEBY
   ) {
-    if (gasModel != undefined) {
-      gasCostsL1 = await gasModel.calculateL1GasFees!(
-        bestSwap as V3RouteWithValidQuote[]
+    if (gasModel == undefined) {
+      throw new Error("Can't compute L1 gas fees.");
+    } else {
+      const onlyV3Routes = bestSwap.every(
+        (route) => route.protocol == Protocol.V3
       );
+      if (onlyV3Routes) {
+        gasCostsL1ToL2 = await gasModel.calculateL1GasFees!(
+          bestSwap as V3RouteWithValidQuote[]
+        );
+      } else {
+        throw new Error('This protocol only supports V3 Routes.');
+      }
     }
   }
 
-  const { gasCostL1USD, gasCostL1QuoteToken } = gasCostsL1;
+  const { gasCostL1USD, gasCostL1QuoteToken } = gasCostsL1ToL2;
 
   // For each gas estimate, normalize decimals to that of the chosen usd token.
   const estimatedGasUsedUSDs = _(bestSwap)
@@ -496,14 +506,11 @@ export async function getBestSwapRouteBy(
   // Adjust the quoteGasAdjusted for the l1 fee
   const tradeType = bestSwap[0]?.tradeType;
   if (tradeType == TradeType.EXACT_INPUT) {
-    const quoteGasAdjustedForL1 = quoteGasAdjusted.subtract(
-      gasCostsL1.gasCostL1QuoteToken
-    );
+    const quoteGasAdjustedForL1 =
+      quoteGasAdjusted.subtract(gasCostL1QuoteToken);
     quoteGasAdjusted = quoteGasAdjustedForL1;
   } else {
-    const quoteGasAdjustedForL1 = quoteGasAdjusted.add(
-      gasCostsL1.gasCostL1QuoteToken
-    );
+    const quoteGasAdjustedForL1 = quoteGasAdjusted.add(gasCostL1QuoteToken);
     quoteGasAdjusted = quoteGasAdjustedForL1;
   }
 

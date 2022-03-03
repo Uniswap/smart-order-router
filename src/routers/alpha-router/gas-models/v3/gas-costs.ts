@@ -33,7 +33,7 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
       return BigNumber.from(31000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_RINKEBY:
-      return BigNumber.from(15000);
+      return BigNumber.from(31000);
     case ChainId.POLYGON:
     case ChainId.POLYGON_MUMBAI:
       return BigNumber.from(31000);

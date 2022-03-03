@@ -811,6 +811,14 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
+    const gasModel = await this.v3GasModelFactory.buildGasModel(
+      this.chainId,
+      gasPriceWei,
+      this.v3PoolProvider,
+      quoteToken,
+      this.l2GasDataProvider
+    );
+
     if (
       (protocolsSet.size == 0 ||
         (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))) &&
@@ -824,7 +832,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
-          gasPriceWei,
+          gasModel,
           tradeType,
           routingConfig
         )
@@ -854,7 +862,7 @@ export class AlphaRouter
             amounts,
             percents,
             quoteToken,
-            gasPriceWei,
+            gasModel,
             tradeType,
             routingConfig
           )
@@ -878,14 +886,6 @@ export class AlphaRouter
     }
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
-
-    // get the gasModel to pass in when finding the best route between all routes
-    // only need the gasModel if we're routing a V3 Route on an L2
-    const gasModel: IGasModel<V3RouteWithValidQuote> | undefined =
-      protocolsSet.has(Protocol.V2)
-        ? undefined
-        : (routesWithValidQuotesByProtocol[0]?.routesWithValidQuotes[0]
-            ?.gasModel as IGasModel<V3RouteWithValidQuote>);
 
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
@@ -1020,7 +1020,7 @@ export class AlphaRouter
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasPriceWei: BigNumber,
+    gasModel: IGasModel<V3RouteWithValidQuote>,
     swapType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<{
@@ -1086,14 +1086,6 @@ export class AlphaRouter
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
-
-    const gasModel = await this.v3GasModelFactory.buildGasModel(
-      this.chainId,
-      gasPriceWei,
-      this.v3PoolProvider,
-      quoteToken,
-      this.l2GasDataProvider
-    );
 
     metric.putMetric(
       'V3QuotesLoad',

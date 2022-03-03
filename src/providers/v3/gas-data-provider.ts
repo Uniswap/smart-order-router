@@ -8,7 +8,6 @@ import {
   OVM_GASPRICE_ADDRESS,
 } from '../../util';
 import { IMulticallProvider } from '../multicall-provider';
-import { ProviderConfig } from '../provider';
 
 /**
  * Provider for getting gas constants on L2s.
@@ -103,9 +102,6 @@ export type ArbitrumGasData = {
   perL1CalldataFee: BigNumber;
   perArbGasTotal: BigNumber;
 };
-export interface IArbitrumGasDataProvider {
-  getGasData(): Promise<ArbitrumGasData>;
-}
 
 export class ArbitrumGasDataProvider
   implements IL2GasDataProvider<ArbitrumGasData>
@@ -115,14 +111,9 @@ export class ArbitrumGasDataProvider
   constructor(
     protected chainId: ChainId,
     protected provider: providers.BaseProvider,
-    protected gasLimitPerCall = 1_000_000,
-    gasDataAddress?: string,
-    providerConfig?: ProviderConfig | undefined,
-    gasLimitPerCallOverride?: number
+    gasDataAddress?: string
   ) {
     this.gasFeesAddress = gasDataAddress ? gasDataAddress : ARB_GASINFO_ADDRESS;
-    gasLimitPerCall = gasLimitPerCallOverride ?? this.gasLimitPerCall;
-    this.blockNumberOverride = providerConfig?.blockNumber ?? undefined;
   }
 
   public async getGasData() {
