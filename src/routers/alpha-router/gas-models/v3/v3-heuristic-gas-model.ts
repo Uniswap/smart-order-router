@@ -83,13 +83,16 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       };
       let l1Used = BigNumber.from(0);
       let l1FeeInWei = BigNumber.from(0);
-      if (chainId == ChainId.OPTIMISM) {
+      if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
           route,
           swapOptions,
           l2GasData as OptimismGasData
         );
-      } else if (chainId == ChainId.ARBITRUM_ONE) {
+      } else if (
+        chainId == ChainId.ARBITRUM_ONE ||
+        chainId == ChainId.ARBITRUM_RINKEBY
+      ) {
         [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(
           route,
           swapOptions,
@@ -471,13 +474,17 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
 
     const route: V3RouteWithValidQuote = routes[0]!;
 
+    const inputToken =
+      route.tradeType == TradeType.EXACT_INPUT
+        ? route.amount.currency
+        : route.quote.currency;
+    const outputToken =
+      route.tradeType == TradeType.EXACT_INPUT
+        ? route.quote.currency
+        : route.amount.currency;
+
     // build trade for swap calldata
-    const trade = buildTrade(
-      route.amount.currency,
-      route.quote.currency,
-      route.tradeType,
-      routes
-    );
+    const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
     // calculates gas amounts based on bytes of calldata, use 0 as overhead.
     const l1GasUsed = this.getL2ToL1GasUsed(data, BigNumber.from(0));

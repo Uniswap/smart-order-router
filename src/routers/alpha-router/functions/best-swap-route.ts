@@ -4,7 +4,7 @@ import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import { FixedReverseHeap, Queue } from 'mnemonist';
-import { ChainId } from '../../../util';
+import { ChainId, HAS_L1_FEE } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -342,13 +342,40 @@ export async function getBestSwapRouteBy(
           const quotesNew = _.map(curRoutesNew, (r) => by(r));
           const quoteNew = sumFn(quotesNew);
 
+          let gasCostL1QuoteToken = CurrencyAmount.fromRawAmount(
+            quoteNew.currency,
+            0
+          );
+
+          if (HAS_L1_FEE.includes(chainId)) {
+            const onlyV3Routes = curRoutesNew.every(
+              (route) => route.protocol == Protocol.V3
+            );
+
+            if (gasModel == undefined || !onlyV3Routes) {
+              throw new Error("Can't compute L1 gas fees.");
+            } else {
+              const gasCostL1 = await gasModel.calculateL1GasFees!(
+                curRoutesNew as V3RouteWithValidQuote[]
+              );
+              gasCostL1QuoteToken = gasCostL1.gasCostL1QuoteToken;
+            }
+          }
+
+          const tradeType = curRoutesNew[0]?.tradeType;
+
+          const quoteAfterL1Adjust =
+            tradeType == TradeType.EXACT_INPUT
+              ? quoteNew.subtract(gasCostL1QuoteToken)
+              : quoteNew.add(gasCostL1QuoteToken);
+
           bestSwapsPerSplit.push({
-            quote: quoteNew,
+            quote: quoteAfterL1Adjust,
             routes: curRoutesNew,
           });
 
-          if (!bestQuote || quoteCompFn(quoteNew, bestQuote)) {
-            bestQuote = quoteNew;
+          if (!bestQuote || quoteCompFn(quoteAfterL1Adjust, bestQuote)) {
+            bestQuote = quoteAfterL1Adjust;
             bestSwap = curRoutesNew;
 
             // Temporary experiment.
@@ -416,25 +443,18 @@ export async function getBestSwapRouteBy(
       0
     ),
   };
-  if (
-    chainId == ChainId.OPTIMISM ||
-    chainId == ChainId.OPTIMISTIC_KOVAN ||
-    chainId == ChainId.ARBITRUM_ONE ||
-    chainId == ChainId.ARBITRUM_RINKEBY
-  ) {
-    if (gasModel == undefined) {
+  // If swapping on an L2 that includes a L1 security fee, calculate the fee and include it in the gas adjusted quotes
+  if (HAS_L1_FEE.includes(chainId)) {
+    // ensure the gasModel exists and that the swap route is a v3 only route
+    const onlyV3Routes = bestSwap.every(
+      (route) => route.protocol == Protocol.V3
+    );
+    if (gasModel == undefined || !onlyV3Routes) {
       throw new Error("Can't compute L1 gas fees.");
     } else {
-      const onlyV3Routes = bestSwap.every(
-        (route) => route.protocol == Protocol.V3
+      gasCostsL1ToL2 = await gasModel.calculateL1GasFees!(
+        bestSwap as V3RouteWithValidQuote[]
       );
-      if (onlyV3Routes) {
-        gasCostsL1ToL2 = await gasModel.calculateL1GasFees!(
-          bestSwap as V3RouteWithValidQuote[]
-        );
-      } else {
-        throw new Error('This protocol only supports V3 Routes.');
-      }
     }
   }
 
