@@ -21,6 +21,13 @@ export const V2_SUPPORTED = [
   ChainId.ROPSTEN,
 ];
 
+export const HAS_L1_FEE = [
+  ChainId.OPTIMISM,
+  ChainId.OPTIMISTIC_KOVAN,
+  ChainId.ARBITRUM_ONE,
+  ChainId.ARBITRUM_RINKEBY,
+];
+
 export const ID_TO_CHAIN_ID = (id: number): ChainId => {
   switch (id) {
     case 1:

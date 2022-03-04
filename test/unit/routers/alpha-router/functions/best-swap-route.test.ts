@@ -257,14 +257,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -272,6 +265,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('60');
     expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
@@ -315,14 +317,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -330,6 +325,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('44');
     expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
@@ -373,14 +377,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -388,6 +385,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('100');
     expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
@@ -438,14 +444,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -453,6 +452,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('140');
     expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
@@ -505,14 +513,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -520,6 +521,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('1000');
     expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
@@ -571,14 +581,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -586,6 +589,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('3000');
     expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
@@ -637,14 +649,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -657,6 +662,15 @@ describe('get best swap route', () => {
         maxSplits: 3,
       }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('110000');
     expect(quote.equalTo(quoteGasAdjusted)).toBeTruthy();
@@ -712,14 +726,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -727,6 +734,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('85');
     expect(quoteGasAdjusted.quotient.toString()).toBe('75');
@@ -781,14 +797,7 @@ describe('get best swap route', () => {
       ),
     ];
 
-    const {
-      quote,
-      routes,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-    } = getBestSwapRoute(
+    const swapRouteType = await getBestSwapRoute(
       amount,
       percents,
       routesWithQuotes,
@@ -796,6 +805,15 @@ describe('get best swap route', () => {
       ChainId.MAINNET,
       { ...mockRoutingConfig, distributionPercent: 25 }
     )!;
+
+    const {
+      quote,
+      routes,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+    } = swapRouteType!;
 
     expect(quote.quotient.toString()).toBe('85');
     expect(quoteGasAdjusted.quotient.toString()).toBe('75');

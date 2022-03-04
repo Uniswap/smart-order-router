@@ -57,7 +57,10 @@ import {
   V2PoolProvider,
 } from '../../providers/v2/pool-provider';
 import {
-  IOptimismGasDataProvider,
+  ArbitrumGasData,
+  ArbitrumGasDataProvider,
+  IL2GasDataProvider,
+  OptimismGasData,
   OptimismGasDataProvider,
 } from '../../providers/v3/gas-data-provider';
 import {
@@ -116,7 +119,11 @@ import {
   getV3CandidatePools as getV3CandidatePools,
   PoolId,
 } from './functions/get-candidate-pools';
-import { IV2GasModelFactory, IV3GasModelFactory } from './gas-models/gas-model';
+import {
+  IGasModel,
+  IV2GasModelFactory,
+  IV3GasModelFactory,
+} from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 export type AlphaRouterParams = {
@@ -193,12 +200,17 @@ export type AlphaRouterParams = {
   /**
    * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
    */
-  optimismGasDataProvider?: IOptimismGasDataProvider;
+  optimismGasDataProvider?: IL2GasDataProvider<OptimismGasData>;
 
   /**
    * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
    */
   tokenValidatorProvider?: ITokenValidatorProvider;
+
+  /**
+   * Calls the arbitrum gas data contract to fetch constants for calculating the l1 fee.
+   */
+  arbitrumGasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
 };
 
 /**
@@ -316,7 +328,9 @@ export class AlphaRouter
   protected v2GasModelFactory: IV2GasModelFactory;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
-  protected optimismGasDataProvider?: IOptimismGasDataProvider;
+  protected l2GasDataProvider?:
+    | IL2GasDataProvider<OptimismGasData>
+    | IL2GasDataProvider<ArbitrumGasData>;
 
   constructor({
     chainId,
@@ -336,6 +350,7 @@ export class AlphaRouter
     swapRouterProvider,
     optimismGasDataProvider,
     tokenValidatorProvider,
+    arbitrumGasDataProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -525,9 +540,17 @@ export class AlphaRouter
       swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
 
     if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
-      this.optimismGasDataProvider =
+      this.l2GasDataProvider =
         optimismGasDataProvider ??
         new OptimismGasDataProvider(chainId, this.multicall2Provider);
+    }
+    if (
+      chainId == ChainId.ARBITRUM_ONE ||
+      chainId == ChainId.ARBITRUM_RINKEBY
+    ) {
+      this.l2GasDataProvider =
+        arbitrumGasDataProvider ??
+        new ArbitrumGasDataProvider(chainId, this.provider);
     }
     if (tokenValidatorProvider) {
       this.tokenValidatorProvider = tokenValidatorProvider;
@@ -788,6 +811,14 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
+    const gasModel = await this.v3GasModelFactory.buildGasModel(
+      this.chainId,
+      gasPriceWei,
+      this.v3PoolProvider,
+      quoteToken,
+      this.l2GasDataProvider
+    );
+
     if (
       (protocolsSet.size == 0 ||
         (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))) &&
@@ -801,7 +832,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
-          gasPriceWei,
+          gasModel,
           tradeType,
           routingConfig
         )
@@ -831,7 +862,7 @@ export class AlphaRouter
             amounts,
             percents,
             quoteToken,
-            gasPriceWei,
+            gasModel,
             tradeType,
             routingConfig
           )
@@ -876,13 +907,14 @@ export class AlphaRouter
 
     // Given all the quotes for all the amounts for all the routes, find the best combination.
     const beforeBestSwap = Date.now();
-    const swapRouteRaw = getBestSwapRoute(
+    const swapRouteRaw = await getBestSwapRoute(
       amount,
       percents,
       allRoutesWithValidQuotes,
       tradeType,
       this.chainId,
-      routingConfig
+      routingConfig,
+      gasModel
     );
 
     if (!swapRouteRaw) {
@@ -988,7 +1020,7 @@ export class AlphaRouter
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasPriceWei: BigNumber,
+    gasModel: IGasModel<V3RouteWithValidQuote>,
     swapType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<{
@@ -1054,14 +1086,6 @@ export class AlphaRouter
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
-
-    const gasModel = await this.v3GasModelFactory.buildGasModel(
-      this.chainId,
-      gasPriceWei,
-      this.v3PoolProvider,
-      quoteToken,
-      this.optimismGasDataProvider
-    );
 
     metric.putMetric(
       'V3QuotesLoad',
