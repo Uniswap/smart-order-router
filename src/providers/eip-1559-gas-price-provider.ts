@@ -42,7 +42,7 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
 
   public async getGasPrice(): Promise<GasPrice> {
     const feeHistoryRaw = (await this.provider.send('eth_feeHistory', [
-      this.blocksToConsider,
+      '0x' + this.blocksToConsider.toString(16),
       'latest',
       [this.priorityFeePercentile],
     ])) as RawFeeHistoryResponse;
