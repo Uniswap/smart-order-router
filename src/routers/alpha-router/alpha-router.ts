@@ -10,6 +10,7 @@ import {
   SqrtPriceMath,
   TickMath,
 } from '@uniswap/v3-sdk';
+import { default as retry } from 'async-retry';
 import { BigNumber, providers } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
@@ -766,7 +767,7 @@ export class AlphaRouter
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
     const blockNumber =
-      partialRoutingConfig.blockNumber ?? this.provider.getBlockNumber();
+      partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {},
@@ -976,7 +977,10 @@ export class AlphaRouter
 
   private async applyTokenValidatorToPools<T extends Pool | Pair>(
     pools: T[],
-    isInvalidFn: (tokenValidation: TokenValidationResult | undefined) => boolean
+    isInvalidFn: (
+      token: Currency,
+      tokenValidation: TokenValidationResult | undefined
+    ) => boolean
   ): Promise<T[]> {
     if (!this.tokenValidatorProvider) {
       return pools;
@@ -997,8 +1001,8 @@ export class AlphaRouter
         pool.token1
       );
 
-      const token0Invalid = isInvalidFn(token0Validation);
-      const token1Invalid = isInvalidFn(token1Validation);
+      const token0Invalid = isInvalidFn(pool.token0, token0Validation);
+      const token1Invalid = isInvalidFn(pool.token1, token1Validation);
 
       if (token0Invalid || token1Invalid) {
         log.info(
@@ -1047,9 +1051,24 @@ export class AlphaRouter
     // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
     const pools = await this.applyTokenValidatorToPools(
       poolsRaw,
-      (tokenValidation: TokenValidationResult | undefined): boolean => {
+      (
+        token: Currency,
+        tokenValidation: TokenValidationResult | undefined
+      ): boolean => {
         // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
+          return false;
+        }
+
+        // Only filters out *intermediate* pools that involve tokens that we detect
+        // cant be transferred. This prevents us trying to route through tokens that may
+        // not be transferrable, but allows users to still swap those tokens if they
+        // specify.
+        //
+        if (
+          tokenValidation == TokenValidationResult.STF &&
+          (token.equals(tokenIn) || token.equals(tokenOut))
+        ) {
           return false;
         }
 
@@ -1187,9 +1206,23 @@ export class AlphaRouter
     // Drop any pools that contain tokens that can not be transferred according to the token validator.
     const pools = await this.applyTokenValidatorToPools(
       poolsRaw,
-      (tokenValidation: TokenValidationResult | undefined): boolean => {
+      (
+        token: Currency,
+        tokenValidation: TokenValidationResult | undefined
+      ): boolean => {
         // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
+          return false;
+        }
+
+        // Only filters out *intermediate* pools that involve tokens that we detect
+        // cant be transferred. This prevents us trying to route through tokens that may
+        // not be transferrable, but allows users to still swap those tokens if they
+        // specify.
+        if (
+          tokenValidation == TokenValidationResult.STF &&
+          (token.equals(tokenIn) || token.equals(tokenOut))
+        ) {
           return false;
         }
 
@@ -1485,5 +1518,21 @@ export class AlphaRouter
       ? JSBI.unaryMinus(fraction.denominator)
       : fraction.denominator;
     return new Fraction(numeratorAbs, denominatorAbs);
+  }
+
+  private getBlockNumberPromise(): number | Promise<number> {
+    return retry(
+      async (_b, attempt) => {
+        if (attempt > 1) {
+          log.info(`Get block number attempt ${attempt}`);
+        }
+        return this.provider.getBlockNumber();
+      },
+      {
+        retries: 2,
+        minTimeout: 100,
+        maxTimeout: 1000,
+      }
+    );
   }
 }
