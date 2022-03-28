@@ -1,6 +1,6 @@
 import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { default as AsyncRetry, default as retry } from 'async-retry';
+import retry, {Options as RetryOptions} from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { IUniswapV2Pair__factory } from '../../types/v2';
@@ -54,7 +54,7 @@ export type V2PoolAccessor = {
   getAllPools: () => Pair[];
 };
 
-export type V2PoolRetryOptions = AsyncRetry.Options;
+export type V2PoolRetryOptions = RetryOptions;
 
 export class V2PoolProvider implements IV2PoolProvider {
   // Computing pool addresses is slow as it requires hashing, encoding etc.

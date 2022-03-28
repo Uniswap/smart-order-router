@@ -1,5 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
-import { default as retry } from 'async-retry';
+import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';

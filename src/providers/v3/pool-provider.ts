@@ -1,6 +1,6 @@
 import { Token } from '@uniswap/sdk-core';
 import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
-import { default as AsyncRetry, default as retry } from 'async-retry';
+import retry, { Options as RetryOptions } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { IUniswapV3PoolState__factory } from '../../types/v3';
@@ -67,7 +67,7 @@ export type V3PoolAccessor = {
   getAllPools: () => Pool[];
 };
 
-export type V3PoolRetryOptions = AsyncRetry.Options;
+export type V3PoolRetryOptions = RetryOptions;
 
 export class V3PoolProvider implements IV3PoolProvider {
   // Computing pool addresses is slow as it requires hashing, encoding etc.
