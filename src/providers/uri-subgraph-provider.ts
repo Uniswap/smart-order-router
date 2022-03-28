@@ -1,4 +1,4 @@
-import { default as retry } from 'async-retry';
+import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import axios from 'axios';
 import { ChainId } from '../util/chains';

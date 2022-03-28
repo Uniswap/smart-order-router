@@ -4,7 +4,7 @@ import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
 import { MethodParameters } from '@uniswap/v3-sdk';
-import { default as bunyan, default as Logger } from 'bunyan';
+import bunyan, { default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 import { BigNumber, ethers } from 'ethers';
 import _ from 'lodash';

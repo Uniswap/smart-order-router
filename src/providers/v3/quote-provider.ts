@@ -1,5 +1,5 @@
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
-import { default as AsyncRetry, default as retry } from 'async-retry';
+import retry, { Options as RetryOptions } from 'async-retry';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import stats from 'stats-lite';
@@ -68,7 +68,7 @@ export class ProviderGasError extends Error {
   public name = 'ProviderGasError';
 }
 
-export type QuoteRetryOptions = AsyncRetry.Options;
+export type QuoteRetryOptions = RetryOptions;
 
 /**
  * The V3 route and a list of quotes for that route.

@@ -1,4 +1,4 @@
-import { default as retry } from 'async-retry';
+import retry from 'async-retry';
 import axios from 'axios';
 import { BigNumber } from 'ethers';
 import { log } from '../util/log';

@@ -10,7 +10,7 @@ import {
   SqrtPriceMath,
   TickMath,
 } from '@uniswap/v3-sdk';
-import { default as retry } from 'async-retry';
+import retry from 'async-retry';
 import { BigNumber, providers } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
