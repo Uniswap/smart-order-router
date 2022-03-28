@@ -146,22 +146,6 @@ export async function getBestSwapRouteBy(
     }
   );
 
-  log.info(
-    {
-      percentToTop5SortedQuotes: _.mapValues(percentToSortedQuotes, (ps) =>
-        _.map(ps.slice(0, 5), (p) => ({
-          protocol: p.protocol,
-          route: routeToString(p.route),
-          percent: p.percent,
-          quote: p.quoteAdjustedForGas.toFixed(
-            Math.min(p.quoteToken.decimals, 2)
-          ),
-        }))
-      ),
-    },
-    'Top 5 Quotes for each percentage'
-  );
-
   const quoteCompFn =
     routeType == TradeType.EXACT_INPUT
       ? (a: CurrencyAmount, b: CurrencyAmount) => a.greaterThan(b)
@@ -187,7 +171,7 @@ export async function getBestSwapRouteBy(
     (a, b) => {
       return quoteCompFn(a.quote, b.quote) ? -1 : 1;
     },
-    5
+    3
   );
 
   const { minSplits, maxSplits, forceCrossProtocol } = routingConfig;
@@ -277,7 +261,7 @@ export async function getBestSwapRouteBy(
         ),
         onQueue: queue.size,
       },
-      `Top 5 with ${splits} splits`
+      `Top 3 with ${splits} splits`
     );
 
     bestSwapsPerSplit.clear();
