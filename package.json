@@ -80,6 +80,7 @@
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.22.0",
+    "ethers": "^5.1.4",
     "jest": "^27.0.6",
     "jest-expect-message": "^1.0.2",
     "jest-mock": "^27.0.6",
