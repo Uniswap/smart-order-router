@@ -1,4 +1,5 @@
-import { BigNumber, providers } from 'ethers';
+import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider } from '@ethersproject/providers';
 import _ from 'lodash';
 import stats from 'stats-lite';
 import { UniswapInterfaceMulticall__factory } from '../types/v3/factories/UniswapInterfaceMulticall__factory';
@@ -40,7 +41,7 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
 
   constructor(
     protected chainId: ChainId,
-    protected provider: providers.BaseProvider,
+    protected provider: BaseProvider,
     protected gasLimitPerCall = 1_000_000,
     protected multicallAddressOverride = UNISWAP_MULTICALL_ADDRESS
   ) {

@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { CondensedAddLiquidityOptions, Trade } from '@uniswap/router-sdk';
 import {
   Currency,
@@ -13,9 +14,9 @@ import {
   Position,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
-import { BigNumber } from 'ethers';
 import { CurrencyAmount } from '../util/amounts';
 import { RouteWithValidQuote } from './alpha-router';
+
 export class V3Route extends V3RouteRaw<Token, Token> {}
 export class V2Route extends V2RouteRaw<Token, Token> {}
 

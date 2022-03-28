@@ -1,3 +1,5 @@
+import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
@@ -11,7 +13,6 @@ import {
   TickMath,
 } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
-import { BigNumber, providers } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
@@ -135,7 +136,7 @@ export type AlphaRouterParams = {
   /**
    * The Web3 provider for getting on-chain data.
    */
-  provider: providers.BaseProvider;
+  provider: BaseProvider;
   /**
    * The provider to use for making multicalls. Used for getting on-chain data
    * like pools, tokens, quotes in batch.
@@ -314,7 +315,7 @@ export class AlphaRouter
     ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
 {
   protected chainId: ChainId;
-  protected provider: providers.BaseProvider;
+  protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
@@ -521,7 +522,7 @@ export class AlphaRouter
       gasPriceProvider ??
       new CachingGasStationProvider(
         chainId,
-        this.provider instanceof providers.JsonRpcProvider
+        this.provider instanceof JsonRpcProvider
           ? new OnChainGasPriceProvider(
               chainId,
               new EIP1559GasPriceProvider(this.provider),
@@ -622,7 +623,7 @@ export class AlphaRouter
         };
       }
 
-      let amountToSwap = calculateRatioAmountIn(
+      const amountToSwap = calculateRatioAmountIn(
         optimalRatio,
         exchangeRate,
         inputBalance,
@@ -653,9 +654,11 @@ export class AlphaRouter
         };
       }
 
-      let inputBalanceUpdated = inputBalance.subtract(swap.trade!.inputAmount);
-      let outputBalanceUpdated = outputBalance.add(swap.trade!.outputAmount);
-      let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated);
+      const inputBalanceUpdated = inputBalance.subtract(
+        swap.trade!.inputAmount
+      );
+      const outputBalanceUpdated = outputBalance.add(swap.trade!.outputAmount);
+      const newRatio = inputBalanceUpdated.divide(outputBalanceUpdated);
 
       let targetPoolPriceUpdate;
       swap.route.forEach((route) => {
@@ -1324,8 +1327,8 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig
   ): [number[], CurrencyAmount[]] {
     const { distributionPercent } = routingConfig;
-    let percents = [];
-    let amounts = [];
+    const percents = [];
+    const amounts = [];
 
     for (let i = 1; i <= 100 / distributionPercent; i++) {
       percents.push(i * distributionPercent);

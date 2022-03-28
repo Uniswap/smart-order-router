@@ -1,4 +1,4 @@
-// import { providers } from 'ethers';
+// import { BaseProvider } from '@ethersproject/providers'
 // import { mocked } from 'ts-jest/utils';
 // import { UniswapMulticallProvider } from '../../../src/providers/multicall-uniswap-provider';
 // import { IERC20Metadata__factory } from '../../../src/types/v3/factories/IERC20Metadata__factory';
@@ -37,7 +37,7 @@ describe.skip('uniswap multicall provider', () => {
   let uniswapMulticallProvider: UniswapMulticallProvider;
   const erc20Interface = IERC20Metadata__factory.createInterface();
 
-  let mockProvider: jest.Mocked<providers.BaseProvider>;
+  let mockProvider: jest.Mocked<BaseProvider>;
 
   let multicallMock: jest.Mocked<UniswapInterfaceMulticall>;
 
@@ -55,9 +55,9 @@ describe.skip('uniswap multicall provider', () => {
       UniswapInterfaceMulticall as any
     );
 
-    mockProvider = createMockInstance(providers.BaseProvider);
+    mockProvider = createMockInstance(BaseProvider);
     uniswapMulticallProvider = new UniswapMulticallProvider(
-      createMockInstance(providers.BaseProvider)
+      createMockInstance(BaseProvider)
     );
   });
 

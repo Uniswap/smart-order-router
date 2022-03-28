@@ -147,7 +147,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     log.info('In static subgraph provider for V3');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
-    let basePairs: [Token, Token][] = _.flatMap(
+    const basePairs: [Token, Token][] = _.flatMap(
       bases,
       (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
     );

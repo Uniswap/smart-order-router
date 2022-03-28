@@ -31,7 +31,10 @@
     "node": ">=10"
   },
   "dependencies": {
-    "@ethersproject/bignumber": "^5.1.1",
+    "@ethersproject/abi": "^5.4.0",
+    "@ethersproject/bignumber": "^5.4.0",
+    "@ethersproject/logger": "^5.4.0",
+    "@ethersproject/providers": "^5.4.0",
     "@types/async-retry": "^1.4.2",
     "@types/await-timeout": "^0.3.1",
     "@types/bunyan": "^1.8.6",
@@ -50,7 +53,6 @@
     "bunyan": "^1.8.15",
     "bunyan-blackhole": "^1.1.1",
     "bunyan-debug-stream": "^2.0.0",
-    "ethers": "^5.1.4",
     "graphql": "^15.5.0",
     "graphql-request": "^3.4.0",
     "lodash": "^4.17.21",
@@ -78,6 +80,7 @@
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.22.0",
+    "ethers": "^5.1.4",
     "jest": "^27.0.6",
     "jest-expect-message": "^1.0.2",
     "jest-mock": "^27.0.6",

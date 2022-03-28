@@ -1,8 +1,9 @@
+import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider } from '@ethersproject/providers';
 import { Protocol, SwapRouter } from '@uniswap/router-sdk';
 import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
-import { BigNumber, providers } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -75,7 +76,7 @@ import {
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
 describe('alpha router', () => {
-  let mockProvider: sinon.SinonStubbedInstance<providers.BaseProvider>;
+  let mockProvider: sinon.SinonStubbedInstance<BaseProvider>;
   let mockMulticallProvider: sinon.SinonStubbedInstance<UniswapMulticallProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
 
@@ -145,7 +146,7 @@ describe('alpha router', () => {
   };
 
   beforeEach(() => {
-    mockProvider = sinon.createStubInstance(providers.BaseProvider);
+    mockProvider = sinon.createStubInstance(BaseProvider);
     mockProvider.getBlockNumber.resolves(mockBlock);
 
     mockMulticallProvider = sinon.createStubInstance(UniswapMulticallProvider);

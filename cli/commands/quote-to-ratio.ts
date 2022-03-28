@@ -1,8 +1,8 @@
+import { Logger } from '@ethersproject/logger';
 import { flags } from '@oclif/command';
 import { Currency, Ether, Fraction, Percent } from '@uniswap/sdk-core';
 import { Position } from '@uniswap/v3-sdk';
 import dotenv from 'dotenv';
-import { ethers } from 'ethers';
 import {
   ID_TO_CHAIN_ID,
   parseAmount,
@@ -13,8 +13,8 @@ import { BaseCommand } from '../base-command';
 
 dotenv.config();
 
-ethers.utils.Logger.globalLogger();
-ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.DEBUG);
+Logger.globalLogger();
+Logger.setLogLevel(Logger.levels.DEBUG);
 
 export class QuoteToRatio extends BaseCommand {
   static description = 'Uniswap Smart Order Router CLI';

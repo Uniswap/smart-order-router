@@ -1,9 +1,9 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { TradeType } from '@uniswap/sdk-core';
 import {
   InsufficientInputAmountError,
   InsufficientReservesError,
 } from '@uniswap/v2-sdk';
-import { BigNumber } from 'ethers';
 import { V2Route } from '../../routers/router';
 import { CurrencyAmount } from '../../util/amounts';
 import { log } from '../../util/log';
@@ -60,7 +60,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
   ): Promise<{ routesWithQuotes: V2RouteWithQuotes[] }> {
     const routesWithQuotes: V2RouteWithQuotes[] = [];
 
-    let debugStrs: string[] = [];
+    const debugStrs: string[] = [];
     for (const route of routes) {
       const amountQuotes: V2AmountQuote[] = [];
 

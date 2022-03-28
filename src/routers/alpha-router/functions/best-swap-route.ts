@@ -1,6 +1,6 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { TradeType } from '@uniswap/sdk-core';
-import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import { FixedReverseHeap, Queue } from 'mnemonist';
@@ -501,7 +501,7 @@ export async function getBestSwapRouteBy(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.gasCostInToken)
   ).add(gasCostL1QuoteToken);
 
-  let quote = sumFn(
+  const quote = sumFn(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
   );
 
@@ -546,7 +546,7 @@ const findFirstRouteNotUsingUsedPools = (
     .flatMap((r) => r.poolAddresses)
     .value();
 
-  for (let poolAddress of usedPoolAddresses) {
+  for (const poolAddress of usedPoolAddresses) {
     poolAddressSet.add(poolAddress);
   }
 
@@ -556,7 +556,7 @@ const findFirstRouteNotUsingUsedPools = (
     .uniq()
     .value();
 
-  for (let protocol of usedProtocols) {
+  for (const protocol of usedProtocols) {
     protocolsSet.add(protocol);
   }
 

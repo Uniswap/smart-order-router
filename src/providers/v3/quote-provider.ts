@@ -1,6 +1,7 @@
+import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider } from '@ethersproject/providers';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import stats from 'stats-lite';
 import { V3Route } from '../../routers/router';
@@ -243,7 +244,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
    */
   constructor(
     protected chainId: ChainId,
-    protected provider: providers.BaseProvider,
+    protected provider: BaseProvider,
     // Only supports Uniswap Multicall as it needs the gas limitting functionality.
     protected multicall2Provider: UniswapMulticallProvider,
     protected retryOptions: QuoteRetryOptions = {
@@ -384,7 +385,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     let haveRetriedForTimeout = false;
     let haveRetriedForUnknownReason = false;
     let finalAttemptNumber = 1;
-    let expectedCallsMade = quoteStates.length;
+    const expectedCallsMade = quoteStates.length;
     let totalCallsMade = 0;
 
     const {

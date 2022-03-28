@@ -10,6 +10,7 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';
+
 export function buildTrade<TTradeType extends TradeType>(
   tokenInCurrency: Currency,
   tokenOutCurrency: Currency,

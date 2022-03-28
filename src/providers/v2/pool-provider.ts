@@ -1,7 +1,7 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { IUniswapV2Pair__factory } from '../../types/v2';
 import { ChainId, CurrencyAmount } from '../../util';
@@ -85,7 +85,7 @@ export class V2PoolProvider implements IV2PoolProvider {
     const sortedTokenPairs: Array<[Token, Token]> = [];
     const sortedPoolAddresses: string[] = [];
 
-    for (let tokenPair of tokenPairs) {
+    for (const tokenPair of tokenPairs) {
       const [tokenA, tokenB] = tokenPair;
 
       const { poolAddress, token0, token1 } = this.getPoolAddress(

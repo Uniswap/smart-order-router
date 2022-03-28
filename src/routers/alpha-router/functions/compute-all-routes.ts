@@ -49,14 +49,14 @@ export function computeAllRoutes<
   pools: TPool[],
   maxHops: number
 ): TRoute[] {
-  const poolsUsed = Array<Boolean>(pools.length).fill(false);
+  const poolsUsed = Array<boolean>(pools.length).fill(false);
   const routes: TRoute[] = [];
 
   const computeRoutes = (
     tokenIn: Token,
     tokenOut: Token,
     currentRoute: TPool[],
-    poolsUsed: Boolean[],
+    poolsUsed: boolean[],
     _previousTokenOut?: Token
   ) => {
     if (currentRoute.length > maxHops) {

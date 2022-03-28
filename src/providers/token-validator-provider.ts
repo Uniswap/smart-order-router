@@ -73,7 +73,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
       .uniq()
       .value();
 
-    let addresses: string[] = [];
+    const addresses: string[] = [];
     const tokenToResult: { [tokenAddress: string]: TokenValidationResult } = {};
 
     // Check if we have cached token validation results for any tokens.

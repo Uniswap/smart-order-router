@@ -305,7 +305,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
 
     // base estimate gas used based on chainId estimates for hops and ticks gas useage
-    let baseGasUse = BASE_SWAP_COST(chainId)
+    const baseGasUse = BASE_SWAP_COST(chainId)
       .add(hopsGasUse)
       .add(tickGasUse)
       .add(uninitializedTickGasUse);
