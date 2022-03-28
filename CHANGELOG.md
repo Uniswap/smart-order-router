@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.5.23](https://github.com/Uniswap/smart-order-router/compare/v2.5.22...v2.5.23) (2022-03-28)
+
 ### [2.5.22](https://github.com/Uniswap/smart-order-router/compare/v2.5.21...v2.5.22) (2022-03-18)
 
 ### [2.5.21](https://github.com/Uniswap/smart-order-router/compare/v2.5.19...v2.5.21) (2022-03-18)
