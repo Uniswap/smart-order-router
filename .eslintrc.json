@@ -38,6 +38,14 @@
             "message": "Please import from '@ethersproject/module' directly to support tree-shaking."
           }
         ]
+      },
+      {
+        "paths": [
+          {
+            "name": "mnemonist",
+            "message": "Please import from 'mnemonist/module' directly to support tree-shaking."
+          }
+        ]
       }
     ]
   }
