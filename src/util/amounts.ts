@@ -3,7 +3,7 @@ import {
   CurrencyAmount as CurrencyAmountRaw,
 } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
-import { parseUnits } from 'ethers/lib/utils';
+import { parseUnits } from '@ethersproject/units';
 import JSBI from 'jsbi';
 
 export class CurrencyAmount extends CurrencyAmountRaw<Currency> {}
