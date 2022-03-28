@@ -1,6 +1,6 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { TradeType } from '@uniswap/sdk-core';
-import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import { FixedReverseHeap, Queue } from 'mnemonist';

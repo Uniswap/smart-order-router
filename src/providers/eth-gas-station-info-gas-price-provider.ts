@@ -1,6 +1,6 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import retry from 'async-retry';
 import axios from 'axios';
-import { BigNumber } from 'ethers';
 
 import { log } from '../util/log';
 

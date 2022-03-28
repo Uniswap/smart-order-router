@@ -2,7 +2,7 @@ import { flags } from '@oclif/command';
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
-import { ethers } from 'ethers';
+import { Logger } from '@ethersproject/logger';
 import _ from 'lodash';
 import {
   ID_TO_CHAIN_ID,
@@ -16,8 +16,8 @@ import { BaseCommand } from '../base-command';
 
 dotenv.config();
 
-ethers.utils.Logger.globalLogger();
-ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.DEBUG);
+Logger.globalLogger();
+Logger.setLogLevel(Logger.levels.DEBUG);
 
 export class Quote extends BaseCommand {
   static description = 'Uniswap Smart Order Router CLI';

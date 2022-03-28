@@ -1,7 +1,7 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import { BigNumber } from 'ethers';
 import _ from 'lodash';
 
 import { IUniswapV3PoolState__factory } from '../../types/v3';

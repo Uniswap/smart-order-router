@@ -6,7 +6,8 @@ import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
 import { MethodParameters } from '@uniswap/v3-sdk';
 import bunyan, { default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber } from '@ethersproject/bignumber'
+import { JsonRpcProvider } from '@ethersproject/providers';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
 import {
@@ -212,10 +213,7 @@ export abstract class BaseCommand extends Command {
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainProvider = ID_TO_PROVIDER(chainId);
 
-    const provider = new ethers.providers.JsonRpcProvider(
-      chainProvider,
-      chainId
-    );
+    const provider = new JsonRpcProvider(chainProvider, chainId);
     this._blockNumber = await provider.getBlockNumber();
 
     const tokenCache = new NodeJSCache<Token>(

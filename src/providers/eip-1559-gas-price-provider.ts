@@ -1,4 +1,5 @@
-import { BigNumber, providers } from 'ethers';
+import { BigNumber } from '@ethersproject/bignumber'
+import { JsonRpcProvider } from '@ethersproject/providers'
 import _ from 'lodash';
 
 import { log } from '../util/log';
@@ -35,7 +36,7 @@ const DEFAULT_BLOCKS_TO_LOOK_BACK = 4;
  */
 export class EIP1559GasPriceProvider extends IGasPriceProvider {
   constructor(
-    protected provider: providers.JsonRpcProvider,
+    protected provider: JsonRpcProvider,
     private priorityFeePercentile: number = DEFAULT_PRIORITY_FEE_PERCENTILE,
     private blocksToConsider: number = DEFAULT_BLOCKS_TO_LOOK_BACK
   ) {

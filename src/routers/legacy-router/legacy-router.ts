@@ -1,7 +1,8 @@
+import { BigNumber } from '@ethersproject/bignumber';
+import { Logger } from '@ethersproject/logger';
 import { SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, MethodParameters, Pool, Route } from '@uniswap/v3-sdk';
-import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
 
 import { IMulticallProvider } from '../../providers/multicall-provider';
@@ -269,7 +270,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
       const { quote, amount } = quotes[0]!;
 
       if (!quote) {
-        logger.debug(`No quote for ${routeToString(route)}`);
+        Logger.globalLogger().debug(`No quote for ${routeToString(route)}`);
         continue;
       }
 

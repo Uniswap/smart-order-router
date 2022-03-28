@@ -1,4 +1,5 @@
-import { BigNumber, providers } from 'ethers';
+import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider } from '@ethersproject/providers'
 
 import { GasDataArbitrum__factory } from '../../types/other/factories/GasDataArbitrum__factory';
 import { GasPriceOracle__factory } from '../../types/other/factories/GasPriceOracle__factory';
@@ -111,7 +112,7 @@ export class ArbitrumGasDataProvider
   protected blockNumberOverride: number | Promise<number> | undefined;
   constructor(
     protected chainId: ChainId,
-    protected provider: providers.BaseProvider,
+    protected provider: BaseProvider,
     gasDataAddress?: string
   ) {
     this.gasFeesAddress = gasDataAddress ? gasDataAddress : ARB_GASINFO_ADDRESS;

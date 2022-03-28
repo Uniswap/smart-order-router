@@ -1,11 +1,11 @@
-import { providers } from 'ethers';
+import { JsonRpcProvider } from '@ethersproject/providers'
 
 import { log } from '../util';
 
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 export class LegacyGasPriceProvider extends IGasPriceProvider {
-  constructor(protected provider: providers.JsonRpcProvider) {
+  constructor(protected provider: JsonRpcProvider) {
     super();
   }
 
