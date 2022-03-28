@@ -1,6 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
-
 import {
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,

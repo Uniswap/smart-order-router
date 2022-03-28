@@ -1,9 +1,7 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
-
 import { IERC20Metadata__factory } from '../types/v3';
 import { ChainId, log } from '../util';
-
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 

@@ -1,5 +1,4 @@
 import { ChainId } from '../../util/chains';
-
 import { ICache } from './../cache';
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
 

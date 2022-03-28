@@ -1,9 +1,7 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
-
 import { ITokenValidator__factory } from '../types/other/factories/ITokenValidator__factory';
 import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
-
 import { ICache } from './cache';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';

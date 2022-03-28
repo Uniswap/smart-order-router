@@ -1,9 +1,7 @@
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
-
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
-
 import { ICache } from './../cache';
 import { ProviderConfig } from './../provider';
 import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';

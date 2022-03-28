@@ -1,9 +1,7 @@
-import { BigNumber } from '@ethersproject/bignumber'
-import { JsonRpcProvider } from '@ethersproject/providers'
+import { BigNumber } from '@ethersproject/bignumber';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import _ from 'lodash';
-
 import { log } from '../util/log';
-
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 export type RawFeeHistoryResponse = {

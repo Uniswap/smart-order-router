@@ -4,7 +4,6 @@ import {
   InsufficientInputAmountError,
   InsufficientReservesError,
 } from '@uniswap/v2-sdk';
-
 import { V2Route } from '../../routers/router';
 import { CurrencyAmount } from '../../util/amounts';
 import { log } from '../../util/log';

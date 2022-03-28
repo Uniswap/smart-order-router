@@ -1,8 +1,8 @@
+import { Logger } from '@ethersproject/logger';
 import { flags } from '@oclif/command';
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
-import { Logger } from '@ethersproject/logger';
 import _ from 'lodash';
 import {
   ID_TO_CHAIN_ID,

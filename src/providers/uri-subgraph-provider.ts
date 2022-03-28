@@ -1,10 +1,8 @@
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import axios from 'axios';
-
 import { ChainId } from '../util/chains';
 import { log } from '../util/log';
-
 import { V2SubgraphPool } from './v2/subgraph-provider';
 import { V3SubgraphPool } from './v3/subgraph-provider';
 

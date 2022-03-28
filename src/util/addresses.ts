@@ -1,6 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
-
 import { ChainId } from './chains';
 
 export const V3_CORE_FACTORY_ADDRESS = FACTORY_ADDRESS;

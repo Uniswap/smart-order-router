@@ -1,7 +1,5 @@
-import { JsonRpcProvider } from '@ethersproject/providers'
-
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { log } from '../util';
-
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 export class LegacyGasPriceProvider extends IGasPriceProvider {

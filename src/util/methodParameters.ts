@@ -3,7 +3,6 @@ import { Currency, TradeType } from '@uniswap/sdk-core';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import { MethodParameters, Route as V3RouteRaw } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-
 import {
   CurrencyAmount,
   RouteWithValidQuote,
@@ -11,6 +10,7 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';
+
 export function buildTrade<TTradeType extends TradeType>(
   tokenInCurrency: Currency,
   tokenOutCurrency: Currency,

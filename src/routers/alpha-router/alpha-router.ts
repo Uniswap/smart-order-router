@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers'
+import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
@@ -16,7 +16,7 @@ import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-
+import { V3HeuristicGasModelFactory } from '.';
 import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
@@ -100,7 +100,6 @@ import {
   SwapToRatioResponse,
   SwapToRatioStatus,
 } from '../router';
-
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -128,8 +127,6 @@ import {
   IV3GasModelFactory,
 } from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
-
-import { V3HeuristicGasModelFactory } from '.';
 
 export type AlphaRouterParams = {
   /**
@@ -657,7 +654,9 @@ export class AlphaRouter
         };
       }
 
-      const inputBalanceUpdated = inputBalance.subtract(swap.trade!.inputAmount);
+      const inputBalanceUpdated = inputBalance.subtract(
+        swap.trade!.inputAmount
+      );
       const outputBalanceUpdated = outputBalance.add(swap.trade!.outputAmount);
       const newRatio = inputBalanceUpdated.divide(outputBalanceUpdated);
 
