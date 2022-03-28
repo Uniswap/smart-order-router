@@ -1,4 +1,5 @@
 import { BigNumber, providers } from 'ethers';
+
 import { GasDataArbitrum__factory } from '../../types/other/factories/GasDataArbitrum__factory';
 import { GasPriceOracle__factory } from '../../types/other/factories/GasPriceOracle__factory';
 import {

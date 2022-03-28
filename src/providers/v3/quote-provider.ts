@@ -3,6 +3,7 @@ import retry, { Options as RetryOptions } from 'async-retry';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import stats from 'stats-lite';
+
 import { V3Route } from '../../routers/router';
 import { IQuoterV2__factory } from '../../types/v3/factories/IQuoterV2__factory';
 import { ChainId, metric, MetricLoggerUnit } from '../../util';
@@ -384,7 +385,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     let haveRetriedForTimeout = false;
     let haveRetriedForUnknownReason = false;
     let finalAttemptNumber = 1;
-    let expectedCallsMade = quoteStates.length;
+    const expectedCallsMade = quoteStates.length;
     let totalCallsMade = 0;
 
     const {

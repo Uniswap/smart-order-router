@@ -3,6 +3,7 @@ import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, MethodParameters, Pool, Route } from '@uniswap/v3-sdk';
 import { BigNumber, logger } from 'ethers';
 import _ from 'lodash';
+
 import { IMulticallProvider } from '../../providers/multicall-provider';
 import {
   DAI_MAINNET,
@@ -20,6 +21,7 @@ import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
 import { V3RouteWithValidQuote } from '../alpha-router';
 import { IRouter, SwapOptions, SwapRoute, V3Route } from '../router';
+
 import {
   ADDITIONAL_BASES,
   BASES_TO_CHECK_TRADES_AGAINST,
@@ -308,7 +310,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
       });
     });
 
-    for (let rq of routeQuotes) {
+    for (const rq of routeQuotes) {
       log.debug(
         `Quote: ${rq.amount.toFixed(
           Math.min(rq.amount.currency.decimals, 2)

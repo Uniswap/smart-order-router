@@ -1,11 +1,13 @@
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import stats from 'stats-lite';
-import { UniswapInterfaceMulticall__factory } from '../types/v3/factories/UniswapInterfaceMulticall__factory';
+
 import { UniswapInterfaceMulticall } from '../types/v3/UniswapInterfaceMulticall';
+import { UniswapInterfaceMulticall__factory } from '../types/v3/factories/UniswapInterfaceMulticall__factory';
 import { ChainId } from '../util';
 import { UNISWAP_MULTICALL_ADDRESS } from '../util/addresses';
 import { log } from '../util/log';
+
 import {
   CallMultipleFunctionsOnSameContractParams,
   CallSameFunctionOnContractWithMultipleParams,

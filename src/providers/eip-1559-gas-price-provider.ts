@@ -1,6 +1,8 @@
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
+
 import { log } from '../util/log';
+
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 export type RawFeeHistoryResponse = {

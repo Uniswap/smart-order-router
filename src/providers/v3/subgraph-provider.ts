@@ -3,6 +3,7 @@ import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
+
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
@@ -137,7 +138,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
         const timeout = new Timeout();
 
         const getPools = async (): Promise<RawV3SubgraphPool[]> => {
-          let lastId: string = '';
+          let lastId = '';
           let pools: RawV3SubgraphPool[] = [];
           let poolsPage: RawV3SubgraphPool[] = [];
 

@@ -2,6 +2,7 @@ import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
+
 import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
@@ -46,6 +47,7 @@ import {
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
 } from '../token-provider';
+
 import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
@@ -147,7 +149,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     log.info('In static subgraph provider for V3');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
-    let basePairs: [Token, Token][] = _.flatMap(
+    const basePairs: [Token, Token][] = _.flatMap(
       bases,
       (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
     );

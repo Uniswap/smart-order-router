@@ -3,6 +3,7 @@ import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
+
 import { IUniswapV3PoolState__factory } from '../../types/v3';
 import { ChainId } from '../../util';
 import { V3_CORE_FACTORY_ADDRESS } from '../../util/addresses';
@@ -98,7 +99,7 @@ export class V3PoolProvider implements IV3PoolProvider {
     const sortedTokenPairs: Array<[Token, Token, FeeAmount]> = [];
     const sortedPoolAddresses: string[] = [];
 
-    for (let tokenPair of tokenPairs) {
+    for (const tokenPair of tokenPairs) {
       const [tokenA, tokenB, feeAmount] = tokenPair;
 
       const { poolAddress, token0, token1 } = this.getPoolAddress(

@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+
 import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import {
   ArbitrumGasData,
@@ -22,6 +23,7 @@ import {
   IV3GasModelFactory,
   usdGasTokensByChain,
 } from '../gas-model';
+
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
 // Cost for crossing an uninitialized tick.
@@ -305,7 +307,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
 
     // base estimate gas used based on chainId estimates for hops and ticks gas useage
-    let baseGasUse = BASE_SWAP_COST(chainId)
+    const baseGasUse = BASE_SWAP_COST(chainId)
       .add(hopsGasUse)
       .add(tickGasUse)
       .add(uninitializedTickGasUse);

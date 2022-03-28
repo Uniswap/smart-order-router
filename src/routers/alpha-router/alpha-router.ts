@@ -15,7 +15,7 @@ import { BigNumber, providers } from 'ethers';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { V3HeuristicGasModelFactory } from '.';
+
 import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
@@ -99,6 +99,7 @@ import {
   SwapToRatioResponse,
   SwapToRatioStatus,
 } from '../router';
+
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -126,6 +127,8 @@ import {
   IV3GasModelFactory,
 } from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
+
+import { V3HeuristicGasModelFactory } from '.';
 
 export type AlphaRouterParams = {
   /**
@@ -622,7 +625,7 @@ export class AlphaRouter
         };
       }
 
-      let amountToSwap = calculateRatioAmountIn(
+      const amountToSwap = calculateRatioAmountIn(
         optimalRatio,
         exchangeRate,
         inputBalance,
@@ -653,9 +656,9 @@ export class AlphaRouter
         };
       }
 
-      let inputBalanceUpdated = inputBalance.subtract(swap.trade!.inputAmount);
-      let outputBalanceUpdated = outputBalance.add(swap.trade!.outputAmount);
-      let newRatio = inputBalanceUpdated.divide(outputBalanceUpdated);
+      const inputBalanceUpdated = inputBalance.subtract(swap.trade!.inputAmount);
+      const outputBalanceUpdated = outputBalance.add(swap.trade!.outputAmount);
+      const newRatio = inputBalanceUpdated.divide(outputBalanceUpdated);
 
       let targetPoolPriceUpdate;
       swap.route.forEach((route) => {
@@ -1324,8 +1327,8 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig
   ): [number[], CurrencyAmount[]] {
     const { distributionPercent } = routingConfig;
-    let percents = [];
-    let amounts = [];
+    const percents = [];
+    const amounts = [];
 
     for (let i = 1; i <= 100 / distributionPercent; i++) {
       percents.push(i * distributionPercent);

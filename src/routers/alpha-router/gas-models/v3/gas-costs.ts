@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers';
+
 import { ChainId } from '../../../..';
 
 //l2 execution fee on optimism is roughly the same as mainnet

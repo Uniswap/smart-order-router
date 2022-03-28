@@ -1,7 +1,9 @@
 import retry from 'async-retry';
 import axios from 'axios';
 import { BigNumber } from 'ethers';
+
 import { log } from '../util/log';
+
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 // Gas prices from ethgasstation are in x10 Gwei. Must divide by 10 to use.

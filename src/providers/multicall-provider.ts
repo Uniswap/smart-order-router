@@ -1,5 +1,6 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber } from 'ethers';
+
 import { ProviderConfig } from './provider';
 
 export type CallSameFunctionOnMultipleContractsParams<
