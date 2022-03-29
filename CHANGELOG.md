@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.5.26](https://github.com/Uniswap/smart-order-router/compare/v2.5.25...v2.5.26) (2022-03-29)
+
+
+### Bug Fixes
+
+* split tsconfig to reduce package size ([#85](https://github.com/Uniswap/smart-order-router/issues/85)) ([3ebf637](https://github.com/Uniswap/smart-order-router/commit/3ebf637290a8c3f3e3fef6f2c5f5a488bbc5825c))
+
 ### [2.5.25](https://github.com/Uniswap/smart-order-router/compare/v2.5.24...v2.5.25) (2022-03-29)
 
 ### Bug Fixes
