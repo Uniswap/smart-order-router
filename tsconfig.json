@@ -39,9 +39,7 @@
 
     "lib": ["es2017", "dom"],
     "types": ["node", "jest"],
-    "typeRoots": ["node_modules/@types", "src/types"]
   },
-  "include": ["src/**/*.ts", "cli/**/*.ts"],
-  "exclude": ["node_modules/**"],
+  "include": ["src/index.ts"],
   "compileOnSave": false
 }

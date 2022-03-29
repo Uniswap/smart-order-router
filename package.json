@@ -93,8 +93,8 @@
     "typescript": "^4.2.2"
   },
   "files": [
-    "build/main",
-    "build/module",
+    "build/main/src",
+    "build/module/src",
     "!**/*.spec.*",
     "!**/*.json",
     "CHANGELOG.md",
