@@ -3,7 +3,7 @@ import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
-import { IUniswapV2Pair__factory } from '../../types/v2';
+import { IUniswapV2Pair__factory } from '../../types/v2/factories/IUniswapV2Pair__factory';
 import { ChainId, CurrencyAmount } from '../../util';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
