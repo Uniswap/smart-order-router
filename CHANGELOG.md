@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [2.5.25](https://github.com/Uniswap/smart-order-router/compare/v2.5.24...v2.5.25) (2022-03-29)
 
-
 ### Bug Fixes
 
-* retain ethers as dep for factories ([#84](https://github.com/Uniswap/smart-order-router/issues/84)) ([a24b0b2](https://github.com/Uniswap/smart-order-router/commit/a24b0b2d6116fef9a7796cb5e090e8d0f2c956b0))
+- retain ethers as dep for factories ([#84](https://github.com/Uniswap/smart-order-router/issues/84)) ([a24b0b2](https://github.com/Uniswap/smart-order-router/commit/a24b0b2d6116fef9a7796cb5e090e8d0f2c956b0))
 
 ### [2.5.24](https://github.com/Uniswap/smart-order-router/compare/v2.5.23...v2.5.24) (2022-03-28)
 
