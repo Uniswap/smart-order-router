@@ -53,6 +53,13 @@ export const CACHE_SEED_TOKENS: {
       'RING',
       'RING'
     ),
+    KTON: new Token(
+      ChainId.MAINNET,
+      '0x9F284E1337A815fe77D2Ff4aE46544645B20c5ff',
+      18,
+      'KTON',
+      'KTON'
+    ),
   },
   [ChainId.RINKEBY]: {
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
