@@ -134,7 +134,7 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
     case ChainId.RINKEBY:
       return process.env.JSON_RPC_PROVIDER_RINKEBY!;
     case ChainId.GÖRLI:
-      return process.env.JSON_RPC_PROVIDER_GÖRLI!;
+      return process.env.JSON_RPC_PROVIDER_GORLI!;
     case ChainId.KOVAN:
       return process.env.JSON_RPC_PROVIDER_KOVAN!;
     case ChainId.OPTIMISM:
