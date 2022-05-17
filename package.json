@@ -4,7 +4,7 @@
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
-  "module": "build/module/index.js",
+  "module": "build/main/src/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/Uniswap/smart-order-router.git"
