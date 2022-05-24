@@ -15,7 +15,7 @@ import hre from 'hardhat'
 
 // const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
-// First, let's just try and call alphaRouter.route with user supplied params
+const { ethers } = hre
 
 describe('alpha router integration', () => {
 
