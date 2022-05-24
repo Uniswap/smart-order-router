@@ -1,78 +1,78 @@
-import { BigNumber } from '@ethersproject/bignumber';
-import { BaseProvider } from '@ethersproject/providers';
-import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
-import JSBI from 'jsbi';
+
+import { TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
-import sinon from 'sinon';
 import {
   AlphaRouter,
   AlphaRouterConfig,
-  CachingTokenListProvider,
   CurrencyAmount,
-  DAI_MAINNET as DAI,
-  ETHGasStationInfoProvider,
-  parseAmount,
-  SwapAndAddConfig,
-  SwapAndAddOptions,
-  SwapRouterProvider,
-  SwapToRatioStatus,
-  TokenProvider,
-  UniswapMulticallProvider,
   USDC_MAINNET as USDC,
-  USDT_MAINNET as USDT,
-  V2AmountQuote,
-  V2QuoteProvider,
-  V2Route,
-  V2RouteWithQuotes,
-  V2RouteWithValidQuote,
-  V2SubgraphPool,
-  V2SubgraphProvider,
-  V3AmountQuote,
-  V3HeuristicGasModelFactory,
-  V3PoolProvider,
-  V3QuoteProvider,
-  V3Route,
-  V3RouteWithQuotes,
-  V3RouteWithValidQuote,
-  V3SubgraphPool,
-  V3SubgraphProvider,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
-import { ProviderConfig } from '../../../../src/providers/provider';
-import {
-  TokenValidationResult,
-  TokenValidatorProvider,
-} from '../../../../src/providers/token-validator-provider';
-import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
-import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
-import {
-  buildMockTokenAccessor,
-  buildMockV2PoolAccessor,
-  buildMockV3PoolAccessor,
-  DAI_USDT,
-  DAI_USDT_LOW,
-  DAI_USDT_MEDIUM,
-  mockBlock,
-  mockBlockBN,
-  mockGasPriceWeiBN,
-  MOCK_ZERO_DEC_TOKEN,
-  pairToV2SubgraphPool,
-  poolToV3SubgraphPool,
-  USDC_DAI,
-  USDC_DAI_LOW,
-  USDC_DAI_MEDIUM,
-  USDC_MOCK_LOW,
-  USDC_USDT_MEDIUM,
-  USDC_WETH,
-  USDC_WETH_LOW,
-  WBTC_WETH,
-  WETH9_USDT_LOW,
-  WETH_USDT,
-} from '../../../test-util/mock-data';
+// MARK: end SOR imports
 
-const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
+import { BigNumber, providers } from 'ethers'
+import hre from 'hardhat'
 
+// const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
+// First, let's just try and call alphaRouter.route with user supplied params
+
+describe('alpha router integration', () => {
+
+  let alphaRouter: AlphaRouter;
+
+  const ROUTING_CONFIG: AlphaRouterConfig = {
+    v3PoolSelection: {
+      topN: 0,
+      topNDirectSwaps: 0,
+      topNTokenInOut: 0,
+      topNSecondHop: 0,
+      topNWithEachBaseToken: 0,
+      topNWithBaseToken: 0,
+    },
+    v2PoolSelection: {
+      topN: 0,
+      topNDirectSwaps: 0,
+      topNTokenInOut: 0,
+      topNSecondHop: 0,
+      topNWithEachBaseToken: 0,
+      topNWithBaseToken: 0,
+    },
+    maxSwapsPerPath: 3,
+    minSplits: 1,
+    maxSplits: 3,
+    distributionPercent: 25,
+    forceCrossProtocol: false,
+  };
+
+  beforeEach(() => {
+    alphaRouter = new AlphaRouter({
+      chainId: 1,
+    })
+  })
+
+  it('calls route with hardcoded params', async () => {
+    // const quoteReq: QuoteQueryParams = {
+    //   tokenInAddress: 'USDC',
+    //   tokenInChainId: 1,
+    //   tokenOutAddress: 'USDT',
+    //   tokenOutChainId: 1,
+    //   amount: await getAmount(1, type, 'USDC', 'USDT', '100'),
+    //   type,
+    //   recipient: alice.address,
+    //   slippageTolerance: SLIPPAGE,
+    //   deadline: '360',
+    //   algorithm,
+    // }
+    const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
+
+    const swap = await alphaRouter.route(
+      amount,
+      WRAPPED_NATIVE_CURRENCY[1],
+      TradeType.EXACT_INPUT,
+      undefined,
+      { ...ROUTING_CONFIG }
+    );
+    expect(swap).toBeDefined();
+  })
+})
