@@ -38,7 +38,7 @@
     "types": [
       "node",
       "jest"
-    ]
+    ],
   },
   "include": [
     "src/index.ts"
