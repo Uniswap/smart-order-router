@@ -3,8 +3,15 @@ import _ from 'lodash';
 import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import { ICache } from './cache';
 import {
+  CELO,
+  CELO_ALFAJORES,
+  CEUR_CELO,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
+  DAI_CELO,
+  DAI_CELO_ALFAJORES,
   DAI_MAINNET,
   DAI_OPTIMISM,
   DAI_OPTIMISTIC_KOVAN,
@@ -90,6 +97,18 @@ export const CACHE_SEED_TOKENS: {
   [ChainId.POLYGON_MUMBAI]: {
     WMATIC: WMATIC_POLYGON_MUMBAI,
     DAI: DAI_POLYGON_MUMBAI,
+  },
+  [ChainId.CELO]: {
+    CELO: CELO,
+    CUSD: CUSD_CELO,
+    CEUR: CEUR_CELO,
+    DAI: DAI_CELO,
+  },
+  [ChainId.CELO_ALFAJORES]: {
+    CELO: CELO_ALFAJORES,
+    CUSD: CUSD_CELO_ALFAJORES,
+    CEUR: CUSD_CELO_ALFAJORES,
+    DAI: DAI_CELO_ALFAJORES,
   },
 };
 

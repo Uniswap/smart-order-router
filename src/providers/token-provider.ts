@@ -371,6 +371,71 @@ export const WETH_POLYGON_MUMBAI = new Token(
   'Wrapped Ether'
 );
 
+// Celo Tokens
+export const CELO = new Token(
+  ChainId.CELO,
+  '0x471EcE3750Da237f93B8E339c536989b8978a438',
+  18,
+  'CELO',
+  'Celo native asset'
+);
+
+export const DAI_CELO = new Token(
+  ChainId.CELO,
+  '0xE4fE50cdD716522A56204352f00AA110F731932d',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const CUSD_CELO = new Token(
+  ChainId.CELO,
+  '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+  6,
+  'CUSD',
+  'Celo Dollar Stablecoin'
+);
+
+export const CEUR_CELO = new Token(
+  ChainId.CELO,
+  '0xD8763CBa276a3738E6DE85b4b3bF5FDed6D6cA73',
+  6,
+  'CEUR',
+  'Celo Euro Stablecoin'
+);
+
+// Celo Alfajores Tokens
+export const CELO_ALFAJORES = new Token(
+  ChainId.CELO_ALFAJORES,
+  '0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9',
+  18,
+  'CELO',
+  'Celo native asset'
+);
+export const DAI_CELO_ALFAJORES = new Token(
+  ChainId.CELO_ALFAJORES,
+  '0x7d91E51C8F218f7140188A155f5C75388630B6a8',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const CUSD_CELO_ALFAJORES = new Token(
+  ChainId.CELO_ALFAJORES,
+  '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1',
+  18,
+  'CUSD',
+  'Celo Dollar Stablecoin'
+);
+
+export const CEUR_CELO_ALFAJORES = new Token(
+  ChainId.CELO_ALFAJORES,
+  '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F',
+  18,
+  'CEUR',
+  'Celo Euro Stablecoin'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,

@@ -6,8 +6,16 @@ import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
+  CELO,
+  CELO_ALFAJORES,
+  CEUR_CELO,
+  CEUR_CELO_ALFAJORES,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
+  DAI_CELO,
+  DAI_CELO_ALFAJORES,
   DAI_GÖRLI,
   DAI_KOVAN,
   DAI_MAINNET,
@@ -121,6 +129,13 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.POLYGON_MUMBAI]!,
     WMATIC_POLYGON_MUMBAI,
   ],
+  [ChainId.CELO]: [CELO, CUSD_CELO, CEUR_CELO, DAI_CELO],
+  [ChainId.CELO_ALFAJORES]: [
+    CELO_ALFAJORES,
+    CUSD_CELO_ALFAJORES,
+    CEUR_CELO_ALFAJORES,
+    DAI_CELO_ALFAJORES,
+  ],
 };
 
 /**
@@ -185,7 +200,6 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     const pools = poolAccessor.getAllPools();
 
     const poolAddressSet = new Set<string>();
-
     const subgraphPools: V3SubgraphPool[] = _(pools)
       .map((pool) => {
         const { token0, token1, fee, liquidity } = pool;

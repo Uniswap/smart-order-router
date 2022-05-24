@@ -55,6 +55,9 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal',
   [ChainId.POLYGON]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon',
+
+  //TODO replace subgraph with Celo Mainnet after deployment
+  [ChainId.CELO_ALFAJORES]: 'https://api.thegraph.com/subgraphs/name/joaquin-hernandez/uniswapv3-celo-alfajores-v1',
   [ChainId.GÖRLI]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-gorli',
 };

@@ -1,6 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import {
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
   DAI_GÖRLI,
@@ -61,6 +63,8 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.ROPSTEN]: [DAI_ROPSTEN, USDC_ROPSTEN, USDT_ROPSTEN],
   [ChainId.POLYGON]: [USDC_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
+  [ChainId.CELO]: [CUSD_CELO],
+  [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
 };
 
 export type L1ToL2GasCosts = {

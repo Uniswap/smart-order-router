@@ -1,12 +1,14 @@
 import { Token } from '@uniswap/sdk-core';
 import {
+  CELO,
+  CELO_ALFAJORES,
   DAI_MAINNET,
   ITokenProvider,
   USDC_MAINNET,
   USDT_MAINNET,
   WBTC_MAINNET,
   WMATIC_POLYGON,
-  WMATIC_POLYGON_MUMBAI,
+  WMATIC_POLYGON_MUMBAI
 } from '../../providers/token-provider';
 import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
@@ -39,6 +41,8 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     ],
     [ChainId.POLYGON]: [WMATIC_POLYGON],
     [ChainId.POLYGON_MUMBAI]: [WMATIC_POLYGON_MUMBAI],
+    [ChainId.CELO]: [CELO],
+    [ChainId.CELO_ALFAJORES]: [CELO_ALFAJORES],
   };
 };
 

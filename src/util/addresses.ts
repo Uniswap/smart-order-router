@@ -1,26 +1,59 @@
 import { Token } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
-import { ChainId } from './chains';
+import { ChainId, NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
-export const V3_CORE_FACTORY_ADDRESS = FACTORY_ADDRESS;
-export const QUOTER_V2_ADDRESS = '0x61fFE014bA17989E743c5F6cB21bF9697530B21e';
+export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap(FACTORY_ADDRESS),
+  [ChainId.CELO]: '',
+  [ChainId.CELO_ALFAJORES]: '0xFABdaD603E6bdc8Bc7222B2DB7BcDB84e5a0A385',
+};
+
+export const QUOTER_V2_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap('0x61fFE014bA17989E743c5F6cB21bF9697530B21e'),
+  [ChainId.CELO]: '',
+  [ChainId.CELO_ALFAJORES]: '0x8e7F2915f151b6996fF1E4a4B91cC8940BE1e4E1',
+};
+
+export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
+  [ChainId.CELO]: '',
+  [ChainId.CELO_ALFAJORES]: '0xE21c99d7dc0810fB44B9583120D46b052C0ef43A',
+};
+
 export const OVM_GASPRICE_ADDRESS =
   '0x420000000000000000000000000000000000000F';
 export const ARB_GASINFO_ADDRESS = '0x000000000000000000000000000000000000006C';
+
 export const TICK_LENS_ADDRESS = '0xbfd8137f7d1516D3ea5cA83523914859ec47F573';
 export const NONFUNGIBLE_POSITION_MANAGER_ADDRESS =
   '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
 export const SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 export const V3_MIGRATOR_ADDRESS = '0xA5644E29708357803b5A882D272c41cC0dF92B34';
-
-export const UNISWAP_MULTICALL_ADDRESS =
-  '0x1F98415757620B543A52E61c46B32eB19261F984';
 export const MULTICALL2_ADDRESS = '0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696';
+
+type AddressMap = { [chainId: number]: string };
+
+export function constructSameAddressMap<T extends string>(
+  address: T,
+  additionalNetworks: ChainId[] = []
+): { [chainId: number]: T } {
+  return NETWORKS_WITH_SAME_UNISWAP_ADDRESSES.concat(
+    additionalNetworks
+  ).reduce<{
+    [chainId: number]: T;
+  }>((memo, chainId) => {
+    memo[chainId] = address;
+    return memo;
+  }, {});
+}
 
 export const WETH9: {
   [chainId in Exclude<
     ChainId,
-    ChainId.POLYGON | ChainId.POLYGON_MUMBAI
+    | ChainId.POLYGON
+    | ChainId.POLYGON_MUMBAI
+    | ChainId.CELO
+    | ChainId.CELO_ALFAJORES
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(
