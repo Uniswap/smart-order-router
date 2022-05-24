@@ -18,6 +18,7 @@ import {
 import { resetAndFundAtBlock } from '../../../test-util/forkAndFund';
 import { MethodParameters } from '@uniswap/v3-sdk';
 import { getBalance, getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
+import { BigNumber, providers } from 'ethers';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
 
@@ -29,6 +30,8 @@ describe('alpha router integration', () => {
 
   let alice: SignerWithAddress
   let block: number
+
+  jest.setTimeout(500 * 1000); // 500s
 
   block = PINNED_BLOCK_MAINNET;
 
@@ -97,6 +100,7 @@ describe('alpha router integration', () => {
   }
 
   beforeAll(async () => {
+    // @ts-ignore
     ;[alice] = await ethers.getSigners()
 
     alice = await resetAndFundAtBlock(alice, block, [

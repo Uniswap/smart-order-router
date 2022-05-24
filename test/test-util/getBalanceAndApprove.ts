@@ -1,7 +1,8 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { constants } from 'ethers'
-import { Erc20, Erc20__factory } from '../../src/types/other';
+import { Erc20 } from '../../src/types/other/Erc20'
+import { Erc20__factory } from '../../src/types/other/factories/Erc20__factory';
 
 export const getBalance = async (alice: SignerWithAddress, currency: Currency): Promise<CurrencyAmount<Currency>> => {
   if (!currency.isToken) {
