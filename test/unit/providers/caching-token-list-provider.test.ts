@@ -7,7 +7,7 @@ import {
   NodeJSCache,
   USDC_MAINNET as USDC,
 } from '../../../src';
-import { mockTokenList } from '../test-util/mock-data';
+import { mockTokenList } from '../../test-util/mock-data';
 
 describe('caching token list provider', () => {
   let mockCache: sinon.SinonStubbedInstance<NodeJSCache<Token>>;

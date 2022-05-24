@@ -22,7 +22,7 @@ import {
   WBTC_WETH,
   WETH9_USDT_LOW,
   WETH_USDT,
-} from '../../../test-util/mock-data';
+} from '../../../../test-util/mock-data';
 
 describe('compute all v3 routes', () => {
   test('succeeds to compute all routes', async () => {
