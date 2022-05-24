@@ -1,7 +1,8 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core'
 import hre from 'hardhat'
-import { Erc20, Erc20__factory } from '../../src/types/other';
+import { Erc20 } from '../../src/types/other/Erc20'
+import { Erc20__factory } from '../../src/types/other/factories/Erc20__factory';
 
 const WHALES = [
   '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8',

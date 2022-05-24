@@ -1,5 +1,8 @@
-require('@nomiclabs/hardhat-ethers')
-require('dotenv').config()
+import '@nomiclabs/hardhat-ethers';
+
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 module.exports = {
   defaultNetwork: 'hardhat',
@@ -7,7 +10,7 @@ module.exports = {
     hardhat: {
       forking: {
         enabled: true,
-        url: `${process.env.ARCHIVE_NODE_RPC}`,
+        url: `${process.env.ARCHIVE_NODE_RPC}`
       },
     },
   },
