@@ -50,7 +50,7 @@ describe('alpha router integration', () => {
     tokenOutAfter: CurrencyAmount<Currency>
     tokenOutBefore: CurrencyAmount<Currency>
   }> => {
-    await hardhat.approve(alice._address, SWAP_ROUTER_V2, currencyIn);
+    await hardhat.approve(alice, SWAP_ROUTER_V2, currencyIn);
     const tokenInBefore = await hardhat.getBalance(alice._address, currencyIn);
     const tokenOutBefore = await hardhat.getBalance(alice._address, currencyOut)
 
