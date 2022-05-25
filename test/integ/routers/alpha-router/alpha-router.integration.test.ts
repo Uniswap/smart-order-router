@@ -1,5 +1,3 @@
-import hre from 'hardhat';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import {
@@ -12,56 +10,36 @@ import {
   WRAPPED_NATIVE_CURRENCY,
   WETH9,
   parseAmount,
+  ChainId,
 } from '../../../../src';
 // MARK: end SOR imports
+import '@uniswap/hardhat-plugin-jest';
 
-import { resetAndFundAtBlock } from '../../../test-util/forkAndFund';
+import { JsonRpcSigner } from '@ethersproject/providers';
+
+// import { resetAndFundAtBlock } from '../../../test-util/forkAndFund';
 import { MethodParameters } from '@uniswap/v3-sdk';
 import { getBalance, getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { BigNumber, providers } from 'ethers';
+import { Protocol } from '@uniswap/router-sdk';
+import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
 
-const { ethers } = hre;
-
-const PINNED_BLOCK_MAINNET = 14390000;
-
 describe('alpha router integration', () => {
 
-  let alice: SignerWithAddress
-  let block: number
-
+  // @ts-ignore
+  let alice: JsonRpcSigner;
   jest.setTimeout(500 * 1000); // 500s
-
-  block = PINNED_BLOCK_MAINNET;
 
   let alphaRouter: AlphaRouter;
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
-    v3PoolSelection: {
-      topN: 0,
-      topNDirectSwaps: 0,
-      topNTokenInOut: 0,
-      topNSecondHop: 0,
-      topNWithEachBaseToken: 0,
-      topNWithBaseToken: 0,
-    },
-    v2PoolSelection: {
-      topN: 0,
-      topNDirectSwaps: 0,
-      topNTokenInOut: 0,
-      topNSecondHop: 0,
-      topNWithEachBaseToken: 0,
-      topNWithBaseToken: 0,
-    },
-    maxSwapsPerPath: 3,
-    minSplits: 1,
-    maxSplits: 3,
-    distributionPercent: 25,
-    forceCrossProtocol: false,
+    // @ts-ignore
+    ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
+    protocols: [Protocol.V3, Protocol.V2]
   };
 
-  // @ts-ignore
   const executeSwap = async (
     methodParameters: MethodParameters,
     currencyIn: Currency,
@@ -72,14 +50,15 @@ describe('alpha router integration', () => {
     tokenOutAfter: CurrencyAmount<Currency>
     tokenOutBefore: CurrencyAmount<Currency>
   }> => {
-    const tokenInBefore = await getBalanceAndApprove(alice, SWAP_ROUTER_V2, currencyIn)
-    const tokenOutBefore = await getBalance(alice, currencyOut)
+    await hardhat.approve(alice._address, SWAP_ROUTER_V2, currencyIn);
+    const tokenInBefore = await hardhat.getBalance(alice._address, currencyIn);
+    const tokenOutBefore = await hardhat.getBalance(alice._address, currencyOut)
 
     const transaction = {
       data: methodParameters.calldata,
       to: SWAP_ROUTER_V2,
       value: BigNumber.from(methodParameters.value),
-      from: alice.address,
+      from: alice._address,
       gasPrice: BigNumber.from(2000000000000),
       type: 1,
     }
@@ -88,8 +67,8 @@ describe('alpha router integration', () => {
 
     await transactionResponse.wait()
 
-    const tokenInAfter = await getBalance(alice, currencyIn)
-    const tokenOutAfter = await getBalance(alice, currencyOut)
+    const tokenInAfter = await hardhat.getBalance(alice._address, currencyIn)
+    const tokenOutAfter = await hardhat.getBalance(alice._address, currencyOut)
 
     return {
       tokenInAfter,
@@ -100,40 +79,33 @@ describe('alpha router integration', () => {
   }
 
   beforeAll(async () => {
-    // @ts-ignore
-    ;[alice] = await ethers.getSigners()
 
-    alice = await resetAndFundAtBlock(alice, block, [
-      parseAmount('8000000', USDC_MAINNET),
-      parseAmount('5000000', USDT_MAINNET),
-      parseAmount('10', WBTC_MAINNET),
-      // parseAmount('1000', UNI_MAINNET),
-      parseAmount('4000', WETH9[1]),
-      parseAmount('5000000', DAI_MAINNET),
+    // alice = hardhat.provider.getSigner();
+    // alice = hardhat.provider.getSigner();
+    alice = hardhat.providers[0]!.getSigner()
+    const aliceAddress = await alice.getAddress();
+
+    await hardhat.forkAndFund(alice._address, [
+      parseAmount('80', USDC_MAINNET),
+      // parseAmount('5000000', USDT_MAINNET),
+      // parseAmount('10', WBTC_MAINNET),
+      // // parseAmount('1000', UNI_MAINNET),
+      // parseAmount('4000', WETH9[1]),
+      // parseAmount('5000000', DAI_MAINNET),
     ])
 
-    const aliceUSDCBalance = await getBalance(alice, USDC_MAINNET);
-    expect(aliceUSDCBalance).toEqual(parseAmount('8000000', USDC_MAINNET));
+    console.log("forked and funded")
+
+    const aliceUSDCBalance = await hardhat.getBalance(alice._address, USDC_MAINNET);
+    expect(aliceUSDCBalance).toEqual(parseAmount('80', USDC_MAINNET));
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
-      provider: ethers.getDefaultProvider()
+      provider: hardhat.providers[0]!
     })
   })
 
-  it('calls route with hardcoded params', async () => {
-    // const quoteReq: QuoteQueryParams = {
-    //   tokenInAddress: 'USDC',
-    //   tokenInChainId: 1,
-    //   tokenOutAddress: 'USDT',
-    //   tokenOutChainId: 1,
-    //   amount: await getAmount(1, type, 'USDC', 'USDT', '100'),
-    //   type,
-    //   recipient: alice.address,
-    //   slippageTolerance: SLIPPAGE,
-    //   deadline: '360',
-    //   algorithm,
-    // }
+  it('returns correct quote', async () => {
     const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 10000);
 
     const swap = await alphaRouter.route(
@@ -141,8 +113,13 @@ describe('alpha router integration', () => {
       WRAPPED_NATIVE_CURRENCY[1],
       TradeType.EXACT_INPUT,
       undefined,
-      { ...ROUTING_CONFIG }
+      {
+        ...ROUTING_CONFIG
+      }
     );
     expect(swap).toBeDefined();
+    expect(swap).not.toBeNull();
+
+    console.log(swap);
   })
 })
