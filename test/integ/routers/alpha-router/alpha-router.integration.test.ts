@@ -19,7 +19,6 @@ import '@uniswap/hardhat-plugin-jest';
 
 import { JsonRpcSigner } from '@ethersproject/providers';
 
-// import { resetAndFundAtBlock } from '../../../test-util/forkAndFund';
 import { MethodParameters, Trade } from '@uniswap/v3-sdk';
 import { getBalance, getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { BigNumber, providers } from 'ethers';
@@ -42,7 +41,9 @@ const checkQuoteToken = (
     ? tokensQuoted.subtract(tokensSwapped)
     : tokensSwapped.subtract(tokensQuoted)
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction)
-  // was this before new Fraction(parseInt(SLIPPAGE), 100))
+  /**
+   * was this before new Fraction(parseInt(SLIPPAGE), 100))
+   */
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true)
 }
 
@@ -79,14 +80,13 @@ const convertSwapDataToResponse = (amount: CurrencyAmount<Currency>, swap: any):
 
 describe('alpha router integration', () => {
 
-  // @ts-ignore
   let alice: JsonRpcSigner;
   jest.setTimeout(500 * 1000); // 500s
 
   let alphaRouter: AlphaRouter;
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
-    // @ts-ignore
+    // @ts-ignore[TS7053] - complaining about switch being non exhaustive
     ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
     protocols: [Protocol.V3, Protocol.V2]
   };
@@ -140,22 +140,20 @@ describe('alpha router integration', () => {
   }
 
   beforeAll(async () => {
-
-    // alice = hardhat.provider.getSigner();
-    // alice = hardhat.provider.getSigner();
     alice = hardhat.providers[0]!.getSigner()
     const aliceAddress = await alice.getAddress();
 
     await hardhat.forkAndFund(alice._address, [
       parseAmount('1000', USDC_MAINNET),
+      /**
+       * TODO: need to add custom whale token list to fund from
+       */
       // parseAmount('5000000', USDT_MAINNET),
       // parseAmount('10', WBTC_MAINNET),
       // // parseAmount('1000', UNI_MAIN),
       // parseAmount('4000', WETH9[1]),
       // parseAmount('5000000', DAI_MAINNET),
     ])
-
-    console.log("forked and funded")
 
     const aliceUSDCBalance = await hardhat.getBalance(alice._address, USDC_MAINNET);
     expect(aliceUSDCBalance).toEqual(parseAmount('1000', USDC_MAINNET));
@@ -166,7 +164,9 @@ describe('alpha router integration', () => {
     })
   })
 
-  // tests are 1:1 with routing api integ tests
+  /**
+   *  tests are 1:1 with routing api integ tests
+   */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
