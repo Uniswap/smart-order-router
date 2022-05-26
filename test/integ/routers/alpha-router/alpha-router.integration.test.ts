@@ -2,7 +2,7 @@
  * @jest-environment @uniswap/jest-environment-hardhat
  */
 
-import { Currency, CurrencyAmount, TradeType, Percent, Fraction } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount, TradeType, Percent, Ether } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import {
   AlphaRouter,
@@ -17,6 +17,13 @@ import {
   ChainId,
   ID_TO_NETWORK_NAME,
   NATIVE_CURRENCY,
+  CachingV3PoolProvider,
+  V3PoolProvider,
+  NodeJSCache,
+  UniswapMulticallProvider,
+  SwapRoute,
+  V2PoolProvider,
+  routeAmountsToString,
 } from '../../../../src';
 // MARK: end SOR imports
 
@@ -29,7 +36,8 @@ import { getBalance, getBalanceAndApprove } from '../../../test-util/getBalanceA
 import { BigNumber, providers } from 'ethers';
 import { Protocol } from '@uniswap/router-sdk';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
-import { QuoteResponse } from '../../../test-util/schema';
+import { QuoteResponse, V2PoolInRoute, V3PoolInRoute } from '../../../test-util/schema';
+import NodeCache from 'node-cache';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
 const SLIPPAGE = new Percent(5, 100) // 5%
@@ -52,37 +60,6 @@ const checkQuoteToken = (
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true)
 }
 
-const convertSwapDataToResponse = (amount: CurrencyAmount<Currency>, swap: any): QuoteResponse => {
-  const {
-    quote,
-    quoteGasAdjusted,
-    route,
-    estimatedGasUsed,
-    estimatedGasUsedQuoteToken,
-    estimatedGasUsedUSD,
-    gasPriceWei,
-    methodParameters,
-    blockNumber,
-  } = swap
-
-  return {
-    methodParameters,
-    blockNumber: blockNumber.toString(),
-    amount: amount.quotient.toString(),
-    amountDecimals: amount.toExact(),
-    quote: quote.quotient.toString(),
-    quoteDecimals: quote.toExact(),
-    quoteGasAdjusted: quoteGasAdjusted.quotient.toString(),
-    quoteGasAdjustedDecimals: quoteGasAdjusted.toExact(),
-    gasUseEstimateQuote: estimatedGasUsedQuoteToken.quotient.toString(),
-    gasUseEstimateQuoteDecimals: estimatedGasUsedQuoteToken.toExact(),
-    gasUseEstimate: estimatedGasUsed.toString(),
-    gasUseEstimateUSD: estimatedGasUsedUSD.toExact(),
-    gasPriceWei: gasPriceWei.toString(),
-    // routeString: routeAmountsToString(route),
-  }
-}
-
 describe('alpha router integration', () => {
 
   let alice: JsonRpcSigner;
@@ -90,11 +67,176 @@ describe('alpha router integration', () => {
 
   let alphaRouter: AlphaRouter;
 
+  /**
+   * If we have to use more providers like these, we should consider epxosing them in the 
+   * alpha router class.
+   */
+  const multicall2Provider = new UniswapMulticallProvider(ChainId.MAINNET, hardhat.provider, 375_000);
+
+  const v3PoolProvider = new CachingV3PoolProvider(
+    ChainId.MAINNET,
+    new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
+    new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+  );
+
+  const v2PoolProvider = new V2PoolProvider(ChainId.MAINNET, multicall2Provider);
+
   const ROUTING_CONFIG: AlphaRouterConfig = {
     // @ts-ignore[TS7053] - complaining about switch being non exhaustive
     ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
     protocols: [Protocol.V3, Protocol.V2]
   };
+
+  const convertSwapDataToResponse = (amount: CurrencyAmount<Currency>, type: TradeType, swap: SwapRoute): QuoteResponse => {
+    const {
+      quote,
+      quoteGasAdjusted,
+      route,
+      estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
+      gasPriceWei,
+      methodParameters,
+      blockNumber,
+    } = swap
+
+    const routeResponse: Array<V3PoolInRoute[] | V2PoolInRoute[]> = []
+
+    for (const subRoute of route) {
+      const { amount, quote, tokenPath } = subRoute
+
+      if (subRoute.protocol == Protocol.V3) {
+        const pools = subRoute.route.pools
+        const curRoute: V3PoolInRoute[] = []
+        for (let i = 0; i < pools.length; i++) {
+          const nextPool = pools[i]
+          const tokenIn = tokenPath[i]
+          const tokenOut = tokenPath[i + 1]
+          if (!nextPool || !tokenIn || !tokenOut) {
+            console.log('undefined check failed')
+            continue
+          }; // TODO: @eric there are weird undefined checks here that are not present in routing API
+
+          let edgeAmountIn = undefined
+          if (i == 0) {
+            edgeAmountIn = type == TradeType.EXACT_INPUT ? amount.quotient.toString() : quote.quotient.toString()
+          }
+
+          let edgeAmountOut = undefined
+          if (i == pools.length - 1) {
+            edgeAmountOut = type == TradeType.EXACT_INPUT ? quote.quotient.toString() : amount.quotient.toString()
+          }
+
+          curRoute.push({
+            type: 'v3-pool',
+            address: v3PoolProvider.getPoolAddress(nextPool.token0, nextPool.token1, nextPool.fee).poolAddress,
+            tokenIn: {
+              chainId: tokenIn.chainId,
+              decimals: tokenIn.decimals.toString(),
+              address: tokenIn.address,
+              symbol: tokenIn.symbol!,
+            },
+            tokenOut: {
+              chainId: tokenOut.chainId,
+              decimals: tokenOut.decimals.toString(),
+              address: tokenOut.address,
+              symbol: tokenOut.symbol!,
+            },
+            fee: nextPool.fee.toString(),
+            liquidity: nextPool.liquidity.toString(),
+            sqrtRatioX96: nextPool.sqrtRatioX96.toString(),
+            tickCurrent: nextPool.tickCurrent.toString(),
+            amountIn: edgeAmountIn,
+            amountOut: edgeAmountOut,
+          })
+        }
+
+        routeResponse.push(curRoute)
+      } else if (subRoute.protocol == Protocol.V2) {
+        const pools = subRoute.route.pairs
+        const curRoute: V2PoolInRoute[] = []
+        for (let i = 0; i < pools.length; i++) {
+          const nextPool = pools[i]
+          const tokenIn = tokenPath[i]
+          const tokenOut = tokenPath[i + 1]
+          if (!nextPool || !tokenIn || !tokenOut) {
+            console.log('undefined check failed')
+            continue
+          }; // TODO: @eric there are weird undefined checks here that are not present in routing API
+
+          let edgeAmountIn = undefined
+          if (i == 0) {
+            edgeAmountIn = type == TradeType.EXACT_INPUT ? amount.quotient.toString() : quote.quotient.toString()
+          }
+
+          let edgeAmountOut = undefined
+          if (i == pools.length - 1) {
+            edgeAmountOut = type == TradeType.EXACT_INPUT ? quote.quotient.toString() : amount.quotient.toString()
+          }
+
+          const reserve0 = nextPool.reserve0
+          const reserve1 = nextPool.reserve1
+
+          curRoute.push({
+            type: 'v2-pool',
+            address: v2PoolProvider.getPoolAddress(nextPool.token0, nextPool.token1).poolAddress,
+            tokenIn: {
+              chainId: tokenIn.chainId,
+              decimals: tokenIn.decimals.toString(),
+              address: tokenIn.address,
+              symbol: tokenIn.symbol!,
+            },
+            tokenOut: {
+              chainId: tokenOut.chainId,
+              decimals: tokenOut.decimals.toString(),
+              address: tokenOut.address,
+              symbol: tokenOut.symbol!,
+            },
+            reserve0: {
+              token: {
+                chainId: reserve0.currency.wrapped.chainId,
+                decimals: reserve0.currency.wrapped.decimals.toString(),
+                address: reserve0.currency.wrapped.address,
+                symbol: reserve0.currency.wrapped.symbol!,
+              },
+              quotient: reserve0.quotient.toString(),
+            },
+            reserve1: {
+              token: {
+                chainId: reserve1.currency.wrapped.chainId,
+                decimals: reserve1.currency.wrapped.decimals.toString(),
+                address: reserve1.currency.wrapped.address,
+                symbol: reserve1.currency.wrapped.symbol!,
+              },
+              quotient: reserve1.quotient.toString(),
+            },
+            amountIn: edgeAmountIn,
+            amountOut: edgeAmountOut,
+          })
+        }
+
+        routeResponse.push(curRoute)
+      }
+    }
+
+    return {
+      methodParameters,
+      blockNumber: blockNumber.toString(),
+      amount: amount.quotient.toString(),
+      amountDecimals: amount.toExact(),
+      quote: quote.quotient.toString(),
+      quoteDecimals: quote.toExact(),
+      quoteGasAdjusted: quoteGasAdjusted.quotient.toString(),
+      quoteGasAdjustedDecimals: quoteGasAdjusted.toExact(),
+      gasUseEstimateQuote: estimatedGasUsedQuoteToken.quotient.toString(),
+      gasUseEstimateQuoteDecimals: estimatedGasUsedQuoteToken.toExact(),
+      gasUseEstimate: estimatedGasUsed.toString(),
+      gasUseEstimateUSD: estimatedGasUsedUSD.toExact(),
+      gasPriceWei: gasPriceWei.toString(),
+      route: routeResponse,
+      routeString: routeAmountsToString(route),
+    }
+  }
 
   const executeSwap = async (
     methodParameters: MethodParameters,
@@ -205,7 +347,7 @@ describe('alpha router integration', () => {
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
-          } = convertSwapDataToResponse(amount, swap)
+          } = convertSwapDataToResponse(amount, tradeType, swap)
 
           expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
           expect(parseFloat(quoteDecimals)).toBeLessThan(110)
@@ -265,7 +407,7 @@ describe('alpha router integration', () => {
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
-          } = convertSwapDataToResponse(amount, swap)
+          } = convertSwapDataToResponse(amount, tradeType, swap)
 
           expect(methodParameters).not.toBeUndefined;
 
@@ -306,10 +448,46 @@ describe('alpha router integration', () => {
             amountDecimals,
             quoteDecimals,
             quoteGasAdjustedDecimals,
-            methodParameters
-          } = convertSwapDataToResponse(amount, swap)
+            methodParameters,
+            route,
+            routeString
+          } = convertSwapDataToResponse(amount, tradeType, swap)
 
           expect(methodParameters).not.toBeUndefined;
+
+          console.log("roueString", routeString)
+
+          expect(route).not.toBeUndefined
+
+          const amountInEdgesTotal = _(route)
+            .flatMap((route) => route[0]!)
+            .filter((pool) => !!pool.amountIn)
+            .map((pool) => BigNumber.from(pool.amountIn))
+            .reduce((cur, total) => total.add(cur), BigNumber.from(0))
+          const amountIn = BigNumber.from(quote)
+          expect(amountIn.eq(amountInEdgesTotal))
+
+          const amountOutEdgesTotal = _(route)
+            .flatMap((route) => route[0]!)
+            .filter((pool) => !!pool.amountOut)
+            .map((pool) => BigNumber.from(pool.amountOut))
+            .reduce((cur, total) => total.add(cur), BigNumber.from(0))
+          const amountOut = BigNumber.from(quote)
+          expect(amountOut.eq(amountOutEdgesTotal))
+
+          // const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
+          //   methodParameters!,
+          //   USDC_MAINNET,
+          //   Ether.onChain(1)
+          // )
+
+          // if (tradeType == TradeType.EXACT_INPUT) {
+          //   expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('1000000')
+          //   checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(Ether.onChain(1), quote))
+          // } else {
+          //   // Hard to test ETH balance due to gas costs for approval and swap. Just check tokenIn changes
+          //   checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(USDC_MAINNET, quote))
+          // }
         })
       })
     })

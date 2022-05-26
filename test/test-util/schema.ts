@@ -24,6 +24,17 @@ export type V3PoolInRoute = {
     amountOut?: string
 }
 
+export type V2PoolInRoute = {
+    type: 'v2-pool'
+    address: string
+    tokenIn: TokenInRoute
+    tokenOut: TokenInRoute
+    reserve0: V2Reserve
+    reserve1: V2Reserve
+    amountIn?: string
+    amountOut?: string
+}
+
 export type V2Reserve = {
     token: TokenInRoute
     quotient: string
@@ -42,11 +53,7 @@ export type QuoteResponse = {
     gasUseEstimateUSD: string
     gasPriceWei: string
     blockNumber: string
-    /**
-     * Note route is commented out because it is built by iterating through all
-     * returned subroutes. If we have to validate tests against that then uncomment
-     */
-    // route: Array<V3PoolInRoute[] | V2PoolInRoute[]>
+    route: Array<V3PoolInRoute[] | V2PoolInRoute[]>
     routeString?: string
     methodParameters?: MethodParameters
     quoteId?: string
