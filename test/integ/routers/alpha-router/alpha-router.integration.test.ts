@@ -1,3 +1,7 @@
+/**
+ * @jest-environment @uniswap/jest-environment-hardhat
+ */
+
 import { Currency, CurrencyAmount, TradeType, Percent, Fraction } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import {
@@ -15,7 +19,8 @@ import {
   NATIVE_CURRENCY,
 } from '../../../../src';
 // MARK: end SOR imports
-import '@uniswap/hardhat-plugin-jest';
+
+import '@uniswap/jest-environment-hardhat';
 
 import { JsonRpcSigner } from '@ethersproject/providers';
 
@@ -270,6 +275,41 @@ describe('alpha router integration', () => {
             expect(parseFloat(quoteGasAdjustedDecimals)).toBeGreaterThanOrEqual(parseFloat(quoteDecimals))
           }
 
+        })
+
+        it(`erc20 -> eth large trade`, async () => {
+          // Trade of this size almost always results in splits.
+          const amount = parseAmount(tradeType == TradeType.EXACT_INPUT ? '1000000' : '100', USDC_MAINNET);
+
+          const swap = await alphaRouter.route(
+            amount, // currentIn is nested in this
+            WRAPPED_NATIVE_CURRENCY[1],
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: 360,
+            },
+            {
+              ...ROUTING_CONFIG
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          if (!swap) {
+            throw new Error("swap is null")
+          }
+
+          const {
+            quote,
+            amountDecimals,
+            quoteDecimals,
+            quoteGasAdjustedDecimals,
+            methodParameters
+          } = convertSwapDataToResponse(amount, swap)
+
+          expect(methodParameters).not.toBeUndefined;
         })
       })
     })
