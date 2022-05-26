@@ -60,6 +60,10 @@ const checkQuoteToken = (
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true)
 }
 
+export function parseDeadline(deadline: number): number {
+  return Math.floor(Date.now() / 1000) + deadline
+}
+
 describe('alpha router integration', () => {
 
   let alice: JsonRpcSigner;
@@ -271,7 +275,7 @@ describe('alpha router integration', () => {
     const transactionResponse: providers.TransactionResponse = await alice.sendTransaction(transaction)
 
     const receipt = await transactionResponse.wait()
-    console.log(receipt);
+    expect(receipt.status == 1).toBe(true) // Check for txn success
 
     const tokenInAfter = await hardhat.getBalance(alice._address, currencyIn)
     const tokenOutAfter = await hardhat.getBalance(alice._address, currencyOut)
@@ -303,6 +307,7 @@ describe('alpha router integration', () => {
     await hardhat.fund(alice._address, [
       parseAmount('1000', USDC_MAINNET),
       parseAmount('1000', USDT_MAINNET),
+      parseAmount('1000', DAI_MAINNET),
       /**
        * TODO: need to add custom whale token list to fund from
        */
@@ -319,6 +324,8 @@ describe('alpha router integration', () => {
     expect(aliceUSDCBalance).toEqual(parseAmount('1000', USDC_MAINNET));
     const aliceUSDTBalance = await hardhat.getBalance(alice._address, USDT_MAINNET);
     expect(aliceUSDTBalance).toEqual(parseAmount('1000', USDT_MAINNET));
+    const aliceDAIBalance = await hardhat.getBalance(alice._address, DAI_MAINNET);
+    expect(aliceDAIBalance).toEqual(parseAmount('1000', DAI_MAINNET));
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
@@ -329,7 +336,7 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it.only('erc20 -> erc20', async () => {
@@ -343,10 +350,11 @@ describe('alpha router integration', () => {
             {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: 360,
+              deadline: parseDeadline(360),
             },
             {
               // check blocknumber - 10 thing
+              blockNumber: tradeType == TradeType.EXACT_INPUT ? 14390000 : 14390000 - 10,
               ...ROUTING_CONFIG
             }
           );
@@ -366,8 +374,6 @@ describe('alpha router integration', () => {
             quoteGasAdjustedDecimals,
             methodParameters
           } = convertSwapDataToResponse(amount, tradeType, swap)
-
-          console.log(methodParameters);
 
           expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
           expect(parseFloat(quoteDecimals)).toBeLessThan(110)
@@ -389,8 +395,10 @@ describe('alpha router integration', () => {
             /**
              * Since amount is 100 USDC, if exactIN then route will be USDC -> USDT, so currencyIn == USDC, vice versa
              */
-            tradeType == TradeType.EXACT_INPUT ? USDC_MAINNET : USDT_MAINNET,
-            tradeType == TradeType.EXACT_INPUT ? USDT_MAINNET : USDC_MAINNET
+            // tradeType == TradeType.EXACT_INPUT ? USDC_MAINNET : USDT_MAINNET,
+            // tradeType == TradeType.EXACT_INPUT ? USDT_MAINNET : USDC_MAINNET
+            USDC_MAINNET,
+            USDT_MAINNET
           )
 
           if (tradeType == TradeType.EXACT_INPUT) {
