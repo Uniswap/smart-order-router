@@ -40,7 +40,7 @@ import { QuoteResponse, V2PoolInRoute, V3PoolInRoute } from '../../../test-util/
 import NodeCache from 'node-cache';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
-const SLIPPAGE = new Percent(5, 100) // 5%
+const SLIPPAGE = new Percent(5, 10_000) // 5%
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -333,6 +333,7 @@ describe('alpha router integration', () => {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it.only('erc20 -> erc20', async () => {
+          // ONLY ROUTES SHOULD BE FROM USDC-USDT 
           const amount = parseAmount('100', USDC_MAINNET);
 
           const swap = await alphaRouter.route(
@@ -345,6 +346,7 @@ describe('alpha router integration', () => {
               deadline: 360,
             },
             {
+              // check blocknumber - 10 thing
               ...ROUTING_CONFIG
             }
           );
@@ -364,6 +366,8 @@ describe('alpha router integration', () => {
             quoteGasAdjustedDecimals,
             methodParameters
           } = convertSwapDataToResponse(amount, tradeType, swap)
+
+          console.log(methodParameters);
 
           expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
           expect(parseFloat(quoteDecimals)).toBeLessThan(110)
