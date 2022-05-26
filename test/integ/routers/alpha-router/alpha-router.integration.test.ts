@@ -105,6 +105,10 @@ describe('alpha router integration', () => {
     for (const subRoute of route) {
       const { amount, quote, tokenPath } = subRoute
 
+      /**
+       * pull out amount & quote, check that sum of all subRoute == total quote at swap obejct level
+       */
+
       if (subRoute.protocol == Protocol.V3) {
         const pools = subRoute.route.pools
         const curRoute: V3PoolInRoute[] = []
@@ -248,6 +252,8 @@ describe('alpha router integration', () => {
     tokenOutAfter: CurrencyAmount<Currency>
     tokenOutBefore: CurrencyAmount<Currency>
   }> => {
+    console.log("params for executeSwap: ", currencyIn.symbol, currencyOut.symbol)
+    expect(currencyIn.symbol).not.toBe(currencyOut.symbol);
     // await hardhat.approve(alice, SWAP_ROUTER_V2, currencyIn);
     const tokenInBefore = await getBalanceAndApprove(alice, SWAP_ROUTER_V2, currencyIn)
     // const tokenInBefore = await hardhat.getBalance(alice._address, currencyIn);
@@ -265,6 +271,7 @@ describe('alpha router integration', () => {
     const transactionResponse: providers.TransactionResponse = await alice.sendTransaction(transaction)
 
     const receipt = await transactionResponse.wait()
+    console.log(receipt);
 
     const tokenInAfter = await hardhat.getBalance(alice._address, currencyIn)
     const tokenOutAfter = await hardhat.getBalance(alice._address, currencyOut)
@@ -289,9 +296,13 @@ describe('alpha router integration', () => {
   beforeAll(async () => {
     alice = hardhat.providers[0]!.getSigner()
     const aliceAddress = await alice.getAddress();
+    expect(aliceAddress).toBe(alice._address);
 
-    await hardhat.forkAndFund(alice._address, [
+    await hardhat.fork();
+
+    await hardhat.fund(alice._address, [
       parseAmount('1000', USDC_MAINNET),
+      parseAmount('1000', USDT_MAINNET),
       /**
        * TODO: need to add custom whale token list to fund from
        */
@@ -300,10 +311,14 @@ describe('alpha router integration', () => {
       // // parseAmount('1000', UNI_MAIN),
       // parseAmount('4000', WETH9[1]),
       // parseAmount('5000000', DAI_MAINNET),
+    ], [
+      "0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503", // Binance peg tokens
     ])
 
     const aliceUSDCBalance = await hardhat.getBalance(alice._address, USDC_MAINNET);
     expect(aliceUSDCBalance).toEqual(parseAmount('1000', USDC_MAINNET));
+    const aliceUSDTBalance = await hardhat.getBalance(alice._address, USDT_MAINNET);
+    expect(aliceUSDTBalance).toEqual(parseAmount('1000', USDT_MAINNET));
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
@@ -317,7 +332,7 @@ describe('alpha router integration', () => {
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
-        it('erc20 -> erc20', async () => {
+        it.only('erc20 -> erc20', async () => {
           const amount = parseAmount('100', USDC_MAINNET);
 
           const swap = await alphaRouter.route(
@@ -343,6 +358,7 @@ describe('alpha router integration', () => {
 
           const {
             quote,
+            routeString,
             amountDecimals,
             quoteDecimals,
             quoteGasAdjustedDecimals,
@@ -359,23 +375,27 @@ describe('alpha router integration', () => {
           }
 
           expect(methodParameters).not.toBeUndefined();
-          console.log(methodParameters)
+
+          console.log(routeString);
 
           // TODO: the methodParameters are malformed, so swaps are not executing correctly
 
           const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
             methodParameters!,
-            USDC_MAINNET,
-            USDT_MAINNET
+            /**
+             * Since amount is 100 USDC, if exactIN then route will be USDC -> USDT, so currencyIn == USDC, vice versa
+             */
+            tradeType == TradeType.EXACT_INPUT ? USDC_MAINNET : USDT_MAINNET,
+            tradeType == TradeType.EXACT_INPUT ? USDT_MAINNET : USDC_MAINNET
           )
 
-          // if (tradeType == TradeType.EXACT_INPUT) {
-          //   expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
-          //   checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(USDT_MAINNET, quote))
-          // } else {
-          //   expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
-          //   checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(USDC_MAINNET, quote))
-          // }
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(USDT_MAINNET, quote))
+          } else {
+            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(USDC_MAINNET, quote))
+          }
         })
 
         it(`erc20 -> eth`, async () => {
