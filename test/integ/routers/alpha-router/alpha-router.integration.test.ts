@@ -24,7 +24,7 @@ import '@uniswap/jest-environment-hardhat';
 
 import { JsonRpcSigner } from '@ethersproject/providers';
 
-import { MethodParameters, Trade } from '@uniswap/v3-sdk';
+import { MethodParameters } from '@uniswap/v3-sdk';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { BigNumber, providers } from 'ethers';
 import { Protocol } from '@uniswap/router-sdk';
@@ -682,7 +682,6 @@ describe('alpha router integration', () => {
           const {
             quote,
             route,
-            routeString,
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
