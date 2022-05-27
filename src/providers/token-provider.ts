@@ -67,6 +67,13 @@ export const FEI_MAINNET = new Token(
   'FEI',
   'Fei USD'
 );
+export const UNI_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
+  18,
+  'UNI',
+  'Uniswap'
+)
 
 export const USDC_ROPSTEN = new Token(
   ChainId.ROPSTEN,
@@ -375,7 +382,7 @@ export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) {}
+  ) { }
 
   public async getTokens(
     _addresses: string[],
@@ -445,10 +452,8 @@ export class TokenProvider implements ITokenProvider {
       }
 
       log.info(
-        `Got token symbol and decimals for ${
-          Object.values(addressToToken).length
-        } out of ${addresses.length} tokens on-chain ${
-          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
+        `Got token symbol and decimals for ${Object.values(addressToToken).length
+        } out of ${addresses.length} tokens on-chain ${providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
         }`
       );
     }

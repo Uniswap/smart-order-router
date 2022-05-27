@@ -402,6 +402,11 @@ export class V3QuoteProvider implements IV3QuoteProvider {
           Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending.
           Gas limit override: ${gasLimitOverride} Block number override: ${providerConfig.blockNumber}.`
         );
+        console.log(
+          `Starting attempt: ${attemptNumber}.
+          Currently ${success.length} success, ${failed.length} failed, ${pending.length} pending.
+          Gas limit override: ${gasLimitOverride} Block number override: ${providerConfig.blockNumber}.`
+        );
 
         quoteStates = await Promise.all(
           _.map(
@@ -476,6 +481,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                 }
 
                 if (err.message.includes('out of gas')) {
+                  console.log(err);
                   return {
                     status: 'failed',
                     inputs,

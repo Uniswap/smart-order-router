@@ -29,6 +29,7 @@ import {
   EIP1559GasPriceProvider,
   LegacyGasPriceProvider,
   GasPrice,
+  UNI_MAINNET,
 } from '../../../../src';
 // MARK: end SOR imports
 
@@ -43,9 +44,10 @@ import { Protocol } from '@uniswap/router-sdk';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { BasicPoolInRoute, QuoteResponse, V2PoolInRoute, V3PoolInRoute } from '../../../test-util/schema';
 import NodeCache from 'node-cache';
+import { parseEther } from 'ethers/lib/utils';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
-const SLIPPAGE = new Percent(5, 10_000) // 5%
+const SLIPPAGE = new Percent(5, 100) // 5%
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -240,18 +242,27 @@ describe('alpha router integration', () => {
     await hardhat.fund(alice._address, [
       parseAmount('8000000', USDC_MAINNET),
       parseAmount('5000000', USDT_MAINNET),
-      // parseAmount('4000', WETH9[1]),
+      parseAmount('1000', UNI_MAINNET),
       parseAmount('5000000', DAI_MAINNET),
     ], [
       "0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503", // Binance peg tokens
     ])
 
+    await hardhat.fund(alice._address, [
+      parseAmount('4000', WETH9[1]),
+    ], [
+      "0x6555e1CC97d3cbA6eAddebBCD7Ca51d75771e0B8", // WETH token
+    ])
+
+    // alice should always have 10000 ETH
+    const aliceEthBalance = await hardhat.provider.getBalance(alice._address);
+    expect(aliceEthBalance).toEqual(parseEther('10000'));
     const aliceUSDCBalance = await hardhat.getBalance(alice._address, USDC_MAINNET);
     expect(aliceUSDCBalance).toEqual(parseAmount('8000000', USDC_MAINNET));
     const aliceUSDTBalance = await hardhat.getBalance(alice._address, USDT_MAINNET);
     expect(aliceUSDTBalance).toEqual(parseAmount('5000000', USDT_MAINNET));
-    // const aliceWETH9Balance = await hardhat.getBalance(alice._address, WETH9[1]);
-    // expect(aliceWETH9Balance).toEqual(parseAmount('4000', WETH9[1]));
+    const aliceWETH9Balance = await hardhat.getBalance(alice._address, WETH9[1]);
+    expect(aliceWETH9Balance).toEqual(parseAmount('4000', WETH9[1]));
     const aliceDAIBalance = await hardhat.getBalance(alice._address, DAI_MAINNET);
     expect(aliceDAIBalance).toEqual(parseAmount('5000000', DAI_MAINNET));
 
@@ -330,9 +341,8 @@ describe('alpha router integration', () => {
         })
 
         it(`erc20 -> eth`, async () => {
-          // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
-          const tokenOut = WRAPPED_NATIVE_CURRENCY[1];
+          const tokenOut = Ether.onChain(1) as Currency;
           const amount = tradeType == TradeType.EXACT_INPUT ?
             parseAmount('1000000', tokenIn)
             : parseAmount('10', tokenOut);
@@ -374,7 +384,7 @@ describe('alpha router integration', () => {
         it(`erc20 -> eth large trade`, async () => {
           // Trade of this size almost always results in splits.
           const tokenIn = USDC_MAINNET;
-          const tokenOut = WRAPPED_NATIVE_CURRENCY[1];
+          const tokenOut = Ether.onChain(1) as Currency;
           const amount = tradeType == TradeType.EXACT_INPUT ?
             parseAmount('1000000', tokenIn)
             : parseAmount('100', tokenOut);
@@ -437,6 +447,104 @@ describe('alpha router integration', () => {
             checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
           } else {
             // Hard to test ETH balance due to gas costs for approval and swap. Just check tokenIn changes
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
+          }
+        })
+
+        it.only(`eth -> erc20`, async () => {
+          const tokenIn = Ether.onChain(1) as Currency;
+          console.log(tokenIn);
+          const tokenOut = UNI_MAINNET;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('10', tokenIn)
+            : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount, // currentIn is nested in this
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const {
+            quote,
+            routeString,
+            methodParameters
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+          console.log(routeString);
+
+          expect(methodParameters).not.toBeUndefined;
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
+            methodParameters!,
+            tokenIn,
+            tokenOut
+          )
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            // We've swapped 10 ETH + gas costs
+            expect(tokenInBefore.subtract(tokenInAfter).greaterThan(parseAmount('10', tokenIn))).toBe(true);
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
+          } else {
+            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('10000')
+            // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
+          }
+        })
+
+        it(`weth -> erc20`, async () => {
+          const tokenIn = WETH9[1];
+          const tokenOut = DAI_MAINNET;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount, // currentIn is nested in this
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const {
+            quote,
+            methodParameters,
+            routeString
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+          console.log(routeString);
+
+          expect(methodParameters).not.toBeUndefined;
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
+            methodParameters!,
+            tokenIn,
+            tokenOut
+          )
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
+          } else {
+            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
             checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
           }
         })

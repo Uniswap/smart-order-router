@@ -12,6 +12,7 @@ const mainnetFork = {
 module.exports = {
     networks: {
         hardhat: {
+            blockGasLimit: 150_000_000,
             chainId: 1,
             forking: mainnetFork,
             accounts: {
