@@ -3,48 +3,33 @@
  */
 
 import { Currency, CurrencyAmount, TradeType, Percent, Ether } from '@uniswap/sdk-core';
-import _, { method } from 'lodash';
 import {
   AlphaRouter,
   AlphaRouterConfig,
   USDC_MAINNET,
   USDT_MAINNET,
-  WBTC_MAINNET,
   DAI_MAINNET,
-  WRAPPED_NATIVE_CURRENCY,
   WETH9,
   parseAmount,
   ChainId,
   ID_TO_NETWORK_NAME,
-  NATIVE_CURRENCY,
-  CachingV3PoolProvider,
-  V3PoolProvider,
-  NodeJSCache,
   UniswapMulticallProvider,
   SwapRoute,
-  V2PoolProvider,
   routeAmountsToString,
-  CachingGasStationProvider,
-  OnChainGasPriceProvider,
-  EIP1559GasPriceProvider,
-  LegacyGasPriceProvider,
-  GasPrice,
   UNI_MAINNET,
   StaticGasPriceProvider,
 } from '../../../../src';
-// MARK: end SOR imports
 
 import '@uniswap/jest-environment-hardhat';
 
 import { JsonRpcSigner } from '@ethersproject/providers';
 
 import { MethodParameters, Trade } from '@uniswap/v3-sdk';
-import { getBalance, getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
+import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { BigNumber, providers } from 'ethers';
 import { Protocol } from '@uniswap/router-sdk';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
-import { BasicPoolInRoute, QuoteResponse, V2PoolInRoute, V3PoolInRoute } from '../../../test-util/schema';
-import NodeCache from 'node-cache';
+import { BasicPoolInRoute, QuoteResponse } from '../../../test-util/schema';
 import { parseEther } from 'ethers/lib/utils';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
@@ -109,7 +94,7 @@ describe('alpha router integration', () => {
           const tokenOut = tokenPath[i + 1]
           if (!nextPool || !tokenIn || !tokenOut) {
             throw new Error(`subRoute ${i} undefined`)
-          }; // TODO: @eric there are weird undefined checks here that are not present in routing API
+          };
 
           let edgeAmountIn = undefined
           if (i == 0) {
@@ -137,7 +122,7 @@ describe('alpha router integration', () => {
           const tokenOut = tokenPath[i + 1]
           if (!nextPool || !tokenIn || !tokenOut) {
             throw new Error(`subRoute ${i} undefined`)
-          }; // TODO: @eric there are weird undefined checks here that are not present in routing API
+          };
 
           let edgeAmountIn = undefined
           if (i == 0) {
@@ -169,10 +154,12 @@ describe('alpha router integration', () => {
       quoteDecimals: quote.toExact(),
       quoteGasAdjusted: quoteGasAdjusted.quotient.toString(),
       quoteGasAdjustedDecimals: quoteGasAdjusted.toExact(),
+      // we dont use any of these
       gasUseEstimateQuote: estimatedGasUsedQuoteToken.quotient.toString(),
       gasUseEstimateQuoteDecimals: estimatedGasUsedQuoteToken.toExact(),
       gasUseEstimate: estimatedGasUsed.toString(),
       gasUseEstimateUSD: estimatedGasUsedUSD.toExact(),
+      // until here
       gasPriceWei: gasPriceWei.toString(),
       route: routeResponse,
       routeString: routeAmountsToString(route),
@@ -321,7 +308,7 @@ describe('alpha router integration', () => {
             : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -381,7 +368,7 @@ describe('alpha router integration', () => {
             : parseAmount('10', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -415,7 +402,7 @@ describe('alpha router integration', () => {
             : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -432,9 +419,6 @@ describe('alpha router integration', () => {
 
           const {
             quote,
-            amountDecimals,
-            quoteDecimals,
-            quoteGasAdjustedDecimals,
             methodParameters,
             route,
             routeString
@@ -484,7 +468,7 @@ describe('alpha router integration', () => {
             : parseAmount('10000', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -521,7 +505,11 @@ describe('alpha router integration', () => {
             checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
           } else {
             console.log(tokenOutAfter.toExact(), tokenOutBefore.toExact())
-            // 14067.612284869857813592 4067.612284869857813375
+            /** 
+             * This test is failing here, as 14067.612284869857813592 - 4067.612284869857813375 is
+             * not exactly 10_000, but like .0000000000217. The remainder is the same every time
+             * so its not random.
+             * */
             expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('10000')
             // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
           }
@@ -535,7 +523,7 @@ describe('alpha router integration', () => {
             : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -583,7 +571,7 @@ describe('alpha router integration', () => {
             : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -631,7 +619,7 @@ describe('alpha router integration', () => {
             : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -674,7 +662,7 @@ describe('alpha router integration', () => {
             : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -718,7 +706,7 @@ describe('alpha router integration', () => {
             : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
-            amount, // currentIn is nested in this
+            amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
@@ -774,7 +762,7 @@ describe('alpha router integration', () => {
           : parseAmount('100', tokenOut);
 
         const swap = await alphaRouter.route(
-          amount, // currentIn is nested in this
+          amount,
           getQuoteToken(tokenIn, tokenOut, tradeType),
           tradeType,
           undefined,
@@ -805,7 +793,7 @@ describe('alpha router integration', () => {
 
         const gasPriceWeiBN = BigNumber.from(60000000000);
         const gasPriceProvider = new StaticGasPriceProvider(gasPriceWeiBN);
-        // I think we have to make a new alphaRouter here
+        // Create a new AlphaRouter with the new gas price provider
         const customAlphaRouter: AlphaRouter = new AlphaRouter({
           chainId: 1,
           provider: hardhat.providers[0]!,
@@ -814,7 +802,7 @@ describe('alpha router integration', () => {
         })
 
         const swap = await customAlphaRouter.route(
-          amount, // currentIn is nested in this
+          amount,
           getQuoteToken(tokenIn, tokenOut, tradeType),
           tradeType,
           undefined,
@@ -849,7 +837,6 @@ describe('alpha router integration', () => {
        * Skipping all of the 4xx tests in routing-api since those test the API level
        * validation and not the SOR functionality
        */
-
     })
   }
 })
