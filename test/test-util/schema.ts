@@ -11,6 +11,12 @@ export type TokenInRoute = {
     decimals: string
 }
 
+export type BasicPoolInRoute = {
+    type: string
+    amountIn?: string
+    amountOut?: string
+}
+
 export type V3PoolInRoute = {
     type: 'v3-pool'
     address: string
@@ -53,7 +59,7 @@ export type QuoteResponse = {
     gasUseEstimateUSD: string
     gasPriceWei: string
     blockNumber: string
-    route: Array<V3PoolInRoute[] | V2PoolInRoute[]>
+    route: Array<BasicPoolInRoute[]>
     routeString?: string
     methodParameters?: MethodParameters
     quoteId?: string
