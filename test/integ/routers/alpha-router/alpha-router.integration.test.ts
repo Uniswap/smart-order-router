@@ -45,7 +45,7 @@ import { BasicPoolInRoute, QuoteResponse, V2PoolInRoute, V3PoolInRoute } from '.
 import NodeCache from 'node-cache';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
-const SLIPPAGE = new Percent(5, 100) // 5%
+const SLIPPAGE = new Percent(5, 10_000) // 5%
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -58,10 +58,6 @@ const checkQuoteToken = (
     ? tokensQuoted.subtract(tokensSwapped)
     : tokensSwapped.subtract(tokensQuoted)
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction)
-  /**
-   * was this before new Fraction(parseInt(SLIPPAGE), 100))
-   */
-  console.log(percentDiff);
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true)
 }
 
@@ -109,8 +105,7 @@ describe('alpha router integration', () => {
           const tokenIn = tokenPath[i]
           const tokenOut = tokenPath[i + 1]
           if (!nextPool || !tokenIn || !tokenOut) {
-            console.log('undefined check failed')
-            continue
+            throw new Error(`subRoute ${i} undefined`)
           }; // TODO: @eric there are weird undefined checks here that are not present in routing API
 
           let edgeAmountIn = undefined
@@ -138,8 +133,7 @@ describe('alpha router integration', () => {
           const tokenIn = tokenPath[i]
           const tokenOut = tokenPath[i + 1]
           if (!nextPool || !tokenIn || !tokenOut) {
-            console.log('undefined check failed')
-            continue
+            throw new Error(`subRoute ${i} undefined`)
           }; // TODO: @eric there are weird undefined checks here that are not present in routing API
 
           let edgeAmountIn = undefined
@@ -298,10 +292,6 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          if (!swap) {
-            throw new Error("swap is null")
-          }
-
           const {
             quote,
             routeString,
@@ -309,7 +299,7 @@ describe('alpha router integration', () => {
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
-          } = convertSwapDataToResponse(amount, tradeType, swap)
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
 
           expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
           expect(parseFloat(quoteDecimals)).toBeLessThan(110)
@@ -326,8 +316,6 @@ describe('alpha router integration', () => {
 
           const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
             methodParameters!,
-            // tradeType == TradeType.EXACT_INPUT ? USDC_MAINNET : USDT_MAINNET,
-            // tradeType == TradeType.EXACT_INPUT ? USDT_MAINNET : USDC_MAINNET
             tokenIn,
             tokenOut!
           )
@@ -365,17 +353,13 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          if (!swap) {
-            throw new Error("swap is null")
-          }
-
           const {
             quote,
             amountDecimals,
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
-          } = convertSwapDataToResponse(amount, tradeType, swap)
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
 
           expect(methodParameters).not.toBeUndefined;
 
@@ -387,13 +371,17 @@ describe('alpha router integration', () => {
 
         })
 
-        xit(`erc20 -> eth large trade`, async () => {
+        it(`erc20 -> eth large trade`, async () => {
           // Trade of this size almost always results in splits.
-          const amount = parseAmount(tradeType == TradeType.EXACT_INPUT ? '1000000' : '100', USDC_MAINNET);
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = WRAPPED_NATIVE_CURRENCY[1];
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('1000000', tokenIn)
+            : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
             amount, // currentIn is nested in this
-            WRAPPED_NATIVE_CURRENCY[1],
+            getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
               recipient: alice._address,
@@ -407,10 +395,6 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          if (!swap) {
-            throw new Error("swap is null")
-          }
-
           const {
             quote,
             amountDecimals,
@@ -419,13 +403,12 @@ describe('alpha router integration', () => {
             methodParameters,
             route,
             routeString
-          } = convertSwapDataToResponse(amount, tradeType, swap)
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
 
           expect(methodParameters).not.toBeUndefined;
           expect(route).not.toBeUndefined
 
           console.log("routeString", routeString)
-
 
           const amountInEdgesTotal = _(route)
             .flatMap((route) => route[0]!)
@@ -445,16 +428,16 @@ describe('alpha router integration', () => {
 
           const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
             methodParameters!,
-            tradeType == TradeType.EXACT_INPUT ? USDC_MAINNET : Ether.onChain(1),
-            tradeType == TradeType.EXACT_INPUT ? Ether.onChain(1) : USDC_MAINNET,
+            tokenIn,
+            tokenOut!
           )
 
           if (tradeType == TradeType.EXACT_INPUT) {
             expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('1000000')
-            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(Ether.onChain(1), quote))
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
           } else {
             // Hard to test ETH balance due to gas costs for approval and swap. Just check tokenIn changes
-            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(USDC_MAINNET, quote))
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
           }
         })
       })

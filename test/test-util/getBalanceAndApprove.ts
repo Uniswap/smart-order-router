@@ -29,7 +29,6 @@ export const getBalanceAndApprove = async (
     await (await aliceTokenIn.approve(approveTarget, constants.MaxUint256)).wait()
 
     const approvalNumbers = await aliceTokenIn.allowance(alice._address, approveTarget);
-    console.log("approvalNumbers: ", approvalNumbers.toString());
     expect(approvalNumbers).toEqual(constants.MaxUint256); // sanity check that approval went through
   }
 
