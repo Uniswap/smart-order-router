@@ -31,6 +31,7 @@ import { Protocol } from '@uniswap/router-sdk';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { BasicPoolInRoute, QuoteResponse } from '../../../test-util/schema';
 import { parseEther } from 'ethers/lib/utils';
+import _ from 'lodash';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
 const SLIPPAGE = new Percent(5, 100) // 5% or 10_000?
