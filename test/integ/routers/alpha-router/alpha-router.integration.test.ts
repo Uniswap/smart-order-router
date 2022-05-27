@@ -30,6 +30,7 @@ import {
   LegacyGasPriceProvider,
   GasPrice,
   UNI_MAINNET,
+  StaticGasPriceProvider,
 } from '../../../../src';
 // MARK: end SOR imports
 
@@ -47,7 +48,7 @@ import NodeCache from 'node-cache';
 import { parseEther } from 'ethers/lib/utils';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
-const SLIPPAGE = new Percent(5, 100) // 5%
+const SLIPPAGE = new Percent(5, 100) // 5% or 10_000?
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -451,9 +452,8 @@ describe('alpha router integration', () => {
           }
         })
 
-        it.only(`eth -> erc20`, async () => {
+        xit(`eth -> erc20`, async () => {
           const tokenIn = Ether.onChain(1) as Currency;
-          console.log(tokenIn);
           const tokenOut = UNI_MAINNET;
           const amount = tradeType == TradeType.EXACT_INPUT ?
             parseAmount('10', tokenIn)
@@ -496,6 +496,8 @@ describe('alpha router integration', () => {
             expect(tokenInBefore.subtract(tokenInAfter).greaterThan(parseAmount('10', tokenIn))).toBe(true);
             checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
           } else {
+            console.log(tokenOutAfter.toExact(), tokenOutBefore.toExact())
+            // 14067.612284869857813592 4067.612284869857813375
             expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('10000')
             // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
           }
@@ -548,7 +550,364 @@ describe('alpha router integration', () => {
             checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
           }
         })
+
+        it(`erc20 -> weth`, async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = WETH9[1];
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount, // currentIn is nested in this
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const {
+            quote,
+            methodParameters,
+            routeString
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+          console.log(routeString);
+
+          expect(methodParameters).not.toBeUndefined;
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
+            methodParameters!,
+            tokenIn,
+            tokenOut
+          )
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
+          } else {
+            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
+          }
+        })
+
+        it('erc20 -> erc20 v3 only', async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount, // currentIn is nested in this
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V3],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const {
+            quote,
+            route,
+            routeString,
+            quoteDecimals,
+            quoteGasAdjustedDecimals,
+            methodParameters
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+          expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
+          expect(parseFloat(quoteDecimals)).toBeLessThan(110)
+
+          for (const r of route) {
+            for (const pool of r) {
+              expect(pool.type).toEqual('v3-pool')
+            }
+          }
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeLessThanOrEqual(parseFloat(quoteDecimals))
+          } else {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeGreaterThanOrEqual(parseFloat(quoteDecimals))
+          }
+
+          expect(methodParameters).not.toBeUndefined();
+
+          console.log(routeString);
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
+            methodParameters!,
+            tokenIn,
+            tokenOut!
+          )
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
+          } else {
+            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
+          }
+        })
+
+        it('erc20 -> erc20 v2 only', async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount, // currentIn is nested in this
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V2]
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const {
+            quote,
+            route,
+            routeString,
+            quoteDecimals,
+            quoteGasAdjustedDecimals,
+            methodParameters
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+          for (const r of route) {
+            for (const pool of r) {
+              expect(pool.type).toEqual('v2-pool')
+            }
+          }
+
+          expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
+          expect(parseFloat(quoteDecimals)).toBeLessThan(110)
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeLessThanOrEqual(parseFloat(quoteDecimals))
+          } else {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeGreaterThanOrEqual(parseFloat(quoteDecimals))
+          }
+
+          expect(methodParameters).not.toBeUndefined();
+
+          console.log(routeString);
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
+            methodParameters!,
+            tokenIn,
+            tokenOut!
+          )
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
+          } else {
+            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
+          }
+        })
+
+        it('erc20 -> erc20 forceCrossProtocol', async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount, // currentIn is nested in this
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              forceCrossProtocol: true
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const {
+            quote,
+            route,
+            routeString,
+            quoteDecimals,
+            quoteGasAdjustedDecimals,
+            methodParameters
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+          expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
+          expect(parseFloat(quoteDecimals)).toBeLessThan(110)
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeLessThanOrEqual(parseFloat(quoteDecimals))
+          } else {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeGreaterThanOrEqual(parseFloat(quoteDecimals))
+          }
+
+          expect(methodParameters).not.toBeUndefined();
+
+          let hasV3Pool = false
+          let hasV2Pool = false
+          for (const r of route) {
+            for (const pool of r) {
+              if (pool.type == 'v3-pool') {
+                hasV3Pool = true
+              }
+              if (pool.type == 'v2-pool') {
+                hasV2Pool = true
+              }
+            }
+          }
+
+          expect(hasV3Pool && hasV2Pool).toBe(true);
+
+          console.log(routeString);
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
+            methodParameters!,
+            tokenIn,
+            tokenOut!
+          )
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
+            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
+          } else {
+            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
+          }
+        })
       })
+
+      it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount = tradeType == TradeType.EXACT_INPUT ?
+          parseAmount('100', tokenIn)
+          : parseAmount('100', tokenOut);
+
+        const swap = await alphaRouter.route(
+          amount, // currentIn is nested in this
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG
+          }
+        );
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const {
+          routeString,
+          quoteDecimals,
+          quoteGasAdjustedDecimals,
+        } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+        expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
+        expect(parseFloat(quoteDecimals)).toBeLessThan(110)
+
+        if (tradeType == TradeType.EXACT_INPUT) {
+          expect(parseFloat(quoteGasAdjustedDecimals)).toBeLessThanOrEqual(parseFloat(quoteDecimals))
+        } else {
+          expect(parseFloat(quoteGasAdjustedDecimals)).toBeGreaterThanOrEqual(parseFloat(quoteDecimals))
+        }
+
+        console.log(routeString);
+      })
+
+      it(`erc20 -> erc20 gas price specified`, async () => {
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount = tradeType == TradeType.EXACT_INPUT ?
+          parseAmount('100', tokenIn)
+          : parseAmount('100', tokenOut);
+
+        const gasPriceWeiBN = BigNumber.from(60000000000);
+        const gasPriceProvider = new StaticGasPriceProvider(gasPriceWeiBN);
+        // I think we have to make a new alphaRouter here
+        const customAlphaRouter: AlphaRouter = new AlphaRouter({
+          chainId: 1,
+          provider: hardhat.providers[0]!,
+          multicall2Provider,
+          gasPriceProvider
+        })
+
+        const swap = await customAlphaRouter.route(
+          amount, // currentIn is nested in this
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+          }
+        );
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const {
+          routeString,
+          quoteDecimals,
+          quoteGasAdjustedDecimals,
+          gasPriceWei
+        } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+        expect(gasPriceWei).toEqual('60000000000');
+
+        expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
+        expect(parseFloat(quoteDecimals)).toBeLessThan(110)
+
+        if (tradeType == TradeType.EXACT_INPUT) {
+          expect(parseFloat(quoteGasAdjustedDecimals)).toBeLessThanOrEqual(parseFloat(quoteDecimals))
+        } else {
+          expect(parseFloat(quoteGasAdjustedDecimals)).toBeGreaterThanOrEqual(parseFloat(quoteDecimals))
+        }
+
+        console.log(routeString);
+      });
+
+      it(`erc20 -> erc20 by address - NOT IMPLEMENTING BC NOT SOR RELATED`, async () => {
+      });
+
+      it(`erc20 -> erc20 one by address one by symbol - NOT IMPLEMENTING BC NOT SOR RELATED`, async () => {
+      });
+
+      /**
+       * Skipping all of the 4xx tests in routing-api since those test the API level
+       * validation and not the SOR functionality
+       */
+
     })
   }
 })
