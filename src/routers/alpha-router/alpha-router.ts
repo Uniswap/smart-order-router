@@ -1105,12 +1105,9 @@ export class AlphaRouter
       `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
 
-    console.log("before quoteFn")
-    console.log("routingConfig.blockNumber: ", routingConfig.blockNumber)
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
-    console.log("after quoteFn")
 
     metric.putMetric(
       'V3QuotesLoad',
@@ -1175,8 +1172,6 @@ export class AlphaRouter
         routesWithValidQuotes.push(routeWithValidQuote);
       }
     }
-
-    console.log(routesWithValidQuotes)
 
     return { routesWithValidQuotes, candidatePools };
   }

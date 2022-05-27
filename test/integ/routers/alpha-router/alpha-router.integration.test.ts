@@ -24,6 +24,11 @@ import {
   SwapRoute,
   V2PoolProvider,
   routeAmountsToString,
+  CachingGasStationProvider,
+  OnChainGasPriceProvider,
+  EIP1559GasPriceProvider,
+  LegacyGasPriceProvider,
+  GasPrice,
 } from '../../../../src';
 // MARK: end SOR imports
 
@@ -49,7 +54,9 @@ const checkQuoteToken = (
 ) => {
   // Check which is bigger to support exactIn and exactOut
   const tokensSwapped = after.greaterThan(before) ? after.subtract(before) : before.subtract(after)
-
+  console.log(`tokensQuoted: `, tokensQuoted);
+  console.log(`tokensSwapped: `, tokensSwapped);
+  tokensSwapped.subtract(tokensQuoted);
   const tokensDiff = tokensQuoted.greaterThan(tokensSwapped)
     ? tokensQuoted.subtract(tokensSwapped)
     : tokensSwapped.subtract(tokensQuoted)
@@ -75,7 +82,7 @@ describe('alpha router integration', () => {
    * If we have to use more providers like these, we should consider epxosing them in the 
    * alpha router class.
    */
-  const multicall2Provider = new UniswapMulticallProvider(ChainId.MAINNET, hardhat.provider, 375_000);
+  const multicall2Provider = new UniswapMulticallProvider(ChainId.MAINNET, hardhat.provider);
 
   const v3PoolProvider = new CachingV3PoolProvider(
     ChainId.MAINNET,
@@ -84,6 +91,10 @@ describe('alpha router integration', () => {
   );
 
   const v2PoolProvider = new V2PoolProvider(ChainId.MAINNET, multicall2Provider);
+
+  const gasPriceCache = new NodeJSCache<GasPrice>(
+    new NodeCache({ stdTTL: 15, useClones: true })
+  );
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
     // @ts-ignore[TS7053] - complaining about switch being non exhaustive
@@ -282,10 +293,10 @@ describe('alpha router integration', () => {
 
     console.log(
       {
-        tokenInAfter: tokenInAfter.numerator,
-        tokenInBefore: tokenInBefore.numerator,
-        tokenOutAfter: tokenOutAfter.numerator,
-        tokenOutBefore: tokenOutBefore.numerator,
+        tokenInAfter: tokenInAfter,
+        tokenInBefore: tokenInBefore,
+        tokenOutAfter: tokenOutAfter,
+        tokenOutBefore: tokenOutBefore,
       }
     )
 
@@ -305,9 +316,9 @@ describe('alpha router integration', () => {
     await hardhat.fork();
 
     await hardhat.fund(alice._address, [
-      parseAmount('1000', USDC_MAINNET),
-      parseAmount('1000', USDT_MAINNET),
-      parseAmount('1000', DAI_MAINNET),
+      parseAmount('100', USDC_MAINNET),
+      parseAmount('100', USDT_MAINNET),
+      parseAmount('100', DAI_MAINNET),
       /**
        * TODO: need to add custom whale token list to fund from
        */
@@ -321,26 +332,35 @@ describe('alpha router integration', () => {
     ])
 
     const aliceUSDCBalance = await hardhat.getBalance(alice._address, USDC_MAINNET);
-    expect(aliceUSDCBalance).toEqual(parseAmount('1000', USDC_MAINNET));
+    expect(aliceUSDCBalance).toEqual(parseAmount('100', USDC_MAINNET));
     const aliceUSDTBalance = await hardhat.getBalance(alice._address, USDT_MAINNET);
-    expect(aliceUSDTBalance).toEqual(parseAmount('1000', USDT_MAINNET));
+    expect(aliceUSDTBalance).toEqual(parseAmount('100', USDT_MAINNET));
     const aliceDAIBalance = await hardhat.getBalance(alice._address, DAI_MAINNET);
-    expect(aliceDAIBalance).toEqual(parseAmount('1000', DAI_MAINNET));
+    expect(aliceDAIBalance).toEqual(parseAmount('100', DAI_MAINNET));
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
-      provider: hardhat.providers[0]!
+      provider: hardhat.providers[0]!,
+      multicall2Provider,
+      gasPriceProvider: new CachingGasStationProvider(
+        ChainId.MAINNET,
+        new OnChainGasPriceProvider(
+          ChainId.MAINNET,
+          new EIP1559GasPriceProvider(hardhat.provider),
+          new LegacyGasPriceProvider(hardhat.provider)
+        ),
+        gasPriceCache
+      ),
     })
   })
 
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it.only('erc20 -> erc20', async () => {
-          // ONLY ROUTES SHOULD BE FROM USDC-USDT 
           const amount = parseAmount('100', USDC_MAINNET);
 
           const swap = await alphaRouter.route(
@@ -353,9 +373,8 @@ describe('alpha router integration', () => {
               deadline: parseDeadline(360),
             },
             {
-              // check blocknumber - 10 thing
-              blockNumber: tradeType == TradeType.EXACT_INPUT ? 14390000 : 14390000 - 10,
-              ...ROUTING_CONFIG
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V3]
             }
           );
           expect(swap).toBeDefined();
@@ -387,6 +406,7 @@ describe('alpha router integration', () => {
           expect(methodParameters).not.toBeUndefined();
 
           console.log(routeString);
+          console.log("quote: ", quote);
 
           // TODO: the methodParameters are malformed, so swaps are not executing correctly
 
@@ -395,10 +415,8 @@ describe('alpha router integration', () => {
             /**
              * Since amount is 100 USDC, if exactIN then route will be USDC -> USDT, so currencyIn == USDC, vice versa
              */
-            // tradeType == TradeType.EXACT_INPUT ? USDC_MAINNET : USDT_MAINNET,
-            // tradeType == TradeType.EXACT_INPUT ? USDT_MAINNET : USDC_MAINNET
-            USDC_MAINNET,
-            USDT_MAINNET
+            tradeType == TradeType.EXACT_INPUT ? USDC_MAINNET : USDT_MAINNET,
+            tradeType == TradeType.EXACT_INPUT ? USDT_MAINNET : USDC_MAINNET
           )
 
           if (tradeType == TradeType.EXACT_INPUT) {
@@ -406,7 +424,7 @@ describe('alpha router integration', () => {
             checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(USDT_MAINNET, quote))
           } else {
             expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
-            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(USDC_MAINNET, quote))
+            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(USDT_MAINNET, quote))
           }
         })
 
