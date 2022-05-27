@@ -443,7 +443,7 @@ describe('alpha router integration', () => {
           expect(methodParameters).not.toBeUndefined;
           expect(route).not.toBeUndefined
 
-          console.log("routeString", routeString)
+          console.log(routeString)
 
           const amountInEdgesTotal = _(route)
             .flatMap((route) => route[0]!)
