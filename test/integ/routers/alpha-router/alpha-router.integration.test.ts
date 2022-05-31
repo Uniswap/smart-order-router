@@ -307,7 +307,7 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
@@ -471,6 +471,9 @@ describe('alpha router integration', () => {
           }
         })
 
+        /**
+         * Skipped @see https://github.com/Uniswap/smart-order-router/issues/94
+         */
         xit(`eth -> erc20`, async () => {
           const tokenIn = Ether.onChain(1) as Currency;
           const tokenOut = UNI_MAINNET;
@@ -516,17 +519,9 @@ describe('alpha router integration', () => {
             expect(tokenInBefore.subtract(tokenInAfter).greaterThan(parseAmount('10', tokenIn))).toBe(true);
             checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
           } else {
-            console.log(tokenOutAfter.toExact(), tokenOutBefore.toExact())
-            console.log(tokenOutAfter.quotient.toString());
-            console.log(tokenOutAfter.remainder.numerator.toString())
-            console.log(tokenOutAfter.remainder.remainder.toString())
-            console.log(tokenOutBefore.quotient.toString());
-            console.log(tokenOutBefore.remainder.numerator.toString());
-            console.log(tokenOutBefore.remainder.remainder.toString());
             /** 
-             * This test is failing here, as 14067.612284869857813592 - 4067.612284869857813375 is
-             * not exactly 10_000, but like .0000000000217. The remainder is the same every time
-             * so its not random.
+             * There is a bug where swapping for a non stablecoin ERC20 results in a non exact output amount
+             * @see https://github.com/Uniswap/smart-order-router/issues/94
              * */
             expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('10000')
             // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
@@ -581,7 +576,7 @@ describe('alpha router integration', () => {
           }
         })
 
-        xit(`erc20 -> weth`, async () => {
+        it(`erc20 -> weth`, async () => {
           const tokenIn = USDC_MAINNET;
           const tokenOut = WETH9[1];
           const amount = tradeType == TradeType.EXACT_INPUT ?
