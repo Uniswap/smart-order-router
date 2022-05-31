@@ -337,7 +337,6 @@ describe('alpha router integration', () => {
 
           const {
             quote,
-            routeString,
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters,
@@ -354,7 +353,7 @@ describe('alpha router integration', () => {
 
           expect(methodParameters).not.toBeUndefined();
 
-          console.log(routeString);
+
 
           const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
             methodParameters!,
@@ -432,13 +431,10 @@ describe('alpha router integration', () => {
             quote,
             methodParameters,
             route,
-            routeString
           } = convertSwapDataToResponse(amount, tradeType, swap!)
 
           expect(methodParameters).not.toBeUndefined;
           expect(route).not.toBeUndefined
-
-          console.log(routeString)
 
           const amountInEdgesTotal = _(route)
             .flatMap((route) => route[0]!)
@@ -500,11 +496,8 @@ describe('alpha router integration', () => {
 
           const {
             quote,
-            routeString,
             methodParameters
           } = convertSwapDataToResponse(amount, tradeType, swap!)
-
-          console.log(routeString);
 
           expect(methodParameters).not.toBeUndefined;
 
@@ -554,10 +547,7 @@ describe('alpha router integration', () => {
           const {
             quote,
             methodParameters,
-            routeString
           } = convertSwapDataToResponse(amount, tradeType, swap!)
-
-          console.log(routeString);
 
           expect(methodParameters).not.toBeUndefined;
 
@@ -602,10 +592,7 @@ describe('alpha router integration', () => {
           const {
             quote,
             methodParameters,
-            routeString
           } = convertSwapDataToResponse(amount, tradeType, swap!)
-
-          console.log(routeString);
 
           expect(methodParameters).not.toBeUndefined;
 
@@ -737,13 +724,10 @@ describe('alpha router integration', () => {
           const {
             quote,
             route,
-            routeString,
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
           } = convertSwapDataToResponse(amount, tradeType, swap!)
-
-          console.log(routeString);
 
           let hasV3Pool = false
           let hasV2Pool = false
@@ -786,12 +770,9 @@ describe('alpha router integration', () => {
         expect(swap).not.toBeNull();
 
         const {
-          routeString,
           quoteDecimals,
           quoteGasAdjustedDecimals,
         } = convertSwapDataToResponse(amount, tradeType, swap!)
-
-        console.log(routeString);
 
         await validateStandardSwapRoute(quoteDecimals, quoteGasAdjustedDecimals, tradeType, true);
       })
@@ -826,13 +807,10 @@ describe('alpha router integration', () => {
         expect(swap).not.toBeNull();
 
         const {
-          routeString,
           quoteDecimals,
           quoteGasAdjustedDecimals,
           gasPriceWei
         } = convertSwapDataToResponse(amount, tradeType, swap!)
-
-        console.log(routeString);
 
         expect(gasPriceWei).toEqual('60000000000');
 
@@ -905,8 +883,6 @@ describe('quote for other networks', () => {
         beforeAll(async () => {
           alphaRouter = new AlphaRouter({
             chainId: chain,
-            // mirrored in cli as const provider = new JsonRpcProvider(chainProvider, chainId);
-            // provider: hardhat.providers[0]!,
             provider,
             multicall2Provider,
           })
