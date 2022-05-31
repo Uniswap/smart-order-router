@@ -25,6 +25,7 @@ import {
   WNATIVE_ON,
   NATIVE_CURRENCY,
   ID_TO_PROVIDER,
+  nativeOnChain,
 } from '../../../../src';
 
 import '@uniswap/jest-environment-hardhat';
@@ -965,21 +966,12 @@ describe('quote for other networks', () => {
         const native = NATIVE_CURRENCY[chain];
 
         it(`${native} -> erc20`, async () => {
-          // tokenInAddress = native from router-api but that typing is incorrect. However WNATIVE_ON is used
-          // for amount
-          const tokenIn = WNATIVE_ON(chain);
+          const tokenIn = nativeOnChain(chain);
           const tokenOut = erc2;
           const amount = tradeType == TradeType.EXACT_INPUT ?
             parseAmount('100', tokenIn)
             : parseAmount('100', tokenOut);
-          // const quoteReq: QuoteQueryParams = {
-          //   tokenInAddress: native,
-          //   tokenInChainId: chain,
-          //   tokenOutAddress: erc2.address,
-          //   tokenOutChainId: chain,
-          //   amount: await getAmountFromToken(type, WNATIVE_ON(chain), erc2, '100'),
-          //   type,
-          // }
+
           const swap = await alphaRouter.route(
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
