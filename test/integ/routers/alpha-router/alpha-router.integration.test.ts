@@ -1,5 +1,5 @@
 /**
- * @jest-environment @uniswap/jest-environment-hardhat
+ * @jest-environment jest-environment-hardhat
  */
 
 import { Currency, CurrencyAmount, TradeType, Percent, Ether, Token } from '@uniswap/sdk-core';
@@ -28,7 +28,7 @@ import {
   nativeOnChain,
 } from '../../../../src';
 
-import '@uniswap/jest-environment-hardhat';
+import 'jest-environment-hardhat';
 
 import { JsonRpcSigner, JsonRpcProvider } from '@ethersproject/providers';
 
