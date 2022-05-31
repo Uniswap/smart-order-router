@@ -43,8 +43,10 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
 
   public async getGasPrice(): Promise<GasPrice> {
     const feeHistoryRaw = (await this.provider.send('eth_feeHistory', [
-      // @eric use BigNumber.from(this.blocksToConsider).toHexString() after hardhat adds support
-      // https://github.com/NomicFoundation/hardhat/issues/1585 .___.
+      /**
+       * @note Use BigNumber.from(this.blocksToConsider).toHexString() after hardhat adds support
+       * @see https://github.com/NomicFoundation/hardhat/issues/1585 .___.
+       */
       `0x${this.blocksToConsider}`,
       'latest',
       [this.priorityFeePercentile],
