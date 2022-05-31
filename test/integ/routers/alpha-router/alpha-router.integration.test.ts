@@ -2,7 +2,7 @@
  * @jest-environment @uniswap/jest-environment-hardhat
  */
 
-import { Currency, CurrencyAmount, TradeType, Percent, Ether } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount, TradeType, Percent, Ether, Token } from '@uniswap/sdk-core';
 import {
   AlphaRouter,
   AlphaRouterConfig,
@@ -18,11 +18,18 @@ import {
   routeAmountsToString,
   UNI_MAINNET,
   StaticGasPriceProvider,
+  USDC_ON,
+  UNI_GORLI,
+  DAI_ON,
+  SUPPORTED_CHAINS,
+  WNATIVE_ON,
+  NATIVE_CURRENCY,
+  ID_TO_PROVIDER,
 } from '../../../../src';
 
 import '@uniswap/jest-environment-hardhat';
 
-import { JsonRpcSigner } from '@ethersproject/providers';
+import { JsonRpcSigner, JsonRpcProvider } from '@ethersproject/providers';
 
 import { MethodParameters } from '@uniswap/v3-sdk';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
@@ -50,6 +57,109 @@ const checkQuoteToken = (
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true)
 }
 
+const getQuoteToken = (tokenIn: Currency, tokenOut: Currency, tradeType: TradeType): Currency => {
+  return tradeType == TradeType.EXACT_INPUT ? tokenOut : tokenIn
+}
+
+const convertSwapDataToResponse = (amount: CurrencyAmount<Currency>, type: TradeType, swap: SwapRoute): QuoteResponse => {
+  const {
+    quote,
+    quoteGasAdjusted,
+    route,
+    estimatedGasUsed,
+    estimatedGasUsedQuoteToken,
+    estimatedGasUsedUSD,
+    gasPriceWei,
+    methodParameters,
+    blockNumber,
+  } = swap
+
+  const routeResponse: Array<BasicPoolInRoute[]> = []
+
+  for (const subRoute of route) {
+    const { amount, quote, tokenPath } = subRoute
+
+    if (subRoute.protocol == Protocol.V3) {
+      const pools = subRoute.route.pools
+      const curRoute: BasicPoolInRoute[] = []
+      for (let i = 0; i < pools.length; i++) {
+        const nextPool = pools[i]
+        const tokenIn = tokenPath[i]
+        const tokenOut = tokenPath[i + 1]
+        if (!nextPool || !tokenIn || !tokenOut) {
+          throw new Error(`subRoute ${i} undefined`)
+        };
+
+        let edgeAmountIn = undefined
+        if (i == 0) {
+          edgeAmountIn = type == TradeType.EXACT_INPUT ? amount.quotient.toString() : quote.quotient.toString()
+        }
+
+        let edgeAmountOut = undefined
+        if (i == pools.length - 1) {
+          edgeAmountOut = type == TradeType.EXACT_INPUT ? quote.quotient.toString() : amount.quotient.toString()
+        }
+
+        curRoute.push({
+          type: 'v3-pool',
+          amountIn: edgeAmountIn,
+          amountOut: edgeAmountOut
+        })
+      }
+      routeResponse.push(curRoute)
+    } else if (subRoute.protocol == Protocol.V2) {
+      const pools = subRoute.route.pairs
+      const curRoute: BasicPoolInRoute[] = []
+      for (let i = 0; i < pools.length; i++) {
+        const nextPool = pools[i]
+        const tokenIn = tokenPath[i]
+        const tokenOut = tokenPath[i + 1]
+        if (!nextPool || !tokenIn || !tokenOut) {
+          throw new Error(`subRoute ${i} undefined`)
+        };
+
+        let edgeAmountIn = undefined
+        if (i == 0) {
+          edgeAmountIn = type == TradeType.EXACT_INPUT ? amount.quotient.toString() : quote.quotient.toString()
+        }
+
+        let edgeAmountOut = undefined
+        if (i == pools.length - 1) {
+          edgeAmountOut = type == TradeType.EXACT_INPUT ? quote.quotient.toString() : amount.quotient.toString()
+        }
+
+        curRoute.push({
+          type: 'v2-pool',
+          amountIn: edgeAmountIn,
+          amountOut: edgeAmountOut,
+        })
+      }
+
+      routeResponse.push(curRoute)
+    }
+  }
+
+  return {
+    methodParameters,
+    blockNumber: blockNumber.toString(),
+    amount: amount.quotient.toString(),
+    amountDecimals: amount.toExact(),
+    quote: quote.quotient.toString(),
+    quoteDecimals: quote.toExact(),
+    quoteGasAdjusted: quoteGasAdjusted.quotient.toString(),
+    quoteGasAdjustedDecimals: quoteGasAdjusted.toExact(),
+    // we dont use any of these
+    gasUseEstimateQuote: estimatedGasUsedQuoteToken.quotient.toString(),
+    gasUseEstimateQuoteDecimals: estimatedGasUsedQuoteToken.toExact(),
+    gasUseEstimate: estimatedGasUsed.toString(),
+    gasUseEstimateUSD: estimatedGasUsedUSD.toExact(),
+    // until here
+    gasPriceWei: gasPriceWei.toString(),
+    route: routeResponse,
+    routeString: routeAmountsToString(route),
+  }
+}
+
 export function parseDeadline(deadline: number): number {
   return Math.floor(Date.now() / 1000) + deadline
 }
@@ -67,105 +177,6 @@ describe('alpha router integration', () => {
     ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
     protocols: [Protocol.V3, Protocol.V2]
   };
-
-  const convertSwapDataToResponse = (amount: CurrencyAmount<Currency>, type: TradeType, swap: SwapRoute): QuoteResponse => {
-    const {
-      quote,
-      quoteGasAdjusted,
-      route,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD,
-      gasPriceWei,
-      methodParameters,
-      blockNumber,
-    } = swap
-
-    const routeResponse: Array<BasicPoolInRoute[]> = []
-
-    for (const subRoute of route) {
-      const { amount, quote, tokenPath } = subRoute
-
-      if (subRoute.protocol == Protocol.V3) {
-        const pools = subRoute.route.pools
-        const curRoute: BasicPoolInRoute[] = []
-        for (let i = 0; i < pools.length; i++) {
-          const nextPool = pools[i]
-          const tokenIn = tokenPath[i]
-          const tokenOut = tokenPath[i + 1]
-          if (!nextPool || !tokenIn || !tokenOut) {
-            throw new Error(`subRoute ${i} undefined`)
-          };
-
-          let edgeAmountIn = undefined
-          if (i == 0) {
-            edgeAmountIn = type == TradeType.EXACT_INPUT ? amount.quotient.toString() : quote.quotient.toString()
-          }
-
-          let edgeAmountOut = undefined
-          if (i == pools.length - 1) {
-            edgeAmountOut = type == TradeType.EXACT_INPUT ? quote.quotient.toString() : amount.quotient.toString()
-          }
-
-          curRoute.push({
-            type: 'v3-pool',
-            amountIn: edgeAmountIn,
-            amountOut: edgeAmountOut
-          })
-        }
-        routeResponse.push(curRoute)
-      } else if (subRoute.protocol == Protocol.V2) {
-        const pools = subRoute.route.pairs
-        const curRoute: BasicPoolInRoute[] = []
-        for (let i = 0; i < pools.length; i++) {
-          const nextPool = pools[i]
-          const tokenIn = tokenPath[i]
-          const tokenOut = tokenPath[i + 1]
-          if (!nextPool || !tokenIn || !tokenOut) {
-            throw new Error(`subRoute ${i} undefined`)
-          };
-
-          let edgeAmountIn = undefined
-          if (i == 0) {
-            edgeAmountIn = type == TradeType.EXACT_INPUT ? amount.quotient.toString() : quote.quotient.toString()
-          }
-
-          let edgeAmountOut = undefined
-          if (i == pools.length - 1) {
-            edgeAmountOut = type == TradeType.EXACT_INPUT ? quote.quotient.toString() : amount.quotient.toString()
-          }
-
-          curRoute.push({
-            type: 'v2-pool',
-            amountIn: edgeAmountIn,
-            amountOut: edgeAmountOut,
-          })
-        }
-
-        routeResponse.push(curRoute)
-      }
-    }
-
-    return {
-      methodParameters,
-      blockNumber: blockNumber.toString(),
-      amount: amount.quotient.toString(),
-      amountDecimals: amount.toExact(),
-      quote: quote.quotient.toString(),
-      quoteDecimals: quote.toExact(),
-      quoteGasAdjusted: quoteGasAdjusted.quotient.toString(),
-      quoteGasAdjustedDecimals: quoteGasAdjusted.toExact(),
-      // we dont use any of these
-      gasUseEstimateQuote: estimatedGasUsedQuoteToken.quotient.toString(),
-      gasUseEstimateQuoteDecimals: estimatedGasUsedQuoteToken.toExact(),
-      gasUseEstimate: estimatedGasUsed.toString(),
-      gasUseEstimateUSD: estimatedGasUsedUSD.toExact(),
-      // until here
-      gasPriceWei: gasPriceWei.toString(),
-      route: routeResponse,
-      routeString: routeAmountsToString(route),
-    }
-  }
 
   const executeSwap = async (
     methodParameters: MethodParameters,
@@ -206,10 +217,6 @@ describe('alpha router integration', () => {
       tokenOutAfter,
       tokenOutBefore,
     }
-  }
-
-  const getQuoteToken = (tokenIn: Currency, tokenOut: Currency, tradeType: TradeType): Currency => {
-    return tradeType == TradeType.EXACT_INPUT ? tokenOut : tokenIn
   }
 
   /**
@@ -286,9 +293,11 @@ describe('alpha router integration', () => {
     expect(aliceWETH9Balance).toEqual(parseAmount('4000', WETH9[1]));
     const aliceDAIBalance = await hardhat.getBalance(alice._address, DAI_MAINNET);
     expect(aliceDAIBalance).toEqual(parseAmount('5000000', DAI_MAINNET));
+    const aliceUNIBalance = await hardhat.getBalance(alice._address, UNI_MAINNET);
+    expect(aliceUNIBalance).toEqual(parseAmount('1000', UNI_MAINNET));
 
     alphaRouter = new AlphaRouter({
-      chainId: 1,
+      chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider
     })
@@ -297,7 +306,7 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
@@ -478,7 +487,8 @@ describe('alpha router integration', () => {
               deadline: parseDeadline(360),
             },
             {
-              ...ROUTING_CONFIG
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V2]
             }
           );
           expect(swap).toBeDefined();
@@ -506,6 +516,12 @@ describe('alpha router integration', () => {
             checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
           } else {
             console.log(tokenOutAfter.toExact(), tokenOutBefore.toExact())
+            console.log(tokenOutAfter.quotient.toString());
+            console.log(tokenOutAfter.remainder.numerator.toString())
+            console.log(tokenOutAfter.remainder.remainder.toString())
+            console.log(tokenOutBefore.quotient.toString());
+            console.log(tokenOutBefore.remainder.numerator.toString());
+            console.log(tokenOutBefore.remainder.remainder.toString());
             /** 
              * This test is failing here, as 14067.612284869857813592 - 4067.612284869857813375 is
              * not exactly 10_000, but like .0000000000217. The remainder is the same every time
@@ -564,7 +580,7 @@ describe('alpha router integration', () => {
           }
         })
 
-        it(`erc20 -> weth`, async () => {
+        xit(`erc20 -> weth`, async () => {
           const tokenIn = USDC_MAINNET;
           const tokenOut = WETH9[1];
           const amount = tradeType == TradeType.EXACT_INPUT ?
@@ -838,5 +854,179 @@ describe('alpha router integration', () => {
        * validation and not the SOR functionality
        */
     })
+  }
+})
+
+describe('quote for other networks', () => {
+  const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
+    [ChainId.MAINNET]: USDC_ON(1),
+    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
+    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
+    [ChainId.GÖRLI]: UNI_GORLI,
+    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
+    [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
+    [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
+  }
+  const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
+    [ChainId.MAINNET]: DAI_ON(1),
+    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
+    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
+    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
+    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
+    [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
+    [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
+  }
+
+  // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
+  for (const chain of _.filter(
+    SUPPORTED_CHAINS,
+    (c) => c != ChainId.OPTIMISTIC_KOVAN && c != ChainId.POLYGON_MUMBAI && c != ChainId.ARBITRUM_RINKEBY
+  )) {
+    for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+      const erc1 = TEST_ERC20_1[chain]
+      const erc2 = TEST_ERC20_2[chain]
+
+      describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
+        // Help with test flakiness by retrying.
+        jest.retryTimes(1);
+
+        const wrappedNative = WNATIVE_ON(chain)
+
+        let alphaRouter: AlphaRouter;
+
+        const chainProvider = ID_TO_PROVIDER(chain);
+        const provider = new JsonRpcProvider(chainProvider, chain);
+        const multicall2Provider = new UniswapMulticallProvider(chain, provider);
+
+        beforeAll(async () => {
+          alphaRouter = new AlphaRouter({
+            chainId: chain,
+            // mirrored in cli as const provider = new JsonRpcProvider(chainProvider, chainId);
+            // provider: hardhat.providers[0]!,
+            provider,
+            multicall2Provider,
+          })
+        })
+
+        it(`${wrappedNative.symbol} -> erc20`, async () => {
+          const tokenIn = wrappedNative;
+          const tokenOut = erc1;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('10', tokenIn)
+            : parseAmount('10', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          // Scope limited for non mainnet network tests to validating the swap
+        })
+
+        it(`erc20 -> erc20`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('1', tokenIn)
+            : parseAmount('1', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+        })
+
+        const native = NATIVE_CURRENCY[chain];
+
+        it(`${native} -> erc20`, async () => {
+          // tokenInAddress = native from router-api but that typing is incorrect. However WNATIVE_ON is used
+          // for amount
+          const tokenIn = WNATIVE_ON(chain);
+          const tokenOut = erc2;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+          // const quoteReq: QuoteQueryParams = {
+          //   tokenInAddress: native,
+          //   tokenInChainId: chain,
+          //   tokenOutAddress: erc2.address,
+          //   tokenOutChainId: chain,
+          //   amount: await getAmountFromToken(type, WNATIVE_ON(chain), erc2, '100'),
+          //   type,
+          // }
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+        })
+        it(`has quoteGasAdjusted values`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount = tradeType == TradeType.EXACT_INPUT ?
+            parseAmount('1', tokenIn)
+            : parseAmount('1', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const {
+            quoteDecimals,
+            quoteGasAdjustedDecimals,
+          } = convertSwapDataToResponse(amount, tradeType, swap!)
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeLessThanOrEqual(parseFloat(quoteDecimals))
+          } else {
+            expect(parseFloat(quoteGasAdjustedDecimals)).toBeGreaterThanOrEqual(parseFloat(quoteDecimals))
+          }
+        })
+      })
+    }
   }
 })
