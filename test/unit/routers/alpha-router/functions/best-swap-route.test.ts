@@ -39,7 +39,7 @@ import {
   WBTC_WETH_MEDIUM,
   WETH9_USDT_LOW,
   WETH_USDT,
-} from '../../../test-util/mock-data';
+} from '../../../../test-util/mock-data';
 
 const v3Route1 = new V3Route(
   [USDC_DAI_LOW, DAI_USDT_LOW, WETH9_USDT_LOW],

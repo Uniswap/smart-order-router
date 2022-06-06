@@ -118,7 +118,7 @@ import {
 import {
   CandidatePoolsBySelectionCriteria,
   getV2CandidatePools,
-  getV3CandidatePools as getV3CandidatePools,
+  getV3CandidatePools,
   PoolId,
 } from './functions/get-candidate-pools';
 import {
@@ -1105,6 +1105,7 @@ export class AlphaRouter
     log.info(
       `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
+
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
