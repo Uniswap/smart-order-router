@@ -18,8 +18,8 @@ import { GasPrice, IGasPriceProvider } from '../providers';
 import { CurrencyAmount } from '../util/amounts';
 import { RouteWithValidQuote } from './alpha-router';
 
-export class V3Route extends V3RouteRaw<Token, Token> { }
-export class V2Route extends V2RouteRaw<Token, Token> { }
+export class V3Route extends V3RouteRaw<Token, Token> {}
+export class V2Route extends V2RouteRaw<Token, Token> {}
 
 export type SwapRoute = {
   /**
@@ -109,13 +109,13 @@ export type SwapOptions = {
     s: string;
   } & (
     | {
-      amount: string;
-      deadline: string;
-    }
+        amount: string;
+        deadline: string;
+      }
     | {
-      nonce: string;
-      expiry: string;
-    }
+        nonce: string;
+        expiry: string;
+      }
   );
 };
 
@@ -185,8 +185,8 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
 }
 
 export class StaticGasPriceProvider implements IGasPriceProvider {
-  constructor(private gasPriceWei: BigNumber) { }
+  constructor(private gasPriceWei: BigNumber) {}
   async getGasPrice(): Promise<GasPrice> {
-    return { gasPriceWei: this.gasPriceWei }
+    return { gasPriceWei: this.gasPriceWei };
   }
 }

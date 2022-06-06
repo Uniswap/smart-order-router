@@ -73,7 +73,7 @@ export const UNI_MAINNET = new Token(
   18,
   'UNI',
   'Uniswap'
-)
+);
 
 export const USDC_ROPSTEN = new Token(
   ChainId.ROPSTEN,
@@ -382,7 +382,7 @@ export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) { }
+  ) {}
 
   public async getTokens(
     _addresses: string[],
@@ -452,8 +452,10 @@ export class TokenProvider implements ITokenProvider {
       }
 
       log.info(
-        `Got token symbol and decimals for ${Object.values(addressToToken).length
-        } out of ${addresses.length} tokens on-chain ${providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
+        `Got token symbol and decimals for ${
+          Object.values(addressToToken).length
+        } out of ${addresses.length} tokens on-chain ${
+          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
         }`
       );
     }
@@ -472,92 +474,97 @@ export class TokenProvider implements ITokenProvider {
   }
 }
 
-
-export const UNI_GORLI = new Token(ChainId.GÖRLI, '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', 18, 'UNI', 'Uni token')
+export const UNI_GORLI = new Token(
+  ChainId.GÖRLI,
+  '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+  18,
+  'UNI',
+  'Uni token'
+);
 
 export const DAI_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
-      return DAI_MAINNET
+      return DAI_MAINNET;
     case ChainId.ROPSTEN:
-      return DAI_ROPSTEN
+      return DAI_ROPSTEN;
     case ChainId.RINKEBY:
-      return DAI_RINKEBY_1
+      return DAI_RINKEBY_1;
     case ChainId.GÖRLI:
-      return DAI_GÖRLI
+      return DAI_GÖRLI;
     case ChainId.KOVAN:
-      return DAI_KOVAN
+      return DAI_KOVAN;
     case ChainId.OPTIMISM:
-      return DAI_OPTIMISM
+      return DAI_OPTIMISM;
     case ChainId.OPTIMISTIC_KOVAN:
-      return DAI_OPTIMISTIC_KOVAN
+      return DAI_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
-      return DAI_ARBITRUM
+      return DAI_ARBITRUM;
     case ChainId.ARBITRUM_RINKEBY:
-      return DAI_ARBITRUM_RINKEBY
+      return DAI_ARBITRUM_RINKEBY;
     case ChainId.POLYGON:
-      return DAI_POLYGON
+      return DAI_POLYGON;
     case ChainId.POLYGON_MUMBAI:
-      return DAI_POLYGON_MUMBAI
+      return DAI_POLYGON_MUMBAI;
     default:
-      throw new Error(`Chain id: ${chainId} not supported`)
+      throw new Error(`Chain id: ${chainId} not supported`);
   }
-}
+};
 
 export const USDT_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
-      return USDT_MAINNET
+      return USDT_MAINNET;
     case ChainId.ROPSTEN:
-      return USDT_ROPSTEN
+      return USDT_ROPSTEN;
     case ChainId.RINKEBY:
-      return USDT_RINKEBY
+      return USDT_RINKEBY;
     case ChainId.GÖRLI:
-      return USDT_GÖRLI
+      return USDT_GÖRLI;
     case ChainId.KOVAN:
-      return USDT_KOVAN
+      return USDT_KOVAN;
     case ChainId.OPTIMISM:
-      return USDT_OPTIMISM
+      return USDT_OPTIMISM;
     case ChainId.OPTIMISTIC_KOVAN:
-      return USDT_OPTIMISTIC_KOVAN
+      return USDT_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
-      return USDT_ARBITRUM
+      return USDT_ARBITRUM;
     case ChainId.ARBITRUM_RINKEBY:
-      return USDT_ARBITRUM_RINKEBY
+      return USDT_ARBITRUM_RINKEBY;
     default:
-      throw new Error(`Chain id: ${chainId} not supported`)
+      throw new Error(`Chain id: ${chainId} not supported`);
   }
-}
+};
 
 export const USDC_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
-      return USDC_MAINNET
+      return USDC_MAINNET;
     case ChainId.ROPSTEN:
-      return USDC_ROPSTEN
+      return USDC_ROPSTEN;
     case ChainId.RINKEBY:
-      return USDC_RINKEBY
+      return USDC_RINKEBY;
     case ChainId.GÖRLI:
-      return USDC_GÖRLI
+      return USDC_GÖRLI;
     case ChainId.KOVAN:
-      return USDC_KOVAN
+      return USDC_KOVAN;
     case ChainId.OPTIMISM:
-      return USDC_OPTIMISM
+      return USDC_OPTIMISM;
     case ChainId.OPTIMISTIC_KOVAN:
-      return USDC_OPTIMISTIC_KOVAN
+      return USDC_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
-      return USDC_ARBITRUM
+      return USDC_ARBITRUM;
     case ChainId.ARBITRUM_RINKEBY:
-      return USDC_ARBITRUM_RINKEBY
+      return USDC_ARBITRUM_RINKEBY;
     case ChainId.POLYGON:
-      return USDC_POLYGON
+      return USDC_POLYGON;
     case ChainId.POLYGON_MUMBAI:
-      return USDC_POLYGON_MUMBAI
+      return USDC_POLYGON_MUMBAI;
     default:
-      throw new Error(`Chain id: ${chainId} not supported`)
+      throw new Error(`Chain id: ${chainId} not supported`);
   }
-}
+};
 
 export const WNATIVE_ON = (chainId: ChainId): Token => {
-  return WRAPPED_NATIVE_CURRENCY[chainId]
-}
+  return WRAPPED_NATIVE_CURRENCY[chainId];
+};
