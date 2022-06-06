@@ -25,7 +25,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
   ChainId.GÖRLI,
-]
+];
 
 export const V2_SUPPORTED = [
   ChainId.MAINNET,
