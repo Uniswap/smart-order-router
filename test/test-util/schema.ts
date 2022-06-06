@@ -64,3 +64,17 @@ export type QuoteResponse = {
     methodParameters?: MethodParameters
     quoteId?: string
 }
+
+export type ParsedSwapRoute = {
+    quote: string
+    quoteDecimals: string
+    quoteGasAdjusted: string
+    quoteGasAdjustedDecimals: string
+    methodParameters?: MethodParameters
+    gasPriceWei: string
+}
+
+export type RouteResponse = {
+    route: Array<BasicPoolInRoute[]>
+    routeString?: string
+}

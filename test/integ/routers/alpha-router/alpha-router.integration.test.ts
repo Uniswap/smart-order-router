@@ -37,7 +37,7 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { BigNumber, providers } from 'ethers';
 import { Protocol } from '@uniswap/router-sdk';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
-import { BasicPoolInRoute, QuoteResponse } from '../../../test-util/schema';
+import { BasicPoolInRoute, ParsedSwapRoute, RouteResponse } from '../../../test-util/schema';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
 
@@ -62,17 +62,27 @@ const getQuoteToken = (tokenIn: Currency, tokenOut: Currency, tradeType: TradeTy
   return tradeType == TradeType.EXACT_INPUT ? tokenOut : tokenIn
 }
 
-const convertSwapDataToResponse = (amount: CurrencyAmount<Currency>, type: TradeType, swap: SwapRoute): QuoteResponse => {
+const parseSwap = (swap: SwapRoute): ParsedSwapRoute => {
   const {
     quote,
     quoteGasAdjusted,
-    route,
-    estimatedGasUsed,
-    estimatedGasUsedQuoteToken,
-    estimatedGasUsedUSD,
-    gasPriceWei,
     methodParameters,
-    blockNumber,
+    gasPriceWei
+  } = swap
+
+  return {
+    methodParameters,
+    quote: quote.quotient.toString(),
+    quoteDecimals: quote.toExact(),
+    quoteGasAdjusted: quoteGasAdjusted.quotient.toString(),
+    quoteGasAdjustedDecimals: quoteGasAdjusted.toExact(),
+    gasPriceWei: gasPriceWei.toString()
+  }
+}
+
+const getRouteFromSwap = (type: TradeType, swap: SwapRoute): RouteResponse => {
+  const {
+    route
   } = swap
 
   const routeResponse: Array<BasicPoolInRoute[]> = []
@@ -141,21 +151,6 @@ const convertSwapDataToResponse = (amount: CurrencyAmount<Currency>, type: Trade
   }
 
   return {
-    methodParameters,
-    blockNumber: blockNumber.toString(),
-    amount: amount.quotient.toString(),
-    amountDecimals: amount.toExact(),
-    quote: quote.quotient.toString(),
-    quoteDecimals: quote.toExact(),
-    quoteGasAdjusted: quoteGasAdjusted.quotient.toString(),
-    quoteGasAdjustedDecimals: quoteGasAdjusted.toExact(),
-    // we dont use any of these
-    gasUseEstimateQuote: estimatedGasUsedQuoteToken.quotient.toString(),
-    gasUseEstimateQuoteDecimals: estimatedGasUsedQuoteToken.toExact(),
-    gasUseEstimate: estimatedGasUsed.toString(),
-    gasUseEstimateUSD: estimatedGasUsedUSD.toExact(),
-    // until here
-    gasPriceWei: gasPriceWei.toString(),
     route: routeResponse,
     routeString: routeAmountsToString(route),
   }
@@ -244,7 +239,15 @@ describe('alpha router integration', () => {
    * Function to validate a "standard" call to executeSwap
    * Only for tests that do USDC-USDT 100 and are testing other criteria.
    */
-  const validateStandardExecuteSwap = async (quote: string, tokenIn: Currency, tokenOut: Currency, methodParameters: MethodParameters | undefined, tradeType: TradeType) => {
+  const validateExecuteSwap = async (
+    quote: string,
+    tokenIn: Currency,
+    tokenOut: Currency,
+    methodParameters: MethodParameters | undefined,
+    tradeType: TradeType,
+    checkTokenInAmount?: string,
+    checkTokenOutAmount?: string
+  ) => {
     expect(methodParameters).not.toBeUndefined();
     const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
       methodParameters!,
@@ -253,10 +256,14 @@ describe('alpha router integration', () => {
     )
 
     if (tradeType == TradeType.EXACT_INPUT) {
-      expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
+      if (checkTokenInAmount) {
+        expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual(checkTokenInAmount)
+      }
       checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
     } else {
-      expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
+      if (checkTokenOutAmount) {
+        expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual(checkTokenOutAmount)
+      }
       checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
     }
   }
@@ -340,7 +347,7 @@ describe('alpha router integration', () => {
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters,
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!);
 
           expect(parseFloat(quoteDecimals)).toBeGreaterThan(90)
           expect(parseFloat(quoteDecimals)).toBeLessThan(110)
@@ -353,21 +360,7 @@ describe('alpha router integration', () => {
 
           expect(methodParameters).not.toBeUndefined();
 
-
-
-          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
-            methodParameters!,
-            tokenIn,
-            tokenOut!
-          )
-
-          if (tradeType == TradeType.EXACT_INPUT) {
-            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
-            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
-          } else {
-            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
-            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
-          }
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '100', '100');
         })
 
         it(`erc20 -> eth`, async () => {
@@ -394,13 +387,16 @@ describe('alpha router integration', () => {
           expect(swap).not.toBeNull();
 
           const {
+            quote,
             quoteDecimals,
             quoteGasAdjustedDecimals,
-            methodParameters
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+            methodParameters,
+          } = parseSwap(swap!);
 
           await validateStandardSwapRoute(quoteDecimals, quoteGasAdjustedDecimals, tradeType, false);
           expect(methodParameters).not.toBeUndefined;
+
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '1000000');
         })
 
         it(`erc20 -> eth large trade`, async () => {
@@ -430,8 +426,11 @@ describe('alpha router integration', () => {
           const {
             quote,
             methodParameters,
-            route,
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!)
+
+          const {
+            route
+          } = getRouteFromSwap(tradeType, swap!)
 
           expect(methodParameters).not.toBeUndefined;
           expect(route).not.toBeUndefined
@@ -452,19 +451,7 @@ describe('alpha router integration', () => {
           const amountOut = BigNumber.from(quote)
           expect(amountOut.eq(amountOutEdgesTotal))
 
-          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
-            methodParameters!,
-            tokenIn,
-            tokenOut!
-          )
-
-          if (tradeType == TradeType.EXACT_INPUT) {
-            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('1000000')
-            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
-          } else {
-            // Hard to test ETH balance due to gas costs for approval and swap. Just check tokenIn changes
-            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
-          }
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '1000000');
         })
 
         /**
@@ -496,8 +483,8 @@ describe('alpha router integration', () => {
 
           const {
             quote,
-            methodParameters
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+            methodParameters,
+          } = parseSwap(swap!);
 
           expect(methodParameters).not.toBeUndefined;
 
@@ -547,23 +534,11 @@ describe('alpha router integration', () => {
           const {
             quote,
             methodParameters,
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!);
 
           expect(methodParameters).not.toBeUndefined;
 
-          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
-            methodParameters!,
-            tokenIn,
-            tokenOut
-          )
-
-          if (tradeType == TradeType.EXACT_INPUT) {
-            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
-            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
-          } else {
-            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
-            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
-          }
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '100', '100');
         })
 
         it(`erc20 -> weth`, async () => {
@@ -592,23 +567,11 @@ describe('alpha router integration', () => {
           const {
             quote,
             methodParameters,
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!)
 
           expect(methodParameters).not.toBeUndefined;
 
-          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
-            methodParameters!,
-            tokenIn,
-            tokenOut
-          )
-
-          if (tradeType == TradeType.EXACT_INPUT) {
-            expect(tokenInBefore.subtract(tokenInAfter).toExact()).toEqual('100')
-            checkQuoteToken(tokenOutBefore, tokenOutAfter, CurrencyAmount.fromRawAmount(tokenOut, quote))
-          } else {
-            expect(tokenOutAfter.subtract(tokenOutBefore).toExact()).toEqual('100')
-            checkQuoteToken(tokenInBefore, tokenInAfter, CurrencyAmount.fromRawAmount(tokenIn, quote))
-          }
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '100', '100');
         })
 
         it('erc20 -> erc20 v3 only', async () => {
@@ -637,11 +600,14 @@ describe('alpha router integration', () => {
 
           const {
             quote,
-            route,
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!);
+
+          const {
+            route
+          } = getRouteFromSwap(tradeType, swap!);
 
           for (const r of route) {
             for (const pool of r) {
@@ -651,7 +617,7 @@ describe('alpha router integration', () => {
 
           await validateStandardSwapRoute(quoteDecimals, quoteGasAdjustedDecimals, tradeType, true);
 
-          await validateStandardExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType);
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '100', '100');
         })
 
         it('erc20 -> erc20 v2 only', async () => {
@@ -680,11 +646,14 @@ describe('alpha router integration', () => {
 
           const {
             quote,
-            route,
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!);
+
+          const {
+            route
+          } = getRouteFromSwap(tradeType, swap!);
 
           for (const r of route) {
             for (const pool of r) {
@@ -694,7 +663,7 @@ describe('alpha router integration', () => {
 
           await validateStandardSwapRoute(quoteDecimals, quoteGasAdjustedDecimals, tradeType, true);
 
-          await validateStandardExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType);
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '100', '100');
         })
 
         it('erc20 -> erc20 forceCrossProtocol', async () => {
@@ -723,11 +692,14 @@ describe('alpha router integration', () => {
 
           const {
             quote,
-            route,
             quoteDecimals,
             quoteGasAdjustedDecimals,
             methodParameters
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!);
+
+          const {
+            route
+          } = getRouteFromSwap(tradeType, swap!);
 
           let hasV3Pool = false
           let hasV2Pool = false
@@ -746,7 +718,7 @@ describe('alpha router integration', () => {
 
           await validateStandardSwapRoute(quoteDecimals, quoteGasAdjustedDecimals, tradeType, true);
 
-          await validateStandardExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType);
+          await validateExecuteSwap(quote, tokenIn, tokenOut, methodParameters, tradeType, '100', '100');
         })
       })
 
@@ -772,7 +744,7 @@ describe('alpha router integration', () => {
         const {
           quoteDecimals,
           quoteGasAdjustedDecimals,
-        } = convertSwapDataToResponse(amount, tradeType, swap!)
+        } = parseSwap(swap!);
 
         await validateStandardSwapRoute(quoteDecimals, quoteGasAdjustedDecimals, tradeType, true);
       })
@@ -810,23 +782,12 @@ describe('alpha router integration', () => {
           quoteDecimals,
           quoteGasAdjustedDecimals,
           gasPriceWei
-        } = convertSwapDataToResponse(amount, tradeType, swap!)
+        } = parseSwap(swap!)
 
         expect(gasPriceWei).toEqual('60000000000');
 
         await validateStandardSwapRoute(quoteDecimals, quoteGasAdjustedDecimals, tradeType, true);
       });
-
-      it(`erc20 -> erc20 by address - NOT IMPLEMENTING BC NOT SOR RELATED`, async () => {
-      });
-
-      it(`erc20 -> erc20 one by address one by symbol - NOT IMPLEMENTING BC NOT SOR RELATED`, async () => {
-      });
-
-      /**
-       * Skipping all of the 4xx tests in routing-api since those test the API level
-       * validation and not the SOR functionality
-       */
     })
   }
 })
@@ -981,7 +942,7 @@ describe('quote for other networks', () => {
           const {
             quoteDecimals,
             quoteGasAdjustedDecimals,
-          } = convertSwapDataToResponse(amount, tradeType, swap!)
+          } = parseSwap(swap!);
 
           if (tradeType == TradeType.EXACT_INPUT) {
             expect(parseFloat(quoteGasAdjustedDecimals)).toBeLessThanOrEqual(parseFloat(quoteDecimals))
