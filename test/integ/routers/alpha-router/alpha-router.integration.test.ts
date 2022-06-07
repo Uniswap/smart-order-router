@@ -248,11 +248,12 @@ describe('alpha router integration', () => {
   };
 
   /**
-   * Function to validate "standard" swapRoute data. For now it is just used to simplify
-   * the tests that do USDC-USDT 100 and are testing other criteria.
-   *
-   * 1. Optionally checks that the quote is within a certain range
-   * 2. Checks that the quoteGasAdjustedDecimals is correct
+   * Function to validate swapRoute data.
+   * @param quoteDecimals
+   * @param quoteGasAdjustedDecimals
+   * @param tradeType
+   * @param targetQuoteDecimalsAmount? - if defined, checks that the quoteDecimals is within the range of this +/- acceptableDifference
+   * @param acceptableDifference? - see above
    */
   const validateStandardSwapRoute = async (
     quoteDecimals: string,
@@ -285,8 +286,14 @@ describe('alpha router integration', () => {
   };
 
   /**
-   * Function to validate a "standard" call to executeSwap
-   * Only for tests that do USDC-USDT 100 and are testing other criteria.
+   * Function to perform a call to executeSwap and validate the response
+   * @param quote
+   * @param tokenIn
+   * @param tokenOut
+   * @param methodParameters
+   * @param tradeType
+   * @param checkTokenInAmount? - if defined, check that the tokenInBefore - tokenInAfter = checkTokenInAmount
+   * @param checkTokenOutAmount? - if defined, check that the tokenOutBefore - tokenOutAfter = checkTokenOutAmount
    */
   const validateExecuteSwap = async (
     quote: string,
