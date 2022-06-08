@@ -1,5 +1,5 @@
 /**
- * @jest-environment jest-environment-hardhat
+ * @jest-environment hardhat
  */
 
 import {
