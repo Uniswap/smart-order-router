@@ -338,6 +338,11 @@ describe('alpha router integration', () => {
     const aliceAddress = await alice.getAddress();
     expect(aliceAddress).toBe(alice._address);
 
+    /**
+     * @dev Because we don't specify a blockNumber in the config
+     *      hardhat forks from the latest block - 10, which matches
+     *      behavior in routing-api
+     */
     await hardhat.fork();
 
     await hardhat.fund(
