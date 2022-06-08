@@ -34,6 +34,9 @@ export const getBalanceAndApprove = async (
     if (currency.symbol == 'USDT') {
       await (await aliceTokenIn.approve(approveTarget, 0)).wait();
     }
+    await (
+      await aliceTokenIn.approve(approveTarget, constants.MaxUint256)
+    ).wait();
 
     const approvedAmt = await aliceTokenIn.allowance(
       alice._address,
