@@ -46,6 +46,24 @@ export type V2Reserve = {
   quotient: string;
 };
 
+export type ParsedSwapRoute = {
+  quote: string;
+  quoteDecimals: string;
+  quoteGasAdjusted: string;
+  quoteGasAdjustedDecimals: string;
+  methodParameters?: MethodParameters;
+  gasPriceWei: string;
+};
+
+export type RouteResponse = {
+  route: Array<BasicPoolInRoute[]>;
+  routeString?: string;
+};
+
+/**
+ * Reference type used in routing-api integration tests
+ * @deprecated Use ParsedSwapRoute and RouteResponse instead
+ */
 export type QuoteResponse = {
   amount: string;
   amountDecimals: string;
@@ -63,18 +81,4 @@ export type QuoteResponse = {
   routeString?: string;
   methodParameters?: MethodParameters;
   quoteId?: string;
-};
-
-export type ParsedSwapRoute = {
-  quote: string;
-  quoteDecimals: string;
-  quoteGasAdjusted: string;
-  quoteGasAdjustedDecimals: string;
-  methodParameters?: MethodParameters;
-  gasPriceWei: string;
-};
-
-export type RouteResponse = {
-  route: Array<BasicPoolInRoute[]>;
-  routeString?: string;
 };
