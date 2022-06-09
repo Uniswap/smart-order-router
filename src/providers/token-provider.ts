@@ -154,6 +154,13 @@ export const DAI_GÖRLI = new Token(
   'DAI',
   'Dai Stablecoin'
 );
+export const UNI_GORLI = new Token(
+  ChainId.GÖRLI,
+  '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+  18,
+  'UNI',
+  'Uni token'
+);
 
 export const USDC_KOVAN = new Token(
   ChainId.KOVAN,
@@ -473,14 +480,6 @@ export class TokenProvider implements ITokenProvider {
     };
   }
 }
-
-export const UNI_GORLI = new Token(
-  ChainId.GÖRLI,
-  '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
-  18,
-  'UNI',
-  'Uni token'
-);
 
 export const DAI_ON = (chainId: ChainId): Token => {
   switch (chainId) {
