@@ -11,7 +11,8 @@ export enum ChainId {
   ARBITRUM_RINKEBY = 421611,
   POLYGON = 137,
   POLYGON_MUMBAI = 80001,
-  GNOSIS = 100
+  GNOSIS = 100,
+  MOONBEAM = 1284
 }
 
 export const V2_SUPPORTED = [
@@ -54,7 +55,9 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
     case 80001:
       return ChainId.POLYGON_MUMBAI;
     case 100:
-      return ChainId.GNOSIS
+      return ChainId.GNOSIS;
+    case 1284:
+      return ChainId.MOONBEAM;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -73,14 +76,16 @@ export enum ChainName {
   ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
   POLYGON = 'polygon-mainnet',
   POLYGON_MUMBAI = 'polygon-mumbai',
-  GNOSIS = 'gnosis'
+  GNOSIS = 'gnosis',
+  MOONBEAM = 'moonbeam'
 }
 
 export enum NativeCurrencyName {
   // Strings match input for CLI
   ETHER = 'ETH',
   MATIC = 'MATIC',
-  XDAI = 'XDAI'
+  XDAI = 'XDAI',
+  GLMR = 'GLMR'
 }
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -95,7 +100,8 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.ARBITRUM_RINKEBY]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
-  [ChainId.GNOSIS]: NativeCurrencyName.XDAI
+  [ChainId.GNOSIS]: NativeCurrencyName.XDAI,
+  [ChainId.MOONBEAM]: NativeCurrencyName.GLMR
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -124,6 +130,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.POLYGON_MUMBAI;
     case 100:
       return ChainName.GNOSIS;
+    case 1284:
+      return ChainName.MOONBEAM;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -246,6 +254,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     18,
     'WXDAI',
     'Wrapped XDAI'
+  ),
+  [ChainId.MOONBEAM]: new Token(
+    ChainId.MOONBEAM,
+    '0xAcc15dC74880C9944775448304B263D191c6077F',
+    18,
+    'WGLMR',
+    'Wrapped GLMR'
   )
 };
 
@@ -301,6 +316,32 @@ class GnosisNativeCurrency extends NativeCurrency {
   }
 }
 
+function isMoonbeam(
+  chainId: number
+): chainId is ChainId.MOONBEAM {
+  return chainId === ChainId.MOONBEAM
+}
+
+class MoonbeamNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isMoonbeam(this.chainId)) throw new Error('Not moonbeam');
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isGnosis(chainId)) throw new Error('Not moonbeam');
+    super(chainId, 18, 'MOONBEAM', 'MOONBEAM GLMR');
+  }
+}
+
 export class ExtendedEther extends Ether {
   public get wrapped(): Token {
     if (this.chainId in WRAPPED_NATIVE_CURRENCY)
@@ -323,8 +364,9 @@ const cachedNativeCurrency: { [chainId: number]: NativeCurrency } = {};
 export function nativeOnChain(chainId: number): NativeCurrency {
   return (
     cachedNativeCurrency[chainId] ??
-    (cachedNativeCurrency[chainId] = isMatic(chainId)
-      ? new MaticNativeCurrency(chainId)
-      : ExtendedEther.onChain(chainId))
+    (cachedNativeCurrency[chainId] = [MaticNativeCurrency, GnosisNativeCurrency, MoonbeamNativeCurrency]
+      .map((constructor)=>new constructor(chainId))
+      .filter(nativeCurrency=>nativeCurrency instanceof NativeCurrency)
+      [0]??ExtendedEther.onChain(chainId))
   );
 }

@@ -11,6 +11,7 @@ import {
   DAI_POLYGON_MUMBAI,
   DAI_RINKEBY_1,
   DAI_RINKEBY_2,
+  GNO_GNOSIS,
   ITokenProvider,
   TokenAccessor,
   UNI_ARBITRUM_RINKEBY,
@@ -32,6 +33,7 @@ import {
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
   WXDAI_GNOSIS,
+  WGLMR_MOONBEAM
 } from './token-provider';
 
 // These tokens will added to the Token cache on initialization.
@@ -93,7 +95,12 @@ export const CACHE_SEED_TOKENS: {
     DAI: DAI_POLYGON_MUMBAI,
   },
   [ChainId.GNOSIS]: {
-    WXDAI: WXDAI_GNOSIS
+    WXDAI: WXDAI_GNOSIS,
+    GNO: GNO_GNOSIS
+  },
+  [ChainId.MOONBEAM]: {
+    USDC: USDC_MOONBEAM,
+    WGLMR: WGLMR_MOONBEAM
   }
 };
 

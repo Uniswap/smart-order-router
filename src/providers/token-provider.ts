@@ -384,7 +384,23 @@ export const GNO_GNOSIS = new Token(
   '0x9c58bacc331c9aa871afd802db6379a98e80cedb',
   18,
   'GNO',
-  'Gnosis Token from Ethereum'
+  'Gnosis Token on xDai'
+)
+
+export const USDC_MOONBEAM = new Token(
+  ChainId.MOONBEAM,
+  '0x818ec0A7Fe18Ff94269904fCED6AE3DaE6d6dC0b',
+  6,
+  'USDC',
+  'USDC'
+)
+
+export const WGLMR_MOONBEAM = new Token(
+  ChainId.MOONBEAM,
+  '0xAcc15dC74880C9944775448304B263D191c6077F',
+  18,
+  'WLGMR',
+  'Wrapped GLMR'
 )
 
 export class TokenProvider implements ITokenProvider {
