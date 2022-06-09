@@ -154,7 +154,7 @@ export const DAI_GÖRLI = new Token(
   'DAI',
   'Dai Stablecoin'
 );
-export const UNI_GORLI = new Token(
+export const UNI_GÖRLI = new Token(
   ChainId.GÖRLI,
   '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
   18,
