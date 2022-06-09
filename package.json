@@ -24,7 +24,7 @@
     "fix:lint": "eslint src --ext .ts --fix",
     "version": "standard-version",
     "prepare-release": "run-s cov:check doc:html version doc:publish",
-    "test": "jest test/unit",
+    "test": "jest",
     "integ-test": "TS_NODE=true jest test/integ"
   },
   "engines": {
