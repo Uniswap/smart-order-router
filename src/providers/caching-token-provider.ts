@@ -31,6 +31,7 @@ import {
   WBTC_OPTIMISTIC_KOVAN,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
+  WXDAI_GNOSIS,
 } from './token-provider';
 
 // These tokens will added to the Token cache on initialization.
@@ -91,6 +92,9 @@ export const CACHE_SEED_TOKENS: {
     WMATIC: WMATIC_POLYGON_MUMBAI,
     DAI: DAI_POLYGON_MUMBAI,
   },
+  [ChainId.GNOSIS]: {
+    WXDAI: WXDAI_GNOSIS
+  }
 };
 
 /**

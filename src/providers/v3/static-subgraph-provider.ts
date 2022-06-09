@@ -45,6 +45,8 @@ import {
   WETH_POLYGON,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
+  WXDAI_GNOSIS,
+  GNO_GNOSIS
 } from '../token-provider';
 import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
@@ -121,6 +123,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.POLYGON_MUMBAI]!,
     WMATIC_POLYGON_MUMBAI,
   ],
+  [ChainId.GNOSIS]: [WXDAI_GNOSIS, GNO_GNOSIS]
 };
 
 /**

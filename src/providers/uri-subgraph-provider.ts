@@ -7,7 +7,7 @@ import { V2SubgraphPool } from './v2/subgraph-provider';
 import { V3SubgraphPool } from './v3/subgraph-provider';
 
 /**
- * Gets subgraph pools from a URI. The URI shoudl contain a JSON
+ * Gets subgraph pools from a URI. The URI should contain a JSON
  * stringified array of V2SubgraphPool objects or V3SubgraphPool
  * objects.
  *

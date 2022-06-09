@@ -371,6 +371,22 @@ export const WETH_POLYGON_MUMBAI = new Token(
   'Wrapped Ether'
 );
 
+export const WXDAI_GNOSIS = new Token(
+  ChainId.GNOSIS,
+  '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d',
+  18,
+  'WXDAI',
+  'Wrapped XDAI'
+);
+
+export const GNO_GNOSIS = new Token(
+  ChainId.GNOSIS,
+  '0x9c58bacc331c9aa871afd802db6379a98e80cedb',
+  18,
+  'GNO',
+  'Gnosis Token from Ethereum'
+)
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,

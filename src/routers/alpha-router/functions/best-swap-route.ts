@@ -71,7 +71,7 @@ export async function getBestSwapRoute(
   // route of our optimal quote may not add up exactly to exactIn or exactOut.
   //
   // We check this here, and if there is a mismatch
-  // add the missing amount to a random route. The missing amount size should be neglible so the quote should still be highly accurate.
+  // add the missing amount to a random route. The missing amount size should be negligible so the quote should still be highly accurate.
   const { routes: routeAmounts } = swapRoute;
   const totalAmount = _.reduce(
     routeAmounts,

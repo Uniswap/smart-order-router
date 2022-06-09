@@ -11,6 +11,7 @@ export enum ChainId {
   ARBITRUM_RINKEBY = 421611,
   POLYGON = 137,
   POLYGON_MUMBAI = 80001,
+  GNOSIS = 100
 }
 
 export const V2_SUPPORTED = [
@@ -52,6 +53,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.POLYGON;
     case 80001:
       return ChainId.POLYGON_MUMBAI;
+    case 100:
+      return ChainId.GNOSIS
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -70,12 +73,14 @@ export enum ChainName {
   ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
   POLYGON = 'polygon-mainnet',
   POLYGON_MUMBAI = 'polygon-mumbai',
+  GNOSIS = 'gnosis'
 }
 
 export enum NativeCurrencyName {
   // Strings match input for CLI
   ETHER = 'ETH',
   MATIC = 'MATIC',
+  XDAI = 'XDAI'
 }
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -90,6 +95,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.ARBITRUM_RINKEBY]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
+  [ChainId.GNOSIS]: NativeCurrencyName.XDAI
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -116,6 +122,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.POLYGON;
     case 80001:
       return ChainName.POLYGON_MUMBAI;
+    case 100:
+      return ChainName.GNOSIS;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -232,6 +240,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WMATIC',
     'Wrapped MATIC'
   ),
+  [ChainId.GNOSIS]: new Token(
+    ChainId.GNOSIS,
+    '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
+    18,
+    'WXDAI',
+    'Wrapped XDAI'
+  )
 };
 
 function isMatic(
@@ -257,6 +272,32 @@ class MaticNativeCurrency extends NativeCurrency {
   public constructor(chainId: number) {
     if (!isMatic(chainId)) throw new Error('Not matic');
     super(chainId, 18, 'MATIC', 'Polygon Matic');
+  }
+}
+
+function isGnosis(
+  chainId: number
+): chainId is ChainId.GNOSIS {
+  return chainId === ChainId.GNOSIS
+}
+
+class GnosisNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isGnosis(this.chainId)) throw new Error('Not gnosis');
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isGnosis(chainId)) throw new Error('Not gnosis');
+    super(chainId, 18, 'GNOSIS', 'GNOSIS XDAI');
   }
 }
 
