@@ -50,7 +50,7 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.RINKEBY]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
   [ChainId.OPTIMISM]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-optmism-regen',
+    'https://api.thegraph.com/subgraphs/name/ianlapham/optimism-post-regenesis',
   [ChainId.ARBITRUM_ONE]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal',
   [ChainId.POLYGON]:
