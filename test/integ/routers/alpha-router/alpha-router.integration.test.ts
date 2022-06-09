@@ -255,7 +255,7 @@ describe('alpha router integration', () => {
    * @param targetQuoteDecimalsAmount? - if defined, checks that the quoteDecimals is within the range of this +/- acceptableDifference
    * @param acceptableDifference? - see above
    */
-  const validateStandardSwapRoute = async (
+  const validateSwapRoute = async (
     quoteDecimals: string,
     quoteGasAdjustedDecimals: string,
     tradeType: TradeType,
@@ -441,7 +441,7 @@ describe('alpha router integration', () => {
             methodParameters,
           } = parseSwap(swap!);
 
-          await validateStandardSwapRoute(
+          await validateSwapRoute(
             quoteDecimals,
             quoteGasAdjustedDecimals,
             tradeType,
@@ -491,7 +491,7 @@ describe('alpha router integration', () => {
             methodParameters,
           } = parseSwap(swap!);
 
-          await validateStandardSwapRoute(
+          await validateSwapRoute(
             quoteDecimals,
             quoteGasAdjustedDecimals,
             tradeType
@@ -737,7 +737,7 @@ describe('alpha router integration', () => {
             }
           }
 
-          await validateStandardSwapRoute(
+          await validateSwapRoute(
             quoteDecimals,
             quoteGasAdjustedDecimals,
             tradeType,
@@ -796,7 +796,7 @@ describe('alpha router integration', () => {
             }
           }
 
-          await validateStandardSwapRoute(
+          await validateSwapRoute(
             quoteDecimals,
             quoteGasAdjustedDecimals,
             tradeType,
@@ -864,7 +864,7 @@ describe('alpha router integration', () => {
 
           expect(hasV3Pool && hasV2Pool).toBe(true);
 
-          await validateStandardSwapRoute(
+          await validateSwapRoute(
             quoteDecimals,
             quoteGasAdjustedDecimals,
             tradeType,
@@ -906,7 +906,7 @@ describe('alpha router integration', () => {
 
         const { quoteDecimals, quoteGasAdjustedDecimals } = parseSwap(swap!);
 
-        await validateStandardSwapRoute(
+        await validateSwapRoute(
           quoteDecimals,
           quoteGasAdjustedDecimals,
           tradeType,
@@ -950,7 +950,7 @@ describe('alpha router integration', () => {
 
         expect(gasPriceWei).toEqual('60000000000');
 
-        await validateStandardSwapRoute(
+        await validateSwapRoute(
           quoteDecimals,
           quoteGasAdjustedDecimals,
           tradeType,
