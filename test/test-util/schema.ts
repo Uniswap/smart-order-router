@@ -61,8 +61,8 @@ export type RouteResponse = {
 };
 
 /**
- * Reference type used in routing-api integration tests
- * @deprecated Use ParsedSwapRoute and RouteResponse instead
+ * Unused type from routing-api integration tests kept for reference
+ * @unused Use ParsedSwapRoute and RouteResponse instead
  */
 export type QuoteResponse = {
   amount: string;
