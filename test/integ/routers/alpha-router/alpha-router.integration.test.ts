@@ -30,6 +30,7 @@ import {
   USDT_MAINNET,
   WETH9,
   WNATIVE_ON,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -325,11 +326,35 @@ describe('alpha router integration', () => {
     });
   });
 
+  it.only('testing makeshift IL route', async () => {
+    const tradeType = TradeType.EXACT_INPUT;
+    const tokenIn = USDC_MAINNET;
+    const tokenOut = WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET];
+    const amount =
+      tradeType == TradeType.EXACT_INPUT
+        ? parseAmount('10000', tokenIn)
+        : parseAmount('10000', tokenOut);
+
+    await alphaRouter.makeshiftILRoute(
+      amount,
+      getQuoteToken(tokenIn, tokenOut, tradeType),
+      tradeType,
+      {
+        recipient: alice._address,
+        slippageTolerance: SLIPPAGE,
+        deadline: parseDeadline(360),
+      },
+      {
+        ...ROUTING_CONFIG,
+      }
+    );
+  });
+
   /**
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    xdescribe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -846,7 +871,7 @@ describe('alpha router integration', () => {
   }
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),

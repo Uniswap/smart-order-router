@@ -48,7 +48,11 @@ import {
   GasPrice,
   IGasPriceProvider,
 } from '../../providers/gas-price-provider';
-import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
+import {
+  ITokenProvider,
+  TokenProvider,
+  USDT_MAINNET,
+} from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
   TokenValidationResult,
@@ -749,6 +753,128 @@ export class AlphaRouter
       status: SwapToRatioStatus.SUCCESS,
       result: { ...swap, methodParameters, optimalRatio, postSwapTargetPool },
     };
+  }
+
+  /// @dev testing
+  public async makeshiftILRoute(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    tradeType: TradeType,
+    swapConfig?: SwapOptions,
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+  ): Promise<void> {
+    if (tradeType == TradeType.EXACT_OUTPUT) {
+      throw new Error('tradeType must be EXACT_INPUT for now');
+    }
+    const blockNumber =
+      partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
+
+    const routingConfig: AlphaRouterConfig = _.merge(
+      {},
+      DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
+      partialRoutingConfig,
+      { blockNumber }
+    );
+
+    const { protocols } = routingConfig;
+    const beforeGas = Date.now();
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+
+    const currencyIn =
+      tradeType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
+    const currencyOut =
+      tradeType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
+
+    const [percents, amounts] = [[100], [amount]]; // because just testing, lets just do one amount
+
+    const quoteToken = quoteCurrency.wrapped;
+
+    const gasModel = await this.v3GasModelFactory.buildGasModel(
+      this.chainId,
+      gasPriceWei,
+      this.v3PoolProvider,
+      quoteToken,
+      this.l2GasDataProvider
+    );
+
+    // let's hardcode the route now: USDC -[V3]> WETH -[V2]> DAI
+    // first get the v3 quote
+    const v3Quote = await this.getV3Quotes(
+      amount.currency.wrapped,
+      quoteToken,
+      amounts,
+      percents,
+      quoteToken,
+      gasModel,
+      tradeType,
+      {
+        ...routingConfig,
+        // we force the direct path
+        maxSwapsPerPath: 1,
+      }
+    );
+
+    if (!v3Quote) {
+      throw Error("can't get v3 quote");
+    }
+
+    const chosenV3Route = v3Quote.routesWithValidQuotes[0];
+    if (!chosenV3Route) {
+      throw Error('no route found');
+    }
+    console.log(
+      'fees for v3 route',
+      chosenV3Route.route.pools.map((p) => p.fee)
+    );
+    console.log(chosenV3Route.tokenPath.map((t) => t.symbol));
+    const amountOut = chosenV3Route?.quote;
+    console.log('amountOut for intermediary', amountOut.toExact());
+
+    // now get the v2 quote using amountOut above as tokenIn
+    const v2Quote = await this.getV2Quotes(
+      amountOut.currency.wrapped,
+      USDT_MAINNET.wrapped,
+      [amountOut],
+      [100],
+      USDT_MAINNET.wrapped,
+      BigNumber.from(600000000), // some random number
+      tradeType,
+      {
+        ...routingConfig,
+        maxSwapsPerPath: 1,
+      }
+    );
+
+    if (!v2Quote) {
+      throw Error("can't get v2 quote");
+    }
+    console.log(
+      v2Quote.routesWithValidQuotes.map((r) => r.tokenPath.map((t) => t.symbol))
+    );
+
+    const chosenV2Route = v2Quote.routesWithValidQuotes[0];
+    if (!chosenV2Route) {
+      throw Error('no route found');
+    }
+
+    const finalOutput = chosenV2Route!.quote;
+    console.log('finalOutput', finalOutput, finalOutput.toExact());
+
+    console.log('to recreate on v3 quoter:');
+    console.log(
+      'v3 token0 address: ',
+      chosenV3Route.route.pools[0]!.token0.address,
+      'v3 pool fee: ',
+      chosenV3Route.route.pools[0]!.fee.toString(),
+      'v3 token1 address: ',
+      chosenV3Route.route.pools[0]!.token1.address
+    );
+    console.log(
+      'v2 token0 address: ',
+      chosenV2Route.route.pairs[0]!.token0.address,
+      'v2 token1 address: ',
+      chosenV2Route.route.pairs[0]!.token1.address
+    );
   }
 
   /**
