@@ -76,7 +76,6 @@ export function parseDeadline(deadline: number): number {
   return Math.floor(Date.now() / 1000) + deadline;
 }
 
-/// @dev had trouble with the return type casting to BigintIsh, wonder if there are overflow issues here
 const expandDecimals = (currency: Currency, amount: number): number => {
   return amount * 10 ** currency.decimals;
 };
@@ -552,7 +551,7 @@ describe('alpha router integration', () => {
                 .lessThan(
                   CurrencyAmount.fromRawAmount(
                     tokenOut,
-                    expandDecimals(tokenIn, 10000)
+                    expandDecimals(tokenOut, 10000)
                   )
                 )
             ).toBe(true);
