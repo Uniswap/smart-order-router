@@ -22,7 +22,6 @@ import {
   NATIVE_CURRENCY,
   parseAmount,
   SUPPORTED_CHAINS,
-  SwapRoute,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -71,24 +70,6 @@ const getQuoteToken = (
   tradeType: TradeType
 ): Currency => {
   return tradeType == TradeType.EXACT_INPUT ? tokenOut : tokenIn;
-};
-
-const parseSwap = (
-  swap: SwapRoute
-): {
-  quote: CurrencyAmount<Currency>;
-  quoteGasAdjusted: CurrencyAmount<Currency>;
-  gasPriceWei: BigNumber;
-  methodParameters?: MethodParameters;
-} => {
-  const { quote, quoteGasAdjusted, methodParameters, gasPriceWei } = swap;
-
-  return {
-    quote: quote,
-    quoteGasAdjusted: quoteGasAdjusted,
-    gasPriceWei: gasPriceWei,
-    methodParameters,
-  };
 };
 
 export function parseDeadline(deadline: number): number {
@@ -362,9 +343,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = parseSwap(
-            swap!
-          );
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
@@ -403,9 +382,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = parseSwap(
-            swap!
-          );
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
@@ -444,7 +421,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = parseSwap(swap!);
+          const { quote, methodParameters } = swap!;
 
           const { route } = swap!;
 
@@ -516,7 +493,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = parseSwap(swap!);
+          const { quote, methodParameters } = swap!;
 
           expect(methodParameters).not.toBeUndefined();
 
@@ -573,7 +550,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = parseSwap(swap!);
+          const { quote, methodParameters } = swap!;
 
           await validateExecuteSwap(
             quote,
@@ -610,7 +587,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = parseSwap(swap!);
+          const { quote, methodParameters } = swap!;
 
           await validateExecuteSwap(
             quote,
@@ -648,9 +625,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = parseSwap(
-            swap!
-          );
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
           const { route } = swap!;
 
@@ -696,9 +671,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = parseSwap(
-            swap!
-          );
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
           const { route } = swap!;
 
@@ -744,9 +717,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = parseSwap(
-            swap!
-          );
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
           const { route } = swap!;
 
@@ -797,7 +768,7 @@ describe('alpha router integration', () => {
         expect(swap).toBeDefined();
         expect(swap).not.toBeNull();
 
-        const { quote, quoteGasAdjusted } = parseSwap(swap!);
+        const { quote, quoteGasAdjusted } = swap!;
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
@@ -832,7 +803,7 @@ describe('alpha router integration', () => {
         expect(swap).toBeDefined();
         expect(swap).not.toBeNull();
 
-        const { quote, quoteGasAdjusted, gasPriceWei } = parseSwap(swap!);
+        const { quote, quoteGasAdjusted, gasPriceWei } = swap!;
 
         expect(gasPriceWei.eq(BigNumber.from(60000000000)));
 
@@ -1000,7 +971,7 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted } = parseSwap(swap!);
+          const { quote, quoteGasAdjusted } = swap!;
 
           if (tradeType == TradeType.EXACT_INPUT) {
             // === .lessThanOrEqualTo
