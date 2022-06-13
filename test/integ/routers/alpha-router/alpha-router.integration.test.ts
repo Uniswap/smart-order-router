@@ -94,26 +94,23 @@ describe('alpha router integration', () => {
 
   const executeSwap = async (
     methodParameters: MethodParameters,
-    currencyIn: Currency,
-    currencyOut: Currency
+    tokenIn: Currency,
+    tokenOut: Currency
   ): Promise<{
     tokenInAfter: CurrencyAmount<Currency>;
     tokenInBefore: CurrencyAmount<Currency>;
     tokenOutAfter: CurrencyAmount<Currency>;
     tokenOutBefore: CurrencyAmount<Currency>;
   }> => {
-    expect(currencyIn.symbol).not.toBe(currencyOut.symbol);
+    expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     // We use this helper function for approving rather than hardhat.provider.approve
     // because there is custom logic built in for handling USDT and other checks
     const tokenInBefore = await getBalanceAndApprove(
       alice,
       SWAP_ROUTER_V2,
-      currencyIn
+      tokenIn
     );
-    const tokenOutBefore = await hardhat.getBalance(
-      alice._address,
-      currencyOut
-    );
+    const tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
 
     const transaction = {
       data: methodParameters.calldata,
@@ -130,8 +127,8 @@ describe('alpha router integration', () => {
     const receipt = await transactionResponse.wait();
     expect(receipt.status == 1).toBe(true); // Check for txn success
 
-    const tokenInAfter = await hardhat.getBalance(alice._address, currencyIn);
-    const tokenOutAfter = await hardhat.getBalance(alice._address, currencyOut);
+    const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
+    const tokenOutAfter = await hardhat.getBalance(alice._address, tokenOut);
 
     return {
       tokenInAfter,
