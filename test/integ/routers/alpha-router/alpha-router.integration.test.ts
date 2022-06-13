@@ -411,7 +411,7 @@ describe('alpha router integration', () => {
           );
         });
 
-        it.only(`erc20 -> eth large trade`, async () => {
+        it(`erc20 -> eth large trade`, async () => {
           // Trade of this size almost always results in splits.
           const tokenIn = USDC_MAINNET;
           const tokenOut = Ether.onChain(1) as Currency;
