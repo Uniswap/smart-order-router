@@ -14,7 +14,6 @@ import {
   Position,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
-import { GasPrice, IGasPriceProvider } from '../providers';
 import { CurrencyAmount } from '../util/amounts';
 import { RouteWithValidQuote } from './alpha-router';
 
@@ -182,11 +181,4 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
     swapAndAddOptions?: SwapAndAddOptions,
     routingConfig?: RoutingConfig
   ): Promise<SwapToRatioResponse>;
-}
-
-export class StaticGasPriceProvider implements IGasPriceProvider {
-  constructor(private gasPriceWei: BigNumber) {}
-  async getGasPrice(): Promise<GasPrice> {
-    return { gasPriceWei: this.gasPriceWei };
-  }
 }
