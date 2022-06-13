@@ -165,7 +165,7 @@ describe('alpha router integration', () => {
    * @param quote: CurrencyAmount<Currency>
    * @param quoteGasAdjusted: CurrencyAmount<Currency>
    * @param tradeType: TradeType
-   * @param targetQuoteDecimalsAmount?: number - if defined, checks that the quoteDecimals is within the range of this +/- acceptableDifference
+   * @param targetQuoteDecimalsAmount?: number - if defined, checks that the quoteDecimals is within the range of this +/- acceptableDifference (non inclusive bounds)
    * @param acceptableDifference?: number - see above
    */
   const validateSwapRoute = async (
@@ -222,8 +222,8 @@ describe('alpha router integration', () => {
     tokenOut: Currency,
     methodParameters: MethodParameters | undefined,
     tradeType: TradeType,
-    checkTokenInAmount?: string,
-    checkTokenOutAmount?: string
+    checkTokenInAmount?: number,
+    checkTokenOutAmount?: number
   ) => {
     expect(methodParameters).not.toBeUndefined();
     const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
@@ -256,7 +256,6 @@ describe('alpha router integration', () => {
       checkQuoteToken(
         tokenInBefore,
         tokenInAfter,
-        /// @dev we need to recreate the CurrencyAmount object here because tokenOut can be different from quote.currency (in the case of ETH vs. WETH)
         CurrencyAmount.fromRawAmount(tokenIn, quote.quotient)
       );
     }
@@ -375,8 +374,8 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '100',
-            '100'
+            100,
+            100
           );
         });
 
@@ -416,7 +415,7 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '1000000'
+            1000000
           );
         });
 
@@ -468,7 +467,6 @@ describe('alpha router integration', () => {
           expect(amountIn.eq(amountInEdgesTotal));
 
           const amountOutEdgesTotal = _(route)
-            // Defineness check
             .filter((routeWithValidQuote) =>
               tradeType == TradeType.EXACT_INPUT
                 ? !!routeWithValidQuote.quote.quotient
@@ -489,7 +487,7 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '1000000'
+            1000000
           );
         });
 
@@ -583,8 +581,8 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '100',
-            '100'
+            100,
+            100
           );
         });
 
@@ -620,8 +618,8 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '100',
-            '100'
+            100,
+            100
           );
         });
 
@@ -668,8 +666,8 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '100',
-            '100'
+            100,
+            100
           );
         });
 
@@ -716,8 +714,8 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '100',
-            '100'
+            100,
+            100
           );
         });
 
@@ -773,8 +771,8 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            '100',
-            '100'
+            100,
+            100
           );
         });
       });
@@ -879,7 +877,7 @@ describe('quote for other networks', () => {
       c != ChainId.OPTIMISTIC_KOVAN &&
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_RINKEBY &&
-      c != ChainId.OPTIMISM // @note infura has been having issues with optimism lately
+      c != ChainId.OPTIMISM /// @dev infura has been having issues with optimism lately
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];
