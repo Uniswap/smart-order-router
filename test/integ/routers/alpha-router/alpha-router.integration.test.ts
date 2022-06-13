@@ -76,6 +76,11 @@ export function parseDeadline(deadline: number): number {
   return Math.floor(Date.now() / 1000) + deadline;
 }
 
+/// @dev had trouble with the return type casting to BigintIsh, wonder if there are overflow issues here
+const expandDecimals = (currency: Currency, amount: number): number => {
+  return amount * 10 ** currency.decimals;
+};
+
 describe('alpha router integration', () => {
   let alice: JsonRpcSigner;
   jest.setTimeout(500 * 1000); // 500s
@@ -161,26 +166,32 @@ describe('alpha router integration', () => {
         quote.greaterThan(
           CurrencyAmount.fromRawAmount(
             quote.currency,
-            targetQuoteDecimalsAmount - acceptableDifference
+            expandDecimals(
+              quote.currency,
+              targetQuoteDecimalsAmount - acceptableDifference
+            )
           )
         )
-      );
+      ).toBe(true);
       expect(
         quote.lessThan(
           CurrencyAmount.fromRawAmount(
             quote.currency,
-            targetQuoteDecimalsAmount + acceptableDifference
+            expandDecimals(
+              quote.currency,
+              targetQuoteDecimalsAmount + acceptableDifference
+            )
           )
         )
-      );
+      ).toBe(true);
     }
 
     if (tradeType == TradeType.EXACT_INPUT) {
       // == lessThanOrEqualTo
-      expect(!quoteGasAdjusted.greaterThan(quote));
+      expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
     } else {
       // == greaterThanOrEqual
-      expect(!quoteGasAdjusted.lessThan(quote));
+      expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
     }
   };
 
@@ -210,9 +221,13 @@ describe('alpha router integration', () => {
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
         expect(
-          tokenInBefore
-            .subtract(tokenInAfter)
-            .equalTo(CurrencyAmount.fromRawAmount(tokenIn, checkTokenInAmount))
+          tokenInBefore.subtract(tokenInAfter).equalTo(
+            CurrencyAmount.fromRawAmount(
+              tokenIn,
+              /// @dev since we are passing in numbers, we need to expand to the correct decimal scale
+              expandDecimals(tokenIn, checkTokenInAmount)
+            )
+          )
         );
       }
       checkQuoteToken(
@@ -227,7 +242,10 @@ describe('alpha router integration', () => {
           tokenOutAfter
             .subtract(tokenOutBefore)
             .equalTo(
-              CurrencyAmount.fromRawAmount(tokenOut, checkTokenOutAmount)
+              CurrencyAmount.fromRawAmount(
+                tokenOut,
+                expandDecimals(tokenOut, checkTokenOutAmount)
+              )
             )
         );
       }
@@ -393,7 +411,7 @@ describe('alpha router integration', () => {
           );
         });
 
-        it(`erc20 -> eth large trade`, async () => {
+        it.only(`erc20 -> eth large trade`, async () => {
           // Trade of this size almost always results in splits.
           const tokenIn = USDC_MAINNET;
           const tokenOut = Ether.onChain(1) as Currency;
@@ -437,8 +455,15 @@ describe('alpha router integration', () => {
                 : BigNumber.from(routeWithValidQuote.quote.quotient.toString())
             )
             .reduce((cur, total) => total.add(cur), BigNumber.from(0));
-          const amountIn = BigNumber.from(quote.quotient.toString());
-          expect(amountIn.eq(amountInEdgesTotal));
+          /**
+           * @dev for exactIn, make sure the sum of the amountIn to every split = total amountIn for the route
+           * @dev for exactOut, make sure the sum of the quote of every split = total quote for the route
+           */
+          const amountIn =
+            tradeType == TradeType.EXACT_INPUT
+              ? BigNumber.from(amount.quotient.toString())
+              : BigNumber.from(quote.quotient.toString());
+          expect(amountIn).toEqual(amountInEdgesTotal);
 
           const amountOutEdgesTotal = _(route)
             .filter((routeWithValidQuote) =>
@@ -452,8 +477,15 @@ describe('alpha router integration', () => {
                 : BigNumber.from(routeWithValidQuote.amount.quotient.toString())
             )
             .reduce((cur, total) => total.add(cur), BigNumber.from(0));
-          const amountOut = BigNumber.from(quote.quotient.toString());
-          expect(amountOut.eq(amountOutEdgesTotal));
+          /**
+           * @dev for exactIn, make sure the sum of the quote to every split = total quote for the route
+           * @dev for exactOut, make sure the sum of the amountIn of every split = total amountIn for the route
+           */
+          const amountOut =
+            tradeType == TradeType.EXACT_INPUT
+              ? BigNumber.from(quote.quotient.toString())
+              : BigNumber.from(amount.quotient.toString());
+          expect(amountOut).toEqual(amountOutEdgesTotal);
 
           await validateExecuteSwap(
             quote,
@@ -517,8 +549,13 @@ describe('alpha router integration', () => {
               !tokenOutAfter
                 .subtract(tokenOutBefore)
                 // == .greaterThanOrEqualTo
-                .lessThan(CurrencyAmount.fromRawAmount(tokenOut, 10000))
-            );
+                .lessThan(
+                  CurrencyAmount.fromRawAmount(
+                    tokenOut,
+                    expandDecimals(tokenIn, 10000)
+                  )
+                )
+            ).toBe(true);
             // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
           }
         });
@@ -802,7 +839,7 @@ describe('alpha router integration', () => {
 
         const { quote, quoteGasAdjusted, gasPriceWei } = swap!;
 
-        expect(gasPriceWei.eq(BigNumber.from(60000000000)));
+        expect(gasPriceWei.eq(BigNumber.from(60000000000))).toBe(true);
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
@@ -810,7 +847,7 @@ describe('alpha router integration', () => {
   }
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
@@ -853,7 +890,7 @@ describe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        jest.retryTimes(1);
+        // jest.retryTimes(1);
 
         const wrappedNative = WNATIVE_ON(chain);
 
@@ -972,10 +1009,10 @@ describe('quote for other networks', () => {
 
           if (tradeType == TradeType.EXACT_INPUT) {
             // === .lessThanOrEqualTo
-            expect(!quoteGasAdjusted.greaterThan(quote));
+            expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
           } else {
             // === .greaterThanOrEqualTo
-            expect(!quoteGasAdjusted.lessThan(quote));
+            expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
           }
         });
       });
