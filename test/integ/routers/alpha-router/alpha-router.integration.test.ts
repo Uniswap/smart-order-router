@@ -213,8 +213,8 @@ describe('alpha router integration', () => {
    * @param tokenOut: Currency
    * @param methodParameters: MethodParameters
    * @param tradeType: TradeType
-   * @param checkTokenInAmount?: string - if defined, check that the tokenInBefore - tokenInAfter = checkTokenInAmount
-   * @param checkTokenOutAmount?: string - if defined, check that the tokenOutBefore - tokenOutAfter = checkTokenOutAmount
+   * @param checkTokenInAmount?: number - if defined, check that the tokenInBefore - tokenInAfter = checkTokenInAmount
+   * @param checkTokenOutAmount?: number - if defined, check that the tokenOutBefore - tokenOutAfter = checkTokenOutAmount
    */
   const validateExecuteSwap = async (
     quote: CurrencyAmount<Currency>,
