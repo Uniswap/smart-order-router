@@ -6,6 +6,7 @@ import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
 import {
+  encodeRouteToPath,
   MethodParameters,
   Pool,
   Position,
@@ -766,8 +767,10 @@ export class AlphaRouter
     if (tradeType == TradeType.EXACT_OUTPUT) {
       throw new Error('tradeType must be EXACT_INPUT for now');
     }
+
     const blockNumber =
       partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
+    console.log(await blockNumber);
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {},
@@ -784,6 +787,8 @@ export class AlphaRouter
       tradeType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
     const currencyOut =
       tradeType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
 
     const [percents, amounts] = [[100], [amount]]; // because just testing, lets just do one amount
 
@@ -800,8 +805,8 @@ export class AlphaRouter
     // let's hardcode the route now: USDC -[V3]> WETH -[V2]> DAI
     // first get the v3 quote
     const v3Quote = await this.getV3Quotes(
-      amount.currency.wrapped,
-      quoteToken,
+      tokenIn,
+      tokenOut,
       amounts,
       percents,
       quoteToken,
@@ -828,7 +833,14 @@ export class AlphaRouter
     );
     console.log(chosenV3Route.tokenPath.map((t) => t.symbol));
     const amountOut = chosenV3Route?.quote;
+    console.log(amountOut.quotient.toString());
     console.log('amountOut for intermediary', amountOut.toExact());
+    console.log(JSON.stringify(chosenV3Route?.route));
+
+    console.log('sqrtPriceList for chosen v3 route');
+    console.log(chosenV3Route.sqrtPriceX96AfterList);
+
+    console.log(encodeRouteToPath(chosenV3Route.route, false));
 
     // now get the v2 quote using amountOut above as tokenIn
     const v2Quote = await this.getV2Quotes(
@@ -869,6 +881,7 @@ export class AlphaRouter
       'v3 token1 address: ',
       chosenV3Route.route.pools[0]!.token1.address
     );
+
     console.log(
       'v2 token0 address: ',
       chosenV2Route.route.pairs[0]!.token0.address,
@@ -1235,6 +1248,9 @@ export class AlphaRouter
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
+
+    console.log('V3 quotes: ');
+    console.log(JSON.stringify(routesWithQuotes));
 
     metric.putMetric(
       'V3QuotesLoad',

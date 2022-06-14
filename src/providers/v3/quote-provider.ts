@@ -337,6 +337,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
         _providerConfig?.blockNumber ?? originalBlockNumber + baseBlockOffset,
     };
 
+    if (providerConfig.blockNumber !== 14390000)
+      throw new Error('blockNumber is not 14390000');
+
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const encodedRoute = encodeRouteToPath(
