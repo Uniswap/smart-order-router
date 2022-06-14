@@ -7,7 +7,6 @@ import {
   CurrencyAmount,
   Ether,
   Percent,
-  Token,
   TradeType,
 } from '@uniswap/sdk-core';
 import {
@@ -15,30 +14,22 @@ import {
   AlphaRouterConfig,
   ChainId,
   DAI_MAINNET,
-  DAI_ON,
   ID_TO_NETWORK_NAME,
-  ID_TO_PROVIDER,
-  nativeOnChain,
-  NATIVE_CURRENCY,
   parseAmount,
-  SUPPORTED_CHAINS,
   UniswapMulticallProvider,
-  UNI_GÖRLI,
   UNI_MAINNET,
   USDC_MAINNET,
-  USDC_ON,
   USDT_MAINNET,
   WETH9,
-  WNATIVE_ON,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
 
-import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
+import { JsonRpcSigner } from '@ethersproject/providers';
 
 import { Protocol } from '@uniswap/router-sdk';
 import { MethodParameters } from '@uniswap/v3-sdk';
-import { BigNumber, providers } from 'ethers';
+import { BigNumber } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
 import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-price-provider';
@@ -48,11 +39,11 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
 
-const checkQuoteToken = (
+function checkQuoteToken(
   before: CurrencyAmount<Currency>,
   after: CurrencyAmount<Currency>,
   tokensQuoted: CurrencyAmount<Currency>
-) => {
+) {
   // Check which is bigger to support exactIn and exactOut
   const tokensSwapped = after.greaterThan(before)
     ? after.subtract(before)
@@ -62,33 +53,30 @@ const checkQuoteToken = (
     : tokensSwapped.subtract(tokensQuoted);
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction);
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true);
-};
+}
 
-const getQuoteToken = (
+function getQuoteToken(
   tokenIn: Currency,
   tokenOut: Currency,
   tradeType: TradeType
-): Currency => {
+): Currency {
   return tradeType == TradeType.EXACT_INPUT ? tokenOut : tokenIn;
-};
+}
 
-export function parseDeadline(deadline: number): number {
+function parseDeadline(deadline: number): number {
   return Math.floor(Date.now() / 1000) + deadline;
 }
 
-const expandDecimals = (currency: Currency, amount: number): number => {
+function expandDecimals(currency: Currency, amount: number): number {
   return amount * 10 ** currency.decimals;
-};
+}
 
-describe('alpha router integration', () => {
+describe('alpha router', () => {
   let alice: JsonRpcSigner;
   jest.setTimeout(500 * 1000); // 500s
 
+  let multicall2Provider: UniswapMulticallProvider
   let alphaRouter: AlphaRouter;
-  const multicall2Provider = new UniswapMulticallProvider(
-    ChainId.MAINNET,
-    hardhat.provider
-  );
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
     // @ts-ignore[TS7053] - complaining about switch being non exhaustive
@@ -96,7 +84,7 @@ describe('alpha router integration', () => {
     protocols: [Protocol.V3, Protocol.V2],
   };
 
-  const executeSwap = async (
+  async function executeSwap(
     methodParameters: MethodParameters,
     tokenIn: Currency,
     tokenOut: Currency
@@ -105,15 +93,11 @@ describe('alpha router integration', () => {
     tokenInBefore: CurrencyAmount<Currency>;
     tokenOutAfter: CurrencyAmount<Currency>;
     tokenOutBefore: CurrencyAmount<Currency>;
-  }> => {
+  }> {
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     // We use this helper function for approving rather than hardhat.provider.approve
     // because there is custom logic built in for handling USDT and other checks
-    const tokenInBefore = await getBalanceAndApprove(
-      alice,
-      SWAP_ROUTER_V2,
-      tokenIn
-    );
+    const tokenInBefore = await getBalanceAndApprove(alice, SWAP_ROUTER_V2, tokenIn);
     const tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
 
     const transaction = {
@@ -125,9 +109,7 @@ describe('alpha router integration', () => {
       type: 1,
     };
 
-    const transactionResponse: providers.TransactionResponse =
-      await alice.sendTransaction(transaction);
-
+    const transactionResponse = await alice.sendTransaction(transaction);
     const receipt = await transactionResponse.wait();
     expect(receipt.status == 1).toBe(true); // Check for txn success
 
@@ -140,23 +122,20 @@ describe('alpha router integration', () => {
       tokenOutAfter,
       tokenOutBefore,
     };
-  };
+  }
 
   /**
-   * Function to validate swapRoute data.
-   * @param quote: CurrencyAmount<Currency>
-   * @param quoteGasAdjusted: CurrencyAmount<Currency>
-   * @param tradeType: TradeType
-   * @param targetQuoteDecimalsAmount?: number - if defined, checks that the quoteDecimals is within the range of this +/- acceptableDifference (non inclusive bounds)
-   * @param acceptableDifference?: number - see above
+   * Validates swapRoute data.
+   * @param targetQuoteDecimalsAmount if defined, checks that the quoteDecimals is within the range of this +/- acceptableDifference (non inclusive bounds)
+   * @param acceptableDifference see above
    */
-  const validateSwapRoute = async (
+  async function validateSwapRoute(
     quote: CurrencyAmount<Currency>,
     quoteGasAdjusted: CurrencyAmount<Currency>,
     tradeType: TradeType,
     targetQuoteDecimalsAmount?: number,
     acceptableDifference?: number
-  ) => {
+  ) {
     // strict undefined checks here to avoid confusion with 0 being a falsy value
     if (targetQuoteDecimalsAmount !== undefined) {
       acceptableDifference =
@@ -192,19 +171,14 @@ describe('alpha router integration', () => {
       // == greaterThanOrEqual
       expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
     }
-  };
+  }
 
   /**
-   * Function to perform a call to executeSwap and validate the response
-   * @param quote: CurrencyAmount<Currency>
-   * @param tokenIn: Currency
-   * @param tokenOut: Currency
-   * @param methodParameters: MethodParameters
-   * @param tradeType: TradeType
-   * @param checkTokenInAmount?: number - if defined, check that the tokenInBefore - tokenInAfter = checkTokenInAmount
-   * @param checkTokenOutAmount?: number - if defined, check that the tokenOutBefore - tokenOutAfter = checkTokenOutAmount
+   * Performs a call to executeSwap and validates the response.
+   * @param checkTokenInAmount if defined, check that the tokenInBefore - tokenInAfter = checkTokenInAmount
+   * @param checkTokenOutAmount if defined, check that the tokenOutBefore - tokenOutAfter = checkTokenOutAmount
    */
-  const validateExecuteSwap = async (
+  async function validateExecuteSwap(
     quote: CurrencyAmount<Currency>,
     tokenIn: Currency,
     tokenOut: Currency,
@@ -212,7 +186,7 @@ describe('alpha router integration', () => {
     tradeType: TradeType,
     checkTokenInAmount?: number,
     checkTokenOutAmount?: number
-  ) => {
+  ) {
     expect(methodParameters).not.toBeUndefined();
     const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
       await executeSwap(methodParameters!, tokenIn, tokenOut!);
@@ -254,21 +228,16 @@ describe('alpha router integration', () => {
         CurrencyAmount.fromRawAmount(tokenIn, quote.quotient)
       );
     }
-  };
+  }
 
   beforeAll(async () => {
     alice = hardhat.providers[0]!.getSigner();
     const aliceAddress = await alice.getAddress();
     expect(aliceAddress).toBe(alice._address);
 
-    /**
-     * @dev Because we don't specify a blockNumber in the config
-     *      hardhat forks from the latest block - 10, which matches
-     *      behavior in routing-api
-     */
-    await hardhat.fork();
-
-    await hardhat.fund(
+    // Fund alice's account
+    await Promise.all([
+    hardhat.fund(
       alice._address,
       [
         parseAmount('8000000', USDC_MAINNET),
@@ -279,45 +248,34 @@ describe('alpha router integration', () => {
       [
         '0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503', // Binance peg tokens
       ]
-    );
-
-    await hardhat.fund(
+    ), hardhat.fund(
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
         '0x6555e1CC97d3cbA6eAddebBCD7Ca51d75771e0B8', // WETH token
       ]
-    );
+    )]);
 
-    // alice should always have 10000 ETH
-    const aliceEthBalance = await hardhat.provider.getBalance(alice._address);
-    expect(aliceEthBalance).toEqual(parseEther('10000'));
-    const aliceUSDCBalance = await hardhat.getBalance(
-      alice._address,
-      USDC_MAINNET
-    );
-    expect(aliceUSDCBalance).toEqual(parseAmount('8000000', USDC_MAINNET));
-    const aliceUSDTBalance = await hardhat.getBalance(
-      alice._address,
-      USDT_MAINNET
-    );
-    expect(aliceUSDTBalance).toEqual(parseAmount('5000000', USDT_MAINNET));
-    const aliceWETH9Balance = await hardhat.getBalance(
-      alice._address,
-      WETH9[1]
-    );
-    expect(aliceWETH9Balance).toEqual(parseAmount('4000', WETH9[1]));
-    const aliceDAIBalance = await hardhat.getBalance(
-      alice._address,
-      DAI_MAINNET
-    );
-    expect(aliceDAIBalance).toEqual(parseAmount('5000000', DAI_MAINNET));
-    const aliceUNIBalance = await hardhat.getBalance(
-      alice._address,
-      UNI_MAINNET
-    );
-    expect(aliceUNIBalance).toEqual(parseAmount('1000', UNI_MAINNET));
+    // Validate alice's balances
+    const [eth, usdc, usdt, weth9, dai, uni] = await Promise.all([
+      hardhat.provider.getBalance(alice._address),
+      hardhat.getBalance(alice._address, USDC_MAINNET),
+      hardhat.getBalance(alice._address, USDT_MAINNET),
+      hardhat.getBalance(alice._address, WETH9[1]),
+      hardhat.getBalance(alice._address, DAI_MAINNET),
+      hardhat.getBalance(alice._address, UNI_MAINNET),
+    ])
+    expect(eth).toEqual(parseEther('10000')); // alice should always have 10000 ETH
+    expect(usdc).toEqual(parseAmount('8000000', USDC_MAINNET));
+    expect(usdt).toEqual(parseAmount('5000000', USDT_MAINNET));
+    expect(weth9).toEqual(parseAmount('4000', WETH9[1]));
+    expect(dai).toEqual(parseAmount('5000000', DAI_MAINNET));
+    expect(uni).toEqual(parseAmount('1000', UNI_MAINNET));
 
+    multicall2Provider = new UniswapMulticallProvider(
+      ChainId.MAINNET,
+      hardhat.provider,
+    );
     alphaRouter = new AlphaRouter({
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
@@ -329,9 +287,9 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${TradeType[tradeType]}`, () => {
       describe(`+ simulate swap`, () => {
-        it('erc20 -> erc20', async () => {
+        it.only('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
@@ -340,6 +298,7 @@ describe('alpha router integration', () => {
               ? parseAmount('100', tokenIn)
               : parseAmount('100', tokenOut);
 
+          console.log('zzmp:SWAP')
           const swap = await alphaRouter.route(
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -359,8 +318,10 @@ describe('alpha router integration', () => {
 
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
+          console.log('zzmp:VALIDATE_ROUTE')
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
+          console.log('zzmp:VALIDATE_EXECUTE')
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -843,178 +804,5 @@ describe('alpha router integration', () => {
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
     });
-  }
-});
-
-describe('quote for other networks', () => {
-  const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: USDC_ON(1),
-    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: UNI_GÖRLI,
-    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
-    [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
-    [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
-    [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
-  };
-  const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: DAI_ON(1),
-    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
-    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
-    [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
-    [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
-    [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
-  };
-
-  // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
-  for (const chain of _.filter(
-    SUPPORTED_CHAINS,
-    (c) =>
-      c != ChainId.OPTIMISTIC_KOVAN &&
-      c != ChainId.POLYGON_MUMBAI &&
-      c != ChainId.ARBITRUM_RINKEBY &&
-      c != ChainId.OPTIMISM /// @dev infura has been having issues with optimism lately
-  )) {
-    for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-      const erc1 = TEST_ERC20_1[chain];
-      const erc2 = TEST_ERC20_2[chain];
-
-      describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
-        // Help with test flakiness by retrying.
-        // jest.retryTimes(1);
-
-        const wrappedNative = WNATIVE_ON(chain);
-
-        let alphaRouter: AlphaRouter;
-
-        const chainProvider = ID_TO_PROVIDER(chain);
-        const provider = new JsonRpcProvider(chainProvider, chain);
-        const multicall2Provider = new UniswapMulticallProvider(
-          chain,
-          provider
-        );
-
-        beforeAll(async () => {
-          alphaRouter = new AlphaRouter({
-            chainId: chain,
-            provider,
-            multicall2Provider,
-          });
-        });
-
-        it(`${wrappedNative.symbol} -> erc20`, async () => {
-          const tokenIn = wrappedNative;
-          const tokenOut = erc1;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('10', tokenIn)
-              : parseAmount('10', tokenOut);
-
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
-            }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-
-          // Scope limited for non mainnet network tests to validating the swap
-        });
-
-        it(`erc20 -> erc20`, async () => {
-          const tokenIn = erc1;
-          const tokenOut = erc2;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
-
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
-            }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-        });
-
-        const native = NATIVE_CURRENCY[chain];
-
-        it(`${native} -> erc20`, async () => {
-          const tokenIn = nativeOnChain(chain);
-          const tokenOut = erc2;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100', tokenIn)
-              : parseAmount('100', tokenOut);
-
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
-            }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-        });
-        it(`has quoteGasAdjusted values`, async () => {
-          const tokenIn = erc1;
-          const tokenOut = erc2;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
-
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
-            }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-
-          const { quote, quoteGasAdjusted } = swap!;
-
-          if (tradeType == TradeType.EXACT_INPUT) {
-            // === .lessThanOrEqualTo
-            expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
-          } else {
-            // === .greaterThanOrEqualTo
-            expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
-          }
-        });
-      });
-    }
   }
 });

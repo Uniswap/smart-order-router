@@ -139,7 +139,7 @@ export const CHAIN_IDS_LIST = Object.values(ChainId).map((c) =>
   c.toString()
 ) as string[];
 
-export const ID_TO_PROVIDER = (id: ChainId): string => {
+export const ID_TO_PROVIDER = (id: ChainId): string|undefined => {
   switch (id) {
     case ChainId.MAINNET:
       return process.env.JSON_RPC_PROVIDER!;

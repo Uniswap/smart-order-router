@@ -1,8 +1,5 @@
 require('@nomiclabs/hardhat-ethers');
-
-const dotenv = require('dotenv');
-
-dotenv.config();
+require('dotenv').config();
 
 const mainnetFork = {
   url: `${process.env.JSON_RPC_PROVIDER}`,
