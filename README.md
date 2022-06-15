@@ -16,7 +16,7 @@ npm run test
 
 ### Integration Tests
 
-Make sure the `.env` file is configured to connect to mainnet and other chains. Instructions are below in the [CLI](#cli) section
+Make sure the `.env` file is configured to connect to mainnet and other chains. See the [CLI](#cli) section below for more details.
 
 ```
 npm run integ-test
