@@ -50,9 +50,9 @@ import {
   IGasPriceProvider,
 } from '../../providers/gas-price-provider';
 import {
+  DAI_MAINNET,
   ITokenProvider,
   TokenProvider,
-  USDT_MAINNET,
 } from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
@@ -770,7 +770,6 @@ export class AlphaRouter
 
     const blockNumber =
       partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
-    console.log(await blockNumber);
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {},
@@ -845,10 +844,10 @@ export class AlphaRouter
     // now get the v2 quote using amountOut above as tokenIn
     const v2Quote = await this.getV2Quotes(
       amountOut.currency.wrapped,
-      USDT_MAINNET.wrapped,
+      DAI_MAINNET.wrapped,
       [amountOut],
       [100],
-      USDT_MAINNET.wrapped,
+      DAI_MAINNET.wrapped,
       BigNumber.from(600000000), // some random number
       tradeType,
       {

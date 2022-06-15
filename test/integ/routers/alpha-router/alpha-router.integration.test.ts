@@ -30,6 +30,7 @@ import {
   USDT_MAINNET,
   WETH9,
   WNATIVE_ON,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -327,8 +328,8 @@ describe('alpha router integration', () => {
 
   it.only('testing makeshift IL route', async () => {
     const tradeType = TradeType.EXACT_INPUT;
-    const tokenIn = DAI_MAINNET;
-    const tokenOut = USDC_MAINNET;
+    const tokenIn = UNI_MAINNET;
+    const tokenOut = WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET];
     const amount =
       tradeType == TradeType.EXACT_INPUT
         ? parseAmount('10000', tokenIn)

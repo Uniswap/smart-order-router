@@ -180,12 +180,6 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       };
     });
 
-    console.log('functionName ', functionName);
-    console.log('functionParams ', functionParams);
-
-    console.log('calls from multicall-uniswap-provider');
-    console.log(calls);
-
     log.debug(
       { calls },
       `About to multicall for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
