@@ -17,8 +17,8 @@ import {
   V3SubgraphPool,
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
-} from '../../../src';
-import { V2PoolAccessor } from '../../../src/providers/v2/pool-provider';
+} from '../../src';
+import { V2PoolAccessor } from '../../src/providers/v2/pool-provider';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
