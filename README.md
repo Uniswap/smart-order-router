@@ -14,6 +14,14 @@ First make sure you have run `npm install` and `npm run build`.
 npm run test
 ```
 
+### Integration Tests
+
+Make sure the `.env` file is configured to connect to mainnet and other chains. See the [CLI](#cli) section below for more details.
+
+```
+npm run integ-test
+```
+
 ### CLI
 
 The package can be run as a CLI for testing purposes.
