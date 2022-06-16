@@ -351,41 +351,41 @@ describe('alpha router integration', () => {
     );
   });
 
-  it.only('testing IL route', async () => {
-    const tradeType = TradeType.EXACT_INPUT;
+  describe.only('interleaving routes', () => {
+    it('testing IL route', async () => {
+      const tradeType = TradeType.EXACT_INPUT;
 
-    const tokenIn = UNI_MAINNET;
-    const tokenOut = WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET];
-    const amount =
-      tradeType == TradeType.EXACT_INPUT
-        ? parseAmount('10000', tokenIn)
-        : parseAmount('10000', tokenOut);
+      const tokenIn = USDC_MAINNET;
+      // const tokenOut = WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET];
+      const amount = parseAmount('10000', tokenIn);
+      // : parseAmount('10000', tokenOut);
 
-    await alphaRouter.interleavingRoute(
-      amount,
-      [
+      await alphaRouter.interleavingRoute(
+        amount,
+        [
+          {
+            tokenIn: USDC_MAINNET,
+            tokenOut: UNI_MAINNET,
+            protocol: Protocol.V2,
+          },
+          {
+            tokenIn: UNI_MAINNET,
+            tokenOut: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
+            protocol: Protocol.V2,
+          },
+        ],
+        tradeType,
         {
-          tokenIn: UNI_MAINNET,
-          tokenOut: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
-          protocol: Protocol.V3,
+          recipient: alice._address,
+          slippageTolerance: new Percent(0, 100), //SLIPPAGE,
+          deadline: parseDeadline(360),
         },
         {
-          tokenIn: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
-          tokenOut: DAI_MAINNET,
-          protocol: Protocol.V2,
-        },
-      ],
-      tradeType,
-      {
-        recipient: alice._address,
-        slippageTolerance: SLIPPAGE,
-        deadline: parseDeadline(360),
-      },
-      {
-        ...ROUTING_CONFIG,
-        blockNumber: 14390000,
-      }
-    );
+          ...ROUTING_CONFIG,
+          blockNumber: 14390000,
+        }
+      );
+    });
   });
 
   /**

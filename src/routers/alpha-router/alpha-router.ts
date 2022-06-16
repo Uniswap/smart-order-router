@@ -79,7 +79,7 @@ import {
   V3QuoteProvider,
 } from '../../providers/v3/quote-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
-import { CurrencyAmount } from '../../util/amounts';
+import { CurrencyAmount, parseAmount } from '../../util/amounts';
 import {
   ChainId,
   ID_TO_CHAIN_ID,
@@ -769,7 +769,7 @@ export class AlphaRouter
     tradeType: TradeType,
     swapConfig?: SwapOptions,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
-  ): Promise<any> {
+  ): Promise<CurrencyAmount> {
     if (tradeType == TradeType.EXACT_OUTPUT) {
       throw new Error('tradeType must be EXACT_INPUT for now');
     }
@@ -800,10 +800,18 @@ export class AlphaRouter
         if (tokenIn.symbol !== previousOutputAmount.currency.symbol)
           throw new Error('ouput / input mismatch in path');
       }
+
       const [percents, amounts] = [
         [100],
-        [previousOutputAmount !== undefined ? previousOutputAmount : amount],
+        [
+          previousOutputAmount !== undefined
+            ? // we take the exact amt of previous output and transform it by the next input token's decimals #
+              parseAmount(previousOutputAmount!.toExact(), tokenIn)
+            : amount, // only for i == 0
+        ],
       ]; // because just testing, lets just do one amount
+
+      console.log('transformedPrevOutputAmount ', amounts[0]?.toExact());
 
       if (protocol == Protocol.V3) {
         const gasModel = await this.v3GasModelFactory.buildGasModel(
@@ -839,21 +847,23 @@ export class AlphaRouter
 
         const chosenV3Route = v3Quote.routesWithValidQuotes[0];
         if (!chosenV3Route) {
-          throw Error('no route found');
+          throw Error('no v3 route found');
         }
-        console.log(
-          'fees for v3 route',
-          chosenV3Route.route.pools.map((p) => p.fee)
-        );
         console.log(chosenV3Route.tokenPath.map((t) => t.symbol));
         const amountOut = chosenV3Route?.quote;
-        console.log(amountOut.quotient.toString());
-        console.log('amountOut for intermediary', amountOut.toExact());
-        console.log(JSON.stringify(chosenV3Route?.route));
 
+        console.log(
+          'fee: ',
+          chosenV3Route.route.pools.map((p) => p.fee)
+        );
+
+        console.log(
+          'V3 amountOut',
+          amountOut.quotient.toString(),
+          amountOut.toExact()
+        );
         console.log('sqrtPriceList for chosen v3 route');
         console.log(chosenV3Route.sqrtPriceX96AfterList);
-
         console.log('sqrtRatioX96 for pool: ');
         console.log(chosenV3Route?.route.pools[0]?.sqrtRatioX96.toString());
         console.log('liquidity for pool: ');
@@ -900,13 +910,26 @@ export class AlphaRouter
         }
 
         const amountOut = chosenV2Route!.quote;
-        console.log('v2 part output', amountOut, amountOut.toExact());
+        console.log(
+          'v2 part output',
+          amountOut.quotient.toString(),
+          amountOut.toExact()
+        );
 
         previousOutputAmount = amountOut;
       } else {
         throw new Error('incorrect protocol');
       }
     }
+    if (previousOutputAmount === undefined) {
+      throw new Error('could not calculate final outputAmount');
+    }
+    console.log(
+      'final outputAmount',
+      previousOutputAmount.quotient.toString(),
+      previousOutputAmount.toExact()
+    );
+    return previousOutputAmount;
   }
 
   /// @dev testing
@@ -1412,9 +1435,6 @@ export class AlphaRouter
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
-
-    console.log('V3 quotes: ');
-    console.log(JSON.stringify(routesWithQuotes));
 
     metric.putMetric(
       'V3QuotesLoad',
