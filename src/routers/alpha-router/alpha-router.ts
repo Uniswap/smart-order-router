@@ -756,6 +756,159 @@ export class AlphaRouter
     };
   }
 
+  /// @dev does not consider different amounts and/or percents
+  public async interleavingRoute(
+    amount: CurrencyAmount,
+    // quoteCurrency is just the tokenOut of each part
+    /// @dev this only works for EXACT INPUT
+    parts: {
+      tokenIn: Token;
+      tokenOut: Token;
+      protocol: Protocol;
+    }[],
+    tradeType: TradeType,
+    swapConfig?: SwapOptions,
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+  ): Promise<any> {
+    if (tradeType == TradeType.EXACT_OUTPUT) {
+      throw new Error('tradeType must be EXACT_INPUT for now');
+    }
+
+    const blockNumber =
+      partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
+
+    const routingConfig: AlphaRouterConfig = _.merge(
+      {},
+      DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
+      partialRoutingConfig,
+      { blockNumber }
+    );
+
+    const { protocols } = routingConfig;
+    const beforeGas = Date.now();
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+
+    let previousOutputAmount: CurrencyAmount | undefined = undefined;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]!;
+      const { tokenIn, tokenOut, protocol } = part;
+
+      const quoteToken = tokenOut;
+
+      if (previousOutputAmount !== undefined) {
+        if (tokenIn.symbol !== previousOutputAmount.currency.symbol)
+          throw new Error('ouput / input mismatch in path');
+      }
+      const [percents, amounts] = [
+        [100],
+        [previousOutputAmount !== undefined ? previousOutputAmount : amount],
+      ]; // because just testing, lets just do one amount
+
+      if (protocol == Protocol.V3) {
+        const gasModel = await this.v3GasModelFactory.buildGasModel(
+          this.chainId,
+          gasPriceWei,
+          this.v3PoolProvider,
+          quoteToken,
+          this.l2GasDataProvider
+        );
+
+        const v3Quote: {
+          routesWithValidQuotes: V3RouteWithValidQuote[];
+          candidatePools: CandidatePoolsBySelectionCriteria;
+        } = await this.getV3Quotes(
+          tokenIn,
+          tokenOut,
+          amounts,
+          percents,
+          quoteToken,
+          gasModel,
+          tradeType,
+          {
+            ...routingConfig,
+            // we force the direct path
+            protocols: [Protocol.V3],
+            maxSwapsPerPath: 1,
+          }
+        );
+
+        if (!v3Quote) {
+          throw Error("can't get v3 quote");
+        }
+
+        const chosenV3Route = v3Quote.routesWithValidQuotes[0];
+        if (!chosenV3Route) {
+          throw Error('no route found');
+        }
+        console.log(
+          'fees for v3 route',
+          chosenV3Route.route.pools.map((p) => p.fee)
+        );
+        console.log(chosenV3Route.tokenPath.map((t) => t.symbol));
+        const amountOut = chosenV3Route?.quote;
+        console.log(amountOut.quotient.toString());
+        console.log('amountOut for intermediary', amountOut.toExact());
+        console.log(JSON.stringify(chosenV3Route?.route));
+
+        console.log('sqrtPriceList for chosen v3 route');
+        console.log(chosenV3Route.sqrtPriceX96AfterList);
+
+        console.log('sqrtRatioX96 for pool: ');
+        console.log(chosenV3Route?.route.pools[0]?.sqrtRatioX96.toString());
+        console.log('liquidity for pool: ');
+        console.log(chosenV3Route?.route.pools[0]?.liquidity.toString());
+        console.log(
+          'tickCurrent for pool: ',
+          chosenV3Route?.route.pools[0]?.tickCurrent
+        );
+
+        console.log(encodeRouteToPath(chosenV3Route.route, false));
+
+        previousOutputAmount = amountOut;
+      } else if (protocol == Protocol.V2) {
+        const v2Quote: {
+          routesWithValidQuotes: V2RouteWithValidQuote[];
+          candidatePools: CandidatePoolsBySelectionCriteria;
+        } = await this.getV2Quotes(
+          tokenIn,
+          tokenOut,
+          amounts,
+          percents,
+          quoteToken,
+          BigNumber.from(600000000), // some random number
+          tradeType,
+          {
+            ...routingConfig,
+            protocols: [Protocol.V2],
+            maxSwapsPerPath: 1,
+          }
+        );
+
+        if (!v2Quote) {
+          throw Error("can't get v2 quote");
+        }
+        console.log(
+          v2Quote.routesWithValidQuotes.map((r) =>
+            r.tokenPath.map((t) => t.symbol)
+          )
+        );
+
+        const chosenV2Route = v2Quote.routesWithValidQuotes[0];
+        if (!chosenV2Route) {
+          throw Error('no route found');
+        }
+
+        const amountOut = chosenV2Route!.quote;
+        console.log('v2 part output', amountOut, amountOut.toExact());
+
+        previousOutputAmount = amountOut;
+      } else {
+        throw new Error('incorrect protocol');
+      }
+    }
+  }
+
   /// @dev testing
   public async makeshiftILRoute(
     amount: CurrencyAmount,
@@ -791,6 +944,8 @@ export class AlphaRouter
 
     const [percents, amounts] = [[100], [amount]]; // because just testing, lets just do one amount
 
+    console.log('amountIn', amount.toExact());
+
     const quoteToken = quoteCurrency.wrapped;
 
     const gasModel = await this.v3GasModelFactory.buildGasModel(
@@ -814,6 +969,7 @@ export class AlphaRouter
       {
         ...routingConfig,
         // we force the direct path
+        protocols: [Protocol.V3],
         maxSwapsPerPath: 1,
       }
     );
@@ -838,6 +994,15 @@ export class AlphaRouter
 
     console.log('sqrtPriceList for chosen v3 route');
     console.log(chosenV3Route.sqrtPriceX96AfterList);
+
+    console.log('sqrtRatioX96 for pool: ');
+    console.log(chosenV3Route?.route.pools[0]?.sqrtRatioX96.toString());
+    console.log('liquidity for pool: ');
+    console.log(chosenV3Route?.route.pools[0]?.liquidity.toString());
+    console.log(
+      'tickCurrent for pool: ',
+      chosenV3Route?.route.pools[0]?.tickCurrent
+    );
 
     console.log(encodeRouteToPath(chosenV3Route.route, false));
 

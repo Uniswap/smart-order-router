@@ -326,7 +326,7 @@ describe('alpha router integration', () => {
     });
   });
 
-  it.only('testing makeshift IL route', async () => {
+  xit('testing makeshift IL route', async () => {
     const tradeType = TradeType.EXACT_INPUT;
     const tokenIn = UNI_MAINNET;
     const tokenOut = WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET];
@@ -338,6 +338,43 @@ describe('alpha router integration', () => {
     await alphaRouter.makeshiftILRoute(
       amount,
       getQuoteToken(tokenIn, tokenOut, tradeType),
+      tradeType,
+      {
+        recipient: alice._address,
+        slippageTolerance: SLIPPAGE,
+        deadline: parseDeadline(360),
+      },
+      {
+        ...ROUTING_CONFIG,
+        blockNumber: 14390000,
+      }
+    );
+  });
+
+  it.only('testing IL route', async () => {
+    const tradeType = TradeType.EXACT_INPUT;
+
+    const tokenIn = UNI_MAINNET;
+    const tokenOut = WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET];
+    const amount =
+      tradeType == TradeType.EXACT_INPUT
+        ? parseAmount('10000', tokenIn)
+        : parseAmount('10000', tokenOut);
+
+    await alphaRouter.interleavingRoute(
+      amount,
+      [
+        {
+          tokenIn: UNI_MAINNET,
+          tokenOut: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
+          protocol: Protocol.V3,
+        },
+        {
+          tokenIn: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
+          tokenOut: DAI_MAINNET,
+          protocol: Protocol.V2,
+        },
+      ],
       tradeType,
       {
         recipient: alice._address,

@@ -419,6 +419,8 @@ export class V3QuoteProvider implements IV3QuoteProvider {
               // QuoteChunk is pending or failed, so we try again
               const { inputs } = quoteState;
 
+              console.log(inputs);
+
               try {
                 totalCallsMade = totalCallsMade + 1;
 
