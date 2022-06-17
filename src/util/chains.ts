@@ -15,6 +15,20 @@ export enum ChainId {
   CELO_ALFAJORES = 44787,
 }
 
+export const SUPPORTED_CHAINS: ChainId[] = [
+  ChainId.MAINNET,
+  ChainId.RINKEBY,
+  ChainId.ROPSTEN,
+  ChainId.KOVAN,
+  ChainId.OPTIMISM,
+  ChainId.OPTIMISTIC_KOVAN,
+  ChainId.ARBITRUM_ONE,
+  ChainId.ARBITRUM_RINKEBY,
+  ChainId.POLYGON,
+  ChainId.POLYGON_MUMBAI,
+  ChainId.GÖRLI,
+];
+
 export const V2_SUPPORTED = [
   ChainId.MAINNET,
   ChainId.KOVAN,

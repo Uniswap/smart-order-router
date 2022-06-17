@@ -25,7 +25,7 @@ import {
   USDC_DAI_MEDIUM,
   USDC_WETH_LOW,
   WETH9_USDT_LOW,
-} from '../../../test-util/mock-data';
+} from '../../../../test-util/mock-data';
 
 describe('get candidate pools', () => {
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;

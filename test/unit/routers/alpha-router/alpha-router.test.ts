@@ -71,7 +71,7 @@ import {
   WBTC_WETH,
   WETH9_USDT_LOW,
   WETH_USDT,
-} from '../../test-util/mock-data';
+} from '../../../test-util/mock-data';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 

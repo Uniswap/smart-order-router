@@ -64,11 +64,9 @@ const getBasePairByAddress = async (
 
 export const ADDITIONAL_BASES = async (
   tokenProvider: ITokenProvider
-): Promise<
-  {
-    [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
-  }
-> => {
+): Promise<{
+  [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
+}> => {
   return {
     [ChainId.MAINNET]: {
       ...(await getBasePairByAddress(
@@ -129,11 +127,9 @@ export const ADDITIONAL_BASES = async (
  */
 export const CUSTOM_BASES = async (
   tokenProvider: ITokenProvider
-): Promise<
-  {
-    [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
-  }
-> => {
+): Promise<{
+  [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
+}> => {
   return {
     [ChainId.MAINNET]: {
       ...(await getBasePairByAddress(

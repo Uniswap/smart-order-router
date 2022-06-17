@@ -1,7 +1,7 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
-import { ChainId, log } from '../util';
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
@@ -66,6 +66,13 @@ export const FEI_MAINNET = new Token(
   18,
   'FEI',
   'Fei USD'
+);
+export const UNI_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
+  18,
+  'UNI',
+  'Uniswap'
 );
 
 export const USDC_ROPSTEN = new Token(
@@ -146,6 +153,13 @@ export const DAI_GÖRLI = new Token(
   18,
   'DAI',
   'Dai Stablecoin'
+);
+export const UNI_GÖRLI = new Token(
+  ChainId.GÖRLI,
+  '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+  18,
+  'UNI',
+  'Uni token'
 );
 
 export const USDC_KOVAN = new Token(
@@ -531,3 +545,90 @@ export class TokenProvider implements ITokenProvider {
     };
   }
 }
+
+export const DAI_ON = (chainId: ChainId): Token => {
+  switch (chainId) {
+    case ChainId.MAINNET:
+      return DAI_MAINNET;
+    case ChainId.ROPSTEN:
+      return DAI_ROPSTEN;
+    case ChainId.RINKEBY:
+      return DAI_RINKEBY_1;
+    case ChainId.GÖRLI:
+      return DAI_GÖRLI;
+    case ChainId.KOVAN:
+      return DAI_KOVAN;
+    case ChainId.OPTIMISM:
+      return DAI_OPTIMISM;
+    case ChainId.OPTIMISTIC_KOVAN:
+      return DAI_OPTIMISTIC_KOVAN;
+    case ChainId.ARBITRUM_ONE:
+      return DAI_ARBITRUM;
+    case ChainId.ARBITRUM_RINKEBY:
+      return DAI_ARBITRUM_RINKEBY;
+    case ChainId.POLYGON:
+      return DAI_POLYGON;
+    case ChainId.POLYGON_MUMBAI:
+      return DAI_POLYGON_MUMBAI;
+    default:
+      throw new Error(`Chain id: ${chainId} not supported`);
+  }
+};
+
+export const USDT_ON = (chainId: ChainId): Token => {
+  switch (chainId) {
+    case ChainId.MAINNET:
+      return USDT_MAINNET;
+    case ChainId.ROPSTEN:
+      return USDT_ROPSTEN;
+    case ChainId.RINKEBY:
+      return USDT_RINKEBY;
+    case ChainId.GÖRLI:
+      return USDT_GÖRLI;
+    case ChainId.KOVAN:
+      return USDT_KOVAN;
+    case ChainId.OPTIMISM:
+      return USDT_OPTIMISM;
+    case ChainId.OPTIMISTIC_KOVAN:
+      return USDT_OPTIMISTIC_KOVAN;
+    case ChainId.ARBITRUM_ONE:
+      return USDT_ARBITRUM;
+    case ChainId.ARBITRUM_RINKEBY:
+      return USDT_ARBITRUM_RINKEBY;
+    default:
+      throw new Error(`Chain id: ${chainId} not supported`);
+  }
+};
+
+export const USDC_ON = (chainId: ChainId): Token => {
+  switch (chainId) {
+    case ChainId.MAINNET:
+      return USDC_MAINNET;
+    case ChainId.ROPSTEN:
+      return USDC_ROPSTEN;
+    case ChainId.RINKEBY:
+      return USDC_RINKEBY;
+    case ChainId.GÖRLI:
+      return USDC_GÖRLI;
+    case ChainId.KOVAN:
+      return USDC_KOVAN;
+    case ChainId.OPTIMISM:
+      return USDC_OPTIMISM;
+    case ChainId.OPTIMISTIC_KOVAN:
+      return USDC_OPTIMISTIC_KOVAN;
+    case ChainId.ARBITRUM_ONE:
+      return USDC_ARBITRUM;
+    case ChainId.ARBITRUM_RINKEBY:
+      return USDC_ARBITRUM_RINKEBY;
+    case ChainId.POLYGON:
+      return USDC_POLYGON;
+    case ChainId.POLYGON_MUMBAI:
+      return USDC_POLYGON_MUMBAI;
+    default:
+      throw new Error(`Chain id: ${chainId} not supported`);
+  }
+};
+
+export const WNATIVE_ON = (chainId: ChainId): Token => {
+  return WRAPPED_NATIVE_CURRENCY[chainId];
+};
