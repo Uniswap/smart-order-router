@@ -30,6 +30,8 @@ import {
   USDT_MAINNET,
   WETH9,
   WNATIVE_ON,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -852,6 +854,8 @@ describe('quote for other networks', () => {
     [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: CUSD_CELO,
+    [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
@@ -865,6 +869,8 @@ describe('quote for other networks', () => {
     [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: DAI_ON(ChainId.CELO),
+    [ChainId.CELO_ALFAJORES]: DAI_ON(ChainId.CELO_ALFAJORES),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.

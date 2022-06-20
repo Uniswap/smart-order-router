@@ -570,6 +570,10 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_POLYGON;
     case ChainId.POLYGON_MUMBAI:
       return DAI_POLYGON_MUMBAI;
+    case ChainId.CELO:
+      return DAI_CELO;
+    case ChainId.CELO_ALFAJORES:
+      return DAI_CELO_ALFAJORES;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
