@@ -5,7 +5,7 @@ import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
 import { MixedRoute } from '../routers/router';
-import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
+import { IQuoterV3__factory } from '../types/other/factories/IQuoterV3__factory';
 import { ChainId, metric, MetricLoggerUnit } from '../util';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
@@ -431,7 +431,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
                     address: this.quoterAddress,
-                    contractInterface: IQuoterV2__factory.createInterface(),
+                    contractInterface: IQuoterV3__factory.createInterface(),
                     functionName,
                     functionParams: inputs,
                     providerConfig,
