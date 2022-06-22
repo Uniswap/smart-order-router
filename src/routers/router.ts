@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import {
   CondensedAddLiquidityOptions,
-  MixedRoute as MixedRouteSDK,
+  MixedRouteSDK,
   Trade,
 } from '@uniswap/router-sdk';
 import {

@@ -42,7 +42,7 @@ export const routeToString = (route: V3Route | V2Route): string => {
 
 export const mixedRouteToString = (route: MixedRoute): string => {
   const routeStr = [];
-  const tokens = route.path;
+  const tokens = route.tokenPath;
 
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const partFeeMap = _.map(route.parts, (part) => {

@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { encodeMixedRouteToPath } from '@uniswap/router-sdk';
-import retry, { Options as RetryOptions } from 'async-retry';
+import retry from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
 import { MixedRoute } from '../routers/router';
@@ -14,6 +14,21 @@ import { mixedRouteToString } from '../util/routes';
 import { Result } from './multicall-provider';
 import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
+
+/**
+ * @dev import shared types and classes from v3QuoteProvider
+ */
+import {
+  BatchParams,
+  BlockConflictError,
+  BlockNumberConfig,
+  FailureOverrides,
+  ProviderBlockHeaderError,
+  ProviderGasError,
+  ProviderTimeoutError,
+  QuoteRetryOptions,
+  SuccessRateError,
+} from './v3/quote-provider';
 
 /**
  * A on chain quote for a swap.
@@ -39,37 +54,6 @@ export type MixedRouteAmountQuote = {
    */
   gasEstimate: BigNumber | null;
 };
-
-export class BlockConflictError extends Error {
-  public name = 'BlockConflictError';
-}
-export class SuccessRateError extends Error {
-  public name = 'SuccessRateError';
-}
-
-export class ProviderBlockHeaderError extends Error {
-  public name = 'ProviderBlockHeaderError';
-}
-
-export class ProviderTimeoutError extends Error {
-  public name = 'ProviderTimeoutError';
-}
-
-/**
- * This error typically means that the gas used by the multicall has
- * exceeded the total call gas limit set by the node provider.
- *
- * This can be resolved by modifying BatchParams to request fewer
- * quotes per call, or to set a lower gas limit per quote.
- *
- * @export
- * @class ProviderGasError
- */
-export class ProviderGasError extends Error {
-  public name = 'ProviderGasError';
-}
-
-export type QuoteRetryOptions = RetryOptions;
 
 /**
  * The V3 route and a list of quotes for that route.
@@ -147,65 +131,6 @@ export interface IMixedRouteQuoteProvider {
     blockNumber: BigNumber;
   }>;
 }
-
-/**
- * The parameters for the multicalls we make.
- *
- * It is important to ensure that (gasLimitPerCall * multicallChunk) < providers gas limit per call.
- *
- * V3 quotes can consume a lot of gas (if the swap is so large that it swaps through a large
- * number of ticks), so there is a risk of exceeded gas limits in these multicalls.
- */
-export type BatchParams = {
-  /**
-   * The number of quotes to fetch in each multicall.
-   */
-  multicallChunk: number;
-  /**
-   * The maximum call to consume for each quote in the multicall.
-   */
-  gasLimitPerCall: number;
-  /**
-   * The minimum success rate for all quotes across all multicalls.
-   * If we set our gasLimitPerCall too low it could result in a large number of
-   * quotes failing due to out of gas. This parameters will fail the overall request
-   * in this case.
-   */
-  quoteMinSuccessRate: number;
-};
-
-/**
- * The fallback values for gasLimit and multicallChunk if any failures occur.
- *
- */
-
-export type FailureOverrides = {
-  multicallChunk: number;
-  gasLimitOverride: number;
-};
-
-export type BlockHeaderFailureOverridesDisabled = { enabled: false };
-export type BlockHeaderFailureOverridesEnabled = {
-  enabled: true;
-  // Offset to apply in the case of a block header failure. e.g. -10 means rollback by 10 blocks.
-  rollbackBlockOffset: number;
-  // Number of batch failures due to block header before trying a rollback.
-  attemptsBeforeRollback: number;
-};
-export type BlockHeaderFailureOverrides =
-  | BlockHeaderFailureOverridesDisabled
-  | BlockHeaderFailureOverridesEnabled;
-
-/**
- * Config around what block number to query and how to handle failures due to block header errors.
- */
-export type BlockNumberConfig = {
-  // Applies an offset to the block number specified when fetching quotes. e.g. -10 means rollback by 10 blocks.
-  // Useful for networks where the latest block may not be available on all nodes, causing frequent 'header not found' errors.
-  baseBlockOffset: number;
-  // Config for handling header not found errors.
-  rollback: BlockHeaderFailureOverrides;
-};
 
 const DEFAULT_BATCH_RETRIES = 2;
 
