@@ -28,6 +28,7 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+  V3QuoteProvider,
   WETH9,
   WNATIVE_ON,
 } from '../../../../src';
@@ -837,6 +838,38 @@ describe('alpha router integration', () => {
       });
     });
   }
+
+  xdescribe('QuoterV3', () => {
+    beforeAll(async () => {
+      alphaRouter = new AlphaRouter({
+        chainId: ChainId.MAINNET,
+        provider: hardhat.providers[0]!,
+        multicall2Provider,
+        v3QuoteProvider: new V3QuoteProvider(
+          ChainId.MAINNET,
+          hardhat.providers[0]!,
+          multicall2Provider,
+          {
+            retries: 2,
+            minTimeout: 100,
+            maxTimeout: 1000,
+          },
+          {
+            multicallChunk: 210,
+            gasLimitPerCall: 705_000,
+            quoteMinSuccessRate: 0.15,
+          },
+          {
+            gasLimitOverride: 2_000_000,
+            multicallChunk: 70,
+          },
+          undefined,
+          undefined,
+          'quoterAddressOverride'
+        ),
+      });
+    });
+  });
 });
 
 describe('quote for other networks', () => {

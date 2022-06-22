@@ -4,7 +4,7 @@ import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { CurrencyAmount } from '.';
 import { RouteWithValidQuote } from '../routers/alpha-router';
-import { V2Route, V3Route } from '../routers/router';
+import { MixedRoute, V2Route, V3Route } from '../routers/router';
 
 export const routeToString = (route: V3Route | V2Route): string => {
   const isV3Route = (route: V3Route | V2Route): route is V3Route =>
@@ -34,6 +34,36 @@ export const routeToString = (route: V3Route | V2Route): string => {
     routeStr.push(tokenPath[i]);
     if (i < poolFeePath.length) {
       routeStr.push(poolFeePath[i]);
+    }
+  }
+
+  return routeStr.join('');
+};
+
+export const mixedRouteToString = (route: MixedRoute): string => {
+  const routeStr = [];
+  const tokens = route.path;
+
+  const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
+  const partFeeMap = _.map(route.parts, (part) => {
+    `${
+      part instanceof Pool
+        ? ` -- ${part.fee / 10000}% [${Pool.getAddress(
+            part.token0,
+            part.token1,
+            part.fee
+          )}]`
+        : ` -- [${Pair.getAddress(
+            (part as Pair).token0,
+            (part as Pair).token1
+          )}]`
+    } --> `;
+  });
+
+  for (let i = 0; i < tokenPath.length; i++) {
+    routeStr.push(tokenPath[i]);
+    if (i < partFeeMap.length) {
+      routeStr.push(partFeeMap[i]);
     }
   }
 
