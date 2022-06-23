@@ -947,7 +947,6 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      console.log('trade', JSON.stringify(trade));
       methodParameters = buildSwapMethodParameters(trade, swapConfig);
     }
 
