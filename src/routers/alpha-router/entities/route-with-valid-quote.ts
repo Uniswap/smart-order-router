@@ -6,7 +6,7 @@ import _ from 'lodash';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { mixedRouteToString, routeToString } from '../../../util/routes';
+import { routeToString } from '../../../util/routes';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
 
@@ -288,7 +288,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
   public toString(): string {
     return `${this.percent.toFixed(
       2
-    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] Gas[${this.gasEstimate.toString()}] = ${mixedRouteToString(
+    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] Gas[${this.gasEstimate.toString()}] = ${routeToString(
       this.route
     )}`;
   }

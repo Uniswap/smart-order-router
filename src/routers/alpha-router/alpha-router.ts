@@ -115,6 +115,7 @@ import {
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
+  computeAllMixedRoutes,
   computeAllV2Routes,
   computeAllV3Routes,
 } from './functions/compute-all-routes';
@@ -1431,7 +1432,7 @@ export class AlphaRouter
     routesWithValidQuotes: MixedRouteWithValidQuote[];
     candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
-    log.info('Starting to get V3 quotes');
+    log.info('Starting to get mixed quotes');
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
     // result in good prices.
@@ -1465,6 +1466,7 @@ export class AlphaRouter
 
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
     // TODO: need a new type for returning both V3 and V2 candidate pools.
+    const candidatePools = candidateV3Pools; // @fix
 
     // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
     const parts = await this.applyTokenValidatorToPools(
@@ -1499,7 +1501,7 @@ export class AlphaRouter
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
-    const routes = computeAllV3Routes(
+    const routes = computeAllMixedRoutes(
       tokenIn,
       tokenOut,
       parts,
@@ -1517,7 +1519,7 @@ export class AlphaRouter
 
     const beforeQuotes = Date.now();
     log.info(
-      `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
+      `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
 
     const { routesWithQuotes } = await quoteFn(amounts, routes, {
@@ -1525,13 +1527,13 @@ export class AlphaRouter
     });
 
     metric.putMetric(
-      'V3QuotesLoad',
+      'MixedQuotesLoad',
       Date.now() - beforeQuotes,
       MetricLoggerUnit.Milliseconds
     );
 
     metric.putMetric(
-      'V3QuotesFetched',
+      'MixedQuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
@@ -1565,7 +1567,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null V3 quote for route.'
+            'Dropping a null mixed quote for route.'
           );
           continue;
         }

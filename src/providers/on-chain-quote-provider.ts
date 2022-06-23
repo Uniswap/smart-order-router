@@ -10,7 +10,7 @@ import { ChainId, metric, MetricLoggerUnit } from '../util';
 import { QUOTER_V2_ADDRESS } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
-import { mixedRouteToString } from '../util/routes';
+import { routeToString } from '../util/routes';
 import { Result } from './multicall-provider';
 import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
@@ -722,7 +722,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
             const amountStr = amount.toFixed(
               Math.min(amount.currency.decimals, 2)
             );
-            const routeStr = mixedRouteToString(route);
+            const routeStr = routeToString(route);
             debugFailedQuotes.push({
               route: routeStr,
               percent,
