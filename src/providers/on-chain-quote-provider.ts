@@ -112,24 +112,6 @@ export interface IMixedRouteQuoteProvider {
     routesWithQuotes: MixedRouteWithQuotes[];
     blockNumber: BigNumber;
   }>;
-
-  /**
-   * For every route, gets ane exactOut quote on V3 for every amount provided.
-   *
-   * @param amountOuts The amounts to get quotes for.
-   * @param routes The routes to get quotes for.
-   * @param [providerConfig] The provider config.
-   * @returns For each route returns a MixedRouteWithQuotes object that contains all the quotes.
-   * @returns The blockNumber used when generating the quotes.
-   */
-  getQuotesManyExactOut(
-    amountOuts: CurrencyAmount[],
-    routes: MixedRoute[],
-    providerConfig?: ProviderConfig
-  ): Promise<{
-    routesWithQuotes: MixedRouteWithQuotes[];
-    blockNumber: BigNumber;
-  }>;
 }
 
 const DEFAULT_BATCH_RETRIES = 2;
@@ -155,12 +137,12 @@ const DEFAULT_BATCH_RETRIES = 2;
  * providers total gas limit per call.
  *
  * @export
- * @class V3QuoteProvider
+ * @class MixedRouteQuoteProvider
  */
 export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
   protected quoterAddress: string;
   /**
-   * Creates an instance of V3QuoteProvider.
+   * Creates an instance of MixedRouteQuoteProvider.
    *
    * @param chainId The chain to get quotes for.
    * @param provider The web 3 provider.
@@ -231,26 +213,10 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
     );
   }
 
-  public async getQuotesManyExactOut(
-    amountOuts: CurrencyAmount[],
-    routes: MixedRoute[],
-    providerConfig?: ProviderConfig
-  ): Promise<{
-    routesWithQuotes: MixedRouteWithQuotes[];
-    blockNumber: BigNumber;
-  }> {
-    return this.getQuotesManyData(
-      amountOuts,
-      routes,
-      'quoteExactOutput',
-      providerConfig
-    );
-  }
-
   private async getQuotesManyData(
     amounts: CurrencyAmount[],
     routes: MixedRoute[],
-    functionName: 'quoteExactInput' | 'quoteExactOutput',
+    functionName: 'quoteExactInput',
     _providerConfig?: ProviderConfig
   ): Promise<{
     routesWithQuotes: MixedRouteWithQuotes[];
@@ -272,7 +238,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
       .flatMap((route) => {
         const encodedRoute = encodeMixedRouteToPath(
           route,
-          functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
+          false // we don't support exactOut for mixedRoute paths
         );
         const routeInputs: [string, string][] = amounts.map((amount) => [
           encodedRoute,

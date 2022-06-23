@@ -84,7 +84,11 @@ export const routeAmountsToString = (
   const routeStrings = _.map(routeAmounts, ({ protocol, route, amount }) => {
     const portion = amount.divide(total);
     const percent = new Percent(portion.numerator, portion.denominator);
-    return `[${protocol}] ${percent.toFixed(2)}% = ${routeToString(route)}`;
+    return `[${protocol}] ${percent.toFixed(2)}% = ${
+      route instanceof MixedRoute
+        ? mixedRouteToString(route)
+        : routeToString(route)
+    }`;
   });
 
   return _.join(routeStrings, ', ');
@@ -94,7 +98,11 @@ export const routeAmountToString = (
   routeAmount: RouteWithValidQuote
 ): string => {
   const { route, amount } = routeAmount;
-  return `${amount.toExact()} = ${routeToString(route)}`;
+  return `${amount.toExact()} = ${
+    route instanceof MixedRoute
+      ? mixedRouteToString(route)
+      : routeToString(route)
+  }`;
 };
 
 export const poolToString = (p: Pool | Pair): string => {

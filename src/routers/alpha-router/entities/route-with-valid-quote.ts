@@ -1,12 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { Token, TradeType } from '@uniswap/sdk-core';
+import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { routeToString } from '../../../util/routes';
-import { V2Route, V3Route } from '../../router';
+import { mixedRouteToString, routeToString } from '../../../util/routes';
+import { MixedRoute, V2Route, V3Route } from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
 
 /**
@@ -17,7 +18,9 @@ import { IGasModel } from '../gas-models/gas-model';
  * @interface IRouteWithValidQuote
  * @template Route
  */
-export interface IRouteWithValidQuote<Route extends V3Route | V2Route> {
+export interface IRouteWithValidQuote<
+  Route extends V3Route | V2Route | MixedRoute
+> {
   amount: CurrencyAmount;
   percent: number;
   // If exact in, this is (quote - gasCostInToken). If exact out, this is (quote + gasCostInToken).
@@ -42,7 +45,13 @@ export type IV3RouteWithValidQuote = {
   protocol: Protocol.V3;
 } & IRouteWithValidQuote<V3Route>;
 
-export type RouteWithValidQuote = V2RouteWithValidQuote | V3RouteWithValidQuote;
+// Empty union for now to follow pattern
+export type IMixedRouteWithValidQuote = {} & IRouteWithValidQuote<MixedRoute>;
+
+export type RouteWithValidQuote =
+  | V2RouteWithValidQuote
+  | V3RouteWithValidQuote
+  | MixedRouteWithValidQuote;
 
 export type V2RouteWithValidQuoteParams = {
   amount: CurrencyAmount;
@@ -228,6 +237,109 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
       (p) =>
         v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress
     );
+
+    this.tokenPath = this.route.tokenPath;
+  }
+}
+
+export type MixedRouteWithValidQuoteParams = {
+  amount: CurrencyAmount;
+  rawQuote: BigNumber;
+  sqrtPriceX96AfterList: BigNumber[];
+  initializedTicksCrossedList: number[];
+  quoterGasEstimate: BigNumber;
+  percent: number;
+  route: MixedRoute;
+  gasModel: IGasModel<MixedRouteWithValidQuote>;
+  quoteToken: Token;
+  tradeType: TradeType;
+  v3PoolProvider: IV3PoolProvider;
+  v2PoolProvider: IV2PoolProvider;
+};
+
+/**
+ * Represents a quote for swapping on a V3 only route. Contains all information
+ * such as the route used, the amount specified by the user, the type of quote
+ * (exact in or exact out), the quote itself, and gas estimates.
+ *
+ * @export
+ * @class V3RouteWithValidQuote
+ */
+export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
+  public readonly protocol = 'MIXED';
+  public amount: CurrencyAmount;
+  public rawQuote: BigNumber;
+  public quote: CurrencyAmount;
+  public quoteAdjustedForGas: CurrencyAmount;
+  public sqrtPriceX96AfterList: BigNumber[];
+  public initializedTicksCrossedList: number[];
+  public quoterGasEstimate: BigNumber;
+  public percent: number;
+  public route: MixedRoute;
+  public quoteToken: Token;
+  public gasModel: IGasModel<MixedRouteWithValidQuote>;
+  public gasEstimate: BigNumber;
+  public gasCostInToken: CurrencyAmount;
+  public gasCostInUSD: CurrencyAmount;
+  public tradeType: TradeType;
+  public poolAddresses: string[];
+  public tokenPath: Token[];
+
+  public toString(): string {
+    return `${this.percent.toFixed(
+      2
+    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] Gas[${this.gasEstimate.toString()}] = ${mixedRouteToString(
+      this.route
+    )}`;
+  }
+
+  constructor({
+    amount,
+    rawQuote,
+    sqrtPriceX96AfterList,
+    initializedTicksCrossedList,
+    quoterGasEstimate,
+    percent,
+    route,
+    gasModel,
+    quoteToken,
+    tradeType,
+    v3PoolProvider,
+    v2PoolProvider,
+  }: MixedRouteWithValidQuoteParams) {
+    this.amount = amount;
+    this.rawQuote = rawQuote;
+    this.sqrtPriceX96AfterList = sqrtPriceX96AfterList;
+    this.initializedTicksCrossedList = initializedTicksCrossedList;
+    this.quoterGasEstimate = quoterGasEstimate;
+    this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
+    this.percent = percent;
+    this.route = route;
+    this.gasModel = gasModel;
+    this.quoteToken = quoteToken;
+    this.tradeType = tradeType;
+
+    const { gasEstimate, gasCostInToken, gasCostInUSD } =
+      this.gasModel.estimateGasCost(this);
+
+    this.gasCostInToken = gasCostInToken;
+    this.gasCostInUSD = gasCostInUSD;
+    this.gasEstimate = gasEstimate;
+
+    // If its exact out, we need to request *more* of the input token to account for the gas.
+    if (this.tradeType == TradeType.EXACT_INPUT) {
+      const quoteGasAdjusted = this.quote.subtract(gasCostInToken);
+      this.quoteAdjustedForGas = quoteGasAdjusted;
+    } else {
+      const quoteGasAdjusted = this.quote.add(gasCostInToken);
+      this.quoteAdjustedForGas = quoteGasAdjusted;
+    }
+
+    this.poolAddresses = _.map(route.parts, (p) => {
+      return p instanceof Pool
+        ? v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress
+        : v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress;
+    });
 
     this.tokenPath = this.route.tokenPath;
   }

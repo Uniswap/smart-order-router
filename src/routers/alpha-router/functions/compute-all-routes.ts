@@ -2,8 +2,8 @@ import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { log } from '../../../util/log';
-import { routeToString } from '../../../util/routes';
-import { V2Route, V3Route } from '../../router';
+import { mixedRouteToString, routeToString } from '../../../util/routes';
+import { MixedRoute, V2Route, V3Route } from '../../router';
 
 export function computeAllV3Routes(
   tokenIn: Token,
@@ -39,9 +39,26 @@ export function computeAllV2Routes(
   );
 }
 
+export function computeAllMixedRoutes(
+  tokenIn: Token,
+  tokenOut: Token,
+  parts: (Pool | Pair)[],
+  maxHops: number
+): MixedRoute[] {
+  return computeAllRoutes<Pool | Pair, MixedRoute>(
+    tokenIn,
+    tokenOut,
+    (route: (Pool | Pair)[], tokenIn: Token, tokenOut: Token) => {
+      return new MixedRoute(route, tokenIn, tokenOut);
+    },
+    parts,
+    maxHops
+  );
+}
+
 export function computeAllRoutes<
   TPool extends Pair | Pool,
-  TRoute extends V3Route | V2Route
+  TRoute extends V3Route | V2Route | MixedRoute
 >(
   tokenIn: Token,
   tokenOut: Token,
@@ -104,7 +121,13 @@ export function computeAllRoutes<
   computeRoutes(tokenIn, tokenOut, [], poolsUsed);
 
   log.info(
-    { routes: routes.map(routeToString) },
+    {
+      routes: routes.map((route) =>
+        route instanceof MixedRoute
+          ? mixedRouteToString(route)
+          : routeToString(route)
+      ),
+    },
     `Computed ${routes.length} possible routes.`
   );
 

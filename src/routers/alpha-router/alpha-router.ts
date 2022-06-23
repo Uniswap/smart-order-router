@@ -25,10 +25,12 @@ import {
   CachingV3SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
+  IMixedRouteQuoteProvider,
   ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
   LegacyGasPriceProvider,
+  MixedRouteQuoteProvider,
   NodeJSCache,
   OnChainGasPriceProvider,
   StaticV2SubgraphProvider,
@@ -105,6 +107,7 @@ import {
   ETH_GAS_STATION_API_URL,
 } from './config';
 import {
+  MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
@@ -168,6 +171,10 @@ export type AlphaRouterParams = {
    * The provider for getting V3 quotes.
    */
   v2QuoteProvider?: IV2QuoteProvider;
+  /**
+   * The provider for getting quotes for mixed routes (combinations of V3 and V2)
+   */
+  mixedRouteQuoteProvider?: IMixedRouteQuoteProvider;
   /**
    * The provider for getting data about Tokens.
    */
@@ -324,6 +331,7 @@ export class AlphaRouter
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
   protected tokenProvider: ITokenProvider;
+  protected mixedRouteQuoteProvider: IMixedRouteQuoteProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
@@ -342,6 +350,7 @@ export class AlphaRouter
     v3QuoteProvider,
     v2PoolProvider,
     v2QuoteProvider,
+    mixedRouteQuoteProvider,
     v2SubgraphProvider,
     tokenProvider,
     blockedTokenListProvider,
@@ -458,6 +467,95 @@ export class AlphaRouter
     this.v2PoolProvider =
       v2PoolProvider ?? new V2PoolProvider(chainId, this.multicall2Provider);
     this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
+
+    /// Same params as v3QuoteProvier for now
+    if (mixedRouteQuoteProvider) {
+      this.mixedRouteQuoteProvider = mixedRouteQuoteProvider;
+    } else {
+      switch (chainId) {
+        case ChainId.OPTIMISM:
+        case ChainId.OPTIMISTIC_KOVAN:
+          this.mixedRouteQuoteProvider = new MixedRouteQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 110,
+              gasLimitPerCall: 1_200_000,
+              quoteMinSuccessRate: 0.1,
+            },
+            {
+              gasLimitOverride: 3_000_000,
+              multicallChunk: 45,
+            },
+            {
+              gasLimitOverride: 3_000_000,
+              multicallChunk: 45,
+            },
+            {
+              baseBlockOffset: -10,
+              rollback: {
+                enabled: true,
+                attemptsBeforeRollback: 1,
+                rollbackBlockOffset: -10,
+              },
+            }
+          );
+          break;
+        case ChainId.ARBITRUM_ONE:
+        case ChainId.ARBITRUM_RINKEBY:
+          this.mixedRouteQuoteProvider = new MixedRouteQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 10,
+              gasLimitPerCall: 12_000_000,
+              quoteMinSuccessRate: 0.1,
+            },
+            {
+              gasLimitOverride: 30_000_000,
+              multicallChunk: 6,
+            },
+            {
+              gasLimitOverride: 30_000_000,
+              multicallChunk: 6,
+            }
+          );
+          break;
+        default:
+          this.mixedRouteQuoteProvider = new MixedRouteQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 210,
+              gasLimitPerCall: 705_000,
+              quoteMinSuccessRate: 0.15,
+            },
+            {
+              gasLimitOverride: 2_000_000,
+              multicallChunk: 70,
+            }
+          );
+          break;
+      }
+    }
 
     this.blockedTokenListProvider =
       blockedTokenListProvider ??
@@ -1310,6 +1408,180 @@ export class AlphaRouter
           gasModel,
           quoteToken,
           tradeType: swapType,
+          v2PoolProvider: this.v2PoolProvider,
+        });
+
+        routesWithValidQuotes.push(routeWithValidQuote);
+      }
+    }
+
+    return { routesWithValidQuotes, candidatePools };
+  }
+
+  private async getMixedRouteQuotes(
+    tokenIn: Token,
+    tokenOut: Token,
+    amounts: CurrencyAmount[],
+    percents: number[],
+    quoteToken: Token,
+    gasModel: IGasModel<MixedRouteWithValidQuote>,
+    swapType: TradeType,
+    routingConfig: AlphaRouterConfig
+  ): Promise<{
+    routesWithValidQuotes: MixedRouteWithValidQuote[];
+    candidatePools: CandidatePoolsBySelectionCriteria;
+  }> {
+    log.info('Starting to get V3 quotes');
+    // Fetch all the pools that we will consider routing via. There are thousands
+    // of pools, so we filter them to a set of candidate pools that we expect will
+    // result in good prices.
+    const { poolAccessor: V3poolAccessor, candidatePools: candidateV3Pools } =
+      await getV3CandidatePools({
+        tokenIn,
+        tokenOut,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v3PoolProvider,
+        routeType: swapType,
+        subgraphProvider: this.v3SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+      });
+    const V3poolsRaw = V3poolAccessor.getAllPools();
+
+    const { poolAccessor: V2poolAccessor, candidatePools: candidateV2Pools } =
+      await getV2CandidatePools({
+        tokenIn,
+        tokenOut,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v2PoolProvider,
+        routeType: swapType,
+        subgraphProvider: this.v2SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+      });
+    const V2poolsRaw = V2poolAccessor.getAllPools();
+
+    const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
+    // TODO: need a new type for returning both V3 and V2 candidate pools.
+
+    // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
+    const parts = await this.applyTokenValidatorToPools(
+      poolsRaw,
+      (
+        token: Currency,
+        tokenValidation: TokenValidationResult | undefined
+      ): boolean => {
+        // If there is no available validation result we assume the token is fine.
+        if (!tokenValidation) {
+          return false;
+        }
+
+        // Only filters out *intermediate* pools that involve tokens that we detect
+        // cant be transferred. This prevents us trying to route through tokens that may
+        // not be transferrable, but allows users to still swap those tokens if they
+        // specify.
+        //
+        if (
+          tokenValidation == TokenValidationResult.STF &&
+          (token.equals(tokenIn) || token.equals(tokenOut))
+        ) {
+          return false;
+        }
+
+        return (
+          tokenValidation == TokenValidationResult.FOT ||
+          tokenValidation == TokenValidationResult.STF
+        );
+      }
+    );
+
+    // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
+    const { maxSwapsPerPath } = routingConfig;
+    const routes = computeAllV3Routes(
+      tokenIn,
+      tokenOut,
+      parts,
+      maxSwapsPerPath
+    );
+
+    if (routes.length == 0) {
+      return { routesWithValidQuotes: [], candidatePools };
+    }
+
+    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
+    const quoteFn = this.mixedRouteQuoteProvider.getQuotesManyExactIn.bind(
+      this.mixedRouteQuoteProvider
+    );
+
+    const beforeQuotes = Date.now();
+    log.info(
+      `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
+    );
+
+    const { routesWithQuotes } = await quoteFn(amounts, routes, {
+      blockNumber: routingConfig.blockNumber,
+    });
+
+    metric.putMetric(
+      'V3QuotesLoad',
+      Date.now() - beforeQuotes,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    metric.putMetric(
+      'V3QuotesFetched',
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum(),
+      MetricLoggerUnit.Count
+    );
+
+    const routesWithValidQuotes = [];
+
+    for (const routeWithQuote of routesWithQuotes) {
+      const [route, quotes] = routeWithQuote;
+
+      for (let i = 0; i < quotes.length; i++) {
+        const percent = percents[i]!;
+        const amountQuote = quotes[i]!;
+        const {
+          quote,
+          amount,
+          sqrtPriceX96AfterList,
+          initializedTicksCrossedList,
+          gasEstimate,
+        } = amountQuote;
+
+        if (
+          !quote ||
+          !sqrtPriceX96AfterList ||
+          !initializedTicksCrossedList ||
+          !gasEstimate
+        ) {
+          log.debug(
+            {
+              route: routeToString(route),
+              amountQuote,
+            },
+            'Dropping a null V3 quote for route.'
+          );
+          continue;
+        }
+
+        const routeWithValidQuote = new MixedRouteWithValidQuote({
+          route,
+          rawQuote: quote,
+          amount,
+          percent,
+          sqrtPriceX96AfterList,
+          initializedTicksCrossedList,
+          quoterGasEstimate: gasEstimate,
+          gasModel,
+          quoteToken,
+          tradeType: swapType,
+          v3PoolProvider: this.v3PoolProvider,
           v2PoolProvider: this.v2PoolProvider,
         });
 
