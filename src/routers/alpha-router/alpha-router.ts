@@ -914,12 +914,19 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
-    const gasModel = await this.v3GasModelFactory.buildGasModel(
+    const V3gasModel = await this.v3GasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
       this.v3PoolProvider,
       quoteToken,
       this.l2GasDataProvider
+    );
+
+    const V2gasModel = await this.v2GasModelFactory.buildGasModel(
+      this.chainId,
+      gasPriceWei,
+      this.v2PoolProvider,
+      quoteToken
     );
 
     if (
@@ -935,7 +942,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
-          gasModel,
+          V3gasModel,
           tradeType,
           routingConfig
         )
@@ -948,6 +955,19 @@ export class AlphaRouter
           percents,
           quoteToken,
           gasPriceWei,
+          tradeType,
+          routingConfig
+        )
+      );
+      quotePromises.push(
+        this.getMixedRouteQuotes(
+          tokenIn,
+          tokenOut,
+          amounts,
+          percents,
+          quoteToken,
+          V2gasModel,
+          V3gasModel,
           tradeType,
           routingConfig
         )
@@ -965,7 +985,7 @@ export class AlphaRouter
             amounts,
             percents,
             quoteToken,
-            gasModel,
+            V3gasModel,
             tradeType,
             routingConfig
           )
@@ -1017,7 +1037,7 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
-      gasModel
+      V3gasModel
     );
 
     if (!swapRouteRaw) {
@@ -1359,7 +1379,7 @@ export class AlphaRouter
     );
     const { routesWithQuotes } = await quoteFn(amounts, routes);
 
-    const gasModel = await this.v2GasModelFactory.buildGasModel(
+    const V2gasModel = await this.v2GasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
       this.v2PoolProvider,
@@ -1406,7 +1426,7 @@ export class AlphaRouter
           rawQuote: quote,
           amount,
           percent,
-          gasModel,
+          gasModel: V2gasModel,
           quoteToken,
           tradeType: swapType,
           v2PoolProvider: this.v2PoolProvider,
@@ -1425,7 +1445,8 @@ export class AlphaRouter
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasModel: IGasModel<MixedRouteWithValidQuote>,
+    V2gasModel: IGasModel<V2RouteWithValidQuote>,
+    V3gasModel: IGasModel<V3RouteWithValidQuote>,
     swapType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<{
@@ -1580,7 +1601,8 @@ export class AlphaRouter
           sqrtPriceX96AfterList,
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
-          gasModel,
+          V2gasModel,
+          V3gasModel,
           quoteToken,
           tradeType: swapType,
           v3PoolProvider: this.v3PoolProvider,
