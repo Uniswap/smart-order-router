@@ -127,9 +127,11 @@ import {
 } from './functions/get-candidate-pools';
 import {
   IGasModel,
+  IMixedRouteGasModelFactory,
   IV2GasModelFactory,
   IV3GasModelFactory,
 } from './gas-models/gas-model';
+import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/on-chain-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 export type AlphaRouterParams = {
@@ -195,6 +197,11 @@ export type AlphaRouterParams = {
    * V2 routes.
    */
   v2GasModelFactory?: IV2GasModelFactory;
+  /**
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V3 routes.
+   */
+  mixedRouteGasModelFactory?: IMixedRouteGasModelFactory;
   /**
    * A token list that specifies Token that should be blocked from routing through.
    * Defaults to Uniswap's unsupported token list.
@@ -337,6 +344,7 @@ export class AlphaRouter
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
+  protected mixedRouteGasModelFactory: IMixedRouteGasModelFactory;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
@@ -359,6 +367,7 @@ export class AlphaRouter
     gasPriceProvider,
     v3GasModelFactory,
     v2GasModelFactory,
+    mixedRouteGasModelFactory,
     swapRouterProvider,
     optimismGasDataProvider,
     tokenValidatorProvider,
@@ -636,6 +645,8 @@ export class AlphaRouter
       v3GasModelFactory ?? new V3HeuristicGasModelFactory();
     this.v2GasModelFactory =
       v2GasModelFactory ?? new V2HeuristicGasModelFactory();
+    this.mixedRouteGasModelFactory =
+      mixedRouteGasModelFactory ?? new MixedRouteHeuristicGasModelFactory();
 
     this.swapRouterProvider =
       swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
@@ -922,12 +933,14 @@ export class AlphaRouter
       this.l2GasDataProvider
     );
 
-    const V2gasModel = await this.v2GasModelFactory.buildGasModel(
-      this.chainId,
-      gasPriceWei,
-      this.v2PoolProvider,
-      quoteToken
-    );
+    const mixedRouteGasModel =
+      await this.mixedRouteGasModelFactory.buildGasModel(
+        this.chainId,
+        gasPriceWei,
+        this.v3PoolProvider,
+        this.v2PoolProvider,
+        quoteToken
+      );
 
     if (
       (protocolsSet.size == 0 ||
@@ -966,8 +979,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
-          V2gasModel,
-          V3gasModel,
+          mixedRouteGasModel,
           tradeType,
           routingConfig
         )
@@ -1445,8 +1457,7 @@ export class AlphaRouter
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    V2gasModel: IGasModel<V2RouteWithValidQuote>,
-    V3gasModel: IGasModel<V3RouteWithValidQuote>,
+    mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     swapType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<{
@@ -1601,8 +1612,7 @@ export class AlphaRouter
           sqrtPriceX96AfterList,
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
-          V2gasModel,
-          V3gasModel,
+          mixedRouteGasModel,
           quoteToken,
           tradeType: swapType,
           v3PoolProvider: this.v3PoolProvider,

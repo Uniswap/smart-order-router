@@ -16,7 +16,7 @@ import {
 const BASE_SWAP_COST = BigNumber.from(115000);
 
 // Constant per extra hop in the route.
-const COST_PER_EXTRA_HOP = BigNumber.from(20000);
+export const COST_PER_EXTRA_HOP = BigNumber.from(20000);
 
 /**
  * Computes a gas estimate for a V2 swap using heuristics.

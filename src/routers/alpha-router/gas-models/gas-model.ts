@@ -40,6 +40,7 @@ import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
 import {
+  MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
@@ -135,4 +136,27 @@ export abstract class IV2GasModelFactory {
     poolProvider: IV2PoolProvider,
     token: Token
   ): Promise<IGasModel<V2RouteWithValidQuote>>;
+}
+
+/**
+ * Factory for building gas models that can be used with any route to generate
+ * gas estimates.
+ *
+ * Factory model is used so that any supporting data can be fetched once and
+ * returned as part of the model.
+ *
+ * No support for L2 since no V2 liquidity on L2s.
+ *
+ * @export
+ * @abstract
+ * @class IMixedRouteGasModelFactory
+ */
+export abstract class IMixedRouteGasModelFactory {
+  public abstract buildGasModel(
+    chainId: number,
+    gasPriceWei: BigNumber,
+    V3poolProvider: IV3PoolProvider,
+    V2poolProvider: IV2PoolProvider,
+    inTermsOfToken: Token
+  ): Promise<IGasModel<MixedRouteWithValidQuote>>;
 }

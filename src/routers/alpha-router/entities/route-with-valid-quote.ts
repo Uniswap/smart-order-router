@@ -1,7 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { Token, TradeType } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
@@ -251,8 +250,7 @@ export type MixedRouteWithValidQuoteParams = {
   quoterGasEstimate: BigNumber;
   percent: number;
   route: MixedRoute;
-  V2gasModel: IGasModel<V2RouteWithValidQuote>;
-  V3gasModel: IGasModel<V3RouteWithValidQuote>;
+  mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>;
   quoteToken: Token;
   tradeType: TradeType;
   v3PoolProvider: IV3PoolProvider;
@@ -260,14 +258,16 @@ export type MixedRouteWithValidQuoteParams = {
 };
 
 /**
- * Represents a quote for swapping on a V3 only route. Contains all information
+ * Represents a quote for swapping on a Mixed Route. Contains all information
  * such as the route used, the amount specified by the user, the type of quote
  * (exact in or exact out), the quote itself, and gas estimates.
  *
  * @export
- * @class V3RouteWithValidQuote
+ * @class MixedRouteWithValidQuote
  */
 export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
+  /// @dev I don't like adding this, but it helps resolve a lot of TS issues
+  ///      the alternative is to add a tone of type checks against the unioned Route
   public readonly protocol = 'MIXED';
   public amount: CurrencyAmount;
   public rawQuote: BigNumber;
@@ -279,8 +279,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
   public percent: number;
   public route: MixedRoute;
   public quoteToken: Token;
-  public V2gasModel: IGasModel<V2RouteWithValidQuote>;
-  public V3gasModel: IGasModel<V3RouteWithValidQuote>;
+  public gasModel: IGasModel<MixedRouteWithValidQuote>;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
   public gasCostInUSD: CurrencyAmount;
@@ -304,8 +303,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     quoterGasEstimate,
     percent,
     route,
-    V2gasModel,
-    V3gasModel,
+    mixedRouteGasModel,
     quoteToken,
     tradeType,
     v3PoolProvider,
@@ -319,87 +317,12 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
     this.percent = percent;
     this.route = route;
-    this.V2gasModel = V2gasModel;
-    this.V3gasModel = V3gasModel;
+    this.gasModel = mixedRouteGasModel;
     this.quoteToken = quoteToken;
     this.tradeType = tradeType;
 
-    /**
-     * Really weird shortcut to get gas estimates for MixedRouteWithValidQuotes
-     * we filter the MixedRoute into pure V3Routes and V2Routes and run the respective
-     * estimateGas() functions on the gasModels
-     * @returns
-     */
-    const estimateGas = () => {
-      const filteredV3Pools = this.route.parts.filter(
-        (part) => part instanceof Pool
-      ) as Pool[];
-      const {
-        gasEstimate: V3gasEstimate,
-        gasCostInToken: V3gasCostInToken,
-        gasCostInUSD: V3gasCostInUSD,
-      } = filteredV3Pools.length == 0
-        ? {
-            gasEstimate: BigNumber.from(0),
-            gasCostInToken: CurrencyAmount.fromRawAmount(this.quoteToken, '0'), // fix this could be nativeCurrency too
-            gasCostInUSD: CurrencyAmount.fromRawAmount(this.quoteToken, '0'),
-          }
-        : this.V3gasModel.estimateGasCost(
-            new V3RouteWithValidQuote({
-              amount: this.amount,
-              rawQuote: this.rawQuote,
-              sqrtPriceX96AfterList: this.sqrtPriceX96AfterList,
-              initializedTicksCrossedList: this.initializedTicksCrossedList,
-              quoterGasEstimate: this.quoterGasEstimate,
-              percent: this.percent,
-              gasModel: this.V3gasModel,
-              quoteToken: this.quoteToken,
-              tradeType: this.tradeType,
-              v3PoolProvider,
-              route: new V3Route(
-                filteredV3Pools,
-                filteredV3Pools[0]!.token0,
-                filteredV3Pools[0]!.token1
-              ),
-            })
-          );
-      const filteredV2Pairs = this.route.parts.filter(
-        (part) => part instanceof Pair
-      ) as Pair[];
-      const {
-        gasEstimate: V2gasEstimate,
-        gasCostInToken: V2gasCostInToken,
-        gasCostInUSD: V2gasCostInUSD,
-      } = filteredV2Pairs.length == 0
-        ? {
-            gasEstimate: BigNumber.from(0),
-            gasCostInToken: CurrencyAmount.fromRawAmount(this.quoteToken, '0'), // fix this could be nativeCurrency too
-            gasCostInUSD: CurrencyAmount.fromRawAmount(this.quoteToken, '0'),
-          }
-        : this.V2gasModel.estimateGasCost(
-            new V2RouteWithValidQuote({
-              amount: this.amount,
-              rawQuote: this.rawQuote,
-              percent: this.percent,
-              gasModel: this.V2gasModel,
-              quoteToken: this.quoteToken,
-              tradeType: this.tradeType,
-              v2PoolProvider,
-              route: new V2Route(
-                filteredV2Pairs,
-                filteredV2Pairs[0]!.token0,
-                filteredV2Pairs[0]!.token1
-              ),
-            })
-          );
-
-      return {
-        gasEstimate: V3gasEstimate.add(V2gasEstimate),
-        gasCostInToken: V3gasCostInToken.add(V2gasCostInToken),
-        gasCostInUSD: V3gasCostInUSD.add(V2gasCostInUSD),
-      };
-    };
-    const { gasEstimate, gasCostInToken, gasCostInUSD } = estimateGas();
+    const { gasEstimate, gasCostInToken, gasCostInUSD } =
+      this.gasModel.estimateGasCost(this);
 
     this.gasCostInToken = gasCostInToken;
     this.gasCostInUSD = gasCostInUSD;
