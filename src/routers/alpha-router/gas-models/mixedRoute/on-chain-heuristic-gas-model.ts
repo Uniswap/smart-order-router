@@ -52,6 +52,7 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
     chainId: ChainId,
     gasPriceWei: BigNumber,
     V3poolProvider: IV3PoolProvider,
+    // @ts-ignore[TS6133] /// @dev ignore unused parameter for now since we might need it in later implementation and don't want to refactor
     V2poolProvider: IV2PoolProvider,
     token: Token
     // this is the quoteToken
@@ -61,9 +62,8 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
       V3poolProvider
     );
 
-    const calculateL1GasFees = async (
-      route: MixedRouteWithValidQuote[]
-    ): Promise<{
+    /// @dev we might not even need this ... might be only for Op and Arb
+    const calculateL1GasFees = async (): Promise<{
       gasUsedL1: BigNumber;
       gasCostL1USD: CurrencyAmount;
       gasCostL1QuoteToken: CurrencyAmount;
