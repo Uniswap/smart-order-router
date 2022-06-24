@@ -943,16 +943,16 @@ export class AlphaRouter
       );
 
     /// @dev testing
-    // await this.getMixedRouteQuotes(
-    //   tokenIn,
-    //   tokenOut,
-    //   amounts,
-    //   percents,
-    //   quoteToken,
-    //   mixedRouteGasModel,
-    //   tradeType,
-    //   routingConfig
-    // );
+    await this.getMixedRouteQuotes(
+      tokenIn,
+      tokenOut,
+      amounts,
+      percents,
+      quoteToken,
+      mixedRouteGasModel,
+      tradeType,
+      routingConfig
+    );
     /// end
 
     if (
@@ -1234,9 +1234,6 @@ export class AlphaRouter
       pools,
       maxSwapsPerPath
     );
-
-    console.log('v3 routes');
-    console.log(routes.map((route) => routeToString(route)));
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };

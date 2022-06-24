@@ -1,6 +1,7 @@
 import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
+import _ from 'lodash';
 import { log } from '../../../util/log';
 import { routeToString } from '../../../util/routes';
 import { MixedRoute, V2Route, V3Route } from '../../router';
@@ -103,6 +104,15 @@ export function computeAllRoutes<
       const currentTokenOut = curPool.token0.equals(previousTokenOut)
         ? curPool.token1
         : curPool.token0;
+
+      /// prevent round tripping
+      if (
+        _.flatten(
+          currentRoute.map((pool) => [pool.token0, pool.token1])
+        ).includes(currentTokenOut)
+      ) {
+        continue;
+      }
 
       currentRoute.push(curPool);
       poolsUsed[i] = true;
