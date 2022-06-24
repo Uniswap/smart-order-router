@@ -108,8 +108,8 @@ export function computeAllRoutes<
       /// prevent round tripping
       if (
         _.flatten(
-          currentRoute.map((pool) => [pool.token0, pool.token1])
-        ).includes(currentTokenOut)
+          currentRoute.map((pool) => [pool.token0.symbol, pool.token1.symbol])
+        ).includes(currentTokenOut.symbol)
       ) {
         continue;
       }
