@@ -942,6 +942,19 @@ export class AlphaRouter
         quoteToken
       );
 
+    /// @dev testing
+    // await this.getMixedRouteQuotes(
+    //   tokenIn,
+    //   tokenOut,
+    //   amounts,
+    //   percents,
+    //   quoteToken,
+    //   mixedRouteGasModel,
+    //   tradeType,
+    //   routingConfig
+    // );
+    /// end
+
     if (
       (protocolsSet.size == 0 ||
         (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))) &&
@@ -972,18 +985,18 @@ export class AlphaRouter
           routingConfig
         )
       );
-      quotePromises.push(
-        this.getMixedRouteQuotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          mixedRouteGasModel,
-          tradeType,
-          routingConfig
-        )
-      );
+      // quotePromises.push(
+      //   this.getMixedRouteQuotes(
+      //     tokenIn,
+      //     tokenOut,
+      //     amounts,
+      //     percents,
+      //     quoteToken,
+      //     mixedRouteGasModel,
+      //     tradeType,
+      //     routingConfig
+      //   )
+      // );
     } else {
       if (
         protocolsSet.has(Protocol.V3) ||
@@ -1221,6 +1234,9 @@ export class AlphaRouter
       pools,
       maxSwapsPerPath
     );
+
+    console.log('v3 routes');
+    console.log(routes.map((route) => routeToString(route)));
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
@@ -1539,6 +1555,9 @@ export class AlphaRouter
       parts,
       maxSwapsPerPath
     );
+
+    console.log('routes');
+    console.log(routes.map((route) => routeToString(route)));
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };

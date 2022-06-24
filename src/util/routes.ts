@@ -23,7 +23,7 @@ export const routeToString = (
       ? route.pools
       : route.pairs;
   const partFeeMap = _.map(parts, (part) => {
-    `${
+    return `${
       part instanceof Pool
         ? ` -- ${part.fee / 10000}% [${Pool.getAddress(
             part.token0,
