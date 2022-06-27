@@ -18,7 +18,7 @@ export const routeToString = (
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const parts =
     route instanceof MixedRoute
-      ? route.parts
+      ? route.pools
       : route instanceof V3Route
       ? route.pools
       : route.pairs;

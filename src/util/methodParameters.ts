@@ -193,7 +193,7 @@ export function buildTrade<TTradeType extends TradeType>(
         );
 
         const routeRaw = new MixedRouteSDK(
-          route.parts,
+          route.pools,
           amountCurrency.currency,
           quoteCurrency.currency
         );
@@ -217,7 +217,7 @@ export function buildTrade<TTradeType extends TradeType>(
         );
 
         const routeCurrency = new MixedRouteSDK(
-          route.parts,
+          route.pools,
           quoteCurrency.currency,
           amountCurrency.currency
         );

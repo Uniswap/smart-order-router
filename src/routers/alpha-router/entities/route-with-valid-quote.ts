@@ -337,7 +337,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
       this.quoteAdjustedForGas = quoteGasAdjusted;
     }
 
-    this.poolAddresses = _.map(route.parts, (p) => {
+    this.poolAddresses = _.map(route.pools, (p) => {
       return p instanceof Pool
         ? v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress
         : v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress;

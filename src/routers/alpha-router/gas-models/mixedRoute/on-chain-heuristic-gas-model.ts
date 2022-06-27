@@ -295,11 +295,11 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
      * - we will test and see if this hold true
      */
     const totalV3Hops = BigNumber.from(
-      routeWithValidQuote.route.parts.filter((part) => part instanceof Pool)
+      routeWithValidQuote.route.pools.filter((part) => part instanceof Pool)
         .length
     );
     const totalV2Hops = BigNumber.from(
-      routeWithValidQuote.route.parts.filter((part) => part instanceof Pair)
+      routeWithValidQuote.route.pools.filter((part) => part instanceof Pair)
         .length
     );
 
