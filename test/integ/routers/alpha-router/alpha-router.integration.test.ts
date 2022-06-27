@@ -18,6 +18,7 @@ import {
   DAI_ON,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
+  MixedRouteQuoteProvider,
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
@@ -28,9 +29,10 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
-  V3QuoteProvider,
+  V3_CORE_FACTORY_ADDRESS,
   WETH9,
   WNATIVE_ON,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -46,6 +48,8 @@ import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-pri
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
+import QuoterV3_ABI from '../../../../src/abis/QuoterV3.json';
+const V2_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
 
@@ -262,6 +266,19 @@ describe('alpha router integration', () => {
     const aliceAddress = await alice.getAddress();
     expect(aliceAddress).toBe(alice._address);
 
+    const QuoterV3Factory =
+      await hardhat.hre.ethers.getContractFactoryFromArtifact(
+        QuoterV3_ABI,
+        alice
+      );
+    const QuoterV3 = await QuoterV3Factory.deploy(
+      V3_CORE_FACTORY_ADDRESS,
+      V2_FACTORY,
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET].address // TODO: change to be chain dependent
+    );
+
+    const QuoterV3Address = QuoterV3.address;
+
     await hardhat.fund(
       alice._address,
       [
@@ -285,7 +302,10 @@ describe('alpha router integration', () => {
 
     // alice should always have 10000 ETH
     const aliceEthBalance = await hardhat.provider.getBalance(alice._address);
-    expect(aliceEthBalance).toEqual(parseEther('10000'));
+    /// Since alice is deploying the QuoterV3 contract, expect to have slightly less than 10_000 ETH but not too little
+    expect(aliceEthBalance.toBigInt()).toBeGreaterThanOrEqual(
+      parseEther('9995').toBigInt()
+    );
     const aliceUSDCBalance = await hardhat.getBalance(
       alice._address,
       USDC_MAINNET
@@ -316,6 +336,29 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
+      mixedRouteQuoteProvider: new MixedRouteQuoteProvider(
+        ChainId.MAINNET,
+        hardhat.provider,
+        multicall2Provider,
+        /// Same config as V3QuoteProvider
+        {
+          retries: 2,
+          minTimeout: 100,
+          maxTimeout: 1000,
+        },
+        {
+          multicallChunk: 210,
+          gasLimitPerCall: 705_000,
+          quoteMinSuccessRate: 0.15,
+        },
+        {
+          gasLimitOverride: 2_000_000,
+          multicallChunk: 70,
+        },
+        undefined,
+        undefined,
+        QuoterV3Address
+      ),
     });
   });
 
@@ -839,40 +882,59 @@ describe('alpha router integration', () => {
     });
   }
 
-  xdescribe('QuoterV3', () => {
-    beforeAll(async () => {
-      alphaRouter = new AlphaRouter({
-        chainId: ChainId.MAINNET,
-        provider: hardhat.providers[0]!,
-        multicall2Provider,
-        v3QuoteProvider: new V3QuoteProvider(
-          ChainId.MAINNET,
-          hardhat.providers[0]!,
-          multicall2Provider,
-          {
-            retries: 2,
-            minTimeout: 100,
-            maxTimeout: 1000,
-          },
-          {
-            multicallChunk: 210,
-            gasLimitPerCall: 705_000,
-            quoteMinSuccessRate: 0.15,
-          },
-          {
-            gasLimitOverride: 2_000_000,
-            multicallChunk: 70,
-          },
-          undefined,
-          undefined,
-          'quoterAddressOverride'
-        ),
+  describe('QuoterV3', () => {
+    beforeAll(async () => {});
+
+    describe('exactInput mixedPath routes', () => {
+      const tradeType = TradeType.EXACT_INPUT;
+
+      describe('+ simulate swap', () => {
+        it('erc20 -> erc20', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100
+          );
+        });
       });
     });
   });
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),

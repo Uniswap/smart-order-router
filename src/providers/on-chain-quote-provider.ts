@@ -5,9 +5,8 @@ import retry from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
 import { MixedRoute } from '../routers/router';
-import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { ChainId, metric, MetricLoggerUnit } from '../util';
-import { QUOTER_V2_ADDRESS } from '../util/addresses';
+import { IQuoterV3__factory } from '../types/other/factories/IQuoterV3__factory';
+import { ChainId, metric, MetricLoggerUnit, QUOTER_V2_ADDRESS } from '../util';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import { routeToString } from '../util/routes';
@@ -186,13 +185,16 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
   ) {
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
-      : QUOTER_V2_ADDRESS;
+      : undefined; /// sanity check
 
     if (!quoterAddress) {
       throw new Error(
-        `No address for Uniswap QuoterV2 Contract on chain id: ${chainId}`
+        `No address for Uniswap QuoterV3 Contract on chain id: ${chainId}`
       );
     }
+
+    if (quoterAddress === QUOTER_V2_ADDRESS)
+      throw new Error('QuoterV2 is not supported for mixed path routes');
 
     this.quoterAddress = quoterAddress;
   }
@@ -322,8 +324,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
                     address: this.quoterAddress,
-                    /// @dev IQuoterV3__factory
-                    contractInterface: IQuoterV2__factory.createInterface(),
+                    contractInterface: IQuoterV3__factory.createInterface(),
                     functionName,
                     functionParams: inputs,
                     providerConfig,

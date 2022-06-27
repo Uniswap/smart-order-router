@@ -46,7 +46,7 @@ export function computeAllMixedRoutes(
   parts: (Pool | Pair)[],
   maxHops: number
 ): MixedRoute[] {
-  return computeAllRoutes<Pool | Pair, MixedRoute>(
+  return computeMixedRoutes<Pool | Pair, MixedRoute>(
     tokenIn,
     tokenOut,
     (route: (Pool | Pair)[], tokenIn: Token, tokenOut: Token) => {
@@ -59,7 +59,82 @@ export function computeAllMixedRoutes(
 
 export function computeAllRoutes<
   TPool extends Pair | Pool,
-  TRoute extends V3Route | V2Route | MixedRoute
+  TRoute extends V3Route | V2Route
+>(
+  tokenIn: Token,
+  tokenOut: Token,
+  buildRoute: (route: TPool[], tokenIn: Token, tokenOut: Token) => TRoute,
+  pools: TPool[],
+  maxHops: number
+): TRoute[] {
+  const poolsUsed = Array<boolean>(pools.length).fill(false);
+  const routes: TRoute[] = [];
+
+  const computeRoutes = (
+    tokenIn: Token,
+    tokenOut: Token,
+    currentRoute: TPool[],
+    poolsUsed: boolean[],
+    _previousTokenOut?: Token
+  ) => {
+    if (currentRoute.length > maxHops) {
+      return;
+    }
+
+    if (
+      currentRoute.length > 0 &&
+      currentRoute[currentRoute.length - 1]!.involvesToken(tokenOut)
+    ) {
+      routes.push(buildRoute([...currentRoute], tokenIn, tokenOut));
+      return;
+    }
+
+    for (let i = 0; i < pools.length; i++) {
+      if (poolsUsed[i]) {
+        continue;
+      }
+
+      const curPool = pools[i]!;
+      const previousTokenOut = _previousTokenOut ? _previousTokenOut : tokenIn;
+
+      if (!curPool.involvesToken(previousTokenOut)) {
+        continue;
+      }
+
+      const currentTokenOut = curPool.token0.equals(previousTokenOut)
+        ? curPool.token1
+        : curPool.token0;
+
+      currentRoute.push(curPool);
+      poolsUsed[i] = true;
+      computeRoutes(
+        tokenIn,
+        tokenOut,
+        currentRoute,
+        poolsUsed,
+        currentTokenOut
+      );
+      poolsUsed[i] = false;
+      currentRoute.pop();
+    }
+  };
+
+  computeRoutes(tokenIn, tokenOut, [], poolsUsed);
+
+  log.info(
+    {
+      routes: routes.map(routeToString),
+    },
+    `Computed ${routes.length} possible routes.`
+  );
+
+  return routes;
+}
+
+/// separate function for computing MixedRoutes to accomodate extra logic
+export function computeMixedRoutes<
+  TPool extends Pair | Pool,
+  TRoute extends MixedRoute
 >(
   tokenIn: Token,
   tokenOut: Token,
@@ -137,5 +212,13 @@ export function computeAllRoutes<
     `Computed ${routes.length} possible routes.`
   );
 
-  return routes;
+  /**
+   * filter out all pure v2 or v3 routes
+   */
+  return routes.filter((route) => {
+    return (
+      !route.parts.every((part) => part instanceof Pool) &&
+      !route.parts.every((part) => part instanceof Pair)
+    );
+  });
 }

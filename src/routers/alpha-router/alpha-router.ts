@@ -942,19 +942,6 @@ export class AlphaRouter
         quoteToken
       );
 
-    /// @dev testing
-    await this.getMixedRouteQuotes(
-      tokenIn,
-      tokenOut,
-      amounts,
-      percents,
-      quoteToken,
-      mixedRouteGasModel,
-      tradeType,
-      routingConfig
-    );
-    /// end
-
     if (
       (protocolsSet.size == 0 ||
         (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))) &&
@@ -985,18 +972,23 @@ export class AlphaRouter
           routingConfig
         )
       );
-      // quotePromises.push(
-      //   this.getMixedRouteQuotes(
-      //     tokenIn,
-      //     tokenOut,
-      //     amounts,
-      //     percents,
-      //     quoteToken,
-      //     mixedRouteGasModel,
-      //     tradeType,
-      //     routingConfig
-      //   )
-      // );
+      if (
+        tradeType == TradeType.EXACT_INPUT &&
+        this.chainId === ChainId.MAINNET
+      ) {
+        quotePromises.push(
+          this.getMixedRouteQuotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            mixedRouteGasModel,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
     } else {
       if (
         protocolsSet.has(Protocol.V3) ||
@@ -1064,6 +1056,13 @@ export class AlphaRouter
       routingConfig,
       V3gasModel
     );
+
+    console.log('swapRouteRaw');
+    console.log(swapRouteRaw?.routes.map((r) => routeToString(r.route)));
+    /// throw if one route in swapRouteRaw.routes is MixedRoute
+    if (swapRouteRaw?.routes.some((r) => r.protocol == 'MIXED')) {
+      throw new Error('Selected a mixed route as best route!');
+    }
 
     if (!swapRouteRaw) {
       return null;
@@ -1553,8 +1552,7 @@ export class AlphaRouter
       maxSwapsPerPath
     );
 
-    console.log('routes');
-    console.log(routes.map((route) => routeToString(route)));
+    console.log(`Found ${routes.length} mixed path routes`);
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
