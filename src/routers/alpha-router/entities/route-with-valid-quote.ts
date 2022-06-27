@@ -46,7 +46,9 @@ export type IV3RouteWithValidQuote = {
 } & IRouteWithValidQuote<V3Route>;
 
 // Empty union for now to follow pattern
-export type IMixedRouteWithValidQuote = {} & IRouteWithValidQuote<MixedRoute>;
+export type IMixedRouteWithValidQuote = {
+  protocol: Protocol.MIXED;
+} & IRouteWithValidQuote<MixedRoute>;
 
 export type RouteWithValidQuote =
   | V2RouteWithValidQuote
@@ -266,9 +268,7 @@ export type MixedRouteWithValidQuoteParams = {
  * @class MixedRouteWithValidQuote
  */
 export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
-  /// @dev I don't like adding this, but it helps resolve a lot of TS issues
-  ///      the alternative is to add a tone of type checks against the unioned Route
-  public readonly protocol = 'MIXED';
+  public readonly protocol = Protocol.MIXED;
   public amount: CurrencyAmount;
   public rawQuote: BigNumber;
   public quote: CurrencyAmount;

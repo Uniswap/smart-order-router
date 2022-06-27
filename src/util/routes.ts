@@ -16,31 +16,29 @@ export const routeToString = (
       : // V2Route only has path
         route.path;
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
-  const parts =
-    route instanceof MixedRoute
-      ? route.pools
-      : route instanceof V3Route
+  const pools =
+    route instanceof V3Route || route instanceof MixedRoute
       ? route.pools
       : route.pairs;
-  const partFeeMap = _.map(parts, (part) => {
+  const poolFeeMap = _.map(pools, (pool) => {
     return `${
-      part instanceof Pool
-        ? ` -- ${part.fee / 10000}% [${Pool.getAddress(
-            part.token0,
-            part.token1,
-            part.fee
+      pool instanceof Pool
+        ? ` -- ${pool.fee / 10000}% [${Pool.getAddress(
+            pool.token0,
+            pool.token1,
+            pool.fee
           )}]`
         : ` -- [${Pair.getAddress(
-            (part as Pair).token0,
-            (part as Pair).token1
+            (pool as Pair).token0,
+            (pool as Pair).token1
           )}]`
     } --> `;
   });
 
   for (let i = 0; i < tokenPath.length; i++) {
     routeStr.push(tokenPath[i]);
-    if (i < partFeeMap.length) {
-      routeStr.push(partFeeMap[i]);
+    if (i < poolFeeMap.length) {
+      routeStr.push(poolFeeMap[i]);
     }
   }
 

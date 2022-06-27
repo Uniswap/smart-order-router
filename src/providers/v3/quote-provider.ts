@@ -684,7 +684,6 @@ export class V3QuoteProvider implements IV3QuoteProvider {
               approxGasUsedPerSuccessCall: 0,
             };
           }
-          console.log(failedQuoteStates);
           console.log(reasonForFailureStr);
           throw new Error(
             `Failed to get ${failedQuoteStates.length} quotes. Reasons: ${reasonForFailureStr}`

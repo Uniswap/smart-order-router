@@ -1494,6 +1494,7 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig
   ): Promise<{
     routesWithValidQuotes: MixedRouteWithValidQuote[];
+    /// @TODO expand this to include both v3 and v2 pools & pairs
     candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
     log.info('Starting to get mixed quotes');

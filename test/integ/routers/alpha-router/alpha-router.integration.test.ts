@@ -66,6 +66,7 @@ const checkQuoteToken = (
     ? tokensQuoted.subtract(tokensSwapped)
     : tokensSwapped.subtract(tokensQuoted);
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction);
+  console.log(percentDiff.toFixed(4));
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true);
 };
 
@@ -121,6 +122,8 @@ describe('alpha router integration', () => {
     );
     const tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
 
+    console.log(methodParameters.calldata);
+
     const transaction = {
       data: methodParameters.calldata,
       to: SWAP_ROUTER_V2,
@@ -138,6 +141,13 @@ describe('alpha router integration', () => {
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
     const tokenOutAfter = await hardhat.getBalance(alice._address, tokenOut);
+
+    console.log({
+      tokenInAfter: tokenInAfter.toExact(),
+      tokenInBefore: tokenInBefore.toExact(),
+      tokenOutAfter: tokenOutAfter.toExact(),
+      tokenOutBefore: tokenOutBefore.toExact(),
+    });
 
     return {
       tokenInAfter,
@@ -225,13 +235,14 @@ describe('alpha router integration', () => {
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
         expect(
-          tokenInBefore.subtract(tokenInAfter).equalTo(
-            CurrencyAmount.fromRawAmount(
-              tokenIn,
-              /// @dev since we are passing in numbers, we need to expand to the correct decimal scale
-              expandDecimals(tokenIn, checkTokenInAmount)
+          tokenInBefore
+            .subtract(tokenInAfter)
+            .equalTo(
+              CurrencyAmount.fromRawAmount(
+                tokenIn,
+                expandDecimals(tokenIn, checkTokenInAmount)
+              )
             )
-          )
         );
       }
       checkQuoteToken(
@@ -368,7 +379,7 @@ describe('alpha router integration', () => {
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
-        it('erc20 -> erc20', async () => {
+        it.only('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
@@ -882,7 +893,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe.only('QuoterV3', () => {
+  xdescribe('QuoterV3', () => {
     const WISE_MAINNET = new Token(
       1,
       '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
@@ -931,15 +942,18 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
+              protocols: [Protocol.V2],
             }
           );
 
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, trade } = swap!;
 
-          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+          console.log(JSON.stringify(trade));
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
           await validateExecuteSwap(
             quote,
@@ -947,7 +961,6 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            100,
             100
           );
         });

@@ -281,7 +281,6 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
     gasPriceWei: BigNumber,
     chainId: ChainId
   ) {
-    /// @dev since the initializedTickList is 0 for V2 pair the sum will not be affected
     const totalInitializedTicksCrossed = BigNumber.from(
       Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
     );
@@ -318,7 +317,6 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
       .add(V2hopsGasUse)
       .add(tickGasUse)
       .add(uninitializedTickGasUse);
-    // const baseGasUse = BASE_SWAP_COST(chainId); /// TODO remove but for testing
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
