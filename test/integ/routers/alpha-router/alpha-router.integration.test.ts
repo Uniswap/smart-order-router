@@ -882,17 +882,39 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe('QuoterV3', () => {
-    beforeAll(async () => {});
+  describe.only('QuoterV3', () => {
+    const WISE_MAINNET = new Token(
+      1,
+      '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
+      18,
+      'WISE',
+      'WISE'
+    );
+    const tradeType = TradeType.EXACT_INPUT;
 
-    describe('exactInput mixedPath routes', () => {
-      const tradeType = TradeType.EXACT_INPUT;
+    beforeAll(async () => {
+      await hardhat.fund(
+        alice._address,
+        [parseAmount('1000', WISE_MAINNET)],
+        [
+          '0xa66e19298a50d6e33fd6756af15d81dae39b47ee', // WISE token
+        ]
+      );
+      const aliceWISEBalance = await hardhat.getBalance(
+        alice._address,
+        WISE_MAINNET
+      );
+      expect(aliceWISEBalance).toEqual(parseAmount('1000', WISE_MAINNET));
+    });
 
+    describe(`${
+      tradeType === TradeType.EXACT_INPUT ? 'exactInput' : 'exactOutput'
+    } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
-        it('erc20 -> erc20', async () => {
-          // declaring these to reduce confusion
-          const tokenIn = USDC_MAINNET;
-          const tokenOut = USDT_MAINNET;
+        it('WISE -> USDC', async () => {
+          // WISE liq on v3 is 0 to none so we should expect WISE -[v2]> ETH -[v3]> USDC
+          const tokenIn = WISE_MAINNET;
+          const tokenOut = USDC_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('100', tokenIn)

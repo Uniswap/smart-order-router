@@ -1047,6 +1047,22 @@ export class AlphaRouter
 
     // Given all the quotes for all the amounts for all the routes, find the best combination.
     const beforeBestSwap = Date.now();
+
+    console.log('considering mixed path routes:');
+    console.log([
+      ...new Set(
+        allRoutesWithValidQuotes
+          .filter((r) => r.protocol == 'MIXED')
+          .map((r) => {
+            return {
+              route: routeToString(r.route),
+              quote: r.quote.toExact(),
+              quoteAdjustedForGas: r.quoteAdjustedForGas.toExact(),
+            };
+          })
+      ),
+    ]);
+
     const swapRouteRaw = await getBestSwapRoute(
       amount,
       percents,
@@ -1058,11 +1074,15 @@ export class AlphaRouter
     );
 
     console.log('swapRouteRaw');
-    console.log(swapRouteRaw?.routes.map((r) => routeToString(r.route)));
-    /// throw if one route in swapRouteRaw.routes is MixedRoute
-    if (swapRouteRaw?.routes.some((r) => r.protocol == 'MIXED')) {
-      throw new Error('Selected a mixed route as best route!');
-    }
+    console.log(
+      swapRouteRaw?.routes.map((r) => {
+        return {
+          route: routeToString(r.route),
+          quote: r.quote.toExact(),
+          quoteAdjustedForGas: r.quoteAdjustedForGas.toExact(),
+        };
+      })
+    );
 
     if (!swapRouteRaw) {
       return null;

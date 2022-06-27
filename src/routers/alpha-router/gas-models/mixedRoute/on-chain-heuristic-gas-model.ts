@@ -318,8 +318,16 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
       .add(V2hopsGasUse)
       .add(tickGasUse)
       .add(uninitializedTickGasUse);
+    // const baseGasUse = BASE_SWAP_COST(chainId); /// TODO remove but for testing
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
+
+    if (baseGasUse.toNumber() > 366000) {
+      console.log(
+        'higher than expected baseGasUse for mixed route',
+        baseGasUse.toNumber()
+      );
+    }
 
     const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
