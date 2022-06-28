@@ -879,7 +879,10 @@ describe('quote for other networks', () => {
   for (const chain of _.filter(
     SUPPORTED_CHAINS,
     (c) =>
-      c == ChainId.CELO /// @dev infura has been having issues with optimism lately
+      c != ChainId.OPTIMISTIC_KOVAN &&
+      c != ChainId.POLYGON_MUMBAI &&
+      c != ChainId.ARBITRUM_RINKEBY &&
+      c != ChainId.OPTIMISM /// @dev infura has been having issues with optimism lately
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];
