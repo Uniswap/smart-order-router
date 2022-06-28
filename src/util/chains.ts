@@ -28,6 +28,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.POLYGON_MUMBAI,
   ChainId.GÖRLI,
   ChainId.CELO_ALFAJORES,
+  ChainId.CELO,
 ];
 
 export const V2_SUPPORTED = [
@@ -113,7 +114,6 @@ export enum NativeCurrencyName {
   // Strings match input for CLI
   ETHER = 'ETH',
   MATIC = 'MATIC',
-  CELO = 'CELO',
 }
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -128,8 +128,6 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.ARBITRUM_RINKEBY]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
-  [ChainId.CELO]: NativeCurrencyName.CELO,
-  [ChainId.CELO_ALFAJORES]: NativeCurrencyName.CELO,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -330,26 +328,6 @@ function isCelo(
   return chainId === ChainId.CELO_ALFAJORES || chainId === ChainId.CELO;
 }
 
-class CeloNativeCurrency extends NativeCurrency {
-  equals(other: Currency): boolean {
-    return other.isNative && other.chainId === this.chainId;
-  }
-
-  get wrapped(): Token {
-    if (!isCelo(this.chainId)) throw new Error('Not celo');
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
-    if (nativeCurrency) {
-      return nativeCurrency;
-    }
-    throw new Error(`Does not support this chain ${this.chainId}`);
-  }
-
-  public constructor(chainId: number) {
-    if (!isCelo(chainId)) throw new Error('Not celo');
-    super(chainId, 18, 'CELO', 'Celo');
-  }
-}
-
 export class ExtendedEther extends Ether {
   public get wrapped(): Token {
     if (this.chainId in WRAPPED_NATIVE_CURRENCY)
@@ -370,12 +348,13 @@ export class ExtendedEther extends Ether {
 
 const cachedNativeCurrency: { [chainId: number]: NativeCurrency } = {};
 export function nativeOnChain(chainId: number): NativeCurrency {
+  if(isCelo(chainId)) {
+    throw Error("CELO does not support nativeOnChain")
+  }
   return (
     cachedNativeCurrency[chainId] ??
     (cachedNativeCurrency[chainId] = isMatic(chainId)
       ? new MaticNativeCurrency(chainId)
-      : (cachedNativeCurrency[chainId] = isCelo(chainId)
-          ? new CeloNativeCurrency(chainId)
-          : ExtendedEther.onChain(chainId)))
-  );
+      : ExtendedEther.onChain(chainId))
+    );
 }

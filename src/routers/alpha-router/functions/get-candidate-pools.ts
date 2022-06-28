@@ -8,6 +8,12 @@ import {
   V2SubgraphPool,
 } from '../../../providers';
 import {
+  CELO,
+  CELO_ALFAJORES,
+  CEUR_CELO,
+  CEUR_CELO_ALFAJORES,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
   DAI_MAINNET,
@@ -124,6 +130,8 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDT_ARBITRUM_RINKEBY],
   [ChainId.POLYGON]: [USDC_POLYGON, WMATIC_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI, WMATIC_POLYGON_MUMBAI],
+  [ChainId.CELO]: [CUSD_CELO, CEUR_CELO, CELO],
+  [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES, CEUR_CELO_ALFAJORES, CELO_ALFAJORES],
 };
 
 export async function getV3CandidatePools({

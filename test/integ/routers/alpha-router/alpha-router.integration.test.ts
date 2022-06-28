@@ -2,7 +2,7 @@
  * @jest-environment hardhat
  */
 
- import {
+import {
   Currency,
   CurrencyAmount,
   Ether,
@@ -879,10 +879,7 @@ describe('quote for other networks', () => {
   for (const chain of _.filter(
     SUPPORTED_CHAINS,
     (c) =>
-      c != ChainId.OPTIMISTIC_KOVAN &&
-      c != ChainId.POLYGON_MUMBAI &&
-      c != ChainId.ARBITRUM_RINKEBY &&
-      c != ChainId.OPTIMISM /// @dev infura has been having issues with optimism lately
+      c == ChainId.CELO /// @dev infura has been having issues with optimism lately
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];
@@ -962,7 +959,10 @@ describe('quote for other networks', () => {
         const native = NATIVE_CURRENCY[chain];
 
         it(`${native} -> erc20`, async () => {
-            if(chain != ChainId.CELO && chain != ChainId.CELO_ALFAJORES) {
+          // CELO follows the ERC20 standard, so we do not consider it a native
+          // Currency even though it can be transferred without interacting with
+          // the ERC20 interface
+          if(chain != ChainId.CELO && chain != ChainId.CELO_ALFAJORES) {
               const tokenIn = nativeOnChain(chain);
               const tokenOut = erc2;
               const amount =
