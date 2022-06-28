@@ -354,6 +354,8 @@ export class V3QuoteProvider implements IV3QuoteProvider {
       })
       .value();
 
+    console.log('num inputs: ', inputs.length);
+
     const normalizedChunk = Math.ceil(
       inputs.length / Math.ceil(inputs.length / multicallChunk)
     );
