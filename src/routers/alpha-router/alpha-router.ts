@@ -972,28 +972,30 @@ export class AlphaRouter
           routingConfig
         )
       );
-      if (
-        tradeType == TradeType.EXACT_INPUT &&
-        this.chainId === ChainId.MAINNET
-      ) {
-        quotePromises.push(
-          this.getMixedRouteQuotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            mixedRouteGasModel,
-            tradeType,
-            routingConfig
-          )
-        );
-      }
+      // if (
+      //   tradeType == TradeType.EXACT_INPUT &&
+      //   this.chainId === ChainId.MAINNET
+      // ) {
+      //   console.log('adding mixed route quotes');
+      //   quotePromises.push(
+      //     this.getMixedRouteQuotes(
+      //       tokenIn,
+      //       tokenOut,
+      //       amounts,
+      //       percents,
+      //       quoteToken,
+      //       mixedRouteGasModel,
+      //       tradeType,
+      //       routingConfig
+      //     )
+      //   );
+      // }
     } else {
       if (
         protocolsSet.has(Protocol.V3) ||
         (protocolsSet.size == 0 && !V2_SUPPORTED.includes(this.chainId))
       ) {
+        console.log('Routing only V3');
         log.info({ protocols, swapType: tradeType }, 'Routing across V3');
         quotePromises.push(
           this.getV3Quotes(
@@ -1047,21 +1049,6 @@ export class AlphaRouter
 
     // Given all the quotes for all the amounts for all the routes, find the best combination.
     const beforeBestSwap = Date.now();
-
-    console.log('considering mixed path routes:');
-    console.log([
-      ...new Set(
-        allRoutesWithValidQuotes
-          .filter((r) => r.protocol == 'MIXED')
-          .map((r) => {
-            return {
-              route: routeToString(r.route),
-              quote: r.quote.toExact(),
-              quoteAdjustedForGas: r.quoteAdjustedForGas.toExact(),
-            };
-          })
-      ),
-    ]);
 
     const swapRouteRaw = await getBestSwapRoute(
       amount,

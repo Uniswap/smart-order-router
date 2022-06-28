@@ -217,8 +217,8 @@ export function computeMixedRoutes<
    */
   return routes.filter((route) => {
     return (
-      !route.pools.every((part) => part instanceof Pool) &&
-      !route.pools.every((part) => part instanceof Pair)
+      !route.pools.every((pool) => pool instanceof Pool) &&
+      !route.pools.every((pool) => pool instanceof Pair)
     );
   });
 }

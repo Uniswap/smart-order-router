@@ -185,7 +185,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
   ) {
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
-      : undefined; /// sanity check
+      : QUOTER_V2_ADDRESS; /// for now
 
     if (!quoterAddress) {
       throw new Error(
@@ -193,8 +193,8 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
       );
     }
 
-    if (quoterAddress === QUOTER_V2_ADDRESS)
-      throw new Error('QuoterV2 is not supported for mixed path routes');
+    // if (quoterAddress === QUOTER_V2_ADDRESS)
+    //   throw new Error('QuoterV2 is not supported for mixed path routes');
 
     this.quoterAddress = quoterAddress;
   }

@@ -1,6 +1,7 @@
 /**
  * @jest-environment hardhat
  */
+/// <reference types="../../../types/bunyan-debug-stream" />
 
 import {
   Currency,
@@ -22,6 +23,7 @@ import {
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
+  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -29,6 +31,7 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+  V3QuoteProvider,
   V3_CORE_FACTORY_ADDRESS,
   WETH9,
   WNATIVE_ON,
@@ -38,7 +41,6 @@ import {
 import 'jest-environment-hardhat';
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
-
 import { Protocol } from '@uniswap/router-sdk';
 import { MethodParameters } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
@@ -52,6 +54,37 @@ import QuoterV3_ABI from '../../../../src/abis/QuoterV3.json';
 const V2_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
+
+import bunyan from 'bunyan';
+import bunyanDebugStream from 'bunyan-debug-stream';
+
+console.log(process.env.DEBUG, process.env.DEBUG_JSON);
+
+const logLevel =
+  process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
+let logger = bunyan.createLogger({
+  name: 'Uniswap Smart Order Router',
+  serializers: bunyan.stdSerializers,
+  level: logLevel,
+  streams: process.env.DEBUG_JSON
+    ? undefined
+    : [
+        {
+          level: logLevel,
+          type: 'stream',
+          stream: bunyanDebugStream({
+            basepath: __dirname,
+            forceColor: false,
+            showDate: false,
+            showPid: false,
+            showLoggerName: false,
+            showLevel: !!process.env.DEBUG,
+          }),
+        },
+      ],
+});
+
+setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -347,6 +380,26 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
+      v3QuoteProvider: new V3QuoteProvider(
+        ChainId.MAINNET,
+        hardhat.provider,
+        multicall2Provider,
+        /// Same config as V3QuoteProvider
+        {
+          retries: 2,
+          minTimeout: 100,
+          maxTimeout: 1000,
+        },
+        {
+          multicallChunk: 210,
+          gasLimitPerCall: 705_000,
+          quoteMinSuccessRate: 0.15,
+        },
+        {
+          gasLimitOverride: 2_000_000,
+          multicallChunk: 70,
+        }
+      ),
       mixedRouteQuoteProvider: new MixedRouteQuoteProvider(
         ChainId.MAINNET,
         hardhat.provider,
@@ -376,9 +429,9 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
-      describe(`+ simulate swap`, () => {
+      describe.only(`+ simulate swap`, () => {
         it.only('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
@@ -399,6 +452,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
+              protocols: [Protocol.V3],
             }
           );
 
