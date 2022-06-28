@@ -1,6 +1,7 @@
 /**
  * @jest-environment hardhat
  */
+/// <reference types="../../../types/bunyan-debug-stream" />
 
 import {
   Currency,
@@ -21,6 +22,7 @@ import {
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
+  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -47,6 +49,37 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
+
+import bunyan from 'bunyan';
+import bunyanDebugStream from 'bunyan-debug-stream';
+
+console.log(process.env.DEBUG, process.env.DEBUG_JSON);
+
+const logLevel =
+  process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
+let logger = bunyan.createLogger({
+  name: 'Uniswap Smart Order Router',
+  serializers: bunyan.stdSerializers,
+  level: logLevel,
+  streams: process.env.DEBUG_JSON
+    ? undefined
+    : [
+        {
+          level: logLevel,
+          type: 'stream',
+          stream: bunyanDebugStream({
+            basepath: __dirname,
+            forceColor: false,
+            showDate: false,
+            showPid: false,
+            showLoggerName: false,
+            showLevel: !!process.env.DEBUG,
+          }),
+        },
+      ],
+});
+
+setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -321,7 +354,7 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it.only('erc20 -> erc20', async () => {
