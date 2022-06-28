@@ -2,7 +2,7 @@
  * @jest-environment hardhat
  */
 
-import {
+ import {
   Currency,
   CurrencyAmount,
   Ether,
@@ -32,6 +32,8 @@ import {
   WNATIVE_ON,
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
+  CEUR_CELO,
+  CEUR_CELO_ALFAJORES,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -869,8 +871,8 @@ describe('quote for other networks', () => {
     [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
-    [ChainId.CELO]: DAI_ON(ChainId.CELO),
-    [ChainId.CELO_ALFAJORES]: DAI_ON(ChainId.CELO_ALFAJORES),
+    [ChainId.CELO]: CEUR_CELO,
+    [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -960,58 +962,60 @@ describe('quote for other networks', () => {
         const native = NATIVE_CURRENCY[chain];
 
         it(`${native} -> erc20`, async () => {
-          const tokenIn = nativeOnChain(chain);
-          const tokenOut = erc2;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100', tokenIn)
-              : parseAmount('100', tokenOut);
+            if(chain != ChainId.CELO && chain != ChainId.CELO_ALFAJORES) {
+              const tokenIn = nativeOnChain(chain);
+              const tokenOut = erc2;
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount('100', tokenIn)
+                  : parseAmount('100', tokenOut);
 
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                undefined,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V3, Protocol.V2],
+                }
+              );
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
             }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-        });
-        it(`has quoteGasAdjusted values`, async () => {
-          const tokenIn = erc1;
-          const tokenOut = erc2;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
+          });
+          it(`has quoteGasAdjusted values`, async () => {
+            const tokenIn = erc1;
+            const tokenOut = erc2;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1', tokenOut);
 
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: [Protocol.V3, Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const { quote, quoteGasAdjusted } = swap!;
+
+            if (tradeType == TradeType.EXACT_INPUT) {
+              // === .lessThanOrEqualTo
+              expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
+            } else {
+              // === .greaterThanOrEqualTo
+              expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
             }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-
-          const { quote, quoteGasAdjusted } = swap!;
-
-          if (tradeType == TradeType.EXACT_INPUT) {
-            // === .lessThanOrEqualTo
-            expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
-          } else {
-            // === .greaterThanOrEqualTo
-            expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
-          }
         });
       });
     }
