@@ -459,6 +459,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                   results,
                 } as QuoteBatchSuccess;
               } catch (err: any) {
+                console.log('err.message full');
+                console.log(err.message);
+
                 // Error from providers have huge messages that include all the calldata and fill the logs.
                 // Catch them and rethrow with shorter message.
                 if (err.message.includes('header not found')) {
