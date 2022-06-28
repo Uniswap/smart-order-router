@@ -292,6 +292,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     routesWithQuotes: V3RouteWithQuotes[];
     blockNumber: BigNumber;
   }> {
+    console.log(
+      `getQuotesManyData called for exactIn with ${routes.length} routes and ${amountIns.length} amounts`
+    );
     return this.getQuotesManyData(
       amountIns,
       routes,

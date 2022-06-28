@@ -828,6 +828,7 @@ export class AlphaRouter
         (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))) &&
       V2_SUPPORTED.includes(this.chainId)
     ) {
+      throw new Error('wrong way');
       log.info({ protocols, tradeType }, 'Routing across all protocols');
       quotePromises.push(
         this.getV3Quotes(
@@ -858,6 +859,7 @@ export class AlphaRouter
         protocolsSet.has(Protocol.V3) ||
         (protocolsSet.size == 0 && !V2_SUPPORTED.includes(this.chainId))
       ) {
+        console.log('Routing across V3');
         log.info({ protocols, swapType: tradeType }, 'Routing across V3');
         quotePromises.push(
           this.getV3Quotes(
@@ -873,6 +875,7 @@ export class AlphaRouter
         );
       }
       if (protocolsSet.has(Protocol.V2)) {
+        throw new Error('wrong way');
         log.info({ protocols, swapType: tradeType }, 'Routing across V2');
         quotePromises.push(
           this.getV2Quotes(
@@ -1090,6 +1093,8 @@ export class AlphaRouter
       pools,
       maxSwapsPerPath
     );
+
+    console.log(`Computed ${routes.length} v3 routes`);
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
