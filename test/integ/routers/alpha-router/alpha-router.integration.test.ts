@@ -923,8 +923,8 @@ describe('quote for other networks', () => {
           const tokenOut = erc1;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
+              ? parseAmount('10', tokenIn)
+              : parseAmount('10', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -972,9 +972,13 @@ describe('quote for other networks', () => {
           const tokenIn = nativeOnChain(chain);
           const tokenOut = erc2;
           const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
+            chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
+              ? tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10', tokenOut)
+              : tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut)
 
           const swap = await alphaRouter.route(
             amount,
@@ -990,7 +994,6 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
           });
-
           it(`has quoteGasAdjusted values`, async () => {
             const tokenIn = erc1;
             const tokenOut = erc2;
