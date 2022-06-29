@@ -1000,8 +1000,6 @@ describe('alpha router integration', () => {
 
           const { quote, quoteGasAdjusted, methodParameters, trade } = swap!;
 
-          console.log(JSON.stringify(trade));
-
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
           await validateExecuteSwap(
