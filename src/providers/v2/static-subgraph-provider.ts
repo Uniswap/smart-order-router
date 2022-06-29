@@ -33,7 +33,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
   [ChainId.KOVAN]: [WRAPPED_NATIVE_CURRENCY[ChainId.KOVAN]!],
-  //v2 not deployed on [optimism, arbitrum, polygon, celo] and their testnets
+  //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam] and their testnets
   [ChainId.OPTIMISM]: [],
   [ChainId.ARBITRUM_ONE]: [],
   [ChainId.ARBITRUM_RINKEBY]: [],
@@ -42,6 +42,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.POLYGON_MUMBAI]: [],
   [ChainId.CELO]: [],
   [ChainId.CELO_ALFAJORES]: [],
+  [ChainId.GNOSIS]: [],
+  [ChainId.MOONBEAM]: [],
 };
 
 /**
