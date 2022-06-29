@@ -19,14 +19,13 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
     case ChainId.POLYGON_MUMBAI:
       return BigNumber.from(2000);
 
-      //TODO determine if sufficient
     case ChainId.CELO:
     case ChainId.CELO_ALFAJORES:
       return BigNumber.from(2000);
 
+    //TODO determine if sufficient
     case ChainId.GNOSIS:
       return BigNumber.from(2000)
-
     case ChainId.MOONBEAM:
       return BigNumber.from(2000)
   }
