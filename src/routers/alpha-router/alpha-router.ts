@@ -432,12 +432,6 @@ export class AlphaRouter
           );
           break;
 
-        /*
-          TODO understand the reason behind the "out of gas" error we get if we
-          don't have this here due to low gas limit or low gas price
-          The following gas limits seem to be sufficient for transactions on Celo.
-          Optimism & default limits caused the 'out of gas' error
-        */
         case ChainId.CELO:
         case ChainId.CELO_ALFAJORES:
           this.v3QuoteProvider = new V3QuoteProvider(

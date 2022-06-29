@@ -971,6 +971,10 @@ describe('quote for other networks', () => {
         it(`${native} -> erc20`, async () => {
           const tokenIn = nativeOnChain(chain);
           const tokenOut = erc2;
+
+          // Celo currently has low liquidity and will not be able to find route for
+          // large input amounts
+          // TODO: Simplify this when Celo has more liquidity
           const amount =
             chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
               ? tradeType == TradeType.EXACT_INPUT

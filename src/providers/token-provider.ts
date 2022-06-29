@@ -455,6 +455,7 @@ export const USDC_ETHEREUM_GNOSIS = new Token(
   ChainId.GNOSIS,
   '0xddafbb505ad214d7b80b1f830fccc89b60fb7a83',
   6,
+  'USDC',
   'USDC from Ethereum on Gnosis'
 )
 
@@ -462,6 +463,7 @@ export const WXDAI_GNOSIS = new Token(
   ChainId.GNOSIS,
   '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
   18,
+  'WXDAI',
   'Wrapped XDAI on Gnosis'
 )
 
@@ -469,6 +471,7 @@ export const WBTC_GNOSIS = new Token(
   ChainId.GNOSIS,
   '0x8e5bbbb09ed1ebde8674cda39a0c169401db4252',
   8,
+  'WBTC',
   'Wrapped BTC from Ethereum on Gnosis'
 )
 
@@ -477,6 +480,7 @@ export const USDC_MOONBEAM = new Token(
   ChainId.MOONBEAM,
   '0x818ec0A7Fe18Ff94269904fCED6AE3DaE6d6dC0b',
   6,
+  'USDC',
   'USD Coin bridged using Multichain'
 )
 
@@ -484,6 +488,7 @@ export const WGLMR_MOONBEAM = new Token(
   ChainId.MOONBEAM,
   '0xAcc15dC74880C9944775448304B263D191c6077F',
   18,
+  'WGLMR',
   'Wrapped GLMR'
 )
 
@@ -491,6 +496,7 @@ export const DAI_MOONBEAM = new Token(
   ChainId.MOONBEAM,
   '0x818ec0A7Fe18Ff94269904fCED6AE3DaE6d6dC0b',
   6,
+  'DAI',
   'Dai on moonbeam bridged using Multichain'
 )
 
@@ -498,6 +504,7 @@ export const WBTC_MOONBEAM = new Token(
   ChainId.MOONBEAM,
   '0x922D641a426DcFFaeF11680e5358F34d97d112E1',
   8,
+  'WBTC',
   'Wrapped BTC bridged using Multichain'
 )
 
