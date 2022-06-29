@@ -23,7 +23,6 @@ import {
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
-  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -58,8 +57,6 @@ const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
 import bunyan from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 
-console.log(process.env.DEBUG, process.env.DEBUG_JSON);
-
 const logLevel =
   process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
 let logger = bunyan.createLogger({
@@ -84,7 +81,7 @@ let logger = bunyan.createLogger({
       ],
 });
 
-setGlobalLogger(logger);
+// setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -431,8 +428,8 @@ describe('alpha router integration', () => {
    */
   for (const tradeType of [TradeType.EXACT_INPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
-      describe.only(`+ simulate swap`, () => {
-        it.only('erc20 -> erc20', async () => {
+      describe(`+ simulate swap`, () => {
+        it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
@@ -452,7 +449,6 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V3],
             }
           );
 
@@ -947,7 +943,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  xdescribe('QuoterV3', () => {
+  describe.only('QuoterV3', () => {
     const WISE_MAINNET = new Token(
       1,
       '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
@@ -996,7 +992,6 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V2],
             }
           );
 

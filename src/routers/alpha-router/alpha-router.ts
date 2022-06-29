@@ -972,30 +972,29 @@ export class AlphaRouter
           routingConfig
         )
       );
-      // if (
-      //   tradeType == TradeType.EXACT_INPUT &&
-      //   this.chainId === ChainId.MAINNET
-      // ) {
-      //   console.log('adding mixed route quotes');
-      //   quotePromises.push(
-      //     this.getMixedRouteQuotes(
-      //       tokenIn,
-      //       tokenOut,
-      //       amounts,
-      //       percents,
-      //       quoteToken,
-      //       mixedRouteGasModel,
-      //       tradeType,
-      //       routingConfig
-      //     )
-      //   );
-      // }
+      if (
+        tradeType == TradeType.EXACT_INPUT &&
+        this.chainId === ChainId.MAINNET
+      ) {
+        console.log('adding mixed route quotes');
+        quotePromises.push(
+          this.getMixedRouteQuotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            mixedRouteGasModel,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
     } else {
       if (
         protocolsSet.has(Protocol.V3) ||
         (protocolsSet.size == 0 && !V2_SUPPORTED.includes(this.chainId))
       ) {
-        console.log('Routing only V3');
         log.info({ protocols, swapType: tradeType }, 'Routing across V3');
         quotePromises.push(
           this.getV3Quotes(
@@ -1559,8 +1558,6 @@ export class AlphaRouter
       parts,
       maxSwapsPerPath
     );
-
-    console.log(`Found ${routes.length} mixed path routes`);
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
