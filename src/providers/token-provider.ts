@@ -450,6 +450,57 @@ export const CEUR_CELO_ALFAJORES = new Token(
   'Celo Euro Stablecoin'
 );
 
+// Gnosis Tokens
+export const USDC_ETHEREUM_GNOSIS = new Token(
+  ChainId.GNOSIS,
+  '0xddafbb505ad214d7b80b1f830fccc89b60fb7a83',
+  6,
+  'USDC from Ethereum on Gnosis'
+)
+
+export const WXDAI_GNOSIS = new Token(
+  ChainId.GNOSIS,
+  '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
+  18,
+  'Wrapped XDAI on Gnosis'
+)
+
+export const WBTC_GNOSIS = new Token(
+  ChainId.GNOSIS,
+  '0x8e5bbbb09ed1ebde8674cda39a0c169401db4252',
+  8,
+  'Wrapped BTC from Ethereum on Gnosis'
+)
+
+// Moonbeam Tokens
+export const USDC_MOONBEAM = new Token(
+  ChainId.MOONBEAM,
+  '0x818ec0A7Fe18Ff94269904fCED6AE3DaE6d6dC0b',
+  6,
+  'USD Coin bridged using Multichain'
+)
+
+export const WGLMR_MOONBEAM = new Token(
+  ChainId.MOONBEAM,
+  '0xAcc15dC74880C9944775448304B263D191c6077F',
+  18,
+  'Wrapped GLMR'
+)
+
+export const DAI_MOONBEAM = new Token(
+  ChainId.MOONBEAM,
+  '0x818ec0A7Fe18Ff94269904fCED6AE3DaE6d6dC0b',
+  6,
+  'Dai on moonbeam bridged using Multichain'
+)
+
+export const WBTC_MOONBEAM = new Token(
+  ChainId.MOONBEAM,
+  '0x922D641a426DcFFaeF11680e5358F34d97d112E1',
+  8,
+  'Wrapped BTC bridged using Multichain'
+)
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -574,6 +625,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_CELO;
     case ChainId.CELO_ALFAJORES:
       return DAI_CELO_ALFAJORES;
+    case ChainId.MOONBEAM:
+      return DAI_MOONBEAM;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -628,6 +681,10 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_POLYGON;
     case ChainId.POLYGON_MUMBAI:
       return USDC_POLYGON_MUMBAI;
+    case ChainId.GNOSIS:
+      return USDC_ETHEREUM_GNOSIS;
+    case ChainId.MOONBEAM:
+      return USDC_MOONBEAM;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

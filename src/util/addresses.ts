@@ -10,18 +10,24 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   ...constructSameAddressMap(FACTORY_ADDRESS),
   [ChainId.CELO]: CELO_V3_CORE_FACTORY_ADDRESSES,
   [ChainId.CELO_ALFAJORES]: CELO_V3_CORE_FACTORY_ADDRESSES,
+
+  // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x61fFE014bA17989E743c5F6cB21bF9697530B21e'),
   [ChainId.CELO]: CELO_QUOTER_ADDRESSES,
   [ChainId.CELO_ALFAJORES]: CELO_QUOTER_ADDRESSES,
+
+  // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
   [ChainId.CELO]: CELO_MULTICALL_ADDRESS,
   [ChainId.CELO_ALFAJORES]: CELO_MULTICALL_ADDRESS,
+
+  // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
 export const OVM_GASPRICE_ADDRESS =
@@ -58,6 +64,8 @@ export const WETH9: {
     | ChainId.POLYGON_MUMBAI
     | ChainId.CELO
     | ChainId.CELO_ALFAJORES
+    | ChainId.GNOSIS
+    | ChainId.MOONBEAM
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(
