@@ -124,6 +124,7 @@ export enum NativeCurrencyName {
   // Strings match input for CLI
   ETHER = 'ETH',
   MATIC = 'MATIC',
+  CELO = 'CELO',
   GNOSIS = 'XDAI',
   MOONBEAM = 'GLMR',
 }
@@ -140,6 +141,8 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.ARBITRUM_RINKEBY]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
+  [ChainId.CELO]: NativeCurrencyName.CELO,
+  [ChainId.CELO_ALFAJORES]: NativeCurrencyName.CELO,
   [ChainId.GNOSIS]: NativeCurrencyName.GNOSIS,
   [ChainId.MOONBEAM]: NativeCurrencyName.MOONBEAM,
 };
@@ -442,12 +445,12 @@ export class ExtendedEther extends Ether {
 
 const cachedNativeCurrency: { [chainId: number]: NativeCurrency } = {};
 export function nativeOnChain(chainId: number): NativeCurrency {
-  switch(true) {
-    case(cachedNativeCurrency[chainId] != undefined): return cachedNativeCurrency[chainId]!
-    case(isMatic(chainId)): return new MaticNativeCurrency(chainId);
-    case(isCelo(chainId)): return new CeloNativeCurrency(chainId);
-    case(isGnosis(chainId)): return new GnosisNativeCurrency(chainId);
-    case(isMoonbeam(chainId)): return new MoonbeamNativeCurrency(chainId);
-    default: return ExtendedEther.onChain(chainId);
-  }
+  if(cachedNativeCurrency[chainId] != undefined) return cachedNativeCurrency[chainId]!
+  if(isMatic(chainId)) cachedNativeCurrency[chainId] = new MaticNativeCurrency(chainId)
+  else if(isCelo(chainId)) cachedNativeCurrency[chainId] = new CeloNativeCurrency(chainId)
+  else if(isGnosis(chainId)) cachedNativeCurrency[chainId] = new GnosisNativeCurrency(chainId)
+  else if(isMoonbeam(chainId)) cachedNativeCurrency[chainId] = new MoonbeamNativeCurrency(chainId)
+  else cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId)
+
+  return cachedNativeCurrency[chainId]!
 }

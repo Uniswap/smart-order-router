@@ -34,6 +34,9 @@ import {
   CUSD_CELO_ALFAJORES,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
+  WBTC_GNOSIS,
+  WBTC_MOONBEAM,
+  USDC_ETHEREUM_GNOSIS,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -858,6 +861,8 @@ describe('quote for other networks', () => {
     [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
     [ChainId.CELO]: CUSD_CELO,
     [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: WBTC_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
@@ -873,6 +878,8 @@ describe('quote for other networks', () => {
     [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
     [ChainId.CELO]: CEUR_CELO,
     [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -916,8 +923,8 @@ describe('quote for other networks', () => {
           const tokenOut = erc1;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('10', tokenIn)
-              : parseAmount('10', tokenOut);
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -962,32 +969,28 @@ describe('quote for other networks', () => {
         const native = NATIVE_CURRENCY[chain];
 
         it(`${native} -> erc20`, async () => {
-          // CELO follows the ERC20 standard, so we do not consider it a native
-          // Currency even though it can be transferred without interacting with
-          // the ERC20 interface
-          if(chain != ChainId.CELO && chain != ChainId.CELO_ALFAJORES) {
-              const tokenIn = nativeOnChain(chain);
-              const tokenOut = erc2;
-              const amount =
-                tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('100', tokenIn)
-                  : parseAmount('100', tokenOut);
+          const tokenIn = nativeOnChain(chain);
+          const tokenOut = erc2;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
 
-              const swap = await alphaRouter.route(
-                amount,
-                getQuoteToken(tokenIn, tokenOut, tradeType),
-                tradeType,
-                undefined,
-                {
-                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
-                }
-              );
-              expect(swap).toBeDefined();
-              expect(swap).not.toBeNull();
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
             }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
           });
+
           it(`has quoteGasAdjusted values`, async () => {
             const tokenIn = erc1;
             const tokenOut = erc2;
