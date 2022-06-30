@@ -417,13 +417,9 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       .value();
 
     if (pools.length == 0) {
-      log.error(
-        { pools },
-        `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`
-      );
-      throw new Error(
-        `Can't find USD/${wrappedCurrency.symbol} pool for computing gas costs.`
-      );
+      const message = `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`;
+      log.error({ pools }, message);
+      throw new Error(message);
     }
 
     const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;

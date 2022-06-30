@@ -1,26 +1,71 @@
 import { Token } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
-import { ChainId } from './chains';
+import { ChainId, NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
-export const V3_CORE_FACTORY_ADDRESS = FACTORY_ADDRESS;
-export const QUOTER_V2_ADDRESS = '0x61fFE014bA17989E743c5F6cB21bF9697530B21e';
+const CELO_V3_CORE_FACTORY_ADDRESSES = '0xd9dc0d8f754c027DF7eCB4BD381301cEC76CD32F'
+const CELO_QUOTER_ADDRESSES = '0x2CD7EB648DadDF69468bBa4BdA644d9905a58b64'
+const CELO_MULTICALL_ADDRESS = '0x9e824152ADA7574b659585f51e7Da9BeC9F4aC74'
+
+export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap(FACTORY_ADDRESS),
+  [ChainId.CELO]: CELO_V3_CORE_FACTORY_ADDRESSES,
+  [ChainId.CELO_ALFAJORES]: CELO_V3_CORE_FACTORY_ADDRESSES,
+
+  // TODO: Gnosis + Moonbeam contracts to be deployed
+};
+
+export const QUOTER_V2_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap('0x61fFE014bA17989E743c5F6cB21bF9697530B21e'),
+  [ChainId.CELO]: CELO_QUOTER_ADDRESSES,
+  [ChainId.CELO_ALFAJORES]: CELO_QUOTER_ADDRESSES,
+
+  // TODO: Gnosis + Moonbeam contracts to be deployed
+};
+
+export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
+  [ChainId.CELO]: CELO_MULTICALL_ADDRESS,
+  [ChainId.CELO_ALFAJORES]: CELO_MULTICALL_ADDRESS,
+
+  // TODO: Gnosis + Moonbeam contracts to be deployed
+};
+
 export const OVM_GASPRICE_ADDRESS =
   '0x420000000000000000000000000000000000000F';
 export const ARB_GASINFO_ADDRESS = '0x000000000000000000000000000000000000006C';
+
 export const TICK_LENS_ADDRESS = '0xbfd8137f7d1516D3ea5cA83523914859ec47F573';
 export const NONFUNGIBLE_POSITION_MANAGER_ADDRESS =
   '0xC36442b4a4522E871399CD717aBDD847Ab11FE88';
 export const SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 export const V3_MIGRATOR_ADDRESS = '0xA5644E29708357803b5A882D272c41cC0dF92B34';
-
-export const UNISWAP_MULTICALL_ADDRESS =
-  '0x1F98415757620B543A52E61c46B32eB19261F984';
 export const MULTICALL2_ADDRESS = '0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696';
+
+type AddressMap = { [chainId: number]: string };
+
+export function constructSameAddressMap<T extends string>(
+  address: T,
+  additionalNetworks: ChainId[] = []
+): { [chainId: number]: T } {
+  return NETWORKS_WITH_SAME_UNISWAP_ADDRESSES.concat(
+    additionalNetworks
+  ).reduce<{
+    [chainId: number]: T;
+  }>((memo, chainId) => {
+    memo[chainId] = address;
+    return memo;
+  }, {});
+}
 
 export const WETH9: {
   [chainId in Exclude<
     ChainId,
-    ChainId.POLYGON | ChainId.POLYGON_MUMBAI
+    | ChainId.POLYGON
+    | ChainId.POLYGON_MUMBAI
+    | ChainId.CELO
+    | ChainId.CELO_ALFAJORES
+    | ChainId.GNOSIS
+    | ChainId.MOONBEAM
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(

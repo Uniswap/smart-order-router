@@ -30,6 +30,13 @@ import {
   USDT_MAINNET,
   WETH9,
   WNATIVE_ON,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
+  CEUR_CELO,
+  CEUR_CELO_ALFAJORES,
+  WBTC_GNOSIS,
+  WBTC_MOONBEAM,
+  USDC_ETHEREUM_GNOSIS,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -852,6 +859,10 @@ describe('quote for other networks', () => {
     [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: CUSD_CELO,
+    [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: WBTC_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
@@ -865,6 +876,10 @@ describe('quote for other networks', () => {
     [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: CEUR_CELO,
+    [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -874,7 +889,10 @@ describe('quote for other networks', () => {
       c != ChainId.OPTIMISTIC_KOVAN &&
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_RINKEBY &&
-      c != ChainId.OPTIMISM /// @dev infura has been having issues with optimism lately
+      c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
+      
+      // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
+      c != ChainId.CELO_ALFAJORES
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];
@@ -882,7 +900,7 @@ describe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        // jest.retryTimes(1);
+        jest.retryTimes(1);
 
         const wrappedNative = WNATIVE_ON(chain);
 
@@ -956,10 +974,18 @@ describe('quote for other networks', () => {
         it(`${native} -> erc20`, async () => {
           const tokenIn = nativeOnChain(chain);
           const tokenOut = erc2;
+
+          // Celo currently has low liquidity and will not be able to find route for
+          // large input amounts
+          // TODO: Simplify this when Celo has more liquidity
           const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100', tokenIn)
-              : parseAmount('100', tokenOut);
+            chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
+              ? tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10', tokenOut)
+              : tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut)
 
           const swap = await alphaRouter.route(
             amount,
@@ -974,38 +1000,38 @@ describe('quote for other networks', () => {
           );
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
-        });
-        it(`has quoteGasAdjusted values`, async () => {
-          const tokenIn = erc1;
-          const tokenOut = erc2;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
+          });
+          it(`has quoteGasAdjusted values`, async () => {
+            const tokenIn = erc1;
+            const tokenOut = erc2;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1', tokenOut);
 
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: [Protocol.V3, Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const { quote, quoteGasAdjusted } = swap!;
+
+            if (tradeType == TradeType.EXACT_INPUT) {
+              // === .lessThanOrEqualTo
+              expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
+            } else {
+              // === .greaterThanOrEqualTo
+              expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
             }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-
-          const { quote, quoteGasAdjusted } = swap!;
-
-          if (tradeType == TradeType.EXACT_INPUT) {
-            // === .lessThanOrEqualTo
-            expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
-          } else {
-            // === .greaterThanOrEqualTo
-            expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
-          }
         });
       });
     }

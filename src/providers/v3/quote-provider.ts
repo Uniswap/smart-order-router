@@ -7,7 +7,7 @@ import stats from 'stats-lite';
 import { V3Route } from '../../routers/router';
 import { IQuoterV2__factory } from '../../types/v3/factories/IQuoterV2__factory';
 import { ChainId, metric, MetricLoggerUnit } from '../../util';
-import { QUOTER_V2_ADDRESS } from '../../util/addresses';
+import { QUOTER_V2_ADDRESSES } from '../../util/addresses';
 import { CurrencyAmount } from '../../util/amounts';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
@@ -273,7 +273,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
   ) {
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
-      : QUOTER_V2_ADDRESS;
+      : QUOTER_V2_ADDRESSES[this.chainId];
 
     if (!quoterAddress) {
       throw new Error(
