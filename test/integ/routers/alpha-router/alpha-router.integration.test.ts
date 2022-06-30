@@ -30,7 +30,6 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
-  V3QuoteProvider,
   V3_CORE_FACTORY_ADDRESS,
   WETH9,
   WNATIVE_ON,
@@ -377,26 +376,6 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      v3QuoteProvider: new V3QuoteProvider(
-        ChainId.MAINNET,
-        hardhat.provider,
-        multicall2Provider,
-        /// Same config as V3QuoteProvider
-        {
-          retries: 2,
-          minTimeout: 100,
-          maxTimeout: 1000,
-        },
-        {
-          multicallChunk: 210,
-          gasLimitPerCall: 705_000,
-          quoteMinSuccessRate: 0.15,
-        },
-        {
-          gasLimitOverride: 2_000_000,
-          multicallChunk: 70,
-        }
-      ),
       mixedRouteQuoteProvider: new MixedRouteQuoteProvider(
         ChainId.MAINNET,
         hardhat.provider,
@@ -426,10 +405,10 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
-        it('erc20 -> erc20', async () => {
+        it.only('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
@@ -943,7 +922,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe.only('QuoterV3', () => {
+  describe('QuoterV3', () => {
     const WISE_MAINNET = new Token(
       1,
       '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
