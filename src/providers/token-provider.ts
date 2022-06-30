@@ -457,7 +457,7 @@ export const USDC_ETHEREUM_GNOSIS = new Token(
   6,
   'USDC',
   'USDC from Ethereum on Gnosis'
-)
+);
 
 export const WXDAI_GNOSIS = new Token(
   ChainId.GNOSIS,
@@ -465,7 +465,7 @@ export const WXDAI_GNOSIS = new Token(
   18,
   'WXDAI',
   'Wrapped XDAI on Gnosis'
-)
+);
 
 export const WBTC_GNOSIS = new Token(
   ChainId.GNOSIS,
@@ -473,7 +473,7 @@ export const WBTC_GNOSIS = new Token(
   8,
   'WBTC',
   'Wrapped BTC from Ethereum on Gnosis'
-)
+);
 
 // Moonbeam Tokens
 export const USDC_MOONBEAM = new Token(
@@ -482,7 +482,7 @@ export const USDC_MOONBEAM = new Token(
   6,
   'USDC',
   'USD Coin bridged using Multichain'
-)
+);
 
 export const WGLMR_MOONBEAM = new Token(
   ChainId.MOONBEAM,
@@ -490,7 +490,7 @@ export const WGLMR_MOONBEAM = new Token(
   18,
   'WGLMR',
   'Wrapped GLMR'
-)
+);
 
 export const DAI_MOONBEAM = new Token(
   ChainId.MOONBEAM,
@@ -498,7 +498,7 @@ export const DAI_MOONBEAM = new Token(
   6,
   'DAI',
   'Dai on moonbeam bridged using Multichain'
-)
+);
 
 export const WBTC_MOONBEAM = new Token(
   ChainId.MOONBEAM,
@@ -506,7 +506,7 @@ export const WBTC_MOONBEAM = new Token(
   8,
   'WBTC',
   'Wrapped BTC bridged using Multichain'
-)
+);
 
 export class TokenProvider implements ITokenProvider {
   constructor(

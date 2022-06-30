@@ -15,7 +15,7 @@ export enum ChainId {
   CELO = 42220,
   CELO_ALFAJORES = 44787,
   GNOSIS = 100,
-  MOONBEAM = 1284
+  MOONBEAM = 1284,
 }
 
 // WIP: Gnosis, Moonbeam
@@ -316,7 +316,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'Celo native asset'
   ),
   [ChainId.GNOSIS]: WXDAI_GNOSIS,
-  [ChainId.MOONBEAM]: WGLMR_MOONBEAM
+  [ChainId.MOONBEAM]: WGLMR_MOONBEAM,
 };
 
 function isMatic(
@@ -371,9 +371,7 @@ class CeloNativeCurrency extends NativeCurrency {
   }
 }
 
-function isGnosis(
-  chainId: number
-): chainId is ChainId.GNOSIS {
+function isGnosis(chainId: number): chainId is ChainId.GNOSIS {
   return chainId === ChainId.GNOSIS;
 }
 
@@ -397,9 +395,7 @@ class GnosisNativeCurrency extends NativeCurrency {
   }
 }
 
-function isMoonbeam(
-  chainId: number
-): chainId is ChainId.MOONBEAM {
+function isMoonbeam(chainId: number): chainId is ChainId.MOONBEAM {
   return chainId === ChainId.MOONBEAM;
 }
 
@@ -441,16 +437,19 @@ export class ExtendedEther extends Ether {
   }
 }
 
-
-
 const cachedNativeCurrency: { [chainId: number]: NativeCurrency } = {};
 export function nativeOnChain(chainId: number): NativeCurrency {
-  if(cachedNativeCurrency[chainId] != undefined) return cachedNativeCurrency[chainId]!
-  if(isMatic(chainId)) cachedNativeCurrency[chainId] = new MaticNativeCurrency(chainId)
-  else if(isCelo(chainId)) cachedNativeCurrency[chainId] = new CeloNativeCurrency(chainId)
-  else if(isGnosis(chainId)) cachedNativeCurrency[chainId] = new GnosisNativeCurrency(chainId)
-  else if(isMoonbeam(chainId)) cachedNativeCurrency[chainId] = new MoonbeamNativeCurrency(chainId)
-  else cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId)
+  if (cachedNativeCurrency[chainId] != undefined)
+    return cachedNativeCurrency[chainId]!;
+  if (isMatic(chainId))
+    cachedNativeCurrency[chainId] = new MaticNativeCurrency(chainId);
+  else if (isCelo(chainId))
+    cachedNativeCurrency[chainId] = new CeloNativeCurrency(chainId);
+  else if (isGnosis(chainId))
+    cachedNativeCurrency[chainId] = new GnosisNativeCurrency(chainId);
+  else if (isMoonbeam(chainId))
+    cachedNativeCurrency[chainId] = new MoonbeamNativeCurrency(chainId);
+  else cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
 
-  return cachedNativeCurrency[chainId]!
+  return cachedNativeCurrency[chainId]!;
 }

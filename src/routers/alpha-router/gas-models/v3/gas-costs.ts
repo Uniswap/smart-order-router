@@ -25,9 +25,9 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
 
     //TODO determine if sufficient
     case ChainId.GNOSIS:
-      return BigNumber.from(2000)
+      return BigNumber.from(2000);
     case ChainId.MOONBEAM:
-      return BigNumber.from(2000)
+      return BigNumber.from(2000);
   }
 };
 export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {

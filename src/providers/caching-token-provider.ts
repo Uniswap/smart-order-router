@@ -123,7 +123,7 @@ export const CACHE_SEED_TOKENS: {
     DAI: DAI_MOONBEAM,
     WBTC: WBTC_MOONBEAM,
     WGLMR: WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],
-  }
+  },
 
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };

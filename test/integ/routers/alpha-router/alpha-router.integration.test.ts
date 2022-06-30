@@ -13,7 +13,11 @@ import {
 import {
   AlphaRouter,
   AlphaRouterConfig,
+  CEUR_CELO,
+  CEUR_CELO_ALFAJORES,
   ChainId,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
   DAI_ON,
   ID_TO_NETWORK_NAME,
@@ -25,18 +29,14 @@ import {
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
+  USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
-  WETH9,
-  WNATIVE_ON,
-  CUSD_CELO,
-  CUSD_CELO_ALFAJORES,
-  CEUR_CELO,
-  CEUR_CELO_ALFAJORES,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
-  USDC_ETHEREUM_GNOSIS,
+  WETH9,
+  WNATIVE_ON,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -890,7 +890,6 @@ describe('quote for other networks', () => {
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_RINKEBY &&
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
-      
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES
   )) {
@@ -984,8 +983,8 @@ describe('quote for other networks', () => {
                 ? parseAmount('10', tokenIn)
                 : parseAmount('10', tokenOut)
               : tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('100', tokenIn)
-                : parseAmount('100', tokenOut)
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -1000,38 +999,38 @@ describe('quote for other networks', () => {
           );
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
-          });
-          it(`has quoteGasAdjusted values`, async () => {
-            const tokenIn = erc1;
-            const tokenOut = erc2;
-            const amount =
-              tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('1', tokenIn)
-                : parseAmount('1', tokenOut);
+        });
+        it(`has quoteGasAdjusted values`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
 
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
-              tradeType,
-              undefined,
-              {
-                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
-
-            const { quote, quoteGasAdjusted } = swap!;
-
-            if (tradeType == TradeType.EXACT_INPUT) {
-              // === .lessThanOrEqualTo
-              expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
-            } else {
-              // === .greaterThanOrEqualTo
-              expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
             }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted } = swap!;
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            // === .lessThanOrEqualTo
+            expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
+          } else {
+            // === .greaterThanOrEqualTo
+            expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
+          }
         });
       });
     }
