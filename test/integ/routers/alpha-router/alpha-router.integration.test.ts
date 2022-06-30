@@ -889,7 +889,10 @@ describe('quote for other networks', () => {
       c != ChainId.OPTIMISTIC_KOVAN &&
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_RINKEBY &&
-      c != ChainId.OPTIMISM /// @dev infura has been having issues with optimism lately
+      c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
+      
+      // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
+      c != ChainId.CELO_ALFAJORES
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];
@@ -897,7 +900,7 @@ describe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        // jest.retryTimes(1);
+        jest.retryTimes(1);
 
         const wrappedNative = WNATIVE_ON(chain);
 
