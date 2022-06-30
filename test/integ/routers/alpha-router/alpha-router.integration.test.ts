@@ -95,7 +95,6 @@ const checkQuoteToken = (
     ? tokensQuoted.subtract(tokensSwapped)
     : tokensSwapped.subtract(tokensQuoted);
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction);
-  console.log(percentDiff.toFixed(4));
   expect(percentDiff.lessThan(SLIPPAGE)).toBe(true);
 };
 
@@ -170,13 +169,6 @@ describe('alpha router integration', () => {
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
     const tokenOutAfter = await hardhat.getBalance(alice._address, tokenOut);
-
-    console.log({
-      tokenInAfter: tokenInAfter.toExact(),
-      tokenInBefore: tokenInBefore.toExact(),
-      tokenOutAfter: tokenOutAfter.toExact(),
-      tokenOutBefore: tokenOutBefore.toExact(),
-    });
 
     return {
       tokenInAfter,
