@@ -1,6 +1,5 @@
 {
   "root": true,
-  "parser": "@typescript-eslint/parser",
   "env": { "es6": true },
   "ignorePatterns": ["node_modules", "build", "coverage"],
   "plugins": ["import", "eslint-comments"],
@@ -12,7 +11,8 @@
   "globals": { "BigInt": true, "console": true, "WebAssembly": true },
   "overrides": [
     {
-      "files": ["*.ts", "*.tsx"],
+      "files": ["*.ts"],
+      "parser": "@typescript-eslint/parser",
       "extends": [
         "plugin:@typescript-eslint/recommended",
         "plugin:import/typescript",
