@@ -37,9 +37,9 @@ export interface IV2QuoteProvider {
  * @class V2QuoteProvider
  */
 export class V2QuoteProvider implements IV2QuoteProvider {
-  /* eslint-disable no-empty-function */
+  /* eslint-disable @typescript-eslint/no-empty-function */
   constructor() {}
-  /* eslint-enable no-empty-function */
+  /* eslint-enable @typescript-eslint/no-empty-function */
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],

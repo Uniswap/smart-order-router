@@ -421,12 +421,12 @@ export async function getBestSwapRouteBy(
   let gasCostsL1ToL2: L1ToL2GasCosts = {
     gasUsedL1: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
-    /* eslint-disable no-non-null-asserted-optional-chain */
+    /* eslint-disable @typescript-eslint/no-non-null-asserted-optional-chain */
     gasCostL1QuoteToken: CurrencyAmount.fromRawAmount(
       bestSwap[0]?.quoteToken!,
       0
     ),
-    /* eslint-enable no-non-null-asserted-optional-chain */
+    /* eslint-enable @typescript-eslint/no-non-null-asserted-optional-chain */
   };
   // If swapping on an L2 that includes a L1 security fee, calculate the fee and include it in the gas adjusted quotes
   if (HAS_L1_FEE.includes(chainId)) {
