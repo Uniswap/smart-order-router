@@ -16,6 +16,7 @@
   "globals": { "BigInt": true, "console": true, "WebAssembly": true },
   "rules": {
     "@typescript-eslint/no-useless-catch": "off",
+    "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "eslint-comments/disable-enable-pair": [
       "error",
