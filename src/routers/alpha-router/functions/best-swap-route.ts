@@ -424,7 +424,7 @@ export async function getBestSwapRouteBy(
     gasUsedL1: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
     gasCostL1QuoteToken: CurrencyAmount.fromRawAmount(
-      // eslint-ignore-next-line
+      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
       bestSwap[0]?.quoteToken!,
       0
     ),

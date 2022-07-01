@@ -46,6 +46,7 @@ export class URISubgraphProvider<
 
         let response;
 
+        /* eslint-disable no-useless-catch */
         try {
           response = await Promise.race([axios.get(this.uri), timerPromise]);
         } catch (err) {
@@ -53,6 +54,7 @@ export class URISubgraphProvider<
         } finally {
           timeout.clear();
         }
+        /* eslint-enable no-useless-catch */
 
         const { data: poolsBuffer, status } = response;
 

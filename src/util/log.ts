@@ -1,4 +1,5 @@
-// eslint-disable
+/* eslint-disable */
+
 import Logger from 'bunyan';
 
 class NullLogger implements Logger {
