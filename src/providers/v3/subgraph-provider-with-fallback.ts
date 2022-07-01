@@ -1,6 +1,8 @@
 import { Token } from '@uniswap/sdk-core';
+
 import { log } from '../../util';
 import { ProviderConfig } from '../provider';
+
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
 /**

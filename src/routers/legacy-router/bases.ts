@@ -1,4 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
+
 import {
   DAI_MAINNET,
   ITokenProvider,

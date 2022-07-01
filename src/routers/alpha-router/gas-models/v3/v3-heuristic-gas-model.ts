@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+
 import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import {
   ArbitrumGasData,
@@ -22,6 +23,7 @@ import {
   IV3GasModelFactory,
   usdGasTokensByChain,
 } from '../gas-model';
+
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
 // Cost for crossing an uninitialized tick.

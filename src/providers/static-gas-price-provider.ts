@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers';
+
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 export class StaticGasPriceProvider implements IGasPriceProvider {

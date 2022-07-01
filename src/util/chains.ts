@@ -1,4 +1,5 @@
 import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
+
 import { WGLMR_MOONBEAM, WXDAI_GNOSIS } from '../providers';
 export enum ChainId {
   MAINNET = 1,
