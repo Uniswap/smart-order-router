@@ -37,8 +37,9 @@ export interface IV2QuoteProvider {
  * @class V2QuoteProvider
  */
 export class V2QuoteProvider implements IV2QuoteProvider {
-  // eslint-disable-next-line no-empty-function
+  /* eslint-disable no-empty-function */
   constructor() {}
+  /* eslint-enable no-empty-function */
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
