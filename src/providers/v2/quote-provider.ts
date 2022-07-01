@@ -37,6 +37,7 @@ export interface IV2QuoteProvider {
  * @class V2QuoteProvider
  */
 export class V2QuoteProvider implements IV2QuoteProvider {
+  // @eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
 
   public async getQuotesManyExactIn(
