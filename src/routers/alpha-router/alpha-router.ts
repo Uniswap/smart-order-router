@@ -927,7 +927,6 @@ export class AlphaRouter
         tradeType == TradeType.EXACT_INPUT &&
         this.chainId === ChainId.MAINNET
       ) {
-        console.log('adding mixed route quotes');
         quotePromises.push(
           this.getMixedRouteQuotes(
             tokenIn,
@@ -1010,7 +1009,6 @@ export class AlphaRouter
       V3gasModel
     );
 
-    console.log('swapRouteRaw');
     console.log(
       swapRouteRaw?.routes.map((r) => {
         return {
@@ -1467,8 +1465,51 @@ export class AlphaRouter
     const V2poolsRaw = V2poolAccessor.getAllPools();
 
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
-    // TODO: need a new type for returning both V3 and V2 candidate pools.
-    const candidatePools = candidateV3Pools; // @fix
+
+    /// I know there must be a better way to do this in TS
+    const buildCandidatePools: CandidatePoolsBySelectionCriteria = {
+      protocol: Protocol.MIXED,
+      selections: {
+        topByBaseWithTokenIn: [
+          ...candidateV3Pools.selections.topByBaseWithTokenIn,
+          ...candidateV2Pools.selections.topByBaseWithTokenIn,
+        ],
+        topByBaseWithTokenOut: [
+          ...candidateV3Pools.selections.topByBaseWithTokenOut,
+          ...candidateV2Pools.selections.topByBaseWithTokenOut,
+        ],
+        topByDirectSwapPool: [
+          ...candidateV3Pools.selections.topByDirectSwapPool,
+          ...candidateV2Pools.selections.topByDirectSwapPool,
+        ],
+        topByEthQuoteTokenPool: [
+          ...candidateV3Pools.selections.topByEthQuoteTokenPool,
+          ...candidateV2Pools.selections.topByEthQuoteTokenPool,
+        ],
+        topByTVL: [
+          ...candidateV3Pools.selections.topByTVL,
+          ...candidateV2Pools.selections.topByTVL,
+        ],
+        topByTVLUsingTokenIn: [
+          ...candidateV3Pools.selections.topByTVLUsingTokenIn,
+          ...candidateV2Pools.selections.topByTVLUsingTokenIn,
+        ],
+        topByTVLUsingTokenOut: [
+          ...candidateV3Pools.selections.topByTVLUsingTokenOut,
+          ...candidateV2Pools.selections.topByTVLUsingTokenOut,
+        ],
+        topByTVLUsingTokenInSecondHops: [
+          ...candidateV3Pools.selections.topByTVLUsingTokenInSecondHops,
+          ...candidateV2Pools.selections.topByTVLUsingTokenInSecondHops,
+        ],
+        topByTVLUsingTokenOutSecondHops: [
+          ...candidateV3Pools.selections.topByTVLUsingTokenOutSecondHops,
+          ...candidateV2Pools.selections.topByTVLUsingTokenOutSecondHops,
+        ],
+      },
+    };
+
+    const candidatePools = buildCandidatePools;
 
     // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
     const parts = await this.applyTokenValidatorToPools(
@@ -1703,6 +1744,7 @@ export class AlphaRouter
 
     let hasV3Route = false;
     let hasV2Route = false;
+    let hasMixedRoute = false;
     for (const routeAmount of routeAmounts) {
       if (routeAmount.protocol == Protocol.V3) {
         hasV3Route = true;
@@ -1710,15 +1752,61 @@ export class AlphaRouter
       if (routeAmount.protocol == Protocol.V2) {
         hasV2Route = true;
       }
+      if (routeAmount.protocol == Protocol.MIXED) {
+        hasMixedRoute = true;
+      }
     }
 
-    if (hasV3Route && hasV2Route) {
+    if (hasMixedRoute && (hasV3Route || hasV2Route)) {
+      if (hasV3Route && hasV2Route) {
+        metric.putMetric(
+          `MixedAndV3AndV2SplitRoute`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `MixedAndV3AndV2SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else if (hasV3Route) {
+        metric.putMetric(`MixedAndV3SplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedAndV3SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else if (hasV2Route) {
+        metric.putMetric(`MixedAndV2SplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedAndV2SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+    } else if (hasV3Route && hasV2Route) {
       metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
       metric.putMetric(
         `V3AndV2SplitRouteForChain${this.chainId}`,
         1,
         MetricLoggerUnit.Count
       );
+    } else if (hasMixedRoute) {
+      if (routeAmounts.length > 1) {
+        metric.putMetric(`MixedSplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedSplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else {
+        metric.putMetric(`MixedRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
     } else if (hasV3Route) {
       if (routeAmounts.length > 1) {
         metric.putMetric(`V3SplitRoute`, 1, MetricLoggerUnit.Count);

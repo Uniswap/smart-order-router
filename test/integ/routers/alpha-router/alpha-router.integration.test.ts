@@ -400,7 +400,7 @@ describe('alpha router integration', () => {
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
-        it.only('erc20 -> erc20', async () => {
+        it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
@@ -914,7 +914,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe('QuoterV3', () => {
+  describe.only('QuoterV3', () => {
     const WISE_MAINNET = new Token(
       1,
       '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
