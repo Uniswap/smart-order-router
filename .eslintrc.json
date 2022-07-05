@@ -3,7 +3,7 @@
   "parser": "@typescript-eslint/parser",
   "parserOptions": { "project": "./tsconfig.json" },
   "env": { "es6": true },
-  "ignorePatterns": ["node_modules", "build", "coverage"],
+  "ignorePatterns": ["node_modules", "build", "coverage", "types", "test"],
   "plugins": ["import", "eslint-comments"],
   "extends": [
     "eslint:recommended",
@@ -15,6 +15,7 @@
   ],
   "globals": { "BigInt": true, "console": true, "WebAssembly": true },
   "rules": {
+    "eslint-comments/no-unlimited-disable": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "eslint-comments/disable-enable-pair": [
       "error",
@@ -36,11 +37,7 @@
           {
             "name": "ethers",
             "message": "Please import from '@ethersproject/module' directly to support tree-shaking."
-          }
-        ]
-      },
-      {
-        "paths": [
+          },
           {
             "name": "mnemonist",
             "message": "Please import from 'mnemonist/module' directly to support tree-shaking."

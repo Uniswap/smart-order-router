@@ -1,6 +1,8 @@
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
+
 import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+
 import { ICache } from './cache';
 import {
   CELO,

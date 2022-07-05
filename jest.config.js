@@ -4,7 +4,7 @@ module.exports = {
   testEnvironment: 'node',
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node', 'd.ts'],
   /**
-   * @note use this if we have multiple integration test files
+   * @dev use this if we have multiple integration test files
    */
   // testEnvironment: "jest-environment-hardhat"
 };

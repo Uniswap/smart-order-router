@@ -16,7 +16,7 @@ import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { V3HeuristicGasModelFactory } from '.';
+
 import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
@@ -100,6 +100,7 @@ import {
   SwapToRatioResponse,
   SwapToRatioStatus,
 } from '../router';
+
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -127,6 +128,8 @@ import {
   IV3GasModelFactory,
 } from './gas-models/gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
+
+import { V3HeuristicGasModelFactory } from '.';
 
 export type AlphaRouterParams = {
   /**

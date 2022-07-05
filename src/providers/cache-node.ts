@@ -1,4 +1,5 @@
 import NodeCache from 'node-cache';
+
 import { ICache } from './cache';
 
 export class NodeJSCache<T> implements ICache<T> {

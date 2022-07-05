@@ -1,8 +1,10 @@
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import axios from 'axios';
+
 import { ChainId } from '../util/chains';
 import { log } from '../util/log';
+
 import { V2SubgraphPool } from './v2/subgraph-provider';
 import { V3SubgraphPool } from './v3/subgraph-provider';
 
@@ -44,6 +46,7 @@ export class URISubgraphProvider<
 
         let response;
 
+        /* eslint-disable no-useless-catch */
         try {
           response = await Promise.race([axios.get(this.uri), timerPromise]);
         } catch (err) {
@@ -51,6 +54,7 @@ export class URISubgraphProvider<
         } finally {
           timeout.clear();
         }
+        /* eslint-enable no-useless-catch */
 
         const { data: poolsBuffer, status } = response;
 
