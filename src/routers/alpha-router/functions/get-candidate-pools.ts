@@ -2,15 +2,23 @@ import { Protocol } from '@uniswap/router-sdk';
 import { Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+
 import {
   ITokenListProvider,
   IV2SubgraphProvider,
   V2SubgraphPool,
 } from '../../../providers';
 import {
+  CELO,
+  CELO_ALFAJORES,
+  CEUR_CELO,
+  CEUR_CELO_ALFAJORES,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
   DAI_MAINNET,
+  DAI_MOONBEAM,
   DAI_OPTIMISM,
   DAI_OPTIMISTIC_KOVAN,
   DAI_POLYGON_MUMBAI,
@@ -19,7 +27,9 @@ import {
   FEI_MAINNET,
   ITokenProvider,
   USDC_ARBITRUM,
+  USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
+  USDC_MOONBEAM,
   USDC_OPTIMISM,
   USDC_OPTIMISTIC_KOVAN,
   USDC_POLYGON,
@@ -29,11 +39,15 @@ import {
   USDT_OPTIMISM,
   USDT_OPTIMISTIC_KOVAN,
   WBTC_ARBITRUM,
+  WBTC_GNOSIS,
   WBTC_MAINNET,
+  WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WBTC_OPTIMISTIC_KOVAN,
+  WGLMR_MOONBEAM,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
+  WXDAI_GNOSIS,
 } from '../../../providers/token-provider';
 import {
   IV2PoolProvider,
@@ -127,6 +141,19 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDT_ARBITRUM_RINKEBY],
   [ChainId.POLYGON]: [USDC_POLYGON, WMATIC_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI, WMATIC_POLYGON_MUMBAI],
+  [ChainId.CELO]: [CUSD_CELO, CEUR_CELO, CELO],
+  [ChainId.CELO_ALFAJORES]: [
+    CUSD_CELO_ALFAJORES,
+    CEUR_CELO_ALFAJORES,
+    CELO_ALFAJORES,
+  ],
+  [ChainId.GNOSIS]: [WBTC_GNOSIS, WXDAI_GNOSIS, USDC_ETHEREUM_GNOSIS],
+  [ChainId.MOONBEAM]: [
+    DAI_MOONBEAM,
+    USDC_MOONBEAM,
+    WBTC_MOONBEAM,
+    WGLMR_MOONBEAM,
+  ],
 };
 
 export async function getV3CandidatePools({

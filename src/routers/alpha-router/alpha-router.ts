@@ -16,7 +16,7 @@ import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { V3HeuristicGasModelFactory } from '.';
+
 import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
@@ -102,6 +102,7 @@ import {
   SwapToRatioResponse,
   SwapToRatioStatus,
 } from '../router';
+
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -134,6 +135,8 @@ import {
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
+
+import { V3HeuristicGasModelFactory } from '.';
 
 export type AlphaRouterParams = {
   /**
@@ -448,6 +451,33 @@ export class AlphaRouter
             {
               gasLimitOverride: 30_000_000,
               multicallChunk: 6,
+            }
+          );
+          break;
+
+        case ChainId.CELO:
+        case ChainId.CELO_ALFAJORES:
+          this.v3QuoteProvider = new V3QuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 10,
+              gasLimitPerCall: 5_000_000,
+              quoteMinSuccessRate: 0.1,
+            },
+            {
+              gasLimitOverride: 5_000_000,
+              multicallChunk: 5,
+            },
+            {
+              gasLimitOverride: 6_250_000,
+              multicallChunk: 4,
             }
           );
           break;

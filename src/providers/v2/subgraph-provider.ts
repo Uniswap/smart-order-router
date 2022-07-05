@@ -3,6 +3,7 @@ import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
+
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
@@ -151,6 +152,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           return pairs;
         };
 
+        /* eslint-disable no-useless-catch */
         try {
           const getPoolsPromise = getPools();
           const timerPromise = timeout.set(this.timeout).then(() => {
@@ -165,6 +167,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         } finally {
           timeout.clear();
         }
+        /* eslint-enable no-useless-catch */
       },
       {
         retries: this.retries,

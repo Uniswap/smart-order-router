@@ -18,7 +18,9 @@ import {
   Position,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
+
 import { CurrencyAmount } from '../util/amounts';
+
 import { RouteWithValidQuote } from './alpha-router';
 
 export class V3Route extends V3RouteRaw<Token, Token> {}

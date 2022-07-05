@@ -3,6 +3,7 @@ import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
+
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
@@ -55,6 +56,8 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal',
   [ChainId.POLYGON]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon',
+  [ChainId.CELO]:
+    'https://api.thegraph.com/subgraphs/name/joaquin-hernandez/uniswapv3-subgraph-celo',
   [ChainId.GÖRLI]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-gorli',
 };
@@ -161,6 +164,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           return pools;
         };
 
+        /* eslint-disable no-useless-catch */
         try {
           const getPoolsPromise = getPools();
           const timerPromise = timeout.set(this.timeout).then(() => {
@@ -175,6 +179,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
         } finally {
           timeout.clear();
         }
+        /* eslint-enable no-useless-catch */
       },
       {
         retries: this.retries,

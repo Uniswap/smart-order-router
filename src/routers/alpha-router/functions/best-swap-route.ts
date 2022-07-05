@@ -5,6 +5,7 @@ import JSBI from 'jsbi';
 import _ from 'lodash';
 import FixedReverseHeap from 'mnemonist/fixed-reverse-heap';
 import Queue from 'mnemonist/queue';
+
 import { ChainId, HAS_L1_FEE } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -12,6 +13,7 @@ import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { routeAmountsToString, routeToString } from '../../../util/routes';
 import { AlphaRouterConfig } from '../alpha-router';
 import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
+
 import {
   RouteWithValidQuote,
   V3RouteWithValidQuote,
@@ -422,6 +424,7 @@ export async function getBestSwapRouteBy(
     gasUsedL1: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
     gasCostL1QuoteToken: CurrencyAmount.fromRawAmount(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
       bestSwap[0]?.quoteToken!,
       0
     ),

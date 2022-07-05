@@ -11,7 +11,7 @@ import {
   parseAmount,
   SwapRoute,
 } from '../../src';
-import { TO_PROTOCOL } from '../../src/util/protocols';
+import { TO_PROTOCOL } from '../../src/util';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
