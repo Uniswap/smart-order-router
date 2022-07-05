@@ -56,17 +56,20 @@ import { AlphaRouterConfig } from '../alpha-router';
 export type PoolId = { id: string };
 export type CandidatePoolsBySelectionCriteria = {
   protocol: Protocol;
-  selections: {
-    topByBaseWithTokenIn: PoolId[];
-    topByBaseWithTokenOut: PoolId[];
-    topByDirectSwapPool: PoolId[];
-    topByEthQuoteTokenPool: PoolId[];
-    topByTVL: PoolId[];
-    topByTVLUsingTokenIn: PoolId[];
-    topByTVLUsingTokenOut: PoolId[];
-    topByTVLUsingTokenInSecondHops: PoolId[];
-    topByTVLUsingTokenOutSecondHops: PoolId[];
-  };
+  selections: CandidatePoolsSelections;
+};
+
+/// Utility type for allowing us to use `keyof CandidatePoolsSelections` to map
+export type CandidatePoolsSelections = {
+  topByBaseWithTokenIn: PoolId[];
+  topByBaseWithTokenOut: PoolId[];
+  topByDirectSwapPool: PoolId[];
+  topByEthQuoteTokenPool: PoolId[];
+  topByTVL: PoolId[];
+  topByTVLUsingTokenIn: PoolId[];
+  topByTVLUsingTokenOut: PoolId[];
+  topByTVLUsingTokenInSecondHops: PoolId[];
+  topByTVLUsingTokenOutSecondHops: PoolId[];
 };
 
 export type V3GetCandidatePoolsParams = {

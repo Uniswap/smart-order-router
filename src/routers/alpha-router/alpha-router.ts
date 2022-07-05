@@ -121,6 +121,7 @@ import {
 } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
+  CandidatePoolsSelections,
   getV2CandidatePools,
   getV3CandidatePools,
   PoolId,
@@ -1466,48 +1467,38 @@ export class AlphaRouter
 
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
 
-    /// I know there must be a better way to do this in TS
-    const buildCandidatePools: CandidatePoolsBySelectionCriteria = {
+    let buildCandidatePools = {
       protocol: Protocol.MIXED,
-      selections: {
-        topByBaseWithTokenIn: [
-          ...candidateV3Pools.selections.topByBaseWithTokenIn,
-          ...candidateV2Pools.selections.topByBaseWithTokenIn,
-        ],
-        topByBaseWithTokenOut: [
-          ...candidateV3Pools.selections.topByBaseWithTokenOut,
-          ...candidateV2Pools.selections.topByBaseWithTokenOut,
-        ],
-        topByDirectSwapPool: [
-          ...candidateV3Pools.selections.topByDirectSwapPool,
-          ...candidateV2Pools.selections.topByDirectSwapPool,
-        ],
-        topByEthQuoteTokenPool: [
-          ...candidateV3Pools.selections.topByEthQuoteTokenPool,
-          ...candidateV2Pools.selections.topByEthQuoteTokenPool,
-        ],
-        topByTVL: [
-          ...candidateV3Pools.selections.topByTVL,
-          ...candidateV2Pools.selections.topByTVL,
-        ],
-        topByTVLUsingTokenIn: [
-          ...candidateV3Pools.selections.topByTVLUsingTokenIn,
-          ...candidateV2Pools.selections.topByTVLUsingTokenIn,
-        ],
-        topByTVLUsingTokenOut: [
-          ...candidateV3Pools.selections.topByTVLUsingTokenOut,
-          ...candidateV2Pools.selections.topByTVLUsingTokenOut,
-        ],
-        topByTVLUsingTokenInSecondHops: [
-          ...candidateV3Pools.selections.topByTVLUsingTokenInSecondHops,
-          ...candidateV2Pools.selections.topByTVLUsingTokenInSecondHops,
-        ],
-        topByTVLUsingTokenOutSecondHops: [
-          ...candidateV3Pools.selections.topByTVLUsingTokenOutSecondHops,
-          ...candidateV2Pools.selections.topByTVLUsingTokenOutSecondHops,
-        ],
-      },
+      selections: <CandidatePoolsSelections>{},
     };
+
+    if (candidateV3Pools && candidateV2Pools) {
+      Object.entries(candidateV3Pools.selections).forEach(
+        ([key, value]: [string, PoolId[]]) => {
+          buildCandidatePools.selections = {
+            ...buildCandidatePools.selections,
+            [key]: [
+              ...value,
+              ...candidateV2Pools.selections[
+                key as keyof CandidatePoolsSelections
+              ],
+            ],
+          };
+        }
+      );
+    } else {
+      if (candidateV3Pools) {
+        buildCandidatePools = {
+          ...buildCandidatePools,
+          selections: candidateV3Pools.selections,
+        };
+      } else if (candidateV2Pools) {
+        buildCandidatePools = {
+          ...buildCandidatePools,
+          selections: candidateV2Pools.selections,
+        };
+      }
+    }
 
     const candidatePools = buildCandidatePools;
 
