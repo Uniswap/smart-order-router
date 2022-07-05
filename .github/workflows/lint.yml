@@ -34,5 +34,5 @@ jobs:
         with:
           github_token: ${{ secrets.github_token }}
           prettier: true
-          auto_fix: true
+          auto_fix: false
           prettier_extensions: 'css,html,js,json,jsx,md,sass,scss,ts,tsx,vue,yaml,yml,sol'
