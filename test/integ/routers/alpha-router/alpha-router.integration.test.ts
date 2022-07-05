@@ -65,6 +65,7 @@ import bunyanDebugStream from 'bunyan-debug-stream';
 
 const logLevel =
   process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
+// @ts-ignore[TS6133]
 let logger = bunyan.createLogger({
   name: 'Uniswap Smart Order Router',
   serializers: bunyan.stdSerializers,
@@ -976,7 +977,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, trade } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 

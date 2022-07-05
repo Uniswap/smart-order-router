@@ -6,7 +6,7 @@ import _ from 'lodash';
 import stats from 'stats-lite';
 import { MixedRoute } from '../routers/router';
 import { IQuoterV3__factory } from '../types/other/factories/IQuoterV3__factory';
-import { ChainId, metric, MetricLoggerUnit, QUOTER_V2_ADDRESS } from '../util';
+import { ChainId, metric, MetricLoggerUnit } from '../util';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import { routeToString } from '../util/routes';
@@ -192,9 +192,6 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
         `No address for Uniswap QuoterV3 Contract on chain id: ${chainId}`
       );
     }
-
-    if (quoterAddress === QUOTER_V2_ADDRESS)
-      throw new Error('QuoterV2 is not supported for mixed path routes');
 
     this.quoterAddress = quoterAddress;
   }
