@@ -30,7 +30,7 @@ import {
 } from './v3/quote-provider';
 
 /**
- * A on chain quote for a swap.
+ * A on chain quote for a mixed route swap (both V2 and V3 pools/pairs).
  */
 export type MixedRouteAmountQuote = {
   amount: CurrencyAmount;
@@ -55,7 +55,7 @@ export type MixedRouteAmountQuote = {
 };
 
 /**
- * The V3 route and a list of quotes for that route.
+ * The mixed route and a list of quotes for that route.
  */
 export type MixedRouteWithQuotes = [MixedRoute, MixedRouteAmountQuote[]];
 
@@ -88,14 +88,14 @@ type QuoteBatchPending = {
 type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 
 /**
- * Provider for getting quotes on Uniswap V3.
+ * Provider for getting mixed route quotes on Uniswap.
  *
  * @export
  * @interface IMixedRouteQuoteProvider
  */
 export interface IMixedRouteQuoteProvider {
   /**
-   * For every route, gets an exactIn quotes on V3 for every amount provided.
+   * For every route, gets an exactIn quote for every amount provided.
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
@@ -116,8 +116,8 @@ export interface IMixedRouteQuoteProvider {
 const DEFAULT_BATCH_RETRIES = 2;
 
 /**
- * Computes quotes for V3. For V3, quotes are computed on-chain using
- * the 'QuoterV2' smart contract. This is because computing quotes off-chain would
+ * Computes quotes for mixed routes. For mixed routes, quotes are computed on-chain using
+ * the 'QuoterV3' smart contract. This is because computing quotes off-chain would
  * require fetching all the tick data for each pool, which is a lot of data.
  *
  * To minimize the number of requests for quotes we use a Multicall contract. Generally
@@ -127,7 +127,7 @@ const DEFAULT_BATCH_RETRIES = 2;
  * The biggest challenge with the quote provider is dealing with various gas limits.
  * Each provider sets a limit on the amount of gas a call can consume (on Infura this
  * is approximately 10x the block max size), so we must ensure each multicall does not
- * exceed this limit. Additionally, each quote on V3 can consume a large number of gas if
+ * exceed this limit. Additionally, each quote on chain can consume a large number of gas if
  * the pool lacks liquidity and the swap would cause all the ticks to be traversed.
  *
  * To ensure we don't exceed the node's call limit, we limit the gas used by each quote to
@@ -771,7 +771,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
             (amounts, routeStr) => `${routeStr} : ${amounts}`
           ),
         },
-        `Failed quotes for V3 routes Part ${idx}/${Math.ceil(
+        `Failed quotes for mixed routes Part ${idx}/${Math.ceil(
           debugFailedQuotes.length / debugChunk
         )}`
       );
