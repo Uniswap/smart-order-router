@@ -132,7 +132,7 @@ import {
   IV2GasModelFactory,
   IV3GasModelFactory,
 } from './gas-models/gas-model';
-import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/on-chain-heuristic-gas-model';
+import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 export type AlphaRouterParams = {
@@ -1430,7 +1430,6 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig
   ): Promise<{
     routesWithValidQuotes: MixedRouteWithValidQuote[];
-    /// @TODO expand this to include both v3 and v2 pools & pairs
     candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
     log.info('Starting to get mixed quotes');
@@ -1472,6 +1471,7 @@ export class AlphaRouter
       selections: <CandidatePoolsSelections>{},
     };
 
+    /// @dev we order V3 first, then V2. We might want to do it in order of tokenPath
     if (candidateV3Pools && candidateV2Pools) {
       Object.entries(candidateV3Pools.selections).forEach(
         ([key, value]: [string, PoolId[]]) => {

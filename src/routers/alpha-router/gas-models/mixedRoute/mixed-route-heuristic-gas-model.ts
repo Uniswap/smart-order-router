@@ -68,6 +68,7 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
       gasCostL1USD: CurrencyAmount;
       gasCostL1QuoteToken: CurrencyAmount;
     }> => {
+      // @ts-ignore[TS6133] might remove entire func later
       const swapOptions: SwapOptions = {
         recipient: '0x0000000000000000000000000000000000000001',
         deadline: 100,

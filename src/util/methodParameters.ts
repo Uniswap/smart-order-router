@@ -1,4 +1,9 @@
-import { MixedRouteSDK, SwapRouter, Trade } from '@uniswap/router-sdk';
+import {
+  MixedRouteSDK,
+  Protocol,
+  SwapRouter,
+  Trade,
+} from '@uniswap/router-sdk';
 import { Currency, TradeType } from '@uniswap/sdk-core';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import { MethodParameters, Route as V3RouteRaw } from '@uniswap/v3-sdk';
@@ -11,7 +16,6 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';
-import { MixedRoute, V2Route, V3Route } from '../routers/router';
 
 export function buildTrade<TTradeType extends TradeType>(
   tokenInCurrency: Currency,
@@ -22,15 +26,15 @@ export function buildTrade<TTradeType extends TradeType>(
   /// Removed partition because of new mixedRoutes
   const v3RouteAmounts = _.filter(
     routeAmounts,
-    (routeAmount) => routeAmount.route instanceof V3Route
+    (routeAmount) => routeAmount.protocol === Protocol.V3
   );
   const v2RouteAmounts = _.filter(
     routeAmounts,
-    (routeAmount) => routeAmount.route instanceof V2Route
+    (routeAmount) => routeAmount.protocol === Protocol.V2
   );
   const mixedRouteAmounts = _.filter(
     routeAmounts,
-    (routeAmount) => routeAmount.route instanceof MixedRoute
+    (routeAmount) => routeAmount.protocol === Protocol.MIXED
   );
 
   const v3Routes = _.map<

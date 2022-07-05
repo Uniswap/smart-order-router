@@ -20,7 +20,7 @@ export const routeToString = (
     route instanceof V3Route || route instanceof MixedRoute
       ? route.pools
       : route.pairs;
-  const poolFeeMap = _.map(pools, (pool) => {
+  const poolFeePath = _.map(pools, (pool) => {
     return `${
       pool instanceof Pool
         ? ` -- ${pool.fee / 10000}% [${Pool.getAddress(
@@ -37,8 +37,8 @@ export const routeToString = (
 
   for (let i = 0; i < tokenPath.length; i++) {
     routeStr.push(tokenPath[i]);
-    if (i < poolFeeMap.length) {
-      routeStr.push(poolFeeMap[i]);
+    if (i < poolFeePath.length) {
+      routeStr.push(poolFeePath[i]);
     }
   }
 
