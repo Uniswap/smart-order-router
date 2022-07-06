@@ -1037,6 +1037,8 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
+      /// TODO: we calculate everything with the V3 Gas model?
+      /// nvm, looks like its only used for L2 fees
       V3gasModel
     );
 
