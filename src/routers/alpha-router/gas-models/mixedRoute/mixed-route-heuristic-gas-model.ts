@@ -325,7 +325,10 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
         acc.push(section);
         /// we just added a complete v2 section
         baseGasUse = baseGasUse.add(BASE_SWAP_COST_V2);
-        baseGasUse = baseGasUse.add(COST_PER_EXTRA_HOP_V2.mul(section.length));
+        baseGasUse = baseGasUse.add(
+          /// same behavior in v2 heuristic gas model factory
+          COST_PER_EXTRA_HOP_V2.mul(section.length - 1)
+        );
       }
     }
 
