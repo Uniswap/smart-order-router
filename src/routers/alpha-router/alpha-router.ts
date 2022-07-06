@@ -930,30 +930,34 @@ export class AlphaRouter
       V2_SUPPORTED.includes(this.chainId)
     ) {
       log.info({ protocols, tradeType }, 'Routing across all protocols');
-      quotePromises.push(
-        this.getV3Quotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          V3gasModel,
-          tradeType,
-          routingConfig
-        )
-      );
-      quotePromises.push(
-        this.getV2Quotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          gasPriceWei,
-          tradeType,
-          routingConfig
-        )
-      );
+      if (!protocolsSet.has(Protocol.MIXED)) {
+        /// explicitly defining MIXED should not route v3 or v2
+        quotePromises.push(
+          this.getV3Quotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            V3gasModel,
+            tradeType,
+            routingConfig
+          )
+        );
+        quotePromises.push(
+          this.getV2Quotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            gasPriceWei,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
+      /// depending on tradeType & chain, optionally find mixed routes. If Protocol.MIXED is set, only this will be run
       if (
         tradeType == TradeType.EXACT_INPUT &&
         this.chainId === ChainId.MAINNET
@@ -1048,6 +1052,11 @@ export class AlphaRouter
           route: routeToString(r.route),
           quote: r.quote.toExact(),
           quoteAdjustedForGas: r.quoteAdjustedForGas.toExact(),
+          initializedTicksCrossedList:
+            r instanceof MixedRouteWithValidQuote ||
+            r instanceof V3RouteWithValidQuote
+              ? r.initializedTicksCrossedList
+              : undefined,
         };
       })
     );

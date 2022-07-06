@@ -14,7 +14,7 @@ import {
 } from '../gas-model';
 
 // Constant cost for doing any swap regardless of pools.
-const BASE_SWAP_COST = BigNumber.from(115000);
+export const BASE_SWAP_COST = BigNumber.from(115000);
 
 // Constant per extra hop in the route.
 export const COST_PER_EXTRA_HOP = BigNumber.from(20000);

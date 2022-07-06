@@ -15,7 +15,10 @@ import {
   IMixedRouteGasModelFactory,
   usdGasTokensByChain,
 } from '../gas-model';
-import { COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2 } from '../v2/v2-heuristic-gas-model';
+import {
+  BASE_SWAP_COST as BASE_SWAP_COST_V2,
+  COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
+} from '../v2/v2-heuristic-gas-model';
 import {
   BASE_SWAP_COST,
   COST_PER_HOP,
@@ -286,47 +289,55 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
       Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
     );
     /**
-     * A V3 hop was 1:1 for every pool (i.e. if we went from pool A to pool B it is 1 hop)
-     * Similarly with V2
-     *
-     * Naive approach: every v3 pool is a hop, and counted as 80_000 gas
-     *                 every v2 pool is a hop, and counted as 20_000 gas
-     * Does not matter if v2->v3 or v3->v2
-     * - we will test and see if this hold true
+     * Since we must make a separate call to multicall for each v3 and v2 section, we will have to
+     * add the BASE_SWAP_COST to each section.
      */
-    const totalV3Hops = BigNumber.from(
-      routeWithValidQuote.route.pools.filter((part) => part instanceof Pool)
-        .length
-    );
-    const totalV2Hops = BigNumber.from(
-      routeWithValidQuote.route.pools.filter((part) => part instanceof Pair)
-        .length
-    );
+    let baseGasUse = BigNumber.from(0);
 
-    const V3hopsGasUse = COST_PER_HOP(chainId).mul(totalV3Hops);
-    const V2hopsGasUse = COST_PER_EXTRA_HOP_V2.mul(totalV2Hops);
+    const route = routeWithValidQuote.route;
+    let acc = [];
+    let j = 0;
+    while (j < route.pools.length) {
+      // seek forward until finding a pool of different type
+      let section = [];
+      if (route.pools[j] instanceof Pool) {
+        while (route.pools[j] instanceof Pool) {
+          section.push(route.pools[j]);
+          j++;
+          if (j === route.pools.length) {
+            // we've reached the end of the route
+            break;
+          }
+        }
+        acc.push(section);
+        /// we just added a complete v3 section
+        baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
+        baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));
+      } else {
+        while (route.pools[j] instanceof Pair) {
+          section.push(route.pools[j]);
+          j++;
+          if (j === route.pools.length) {
+            // we've reached the end of the route
+            break;
+          }
+        }
+        acc.push(section);
+        /// we just added a complete v2 section
+        baseGasUse = baseGasUse.add(BASE_SWAP_COST_V2);
+        baseGasUse = baseGasUse.add(COST_PER_EXTRA_HOP_V2.mul(section.length));
+      }
+    }
+
     const tickGasUse = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed
     );
     const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
 
     // base estimate gas used based on chainId estimates for hops and ticks gas useage
-
-    /// @dev BASE_SWAP_COST is different on v2 and v3 heuristic, 2000 on V3 and 115_000 on V2. why?
-    const baseGasUse = BASE_SWAP_COST(chainId)
-      .add(V3hopsGasUse)
-      .add(V2hopsGasUse)
-      .add(tickGasUse)
-      .add(uninitializedTickGasUse);
+    baseGasUse = baseGasUse.add(tickGasUse).add(uninitializedTickGasUse);
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
-
-    if (baseGasUse.toNumber() > 366000) {
-      console.log(
-        'higher than expected baseGasUse for mixed route',
-        baseGasUse.toNumber()
-      );
-    }
 
     const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 

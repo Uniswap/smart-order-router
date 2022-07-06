@@ -953,8 +953,8 @@ describe('alpha router integration', () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
           // WISE liq on v3 is 0 to none so we should expect WISE -[v2]> ETH -[v3]> USDC
-          const tokenIn = WISE_MAINNET;
-          const tokenOut = USDC_MAINNET;
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('100', tokenIn)
@@ -965,12 +965,16 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-              recipient: alice._address,
+              // recipient: alice._address,
+              recipient: '0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503', // binance whale
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadline: parseDeadline(10000), // parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
+              protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+              // minSplits: 2,
+              // maxSplits: 5,
             }
           );
 
@@ -978,6 +982,10 @@ describe('alpha router integration', () => {
           expect(swap).not.toBeNull();
 
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          console.log(
+            'swap.estimatedGasUsed',
+            swap!.estimatedGasUsed.toNumber()
+          );
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
