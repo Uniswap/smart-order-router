@@ -859,7 +859,10 @@ describe('alpha router integration', () => {
         const swap = await alphaRouter.forceRoute(
           amount,
           getQuoteToken(tokenIn, tokenOut, tradeType),
-          [[USDC_MAINNET.wrapped, USDT_MAINNET.wrapped, FeeAmount.LOWEST]],
+          [
+            [USDC_MAINNET.wrapped, WETH9[1], FeeAmount.LOW],
+            [WETH9[1], USDT_MAINNET.wrapped, FeeAmount.LOW],
+          ],
           tradeType,
           {
             recipient: alice._address,
@@ -868,14 +871,20 @@ describe('alpha router integration', () => {
           },
           {
             ...ROUTING_CONFIG,
-            protocols: [Protocol.V2],
+            protocols: [Protocol.V3],
           }
         );
 
         expect(swap).toBeDefined();
         expect(swap).not.toBeNull();
 
-        const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+        const {
+          quote,
+          quoteGasAdjusted,
+          methodParameters,
+          route,
+          estimatedGasUsed,
+        } = swap!;
 
         console.log(route.map((r) => routeToString(r.route)));
         console.log(
@@ -883,6 +892,8 @@ describe('alpha router integration', () => {
           quoteGasAdjusted.toExact(),
           methodParameters!.calldata
         );
+
+        console.log('estimatedGasUsed', estimatedGasUsed.toNumber());
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
