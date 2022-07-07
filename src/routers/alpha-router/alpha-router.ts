@@ -6,6 +6,7 @@ import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
 import {
+  FeeAmount,
   MethodParameters,
   Pool,
   Position,
@@ -99,6 +100,7 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  V3Route,
 } from '../router';
 
 import {
@@ -778,6 +780,183 @@ export class AlphaRouter
     return {
       status: SwapToRatioStatus.SUCCESS,
       result: { ...swap, methodParameters, optimalRatio, postSwapTargetPool },
+    };
+  }
+
+  public async forceRoute(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    poolComponents: [Token, Token, FeeAmount][],
+    tradeType: TradeType,
+    swapConfig?: SwapOptions,
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+  ): Promise<SwapRoute | null> {
+    const blockNumber =
+      partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
+
+    const routingConfig: AlphaRouterConfig = _.merge(
+      {},
+      DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
+      partialRoutingConfig,
+      { blockNumber }
+    );
+
+    const { protocols } = routingConfig;
+    if (!protocols) {
+      throw new Error('protocols is required');
+    }
+    if (protocols.includes(Protocol.V3) && protocols.includes(Protocol.V2)) {
+      throw new Error('V3 and V2 cannot be used together for forceRoute');
+    }
+
+    const currencyIn =
+      tradeType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
+    const currencyOut =
+      tradeType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
+
+    // Generate our distribution of amounts, i.e. fractions of the input amount.
+    // We will get quotes for fractions of the input amount for different routes, then
+    // combine to generate split routes.
+    const [percents, amounts] = this.getAmountDistribution(
+      amount,
+      routingConfig
+    );
+
+    // Get an estimate of the gas price to use when estimating gas cost of different routes.
+    const beforeGas = Date.now();
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+
+    const quoteToken = quoteCurrency.wrapped;
+
+    const gasModel = await this.v3GasModelFactory.buildGasModel(
+      this.chainId,
+      gasPriceWei,
+      this.v3PoolProvider,
+      quoteToken,
+      this.l2GasDataProvider
+    );
+    /// Create RouteWithValidQuote for the supplied pools.
+    /// only support pure v2 or v3 routes for now
+    const pools = protocols.includes(Protocol.V3)
+      ? (await this.v3PoolProvider.getPools(poolComponents)).getAllPools()
+      : (
+          await this.v2PoolProvider.getPools(
+            poolComponents.map(([token0, token1]) => [token0, token1])
+          )
+        ).getAllPools();
+
+    const routesWithValidQuotes = [];
+
+    if (protocols.includes(Protocol.V3)) {
+      // v3
+      const v3Route = new V3Route(pools as Pool[], tokenIn, tokenOut);
+
+      const { routesWithQuotes } =
+        await this.v3QuoteProvider.getQuotesManyExactIn(amounts, [v3Route], {
+          blockNumber: routingConfig.blockNumber,
+        });
+
+      for (const routeWithQuote of routesWithQuotes) {
+        const [route, quotes] = routeWithQuote;
+
+        for (let i = 0; i < quotes.length; i++) {
+          const percent = percents[i]!;
+          const amountQuote = quotes[i]!;
+          const {
+            quote,
+            amount,
+            sqrtPriceX96AfterList,
+            initializedTicksCrossedList,
+            gasEstimate,
+          } = amountQuote;
+
+          if (
+            !quote ||
+            !sqrtPriceX96AfterList ||
+            !initializedTicksCrossedList ||
+            !gasEstimate
+          ) {
+            log.debug(
+              {
+                route: routeToString(route),
+                amountQuote,
+              },
+              'Dropping a null V3 quote for route.'
+            );
+            continue;
+          }
+
+          const routeWithValidQuote = new V3RouteWithValidQuote({
+            route,
+            rawQuote: quote,
+            amount,
+            percent,
+            sqrtPriceX96AfterList,
+            initializedTicksCrossedList,
+            quoterGasEstimate: gasEstimate,
+            gasModel,
+            quoteToken,
+            tradeType,
+            v3PoolProvider: this.v3PoolProvider,
+          });
+
+          routesWithValidQuotes.push(routeWithValidQuote);
+        }
+      }
+    }
+    const beforeBestSwap = Date.now();
+    const swapRouteRaw = await getBestSwapRoute(
+      amount,
+      percents,
+      routesWithValidQuotes,
+      tradeType,
+      this.chainId,
+      routingConfig,
+      gasModel
+    );
+
+    if (!swapRouteRaw) {
+      return null;
+    }
+
+    const {
+      quote,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      routes: routeAmounts,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
+    } = swapRouteRaw;
+
+    // Build Trade object that represents the optimal swap.
+    const trade = buildTrade<typeof tradeType>(
+      currencyIn,
+      currencyOut,
+      tradeType,
+      routeAmounts
+    );
+
+    let methodParameters: MethodParameters | undefined;
+
+    // If user provided recipient, deadline etc. we also generate the calldata required to execute
+    // the swap and return it too.
+    if (swapConfig) {
+      methodParameters = buildSwapMethodParameters(trade, swapConfig);
+    }
+
+    return {
+      quote,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
+      gasPriceWei,
+      route: routeAmounts,
+      trade,
+      methodParameters,
+      blockNumber: BigNumber.from(await blockNumber),
     };
   }
 

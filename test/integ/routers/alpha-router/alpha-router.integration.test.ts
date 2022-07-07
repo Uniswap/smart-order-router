@@ -25,6 +25,7 @@ import {
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
+  routeToString,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -44,7 +45,7 @@ import 'jest-environment-hardhat';
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 
 import { Protocol } from '@uniswap/router-sdk';
-import { MethodParameters } from '@uniswap/v3-sdk';
+import { FeeAmount, MethodParameters } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
@@ -329,7 +330,7 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    xdescribe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -844,9 +845,58 @@ describe('alpha router integration', () => {
       });
     });
   }
+
+  describe.only('forceRoute', () => {
+    for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+      it.only('basic forced route test', async () => {
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount =
+          tradeType == TradeType.EXACT_INPUT
+            ? parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+        const swap = await alphaRouter.forceRoute(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          [[USDC_MAINNET.wrapped, USDT_MAINNET.wrapped, FeeAmount.LOWEST]],
+          tradeType,
+          {
+            recipient: alice._address,
+            slippageTolerance: SLIPPAGE,
+            deadline: parseDeadline(360),
+          },
+          {
+            ...ROUTING_CONFIG,
+            protocols: [Protocol.V3],
+          }
+        );
+
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+        console.log(route.map((r) => routeToString(r.route)));
+        console.log(quote, quoteGasAdjusted, methodParameters!.calldata);
+
+        await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+        await validateExecuteSwap(
+          quote,
+          tokenIn,
+          tokenOut,
+          methodParameters,
+          tradeType,
+          100,
+          100
+        );
+      });
+    }
+  });
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
