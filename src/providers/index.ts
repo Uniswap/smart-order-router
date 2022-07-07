@@ -13,6 +13,7 @@ export * from './on-chain-gas-price-provider';
 export * from './static-gas-price-provider';
 export * from './swap-router-provider';
 export * from './token-provider';
+export * from './token-validator-provider';
 export * from './uri-subgraph-provider';
 export * from './v2/caching-subgraph-provider';
 export * from './v2/pool-provider';
