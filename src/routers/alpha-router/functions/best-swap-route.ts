@@ -149,6 +149,20 @@ export async function getBestSwapRouteBy(
     }
   );
 
+  // console.log(
+  //   'percentToSortedQuotes',
+  //   JSON.stringify(
+  //     percentToSortedQuotes[100]?.map((rvq) => {
+  //       return {
+  //         protocol: rvq.protocol,
+  //         route: routeToString(rvq.route),
+  //         quote: rvq.quote.toExact(),
+  //         quoteGasAdjusted: rvq.quoteAdjustedForGas.toExact(),
+  //       };
+  //     })
+  //   )
+  // );
+
   const quoteCompFn =
     routeType == TradeType.EXACT_INPUT
       ? (a: CurrencyAmount, b: CurrencyAmount) => a.greaterThan(b)
@@ -407,6 +421,8 @@ export async function getBestSwapRouteBy(
       (sum, routeWithValidQuote) => sum.add(routeWithValidQuote),
       BigNumber.from(0)
     );
+
+  console.log(`estimatedGasUsed for bestSwap: ${estimatedGasUsed}`);
 
   if (!usdGasTokensByChain[chainId] || !usdGasTokensByChain[chainId]![0]) {
     // Each route can use a different stablecoin to account its gas costs.

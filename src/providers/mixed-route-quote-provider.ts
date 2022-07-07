@@ -503,6 +503,10 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
               }
               gasLimitOverride = this.gasErrorFailureOverride.gasLimitOverride;
               multicallChunk = this.gasErrorFailureOverride.multicallChunk;
+              if (multicallChunk !== 25)
+                throw new Error(
+                  'gasErrorFailureOverride multicall chunk is not 25'
+                );
               retryAll = true;
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {

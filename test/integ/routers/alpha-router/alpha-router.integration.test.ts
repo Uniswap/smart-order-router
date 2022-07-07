@@ -387,13 +387,13 @@ describe('alpha router integration', () => {
           maxTimeout: 1000,
         },
         {
-          multicallChunk: 210,
+          multicallChunk: 125,
           gasLimitPerCall: 705_000,
           quoteMinSuccessRate: 0.15,
         },
         {
           gasLimitOverride: 2_000_000,
-          multicallChunk: 70,
+          multicallChunk: 25,
         },
         undefined,
         undefined,
@@ -405,10 +405,10 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
-      describe(`+ simulate swap`, () => {
-        it('erc20 -> erc20', async () => {
+  for (const tradeType of [TradeType.EXACT_INPUT]) {
+    describe.only(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+      describe.only(`+ simulate swap`, () => {
+        it.only('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
@@ -428,6 +428,8 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
+              protocols: [Protocol.V2],
+              minSplits: 2,
             }
           );
 
@@ -435,6 +437,8 @@ describe('alpha router integration', () => {
           expect(swap).not.toBeNull();
 
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
+
+          console.log(methodParameters!.calldata);
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
@@ -574,6 +578,7 @@ describe('alpha router integration', () => {
         });
 
         it(`eth -> erc20`, async () => {
+          /// Fails for v3 for some reason, ProviderGasError
           const tokenIn = Ether.onChain(1) as Currency;
           const tokenOut = UNI_MAINNET;
           const amount =
@@ -858,7 +863,7 @@ describe('alpha router integration', () => {
         });
       });
 
-      it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
+      xit(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
@@ -883,7 +888,7 @@ describe('alpha router integration', () => {
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
 
-      it(`erc20 -> erc20 gas price specified`, async () => {
+      xit(`erc20 -> erc20 gas price specified`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
@@ -922,7 +927,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe.only('QuoterV3', () => {
+  xdescribe('QuoterV3', () => {
     const WISE_MAINNET = new Token(
       1,
       '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
@@ -931,6 +936,14 @@ describe('alpha router integration', () => {
       'WISE'
     );
     const tradeType = TradeType.EXACT_INPUT;
+
+    const MC_MAINNET = new Token(
+      1,
+      '0x949D48EcA67b17269629c7194F4b727d4Ef9E5d6',
+      18,
+      'MC',
+      'MC'
+    );
 
     beforeAll(async () => {
       await hardhat.fund(
@@ -945,6 +958,18 @@ describe('alpha router integration', () => {
         WISE_MAINNET
       );
       expect(aliceWISEBalance).toEqual(parseAmount('1000', WISE_MAINNET));
+      await hardhat.fund(
+        alice._address,
+        [parseAmount('1000', MC_MAINNET)],
+        [
+          '0x5a52e96bacdabb82fd05763e25335261b270efcb', // MC token whale
+        ]
+      );
+      const aliceMCBalance = await hardhat.getBalance(
+        alice._address,
+        MC_MAINNET
+      );
+      expect(aliceMCBalance).toEqual(parseAmount('1000', MC_MAINNET));
     });
 
     describe(`${
@@ -953,12 +978,12 @@ describe('alpha router integration', () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
           // WISE liq on v3 is 0 to none so we should expect WISE -[v2]> ETH -[v3]> USDC
-          const tokenIn = USDC_MAINNET;
-          const tokenOut = USDT_MAINNET;
+          const tokenIn = MC_MAINNET;
+          const tokenOut = USDC_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100', tokenIn)
-              : parseAmount('100', tokenOut);
+              ? parseAmount('1000', tokenIn)
+              : parseAmount('1000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -972,9 +997,9 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+              protocols: [Protocol.V2, Protocol.V3],
               // minSplits: 2,
-              // maxSplits: 5,
+              // maxSplits: 5
             }
           );
 
@@ -1056,7 +1081,7 @@ xdescribe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        jest.retryTimes(1);
+        // jest.retryTimes(1);
 
         const wrappedNative = WNATIVE_ON(chain);
 

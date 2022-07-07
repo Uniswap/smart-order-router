@@ -540,9 +540,10 @@ export class AlphaRouter
               gasLimitPerCall: 705_000,
               quoteMinSuccessRate: 0.15,
             },
+            /// I think we have to decrease the chunk size for mixed route quote provider to prevent ProviderGasErrors
             {
               gasLimitOverride: 2_000_000,
-              multicallChunk: 70,
+              multicallChunk: 25,
             }
           );
           break;
@@ -859,6 +860,12 @@ export class AlphaRouter
       MetricLoggerUnit.Count
     );
 
+    console.log(
+      'getting route for',
+      amount.currency.wrapped.symbol,
+      quoteCurrency.wrapped.symbol
+    );
+
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
     const blockNumber =
@@ -962,6 +969,7 @@ export class AlphaRouter
         tradeType == TradeType.EXACT_INPUT &&
         this.chainId === ChainId.MAINNET
       ) {
+        console.log('optionally considering mixedRoutes quotes');
         quotePromises.push(
           this.getMixedRouteQuotes(
             tokenIn,
@@ -1231,6 +1239,8 @@ export class AlphaRouter
       maxSwapsPerPath
     );
 
+    console.log('Number of V3 routes found:', routes.length);
+
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
     }
@@ -1382,6 +1392,8 @@ export class AlphaRouter
       pools,
       maxSwapsPerPath
     );
+
+    console.log('Number of V2 routes found:', routes.length);
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
@@ -1582,6 +1594,8 @@ export class AlphaRouter
       parts,
       maxSwapsPerPath
     );
+
+    console.log('Number of mixedRoutes found:', routes.length);
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
