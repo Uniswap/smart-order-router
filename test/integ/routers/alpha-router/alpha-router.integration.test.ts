@@ -868,7 +868,7 @@ describe('alpha router integration', () => {
           },
           {
             ...ROUTING_CONFIG,
-            protocols: [Protocol.V3],
+            protocols: [Protocol.V2],
           }
         );
 
@@ -878,7 +878,11 @@ describe('alpha router integration', () => {
         const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
 
         console.log(route.map((r) => routeToString(r.route)));
-        console.log(quote, quoteGasAdjusted, methodParameters!.calldata);
+        console.log(
+          quote.toExact(),
+          quoteGasAdjusted.toExact(),
+          methodParameters!.calldata
+        );
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 

@@ -100,6 +100,7 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  V2Route,
   V3Route,
 } from '../router';
 
@@ -905,6 +906,54 @@ export class AlphaRouter
           routesWithValidQuotes.push(routeWithValidQuote);
         }
       }
+    } else if (protocols.includes(Protocol.V2)) {
+      // v2
+      const v2Route = new V2Route(pools as Pair[], tokenIn, tokenOut);
+      const { routesWithQuotes } =
+        await this.v2QuoteProvider.getQuotesManyExactIn(amounts, [v2Route]);
+
+      const gasModel = await this.v2GasModelFactory.buildGasModel(
+        this.chainId,
+        gasPriceWei,
+        this.v2PoolProvider,
+        quoteToken
+      );
+
+      for (const routeWithQuote of routesWithQuotes) {
+        const [route, quotes] = routeWithQuote;
+
+        for (let i = 0; i < quotes.length; i++) {
+          const percent = percents[i]!;
+          const amountQuote = quotes[i]!;
+          const { quote, amount } = amountQuote;
+
+          if (!quote) {
+            log.debug(
+              {
+                route: routeToString(route),
+                amountQuote,
+              },
+              'Dropping a null V2 quote for route.'
+            );
+            continue;
+          }
+
+          const routeWithValidQuote = new V2RouteWithValidQuote({
+            route,
+            rawQuote: quote,
+            amount,
+            percent,
+            gasModel,
+            quoteToken,
+            tradeType,
+            v2PoolProvider: this.v2PoolProvider,
+          });
+
+          routesWithValidQuotes.push(routeWithValidQuote);
+        }
+      }
+    } else {
+      throw new Error('unsupported protocol');
     }
     const beforeBestSwap = Date.now();
     const swapRouteRaw = await getBestSwapRoute(
