@@ -14,10 +14,10 @@ import {
 } from '../gas-model';
 
 // Constant cost for doing any swap regardless of pools.
-export const BASE_SWAP_COST = BigNumber.from(115000);
+const BASE_SWAP_COST = BigNumber.from(135000); // 115000, bumped up by 20_000 @eric 7/8/2022
 
 // Constant per extra hop in the route.
-export const COST_PER_EXTRA_HOP = BigNumber.from(20000);
+const COST_PER_EXTRA_HOP = BigNumber.from(50000); // 20000, bumped up by 30_000 @eric 7/8/2022
 
 /**
  * Computes a gas estimate for a V2 swap using heuristics.
