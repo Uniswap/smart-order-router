@@ -34,6 +34,7 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+  V3RouteWithValidQuote,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
@@ -330,7 +331,7 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    xdescribe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -847,11 +848,18 @@ describe('alpha router integration', () => {
   }
 
   /// @dev testing suite for forceRoute, not used in prod.
-  describe('forceRoute', () => {
+  describe.only('forceRoute', () => {
     for (const tradeType of [TradeType.EXACT_INPUT]) {
       it('basic forced route test', async () => {
-        const tokenIn = USDC_MAINNET;
-        const tokenOut = USDT_MAINNET;
+        const RAI_MAINNET = new Token(
+          1,
+          '0x03ab458634910aad20ef5f1c8ee96f1d6ac54919',
+          18,
+          'RAI',
+          'RAI'
+        );
+        const tokenIn = DAI_MAINNET;
+        const tokenOut = RAI_MAINNET;
         const amount =
           tradeType == TradeType.EXACT_INPUT
             ? parseAmount('100', tokenIn)
@@ -860,19 +868,16 @@ describe('alpha router integration', () => {
         const swap = await alphaRouter.forceRoute(
           amount,
           getQuoteToken(tokenIn, tokenOut, tradeType),
-          [
-            [USDC_MAINNET, WETH9[1], FeeAmount.LOW],
-            [WETH9[1], USDT_MAINNET, FeeAmount.LOW],
-          ],
+          [[DAI_MAINNET, RAI_MAINNET, FeeAmount.LOW]],
           tradeType,
           {
             recipient: alice._address,
-            slippageTolerance: SLIPPAGE,
-            deadline: parseDeadline(360),
+            slippageTolerance: new Percent(25, 100), // SLIPPAGE,
+            deadline: parseDeadline(10000), // parseDeadline(360),
           },
           {
             ...ROUTING_CONFIG,
-            protocols: [Protocol.V2],
+            protocols: [Protocol.V3],
           }
         );
 
@@ -893,6 +898,12 @@ describe('alpha router integration', () => {
           quoteGasAdjusted.toExact(),
           methodParameters!.calldata
         );
+
+        route.map((r) => {
+          if (r instanceof V3RouteWithValidQuote) {
+            console.log(r.initializedTicksCrossedList);
+          }
+        });
 
         console.log('estimatedGasUsed', estimatedGasUsed.toNumber());
 
