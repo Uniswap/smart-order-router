@@ -330,7 +330,7 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    xdescribe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -846,9 +846,10 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe.only('forceRoute', () => {
+  /// @dev testing suite for forceRoute, not used in prod.
+  describe('forceRoute', () => {
     for (const tradeType of [TradeType.EXACT_INPUT]) {
-      it.only('basic forced route test', async () => {
+      it('basic forced route test', async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
