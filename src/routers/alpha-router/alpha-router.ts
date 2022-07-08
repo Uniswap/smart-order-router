@@ -784,6 +784,10 @@ export class AlphaRouter
     };
   }
 
+  /**
+   * @notice Not to be used in production
+   * @dev a utility function to generate a swap and calldata from a pre-specified array of pools/pairs
+   */
   public async forceRoute(
     amount: CurrencyAmount,
     quoteCurrency: Currency,
