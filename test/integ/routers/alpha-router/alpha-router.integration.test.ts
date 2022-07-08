@@ -849,19 +849,19 @@ describe('alpha router integration', () => {
   describe.only('forceRoute', () => {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       it.only('basic forced route test', async () => {
-        const tokenIn = USDC_MAINNET;
-        const tokenOut = USDT_MAINNET;
+        const tokenIn = WETH9[1];
+        const tokenOut = DAI_MAINNET;
         const amount =
           tradeType == TradeType.EXACT_INPUT
-            ? parseAmount('100', tokenIn)
-            : parseAmount('100', tokenOut);
+            ? parseAmount('1', tokenIn)
+            : parseAmount('1', tokenOut);
 
         const swap = await alphaRouter.forceRoute(
           amount,
           getQuoteToken(tokenIn, tokenOut, tradeType),
           [
-            [USDC_MAINNET.wrapped, WETH9[1], FeeAmount.LOW],
-            [WETH9[1], USDT_MAINNET.wrapped, FeeAmount.LOW],
+            [WETH9[1], UNI_MAINNET.wrapped, FeeAmount.LOW],
+            [UNI_MAINNET, DAI_MAINNET.wrapped, FeeAmount.LOW],
           ],
           tradeType,
           {
@@ -871,7 +871,7 @@ describe('alpha router integration', () => {
           },
           {
             ...ROUTING_CONFIG,
-            protocols: [Protocol.V3],
+            protocols: [Protocol.V2],
           }
         );
 
