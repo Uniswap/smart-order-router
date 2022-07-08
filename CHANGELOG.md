@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.6.0](https://github.com/Uniswap/smart-order-router/compare/v2.5.32...v2.6.0) (2022-07-07)
+
+
+### Features
+
+* export TokenValidatorProvider ([#110](https://github.com/Uniswap/smart-order-router/issues/110)) ([53c6bef](https://github.com/Uniswap/smart-order-router/commit/53c6befc4a78f814a80d510896e4c15da527151c))
+
+
+### Bug Fixes
+
+* update celo contract addresses ([#109](https://github.com/Uniswap/smart-order-router/issues/109)) ([121e9ba](https://github.com/Uniswap/smart-order-router/commit/121e9ba5fd37afaaeea65d0e92e9fdd599d7cbb2))
+
+### [2.5.32](https://github.com/Uniswap/smart-order-router/compare/v2.5.31...v2.5.32) (2022-07-05)
+
 ### [2.5.31](https://github.com/Uniswap/smart-order-router/compare/v2.5.30...v2.5.31) (2022-07-01)
 
 ### [2.5.30](https://github.com/Uniswap/smart-order-router/compare/v2.5.29...v2.5.30) (2022-05-14)
