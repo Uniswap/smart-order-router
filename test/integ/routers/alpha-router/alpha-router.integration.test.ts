@@ -406,9 +406,9 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT]) {
-    describe.only(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
-      describe.only(`+ simulate swap`, () => {
-        it.only('erc20 -> erc20', async () => {
+    xdescribe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+      describe(`+ simulate swap`, () => {
+        it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
@@ -927,7 +927,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  xdescribe('QuoterV3', () => {
+  describe.only('QuoterV3', () => {
     const WISE_MAINNET = new Token(
       1,
       '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
@@ -977,13 +977,12 @@ describe('alpha router integration', () => {
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
-          // WISE liq on v3 is 0 to none so we should expect WISE -[v2]> ETH -[v3]> USDC
-          const tokenIn = MC_MAINNET;
-          const tokenOut = USDC_MAINNET;
+          const tokenIn = UNI_MAINNET;
+          const tokenOut = USDT_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1000', tokenIn)
-              : parseAmount('1000', tokenOut);
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
