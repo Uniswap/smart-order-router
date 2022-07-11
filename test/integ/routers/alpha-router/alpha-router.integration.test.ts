@@ -996,7 +996,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V2, Protocol.V3],
+              protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
               // minSplits: 2,
               // maxSplits: 5
             }

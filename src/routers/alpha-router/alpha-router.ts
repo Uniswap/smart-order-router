@@ -1586,6 +1586,126 @@ export class AlphaRouter
       }
     );
 
+    /**
+     * Apply heuristics to pick the best pools for mixedRoute
+     *
+     * In order of importance
+     * 1. High liq ratio in v2 / v3
+     *  - if either tokenIn or tokenOut is substantially more liquid (1.5x?) on V2 than V3 we mark
+     * 2. Relatively high amountIn / liq in pool
+     *
+     */
+
+    let tokenInV2Pools: Record<string, Pair> = {},
+      tokenInV3Pools: Record<string, Pool> = {},
+      tokenOutV2Pools: Record<string, Pair> = {},
+      tokenOutV3Pools: Record<string, Pool> = {};
+
+    for (const pool of poolsRaw) {
+      const complementOfTokenIn = `${(pool.token0 == tokenIn
+        ? pool.token1
+        : pool.token0
+      ).symbol!}`;
+      const complementOfTokenOut = `${(pool.token0 == tokenOut
+        ? pool.token1
+        : pool.token0
+      ).symbol!}`;
+      if (pool instanceof Pool) {
+        if (pool.involvesToken(tokenIn)) {
+          // assign to the opposite token in the pool (not tokenIn)
+          /// since there are different pools with different fee tiers, lets just save the one with deepest liq
+          if (tokenInV3Pools[complementOfTokenIn]) {
+            if (
+              pool.liquidity > tokenInV3Pools[complementOfTokenIn]!.liquidity
+            ) {
+              tokenInV3Pools[complementOfTokenIn] = pool;
+            }
+          } else {
+            tokenInV3Pools[complementOfTokenIn] = pool;
+          }
+        }
+        if (pool.involvesToken(tokenOut)) {
+          if (tokenOutV3Pools[complementOfTokenOut]) {
+            if (
+              pool.liquidity > tokenOutV3Pools[complementOfTokenOut]!.liquidity
+            ) {
+              tokenOutV3Pools[complementOfTokenOut] = pool;
+            }
+          } else {
+            tokenOutV3Pools[complementOfTokenOut] = pool;
+          }
+        }
+      } else {
+        if (pool.involvesToken(tokenIn)) {
+          tokenInV2Pools[complementOfTokenIn] = pool;
+        }
+        if (pool.involvesToken(tokenOut)) {
+          tokenOutV2Pools[complementOfTokenOut] = pool;
+        }
+      }
+    }
+
+    const getV2Liquidity = (pair: Pair) => {
+      return pair.reserve0.multiply(pair.reserve1);
+    };
+
+    let mixedRouteCandidateV2Pools: Pair[] = [];
+
+    console.log('tokenInV2Pools', tokenInV2Pools);
+    console.log('tokenInV3Pools', tokenInV3Pools);
+    console.log('tokenOutV2Pools', tokenOutV2Pools);
+    console.log('tokenOutV3Pools', tokenOutV3Pools);
+
+    Object.entries(tokenInV2Pools).map(([key, value]) => {
+      const v2Liquidity = getV2Liquidity(value);
+      if (key in tokenInV3Pools) {
+        if (
+          JSBI.greaterThan(
+            v2Liquidity.quotient,
+            JSBI.multiply(tokenInV3Pools[key]!.liquidity, JSBI.BigInt(1))
+          )
+        ) {
+          // we found a v2 pair with significantly higher liquidity than its mirrored version on v3
+          console.log(
+            'Found a v2 pair involving tokenIn with more liq than v3',
+            value.token0.symbol,
+            value.token1.symbol,
+            JSBI.toNumber(v2Liquidity.quotient),
+            JSBI.toNumber(
+              JSBI.multiply(tokenInV3Pools[key]!.liquidity, JSBI.BigInt(1))
+            )
+          );
+          mixedRouteCandidateV2Pools.push(value);
+        }
+      }
+    });
+
+    Object.entries(tokenOutV2Pools).map(([key, value]) => {
+      const v2Liquidity = getV2Liquidity(value);
+      if (key in tokenOutV3Pools) {
+        if (
+          JSBI.greaterThan(
+            v2Liquidity.quotient,
+            JSBI.multiply(tokenOutV3Pools[key]!.liquidity, JSBI.BigInt(1))
+          )
+        ) {
+          // we found a v2 pair with significantly higher liquidity than its mirrored version on v3
+          console.log(
+            'Found a v2 pair involving tokenOut with more liq than v3',
+            value.token0.symbol,
+            value.token1.symbol,
+            JSBI.toNumber(v2Liquidity.quotient),
+            JSBI.toNumber(
+              JSBI.multiply(tokenOutV3Pools[key]!.liquidity, JSBI.BigInt(1))
+            )
+          );
+          mixedRouteCandidateV2Pools.push(value);
+        }
+      }
+    });
+
+    console.log(mixedRouteCandidateV2Pools);
+
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
     const routes = computeAllMixedRoutes(
