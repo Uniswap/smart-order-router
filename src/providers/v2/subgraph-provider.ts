@@ -18,6 +18,7 @@ export interface V2SubgraphPool {
   };
   supply: number;
   reserve: number;
+  reserveUSD: number;
 }
 
 type RawV2SubgraphPool = {
@@ -33,6 +34,7 @@ type RawV2SubgraphPool = {
   totalSupply: string;
   reserveETH: string;
   trackedReserveETH: string;
+  reserveUSD: string;
 };
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
@@ -98,6 +100,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           totalSupply
           reserveETH
           trackedReserveETH
+          reserveUSD
         }
       }
     `;
@@ -219,6 +222,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           },
           supply: parseFloat(pool.totalSupply),
           reserve: parseFloat(pool.trackedReserveETH),
+          reserveUSD: parseFloat(pool.reserveUSD),
         };
       });
 
