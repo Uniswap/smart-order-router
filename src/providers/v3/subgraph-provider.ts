@@ -136,14 +136,6 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       }.`
     );
 
-    console.log(
-      `Getting V3 pools from the subgraph with page size ${PAGE_SIZE}${
-        providerConfig?.blockNumber
-          ? ` as of block ${providerConfig?.blockNumber}`
-          : ''
-      }.`
-    );
-
     await retry(
       async () => {
         const timeout = new Timeout();

@@ -39,6 +39,7 @@ import {
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
+  V2SubgraphProvider,
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
 } from '../../providers';
@@ -1486,36 +1487,7 @@ export class AlphaRouter
     candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
     log.info('Starting to get mixed quotes');
-    // Fetch all the pools that we will consider routing via. There are thousands
-    // of pools, so we filter them to a set of candidate pools that we expect will
-    // result in good prices.
-    // const { poolAccessor: V3poolAccessor, candidatePools: candidateV3Pools } =
-    //   await getV3CandidatePools({
-    //     tokenIn,
-    //     tokenOut,
-    //     tokenProvider: this.tokenProvider,
-    //     blockedTokenListProvider: this.blockedTokenListProvider,
-    //     poolProvider: this.v3PoolProvider,
-    //     routeType: swapType,
-    //     subgraphProvider: this.v3SubgraphProvider,
-    //     routingConfig,
-    //     chainId: this.chainId,
-    //   });
 
-    // const { poolAccessor: V2poolAccessor, candidatePools: candidateV2Pools } =
-    //   await getV2CandidatePools({
-    //     tokenIn,
-    //     tokenOut,
-    //     tokenProvider: this.tokenProvider,
-    //     blockedTokenListProvider: this.blockedTokenListProvider,
-    //     poolProvider: this.v2PoolProvider,
-    //     routeType: swapType,
-    //     subgraphProvider: this.v2SubgraphProvider,
-    //     routingConfig,
-    //     chainId: this.chainId,
-    //   });
-
-    /// testing
     const {
       V2poolAccessor,
       V3poolAccessor,
@@ -1529,7 +1501,15 @@ export class AlphaRouter
       V2poolProvider: this.v2PoolProvider,
       routeType: swapType,
       V3subgraphProvider: this.v3SubgraphProvider,
-      V2subgraphProvider: this.v2SubgraphProvider,
+      // V2subgraphProvider: this.v2SubgraphProvider,
+      V2subgraphProvider: new V2SubgraphProviderWithFallBacks([
+        new CachingV2SubgraphProvider(
+          this.chainId,
+          new V2SubgraphProvider(this.chainId),
+          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+        ),
+        new StaticV2SubgraphProvider(this.chainId),
+      ]),
       routingConfig,
       chainId: this.chainId,
     });

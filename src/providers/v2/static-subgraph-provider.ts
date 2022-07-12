@@ -114,11 +114,9 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
           liquidity: '100',
           token0: {
             id: token0.address,
-            symbol: token0.symbol ? token0.symbol : '',
           },
           token1: {
             id: token1.address,
-            symbol: token1.symbol ? token1.symbol : '',
           },
           supply: 100,
           reserve: 100,

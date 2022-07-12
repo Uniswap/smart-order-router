@@ -731,11 +731,9 @@ export async function getV2CandidatePools({
         id: poolAddress,
         token0: {
           id: token0.address,
-          symbol: token0.symbol ? token0.symbol : '',
         },
         token1: {
           id: token1.address,
-          symbol: token1.symbol ? token1.symbol : '',
         },
         supply: 10000, // Not used. Set to arbitrary number.
         reserve: 10000, // Not used. Set to arbitrary number.
