@@ -122,7 +122,7 @@ import {
 } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
-  CandidatePoolsSelections,
+  getMixedRouteCandidatePools,
   getV2CandidatePools,
   getV3CandidatePools,
   PoolId,
@@ -1489,71 +1489,56 @@ export class AlphaRouter
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
     // result in good prices.
-    const { poolAccessor: V3poolAccessor, candidatePools: candidateV3Pools } =
-      await getV3CandidatePools({
-        tokenIn,
-        tokenOut,
-        tokenProvider: this.tokenProvider,
-        blockedTokenListProvider: this.blockedTokenListProvider,
-        poolProvider: this.v3PoolProvider,
-        routeType: swapType,
-        subgraphProvider: this.v3SubgraphProvider,
-        routingConfig,
-        chainId: this.chainId,
-      });
+    // const { poolAccessor: V3poolAccessor, candidatePools: candidateV3Pools } =
+    //   await getV3CandidatePools({
+    //     tokenIn,
+    //     tokenOut,
+    //     tokenProvider: this.tokenProvider,
+    //     blockedTokenListProvider: this.blockedTokenListProvider,
+    //     poolProvider: this.v3PoolProvider,
+    //     routeType: swapType,
+    //     subgraphProvider: this.v3SubgraphProvider,
+    //     routingConfig,
+    //     chainId: this.chainId,
+    //   });
+
+    // const { poolAccessor: V2poolAccessor, candidatePools: candidateV2Pools } =
+    //   await getV2CandidatePools({
+    //     tokenIn,
+    //     tokenOut,
+    //     tokenProvider: this.tokenProvider,
+    //     blockedTokenListProvider: this.blockedTokenListProvider,
+    //     poolProvider: this.v2PoolProvider,
+    //     routeType: swapType,
+    //     subgraphProvider: this.v2SubgraphProvider,
+    //     routingConfig,
+    //     chainId: this.chainId,
+    //   });
+
+    /// testing
+    const {
+      V2poolAccessor,
+      V3poolAccessor,
+      candidatePools: mixedRouteCandidatePools,
+    } = await getMixedRouteCandidatePools({
+      tokenIn,
+      tokenOut,
+      tokenProvider: this.tokenProvider,
+      blockedTokenListProvider: this.blockedTokenListProvider,
+      V3poolProvider: this.v3PoolProvider,
+      V2poolProvider: this.v2PoolProvider,
+      routeType: swapType,
+      V3subgraphProvider: this.v3SubgraphProvider,
+      V2subgraphProvider: this.v2SubgraphProvider,
+      routingConfig,
+      chainId: this.chainId,
+    });
+
     const V3poolsRaw = V3poolAccessor.getAllPools();
-
-    const { poolAccessor: V2poolAccessor, candidatePools: candidateV2Pools } =
-      await getV2CandidatePools({
-        tokenIn,
-        tokenOut,
-        tokenProvider: this.tokenProvider,
-        blockedTokenListProvider: this.blockedTokenListProvider,
-        poolProvider: this.v2PoolProvider,
-        routeType: swapType,
-        subgraphProvider: this.v2SubgraphProvider,
-        routingConfig,
-        chainId: this.chainId,
-      });
     const V2poolsRaw = V2poolAccessor.getAllPools();
-
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
 
-    let buildCandidatePools = {
-      protocol: Protocol.MIXED,
-      selections: <CandidatePoolsSelections>{},
-    };
-
-    /// @dev we order V3 first, then V2. We might want to do it in order of tokenPath
-    if (candidateV3Pools && candidateV2Pools) {
-      Object.entries(candidateV3Pools.selections).forEach(
-        ([key, value]: [string, PoolId[]]) => {
-          buildCandidatePools.selections = {
-            ...buildCandidatePools.selections,
-            [key]: [
-              ...value,
-              ...candidateV2Pools.selections[
-                key as keyof CandidatePoolsSelections
-              ],
-            ],
-          };
-        }
-      );
-    } else {
-      if (candidateV3Pools) {
-        buildCandidatePools = {
-          ...buildCandidatePools,
-          selections: candidateV3Pools.selections,
-        };
-      } else if (candidateV2Pools) {
-        buildCandidatePools = {
-          ...buildCandidatePools,
-          selections: candidateV2Pools.selections,
-        };
-      }
-    }
-
-    const candidatePools = buildCandidatePools;
+    const candidatePools = mixedRouteCandidatePools;
 
     // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
     const parts = await this.applyTokenValidatorToPools(
@@ -1592,119 +1577,11 @@ export class AlphaRouter
      * In order of importance
      * 1. High liq ratio in v2 / v3
      *  - if either tokenIn or tokenOut is substantially more liquid (1.5x?) on V2 than V3 we mark
+     * -> done in getCandidatePools
+     *
      * 2. Relatively high amountIn / liq in pool
      *
      */
-
-    let tokenInV2Pools: Record<string, Pair> = {},
-      tokenInV3Pools: Record<string, Pool> = {},
-      tokenOutV2Pools: Record<string, Pair> = {},
-      tokenOutV3Pools: Record<string, Pool> = {};
-
-    for (const pool of poolsRaw) {
-      const complementOfTokenIn = `${(pool.token0 == tokenIn
-        ? pool.token1
-        : pool.token0
-      ).symbol!}`;
-      const complementOfTokenOut = `${(pool.token0 == tokenOut
-        ? pool.token1
-        : pool.token0
-      ).symbol!}`;
-      if (pool instanceof Pool) {
-        if (pool.involvesToken(tokenIn)) {
-          // assign to the opposite token in the pool (not tokenIn)
-          /// since there are different pools with different fee tiers, lets just save the one with deepest liq
-          if (tokenInV3Pools[complementOfTokenIn]) {
-            if (
-              pool.liquidity > tokenInV3Pools[complementOfTokenIn]!.liquidity
-            ) {
-              tokenInV3Pools[complementOfTokenIn] = pool;
-            }
-          } else {
-            tokenInV3Pools[complementOfTokenIn] = pool;
-          }
-        }
-        if (pool.involvesToken(tokenOut)) {
-          if (tokenOutV3Pools[complementOfTokenOut]) {
-            if (
-              pool.liquidity > tokenOutV3Pools[complementOfTokenOut]!.liquidity
-            ) {
-              tokenOutV3Pools[complementOfTokenOut] = pool;
-            }
-          } else {
-            tokenOutV3Pools[complementOfTokenOut] = pool;
-          }
-        }
-      } else {
-        if (pool.involvesToken(tokenIn)) {
-          tokenInV2Pools[complementOfTokenIn] = pool;
-        }
-        if (pool.involvesToken(tokenOut)) {
-          tokenOutV2Pools[complementOfTokenOut] = pool;
-        }
-      }
-    }
-
-    const getV2Liquidity = (pair: Pair) => {
-      return pair.reserve0.multiply(pair.reserve1);
-    };
-
-    let mixedRouteCandidateV2Pools: Pair[] = [];
-
-    console.log('tokenInV2Pools', tokenInV2Pools);
-    console.log('tokenInV3Pools', tokenInV3Pools);
-    console.log('tokenOutV2Pools', tokenOutV2Pools);
-    console.log('tokenOutV3Pools', tokenOutV3Pools);
-
-    Object.entries(tokenInV2Pools).map(([key, value]) => {
-      const v2Liquidity = getV2Liquidity(value);
-      if (key in tokenInV3Pools) {
-        if (
-          JSBI.greaterThan(
-            v2Liquidity.quotient,
-            JSBI.multiply(tokenInV3Pools[key]!.liquidity, JSBI.BigInt(1))
-          )
-        ) {
-          // we found a v2 pair with significantly higher liquidity than its mirrored version on v3
-          console.log(
-            'Found a v2 pair involving tokenIn with more liq than v3',
-            value.token0.symbol,
-            value.token1.symbol,
-            JSBI.toNumber(v2Liquidity.quotient),
-            JSBI.toNumber(
-              JSBI.multiply(tokenInV3Pools[key]!.liquidity, JSBI.BigInt(1))
-            )
-          );
-          mixedRouteCandidateV2Pools.push(value);
-        }
-      }
-    });
-
-    Object.entries(tokenOutV2Pools).map(([key, value]) => {
-      const v2Liquidity = getV2Liquidity(value);
-      if (key in tokenOutV3Pools) {
-        if (
-          JSBI.greaterThan(
-            v2Liquidity.quotient,
-            JSBI.multiply(tokenOutV3Pools[key]!.liquidity, JSBI.BigInt(1))
-          )
-        ) {
-          // we found a v2 pair with significantly higher liquidity than its mirrored version on v3
-          console.log(
-            'Found a v2 pair involving tokenOut with more liq than v3',
-            value.token0.symbol,
-            value.token1.symbol,
-            JSBI.toNumber(v2Liquidity.quotient),
-            JSBI.toNumber(
-              JSBI.multiply(tokenOutV3Pools[key]!.liquidity, JSBI.BigInt(1))
-            )
-          );
-          mixedRouteCandidateV2Pools.push(value);
-        }
-      }
-    });
-
-    console.log(mixedRouteCandidateV2Pools);
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;

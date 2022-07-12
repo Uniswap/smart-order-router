@@ -977,12 +977,12 @@ describe('alpha router integration', () => {
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
-          const tokenIn = UNI_MAINNET;
-          const tokenOut = USDT_MAINNET;
+          const tokenIn = WISE_MAINNET;
+          const tokenOut = USDC_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('10000', tokenIn)
-              : parseAmount('10000', tokenOut);
+              ? parseAmount('1000', tokenIn)
+              : parseAmount('1000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
