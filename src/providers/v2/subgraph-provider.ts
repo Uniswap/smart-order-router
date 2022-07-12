@@ -12,12 +12,15 @@ export interface V2SubgraphPool {
   id: string;
   token0: {
     id: string;
+    symbol: string;
   };
   token1: {
     id: string;
+    symbol: string;
   };
   supply: number;
   reserve: number;
+  reserveUSD: number;
 }
 
 type RawV2SubgraphPool = {
@@ -33,6 +36,7 @@ type RawV2SubgraphPool = {
   totalSupply: string;
   reserveETH: string;
   trackedReserveETH: string;
+  reserveUSD: string;
 };
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
@@ -81,6 +85,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
+    console.log('In subgraph provider v2');
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
@@ -98,6 +103,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           totalSupply
           reserveETH
           trackedReserveETH
+          reserveUSD
         }
       }
     `;
@@ -213,12 +219,15 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           id: pool.id.toLowerCase(),
           token0: {
             id: pool.token0.id.toLowerCase(),
+            symbol: pool.token0.symbol.toLowerCase(),
           },
           token1: {
             id: pool.token1.id.toLowerCase(),
+            symbol: pool.token1.symbol.toLowerCase(),
           },
           supply: parseFloat(pool.totalSupply),
           reserve: parseFloat(pool.trackedReserveETH),
+          reserveUSD: parseFloat(pool.reserveUSD),
         };
       });
 

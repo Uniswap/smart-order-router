@@ -68,6 +68,7 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
     tokenOut?: Token
   ): Promise<V2SubgraphPool[]> {
     log.info('In static subgraph provider for V2');
+    console.log('In static subgraph provider for V2');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
     const basePairs: [Token, Token][] = _.flatMap(
@@ -113,12 +114,15 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
           liquidity: '100',
           token0: {
             id: token0.address,
+            symbol: token0.symbol ? token0.symbol : '',
           },
           token1: {
             id: token1.address,
+            symbol: token1.symbol ? token1.symbol : '',
           },
           supply: 100,
           reserve: 100,
+          reserveUSD: 100,
         };
       })
       .compact()

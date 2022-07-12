@@ -110,6 +110,20 @@ export type V2GetCandidatePoolsParams = {
   chainId: ChainId;
 };
 
+export type MixedRouteGetCandidatePoolsParams = {
+  tokenIn: Token;
+  tokenOut: Token;
+  routeType: TradeType;
+  routingConfig: AlphaRouterConfig;
+  V2subgraphProvider: IV2SubgraphProvider;
+  V3subgraphProvider: IV3SubgraphProvider;
+  tokenProvider: ITokenProvider;
+  V2poolProvider: IV2PoolProvider;
+  V3poolProvider: IV3PoolProvider;
+  blockedTokenListProvider?: ITokenListProvider;
+  chainId: ChainId;
+};
+
 const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [
     USDC_MAINNET,
@@ -717,12 +731,15 @@ export async function getV2CandidatePools({
         id: poolAddress,
         token0: {
           id: token0.address,
+          symbol: token0.symbol ? token0.symbol : '',
         },
         token1: {
           id: token1.address,
+          symbol: token1.symbol ? token1.symbol : '',
         },
         supply: 10000, // Not used. Set to arbitrary number.
         reserve: 10000, // Not used. Set to arbitrary number.
+        reserveUSD: 10000, // Not used. Set to arbitrary number.
       },
     ];
   }
@@ -960,7 +977,7 @@ export async function getMixedRouteCandidatePools({
   V2poolProvider,
   blockedTokenListProvider,
   chainId,
-}: any): Promise<{
+}: MixedRouteGetCandidatePoolsParams): Promise<{
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
@@ -1031,8 +1048,9 @@ export async function getMixedRouteCandidatePools({
           pool.token1.id == V2subgraphPool.token0.id)
     );
 
+    console.log(V2subgraphPool);
+
     if (V3subgraphPool) {
-      /// @dev math is wrong, not on the same scale between v2 and v3
       if (V2subgraphPool.reserve > V3subgraphPool.tvlUSD * 1.5) {
         console.log(
           `V2 pool ${V2subgraphPool.token0.id}/${V2subgraphPool.token1.id} has significantly higher liquidity than V3 pool, adding`,

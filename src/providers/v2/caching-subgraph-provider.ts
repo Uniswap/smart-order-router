@@ -28,6 +28,7 @@ export class CachingV2SubgraphProvider implements IV2SubgraphProvider {
     const cachedPools = await this.cache.get(this.SUBGRAPH_KEY(this.chainId));
 
     if (cachedPools) {
+      console.log('cache hit');
       return cachedPools;
     }
 
