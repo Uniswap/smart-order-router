@@ -12,11 +12,9 @@ export interface V2SubgraphPool {
   id: string;
   token0: {
     id: string;
-    symbol: string;
   };
   token1: {
     id: string;
-    symbol: string;
   };
   supply: number;
   reserve: number;
@@ -219,11 +217,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           id: pool.id.toLowerCase(),
           token0: {
             id: pool.token0.id.toLowerCase(),
-            symbol: pool.token0.symbol.toLowerCase(),
           },
           token1: {
             id: pool.token1.id.toLowerCase(),
-            symbol: pool.token1.symbol.toLowerCase(),
           },
           supply: parseFloat(pool.totalSupply),
           reserve: parseFloat(pool.trackedReserveETH),
