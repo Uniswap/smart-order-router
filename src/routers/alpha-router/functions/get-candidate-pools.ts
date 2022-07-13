@@ -721,6 +721,7 @@ export async function getV2CandidatePools({
         },
         supply: 10000, // Not used. Set to arbitrary number.
         reserve: 10000, // Not used. Set to arbitrary number.
+        reserveUSD: 10000, // Not used. Set to arbitrary number.
       },
     ];
   }

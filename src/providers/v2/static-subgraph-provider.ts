@@ -119,6 +119,7 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
           },
           supply: 100,
           reserve: 100,
+          reserveUSD: 100,
         };
       })
       .compact()
