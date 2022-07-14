@@ -235,10 +235,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
 
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
-        const encodedRoute = encodeMixedRouteToPath(
-          route,
-          false // we don't support exactOut for mixedRoute paths
-        );
+        const encodedRoute = encodeMixedRouteToPath(route);
         const routeInputs: [string, string][] = amounts.map((amount) => [
           encodedRoute,
           `0x${amount.quotient.toString(16)}`,
