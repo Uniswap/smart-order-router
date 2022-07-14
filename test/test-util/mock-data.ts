@@ -210,6 +210,7 @@ export const pairToV2SubgraphPool = (
     },
     reserve: 1000,
     supply: 100,
+    reserveUSD: 100,
   };
 };
 
