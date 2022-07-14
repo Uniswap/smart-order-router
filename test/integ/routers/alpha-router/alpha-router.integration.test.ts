@@ -22,8 +22,6 @@ import {
   DAI_ON,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
-  nativeOnChain,
-  NATIVE_CURRENCY,
   parseAmount,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
@@ -353,6 +351,11 @@ describe('alpha router integration', () => {
               ...ROUTING_CONFIG,
             }
           );
+
+          console.log(swap)
+          if(swap != null) {
+            console.log(swap.methodParameters)
+          }
 
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
@@ -886,12 +889,7 @@ describe('quote for other networks', () => {
   for (const chain of _.filter(
     SUPPORTED_CHAINS,
     (c) =>
-      c != ChainId.OPTIMISTIC_KOVAN &&
-      c != ChainId.POLYGON_MUMBAI &&
-      c != ChainId.ARBITRUM_RINKEBY &&
-      c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
-      // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
-      c != ChainId.CELO_ALFAJORES
+      c == ChainId.CELO
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];
@@ -945,61 +943,7 @@ describe('quote for other networks', () => {
           // Scope limited for non mainnet network tests to validating the swap
         });
 
-        it(`erc20 -> erc20`, async () => {
-          const tokenIn = erc1;
-          const tokenOut = erc2;
-          const amount =
-            tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
-
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
-            }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-        });
-
-        const native = NATIVE_CURRENCY[chain];
-
-        it(`${native} -> erc20`, async () => {
-          const tokenIn = nativeOnChain(chain);
-          const tokenOut = erc2;
-
-          // Celo currently has low liquidity and will not be able to find route for
-          // large input amounts
-          // TODO: Simplify this when Celo has more liquidity
-          const amount =
-            chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
-              ? tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('10', tokenIn)
-                : parseAmount('10', tokenOut)
-              : tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100', tokenIn)
-              : parseAmount('100', tokenOut);
-
-          const swap = await alphaRouter.route(
-            amount,
-            getQuoteToken(tokenIn, tokenOut, tradeType),
-            tradeType,
-            undefined,
-            {
-              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-              protocols: [Protocol.V3, Protocol.V2],
-            }
-          );
-          expect(swap).toBeDefined();
-          expect(swap).not.toBeNull();
-        });
+        
         it(`has quoteGasAdjusted values`, async () => {
           const tokenIn = erc1;
           const tokenOut = erc2;
