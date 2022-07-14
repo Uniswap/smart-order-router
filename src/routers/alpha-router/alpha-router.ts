@@ -1502,6 +1502,7 @@ export class AlphaRouter
       routeType: swapType,
       V3subgraphProvider: this.v3SubgraphProvider,
       // V2subgraphProvider: this.v2SubgraphProvider,
+      /// TODO remove after routing api pool cache is updated
       V2subgraphProvider: new V2SubgraphProviderWithFallBacks([
         new CachingV2SubgraphProvider(
           this.chainId,
@@ -1559,7 +1560,7 @@ export class AlphaRouter
      *  - if either tokenIn or tokenOut is substantially more liquid (1.5x?) on V2 than V3 we mark
      * -> done in getCandidatePools
      *
-     * 2. Relatively high amountIn / liq in pool
+     * 2. Relatively high amountIn / liq in pool (can adapt for splits too)
      *
      */
 
