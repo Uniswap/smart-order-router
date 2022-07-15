@@ -85,20 +85,22 @@ export class Quote extends BaseCommand {
     const tokenProvider = this.tokenProvider;
     const router = this.router;
 
-    const tokenAccessor = await tokenProvider.getTokens([
-      tokenInStr,
-      tokenOutStr,
-    ]);
+    // if the tokenIn str is 'ETH' or 'MATIC' or NATIVE_CURRENCY_STRING, quote with the wrapped native currency
+    const tokenIn: Currency = (<any>Object)
+      .values(NativeCurrencyName)
+      .includes(tokenInStr)
+      ? nativeOnChain(chainId)
+      : (await tokenProvider.getTokens([tokenInStr])).getTokenByAddress(
+          tokenInStr
+        )!;
 
-    // if the tokenIn str is 'ETH' or 'MATIC' or NATIVE_CURRENCY_STRING
-    const tokenIn: Currency =
-      tokenInStr in NativeCurrencyName
-        ? nativeOnChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenInStr)!;
-    const tokenOut: Currency =
-      tokenOutStr in NativeCurrencyName
-        ? nativeOnChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenOutStr)!;
+    const tokenOut: Currency = (<any>Object)
+      .values(NativeCurrencyName)
+      .includes(tokenOutStr)
+      ? nativeOnChain(chainId)
+      : (await tokenProvider.getTokens([tokenOutStr])).getTokenByAddress(
+          tokenOutStr
+        )!;
 
     let swapRoutes: SwapRoute | null;
     if (exactIn) {
