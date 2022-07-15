@@ -380,15 +380,15 @@ describe('alpha router integration', () => {
         ChainId.MAINNET,
         hardhat.provider,
         multicall2Provider,
-        /// Same config as V3QuoteProvider
+        /// Different config than v3
         {
           retries: 2,
           minTimeout: 100,
           maxTimeout: 1000,
         },
         {
-          multicallChunk: 125,
-          gasLimitPerCall: 705_000,
+          multicallChunk: 40, // 40 looks like it usually works
+          gasLimitPerCall: 705_000, // can we tweak this?
           quoteMinSuccessRate: 0.15,
         },
         {
@@ -406,7 +406,7 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT]) {
-    xdescribe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -428,8 +428,6 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V2],
-              minSplits: 2,
             }
           );
 
@@ -937,15 +935,17 @@ describe('alpha router integration', () => {
     );
     const tradeType = TradeType.EXACT_INPUT;
 
-    const MC_MAINNET = new Token(
+    const TRIBE_MAINNET = new Token(
       1,
-      '0x949D48EcA67b17269629c7194F4b727d4Ef9E5d6',
+      '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
       18,
-      'MC',
-      'MC'
+      'TRIBE',
+      'TRIBE'
     );
 
     beforeAll(async () => {
+      console.log('alice_address', alice._address);
+
       await hardhat.fund(
         alice._address,
         [parseAmount('1000', WISE_MAINNET)],
@@ -958,18 +958,19 @@ describe('alpha router integration', () => {
         WISE_MAINNET
       );
       expect(aliceWISEBalance).toEqual(parseAmount('1000', WISE_MAINNET));
+
       await hardhat.fund(
         alice._address,
-        [parseAmount('1000', MC_MAINNET)],
+        [parseAmount('10000', TRIBE_MAINNET)],
         [
-          '0x5a52e96bacdabb82fd05763e25335261b270efcb', // MC token whale
+          '0xea7b32c902daff20bda7b9d7b0964ff0cd33d7ea', // TRIBE whale
         ]
       );
-      const aliceMCBalance = await hardhat.getBalance(
+      const aliceTRIBEBalance = await hardhat.getBalance(
         alice._address,
-        MC_MAINNET
+        TRIBE_MAINNET
       );
-      expect(aliceMCBalance).toEqual(parseAmount('1000', MC_MAINNET));
+      expect(aliceTRIBEBalance).toEqual(parseAmount('10000', TRIBE_MAINNET));
     });
 
     describe(`${
@@ -977,8 +978,11 @@ describe('alpha router integration', () => {
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
-          const tokenIn = WISE_MAINNET;
+          const tokenIn = TRIBE_MAINNET;
           const tokenOut = USDC_MAINNET;
+
+          // we expect TRIBE -v2-> FEI -v3-> USDC
+
           const amount =
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('1000', tokenIn)
@@ -989,14 +993,13 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-              // recipient: alice._address,
-              recipient: '0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503', // binance whale
+              recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(10000), // parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+              protocols: [Protocol.V3, Protocol.V2, Protocol.MIXED],
               // minSplits: 2,
               // maxSplits: 5
             }
