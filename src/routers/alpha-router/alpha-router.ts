@@ -39,7 +39,6 @@ import {
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
-  V2SubgraphProvider,
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
 } from '../../providers';
@@ -965,7 +964,7 @@ export class AlphaRouter
           )
         );
       }
-      /// depending on tradeType & chain, optionally find mixed routes. If Protocol.MIXED is set, only this will be run
+      // depending on tradeType & chain, optionally find mixed routes. If Protocol.MIXED is set, only this will be run
       if (
         tradeType == TradeType.EXACT_INPUT &&
         this.chainId === ChainId.MAINNET
@@ -1501,16 +1500,7 @@ export class AlphaRouter
       V2poolProvider: this.v2PoolProvider,
       routeType: swapType,
       V3subgraphProvider: this.v3SubgraphProvider,
-      // V2subgraphProvider: this.v2SubgraphProvider,
-      /// TODO remove after routing api pool cache is updated
-      V2subgraphProvider: new V2SubgraphProviderWithFallBacks([
-        new CachingV2SubgraphProvider(
-          this.chainId,
-          new V2SubgraphProvider(this.chainId),
-          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-        ),
-        new StaticV2SubgraphProvider(this.chainId),
-      ]),
+      V2subgraphProvider: this.v2SubgraphProvider,
       routingConfig,
       chainId: this.chainId,
     });

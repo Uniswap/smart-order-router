@@ -42,7 +42,9 @@ export const getBalanceAndApprove = async (
       alice._address,
       approveTarget
     );
-    expect(approvedAmt).toEqual(constants.MaxUint256);
+    if (currency.decimals == 18) {
+      expect(approvedAmt).toEqual(constants.MaxUint256);
+    }
   }
 
   return getBalance(alice, currency);
