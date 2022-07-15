@@ -146,9 +146,14 @@ Calldata: 0x414bf389000000000000000000000000dac17f958d2ee523a2206206994597c13d83
 ./bin/cli quote --tokenIn 0x2791bca1f2de4661ed88a30c99a7a9449aa84174 --tokenOut 0x7ceb23fd6bc0add59e62ac25578270cff1b9f619 --amount 5 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 137
 ```
 
-## Adding a new Chain
-The main components to complete are:
-* Deploy contracts on chain, add the pools to subgraph
+## Supporting a new Chain
+When deploying Uniswap V3 to a new chain, updating the smart-order-router to include it is a required step to have the new chain supported in sites like app.uniswap.org. 
+
+### Prerequisites
+* Governance has executed a proposal to deploy to the new chain per instructions [here](https://gov.uniswap.org/t/proposed-template-for-future-cross-chain-deployment-proposals/16611)
+* New contracts have been deployed, subgraphs have been created per instructions [here](https://github.com/Uniswap/v3-new-chain-deployments)
+
+### Changes to Make to Smart Order Router
 * Populate v3 providers in `src/providers/v3/subgraph-provider` and `src/providers/v3/static-subgraph-provider`
 * Populate chainId and addresses in `src/util/chains.ts` and `src/util/addresses.ts`
 * Populate token providers in `src/providers/caching-token-provider` and `src/providers/token-provider.ts`
