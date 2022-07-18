@@ -63,12 +63,12 @@ import bunyanDebugStream from 'bunyan-debug-stream';
 let logger = bunyan.createLogger({
   name: 'Uniswap Smart Order Router',
   serializers: bunyan.stdSerializers,
-  level: bunyan.INFO,
+  level: bunyan.DEBUG,
   streams: process.env.DEBUG_JSON
     ? undefined
     : [
         {
-          level: bunyan.INFO,
+          level: bunyan.DEBUG,
           type: 'stream',
           stream: bunyanDebugStream({
             basepath: __dirname,
