@@ -1,6 +1,7 @@
 /**
  * @jest-environment hardhat
  */
+/// <reference types="../../../types/bunyan-debug-stream" />
 
 import {
   Currency,
@@ -25,6 +26,7 @@ import {
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
+  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -54,6 +56,34 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
+
+import bunyan from 'bunyan';
+import bunyanDebugStream from 'bunyan-debug-stream';
+
+let logger = bunyan.createLogger({
+  name: 'Uniswap Smart Order Router',
+  serializers: bunyan.stdSerializers,
+  level: bunyan.INFO,
+  streams: process.env.DEBUG_JSON
+    ? undefined
+    : [
+        {
+          level: bunyan.INFO,
+          type: 'stream',
+          stream: bunyanDebugStream({
+            basepath: __dirname,
+            forceColor: false,
+            showDate: false,
+            showPid: false,
+            showLoggerName: false,
+            showLevel: !!process.env.DEBUG,
+          }),
+        },
+      ],
+});
+
+// setGlobalLogger(logger);
+setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -328,17 +358,26 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
-      describe(`+ simulate swap`, () => {
-        it('erc20 -> erc20', async () => {
+      describe.only(`+ simulate swap`, () => {
+        it.only('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
-          const tokenIn = USDC_MAINNET;
-          const tokenOut = USDT_MAINNET;
+
+          const TRIBE_MAINNET = new Token(
+            1,
+            '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
+            18,
+            'TRIBE',
+            'TRIBE'
+          );
+
+          const tokenIn = TRIBE_MAINNET;
+          const tokenOut = USDC_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100', tokenIn)
-              : parseAmount('100', tokenOut);
+              ? parseAmount('1000', tokenIn)
+              : parseAmount('1000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -351,6 +390,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
+              protocols: [Protocol.V3, Protocol.V2],
             }
           );
 
@@ -846,7 +886,7 @@ describe('alpha router integration', () => {
   }
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
