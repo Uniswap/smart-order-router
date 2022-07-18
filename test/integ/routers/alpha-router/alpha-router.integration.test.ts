@@ -27,6 +27,7 @@ import {
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
+  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -65,11 +66,11 @@ import bunyanDebugStream from 'bunyan-debug-stream';
 
 const logLevel =
   process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
-// @ts-ignore[TS6133]
+
 let logger = bunyan.createLogger({
   name: 'Uniswap Smart Order Router',
   serializers: bunyan.stdSerializers,
-  level: logLevel,
+  level: bunyan.INFO,
   streams: process.env.DEBUG_JSON
     ? undefined
     : [
@@ -88,7 +89,7 @@ let logger = bunyan.createLogger({
       ],
 });
 
-// setGlobalLogger(logger);
+setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -376,6 +377,25 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
+      // v3QuoteProvider: new V3QuoteProvider(
+      //   ChainId.MAINNET,
+      //   hardhat.provider,
+      //   multicall2Provider,
+      //   {
+      //     retries: 2,
+      //     minTimeout: 100,
+      //     maxTimeout: 1000,
+      //   },
+      //   {
+      //     multicallChunk: 40, // 40 looks like it usually works
+      //     gasLimitPerCall: 705_000, // can we tweak this?
+      //     quoteMinSuccessRate: 0.15,
+      //   },
+      //   {
+      //     gasLimitOverride: 2_000_000,
+      //     multicallChunk: 25,
+      //   }
+      // ),
       mixedRouteQuoteProvider: new MixedRouteQuoteProvider(
         ChainId.MAINNET,
         hardhat.provider,
@@ -999,7 +1019,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V3, Protocol.V2, Protocol.MIXED],
+              protocols: [Protocol.V3],
               // minSplits: 2,
               // maxSplits: 5
             }

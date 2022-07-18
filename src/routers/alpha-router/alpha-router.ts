@@ -1237,7 +1237,7 @@ export class AlphaRouter
       tokenOut,
       pools,
       maxSwapsPerPath
-    );
+    )
 
     console.log('Number of V3 routes found:', routes.length);
 
