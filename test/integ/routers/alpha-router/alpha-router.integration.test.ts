@@ -27,7 +27,6 @@ import {
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
-  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -89,7 +88,7 @@ let logger = bunyan.createLogger({
       ],
 });
 
-setGlobalLogger(logger);
+// setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -963,6 +962,14 @@ describe('alpha router integration', () => {
       'TRIBE'
     );
 
+    const BOND_MAINNET = new Token(
+      1,
+      '0x0391D2021f89DC339F60Fff84546EA23E337750f',
+      18,
+      'BOND',
+      'BOND'
+    );
+
     beforeAll(async () => {
       console.log('alice_address', alice._address);
 
@@ -998,10 +1005,8 @@ describe('alpha router integration', () => {
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
-          const tokenIn = TRIBE_MAINNET;
-          const tokenOut = USDC_MAINNET;
-
-          // we expect TRIBE -v2-> FEI -v3-> USDC
+          const tokenIn = BOND_MAINNET;
+          const tokenOut = USDT_MAINNET;
 
           const amount =
             tradeType == TradeType.EXACT_INPUT
@@ -1019,7 +1024,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V3],
+              protocols: [Protocol.V3, Protocol.V2, Protocol.MIXED],
               // minSplits: 2,
               // maxSplits: 5
             }

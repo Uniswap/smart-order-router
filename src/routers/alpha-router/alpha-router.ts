@@ -1237,7 +1237,7 @@ export class AlphaRouter
       tokenOut,
       pools,
       maxSwapsPerPath
-    )
+    );
 
     console.log('Number of V3 routes found:', routes.length);
 
@@ -1507,12 +1507,18 @@ export class AlphaRouter
 
     const V3poolsRaw = V3poolAccessor.getAllPools();
     const V2poolsRaw = V2poolAccessor.getAllPools();
+
+    console.log(
+      'V2 pools:',
+      V2poolsRaw.map((p) => [p.token0.symbol, p.token1.symbol])
+    );
+
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
 
     const candidatePools = mixedRouteCandidatePools;
 
     // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
-    const parts = await this.applyTokenValidatorToPools(
+    const pools = await this.applyTokenValidatorToPools(
       poolsRaw,
       (
         token: Currency,
@@ -1559,11 +1565,12 @@ export class AlphaRouter
     const routes = computeAllMixedRoutes(
       tokenIn,
       tokenOut,
-      parts,
+      pools,
       maxSwapsPerPath
     );
 
     console.log('Number of mixedRoutes found:', routes.length);
+    console.log(routes.map((route) => routeToString(route)));
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
