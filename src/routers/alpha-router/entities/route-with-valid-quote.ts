@@ -344,6 +344,6 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
         : v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress;
     });
 
-    this.tokenPath = this.route.tokenPath;
+    this.tokenPath = this.route.path;
   }
 }

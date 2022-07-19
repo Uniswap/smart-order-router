@@ -12,9 +12,9 @@ export const routeToString = (
 ): string => {
   const routeStr = [];
   const tokens =
-    route instanceof V3Route || route instanceof MixedRoute
+    route instanceof V3Route
       ? route.tokenPath
-      : // V2Route only has path
+      : // MixedRoute and V3Route have path
         route.path;
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools =

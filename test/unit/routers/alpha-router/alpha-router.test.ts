@@ -10,11 +10,14 @@ import sinon from 'sinon';
 import {
   AlphaRouter,
   AlphaRouterConfig,
+  AmountQuote,
   CachingTokenListProvider,
   CurrencyAmount,
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
+  OnChainQuoteProvider,
   parseAmount,
+  RouteWithQuotes,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapRouterProvider,
@@ -30,12 +33,9 @@ import {
   V2RouteWithValidQuote,
   V2SubgraphPool,
   V2SubgraphProvider,
-  V3AmountQuote,
   V3HeuristicGasModelFactory,
   V3PoolProvider,
-  V3QuoteProvider,
   V3Route,
-  V3RouteWithQuotes,
   V3RouteWithValidQuote,
   V3SubgraphPool,
   V3SubgraphProvider,
@@ -82,7 +82,9 @@ describe('alpha router', () => {
 
   let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let mockV3SubgraphProvider: sinon.SinonStubbedInstance<V3SubgraphProvider>;
-  let mockV3QuoteProvider: sinon.SinonStubbedInstance<V3QuoteProvider>;
+  let mockV3QuoteProvider: sinon.SinonStubbedInstance<
+    OnChainQuoteProvider<V3Route>
+  >;
   let mockV3GasModelFactory: sinon.SinonStubbedInstance<V3HeuristicGasModelFactory>;
 
   let mockV2PoolProvider: sinon.SinonStubbedInstance<V2PoolProvider>;
@@ -201,7 +203,7 @@ describe('alpha router', () => {
     );
     mockV2SubgraphProvider.getPools.resolves(v2MockSubgraphPools);
 
-    mockV3QuoteProvider = sinon.createStubInstance(V3QuoteProvider);
+    mockV3QuoteProvider = sinon.createStubInstance(OnChainQuoteProvider);
     mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
       getQuotesManyExactInFn()
     );
@@ -223,7 +225,7 @@ describe('alpha router', () => {
               ],
               initializedTicksCrossedList: [1],
               gasEstimate: BigNumber.from(10000),
-            } as V3AmountQuote;
+            } as AmountQuote;
           });
           return [r, amountQuotes];
         });
@@ -231,7 +233,10 @@ describe('alpha router', () => {
         return {
           routesWithQuotes: routesWithQuotes,
           blockNumber: mockBlockBN,
-        } as { routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber };
+        } as {
+          routesWithQuotes: RouteWithQuotes<V3Route>[];
+          blockNumber: BigNumber;
+        };
       }
     );
 
@@ -404,7 +409,7 @@ describe('alpha router', () => {
                 ],
                 initializedTicksCrossedList: [1],
                 gasEstimate: BigNumber.from(10000),
-              } as V3AmountQuote;
+              } as AmountQuote;
             });
             return [r, amountQuotes];
           });
@@ -413,7 +418,7 @@ describe('alpha router', () => {
             routesWithQuotes: routesWithQuotes,
             blockNumber: mockBlockBN,
           } as {
-            routesWithQuotes: V3RouteWithQuotes[];
+            routesWithQuotes: RouteWithQuotes<V3Route>[];
             blockNumber: BigNumber;
           };
         }
@@ -563,7 +568,7 @@ describe('alpha router', () => {
                 ],
                 initializedTicksCrossedList: [1],
                 gasEstimate: BigNumber.from(10000),
-              } as V3AmountQuote;
+              } as AmountQuote;
             });
             return [r, amountQuotes];
           });
@@ -572,7 +577,7 @@ describe('alpha router', () => {
             routesWithQuotes: routesWithQuotes,
             blockNumber: mockBlockBN,
           } as {
-            routesWithQuotes: V3RouteWithQuotes[];
+            routesWithQuotes: RouteWithQuotes<V3Route>[];
             blockNumber: BigNumber;
           };
         }
@@ -1014,7 +1019,7 @@ describe('alpha router', () => {
                 ],
                 initializedTicksCrossedList: [1],
                 gasEstimate: BigNumber.from(10000),
-              } as V3AmountQuote;
+              } as AmountQuote;
             });
             return [r, amountQuotes];
           });
@@ -1023,7 +1028,7 @@ describe('alpha router', () => {
             routesWithQuotes: routesWithQuotes,
             blockNumber: mockBlockBN,
           } as {
-            routesWithQuotes: V3RouteWithQuotes[];
+            routesWithQuotes: RouteWithQuotes<V3Route>[];
             blockNumber: BigNumber;
           };
         }
@@ -2250,7 +2255,10 @@ type GetQuotesManyExactInFn = (
   amountIns: CurrencyAmount[],
   routes: V3Route[],
   _providerConfig?: ProviderConfig | undefined
-) => Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
+) => Promise<{
+  routesWithQuotes: RouteWithQuotes<V3Route>[];
+  blockNumber: BigNumber;
+}>;
 
 type GetQuotesManyExactInFnParams = {
   quoteMultiplier?: Fraction;
@@ -2281,7 +2289,7 @@ function getQuotesManyExactInFn(
           ],
           initializedTicksCrossedList: [1],
           gasEstimate: BigNumber.from(10000),
-        } as V3AmountQuote;
+        } as AmountQuote;
       });
       return [r, amountQuotes];
     });
@@ -2289,6 +2297,9 @@ function getQuotesManyExactInFn(
     return {
       routesWithQuotes: routesWithQuotes,
       blockNumber: mockBlockBN,
-    } as { routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber };
+    } as {
+      routesWithQuotes: RouteWithQuotes<V3Route>[];
+      blockNumber: BigNumber;
+    };
   };
 }

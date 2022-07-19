@@ -162,7 +162,7 @@ export type AlphaRouterParams = {
   /**
    * The provider for getting V3 quotes.
    */
-  v3QuoteProvider?: IOnChainQuoteProvider;
+  v3QuoteProvider?: IOnChainQuoteProvider<V3Route>;
   /**
    * The provider for getting all pools that exist on V2 from the Subgraph. The pools
    * from this provider are filtered during the algorithm to a set of candidate pools.
@@ -179,7 +179,7 @@ export type AlphaRouterParams = {
   /**
    * The provider for getting on chain quotes (V3 or MixedRoute)
    */
-  mixedRouteQuoteProvider?: IOnChainQuoteProvider;
+  mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   /**
    * The provider for getting data about Tokens.
    */
@@ -336,12 +336,12 @@ export class AlphaRouter
   protected multicall2Provider: UniswapMulticallProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
-  protected v3QuoteProvider: IOnChainQuoteProvider;
+  protected v3QuoteProvider: IOnChainQuoteProvider<V3Route>;
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
   protected tokenProvider: ITokenProvider;
-  protected mixedRouteQuoteProvider: IOnChainQuoteProvider;
+  protected mixedRouteQuoteProvider: IOnChainQuoteProvider<MixedRoute>;
   protected gasPriceProvider: IGasPriceProvider;
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
