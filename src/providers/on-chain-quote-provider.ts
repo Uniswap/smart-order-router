@@ -1,12 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { encodeMixedRouteToPath } from '@uniswap/router-sdk';
-import retry from 'async-retry';
+import { encodeRouteToPath } from '@uniswap/v3-sdk';
+import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
-import { MixedRoute } from '../routers/router';
-import { IQuoterV3__factory } from '../types/other/factories/IQuoterV3__factory';
+
+import { MixedRoute, V3Route } from '../routers/router';
+import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { ChainId, metric, MetricLoggerUnit } from '../util';
+import { QUOTER_V2_ADDRESSES } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import { routeToString } from '../util/routes';
@@ -15,24 +18,9 @@ import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
 
 /**
- * @dev import shared types and classes from v3QuoteProvider
+ * A quote for a swap on V3.
  */
-import {
-  BatchParams,
-  BlockConflictError,
-  BlockNumberConfig,
-  FailureOverrides,
-  ProviderBlockHeaderError,
-  ProviderGasError,
-  ProviderTimeoutError,
-  QuoteRetryOptions,
-  SuccessRateError,
-} from './v3/quote-provider';
-
-/**
- * A on chain quote for a mixed route swap (both V2 and V3 pools/pairs).
- */
-export type MixedRouteAmountQuote = {
+export type AmountQuote = {
   amount: CurrencyAmount;
   /**
    * Quotes can be null (e.g. pool did not have enough liquidity).
@@ -54,10 +42,44 @@ export type MixedRouteAmountQuote = {
   gasEstimate: BigNumber | null;
 };
 
+export class BlockConflictError extends Error {
+  public name = 'BlockConflictError';
+}
+export class SuccessRateError extends Error {
+  public name = 'SuccessRateError';
+}
+
+export class ProviderBlockHeaderError extends Error {
+  public name = 'ProviderBlockHeaderError';
+}
+
+export class ProviderTimeoutError extends Error {
+  public name = 'ProviderTimeoutError';
+}
+
 /**
- * The mixed route and a list of quotes for that route.
+ * This error typically means that the gas used by the multicall has
+ * exceeded the total call gas limit set by the node provider.
+ *
+ * This can be resolved by modifying BatchParams to request fewer
+ * quotes per call, or to set a lower gas limit per quote.
+ *
+ * @export
+ * @class ProviderGasError
  */
-export type MixedRouteWithQuotes = [MixedRoute, MixedRouteAmountQuote[]];
+export class ProviderGasError extends Error {
+  public name = 'ProviderGasError';
+}
+
+export type QuoteRetryOptions = RetryOptions;
+
+/**
+ * The V3 route and a list of quotes for that route.
+ */
+export type RouteWithQuotes<Route extends V3Route | MixedRoute> = [
+  Route,
+  AmountQuote[]
+];
 
 type QuoteBatchSuccess = {
   status: 'success';
@@ -88,36 +110,113 @@ type QuoteBatchPending = {
 type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 
 /**
- * Provider for getting mixed route quotes on Uniswap.
+ * Provider for getting quotes on Uniswap V3.
  *
  * @export
- * @interface IMixedRouteQuoteProvider
+ * @interface IV3QuoteProvider
  */
-export interface IMixedRouteQuoteProvider {
+export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
   /**
-   * For every route, gets an exactIn quote for every amount provided.
+   * For every route, gets an exactIn quotes on V3 for every amount provided.
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
    * @param [providerConfig] The provider config.
-   * @returns For each route returns a MixedRouteWithQuotes object that contains all the quotes.
+   * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: MixedRoute[],
+    routes: Route[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: MixedRouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<Route>[];
+    blockNumber: BigNumber;
+  }>;
+
+  /**
+   * For every route, gets ane exactOut quote on V3 for every amount provided.
+   *
+   * @param amountOuts The amounts to get quotes for.
+   * @param routes The routes to get quotes for.
+   * @param [providerConfig] The provider config.
+   * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
+   * @returns The blockNumber used when generating the quotes.
+   */
+  getQuotesManyExactOut(
+    amountOuts: CurrencyAmount[],
+    routes: Route[],
+    providerConfig?: ProviderConfig
+  ): Promise<{
+    routesWithQuotes: RouteWithQuotes<Route>[];
     blockNumber: BigNumber;
   }>;
 }
 
+/**
+ * The parameters for the multicalls we make.
+ *
+ * It is important to ensure that (gasLimitPerCall * multicallChunk) < providers gas limit per call.
+ *
+ * V3 quotes can consume a lot of gas (if the swap is so large that it swaps through a large
+ * number of ticks), so there is a risk of exceeded gas limits in these multicalls.
+ */
+export type BatchParams = {
+  /**
+   * The number of quotes to fetch in each multicall.
+   */
+  multicallChunk: number;
+  /**
+   * The maximum call to consume for each quote in the multicall.
+   */
+  gasLimitPerCall: number;
+  /**
+   * The minimum success rate for all quotes across all multicalls.
+   * If we set our gasLimitPerCall too low it could result in a large number of
+   * quotes failing due to out of gas. This parameters will fail the overall request
+   * in this case.
+   */
+  quoteMinSuccessRate: number;
+};
+
+/**
+ * The fallback values for gasLimit and multicallChunk if any failures occur.
+ *
+ */
+
+export type FailureOverrides = {
+  multicallChunk: number;
+  gasLimitOverride: number;
+};
+
+export type BlockHeaderFailureOverridesDisabled = { enabled: false };
+export type BlockHeaderFailureOverridesEnabled = {
+  enabled: true;
+  // Offset to apply in the case of a block header failure. e.g. -10 means rollback by 10 blocks.
+  rollbackBlockOffset: number;
+  // Number of batch failures due to block header before trying a rollback.
+  attemptsBeforeRollback: number;
+};
+export type BlockHeaderFailureOverrides =
+  | BlockHeaderFailureOverridesDisabled
+  | BlockHeaderFailureOverridesEnabled;
+
+/**
+ * Config around what block number to query and how to handle failures due to block header errors.
+ */
+export type BlockNumberConfig = {
+  // Applies an offset to the block number specified when fetching quotes. e.g. -10 means rollback by 10 blocks.
+  // Useful for networks where the latest block may not be available on all nodes, causing frequent 'header not found' errors.
+  baseBlockOffset: number;
+  // Config for handling header not found errors.
+  rollback: BlockHeaderFailureOverrides;
+};
+
 const DEFAULT_BATCH_RETRIES = 2;
 
 /**
- * Computes quotes for mixed routes. For mixed routes, quotes are computed on-chain using
- * the 'QuoterV3' smart contract. This is because computing quotes off-chain would
+ * Computes quotes for V3. For V3, quotes are computed on-chain using
+ * the 'QuoterV2' smart contract. This is because computing quotes off-chain would
  * require fetching all the tick data for each pool, which is a lot of data.
  *
  * To minimize the number of requests for quotes we use a Multicall contract. Generally
@@ -127,7 +226,7 @@ const DEFAULT_BATCH_RETRIES = 2;
  * The biggest challenge with the quote provider is dealing with various gas limits.
  * Each provider sets a limit on the amount of gas a call can consume (on Infura this
  * is approximately 10x the block max size), so we must ensure each multicall does not
- * exceed this limit. Additionally, each quote on chain can consume a large number of gas if
+ * exceed this limit. Additionally, each quote on V3 can consume a large number of gas if
  * the pool lacks liquidity and the swap would cause all the ticks to be traversed.
  *
  * To ensure we don't exceed the node's call limit, we limit the gas used by each quote to
@@ -136,12 +235,14 @@ const DEFAULT_BATCH_RETRIES = 2;
  * providers total gas limit per call.
  *
  * @export
- * @class MixedRouteQuoteProvider
+ * @class V3QuoteProvider
  */
-export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
+export class OnChainQuoteProvider<Route extends V3Route | MixedRoute>
+  implements IOnChainQuoteProvider<Route>
+{
   protected quoterAddress: string;
   /**
-   * Creates an instance of MixedRouteQuoteProvider.
+   * Creates an instance of V3QuoteProvider.
    *
    * @param chainId The chain to get quotes for.
    * @param provider The web 3 provider.
@@ -185,11 +286,11 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
   ) {
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
-      : undefined; /// for now
+      : QUOTER_V2_ADDRESSES[this.chainId];
 
     if (!quoterAddress) {
       throw new Error(
-        `No address for Uniswap QuoterV3 Contract on chain id: ${chainId}`
+        `No address for Uniswap QuoterV2 Contract on chain id: ${chainId}`
       );
     }
 
@@ -198,10 +299,10 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: MixedRoute[],
+    routes: Route[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: MixedRouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<Route>[];
     blockNumber: BigNumber;
   }> {
     return this.getQuotesManyData(
@@ -212,13 +313,29 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
     );
   }
 
+  public async getQuotesManyExactOut(
+    amountOuts: CurrencyAmount[],
+    routes: Route[],
+    providerConfig?: ProviderConfig
+  ): Promise<{
+    routesWithQuotes: RouteWithQuotes<Route>[];
+    blockNumber: BigNumber;
+  }> {
+    return this.getQuotesManyData(
+      amountOuts,
+      routes,
+      'quoteExactOutput',
+      providerConfig
+    );
+  }
+
   private async getQuotesManyData(
     amounts: CurrencyAmount[],
-    routes: MixedRoute[],
-    functionName: 'quoteExactInput',
+    routes: Route[],
+    functionName: 'quoteExactInput' | 'quoteExactOutput',
     _providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: MixedRouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<Route>[];
     blockNumber: BigNumber;
   }> {
     let multicallChunk = this.batchParams.multicallChunk;
@@ -235,7 +352,13 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
 
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
-        const encodedRoute = encodeMixedRouteToPath(route);
+        const encodedRoute =
+          route instanceof V3Route
+            ? encodeRouteToPath(
+                route,
+                functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
+              )
+            : encodeMixedRouteToPath(route);
         const routeInputs: [string, string][] = amounts.map((amount) => [
           encodedRoute,
           `0x${amount.quotient.toString(16)}`,
@@ -318,7 +441,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
                     address: this.quoterAddress,
-                    contractInterface: IQuoterV3__factory.createInterface(),
+                    contractInterface: IQuoterV2__factory.createInterface(),
                     functionName,
                     functionParams: inputs,
                     providerConfig,
@@ -500,10 +623,6 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
               }
               gasLimitOverride = this.gasErrorFailureOverride.gasLimitOverride;
               multicallChunk = this.gasErrorFailureOverride.multicallChunk;
-              if (multicallChunk !== 25)
-                throw new Error(
-                  'gasErrorFailureOverride multicall chunk is not 25'
-                );
               retryAll = true;
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {
@@ -643,7 +762,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
     );
 
     const [successfulQuotes, failedQuotes] = _(routesQuotes)
-      .flatMap((routeWithQuotes: MixedRouteWithQuotes) => routeWithQuotes[1])
+      .flatMap((routeWithQuotes: RouteWithQuotes<Route>) => routeWithQuotes[1])
       .partition((quote) => quote.quote != null)
       .value();
 
@@ -693,10 +812,10 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
 
   private processQuoteResults(
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
-    routes: MixedRoute[],
+    routes: Route[],
     amounts: CurrencyAmount[]
-  ): MixedRouteWithQuotes[] {
-    const routesQuotes: MixedRouteWithQuotes[] = [];
+  ): RouteWithQuotes<Route>[] {
+    const routesQuotes: RouteWithQuotes<Route>[] = [];
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
@@ -709,7 +828,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
     for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
       const quoteResults = quotesResultsByRoute[i]!;
-      const quotes: MixedRouteAmountQuote[] = _.map(
+      const quotes: AmountQuote[] = _.map(
         quoteResults,
         (
           quoteResult: Result<[BigNumber, BigNumber[], number[], BigNumber]>,
@@ -769,7 +888,7 @@ export class MixedRouteQuoteProvider implements IMixedRouteQuoteProvider {
             (amounts, routeStr) => `${routeStr} : ${amounts}`
           ),
         },
-        `Failed quotes for mixed routes Part ${idx}/${Math.ceil(
+        `Failed quotes for V3 routes Part ${idx}/${Math.ceil(
           debugFailedQuotes.length / debugChunk
         )}`
       );
