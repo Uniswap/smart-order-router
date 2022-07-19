@@ -962,24 +962,24 @@ export class AlphaRouter
         );
       }
       /// depending on tradeType & chain, optionally find mixed routes. If Protocol.MIXED is set, only this will be run
-      if (
-        tradeType == TradeType.EXACT_INPUT &&
-        this.chainId === ChainId.MAINNET
-      ) {
-        console.log('optionally considering mixedRoutes quotes');
-        quotePromises.push(
-          this.getMixedRouteQuotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            mixedRouteGasModel,
-            tradeType,
-            routingConfig
-          )
-        );
-      }
+      // if (
+      //   tradeType == TradeType.EXACT_INPUT &&
+      //   this.chainId === ChainId.MAINNET
+      // ) {
+      //   console.log('optionally considering mixedRoutes quotes');
+      //   quotePromises.push(
+      //     this.getMixedRouteQuotes(
+      //       tokenIn,
+      //       tokenOut,
+      //       amounts,
+      //       percents,
+      //       quoteToken,
+      //       mixedRouteGasModel,
+      //       tradeType,
+      //       routingConfig
+      //     )
+      //   );
+      // }
     } else {
       if (
         protocolsSet.has(Protocol.V3) ||
