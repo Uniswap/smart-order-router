@@ -1483,7 +1483,7 @@ export class AlphaRouter
   }> {
     log.info('Starting to get mixed quotes');
 
-    if (swapType != TradeType.EXACT_OUTPUT) {
+    if (swapType != TradeType.EXACT_INPUT) {
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
 
