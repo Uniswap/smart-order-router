@@ -70,12 +70,12 @@ const logLevel =
 let logger = bunyan.createLogger({
   name: 'Uniswap Smart Order Router',
   serializers: bunyan.stdSerializers,
-  level: bunyan.INFO,
+  level: bunyan.DEBUG,
   streams: process.env.DEBUG_JSON
     ? undefined
     : [
         {
-          level: bunyan.INFO,
+          level: bunyan.DEBUG,
           type: 'stream',
           stream: bunyanDebugStream({
             basepath: __dirname,
@@ -952,6 +952,22 @@ describe('alpha router integration', () => {
       'BOND'
     );
 
+    const SOCKS_MAINNET = new Token(
+      1,
+      '0x23B608675a2B2fB1890d3ABBd85c5775c51691d5',
+      18,
+      'SOCKS',
+      'SOCKS'
+    );
+
+    const APE_MAINNET = new Token(
+      1,
+      '0x4d224452801aced8b2f0aebe155379bb5d594381',
+      18,
+      'APE',
+      'APE'
+    );
+
     beforeAll(async () => {
       console.log('alice_address', alice._address);
 
@@ -987,13 +1003,13 @@ describe('alpha router integration', () => {
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
-          const tokenIn = UNI_MAINNET;
-          const tokenOut = USDT_MAINNET;
+          const tokenIn = BOND_MAINNET;
+          const tokenOut = APE_MAINNET;
 
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('10000', tokenIn)
-              : parseAmount('10000', tokenOut);
+              ? parseAmount('100000', tokenIn)
+              : parseAmount('100000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -1006,7 +1022,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V3, Protocol.V2, Protocol.MIXED],
+              protocols: [Protocol.V3, Protocol.V2],
               // minSplits: 2,
               // maxSplits: 5
             }

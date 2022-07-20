@@ -1008,9 +1008,10 @@ export async function getMixedRouteCandidatePools({
     });
 
   /**
-   * Implement first heuristic: picking V2 pools with significantly higher liq than respective V3 pools, or if v3 pool doesn't exist
+   * Implement heuristic: picking V2 pools with significantly higher liq than respective V3 pools, or if v3 pool doesn't exist
    */
-
+  /// We only really care about pools involving the tokenIn or tokenOut explictly,
+  /// since there's no way a long tail token in V2 would be routed through as an intermediary
   const V2topByTVLPools = [
     ...V2candidatePools.selections.topByTVLUsingTokenIn,
     ...V2candidatePools.selections.topByBaseWithTokenIn,
@@ -1037,12 +1038,11 @@ export async function getMixedRouteCandidatePools({
   );
 
   let buildV2Pools: V2SubgraphPool[] = [];
-  /// I think this only applies for the first or last pool, since there's no way a long tail token in V2 would be routed through as an intermediary
   V2topByTVLSortedPools.map((V2subgraphPool) => {
     const V3subgraphPool = V3sortedPools.find(
       (pool) =>
         (pool.token0.id == V2subgraphPool.token0.id &&
-          pool.token1.id == V2subgraphPool.token1.id) || // OR case here because ordering matters for v3 and not v2.
+          pool.token1.id == V2subgraphPool.token1.id) ||
         (pool.token0.id == V2subgraphPool.token1.id &&
           pool.token1.id == V2subgraphPool.token0.id)
     );

@@ -83,7 +83,6 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
-    console.log('In subgraph provider v2');
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;

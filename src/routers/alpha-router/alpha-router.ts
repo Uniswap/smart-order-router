@@ -1483,7 +1483,7 @@ export class AlphaRouter
   }> {
     log.info('Starting to get mixed quotes');
 
-    if (swapType == TradeType.EXACT_OUTPUT) {
+    if (swapType != TradeType.EXACT_OUTPUT) {
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
 
@@ -1547,20 +1547,6 @@ export class AlphaRouter
         );
       }
     );
-
-    /**
-     * Apply heuristics to pick the best pools for mixedRoute
-     *
-     * In order of importance
-     * 1. High liq ratio in v2 / v3
-     *  - if either tokenIn or tokenOut is substantially more liquid (1.5x?) on V2 than V3 we mark
-     * -> done in getCandidatePools
-     *
-     * 2. Relatively high amountIn / liq in pool (can adapt for splits too)
-     *
-     */
-
-    // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
 
     const { maxSwapsPerPath } = routingConfig;
     const routes = computeAllMixedRoutes(
