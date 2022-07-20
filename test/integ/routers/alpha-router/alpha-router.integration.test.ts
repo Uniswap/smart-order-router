@@ -23,9 +23,10 @@ import {
   DAI_ON,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
-  MixedRouteQuoteProvider,
+  MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
+  OnChainQuoteProvider,
   parseAmount,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
@@ -74,7 +75,7 @@ let logger = bunyan.createLogger({
     ? undefined
     : [
         {
-          level: logLevel,
+          level: bunyan.INFO,
           type: 'stream',
           stream: bunyanDebugStream({
             basepath: __dirname,
@@ -376,26 +377,7 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      // v3QuoteProvider: new V3QuoteProvider(
-      //   ChainId.MAINNET,
-      //   hardhat.provider,
-      //   multicall2Provider,
-      //   {
-      //     retries: 2,
-      //     minTimeout: 100,
-      //     maxTimeout: 1000,
-      //   },
-      //   {
-      //     multicallChunk: 40, // 40 looks like it usually works
-      //     gasLimitPerCall: 705_000, // can we tweak this?
-      //     quoteMinSuccessRate: 0.15,
-      //   },
-      //   {
-      //     gasLimitOverride: 2_000_000,
-      //     multicallChunk: 25,
-      //   }
-      // ),
-      mixedRouteQuoteProvider: new MixedRouteQuoteProvider(
+      mixedRouteQuoteProvider: new OnChainQuoteProvider<MixedRoute>(
         ChainId.MAINNET,
         hardhat.provider,
         multicall2Provider,
@@ -406,13 +388,13 @@ describe('alpha router integration', () => {
           maxTimeout: 1000,
         },
         {
-          multicallChunk: 40, // 40 looks like it usually works
-          gasLimitPerCall: 705_000, // can we tweak this?
+          multicallChunk: 180,
+          gasLimitPerCall: 705_000,
           quoteMinSuccessRate: 0.15,
         },
         {
           gasLimitOverride: 2_000_000,
-          multicallChunk: 25,
+          multicallChunk: 75,
         },
         undefined,
         undefined,

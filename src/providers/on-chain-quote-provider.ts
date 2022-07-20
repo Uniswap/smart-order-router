@@ -1,25 +1,27 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
+import { encodeMixedRouteToPath } from '@uniswap/router-sdk';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
 
-import { V3Route } from '../../routers/router';
-import { IQuoterV2__factory } from '../../types/v3/factories/IQuoterV2__factory';
-import { ChainId, metric, MetricLoggerUnit } from '../../util';
-import { QUOTER_V2_ADDRESSES } from '../../util/addresses';
-import { CurrencyAmount } from '../../util/amounts';
-import { log } from '../../util/log';
-import { routeToString } from '../../util/routes';
-import { Result } from '../multicall-provider';
-import { UniswapMulticallProvider } from '../multicall-uniswap-provider';
-import { ProviderConfig } from '../provider';
+import { MixedRoute, V3Route } from '../routers/router';
+import { IQuoterV3__factory } from '../types/other/factories/IQuoterV3__factory';
+import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
+import { ChainId, metric, MetricLoggerUnit } from '../util';
+import { QUOTER_V2_ADDRESSES } from '../util/addresses';
+import { CurrencyAmount } from '../util/amounts';
+import { log } from '../util/log';
+import { routeToString } from '../util/routes';
+import { Result } from './multicall-provider';
+import { UniswapMulticallProvider } from './multicall-uniswap-provider';
+import { ProviderConfig } from './provider';
 
 /**
  * A quote for a swap on V3.
  */
-export type V3AmountQuote = {
+export type AmountQuote = {
   amount: CurrencyAmount;
   /**
    * Quotes can be null (e.g. pool did not have enough liquidity).
@@ -75,7 +77,10 @@ export type QuoteRetryOptions = RetryOptions;
 /**
  * The V3 route and a list of quotes for that route.
  */
-export type V3RouteWithQuotes = [V3Route, V3AmountQuote[]];
+export type RouteWithQuotes<TRoute extends V3Route | MixedRoute> = [
+  TRoute,
+  AmountQuote[]
+];
 
 type QuoteBatchSuccess = {
   status: 'success';
@@ -111,21 +116,24 @@ type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
  * @export
  * @interface IV3QuoteProvider
  */
-export interface IV3QuoteProvider {
+export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
   /**
    * For every route, gets an exactIn quotes on V3 for every amount provided.
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
    * @param [providerConfig] The provider config.
-   * @returns For each route returns a V3RouteWithQuotes object that contains all the quotes.
+   * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: V3Route[],
+    routes: Route[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
+  ): Promise<{
+    routesWithQuotes: RouteWithQuotes<Route>[];
+    blockNumber: BigNumber;
+  }>;
 
   /**
    * For every route, gets ane exactOut quote on V3 for every amount provided.
@@ -133,14 +141,17 @@ export interface IV3QuoteProvider {
    * @param amountOuts The amounts to get quotes for.
    * @param routes The routes to get quotes for.
    * @param [providerConfig] The provider config.
-   * @returns For each route returns a V3RouteWithQuotes object that contains all the quotes.
+   * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: V3Route[],
+    routes: Route[],
     providerConfig?: ProviderConfig
-  ): Promise<{ routesWithQuotes: V3RouteWithQuotes[]; blockNumber: BigNumber }>;
+  ): Promise<{
+    routesWithQuotes: RouteWithQuotes<Route>[];
+    blockNumber: BigNumber;
+  }>;
 }
 
 /**
@@ -227,7 +238,9 @@ const DEFAULT_BATCH_RETRIES = 2;
  * @export
  * @class V3QuoteProvider
  */
-export class V3QuoteProvider implements IV3QuoteProvider {
+export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
+  implements IOnChainQuoteProvider<TRoute>
+{
   protected quoterAddress: string;
   /**
    * Creates an instance of V3QuoteProvider.
@@ -287,10 +300,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
   public async getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: V3Route[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: V3RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
     return this.getQuotesManyData(
@@ -303,10 +316,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
   public async getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: V3Route[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: V3RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
     return this.getQuotesManyData(
@@ -319,13 +332,33 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
   private async getQuotesManyData(
     amounts: CurrencyAmount[],
-    routes: V3Route[],
+    routes: TRoute[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
     _providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: V3RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
+    /// @dev validation for generic use of OnChainQuoteProvider for both V3 and MixedRoutes
+    // we cannot have both V3 and MixedRoutes in the same call
+    if (
+      routes.some((route) => route instanceof V3Route) &&
+      routes.some((route) => route instanceof MixedRoute)
+    ) {
+      throw new Error(
+        'Cannot have both V3 and MixedRoutes in the same call to on chain Quoter'
+      );
+    }
+    // cannot make an exactOutput call with mixedRouteQuotes
+    if (
+      functionName === 'quoteExactOutput' &&
+      routes.some((route) => route instanceof MixedRoute)
+    ) {
+      throw new Error('Cannot make an exactOutput call with MixedRoutes');
+    }
+
+    const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
+
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
     const { baseBlockOffset, rollback } = this.blockNumberConfig;
@@ -340,10 +373,13 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
-        const encodedRoute = encodeRouteToPath(
-          route,
-          functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
-        );
+        const encodedRoute =
+          route instanceof V3Route
+            ? encodeRouteToPath(
+                route,
+                functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
+              )
+            : encodeMixedRouteToPath(route);
         const routeInputs: [string, string][] = amounts.map((amount) => [
           encodedRoute,
           `0x${amount.quotient.toString(16)}`,
@@ -426,7 +462,9 @@ export class V3QuoteProvider implements IV3QuoteProvider {
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
                     address: this.quoterAddress,
-                    contractInterface: IQuoterV2__factory.createInterface(),
+                    contractInterface: isMixedRoutes
+                      ? IQuoterV3__factory.createInterface()
+                      : IQuoterV2__factory.createInterface(),
                     functionName,
                     functionParams: inputs,
                     providerConfig,
@@ -747,7 +785,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     );
 
     const [successfulQuotes, failedQuotes] = _(routesQuotes)
-      .flatMap((routeWithQuotes: V3RouteWithQuotes) => routeWithQuotes[1])
+      .flatMap((routeWithQuotes: RouteWithQuotes<TRoute>) => routeWithQuotes[1])
       .partition((quote) => quote.quote != null)
       .value();
 
@@ -797,10 +835,10 @@ export class V3QuoteProvider implements IV3QuoteProvider {
 
   private processQuoteResults(
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
-    routes: V3Route[],
+    routes: TRoute[],
     amounts: CurrencyAmount[]
-  ): V3RouteWithQuotes[] {
-    const routesQuotes: V3RouteWithQuotes[] = [];
+  ): RouteWithQuotes<TRoute>[] {
+    const routesQuotes: RouteWithQuotes<TRoute>[] = [];
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
@@ -813,7 +851,7 @@ export class V3QuoteProvider implements IV3QuoteProvider {
     for (let i = 0; i < quotesResultsByRoute.length; i++) {
       const route = routes[i]!;
       const quoteResults = quotesResultsByRoute[i]!;
-      const quotes: V3AmountQuote[] = _.map(
+      const quotes: AmountQuote[] = _.map(
         quoteResults,
         (
           quoteResult: Result<[BigNumber, BigNumber[], number[], BigNumber]>,
