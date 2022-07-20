@@ -28,7 +28,6 @@ import {
   NATIVE_CURRENCY,
   OnChainQuoteProvider,
   parseAmount,
-  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -37,7 +36,6 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
-  V3Route,
   V3_CORE_FACTORY_ADDRESSES,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
@@ -72,12 +70,12 @@ const logLevel =
 let logger = bunyan.createLogger({
   name: 'Uniswap Smart Order Router',
   serializers: bunyan.stdSerializers,
-  level: logLevel,
+  level: bunyan.INFO,
   streams: process.env.DEBUG_JSON
     ? undefined
     : [
         {
-          level: logLevel,
+          level: bunyan.INFO,
           type: 'stream',
           stream: bunyanDebugStream({
             basepath: __dirname,
@@ -91,7 +89,7 @@ let logger = bunyan.createLogger({
       ],
 });
 
-setGlobalLogger(logger);
+// setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -379,29 +377,6 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      v3QuoteProvider: new OnChainQuoteProvider<V3Route>(
-        ChainId.MAINNET,
-        hardhat.provider,
-        multicall2Provider,
-        {
-          retries: 2,
-          minTimeout: 100,
-          maxTimeout: 1000,
-        },
-        {
-          multicallChunk: 50,
-          gasLimitPerCall: 705_00,
-          quoteMinSuccessRate: 0.05,
-        },
-        {
-          gasLimitOverride: 1_000_000,
-          multicallChunk: 25,
-        },
-        {
-          gasLimitOverride: 1_000_000,
-          multicallChunk: 25,
-        }
-      ),
       mixedRouteQuoteProvider: new OnChainQuoteProvider<MixedRoute>(
         ChainId.MAINNET,
         hardhat.provider,
@@ -413,13 +388,13 @@ describe('alpha router integration', () => {
           maxTimeout: 1000,
         },
         {
-          multicallChunk: 75,
-          gasLimitPerCall: 1_000_000,
+          multicallChunk: 180,
+          gasLimitPerCall: 705_000,
           quoteMinSuccessRate: 0.15,
         },
         {
           gasLimitOverride: 2_000_000,
-          multicallChunk: 25,
+          multicallChunk: 75,
         },
         undefined,
         undefined,
@@ -1007,8 +982,8 @@ describe('alpha router integration', () => {
           const tokenOut = USDT_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100', tokenIn)
-              : parseAmount('100', tokenOut);
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,

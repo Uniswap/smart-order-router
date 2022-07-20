@@ -1589,7 +1589,7 @@ export class AlphaRouter
       tokenOut,
       parts,
       maxSwapsPerPath
-    ).slice(0, 10); /// Testing, remove
+    )
 
     console.log('Number of mixedRoutes found:', routes.length);
 

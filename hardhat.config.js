@@ -12,6 +12,7 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 1,
+      blockGasLimit: 150_000_000,
       forking: mainnetFork,
       accounts: {
         count: 2,
