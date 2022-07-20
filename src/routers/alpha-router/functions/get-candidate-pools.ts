@@ -1020,6 +1020,7 @@ export async function getMixedRouteCandidatePools({
     /// Direct swap:
     ...V2candidatePools.selections.topByDirectSwapPool,
   ];
+
   const V2topByTVLSortedPools = _(V2subgraphPools)
     .filter((pool) => V2topByTVLPools.map((p) => p.id).includes(pool.id))
     /// largest first
@@ -1047,9 +1048,9 @@ export async function getMixedRouteCandidatePools({
     );
 
     if (V3subgraphPool) {
-      if (V2subgraphPool.reserveUSD > V3subgraphPool.tvlUSD * 1.5) {
+      if (V2subgraphPool.reserveUSD > V3subgraphPool.tvlUSD) {
         console.log(
-          `V2 pool ${V2subgraphPool.token0.id}/${V2subgraphPool.token1.id} has significantly higher liquidity than V3 pool, adding`,
+          `V2 pool ${V2subgraphPool.token0.id}/${V2subgraphPool.token1.id} has higher liquidity than V3 pool, adding`,
           V2subgraphPool.reserveUSD,
           V3subgraphPool.tvlUSD
         );

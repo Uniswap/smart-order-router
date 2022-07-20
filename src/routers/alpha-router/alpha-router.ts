@@ -1483,6 +1483,10 @@ export class AlphaRouter
   }> {
     log.info('Starting to get mixed quotes');
 
+    if (swapType == TradeType.EXACT_OUTPUT) {
+      throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
+    }
+
     const {
       V2poolAccessor,
       V3poolAccessor,
@@ -1557,13 +1561,14 @@ export class AlphaRouter
      */
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
+
     const { maxSwapsPerPath } = routingConfig;
     const routes = computeAllMixedRoutes(
       tokenIn,
       tokenOut,
       pools,
       maxSwapsPerPath
-    )
+    );
 
     console.log('Number of mixedRoutes found:', routes.length);
     console.log(routes.map((route) => routeToString(route)));
