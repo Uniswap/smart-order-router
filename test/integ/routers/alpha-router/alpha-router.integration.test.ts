@@ -23,10 +23,12 @@ import {
   DAI_ON,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
-  MixedRouteQuoteProvider,
+  MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
+  OnChainQuoteProvider,
   parseAmount,
+  setGlobalLogger,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -35,6 +37,7 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+  V3Route,
   V3_CORE_FACTORY_ADDRESSES,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
@@ -88,7 +91,7 @@ let logger = bunyan.createLogger({
       ],
 });
 
-// setGlobalLogger(logger);
+setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -376,7 +379,30 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      mixedRouteQuoteProvider: new MixedRouteQuoteProvider(
+      v3QuoteProvider: new OnChainQuoteProvider<V3Route>(
+        ChainId.MAINNET,
+        hardhat.provider,
+        multicall2Provider,
+        {
+          retries: 2,
+          minTimeout: 100,
+          maxTimeout: 1000,
+        },
+        {
+          multicallChunk: 50,
+          gasLimitPerCall: 705_00,
+          quoteMinSuccessRate: 0.05,
+        },
+        {
+          gasLimitOverride: 1_000_000,
+          multicallChunk: 25,
+        },
+        {
+          gasLimitOverride: 1_000_000,
+          multicallChunk: 25,
+        }
+      ),
+      mixedRouteQuoteProvider: new OnChainQuoteProvider<MixedRoute>(
         ChainId.MAINNET,
         hardhat.provider,
         multicall2Provider,
@@ -387,8 +413,8 @@ describe('alpha router integration', () => {
           maxTimeout: 1000,
         },
         {
-          multicallChunk: 125,
-          gasLimitPerCall: 705_000,
+          multicallChunk: 75,
+          gasLimitPerCall: 1_000_000,
           quoteMinSuccessRate: 0.15,
         },
         {
@@ -981,8 +1007,8 @@ describe('alpha router integration', () => {
           const tokenOut = USDT_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('10000', tokenIn)
-              : parseAmount('10000', tokenOut);
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
