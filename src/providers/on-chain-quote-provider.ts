@@ -19,7 +19,7 @@ import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
 
 /**
- * A quote for a swap on V3.
+ * An on chain quote for a V3 or MixedRoute swap.
  */
 export type AmountQuote = {
   amount: CurrencyAmount;
@@ -111,14 +111,14 @@ type QuoteBatchPending = {
 type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 
 /**
- * Provider for getting quotes on Uniswap V3.
+ * Provider for getting on chain quotes using either V3 pools or V2 pairs.
  *
  * @export
  * @interface IV3QuoteProvider
  */
 export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
   /**
-   * For every route, gets an exactIn quotes on V3 for every amount provided.
+   * For every route, gets an exactIn quotes for every amount provided.
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
@@ -136,7 +136,8 @@ export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
   }>;
 
   /**
-   * For every route, gets ane exactOut quote on V3 for every amount provided.
+   * For every route, gets ane exactOut quote for every amount provided.
+   * @notice This does not support quotes for MixedRoutes (routes with both V3 and V2 pools/pairs)
    *
    * @param amountOuts The amounts to get quotes for.
    * @param routes The routes to get quotes for.
@@ -159,7 +160,7 @@ export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
  *
  * It is important to ensure that (gasLimitPerCall * multicallChunk) < providers gas limit per call.
  *
- * V3 quotes can consume a lot of gas (if the swap is so large that it swaps through a large
+ * On chain quotes can consume a lot of gas (if the swap is so large that it swaps through a large
  * number of ticks), so there is a risk of exceeded gas limits in these multicalls.
  */
 export type BatchParams = {
@@ -216,9 +217,9 @@ export type BlockNumberConfig = {
 const DEFAULT_BATCH_RETRIES = 2;
 
 /**
- * Computes quotes for V3. For V3, quotes are computed on-chain using
- * the 'QuoterV2' smart contract. This is because computing quotes off-chain would
- * require fetching all the tick data for each pool, which is a lot of data.
+ * Computes on chain quotes for swaps. For pure V3 routes, quotes are computed on-chain using
+ * the 'QuoterV2' smart contract. For mixed routes, quotes are computed using the 'MixedRouteQuoterV1' contract
+ * This is because computing quotes off-chain would require fetching all the tick data for each pool, which is a lot of data.
  *
  * To minimize the number of requests for quotes we use a Multicall contract. Generally
  * the number of quotes to fetch exceeds the maximum we can fit in a single multicall
@@ -236,14 +237,14 @@ const DEFAULT_BATCH_RETRIES = 2;
  * providers total gas limit per call.
  *
  * @export
- * @class V3QuoteProvider
+ * @class OnChainQuoteProvider
  */
 export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
   implements IOnChainQuoteProvider<TRoute>
 {
   protected quoterAddress: string;
   /**
-   * Creates an instance of V3QuoteProvider.
+   * Creates an instance of OnChainQuoteProvider.
    *
    * @param chainId The chain to get quotes for.
    * @param provider The web 3 provider.
@@ -285,6 +286,8 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
     },
     protected quoterAddressOverride?: string
   ) {
+    /// TODO: we will need some way to store default addresses for the new MixedRouteQuoterV1 on other chains.
+    /// Possibly can expand this type to a { quoterV2: string, mixedRouteQuoterV1: string } object and evaluate at runtime depending on the route input
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
       : QUOTER_V2_ADDRESSES[this.chainId];
@@ -339,7 +342,6 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
     routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
-    /// @dev validation for generic use of OnChainQuoteProvider for both V3 and MixedRoutes
     // we cannot have both V3 and MixedRoutes in the same call
     if (
       routes.some((route) => route instanceof V3Route) &&
@@ -461,6 +463,7 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
                     [string, string],
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
+                    /// TODO: toggle between quoter addresses here
                     address: this.quoterAddress,
                     contractInterface: isMixedRoutes
                       ? IQuoterV3__factory.createInterface()
@@ -911,7 +914,7 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
             (amounts, routeStr) => `${routeStr} : ${amounts}`
           ),
         },
-        `Failed quotes for V3 routes Part ${idx}/${Math.ceil(
+        `Failed on chain quotes for routes Part ${idx}/${Math.ceil(
           debugFailedQuotes.length / debugChunk
         )}`
       );

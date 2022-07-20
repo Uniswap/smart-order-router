@@ -66,16 +66,16 @@ import bunyanDebugStream from 'bunyan-debug-stream';
 
 const logLevel =
   process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
-// @ts-ignore[TS6133]
+
 let logger = bunyan.createLogger({
   name: 'Uniswap Smart Order Router',
   serializers: bunyan.stdSerializers,
-  level: bunyan.INFO,
+  level: bunyan.DEBUG,
   streams: process.env.DEBUG_JSON
     ? undefined
     : [
         {
-          level: bunyan.INFO,
+          level: bunyan.DEBUG,
           type: 'stream',
           stream: bunyanDebugStream({
             basepath: __dirname,
@@ -381,7 +381,7 @@ describe('alpha router integration', () => {
         ChainId.MAINNET,
         hardhat.provider,
         multicall2Provider,
-        /// Same config as V3QuoteProvider
+        /// Different config than v3
         {
           retries: 2,
           minTimeout: 100,
@@ -407,7 +407,7 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT]) {
-    xdescribe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -429,8 +429,6 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V2],
-              minSplits: 2,
             }
           );
 
@@ -938,15 +936,41 @@ describe('alpha router integration', () => {
     );
     const tradeType = TradeType.EXACT_INPUT;
 
-    const MC_MAINNET = new Token(
+    const TRIBE_MAINNET = new Token(
       1,
-      '0x949D48EcA67b17269629c7194F4b727d4Ef9E5d6',
+      '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
       18,
-      'MC',
-      'MC'
+      'TRIBE',
+      'TRIBE'
+    );
+
+    const BOND_MAINNET = new Token(
+      1,
+      '0x0391D2021f89DC339F60Fff84546EA23E337750f',
+      18,
+      'BOND',
+      'BOND'
+    );
+
+    const SOCKS_MAINNET = new Token(
+      1,
+      '0x23B608675a2B2fB1890d3ABBd85c5775c51691d5',
+      18,
+      'SOCKS',
+      'SOCKS'
+    );
+
+    const APE_MAINNET = new Token(
+      1,
+      '0x4d224452801aced8b2f0aebe155379bb5d594381',
+      18,
+      'APE',
+      'APE'
     );
 
     beforeAll(async () => {
+      console.log('alice_address', alice._address);
+
       await hardhat.fund(
         alice._address,
         [parseAmount('1000', WISE_MAINNET)],
@@ -959,18 +983,19 @@ describe('alpha router integration', () => {
         WISE_MAINNET
       );
       expect(aliceWISEBalance).toEqual(parseAmount('1000', WISE_MAINNET));
+
       await hardhat.fund(
         alice._address,
-        [parseAmount('1000', MC_MAINNET)],
+        [parseAmount('10000', TRIBE_MAINNET)],
         [
-          '0x5a52e96bacdabb82fd05763e25335261b270efcb', // MC token whale
+          '0xea7b32c902daff20bda7b9d7b0964ff0cd33d7ea', // TRIBE whale
         ]
       );
-      const aliceMCBalance = await hardhat.getBalance(
+      const aliceTRIBEBalance = await hardhat.getBalance(
         alice._address,
-        MC_MAINNET
+        TRIBE_MAINNET
       );
-      expect(aliceMCBalance).toEqual(parseAmount('1000', MC_MAINNET));
+      expect(aliceTRIBEBalance).toEqual(parseAmount('10000', TRIBE_MAINNET));
     });
 
     describe(`${
@@ -978,26 +1003,26 @@ describe('alpha router integration', () => {
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
-          const tokenIn = UNI_MAINNET;
-          const tokenOut = USDT_MAINNET;
+          const tokenIn = BOND_MAINNET;
+          const tokenOut = APE_MAINNET;
+
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('10000', tokenIn)
-              : parseAmount('10000', tokenOut);
+              ? parseAmount('100000', tokenIn)
+              : parseAmount('100000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-              // recipient: alice._address,
-              recipient: '0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503', // binance whale
+              recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(10000), // parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V2, Protocol.V3],
+              protocols: [Protocol.V3, Protocol.V2],
               // minSplits: 2,
               // maxSplits: 5
             }

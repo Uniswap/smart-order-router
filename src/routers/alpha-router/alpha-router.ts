@@ -120,7 +120,7 @@ import {
 } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
-  CandidatePoolsSelections,
+  getMixedRouteCandidatePools,
   getV2CandidatePools,
   getV3CandidatePools,
   PoolId,
@@ -960,7 +960,7 @@ export class AlphaRouter
           )
         );
       }
-      /// depending on tradeType & chain, optionally find mixed routes. If Protocol.MIXED is set, only this will be run
+      // depending on tradeType & chain, optionally find mixed routes. If Protocol.MIXED is set, only this will be run
       if (
         tradeType == TradeType.EXACT_INPUT &&
         this.chainId === ChainId.MAINNET
@@ -1482,77 +1482,43 @@ export class AlphaRouter
     candidatePools: CandidatePoolsBySelectionCriteria;
   }> {
     log.info('Starting to get mixed quotes');
-    // Fetch all the pools that we will consider routing via. There are thousands
-    // of pools, so we filter them to a set of candidate pools that we expect will
-    // result in good prices.
-    const { poolAccessor: V3poolAccessor, candidatePools: candidateV3Pools } =
-      await getV3CandidatePools({
-        tokenIn,
-        tokenOut,
-        tokenProvider: this.tokenProvider,
-        blockedTokenListProvider: this.blockedTokenListProvider,
-        poolProvider: this.v3PoolProvider,
-        routeType: swapType,
-        subgraphProvider: this.v3SubgraphProvider,
-        routingConfig,
-        chainId: this.chainId,
-      });
-    const V3poolsRaw = V3poolAccessor.getAllPools();
 
-    const { poolAccessor: V2poolAccessor, candidatePools: candidateV2Pools } =
-      await getV2CandidatePools({
-        tokenIn,
-        tokenOut,
-        tokenProvider: this.tokenProvider,
-        blockedTokenListProvider: this.blockedTokenListProvider,
-        poolProvider: this.v2PoolProvider,
-        routeType: swapType,
-        subgraphProvider: this.v2SubgraphProvider,
-        routingConfig,
-        chainId: this.chainId,
-      });
+    if (swapType != TradeType.EXACT_OUTPUT) {
+      throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
+    }
+
+    const {
+      V2poolAccessor,
+      V3poolAccessor,
+      candidatePools: mixedRouteCandidatePools,
+    } = await getMixedRouteCandidatePools({
+      tokenIn,
+      tokenOut,
+      tokenProvider: this.tokenProvider,
+      blockedTokenListProvider: this.blockedTokenListProvider,
+      V3poolProvider: this.v3PoolProvider,
+      V2poolProvider: this.v2PoolProvider,
+      routeType: swapType,
+      V3subgraphProvider: this.v3SubgraphProvider,
+      V2subgraphProvider: this.v2SubgraphProvider,
+      routingConfig,
+      chainId: this.chainId,
+    });
+
+    const V3poolsRaw = V3poolAccessor.getAllPools();
     const V2poolsRaw = V2poolAccessor.getAllPools();
+
+    console.log(
+      'V2 pools:',
+      V2poolsRaw.map((p) => [p.token0.symbol, p.token1.symbol])
+    );
 
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
 
-    let buildCandidatePools = {
-      protocol: Protocol.MIXED,
-      selections: <CandidatePoolsSelections>{},
-    };
-
-    /// @dev we order V3 first, then V2. We might want to do it in order of tokenPath
-    if (candidateV3Pools && candidateV2Pools) {
-      Object.entries(candidateV3Pools.selections).forEach(
-        ([key, value]: [string, PoolId[]]) => {
-          buildCandidatePools.selections = {
-            ...buildCandidatePools.selections,
-            [key]: [
-              ...value,
-              ...candidateV2Pools.selections[
-                key as keyof CandidatePoolsSelections
-              ],
-            ],
-          };
-        }
-      );
-    } else {
-      if (candidateV3Pools) {
-        buildCandidatePools = {
-          ...buildCandidatePools,
-          selections: candidateV3Pools.selections,
-        };
-      } else if (candidateV2Pools) {
-        buildCandidatePools = {
-          ...buildCandidatePools,
-          selections: candidateV2Pools.selections,
-        };
-      }
-    }
-
-    const candidatePools = buildCandidatePools;
+    const candidatePools = mixedRouteCandidatePools;
 
     // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
-    const parts = await this.applyTokenValidatorToPools(
+    const pools = await this.applyTokenValidatorToPools(
       poolsRaw,
       (
         token: Currency,
@@ -1582,16 +1548,16 @@ export class AlphaRouter
       }
     );
 
-    // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
     const routes = computeAllMixedRoutes(
       tokenIn,
       tokenOut,
-      parts,
+      pools,
       maxSwapsPerPath
-    )
+    );
 
     console.log('Number of mixedRoutes found:', routes.length);
+    console.log(routes.map((route) => routeToString(route)));
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };

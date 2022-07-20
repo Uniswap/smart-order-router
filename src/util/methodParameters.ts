@@ -182,57 +182,37 @@ export function buildTrade<TTradeType extends TradeType>(
     (routeAmount: MixedRouteWithValidQuote) => {
       const { route, amount, quote } = routeAmount;
 
+      if (tradeType != TradeType.EXACT_INPUT) {
+        throw new Error(
+          'Mixed routes are only supported for exact input trades'
+        );
+      }
+
       // The route, amount and quote are all in terms of wrapped tokens.
       // When constructing the Trade object the inputAmount/outputAmount must
       // use native currencies if specified by the user. This is so that the Trade knows to wrap/unwrap.
-      if (tradeType == TradeType.EXACT_INPUT) {
-        const amountCurrency = CurrencyAmount.fromFractionalAmount(
-          tokenInCurrency,
-          amount.numerator,
-          amount.denominator
-        );
-        const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-          tokenOutCurrency,
-          quote.numerator,
-          quote.denominator
-        );
+      const amountCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenInCurrency,
+        amount.numerator,
+        amount.denominator
+      );
+      const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+        tokenOutCurrency,
+        quote.numerator,
+        quote.denominator
+      );
 
-        const routeRaw = new MixedRouteSDK(
-          route.pools,
-          amountCurrency.currency,
-          quoteCurrency.currency
-        );
+      const routeRaw = new MixedRouteSDK(
+        route.pools,
+        amountCurrency.currency,
+        quoteCurrency.currency
+      );
 
-        return {
-          mixedRoute: routeRaw,
-          inputAmount: amountCurrency,
-          outputAmount: quoteCurrency,
-        };
-      } else {
-        const quoteCurrency = CurrencyAmount.fromFractionalAmount(
-          tokenInCurrency,
-          quote.numerator,
-          quote.denominator
-        );
-
-        const amountCurrency = CurrencyAmount.fromFractionalAmount(
-          tokenOutCurrency,
-          amount.numerator,
-          amount.denominator
-        );
-
-        const routeCurrency = new MixedRouteSDK(
-          route.pools,
-          quoteCurrency.currency,
-          amountCurrency.currency
-        );
-
-        return {
-          mixedRoute: routeCurrency,
-          inputAmount: quoteCurrency,
-          outputAmount: amountCurrency,
-        };
-      }
+      return {
+        mixedRoute: routeRaw,
+        inputAmount: amountCurrency,
+        outputAmount: quoteCurrency,
+      };
     }
   );
 
