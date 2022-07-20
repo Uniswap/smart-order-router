@@ -6,12 +6,11 @@ import dotenv from 'dotenv';
 import _ from 'lodash';
 import {
   ID_TO_CHAIN_ID,
-  NativeCurrencyName,
   nativeOnChain,
   parseAmount,
   SwapRoute,
 } from '../../src';
-import { TO_PROTOCOL } from '../../src/util';
+import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
@@ -86,17 +85,15 @@ export class Quote extends BaseCommand {
     const router = this.router;
 
     // if the tokenIn str is 'ETH' or 'MATIC' or NATIVE_CURRENCY_STRING, quote with the wrapped native currency
-    const tokenIn: Currency = (<any>Object)
-      .values(NativeCurrencyName)
-      .includes(tokenInStr)
+    const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
       ? nativeOnChain(chainId)
       : (await tokenProvider.getTokens([tokenInStr])).getTokenByAddress(
           tokenInStr
         )!;
 
-    const tokenOut: Currency = (<any>Object)
-      .values(NativeCurrencyName)
-      .includes(tokenOutStr)
+    const tokenOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
+      tokenOutStr
+    )
       ? nativeOnChain(chainId)
       : (await tokenProvider.getTokens([tokenOutStr])).getTokenByAddress(
           tokenOutStr
