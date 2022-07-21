@@ -32,7 +32,6 @@ type RawV2SubgraphPool = {
     id: string;
   };
   totalSupply: string;
-  reserveETH: string;
   trackedReserveETH: string;
   reserveUSD: string;
 };
@@ -98,7 +97,6 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           token0 { id, symbol }
           token1 { id, symbol }
           totalSupply
-          reserveETH
           trackedReserveETH
           reserveUSD
         }
