@@ -43,7 +43,7 @@ export const SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 export const V3_MIGRATOR_ADDRESS = '0xA5644E29708357803b5A882D272c41cC0dF92B34';
 export const MULTICALL2_ADDRESS = '0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696';
 
-type AddressMap = { [chainId: number]: string };
+export type AddressMap = { [chainId: number]: string };
 
 export function constructSameAddressMap<T extends string>(
   address: T,

@@ -1513,6 +1513,11 @@ export class AlphaRouter
       V2poolsRaw.map((p) => [p.token0.symbol, p.token1.symbol])
     );
 
+    console.log(
+      'V3 pools:',
+      V3poolsRaw.map((p) => [p.token0.symbol, p.token1.symbol])
+    );
+
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
 
     const candidatePools = mixedRouteCandidatePools;
@@ -1549,6 +1554,7 @@ export class AlphaRouter
     );
 
     const { maxSwapsPerPath } = routingConfig;
+
     const routes = computeAllMixedRoutes(
       tokenIn,
       tokenOut,
