@@ -287,7 +287,7 @@ export type AlphaRouterConfig = {
    * The protocols to consider when finding the optimal swap. If not provided all protocols
    * will be used.
    */
-  protocols?: Protocol[];
+  protocols?: (Protocol.V2 | Protocol.V3)[];
   /**
    * Config for selecting which pools to consider routing via on V2.
    */
@@ -314,6 +314,11 @@ export type AlphaRouterConfig = {
    * This parameter should always be false. It is only included for testing purposes.
    */
   forceCrossProtocol: boolean;
+  /**
+   * Prevent the alpha router from considering mixedRoutes as a valid swap.
+   * Default will be falsy.
+   */
+  disableMixedRoutesConsideration?: boolean;
   /**
    * The minimum percentage of the input token to use for each route in a split route.
    * All routes will have a multiple of this value. For example is distribution percentage is 5,
@@ -933,39 +938,38 @@ export class AlphaRouter
       V2_SUPPORTED.includes(this.chainId)
     ) {
       log.info({ protocols, tradeType }, 'Routing across all protocols');
-      if (!protocolsSet.has(Protocol.MIXED)) {
-        /// explicitly defining MIXED should not route v3 or v2
-        quotePromises.push(
-          this.getV3Quotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            V3gasModel,
-            tradeType,
-            routingConfig
-          )
-        );
-        quotePromises.push(
-          this.getV2Quotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            gasPriceWei,
-            tradeType,
-            routingConfig
-          )
-        );
-      }
-      // depending on tradeType & chain, optionally find mixed routes. If Protocol.MIXED is set, only this will be run
+      quotePromises.push(
+        this.getV3Quotes(
+          tokenIn,
+          tokenOut,
+          amounts,
+          percents,
+          quoteToken,
+          V3gasModel,
+          tradeType,
+          routingConfig
+        )
+      );
+      quotePromises.push(
+        this.getV2Quotes(
+          tokenIn,
+          tokenOut,
+          amounts,
+          percents,
+          quoteToken,
+          gasPriceWei,
+          tradeType,
+          routingConfig
+        )
+      );
+      /// depending on tradeType & chain & config, optionally find mixed routes
       if (
         tradeType == TradeType.EXACT_INPUT &&
-        this.chainId === ChainId.MAINNET
+        this.chainId === ChainId.MAINNET &&
+        !routingConfig.disableMixedRoutesConsideration
       ) {
         console.log('optionally considering mixedRoutes quotes');
+        log.info('Routing across MixedRoutes');
         quotePromises.push(
           this.getMixedRouteQuotes(
             tokenIn,
