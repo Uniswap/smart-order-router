@@ -360,6 +360,17 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
 
     const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
 
+    if (
+      isMixedRoutes &&
+      !this.quoterAddressOverride &&
+      this.quoterAddressesLookup === QUOTER_V2_ADDRESSES
+    ) {
+      /// Did not provide an override AND failed to provide an address lookup for the MixedRouteQutoerContract AND we are quoting for mixedRoutes
+      throw new Error(
+        'Must set an addressLookup for the MixedRouteQuoterV1 contract when quoting for MixedRoutes or an override address'
+      );
+    }
+
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
     const { baseBlockOffset, rollback } = this.blockNumberConfig;
@@ -462,7 +473,6 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
                     [string, string],
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
-                    /// TODO: toggle between quoter addresses here
                     address: this.quoterAddress,
                     contractInterface: isMixedRoutes
                       ? IQuoterV3__factory.createInterface()
