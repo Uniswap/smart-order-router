@@ -56,7 +56,7 @@ import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-pri
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
-import QuoterV3_ABI from '../../../../src/abis/QuoterV3.json';
+import MixedRouteQuoterV1_ABI from '../../../../src/abis/MixedRouteQuoterV1.json';
 const V2_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
@@ -307,18 +307,18 @@ describe('alpha router integration', () => {
     const aliceAddress = await alice.getAddress();
     expect(aliceAddress).toBe(alice._address);
 
-    const QuoterV3Factory =
+    const MixedRouteQuoterV1Factory =
       await hardhat.hre.ethers.getContractFactoryFromArtifact(
-        QuoterV3_ABI,
+        MixedRouteQuoterV1_ABI,
         alice
       );
-    const QuoterV3 = await QuoterV3Factory.deploy(
+    const MixedRouteQuoterV1 = await MixedRouteQuoterV1Factory.deploy(
       V3_CORE_FACTORY_ADDRESSES[ChainId.MAINNET],
       V2_FACTORY,
       WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET].address // TODO: change to be chain dependent
     );
 
-    const QuoterV3Address = QuoterV3.address;
+    const MixedRouteQuoterV1Address = MixedRouteQuoterV1.address;
 
     await hardhat.fund(
       alice._address,
@@ -398,7 +398,8 @@ describe('alpha router integration', () => {
         },
         undefined,
         undefined,
-        QuoterV3Address
+        undefined,
+        MixedRouteQuoterV1Address
       ),
     });
   });
@@ -968,6 +969,14 @@ describe('alpha router integration', () => {
       'APE'
     );
 
+    const STETH_MAINNET = new Token(
+      1,
+      '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+      18,
+      'STETH',
+      'STETH'
+    );
+
     beforeAll(async () => {
       console.log('alice_address', alice._address);
 
@@ -1008,8 +1017,8 @@ describe('alpha router integration', () => {
 
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('100000', tokenIn)
-              : parseAmount('100000', tokenOut);
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10000', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,

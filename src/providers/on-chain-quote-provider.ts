@@ -7,7 +7,7 @@ import _ from 'lodash';
 import stats from 'stats-lite';
 
 import { MixedRoute, V3Route } from '../routers/router';
-import { IQuoterV3__factory } from '../types/other/factories/IQuoterV3__factory';
+import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { AddressMap, ChainId, metric, MetricLoggerUnit } from '../util';
 import { QUOTER_V2_ADDRESSES } from '../util/addresses';
@@ -475,7 +475,7 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
                   >({
                     address: this.quoterAddress,
                     contractInterface: isMixedRoutes
-                      ? IQuoterV3__factory.createInterface()
+                      ? IMixedRouteQuoterV1__factory.createInterface()
                       : IQuoterV2__factory.createInterface(),
                     functionName,
                     functionParams: inputs,

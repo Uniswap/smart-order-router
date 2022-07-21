@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "IQuoterV3",
-  "sourceName": "contracts/interfaces/IQuoterV3.sol",
+  "contractName": "IMixedRouteQuoterV1",
+  "sourceName": "contracts/interfaces/IMixedRouteQuoterV1.sol",
   "abi": [
     {
       "inputs": [
@@ -25,17 +25,53 @@
         },
         {
           "internalType": "uint160[]",
-          "name": "sqrtPriceX96AfterList",
+          "name": "v3SqrtPriceX96AfterList",
           "type": "uint160[]"
         },
         {
           "internalType": "uint32[]",
-          "name": "initializedTicksCrossedList",
+          "name": "v3InitializedTicksCrossedList",
           "type": "uint32[]"
         },
         {
           "internalType": "uint256",
-          "name": "gasEstimate",
+          "name": "v3SwapGasEstimate",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "tokenIn",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "tokenOut",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountIn",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IMixedRouteQuoterV1.QuoteExactInputSingleV2Params",
+          "name": "params",
+          "type": "tuple"
+        }
+      ],
+      "name": "quoteExactInputSingleV2",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "amountOut",
           "type": "uint256"
         }
       ],
@@ -72,12 +108,12 @@
               "type": "uint160"
             }
           ],
-          "internalType": "struct IQuoterV3.QuoteExactInputSingleParams",
+          "internalType": "struct IMixedRouteQuoterV1.QuoteExactInputSingleV3Params",
           "name": "params",
           "type": "tuple"
         }
       ],
-      "name": "quoteExactInputSingle",
+      "name": "quoteExactInputSingleV3",
       "outputs": [
         {
           "internalType": "uint256",
