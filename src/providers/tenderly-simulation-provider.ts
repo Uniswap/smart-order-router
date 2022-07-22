@@ -2,7 +2,7 @@ import { log } from '../util'
 import axios from 'axios'
 import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData'
 
-export const TENDERLY_BATCH_SIMULATE = (
+export const TENDERLY_BATCH_SIMULATE_API = (
   TENDERLY_BASE_URL: string,
   TENDERLY_USER: string,
   TENDERLY_PROJECT: string
@@ -78,7 +78,7 @@ export class TenderlyProvider implements ISimulator {
         'X-Access-Key': this.TENDERLY_ACCESS_KEY,
       },
     }
-    const url = TENDERLY_BATCH_SIMULATE(this.TENDERLY_BASE_URL, this.TENDERLY_USER, this.TENDERLY_PROJECT)
+    const url = TENDERLY_BATCH_SIMULATE_API(this.TENDERLY_BASE_URL, this.TENDERLY_USER, this.TENDERLY_PROJECT)
     let resp: any
     try {
       resp=await axios.post(url, body, opts)
