@@ -8,16 +8,25 @@ export const TENDERLY_BATCH_SIMULATE_API = (
   TENDERLY_PROJECT: string
 ) => `${TENDERLY_BASE_URL}/api/v1/account/${TENDERLY_USER}/project/${TENDERLY_PROJECT}/simulate-batch`
 
+/**
+ * Provider for dry running transactions on tenderly.
+ *
+ * @export
+ * @interface ISimulator
+ */
 export interface ISimulator {
+  /**
+   * Returns the gas fee that was paid to land the transaction in the simulation.
+   * @returns number or Error
+   */
   simulateTransaction: (
     chainId: number,
     hexData: string,
     tokenInAddress: string,
     fromAddress: string,
     blockNumber: number,
-    // For the HeuristicFallback Implementation
     fallback?: number
-  ) => Promise<number|Error>|number
+  ) => Promise<number|Error>
 }
 export class TenderlyProvider implements ISimulator {
   TENDERLY_BASE_URL: string
@@ -79,7 +88,7 @@ export class TenderlyProvider implements ISimulator {
       },
     }
     const url = TENDERLY_BATCH_SIMULATE_API(this.TENDERLY_BASE_URL, this.TENDERLY_USER, this.TENDERLY_PROJECT)
-    let resp: any
+    let resp;
     try {
       resp=await axios.post(url, body, opts)
     } catch(error) {
