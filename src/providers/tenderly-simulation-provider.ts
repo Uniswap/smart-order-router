@@ -24,7 +24,6 @@ export interface ISimulator {
     hexData: string,
     tokenInAddress: string,
     fromAddress: string,
-    blockNumber: number,
     fallback?: number
   ) => Promise<number|Error>
 }
@@ -45,7 +44,6 @@ export class TenderlyProvider implements ISimulator {
     hexData: string,
     tokenInAddress: string,
     fromAddress: string,
-    blockNumber: number,
     fallback?: number,
   ): Promise<number|Error> {
     log.info(
@@ -54,7 +52,6 @@ export class TenderlyProvider implements ISimulator {
         fromAddress: fromAddress,
         chainId: chainId,
         tokenInAddress: tokenInAddress,
-        blockNumber: blockNumber,
       },
       'Simulating transaction via Tenderly'
     )

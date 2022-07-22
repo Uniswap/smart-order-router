@@ -26,6 +26,7 @@ import {
   NATIVE_CURRENCY,
   parseAmount,
   SUPPORTED_CHAINS,
+  TenderlyProvider,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -103,6 +104,26 @@ describe('alpha router integration', () => {
     protocols: [Protocol.V3, Protocol.V2],
   };
 
+  const simulateSwap = async (
+    chainId: number,
+    tokenInAddress: string,
+    fromAddress: string,
+    methodParameters: MethodParameters,
+  ): Promise<number|Error> => {
+    const tp = new TenderlyProvider(
+      process.env.TENDERLY_BASE_URL!,
+      process.env.TENDERLY_USER!,
+      process.env.TENDERLY_PROJECT!,
+      process.env.TENDERLY_ACCESS_KEY!
+    )
+    return await tp.simulateTransaction(
+      chainId,
+      methodParameters.calldata,
+      tokenInAddress,
+      fromAddress,
+    )
+  }
+
   const executeSwap = async (
     methodParameters: MethodParameters,
     tokenIn: Currency,
@@ -112,6 +133,7 @@ describe('alpha router integration', () => {
     tokenInBefore: CurrencyAmount<Currency>;
     tokenOutAfter: CurrencyAmount<Currency>;
     tokenOutBefore: CurrencyAmount<Currency>;
+    gasUsed: number,
   }> => {
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     // We use this helper function for approving rather than hardhat.provider.approve
@@ -136,6 +158,7 @@ describe('alpha router integration', () => {
       await alice.sendTransaction(transaction);
 
     const receipt = await transactionResponse.wait();
+    const gasUsed = receipt.gasUsed.toNumber()
     expect(receipt.status == 1).toBe(true); // Check for txn success
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
@@ -146,6 +169,7 @@ describe('alpha router integration', () => {
       tokenInBefore,
       tokenOutAfter,
       tokenOutBefore,
+      gasUsed,
     };
   };
 
@@ -218,11 +242,22 @@ describe('alpha router integration', () => {
     methodParameters: MethodParameters | undefined,
     tradeType: TradeType,
     checkTokenInAmount?: number,
-    checkTokenOutAmount?: number
+    checkTokenOutAmount?: number,
+    simulate?: boolean
   ) => {
     expect(methodParameters).not.toBeUndefined();
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+    let simulationGasUsed:number|Error = 0
+    if(simulate) {
+      simulationGasUsed = await simulateSwap(tokenIn.chainId,tokenIn.wrapped.address,alice._address,methodParameters!)
+      expect(simulationGasUsed instanceof Error).toBe(false)
+    }
+    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
       await executeSwap(methodParameters!, tokenIn, tokenOut!);
+    
+    if(!(simulationGasUsed instanceof Error)) {
+      console.log(`SIMULATED GAS USED: ${simulationGasUsed},\nACTUAL GAS USED: ${gasUsed}`)
+      expect(Math.abs(gasUsed-simulationGasUsed as number)<0.01*gasUsed).toBe(true);
+    }
 
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
@@ -360,7 +395,8 @@ describe('alpha router integration', () => {
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
-
+          
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -368,7 +404,8 @@ describe('alpha router integration', () => {
             methodParameters,
             tradeType,
             100,
-            100
+            100,
+            true
           );
         });
 
@@ -400,13 +437,16 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
             tokenOut,
             methodParameters,
             tradeType,
-            1000000
+            1000000,
+            undefined,
+            true
           );
         });
 
@@ -486,13 +526,16 @@ describe('alpha router integration', () => {
               : BigNumber.from(amount.quotient.toString());
           expect(amountOut).toEqual(amountOutEdgesTotal);
 
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
             tokenOut,
             methodParameters,
             tradeType,
-            1000000
+            1000000,
+            undefined,
+            true
           );
         });
 
@@ -585,6 +628,7 @@ describe('alpha router integration', () => {
 
           const { quote, methodParameters } = swap!;
 
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -592,7 +636,8 @@ describe('alpha router integration', () => {
             methodParameters,
             tradeType,
             100,
-            100
+            100,
+            true
           );
         });
 
@@ -622,6 +667,7 @@ describe('alpha router integration', () => {
 
           const { quote, methodParameters } = swap!;
 
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -629,7 +675,8 @@ describe('alpha router integration', () => {
             methodParameters,
             tradeType,
             100,
-            100
+            100,
+            true
           );
         });
 
@@ -668,6 +715,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -675,7 +723,8 @@ describe('alpha router integration', () => {
             methodParameters,
             tradeType,
             100,
-            100
+            100,
+            true
           );
         });
 
@@ -714,6 +763,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -721,7 +771,8 @@ describe('alpha router integration', () => {
             methodParameters,
             tradeType,
             100,
-            100
+            100,
+            true
           );
         });
 
@@ -769,6 +820,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
+          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -776,7 +828,8 @@ describe('alpha router integration', () => {
             methodParameters,
             tradeType,
             100,
-            100
+            100,
+            true
           );
         });
       });
