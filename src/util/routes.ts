@@ -14,7 +14,7 @@ export const routeToString = (
   const tokens =
     route instanceof V3Route
       ? route.tokenPath
-      : // MixedRoute and V3Route have path
+      : // MixedRoute and V2Route have path
         route.path;
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools =
