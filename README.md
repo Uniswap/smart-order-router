@@ -182,6 +182,6 @@ By default each `eth_call` will consume up to:
 
 If you are using a node provider with a lower gas limit per `eth_call` you will need to override the default `V3QuoteProvider` with an instance that lowers the `multicallChunk` and `gasLimitPerCall` parameters. Lowering these values will cause each multicall to consume less gas. See [here](https://github.com/Uniswap/smart-order-router/blob/main/src/routers/alpha-router/alpha-router.ts#L379) for examples of how to set these values.
 
-If you are running your own node, you will need to configure it to allow a higher gas limit per call. For example, on Geth you can use the command line argument `--rpc.gascap 150000000` to raise the limit to 150m, which is enough to run the default configuration of this package.
+If you are running your own node, we recommend you configure start your node with a higher gas limit per call. For example, on Geth you can use the command line argument `--rpc.gascap 150000000` to raise the limit to 150m, which is enough to run the default configuration of this package.
 
-If you are using Hardhat, you should add `blockGasLimit: 150_000_000` to your Hardhat config.
+If you are using Hardhat mainnet forking, you should add `blockGasLimit: 150_000_000` to your Hardhat config to use the default package configuration.
