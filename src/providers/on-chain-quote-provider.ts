@@ -9,8 +9,11 @@ import stats from 'stats-lite';
 import { MixedRoute, V3Route } from '../routers/router';
 import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { AddressMap, ChainId, metric, MetricLoggerUnit } from '../util';
-import { QUOTER_V2_ADDRESSES } from '../util/addresses';
+import { ChainId, metric, MetricLoggerUnit } from '../util';
+import {
+  MIXED_ROUTE_QUOTER_V1_ADDRESSES,
+  QUOTER_V2_ADDRESSES,
+} from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import { routeToString } from '../util/routes';
@@ -284,9 +287,12 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
       baseBlockOffset: 0,
       rollback: { enabled: false },
     },
-    protected quoterAddressesLookup: AddressMap = QUOTER_V2_ADDRESSES,
+    protected isMixedRouteQuoteProvider: boolean = false,
     protected quoterAddressOverride?: string
   ) {
+    const quoterAddressesLookup = isMixedRouteQuoteProvider
+      ? MIXED_ROUTE_QUOTER_V1_ADDRESSES
+      : QUOTER_V2_ADDRESSES;
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
       : quoterAddressesLookup[this.chainId];
@@ -359,17 +365,6 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
     }
 
     const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
-
-    if (
-      isMixedRoutes &&
-      !this.quoterAddressOverride &&
-      this.quoterAddressesLookup === QUOTER_V2_ADDRESSES
-    ) {
-      /// Did not provide an override AND failed to provide an address lookup for the MixedRouteQutoerContract AND we are quoting for mixedRoutes
-      throw new Error(
-        'Must set an addressLookup for the MixedRouteQuoterV1 contract when quoting for MixedRoutes or an override address'
-      );
-    }
 
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;

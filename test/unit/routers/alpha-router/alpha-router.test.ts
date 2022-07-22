@@ -15,6 +15,7 @@ import {
   CurrencyAmount,
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
+  MixedRoute,
   OnChainQuoteProvider,
   parseAmount,
   RouteWithQuotes,
@@ -47,6 +48,7 @@ import {
   TokenValidatorProvider,
 } from '../../../../src/providers/token-validator-provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
+import { MixedRouteHeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   buildMockTokenAccessor,
@@ -86,6 +88,11 @@ describe('alpha router', () => {
     OnChainQuoteProvider<V3Route>
   >;
   let mockV3GasModelFactory: sinon.SinonStubbedInstance<V3HeuristicGasModelFactory>;
+
+  let mockMixedRouteQuoteProvider: sinon.SinonStubbedInstance<
+    OnChainQuoteProvider<MixedRoute>
+  >;
+  let mockMixedRouteGasModelFactory: sinon.SinonStubbedInstance<MixedRouteHeuristicGasModelFactory>;
 
   let mockV2PoolProvider: sinon.SinonStubbedInstance<V2PoolProvider>;
   let mockV2SubgraphProvider: sinon.SinonStubbedInstance<V2SubgraphProvider>;
@@ -238,6 +245,24 @@ describe('alpha router', () => {
           blockNumber: BigNumber;
         };
       }
+    );
+
+    mockMixedRouteQuoteProvider = sinon.stub(
+      new OnChainQuoteProvider<MixedRoute>(
+        1,
+        mockProvider,
+        mockMulticallProvider,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true
+      )
+    );
+
+    mockMixedRouteQuoteProvider.getQuotesManyExactIn.callsFake(
+      getQuotesManyExactInFn()
     );
 
     mockV2QuoteProvider = sinon.createStubInstance(V2QuoteProvider);
@@ -2251,26 +2276,24 @@ describe('alpha router', () => {
   });
 });
 
-type GetQuotesManyExactInFn = (
-  amountIns: CurrencyAmount[],
-  routes: V3Route[],
-  _providerConfig?: ProviderConfig | undefined
-) => Promise<{
-  routesWithQuotes: RouteWithQuotes<V3Route>[];
-  blockNumber: BigNumber;
-}>;
-
 type GetQuotesManyExactInFnParams = {
   quoteMultiplier?: Fraction;
   sqrtPriceX96AfterList?: BigNumber[];
 };
 
-function getQuotesManyExactInFn(
+function getQuotesManyExactInFn<TRoute extends V3Route | MixedRoute>(
   options: GetQuotesManyExactInFnParams = {}
-): GetQuotesManyExactInFn {
+): (
+  amountIns: CurrencyAmount[],
+  routes: TRoute[],
+  _providerConfig?: ProviderConfig | undefined
+) => Promise<{
+  routesWithQuotes: RouteWithQuotes<TRoute>[];
+  blockNumber: BigNumber;
+}> {
   return async (
     amountIns: CurrencyAmount[],
-    routes: V3Route[],
+    routes: TRoute[],
     _providerConfig?: ProviderConfig
   ) => {
     const oneX96 = BigNumber.from(encodeSqrtRatioX96(1, 1).toString());
@@ -2298,7 +2321,7 @@ function getQuotesManyExactInFn(
       routesWithQuotes: routesWithQuotes,
       blockNumber: mockBlockBN,
     } as {
-      routesWithQuotes: RouteWithQuotes<V3Route>[];
+      routesWithQuotes: RouteWithQuotes<TRoute>[];
       blockNumber: BigNumber;
     };
   };

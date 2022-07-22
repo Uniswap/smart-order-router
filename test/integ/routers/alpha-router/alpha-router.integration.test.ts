@@ -398,7 +398,7 @@ describe('alpha router integration', () => {
         },
         undefined,
         undefined,
-        undefined,
+        true,
         MixedRouteQuoterV1Address
       ),
     });

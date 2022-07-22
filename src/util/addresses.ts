@@ -24,6 +24,11 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
+export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
+  /// TODO: change this once we deploy
+  ...constructSameAddressMap('0x61fFE014bA17989E743c5F6cB21bF9697530B21e'),
+};
+
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
   [ChainId.CELO]: CELO_MULTICALL_ADDRESS,
