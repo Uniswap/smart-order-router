@@ -166,3 +166,22 @@ The main components to complete are:
 - Populate `src/routers/alpha-router/*`
 - Add a log to `/CHANGELOG.md`
 - Run `npm run integ-test` successfully
+
+# Troubleshooting
+
+## ProviderGasLimit errors
+
+The package sends many large multicall requests to nodes. You must ensure that your node provider's `eth_call` gas limit is high enough to succesfully process the RPC calls.
+
+By default each `eth_call` will consume up to:
+
+- 132,000,000 gas on Optimism
+- 120,000,000 gas on Arbitrum
+- 50,000,000 gas on Celo
+- 150,000,000 gas on every other network (Mainnet, Goerli, etc.)
+
+If you are using a node provider with a lower gas limit per `eth_call` you will need to override the default `V3QuoteProvider` with an instance that lowers the `multicallChunk` and `gasLimitPerCall` parameters. Lowering these values will cause each multicall to consume less gas. See [here](https://github.com/Uniswap/smart-order-router/blob/main/src/routers/alpha-router/alpha-router.ts#L379) for examples of how to set these values.
+
+If you are running your own node, you will need to configure it to allow a higher gas limit per call. For example, on Geth you can use the command line argument `--rpc.gascap 150000000` to raise the limit to 150m, which is enough to run the default configuration of this package.
+
+If you are using Hardhat, you should add `blockGasLimit: 150_000_000` to your Hardhat config.
