@@ -89,7 +89,9 @@ export class TenderlyProvider implements ISimulator {
     }
     const url = TENDERLY_BATCH_SIMULATE_API(this.TENDERLY_BASE_URL, this.TENDERLY_USER, this.TENDERLY_PROJECT)
     const resp=await axios.post(url, body, opts)
-    if(resp.data && resp.data.simulation_results.length == 2 && resp.data.simulation_results[1].transaction.error == null) {
+
+    // Validate tenderly response body
+    if(resp.data && resp.data.simulation_results.length == 2 && resp.data.simulation_results[1].transaction && !resp.data.simulation_results[1].transaction.error) {
       log.info({approve:resp.data.simulation_results[0],swap:resp.data.simulation_results[1]}, 'Simulated Transaction Via Tenderly')
       return resp.data.simulation_results[1].transaction.gas_used as number
     } else {
