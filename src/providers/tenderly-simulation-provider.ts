@@ -1,4 +1,3 @@
-import { log } from '../util'
 import axios from 'axios'
 import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData'
 
@@ -46,7 +45,7 @@ export class TenderlyProvider implements ISimulator {
     fromAddress: string,
     fallback?: number,
   ): Promise<number|Error> {
-    log.info(
+    console.log(
       {
         hexData: hexData,
         fromAddress: fromAddress,
@@ -75,6 +74,7 @@ export class TenderlyProvider implements ISimulator {
       gasPrice: "0",
       gas: 30000000,
       type: 1,
+      estimate_gas: true,
     }
 
     const body = {"simulations": [approve, swap]}
@@ -89,14 +89,17 @@ export class TenderlyProvider implements ISimulator {
     try {
       resp=await axios.post(url, body, opts)
     } catch(error) {
-      log.info(`Failed to Simulate Via Tenderly!`)
+      console.log(`Failed to Simulate Via Tenderly!`)
       if(!fallback) {
         return new Error('`Failed to Simulate Via Tenderly! No fallback set!`')
       }
-      log.info(`Defaulting to fallback return value of: ${fallback}s.`)
+      console.log(`Defaulting to fallback return value of: ${fallback}s.`)
       return fallback
     }
-    log.info({resp:resp.data.simulation_results}, 'Simulated Transaction Via Tenderly')
+
+    console.log(JSON.stringify({approve:resp.data.simulation_results[0],swap:JSON.stringify(resp.data.simulation_results[1].transactions)}))
+    console.log('Simulated Transaction Via Tenderly');
+    console.log({approve:resp.data.simulation_results[0],swap:JSON.stringify(resp.data.simulation_results[1])}, 'Simulated Transaction Via Tenderly')
     return resp.data.simulation_results[1].transaction.gas_used as number
   }
 }

@@ -135,6 +135,7 @@ describe('alpha router integration', () => {
     tokenOutBefore: CurrencyAmount<Currency>;
     gasUsed: number,
   }> => {
+    process.stderr.write("SDFLKDSFJKLSDJFKLSFJLKSDFSKLDFJKS")
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     // We use this helper function for approving rather than hardhat.provider.approve
     // because there is custom logic built in for handling USDT and other checks
@@ -255,7 +256,8 @@ describe('alpha router integration', () => {
       await executeSwap(methodParameters!, tokenIn, tokenOut!);
     
     if(!(simulationGasUsed instanceof Error)) {
-      console.log(`SIMULATED GAS USED: ${simulationGasUsed},\nACTUAL GAS USED: ${gasUsed}`)
+      process.stderr.write(`SIMULATED GAS USED: ${simulationGasUsed},\nACTUAL GAS USED: ${gasUsed}`)
+      process.stderr.write(`CHAIN ID: ${tokenIn.chainId}`)
       expect(Math.abs(gasUsed-simulationGasUsed as number)<0.01*gasUsed).toBe(true);
     }
 
@@ -396,7 +398,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
           
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -437,7 +439,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -526,7 +528,7 @@ describe('alpha router integration', () => {
               : BigNumber.from(amount.quotient.toString());
           expect(amountOut).toEqual(amountOutEdgesTotal);
 
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -628,7 +630,7 @@ describe('alpha router integration', () => {
 
           const { quote, methodParameters } = swap!;
 
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -667,7 +669,7 @@ describe('alpha router integration', () => {
 
           const { quote, methodParameters } = swap!;
 
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -715,7 +717,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -763,7 +765,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -820,7 +822,7 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
-          console.log(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
+          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
