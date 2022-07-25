@@ -256,8 +256,8 @@ describe('alpha router integration', () => {
     
     if(!(simulationGasUsed instanceof Error)) {
 
-      // Expect simulated gasUsed to be within 10% of actual gasUsed
-      expect(Math.abs(gasUsed-simulationGasUsed as number)<0.1*gasUsed).toBe(true);
+      // Expect simulated gasUsed to be within 25% of actual gasUsed
+      expect(Math.abs(gasUsed-simulationGasUsed)<0.25*gasUsed).toBe(true);
     }
 
     if (tradeType == TradeType.EXACT_INPUT) {
