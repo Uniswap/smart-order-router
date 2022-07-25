@@ -1,3 +1,4 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
@@ -60,7 +61,10 @@ export const routeAmountsToString = (
   const routeStrings = _.map(routeAmounts, ({ protocol, route, amount }) => {
     const portion = amount.divide(total);
     const percent = new Percent(portion.numerator, portion.denominator);
-    return `[${protocol}] ${percent.toFixed(2)}% = ${routeToString(route)}`;
+    /// @dev special case for MIXED routes we want to show user friendly V2+V3 instead
+    return `[${
+      protocol == Protocol.MIXED ? 'V2 + V3' : protocol
+    }] ${percent.toFixed(2)}% = ${routeToString(route)}`;
   });
 
   return _.join(routeStrings, ', ');
