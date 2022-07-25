@@ -287,7 +287,7 @@ export type AlphaRouterConfig = {
    * The protocols to consider when finding the optimal swap. If not provided all protocols
    * will be used.
    */
-  protocols?: (Protocol.V2 | Protocol.V3)[];
+  protocols?: Protocol[];
   /**
    * Config for selecting which pools to consider routing via on V2.
    */
