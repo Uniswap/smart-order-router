@@ -741,6 +741,8 @@ export class AlphaRouter
           ...DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
           ...routingConfig,
           protocols: [Protocol.V3, Protocol.V2],
+          /// @notice we don't want to query mixedRoutes for routeToRatio
+          disableMixedRoutesConsideration: true,
         }
       );
       if (!swap) {
