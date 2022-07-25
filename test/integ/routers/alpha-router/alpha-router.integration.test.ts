@@ -258,8 +258,8 @@ describe('alpha router integration', () => {
       process.stderr.write(`SIMULATED GAS USED: ${simulationGasUsed},\nACTUAL GAS USED: ${gasUsed}`)
       process.stderr.write(`CHAIN ID: ${tokenIn.chainId}`)
 
-      // Expect simulated gasUsed to be within 3% of actual gasUsed
-      expect(Math.abs(gasUsed-simulationGasUsed as number)<0.03*gasUsed).toBe(true);
+      // Expect simulated gasUsed to be within 5% of actual gasUsed
+      expect(Math.abs(gasUsed-simulationGasUsed as number)<0.05*gasUsed).toBe(true);
     }
 
     if (tradeType == TradeType.EXACT_INPUT) {
@@ -318,7 +318,7 @@ describe('alpha router integration', () => {
         WHALES(USDC_MAINNET), // Binance peg tokens
       ]
     );
-    
+
     await hardhat.fund(
       alice._address,
       [parseAmount('4000', WETH9[1])],

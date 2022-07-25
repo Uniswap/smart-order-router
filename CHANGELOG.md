@@ -4,24 +4,21 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [2.7.0](https://github.com/Uniswap/smart-order-router/compare/v2.6.1...v2.7.0) (2022-07-14)
 
-
 ### Features
 
-* add stale config ([#116](https://github.com/Uniswap/smart-order-router/issues/116)) ([3c4a32f](https://github.com/Uniswap/smart-order-router/commit/3c4a32fc671ee1b57c48f494090caede2d5f776f))
+- add stale config ([#116](https://github.com/Uniswap/smart-order-router/issues/116)) ([3c4a32f](https://github.com/Uniswap/smart-order-router/commit/3c4a32fc671ee1b57c48f494090caede2d5f776f))
 
 ### [2.6.1](https://github.com/Uniswap/smart-order-router/compare/v2.6.0...v2.6.1) (2022-07-12)
 
 ## [2.6.0](https://github.com/Uniswap/smart-order-router/compare/v2.5.32...v2.6.0) (2022-07-07)
 
-
 ### Features
 
-* export TokenValidatorProvider ([#110](https://github.com/Uniswap/smart-order-router/issues/110)) ([53c6bef](https://github.com/Uniswap/smart-order-router/commit/53c6befc4a78f814a80d510896e4c15da527151c))
-
+- export TokenValidatorProvider ([#110](https://github.com/Uniswap/smart-order-router/issues/110)) ([53c6bef](https://github.com/Uniswap/smart-order-router/commit/53c6befc4a78f814a80d510896e4c15da527151c))
 
 ### Bug Fixes
 
-* update celo contract addresses ([#109](https://github.com/Uniswap/smart-order-router/issues/109)) ([121e9ba](https://github.com/Uniswap/smart-order-router/commit/121e9ba5fd37afaaeea65d0e92e9fdd599d7cbb2))
+- update celo contract addresses ([#109](https://github.com/Uniswap/smart-order-router/issues/109)) ([121e9ba](https://github.com/Uniswap/smart-order-router/commit/121e9ba5fd37afaaeea65d0e92e9fdd599d7cbb2))
 
 ### [2.5.32](https://github.com/Uniswap/smart-order-router/compare/v2.5.31...v2.5.32) (2022-07-05)
 
