@@ -16,6 +16,7 @@ import {
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
   MixedRoute,
+  MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
   RouteWithQuotes,
@@ -77,7 +78,7 @@ import {
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
-describe('alpha router', () => {
+describe.only('alpha router', () => {
   let mockProvider: sinon.SinonStubbedInstance<BaseProvider>;
   let mockMulticallProvider: sinon.SinonStubbedInstance<UniswapMulticallProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
@@ -247,9 +248,8 @@ describe('alpha router', () => {
       }
     );
 
-    /// TODO: this is broken
     mockMixedRouteQuoteProvider = sinon.stub(
-      new OnChainQuoteProvider<MixedRoute>(
+      new OnChainQuoteProvider(
         1,
         mockProvider,
         mockMulticallProvider,
@@ -329,6 +329,31 @@ describe('alpha router', () => {
     });
     mockV3GasModelFactory.buildGasModel.resolves(v3MockGasModel);
 
+    mockMixedRouteGasModelFactory = sinon.createStubInstance(
+      MixedRouteHeuristicGasModelFactory
+    );
+    const mixedRouteMockGasModel = {
+      estimateGasCost: sinon.stub(),
+    };
+    mixedRouteMockGasModel.estimateGasCost.callsFake(
+      (r: MixedRouteWithValidQuote) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(
+            r.quoteToken,
+            r.quote.multiply(new Fraction(95, 100)).quotient
+          ),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(
+            USDC,
+            r.quote.multiply(new Fraction(95, 100)).quotient
+          ),
+        };
+      }
+    );
+    mockMixedRouteGasModelFactory.buildGasModel.resolves(
+      mixedRouteMockGasModel
+    );
+
     mockV2GasModelFactory = sinon.createStubInstance(
       V2HeuristicGasModelFactory
     );
@@ -380,6 +405,8 @@ describe('alpha router', () => {
       v2GasModelFactory: mockV2GasModelFactory,
       v2PoolProvider: mockV2PoolProvider,
       v2QuoteProvider: mockV2QuoteProvider,
+      mixedRouteQuoteProvider: mockMixedRouteQuoteProvider,
+      mixedRouteGasModelFactory: mockMixedRouteGasModelFactory,
       v2SubgraphProvider: mockV2SubgraphProvider,
       swapRouterProvider: mockSwapRouterProvider,
       tokenValidatorProvider: mockTokenValidatorProvider,
@@ -616,7 +643,10 @@ describe('alpha router', () => {
         WRAPPED_NATIVE_CURRENCY[1],
         TradeType.EXACT_INPUT,
         undefined,
-        { ...ROUTING_CONFIG, protocols: [Protocol.V2, Protocol.V3] }
+        {
+          ...ROUTING_CONFIG,
+          protocols: [Protocol.V2, Protocol.V3],
+        }
       );
       expect(swap).toBeDefined();
 
