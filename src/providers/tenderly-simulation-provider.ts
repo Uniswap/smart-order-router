@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { log } from '../util'
 import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData'
 
 export const TENDERLY_BATCH_SIMULATE_API = (
@@ -44,8 +45,9 @@ export class TenderlyProvider implements ISimulator {
     tokenInAddress: string,
     fromAddress: string,
     fallback?: number,
+    stateOverrides?: Record<string, unknown>
   ): Promise<number|Error> {
-    console.log(
+    log.info(
       {
         hexData: hexData,
         fromAddress: fromAddress,
@@ -75,6 +77,7 @@ export class TenderlyProvider implements ISimulator {
       gas: 30000000,
       type: 1,
       estimate_gas: true,
+      stateOverrides: stateOverrides
     }
 
     const body = {"simulations": [approve, swap]}
@@ -85,21 +88,19 @@ export class TenderlyProvider implements ISimulator {
       },
     }
     const url = TENDERLY_BATCH_SIMULATE_API(this.TENDERLY_BASE_URL, this.TENDERLY_USER, this.TENDERLY_PROJECT)
-    let resp;
-    try {
-      resp=await axios.post(url, body, opts)
-    } catch(error) {
-      console.log(`Failed to Simulate Via Tenderly!`)
+    const resp=await axios.post(url, body, opts)
+    if(resp.data && resp.data.simulation_results.length == 2 && resp.data.simulation_results[1].transaction.error == null) {
+      log.info(JSON.stringify({approve:resp.data.simulation_results[0],swap:JSON.stringify(resp.data.simulation_results[1].transaction)}))
+      log.info('Simulated Transaction Via Tenderly');
+      log.info({approve:resp.data.simulation_results[0],swap:JSON.stringify(resp.data.simulation_results[1])}, 'Simulated Transaction Via Tenderly')
+      return resp.data.simulation_results[1].transaction.gas_used as number
+    } else {
+      log.info(`Failed to Simulate Via Tenderly!`)
       if(!fallback) {
         return new Error('`Failed to Simulate Via Tenderly! No fallback set!`')
       }
-      console.log(`Defaulting to fallback return value of: ${fallback}s.`)
+      log.info(`Defaulting to fallback return value of: ${fallback}s.`)
       return fallback
     }
-
-    console.log(JSON.stringify({approve:resp.data.simulation_results[0],swap:JSON.stringify(resp.data.simulation_results[1].transactions)}))
-    console.log('Simulated Transaction Via Tenderly');
-    console.log({approve:resp.data.simulation_results[0],swap:JSON.stringify(resp.data.simulation_results[1])}, 'Simulated Transaction Via Tenderly')
-    return resp.data.simulation_results[1].transaction.gas_used as number
   }
 }

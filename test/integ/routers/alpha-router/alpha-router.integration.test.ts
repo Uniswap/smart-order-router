@@ -52,6 +52,7 @@ import _ from 'lodash';
 import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-price-provider';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
+import { WHALES } from '../../../test-util/whales';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
@@ -106,8 +107,7 @@ describe('alpha router integration', () => {
 
   const simulateSwap = async (
     chainId: number,
-    tokenInAddress: string,
-    fromAddress: string,
+    token: Token,
     methodParameters: MethodParameters,
   ): Promise<number|Error> => {
     const tp = new TenderlyProvider(
@@ -116,11 +116,11 @@ describe('alpha router integration', () => {
       process.env.TENDERLY_PROJECT!,
       process.env.TENDERLY_ACCESS_KEY!
     )
-    return await tp.simulateTransaction(
+    return tp.simulateTransaction(
       chainId,
       methodParameters.calldata,
-      tokenInAddress,
-      fromAddress,
+      token.address,
+      WHALES(token),
     )
   }
 
@@ -135,7 +135,6 @@ describe('alpha router integration', () => {
     tokenOutBefore: CurrencyAmount<Currency>;
     gasUsed: number,
   }> => {
-    process.stderr.write("SDFLKDSFJKLSDJFKLSFJLKSDFSKLDFJKS")
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     // We use this helper function for approving rather than hardhat.provider.approve
     // because there is custom logic built in for handling USDT and other checks
@@ -249,7 +248,7 @@ describe('alpha router integration', () => {
     expect(methodParameters).not.toBeUndefined();
     let simulationGasUsed:number|Error = 0
     if(simulate) {
-      simulationGasUsed = await simulateSwap(tokenIn.chainId,tokenIn.wrapped.address,alice._address,methodParameters!)
+      simulationGasUsed = await simulateSwap(tokenIn.chainId,tokenIn.wrapped,methodParameters!)
       expect(simulationGasUsed instanceof Error).toBe(false)
     }
     const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
@@ -258,7 +257,9 @@ describe('alpha router integration', () => {
     if(!(simulationGasUsed instanceof Error)) {
       process.stderr.write(`SIMULATED GAS USED: ${simulationGasUsed},\nACTUAL GAS USED: ${gasUsed}`)
       process.stderr.write(`CHAIN ID: ${tokenIn.chainId}`)
-      expect(Math.abs(gasUsed-simulationGasUsed as number)<0.01*gasUsed).toBe(true);
+
+      // Expect simulated gasUsed to be within 3% of actual gasUsed
+      expect(Math.abs(gasUsed-simulationGasUsed as number)<0.03*gasUsed).toBe(true);
     }
 
     if (tradeType == TradeType.EXACT_INPUT) {
@@ -314,15 +315,15 @@ describe('alpha router integration', () => {
         parseAmount('5000000', DAI_MAINNET),
       ],
       [
-        '0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503', // Binance peg tokens
+        WHALES(USDC_MAINNET), // Binance peg tokens
       ]
     );
-
+    
     await hardhat.fund(
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x6555e1CC97d3cbA6eAddebBCD7Ca51d75771e0B8', // WETH token
+        WHALES(WETH9[1]), // WETH token
       ]
     );
 
