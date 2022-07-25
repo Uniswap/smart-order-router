@@ -255,8 +255,6 @@ describe('alpha router integration', () => {
       await executeSwap(methodParameters!, tokenIn, tokenOut!);
     
     if(!(simulationGasUsed instanceof Error)) {
-      process.stderr.write(`SIMULATED GAS USED: ${simulationGasUsed},\nACTUAL GAS USED: ${gasUsed}`)
-      process.stderr.write(`CHAIN ID: ${tokenIn.chainId}`)
 
       // Expect simulated gasUsed to be within 5% of actual gasUsed
       expect(Math.abs(gasUsed-simulationGasUsed as number)<0.05*gasUsed).toBe(true);
@@ -399,7 +397,6 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
           
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -440,7 +437,6 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -529,7 +525,6 @@ describe('alpha router integration', () => {
               : BigNumber.from(amount.quotient.toString());
           expect(amountOut).toEqual(amountOutEdgesTotal);
 
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -631,7 +626,6 @@ describe('alpha router integration', () => {
 
           const { quote, methodParameters } = swap!;
 
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -670,7 +664,6 @@ describe('alpha router integration', () => {
 
           const { quote, methodParameters } = swap!;
 
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -718,7 +711,6 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -766,7 +758,6 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -823,7 +814,6 @@ describe('alpha router integration', () => {
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
-          process.stderr.write(`TOKEN IN: ${tokenIn.name}\nTOKEN OUT:${tokenOut.name}`)
           await validateExecuteSwap(
             quote,
             tokenIn,

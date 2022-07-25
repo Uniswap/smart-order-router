@@ -147,16 +147,14 @@ Calldata: 0x414bf389000000000000000000000000dac17f958d2ee523a2206206994597c13d83
 ```
 
 ## Adding a new Chain
-
 The main components to complete are:
-
-- Deploy contracts on chain, add the pools to subgraph
-- Populate v3 providers in `src/providers/v3/subgraph-provider` and `src/providers/v3/static-subgraph-provider`
-- Populate chainId and addresses in `src/util/chains.ts` and `src/util/addresses.ts`
-- Populate token providers in `src/providers/caching-token-provider` and `src/providers/token-provider.ts`
-- Populate gas constants in `src/routers/alpha-router/gas-models/*`
-- Populate bases in `src/routers/legacy-router/bases.ts`
-- Populate `test/integ/routers/alpha-router/alpha-router.integration.test.ts` and `src/providers/v2/static-subgraph-provider.ts`
-- Populate `src/routers/alpha-router/*`
-- Add a log to `/CHANGELOG.md`
-- Run `npm run integ-test` successfully
+* Deploy contracts on chain, add the pools to subgraph
+* Populate v3 providers in `src/providers/v3/subgraph-provider` and `src/providers/v3/static-subgraph-provider`
+* Populate chainId and addresses in `src/util/chains.ts` and `src/util/addresses.ts`
+* Populate token providers in `src/providers/caching-token-provider` and `src/providers/token-provider.ts`
+* Populate gas constants in `src/routers/alpha-router/gas-models/*`
+* Populate bases in `src/routers/legacy-router/bases.ts`
+* Populate `test/integ/routers/alpha-router/alpha-router.integration.test.ts` and `src/providers/v2/static-subgraph-provider.ts`
+* Populate `src/routers/alpha-router/*`
+* Add a log to `/CHANGELOG.md`
+* Run `npm run integ-test` successfully
