@@ -1033,10 +1033,6 @@ export async function getMixedRouteCandidatePools({
     .sortBy((pool) => -pool.tvlUSD)
     .value();
 
-  console.log(
-    `Loaded top TVL: ${V2topByTVLSortedPools.length} V2 pools and non filtered ${V3sortedPools.length} V3 pools`
-  );
-
   let buildV2Pools: V2SubgraphPool[] = [];
   V2topByTVLSortedPools.map((V2subgraphPool) => {
     const V3subgraphPool = V3sortedPools.find(
@@ -1049,24 +1045,33 @@ export async function getMixedRouteCandidatePools({
 
     if (V3subgraphPool) {
       if (V2subgraphPool.reserveUSD > V3subgraphPool.tvlUSD) {
-        console.log(
-          `V2 pool ${V2subgraphPool.token0.id}/${V2subgraphPool.token1.id} has higher liquidity than V3 pool, adding`,
-          V2subgraphPool.reserveUSD,
-          V3subgraphPool.tvlUSD
+        log.info(
+          {
+            token0: V2subgraphPool.token0.id,
+            token1: V2subgraphPool.token1.id,
+            v2reserveUSD: V2subgraphPool.reserveUSD,
+            v3tvlUSD: V3subgraphPool.tvlUSD,
+          },
+          `MixedRoute heuristic, found a V2 pool with higher liquidity than its V3 counterpart`
         );
         buildV2Pools.push(V2subgraphPool);
       }
     } else {
-      console.log(
-        `V2 pool ${V2subgraphPool.token0.id}/${V2subgraphPool.token1.id} does not have liquidity on V3, adding`,
-        V2subgraphPool.reserveUSD
+      log.info(
+        {
+          token0: V2subgraphPool.token0.id,
+          token1: V2subgraphPool.token1.id,
+          v2reserveUSD: V2subgraphPool.reserveUSD,
+        },
+        `MixedRoute heuristic, found a V2 pool with no V3 counterpart`
       );
       buildV2Pools.push(V2subgraphPool);
     }
   });
 
-  console.log(
-    `Found v2 candidate pools that fit first heuristic: ${buildV2Pools.length}`
+  log.info(
+    buildV2Pools.length,
+    `Number of V2 candidate pools that fit first heuristic`
   );
 
   const subgraphPools = [...buildV2Pools, ...V3sortedPools];

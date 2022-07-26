@@ -408,8 +408,6 @@ export async function getBestSwapRouteBy(
       BigNumber.from(0)
     );
 
-  console.log(`estimatedGasUsed for bestSwap: ${estimatedGasUsed}`);
-
   if (!usdGasTokensByChain[chainId] || !usdGasTokensByChain[chainId]![0]) {
     // Each route can use a different stablecoin to account its gas costs.
     // They should all be pegged, and this is just an estimate, so we do a merge

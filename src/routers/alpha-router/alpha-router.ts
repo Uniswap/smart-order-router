@@ -866,12 +866,6 @@ export class AlphaRouter
       MetricLoggerUnit.Count
     );
 
-    console.log(
-      'getting route for',
-      amount.currency.wrapped.symbol,
-      quoteCurrency.wrapped.symbol
-    );
-
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
     const blockNumber =
@@ -973,7 +967,6 @@ export class AlphaRouter
         this.chainId === ChainId.MAINNET &&
         !routingConfig.disableMixedRoutesConsideration
       ) {
-        console.log('optionally considering mixedRoutes quotes');
         log.info('Routing across MixedRoutes');
         quotePromises.push(
           this.getMixedRouteQuotes(
@@ -1057,21 +1050,6 @@ export class AlphaRouter
       /// TODO: we calculate everything with the V3 Gas model?
       /// nvm, looks like its only used for L2 fees
       V3gasModel
-    );
-
-    console.log(
-      swapRouteRaw?.routes.map((r) => {
-        return {
-          route: routeToString(r.route),
-          quote: r.quote.toExact(),
-          quoteAdjustedForGas: r.quoteAdjustedForGas.toExact(),
-          initializedTicksCrossedList:
-            r instanceof MixedRouteWithValidQuote ||
-            r instanceof V3RouteWithValidQuote
-              ? r.initializedTicksCrossedList
-              : undefined,
-        };
-      })
     );
 
     if (!swapRouteRaw) {
@@ -1244,8 +1222,6 @@ export class AlphaRouter
       maxSwapsPerPath
     );
 
-    console.log('Number of V3 routes found:', routes.length);
-
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
     }
@@ -1398,8 +1374,6 @@ export class AlphaRouter
       maxSwapsPerPath
     );
 
-    console.log('Number of V2 routes found:', routes.length);
-
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
     }
@@ -1517,16 +1491,6 @@ export class AlphaRouter
     const V3poolsRaw = V3poolAccessor.getAllPools();
     const V2poolsRaw = V2poolAccessor.getAllPools();
 
-    console.log(
-      'V2 pools:',
-      V2poolsRaw.map((p) => [p.token0.symbol, p.token1.symbol])
-    );
-
-    console.log(
-      'V3 pools:',
-      V3poolsRaw.map((p) => [p.token0.symbol, p.token1.symbol])
-    );
-
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
 
     const candidatePools = mixedRouteCandidatePools;
@@ -1570,9 +1534,6 @@ export class AlphaRouter
       pools,
       maxSwapsPerPath
     );
-
-    console.log('Number of mixedRoutes found:', routes.length);
-    console.log(routes.map((route) => routeToString(route)));
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
