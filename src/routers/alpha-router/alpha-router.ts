@@ -516,17 +516,13 @@ export class AlphaRouter
       this.mixedRouteQuoteProvider = mixedRouteQuoteProvider;
     } else {
       switch (chainId) {
-        /// However, we don't support chains without V2 liquidity
+        /// @dev while we don't support L2 chains, alphaRouter should still be able to be constructed
+        ///      with those chainIds. We can prevent quotes from being considered in both the onChainQuoteProvider
+        ///      and in when we call `getAllMixedQuotes()`.
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISTIC_KOVAN:
-          throw new Error(
-            `Mixed route quote provider not supported for ${chainId}`
-          );
         case ChainId.ARBITRUM_ONE:
         case ChainId.ARBITRUM_RINKEBY:
-          throw new Error(
-            `Mixed route quote provider not supported for ${chainId}`
-          );
         default:
           this.mixedRouteQuoteProvider = new OnChainQuoteProvider<MixedRoute>(
             chainId,

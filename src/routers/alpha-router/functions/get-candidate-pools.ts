@@ -1024,11 +1024,10 @@ export async function getMixedRouteCandidatePools({
 
   const V2topByTVLSortedPools = _(V2subgraphPools)
     .filter((pool) => V2topByTVLPools.map((p) => p.id).includes(pool.id))
-    /// largest first
     .sortBy((pool) => -pool.reserveUSD)
     .value();
 
-  /// we consider all returned V3 pools for this heuristic
+  /// we consider all returned V3 pools for this heuristic to "fill in the gaps"
   const V3sortedPools = _(V3subgraphPools)
     .sortBy((pool) => -pool.tvlUSD)
     .value();
@@ -1083,7 +1082,7 @@ export async function getMixedRouteCandidatePools({
     .value();
 
   log.info(
-    `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} V2 pools we are considering`
+    `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} pools we are considering`
   );
 
   const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {
@@ -1149,7 +1148,8 @@ export async function getMixedRouteCandidatePools({
     blockNumber,
   });
 
-  /// @dev a bit tricky here since we further filtered the V2 pools to only include those that fit the first heuristic, so need to refilter the selection criteria
+  /// @dev a bit tricky here since the original V2CandidateSelections object included pools that we may have dropped
+  /// as part of the heuristic. We need to reconstruct a new object with the v3 pools too.
   const buildPoolsBySelection = (key: keyof CandidatePoolsSelections) => {
     return [
       ...buildV2Pools.filter((pool) =>

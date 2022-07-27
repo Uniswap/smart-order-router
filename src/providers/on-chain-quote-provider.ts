@@ -9,7 +9,7 @@ import stats from 'stats-lite';
 import { MixedRoute, V3Route } from '../routers/router';
 import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { ChainId, metric, MetricLoggerUnit } from '../util';
+import { ChainId, metric, MetricLoggerUnit, V2_SUPPORTED } from '../util';
 import {
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   QUOTER_V2_ADDRESSES,
@@ -365,6 +365,16 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
     }
 
     const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
+
+    // we only support getting mixedRouteQuotes for chains that support V2 liq
+    if (
+      isMixedRoutes &&
+      !V2_SUPPORTED.some((chainId) => chainId === this.chainId)
+    ) {
+      throw new Error(
+        `Cannot get MixedRoute quotes on ${this.chainId} because it does not support V2 liquidity`
+      );
+    }
 
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
@@ -783,6 +793,18 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
       'QuoteExpectedCallsToProvider',
       expectedCallsMade,
       MetricLoggerUnit.Count
+    );
+
+    console.log(
+      'Provider results for ',
+      this.isMixedRouteQuoteProvider ? 'MIXED' : 'V3'
+    );
+
+    console.log(
+      'QuoteTotalCallsToProvider',
+      totalCallsMade,
+      'QuoteExpectedCallsToProvider',
+      expectedCallsMade
     );
 
     metric.putMetric(
