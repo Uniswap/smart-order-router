@@ -337,7 +337,7 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x6555e1CC97d3cbA6eAddebBCD7Ca51d75771e0B8', // WETH token
+        '0x06920c9fc643de77b99cb7670a944ad31eaaa260', // WETH whale
       ]
     );
 
@@ -407,7 +407,7 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ simulate swap`, () => {
         it('erc20 -> erc20', async () => {
@@ -927,7 +927,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe.only('QuoterV3', () => {
+  describe('QuoterV3', () => {
     const WISE_MAINNET = new Token(
       1,
       '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
@@ -1012,8 +1012,8 @@ describe('alpha router integration', () => {
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('WISE -> USDC', async () => {
-          const tokenIn = BOND_MAINNET;
-          const tokenOut = APE_MAINNET;
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
 
           const amount =
             tradeType == TradeType.EXACT_INPUT
@@ -1062,7 +1062,7 @@ describe('alpha router integration', () => {
   });
 });
 
-xdescribe('quote for other networks', () => {
+describe.only('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
