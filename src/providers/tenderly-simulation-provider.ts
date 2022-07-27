@@ -46,7 +46,6 @@ export class TenderlyProvider implements ISimulator {
     fromAddress: string,
     route: SwapRoute,
   ): Promise<SwapRoute> {
-    console.log("SFKLSDJFKLDSJFKLSDJFKLSJD")
     const { calldata } = route.methodParameters!
     if(!route.methodParameters) {
       throw new Error("No calldata provided to simulate transaction")
