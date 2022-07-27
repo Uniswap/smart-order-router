@@ -346,12 +346,12 @@ export class AlphaRouter
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
   protected tokenProvider: ITokenProvider;
-  protected mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   protected gasPriceProvider: IGasPriceProvider;
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
   protected mixedRouteGasModelFactory: IMixedRouteGasModelFactory;
+  protected mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
@@ -515,9 +515,8 @@ export class AlphaRouter
       this.mixedRouteQuoteProvider = mixedRouteQuoteProvider;
     } else {
       switch (chainId) {
-        /// @dev while we don't support L2 chains, alphaRouter should still be able to be constructed
-        ///      with those chainIds. We can prevent quotes from being considered in both the onChainQuoteProvider
-        ///      and in when we call `getAllMixedQuotes()`.
+        /// @dev We only explicitly support chains with V2 liquidity for mixedRoutes.
+        ///      so by default, mixedRouteQuoteProvider is undefined
         case ChainId.RINKEBY:
         case ChainId.ROPSTEN:
         case ChainId.KOVAN:

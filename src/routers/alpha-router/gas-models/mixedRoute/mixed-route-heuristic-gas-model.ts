@@ -29,11 +29,11 @@ import {
 const COST_PER_UNINIT_TICK = BigNumber.from(0);
 
 /**
- * Computes a gas estimate for a V3 swap using heuristics.
+ * Computes a gas estimate for a mixed route swap using heuristics.
  * Considers number of hops in the route, number of ticks crossed
  * and the typical base cost for a swap.
  *
- * We get the number of ticks crossed in a swap from the QuoterV2
+ * We get the number of ticks crossed in a swap from the MixedRouteQuoterV1
  * contract.
  *
  * We compute gas estimates off-chain because

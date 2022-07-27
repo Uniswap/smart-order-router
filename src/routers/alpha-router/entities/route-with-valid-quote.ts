@@ -46,7 +46,6 @@ export type IV3RouteWithValidQuote = {
   protocol: Protocol.V3;
 } & IRouteWithValidQuote<V3Route>;
 
-// Empty union for now to follow pattern
 export type IMixedRouteWithValidQuote = {
   protocol: Protocol.MIXED;
 } & IRouteWithValidQuote<MixedRoute>;
