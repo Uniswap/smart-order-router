@@ -104,6 +104,8 @@ export type SwapOptions = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
+  simulate?: boolean;
+  fromAddress?: string;
   inputTokenPermit?: {
     v: 0 | 1 | 27 | 28;
     r: string;

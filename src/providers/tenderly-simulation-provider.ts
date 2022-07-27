@@ -1,12 +1,15 @@
+import { Token } from '@uniswap/sdk-core';
 import axios from 'axios'
+import { BigNumber } from 'ethers'
+import { SwapRoute } from '../routers'
 import { log } from '../util'
 import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData'
 
 export const TENDERLY_BATCH_SIMULATE_API = (
-  TENDERLY_BASE_URL: string,
-  TENDERLY_USER: string,
-  TENDERLY_PROJECT: string
-) => `${TENDERLY_BASE_URL}/api/v1/account/${TENDERLY_USER}/project/${TENDERLY_PROJECT}/simulate-batch`
+  tenderlyBaseUrl: string,
+  tenderlyUser: string,
+  tenderlyProject: string
+) => `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`
 
 /**
  * Provider for dry running transactions on tenderly.
@@ -20,47 +23,48 @@ export interface ISimulator {
    * @returns number or Error
    */
   simulateTransaction: (
-    chainId: number,
-    hexData: string,
-    tokenInAddress: string,
+    tokenIn: Token,
     fromAddress: string,
-    fallback?: number
-  ) => Promise<number|Error>
+    route: SwapRoute
+  ) => Promise<SwapRoute>
 }
 export class TenderlyProvider implements ISimulator {
-  TENDERLY_BASE_URL: string
-  TENDERLY_USER: string
-  TENDERLY_PROJECT: string
-  TENDERLY_ACCESS_KEY: string
-  constructor(TENDERLY_BASE_URL: string, TENDERLY_USER: string, TENDERLY_PROJECT: string, TENDERLY_ACCESS_KEY: string) {
-    this.TENDERLY_BASE_URL = TENDERLY_BASE_URL
-    this.TENDERLY_USER = TENDERLY_USER
-    this.TENDERLY_PROJECT = TENDERLY_PROJECT
-    this.TENDERLY_ACCESS_KEY = TENDERLY_ACCESS_KEY
+  private tenderlyBaseUrl: string
+  private tenderlyUser: string
+  private tenderlyProject: string
+  private tenderlyAccessKey: string
+
+  constructor(tenderlyBaseUrl: string, tenderlyUser: string, tenderlyProject: string, tenderlyAccessKey: string) {
+    this.tenderlyBaseUrl = tenderlyBaseUrl
+    this.tenderlyUser = tenderlyUser
+    this.tenderlyProject = tenderlyProject
+    this.tenderlyAccessKey = tenderlyAccessKey
   }
 
   public async simulateTransaction(
-    chainId: number,
-    hexData: string,
-    tokenInAddress: string,
+    tokenIn: Token,
     fromAddress: string,
-    fallback?: number,
-    stateOverrides?: Record<string, unknown>
-  ): Promise<number|Error> {
+    route: SwapRoute,
+  ): Promise<SwapRoute> {
+    console.log("SFKLSDJFKLDSJFKLSDJFKLSJD")
+    const { calldata } = route.methodParameters!
+    if(!route.methodParameters) {
+      throw new Error("No calldata provided to simulate transaction")
+    }
     log.info(
       {
-        hexData: hexData,
+        calldata: route.methodParameters.calldata,
         fromAddress: fromAddress,
-        chainId: chainId,
-        tokenInAddress: tokenInAddress,
+        chainId: tokenIn.chainId,
+        tokenInAddress: tokenIn.address,
       },
       'Simulating transaction via Tenderly'
     )
 
     const approve = {
-      network_id: chainId,
+      network_id: tokenIn.chainId,
       input: APPROVE_TOKEN_FOR_TRANSFER,
-      to: tokenInAddress,
+      to: tokenIn.address,
       value: "0",
       from: fromAddress,
       gasPrice: "0",
@@ -68,8 +72,8 @@ export class TenderlyProvider implements ISimulator {
     }
 
     const swap = {
-      network_id: chainId,
-      input: hexData,
+      network_id: tokenIn.chainId,
+      input: calldata,
       to: V3_ROUTER2_ADDRESS,
       value: "0",
       from: fromAddress,
@@ -77,30 +81,26 @@ export class TenderlyProvider implements ISimulator {
       gas: 30000000,
       type: 1,
       estimate_gas: true,
-      stateOverrides: stateOverrides
     }
 
     const body = {"simulations": [approve, swap]}
-    body
     const opts = {
       headers: {
-        'X-Access-Key': this.TENDERLY_ACCESS_KEY,
+        'X-Access-Key': this.tenderlyAccessKey,
       },
     }
-    const url = TENDERLY_BATCH_SIMULATE_API(this.TENDERLY_BASE_URL, this.TENDERLY_USER, this.TENDERLY_PROJECT)
-    const resp=await axios.post(url, body, opts)
+    const url = TENDERLY_BATCH_SIMULATE_API(this.tenderlyBaseUrl, this.tenderlyUser, this.tenderlyProject)
+    const resp = await axios.post(url, body, opts)
 
     // Validate tenderly response body
     if(resp.data && resp.data.simulation_results.length == 2 && resp.data.simulation_results[1].transaction && !resp.data.simulation_results[1].transaction.error) {
       log.info({approve:resp.data.simulation_results[0],swap:resp.data.simulation_results[1]}, 'Simulated Transaction Via Tenderly')
-      return resp.data.simulation_results[1].transaction.gas_used as number
+      route.estimatedGasUsed = resp.data.simulation_results[1].transaction.gas_used as BigNumber
     } else {
-      log.info(`Failed to Simulate Via Tenderly!`)
-      if(!fallback) {
-        return new Error('`Failed to Simulate Via Tenderly! No fallback set!`')
-      }
-      log.info(`Defaulting to fallback return value of: ${fallback}s.`)
-      return fallback
+      const errMsg = `Failed to Simulate Via Tenderly!`
+      log.info({resp:resp},errMsg)
+      throw new Error(errMsg)
     }
+    return route
   }
 }

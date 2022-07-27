@@ -25,6 +25,7 @@ import {
   CachingV3SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
+  ISimulator,
   ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
@@ -216,6 +217,11 @@ export type AlphaRouterParams = {
    * Calls the arbitrum gas data contract to fetch constants for calculating the l1 fee.
    */
   arbitrumGasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
+
+  /**
+   * Simulates swaps (currently through tenderly) and provides transaction receipt
+   */
+  simulator?: ISimulator;
 };
 
 /**
@@ -336,6 +342,7 @@ export class AlphaRouter
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
+  protected simulator?: ISimulator
 
   constructor({
     chainId,
@@ -356,6 +363,7 @@ export class AlphaRouter
     optimismGasDataProvider,
     tokenValidatorProvider,
     arbitrumGasDataProvider,
+    simulator,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -369,7 +377,7 @@ export class AlphaRouter
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-
+    this.simulator = simulator
     if (v3QuoteProvider) {
       this.v3QuoteProvider = v3QuoteProvider;
     } else {
@@ -994,7 +1002,7 @@ export class AlphaRouter
 
     this.emitPoolSelectionMetrics(swapRouteRaw, allCandidatePools);
 
-    return {
+    const swapRoute:SwapRoute = {
       quote,
       quoteGasAdjusted,
       estimatedGasUsed,
@@ -1006,6 +1014,13 @@ export class AlphaRouter
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
     };
+
+    if(this.simulator && swapConfig && methodParameters) {
+      const receipt = await this.simulator.simulateTransaction(tokenIn, swapConfig.fromAddress!, swapRoute)
+      swapRoute.estimatedGasUsed = receipt.estimatedGasUsed
+    }
+
+    return swapRoute
   }
 
   private async applyTokenValidatorToPools<T extends Pool | Pair>(

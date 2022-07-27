@@ -26,7 +26,6 @@ import {
   NATIVE_CURRENCY,
   parseAmount,
   SUPPORTED_CHAINS,
-  TenderlyProvider,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -104,25 +103,6 @@ describe('alpha router integration', () => {
     ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
     protocols: [Protocol.V3, Protocol.V2],
   };
-
-  const simulateSwap = async (
-    chainId: number,
-    token: Token,
-    methodParameters: MethodParameters,
-  ): Promise<number|Error> => {
-    const tp = new TenderlyProvider(
-      process.env.TENDERLY_BASE_URL!,
-      process.env.TENDERLY_USER!,
-      process.env.TENDERLY_PROJECT!,
-      process.env.TENDERLY_ACCESS_KEY!
-    )
-    return tp.simulateTransaction(
-      chainId,
-      methodParameters.calldata,
-      token.address,
-      WHALES(token),
-    )
-  }
 
   const executeSwap = async (
     methodParameters: MethodParameters,
@@ -243,22 +223,10 @@ describe('alpha router integration', () => {
     tradeType: TradeType,
     checkTokenInAmount?: number,
     checkTokenOutAmount?: number,
-    simulate?: boolean
   ) => {
     expect(methodParameters).not.toBeUndefined();
-    let simulationGasUsed:number|Error = 0
-    if(simulate) {
-      simulationGasUsed = await simulateSwap(tokenIn.chainId,tokenIn.wrapped,methodParameters!)
-      expect(simulationGasUsed instanceof Error).toBe(false)
-    }
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
+    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
       await executeSwap(methodParameters!, tokenIn, tokenOut!);
-    
-    if(!(simulationGasUsed instanceof Error)) {
-
-      // Expect simulated gasUsed to be within 25% of actual gasUsed
-      expect(Math.abs(gasUsed-simulationGasUsed)<0.25*gasUsed).toBe(true);
-    }
 
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
@@ -384,6 +352,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: true,
+              fromAddress: alice._address
             },
             {
               ...ROUTING_CONFIG,
@@ -405,7 +375,6 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
-            true
           );
         });
 
@@ -445,7 +414,6 @@ describe('alpha router integration', () => {
             tradeType,
             1000000,
             undefined,
-            true
           );
         });
 
@@ -533,7 +501,6 @@ describe('alpha router integration', () => {
             tradeType,
             1000000,
             undefined,
-            true
           );
         });
 
@@ -634,7 +601,6 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
-            true
           );
         });
 
@@ -672,7 +638,6 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
-            true
           );
         });
 
@@ -719,7 +684,6 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
-            true
           );
         });
 
@@ -766,7 +730,6 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
-            true
           );
         });
 
@@ -822,7 +785,6 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
-            true
           );
         });
       });
