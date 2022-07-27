@@ -795,18 +795,6 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
       MetricLoggerUnit.Count
     );
 
-    console.log(
-      'Provider results for ',
-      this.isMixedRouteQuoteProvider ? 'MIXED' : 'V3'
-    );
-
-    console.log(
-      'QuoteTotalCallsToProvider',
-      totalCallsMade,
-      'QuoteExpectedCallsToProvider',
-      expectedCallsMade
-    );
-
     metric.putMetric(
       'QuoteNumRetriedCalls',
       totalCallsMade - expectedCallsMade,
