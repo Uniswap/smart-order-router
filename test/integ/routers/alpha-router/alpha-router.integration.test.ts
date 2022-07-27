@@ -159,8 +159,6 @@ describe('alpha router integration', () => {
     );
     const tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
 
-    console.log(methodParameters.calldata);
-
     const transaction = {
       data: methodParameters.calldata,
       to: SWAP_ROUTER_V2,
@@ -437,8 +435,6 @@ describe('alpha router integration', () => {
           expect(swap).not.toBeNull();
 
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
-
-          console.log(methodParameters!.calldata);
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
@@ -978,8 +974,6 @@ describe('alpha router integration', () => {
     );
 
     beforeAll(async () => {
-      console.log('alice_address', alice._address);
-
       await hardhat.fund(
         alice._address,
         [parseAmount('1000', WISE_MAINNET)],
@@ -1041,10 +1035,6 @@ describe('alpha router integration', () => {
           expect(swap).not.toBeNull();
 
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
-          console.log(
-            'swap.estimatedGasUsed',
-            swap!.estimatedGasUsed.toNumber()
-          );
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
@@ -1062,7 +1052,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe.only('quote for other networks', () => {
+describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
