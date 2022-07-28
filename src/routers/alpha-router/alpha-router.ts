@@ -1015,9 +1015,13 @@ export class AlphaRouter
       blockNumber: BigNumber.from(await blockNumber),
     };
 
-    if(this.simulator && swapConfig && methodParameters) {
-      const receipt = await this.simulator.simulateTransaction(tokenIn, swapConfig.fromAddress!, swapRoute)
-      swapRoute.estimatedGasUsed = receipt.estimatedGasUsed
+    if(swapConfig && swapConfig.simulate && methodParameters) {
+      if(!this.simulator) {
+        throw new Error("Simulator not initialized!")
+      }
+      const resp:SwapRoute = await this.simulator.simulateTransaction(tokenIn, swapConfig.fromAddress!, swapRoute)
+      console.log(swapRoute)
+      return resp
     }
 
     return swapRoute

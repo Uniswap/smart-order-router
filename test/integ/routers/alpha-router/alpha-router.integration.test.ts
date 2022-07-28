@@ -26,6 +26,7 @@ import {
   NATIVE_CURRENCY,
   parseAmount,
   SUPPORTED_CHAINS,
+  TenderlyProvider,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -223,10 +224,16 @@ describe('alpha router integration', () => {
     tradeType: TradeType,
     checkTokenInAmount?: number,
     checkTokenOutAmount?: number,
+    estimatedGasUsed?: number
   ) => {
     expect(methodParameters).not.toBeUndefined();
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
       await executeSwap(methodParameters!, tokenIn, tokenOut!);
+
+    // If estimatedGasUsed is passed in, validate that it is at least 0.9*gasUsed
+    if(estimatedGasUsed) {
+      expect(estimatedGasUsed).toBeGreaterThan(0.9*gasUsed)
+    }
 
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
@@ -326,6 +333,7 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
+      simulator: new TenderlyProvider(process.env.TENDERLY_BASE_URL!, process.env.TENDLERY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!)
     });
   });
 
@@ -363,7 +371,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed } = swap!;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
           
@@ -375,6 +383,7 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
+            estimatedGasUsed.toNumber()
           );
         });
 
@@ -402,7 +411,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed } = swap!;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
@@ -414,6 +423,7 @@ describe('alpha router integration', () => {
             tradeType,
             1000000,
             undefined,
+            estimatedGasUsed.toNumber()
           );
         });
 
