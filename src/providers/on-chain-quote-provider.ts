@@ -119,7 +119,7 @@ type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
  * @export
  * @interface IV3QuoteProvider
  */
-export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
+export interface IOnChainQuoteProvider<TRoute extends V3Route | MixedRoute> {
   /**
    * For every route, gets an exactIn quotes for every amount provided.
    *
@@ -131,10 +131,10 @@ export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
    */
   getQuotesManyExactIn(
     amountIns: CurrencyAmount[],
-    routes: Route[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: RouteWithQuotes<Route>[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }>;
 
@@ -150,10 +150,10 @@ export interface IOnChainQuoteProvider<Route extends V3Route | MixedRoute> {
    */
   getQuotesManyExactOut(
     amountOuts: CurrencyAmount[],
-    routes: Route[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: RouteWithQuotes<Route>[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }>;
 }
@@ -290,6 +290,7 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
     protected isMixedRouteQuoteProvider: boolean = false,
     protected quoterAddressOverride?: string
   ) {
+    /// TODO: remove lookup const and just eval inline
     const quoterAddressesLookup = isMixedRouteQuoteProvider
       ? MIXED_ROUTE_QUOTER_V1_ADDRESSES
       : QUOTER_V2_ADDRESSES;
@@ -347,6 +348,8 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
     routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
+    const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
+
     // we cannot have both V3 and MixedRoutes in the same call
     if (
       routes.some((route) => route instanceof V3Route) &&
@@ -357,14 +360,9 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
       );
     }
     // cannot make an exactOutput call with mixedRouteQuotes
-    if (
-      functionName === 'quoteExactOutput' &&
-      routes.some((route) => route instanceof MixedRoute)
-    ) {
+    if (isMixedRoutes && functionName === 'quoteExactOutput') {
       throw new Error('Cannot make an exactOutput call with MixedRoutes');
     }
-
-    const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
 
     // we only support getting mixedRouteQuotes for chains that support V2 liq
     if (

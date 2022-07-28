@@ -1008,7 +1008,7 @@ export async function getMixedRouteCandidatePools({
     });
 
   /**
-   * Implement heuristic: picking V2 pools with significantly higher liq than respective V3 pools, or if v3 pool doesn't exist
+   * Implement heuristic: picking V2 pools with higher liq than respective V3 pools, or if v3 pool doesn't exist
    */
   /// We only really care about pools involving the tokenIn or tokenOut explictly,
   /// since there's no way a long tail token in V2 would be routed through as an intermediary

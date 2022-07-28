@@ -955,10 +955,9 @@ export class AlphaRouter
           routingConfig
         )
       );
-      /// depending on tradeType & chain & config, optionally find mixed routes
+      /// depending on tradeType & config, optionally find mixed routes
       if (
         tradeType == TradeType.EXACT_INPUT &&
-        this.chainId === ChainId.MAINNET &&
         !routingConfig.disableMixedRoutesConsideration
       ) {
         log.info('Routing across MixedRoutes');
