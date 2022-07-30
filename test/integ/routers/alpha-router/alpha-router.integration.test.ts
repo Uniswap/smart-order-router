@@ -7,42 +7,26 @@ import {
   CurrencyAmount,
   Ether,
   Percent,
-  Token,
   TradeType,
 } from '@uniswap/sdk-core';
 import {
   AlphaRouter,
   AlphaRouterConfig,
-  CEUR_CELO,
-  CEUR_CELO_ALFAJORES,
   ChainId,
-  CUSD_CELO,
-  CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
-  DAI_ON,
   ID_TO_NETWORK_NAME,
-  ID_TO_PROVIDER,
-  nativeOnChain,
-  NATIVE_CURRENCY,
   parseAmount,
-  SUPPORTED_CHAINS,
   TenderlyProvider,
   UniswapMulticallProvider,
-  UNI_GÖRLI,
   UNI_MAINNET,
-  USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
-  USDC_ON,
   USDT_MAINNET,
-  WBTC_GNOSIS,
-  WBTC_MOONBEAM,
   WETH9,
-  WNATIVE_ON,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
 
-import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
+import { JsonRpcSigner } from '@ethersproject/providers';
 
 import { Protocol } from '@uniswap/router-sdk';
 import { MethodParameters } from '@uniswap/v3-sdk';
@@ -56,6 +40,8 @@ import { WHALES } from '../../../test-util/whales';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
+
+const SIMULATE = true
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -114,7 +100,7 @@ describe('alpha router integration', () => {
     tokenInBefore: CurrencyAmount<Currency>;
     tokenOutAfter: CurrencyAmount<Currency>;
     tokenOutBefore: CurrencyAmount<Currency>;
-    gasUsed: number,
+    gasUsed: BigNumber,
   }> => {
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     // We use this helper function for approving rather than hardhat.provider.approve
@@ -139,7 +125,7 @@ describe('alpha router integration', () => {
       await alice.sendTransaction(transaction);
 
     const receipt = await transactionResponse.wait();
-    const gasUsed = receipt.gasUsed.toNumber()
+    const gasUsed = receipt.gasUsed
     expect(receipt.status == 1).toBe(true); // Check for txn success
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
@@ -224,15 +210,15 @@ describe('alpha router integration', () => {
     tradeType: TradeType,
     checkTokenInAmount?: number,
     checkTokenOutAmount?: number,
-    estimatedGasUsed?: number
+    estimatedGasUsed?: BigNumber
   ) => {
     expect(methodParameters).not.toBeUndefined();
     const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
       await executeSwap(methodParameters!, tokenIn, tokenOut!);
 
-    // If estimatedGasUsed is passed in, validate that it is at least 0.9*gasUsed
+    // If estimatedGasUsed is passed in, validate that it is at least gasUsed
     if(estimatedGasUsed) {
-      expect(estimatedGasUsed).toBeGreaterThan(0.9*gasUsed)
+      expect(estimatedGasUsed>gasUsed).toBe(true)
     }
 
     if (tradeType == TradeType.EXACT_INPUT) {
@@ -333,7 +319,7 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      simulator: new TenderlyProvider(process.env.TENDERLY_BASE_URL!, process.env.TENDLERY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!)
+      simulator: new TenderlyProvider(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!)
     });
   });
 
@@ -360,8 +346,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: true,
-              fromAddress: alice._address
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -383,7 +369,7 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
-            estimatedGasUsed.toNumber()
+            estimatedGasUsed
           );
         });
 
@@ -403,6 +389,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -423,7 +411,7 @@ describe('alpha router integration', () => {
             tradeType,
             1000000,
             undefined,
-            estimatedGasUsed.toNumber()
+            estimatedGasUsed
           );
         });
 
@@ -444,6 +432,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -452,7 +442,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
+          const { quote, methodParameters, estimatedGasUsed } = swap!;
 
           const { route } = swap!;
 
@@ -511,6 +501,7 @@ describe('alpha router integration', () => {
             tradeType,
             1000000,
             undefined,
+            estimatedGasUsed
           );
         });
 
@@ -530,6 +521,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -593,6 +586,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -601,7 +596,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
+          const { quote, methodParameters, estimatedGasUsed } = swap!;
 
           await validateExecuteSwap(
             quote,
@@ -611,6 +606,7 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
+            estimatedGasUsed
           );
         });
 
@@ -630,6 +626,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -638,7 +636,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
+          const { quote, methodParameters, estimatedGasUsed } = swap!;
 
           await validateExecuteSwap(
             quote,
@@ -648,6 +646,7 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
+            estimatedGasUsed
           );
         });
 
@@ -667,6 +666,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -676,7 +677,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed } = swap!;
 
           const { route } = swap!;
 
@@ -694,6 +695,7 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
+            estimatedGasUsed
           );
         });
 
@@ -713,6 +715,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -722,9 +726,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
-
-          const { route } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route } = swap!;
 
           for (const r of route) {
             expect(r.protocol).toEqual('V2');
@@ -740,6 +742,7 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
+            estimatedGasUsed
           );
         });
 
@@ -759,6 +762,8 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
+              simulate: SIMULATE,
+              fromAddress: WHALES(tokenIn.wrapped)
             },
             {
               ...ROUTING_CONFIG,
@@ -768,9 +773,7 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
-
-          const { route } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route } = swap!;
 
           let hasV3Pool = false;
           let hasV2Pool = false;
@@ -795,6 +798,7 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100,
+            estimatedGasUsed
           );
         });
       });
@@ -863,7 +867,7 @@ describe('alpha router integration', () => {
     });
   }
 });
-
+/*
 describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
@@ -1054,3 +1058,4 @@ describe('quote for other networks', () => {
     }
   }
 });
+*/

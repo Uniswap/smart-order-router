@@ -1019,8 +1019,7 @@ export class AlphaRouter
       if(!this.simulator) {
         throw new Error("Simulator not initialized!")
       }
-      const resp:SwapRoute = await this.simulator.simulateTransaction(tokenIn, swapConfig.fromAddress!, swapRoute)
-      console.log(swapRoute)
+      const resp:SwapRoute = await this.simulator.simulateTransaction(tokenIn, swapConfig.fromAddress!, swapRoute, this.v3PoolProvider)
       return resp
     }
 
