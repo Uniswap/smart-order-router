@@ -1,6 +1,7 @@
 /**
  * @jest-environment hardhat
  */
+/// <reference types="../../../types/bunyan-debug-stream" />
 
 import {
   Currency,
@@ -22,8 +23,10 @@ import {
   DAI_ON,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
+  MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
+  OnChainQuoteProvider,
   parseAmount,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
@@ -33,16 +36,17 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+  V3_CORE_FACTORY_ADDRESSES,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
-
 import { Protocol } from '@uniswap/router-sdk';
 import { MethodParameters } from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
@@ -52,8 +56,40 @@ import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-pri
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
+import MixedRouteQuoterV1_ABI from '../../../../src/abis/MixedRouteQuoterV1.json';
+const V2_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
+
+import bunyan from 'bunyan';
+import bunyanDebugStream from 'bunyan-debug-stream';
+
+const logLevel =
+  process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
+
+let logger = bunyan.createLogger({
+  name: 'Uniswap Smart Order Router',
+  serializers: bunyan.stdSerializers,
+  level: bunyan.DEBUG,
+  streams: process.env.DEBUG_JSON
+    ? undefined
+    : [
+        {
+          level: bunyan.DEBUG,
+          type: 'stream',
+          stream: bunyanDebugStream({
+            basepath: __dirname,
+            forceColor: false,
+            showDate: false,
+            showPid: false,
+            showLoggerName: false,
+            showLevel: !!process.env.DEBUG,
+          }),
+        },
+      ],
+});
+
+// setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -227,13 +263,14 @@ describe('alpha router integration', () => {
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
         expect(
-          tokenInBefore.subtract(tokenInAfter).equalTo(
-            CurrencyAmount.fromRawAmount(
-              tokenIn,
-              /// @dev since we are passing in numbers, we need to expand to the correct decimal scale
-              expandDecimals(tokenIn, checkTokenInAmount)
+          tokenInBefore
+            .subtract(tokenInAfter)
+            .equalTo(
+              CurrencyAmount.fromRawAmount(
+                tokenIn,
+                expandDecimals(tokenIn, checkTokenInAmount)
+              )
             )
-          )
         );
       }
       checkQuoteToken(
@@ -268,6 +305,19 @@ describe('alpha router integration', () => {
     const aliceAddress = await alice.getAddress();
     expect(aliceAddress).toBe(alice._address);
 
+    const MixedRouteQuoterV1Factory =
+      await hardhat.hre.ethers.getContractFactoryFromArtifact(
+        MixedRouteQuoterV1_ABI,
+        alice
+      );
+    const MixedRouteQuoterV1 = await MixedRouteQuoterV1Factory.deploy(
+      V3_CORE_FACTORY_ADDRESSES[ChainId.MAINNET],
+      V2_FACTORY,
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET].address // TODO: change to be chain dependent
+    );
+
+    const MixedRouteQuoterV1Address = MixedRouteQuoterV1.address;
+
     await hardhat.fund(
       alice._address,
       [
@@ -285,13 +335,16 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x6555e1CC97d3cbA6eAddebBCD7Ca51d75771e0B8', // WETH token
+        '0x06920c9fc643de77b99cb7670a944ad31eaaa260', // WETH whale
       ]
     );
 
     // alice should always have 10000 ETH
     const aliceEthBalance = await hardhat.provider.getBalance(alice._address);
-    expect(aliceEthBalance).toEqual(parseEther('10000'));
+    /// Since alice is deploying the QuoterV3 contract, expect to have slightly less than 10_000 ETH but not too little
+    expect(aliceEthBalance.toBigInt()).toBeGreaterThanOrEqual(
+      parseEther('9995').toBigInt()
+    );
     const aliceUSDCBalance = await hardhat.getBalance(
       alice._address,
       USDC_MAINNET
@@ -322,6 +375,30 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
+      mixedRouteQuoteProvider: new OnChainQuoteProvider<MixedRoute>(
+        ChainId.MAINNET,
+        hardhat.provider,
+        multicall2Provider,
+        /// Different config than v3
+        {
+          retries: 2,
+          minTimeout: 100,
+          maxTimeout: 1000,
+        },
+        {
+          multicallChunk: 180,
+          gasLimitPerCall: 705_000,
+          quoteMinSuccessRate: 0.15,
+        },
+        {
+          gasLimitOverride: 2_000_000,
+          multicallChunk: 75,
+        },
+        undefined,
+        undefined,
+        true,
+        MixedRouteQuoterV1Address
+      ),
     });
   });
 
@@ -497,6 +574,7 @@ describe('alpha router integration', () => {
         });
 
         it(`eth -> erc20`, async () => {
+          /// Fails for v3 for some reason, ProviderGasError
           const tokenIn = Ether.onChain(1) as Currency;
           const tokenOut = UNI_MAINNET;
           const amount =
@@ -781,7 +859,7 @@ describe('alpha router integration', () => {
         });
       });
 
-      it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
+      xit(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
@@ -806,7 +884,7 @@ describe('alpha router integration', () => {
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
 
-      it(`erc20 -> erc20 gas price specified`, async () => {
+      xit(`erc20 -> erc20 gas price specified`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
@@ -844,6 +922,134 @@ describe('alpha router integration', () => {
       });
     });
   }
+
+  describe('QuoterV3', () => {
+    const WISE_MAINNET = new Token(
+      1,
+      '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
+      18,
+      'WISE',
+      'WISE'
+    );
+    const tradeType = TradeType.EXACT_INPUT;
+
+    const TRIBE_MAINNET = new Token(
+      1,
+      '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
+      18,
+      'TRIBE',
+      'TRIBE'
+    );
+
+    const BOND_MAINNET = new Token(
+      1,
+      '0x0391D2021f89DC339F60Fff84546EA23E337750f',
+      18,
+      'BOND',
+      'BOND'
+    );
+
+    const SOCKS_MAINNET = new Token(
+      1,
+      '0x23B608675a2B2fB1890d3ABBd85c5775c51691d5',
+      18,
+      'SOCKS',
+      'SOCKS'
+    );
+
+    const APE_MAINNET = new Token(
+      1,
+      '0x4d224452801aced8b2f0aebe155379bb5d594381',
+      18,
+      'APE',
+      'APE'
+    );
+
+    const STETH_MAINNET = new Token(
+      1,
+      '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+      18,
+      'STETH',
+      'STETH'
+    );
+
+    beforeAll(async () => {
+      await hardhat.fund(
+        alice._address,
+        [parseAmount('1000', WISE_MAINNET)],
+        [
+          '0xa66e19298a50d6e33fd6756af15d81dae39b47ee', // WISE token
+        ]
+      );
+      const aliceWISEBalance = await hardhat.getBalance(
+        alice._address,
+        WISE_MAINNET
+      );
+      expect(aliceWISEBalance).toEqual(parseAmount('1000', WISE_MAINNET));
+
+      await hardhat.fund(
+        alice._address,
+        [parseAmount('10000', TRIBE_MAINNET)],
+        [
+          '0xea7b32c902daff20bda7b9d7b0964ff0cd33d7ea', // TRIBE whale
+        ]
+      );
+      const aliceTRIBEBalance = await hardhat.getBalance(
+        alice._address,
+        TRIBE_MAINNET
+      );
+      expect(aliceTRIBEBalance).toEqual(parseAmount('10000', TRIBE_MAINNET));
+    });
+
+    describe(`${
+      tradeType === TradeType.EXACT_INPUT ? 'exactInput' : 'exactOutput'
+    } mixedPath routes`, () => {
+      describe('+ simulate swap', () => {
+        it('WISE -> USDC', async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(10000), // parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V3, Protocol.V2],
+              // minSplits: 2,
+              // maxSplits: 5
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100
+          );
+        });
+      });
+    });
+  });
 });
 
 describe('quote for other networks', () => {
@@ -899,7 +1105,7 @@ describe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        jest.retryTimes(1);
+        // jest.retryTimes(1);
 
         const wrappedNative = WNATIVE_ON(chain);
 

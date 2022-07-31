@@ -4,6 +4,7 @@ import { SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, MethodParameters, Pool, Route } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+import { IOnChainQuoteProvider, RouteWithQuotes } from '../../providers';
 
 import { IMulticallProvider } from '../../providers/multicall-provider';
 import {
@@ -12,10 +13,6 @@ import {
   USDC_MAINNET,
 } from '../../providers/token-provider';
 import { IV3PoolProvider } from '../../providers/v3/pool-provider';
-import {
-  IV3QuoteProvider,
-  V3RouteWithQuotes,
-} from '../../providers/v3/quote-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
@@ -33,7 +30,7 @@ export type LegacyRouterParams = {
   chainId: ChainId;
   multicall2Provider: IMulticallProvider;
   poolProvider: IV3PoolProvider;
-  quoteProvider: IV3QuoteProvider;
+  quoteProvider: IOnChainQuoteProvider<V3Route>;
   tokenProvider: ITokenProvider;
 };
 
@@ -53,7 +50,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   protected chainId: ChainId;
   protected multicall2Provider: IMulticallProvider;
   protected poolProvider: IV3PoolProvider;
-  protected quoteProvider: IV3QuoteProvider;
+  protected quoteProvider: IOnChainQuoteProvider<V3Route>;
   protected tokenProvider: ITokenProvider;
 
   constructor({
@@ -212,7 +209,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
     const quotes100Percent = _.map(
       quotesRaw,
-      ([route, quotes]: V3RouteWithQuotes) =>
+      ([route, quotes]: RouteWithQuotes<V3Route>) =>
         `${routeToString(route)} : ${quotes[0]?.quote?.toString()}`
     );
     log.info({ quotes100Percent }, '100% Quotes');
@@ -249,7 +246,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
   private async getBestQuote(
     routes: V3Route[],
-    quotesRaw: V3RouteWithQuotes[],
+    quotesRaw: RouteWithQuotes<V3Route>[],
     quoteToken: Token,
     routeType: TradeType
   ): Promise<V3RouteWithValidQuote | null> {

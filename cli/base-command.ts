@@ -28,6 +28,7 @@ import {
   LegacyRouter,
   MetricLogger,
   NodeJSCache,
+  OnChainQuoteProvider,
   routeAmountsToString,
   RouteWithValidQuote,
   setGlobalLogger,
@@ -35,7 +36,7 @@ import {
   TokenProvider,
   UniswapMulticallProvider,
   V3PoolProvider,
-  V3QuoteProvider,
+  V3Route,
   V3RouteWithValidQuote,
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
@@ -253,7 +254,7 @@ export abstract class BaseCommand extends Command {
         chainId,
         multicall2Provider,
         poolProvider: new V3PoolProvider(chainId, multicall2Provider),
-        quoteProvider: new V3QuoteProvider(
+        quoteProvider: new OnChainQuoteProvider<V3Route>(
           chainId,
           provider,
           multicall2Provider

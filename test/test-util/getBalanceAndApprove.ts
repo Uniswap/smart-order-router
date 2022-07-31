@@ -37,12 +37,6 @@ export const getBalanceAndApprove = async (
     await (
       await aliceTokenIn.approve(approveTarget, constants.MaxUint256)
     ).wait();
-
-    const approvedAmt = await aliceTokenIn.allowance(
-      alice._address,
-      approveTarget
-    );
-    expect(approvedAmt).toEqual(constants.MaxUint256);
   }
 
   return getBalance(alice, currency);

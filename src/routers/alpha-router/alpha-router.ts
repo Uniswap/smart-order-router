@@ -25,12 +25,14 @@ import {
   CachingV3SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
+  IOnChainQuoteProvider,
   ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
   LegacyGasPriceProvider,
   NodeJSCache,
   OnChainGasPriceProvider,
+  OnChainQuoteProvider,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
   SwapRouterProvider,
@@ -69,10 +71,6 @@ import {
   IV3PoolProvider,
   V3PoolProvider,
 } from '../../providers/v3/pool-provider';
-import {
-  IV3QuoteProvider,
-  V3QuoteProvider,
-} from '../../providers/v3/quote-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CurrencyAmount } from '../../util/amounts';
 import {
@@ -92,6 +90,7 @@ import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
+  MixedRoute,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapAndAddParameters,
@@ -99,6 +98,7 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  V3Route,
 } from '../router';
 
 import {
@@ -106,6 +106,7 @@ import {
   ETH_GAS_STATION_API_URL,
 } from './config';
 import {
+  MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
@@ -113,20 +114,24 @@ import {
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
+  computeAllMixedRoutes,
   computeAllV2Routes,
   computeAllV3Routes,
 } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
+  getMixedRouteCandidatePools,
   getV2CandidatePools,
   getV3CandidatePools,
   PoolId,
 } from './functions/get-candidate-pools';
 import {
   IGasModel,
+  IMixedRouteGasModelFactory,
   IV2GasModelFactory,
   IV3GasModelFactory,
 } from './gas-models/gas-model';
+import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 import { V3HeuristicGasModelFactory } from '.';
@@ -157,7 +162,7 @@ export type AlphaRouterParams = {
   /**
    * The provider for getting V3 quotes.
    */
-  v3QuoteProvider?: IV3QuoteProvider;
+  v3QuoteProvider?: IOnChainQuoteProvider<V3Route>;
   /**
    * The provider for getting all pools that exist on V2 from the Subgraph. The pools
    * from this provider are filtered during the algorithm to a set of candidate pools.
@@ -171,6 +176,10 @@ export type AlphaRouterParams = {
    * The provider for getting V3 quotes.
    */
   v2QuoteProvider?: IV2QuoteProvider;
+  /**
+   * The provider for getting on chain quotes (V3 or MixedRoute)
+   */
+  mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   /**
    * The provider for getting data about Tokens.
    */
@@ -190,6 +199,11 @@ export type AlphaRouterParams = {
    * V2 routes.
    */
   v2GasModelFactory?: IV2GasModelFactory;
+  /**
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V3 routes.
+   */
+  mixedRouteGasModelFactory?: IMixedRouteGasModelFactory;
   /**
    * A token list that specifies Token that should be blocked from routing through.
    * Defaults to Uniswap's unsupported token list.
@@ -301,6 +315,11 @@ export type AlphaRouterConfig = {
    */
   forceCrossProtocol: boolean;
   /**
+   * Prevent the alpha router from considering mixedRoutes as a valid swap.
+   * Default will be falsy.
+   */
+  disableMixedRoutesConsideration?: boolean;
+  /**
    * The minimum percentage of the input token to use for each route in a split route.
    * All routes will have a multiple of this value. For example is distribution percentage is 5,
    * a potential return swap would be:
@@ -322,7 +341,7 @@ export class AlphaRouter
   protected multicall2Provider: UniswapMulticallProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
-  protected v3QuoteProvider: IV3QuoteProvider;
+  protected v3QuoteProvider: IOnChainQuoteProvider<V3Route>;
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
@@ -331,6 +350,8 @@ export class AlphaRouter
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
+  protected mixedRouteGasModelFactory: IMixedRouteGasModelFactory;
+  protected mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
@@ -345,6 +366,7 @@ export class AlphaRouter
     v3QuoteProvider,
     v2PoolProvider,
     v2QuoteProvider,
+    mixedRouteQuoteProvider,
     v2SubgraphProvider,
     tokenProvider,
     blockedTokenListProvider,
@@ -352,6 +374,7 @@ export class AlphaRouter
     gasPriceProvider,
     v3GasModelFactory,
     v2GasModelFactory,
+    mixedRouteGasModelFactory,
     swapRouterProvider,
     optimismGasDataProvider,
     tokenValidatorProvider,
@@ -376,7 +399,7 @@ export class AlphaRouter
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISTIC_KOVAN:
-          this.v3QuoteProvider = new V3QuoteProvider(
+          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
             chainId,
             provider,
             this.multicall2Provider,
@@ -410,7 +433,7 @@ export class AlphaRouter
           break;
         case ChainId.ARBITRUM_ONE:
         case ChainId.ARBITRUM_RINKEBY:
-          this.v3QuoteProvider = new V3QuoteProvider(
+          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
             chainId,
             provider,
             this.multicall2Provider,
@@ -434,10 +457,9 @@ export class AlphaRouter
             }
           );
           break;
-
         case ChainId.CELO:
         case ChainId.CELO_ALFAJORES:
-          this.v3QuoteProvider = new V3QuoteProvider(
+          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
             chainId,
             provider,
             this.multicall2Provider,
@@ -462,7 +484,7 @@ export class AlphaRouter
           );
           break;
         default:
-          this.v3QuoteProvider = new V3QuoteProvider(
+          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
             chainId,
             provider,
             this.multicall2Provider,
@@ -488,6 +510,43 @@ export class AlphaRouter
     this.v2PoolProvider =
       v2PoolProvider ?? new V2PoolProvider(chainId, this.multicall2Provider);
     this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
+
+    if (mixedRouteQuoteProvider) {
+      this.mixedRouteQuoteProvider = mixedRouteQuoteProvider;
+    } else {
+      switch (chainId) {
+        /// @dev We only explicitly support chains with V2 liquidity for mixedRoutes.
+        ///      so by default, mixedRouteQuoteProvider is undefined
+        case ChainId.RINKEBY:
+        case ChainId.ROPSTEN:
+        case ChainId.KOVAN:
+        case ChainId.GÖRLI:
+        case ChainId.MAINNET:
+          this.mixedRouteQuoteProvider = new OnChainQuoteProvider<MixedRoute>(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 210,
+              gasLimitPerCall: 705_000,
+              quoteMinSuccessRate: 0.15,
+            },
+            {
+              gasLimitOverride: 2_000_000,
+              multicallChunk: 25,
+            },
+            undefined,
+            undefined,
+            true
+          );
+          break;
+      }
+    }
 
     this.blockedTokenListProvider =
       blockedTokenListProvider ??
@@ -567,6 +626,8 @@ export class AlphaRouter
       v3GasModelFactory ?? new V3HeuristicGasModelFactory();
     this.v2GasModelFactory =
       v2GasModelFactory ?? new V2HeuristicGasModelFactory();
+    this.mixedRouteGasModelFactory =
+      mixedRouteGasModelFactory ?? new MixedRouteHeuristicGasModelFactory();
 
     this.swapRouterProvider =
       swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
@@ -674,6 +735,8 @@ export class AlphaRouter
           ...DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
           ...routingConfig,
           protocols: [Protocol.V3, Protocol.V2],
+          /// @notice we don't want to query mixedRoutes for routeToRatio
+          disableMixedRoutesConsideration: true,
         }
       );
       if (!swap) {
@@ -845,13 +908,22 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
-    const gasModel = await this.v3GasModelFactory.buildGasModel(
+    const V3gasModel = await this.v3GasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
       this.v3PoolProvider,
       quoteToken,
       this.l2GasDataProvider
     );
+
+    const mixedRouteGasModel =
+      await this.mixedRouteGasModelFactory.buildGasModel(
+        this.chainId,
+        gasPriceWei,
+        this.v3PoolProvider,
+        this.v2PoolProvider,
+        quoteToken
+      );
 
     if (
       (protocolsSet.size == 0 ||
@@ -866,7 +938,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
-          gasModel,
+          V3gasModel,
           tradeType,
           routingConfig
         )
@@ -883,6 +955,25 @@ export class AlphaRouter
           routingConfig
         )
       );
+      /// depending on tradeType & config, optionally find mixed routes
+      if (
+        tradeType == TradeType.EXACT_INPUT &&
+        !routingConfig.disableMixedRoutesConsideration
+      ) {
+        log.info('Routing across MixedRoutes');
+        quotePromises.push(
+          this.getMixedRouteQuotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            mixedRouteGasModel,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
     } else {
       if (
         protocolsSet.has(Protocol.V3) ||
@@ -896,7 +987,7 @@ export class AlphaRouter
             amounts,
             percents,
             quoteToken,
-            gasModel,
+            V3gasModel,
             tradeType,
             routingConfig
           )
@@ -941,6 +1032,7 @@ export class AlphaRouter
 
     // Given all the quotes for all the amounts for all the routes, find the best combination.
     const beforeBestSwap = Date.now();
+
     const swapRouteRaw = await getBestSwapRoute(
       amount,
       percents,
@@ -948,7 +1040,9 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
-      gasModel
+      /// TODO: we calculate everything with the V3 Gas model?
+      /// nvm, looks like its only used for L2 fees
+      V3gasModel
     );
 
     if (!swapRouteRaw) {
@@ -1290,7 +1384,7 @@ export class AlphaRouter
     );
     const { routesWithQuotes } = await quoteFn(amounts, routes);
 
-    const gasModel = await this.v2GasModelFactory.buildGasModel(
+    const V2gasModel = await this.v2GasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
       this.v2PoolProvider,
@@ -1337,9 +1431,183 @@ export class AlphaRouter
           rawQuote: quote,
           amount,
           percent,
-          gasModel,
+          gasModel: V2gasModel,
           quoteToken,
           tradeType: swapType,
+          v2PoolProvider: this.v2PoolProvider,
+        });
+
+        routesWithValidQuotes.push(routeWithValidQuote);
+      }
+    }
+
+    return { routesWithValidQuotes, candidatePools };
+  }
+
+  private async getMixedRouteQuotes(
+    tokenIn: Token,
+    tokenOut: Token,
+    amounts: CurrencyAmount[],
+    percents: number[],
+    quoteToken: Token,
+    mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
+    swapType: TradeType,
+    routingConfig: AlphaRouterConfig
+  ): Promise<{
+    routesWithValidQuotes: MixedRouteWithValidQuote[];
+    candidatePools: CandidatePoolsBySelectionCriteria;
+  }> {
+    log.info('Starting to get mixed quotes');
+
+    if (!this.mixedRouteQuoteProvider) {
+      throw new Error('Mixed route quote provider is not set');
+    }
+
+    if (swapType != TradeType.EXACT_INPUT) {
+      throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
+    }
+
+    const {
+      V2poolAccessor,
+      V3poolAccessor,
+      candidatePools: mixedRouteCandidatePools,
+    } = await getMixedRouteCandidatePools({
+      tokenIn,
+      tokenOut,
+      tokenProvider: this.tokenProvider,
+      blockedTokenListProvider: this.blockedTokenListProvider,
+      V3poolProvider: this.v3PoolProvider,
+      V2poolProvider: this.v2PoolProvider,
+      routeType: swapType,
+      V3subgraphProvider: this.v3SubgraphProvider,
+      V2subgraphProvider: this.v2SubgraphProvider,
+      routingConfig,
+      chainId: this.chainId,
+    });
+
+    const V3poolsRaw = V3poolAccessor.getAllPools();
+    const V2poolsRaw = V2poolAccessor.getAllPools();
+
+    const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
+
+    const candidatePools = mixedRouteCandidatePools;
+
+    // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
+    const pools = await this.applyTokenValidatorToPools(
+      poolsRaw,
+      (
+        token: Currency,
+        tokenValidation: TokenValidationResult | undefined
+      ): boolean => {
+        // If there is no available validation result we assume the token is fine.
+        if (!tokenValidation) {
+          return false;
+        }
+
+        // Only filters out *intermediate* pools that involve tokens that we detect
+        // cant be transferred. This prevents us trying to route through tokens that may
+        // not be transferrable, but allows users to still swap those tokens if they
+        // specify.
+        //
+        if (
+          tokenValidation == TokenValidationResult.STF &&
+          (token.equals(tokenIn) || token.equals(tokenOut))
+        ) {
+          return false;
+        }
+
+        return (
+          tokenValidation == TokenValidationResult.FOT ||
+          tokenValidation == TokenValidationResult.STF
+        );
+      }
+    );
+
+    const { maxSwapsPerPath } = routingConfig;
+
+    const routes = computeAllMixedRoutes(
+      tokenIn,
+      tokenOut,
+      pools,
+      maxSwapsPerPath
+    );
+
+    if (routes.length == 0) {
+      return { routesWithValidQuotes: [], candidatePools };
+    }
+
+    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
+    const quoteFn = this.mixedRouteQuoteProvider.getQuotesManyExactIn.bind(
+      this.mixedRouteQuoteProvider
+    );
+
+    const beforeQuotes = Date.now();
+    log.info(
+      `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`
+    );
+
+    const { routesWithQuotes } = await quoteFn(amounts, routes, {
+      blockNumber: routingConfig.blockNumber,
+    });
+
+    metric.putMetric(
+      'MixedQuotesLoad',
+      Date.now() - beforeQuotes,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    metric.putMetric(
+      'MixedQuotesFetched',
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum(),
+      MetricLoggerUnit.Count
+    );
+
+    const routesWithValidQuotes = [];
+
+    for (const routeWithQuote of routesWithQuotes) {
+      const [route, quotes] = routeWithQuote;
+
+      for (let i = 0; i < quotes.length; i++) {
+        const percent = percents[i]!;
+        const amountQuote = quotes[i]!;
+        const {
+          quote,
+          amount,
+          sqrtPriceX96AfterList,
+          initializedTicksCrossedList,
+          gasEstimate,
+        } = amountQuote;
+
+        if (
+          !quote ||
+          !sqrtPriceX96AfterList ||
+          !initializedTicksCrossedList ||
+          !gasEstimate
+        ) {
+          log.debug(
+            {
+              route: routeToString(route),
+              amountQuote,
+            },
+            'Dropping a null mixed quote for route.'
+          );
+          continue;
+        }
+
+        const routeWithValidQuote = new MixedRouteWithValidQuote({
+          route,
+          rawQuote: quote,
+          amount,
+          percent,
+          sqrtPriceX96AfterList,
+          initializedTicksCrossedList,
+          quoterGasEstimate: gasEstimate,
+          mixedRouteGasModel,
+          quoteToken,
+          tradeType: swapType,
+          v3PoolProvider: this.v3PoolProvider,
           v2PoolProvider: this.v2PoolProvider,
         });
 
@@ -1457,6 +1725,7 @@ export class AlphaRouter
 
     let hasV3Route = false;
     let hasV2Route = false;
+    let hasMixedRoute = false;
     for (const routeAmount of routeAmounts) {
       if (routeAmount.protocol == Protocol.V3) {
         hasV3Route = true;
@@ -1464,15 +1733,61 @@ export class AlphaRouter
       if (routeAmount.protocol == Protocol.V2) {
         hasV2Route = true;
       }
+      if (routeAmount.protocol == Protocol.MIXED) {
+        hasMixedRoute = true;
+      }
     }
 
-    if (hasV3Route && hasV2Route) {
+    if (hasMixedRoute && (hasV3Route || hasV2Route)) {
+      if (hasV3Route && hasV2Route) {
+        metric.putMetric(
+          `MixedAndV3AndV2SplitRoute`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `MixedAndV3AndV2SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else if (hasV3Route) {
+        metric.putMetric(`MixedAndV3SplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedAndV3SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else if (hasV2Route) {
+        metric.putMetric(`MixedAndV2SplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedAndV2SplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+    } else if (hasV3Route && hasV2Route) {
       metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
       metric.putMetric(
         `V3AndV2SplitRouteForChain${this.chainId}`,
         1,
         MetricLoggerUnit.Count
       );
+    } else if (hasMixedRoute) {
+      if (routeAmounts.length > 1) {
+        metric.putMetric(`MixedSplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedSplitRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else {
+        metric.putMetric(`MixedRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `MixedRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
     } else if (hasV3Route) {
       if (routeAmounts.length > 1) {
         metric.putMetric(`V3SplitRoute`, 1, MetricLoggerUnit.Count);
