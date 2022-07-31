@@ -1015,7 +1015,7 @@ export class AlphaRouter
       blockNumber: BigNumber.from(await blockNumber),
     };
 
-    if(swapConfig && swapConfig.simulate && methodParameters) {
+    if(swapConfig && swapConfig.simulate && methodParameters && methodParameters.calldata) {
       if(!this.simulator) {
         throw new Error("Simulator not initialized!")
       }
