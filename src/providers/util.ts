@@ -1,6 +1,6 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from "@uniswap/v3-sdk";
-import { BigNumber } from 'ethers';
 import _ from "lodash";
 
 import { usdGasTokensByChain } from "../routers";
