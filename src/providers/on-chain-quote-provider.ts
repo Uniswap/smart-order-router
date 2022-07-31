@@ -290,13 +290,11 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
     protected isMixedRouteQuoteProvider: boolean = false,
     protected quoterAddressOverride?: string
   ) {
-    /// TODO: remove lookup const and just eval inline
-    const quoterAddressesLookup = isMixedRouteQuoteProvider
-      ? MIXED_ROUTE_QUOTER_V1_ADDRESSES
-      : QUOTER_V2_ADDRESSES;
     const quoterAddress = quoterAddressOverride
       ? quoterAddressOverride
-      : quoterAddressesLookup[this.chainId];
+      : isMixedRouteQuoteProvider
+      ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
+      : QUOTER_V2_ADDRESSES[this.chainId];
 
     if (!quoterAddress) {
       throw new Error(
@@ -350,29 +348,7 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
   }> {
     const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
 
-    // we cannot have both V3 and MixedRoutes in the same call
-    if (
-      routes.some((route) => route instanceof V3Route) &&
-      routes.some((route) => route instanceof MixedRoute)
-    ) {
-      throw new Error(
-        'Cannot have both V3 and MixedRoutes in the same call to on chain Quoter'
-      );
-    }
-    // cannot make an exactOutput call with mixedRouteQuotes
-    if (isMixedRoutes && functionName === 'quoteExactOutput') {
-      throw new Error('Cannot make an exactOutput call with MixedRoutes');
-    }
-
-    // we only support getting mixedRouteQuotes for chains that support V2 liq
-    if (
-      isMixedRoutes &&
-      !V2_SUPPORTED.some((chainId) => chainId === this.chainId)
-    ) {
-      throw new Error(
-        `Cannot get MixedRoute quotes on ${this.chainId} because it does not support V2 liquidity`
-      );
-    }
+    this.validateRoutes(routes, functionName, isMixedRoutes);
 
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
@@ -994,6 +970,36 @@ export class OnChainQuoteProvider<TRoute extends V3Route | MixedRoute>
 
       return new SuccessRateError(
         `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
+      );
+    }
+  }
+
+  protected validateRoutes(
+    routes: TRoute[],
+    functionName: string,
+    isMixedRoutes: boolean
+  ) {
+    // we cannot have both V3 and MixedRoutes in the same call
+    if (
+      routes.some((route) => route instanceof V3Route) &&
+      routes.some((route) => route instanceof MixedRoute)
+    ) {
+      throw new Error(
+        'Cannot have both V3 and MixedRoutes in the same call to on chain Quoter'
+      );
+    }
+    // cannot make an exactOutput call with mixedRouteQuotes
+    if (isMixedRoutes && functionName === 'quoteExactOutput') {
+      throw new Error('Cannot make an exactOutput call with MixedRoutes');
+    }
+
+    // we only support getting mixedRouteQuotes for chains that support V2 liq
+    if (
+      isMixedRoutes &&
+      !V2_SUPPORTED.some((chainId) => chainId === this.chainId)
+    ) {
+      throw new Error(
+        `Cannot get MixedRoute quotes on ${this.chainId} because it does not support V2 liquidity`
       );
     }
   }

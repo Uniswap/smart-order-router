@@ -181,6 +181,7 @@ export function computeMixedRoutes<
         : curPool.token0;
 
       /// prevent round tripping
+      /// TODO: take another look at this
       if (
         _.flatten(
           currentRoute.map((pool) => [pool.token0.symbol, pool.token1.symbol])

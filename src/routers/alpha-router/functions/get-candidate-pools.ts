@@ -1008,7 +1008,10 @@ export async function getMixedRouteCandidatePools({
     });
 
   /**
-   * Implement heuristic: picking V2 pools with higher liq than respective V3 pools, or if v3 pool doesn't exist
+   * Main heuristic for pruning mixedRoutes:
+   * - we pick V2 pools with higher liq than respective V3 pools, or if the v3 pool doesn't exist
+   *
+   * This way we can reduce calls to our provider since it's possible to generate a lot of mixed routes
    */
   /// We only really care about pools involving the tokenIn or tokenOut explictly,
   /// since there's no way a long tail token in V2 would be routed through as an intermediary
@@ -1032,7 +1035,8 @@ export async function getMixedRouteCandidatePools({
     .sortBy((pool) => -pool.tvlUSD)
     .value();
 
-  let buildV2Pools: V2SubgraphPool[] = [];
+  /// Finding pools with greater reserveUSD on v2 than tvlUSD on v3, or if there is no v3 liquidity
+  const buildV2Pools: V2SubgraphPool[] = [];
   V2topByTVLSortedPools.map((V2subgraphPool) => {
     const V3subgraphPool = V3sortedPools.find(
       (pool) =>
