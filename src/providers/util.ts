@@ -113,8 +113,8 @@ export async function getGasCostsInUSDandQuote(tokenIn: Token, l1FeeInWei: BigNu
     // wrap fee to native currency
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[tokenIn.chainId as ChainId];
     const costNativeCurrency = CurrencyAmount.fromRawAmount(
-    nativeCurrency,
-    l1FeeInWei.toString()
+      nativeCurrency,
+      l1FeeInWei.toString()
     );
 
     const usdPool: Pool = await GetHighestLiquidityUSDPool(
@@ -128,8 +128,7 @@ export async function getGasCostsInUSDandQuote(tokenIn: Token, l1FeeInWei: BigNu
         ? usdPool.token0Price
         : usdPool.token1Price;
 
-        const gasCostL1USD: CurrencyAmount =
-        nativeTokenPrice.quote(costNativeCurrency);
+    const gasCostL1USD: CurrencyAmount = nativeTokenPrice.quote(costNativeCurrency);
 
     let gasCostL1QuoteToken = costNativeCurrency;
     // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token

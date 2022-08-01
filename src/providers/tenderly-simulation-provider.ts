@@ -3,7 +3,6 @@ import axios from 'axios'
 import { BigNumber } from 'ethers/lib/ethers';
 import _ from 'lodash';
 
-
 import { SwapRoute } from '../routers'
 import { log } from '../util'
 import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData'
@@ -57,6 +56,7 @@ export class TenderlyProvider implements ISimulator {
     route: SwapRoute,
     poolProvider: IV3PoolProvider,
   ): Promise<SwapRoute> {
+
     const { calldata } = route.methodParameters!
     if(!route.methodParameters) {
       throw new Error("No calldata provided to simulate transaction")
@@ -103,16 +103,17 @@ export class TenderlyProvider implements ISimulator {
     const resp = await axios.post(url, body, opts)
 
     // Validate tenderly response body
-    if(resp.data && resp.data.simulation_results.length == 2 && resp.data.simulation_results[1].transaction && !resp.data.simulation_results[1].transaction.error) {
+    if(resp.data && resp.data.simulation_results.length == 2 && resp.data.simulation_results[1].transaction && !resp.data.simulation_results[1].transaction.error_message) {
       log.info({approve:resp.data.simulation_results[0],swap:resp.data.simulation_results[1]}, 'Simulated Transaction Via Tenderly')
 
       // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
-      const l1FeeInWei = (resp.data.simulation_results[1].transaction.gas_used as BigNumber).mul(ESTIMATE_MULTIPLIER)
+      const gasUsed = resp.data.simulation_results[1].transaction.gas_used * ESTIMATE_MULTIPLIER
+      const l1FeeInWei = BigNumber.from((gasUsed).toFixed())
       const { gasCostL1QuoteToken, gasCostL1USD } = await getGasCostsInUSDandQuote(tokenIn, l1FeeInWei, poolProvider)
-          // gasUsedL1 is the gas units used calculated from the bytes of the calldata
-         // gasCostL1USD and gasCostL1QuoteToken is the cost of gas in each of those tokens
-         route = {...route, estimatedGasUsed:l1FeeInWei, estimatedGasUsedUSD: gasCostL1USD, estimatedGasUsedQuoteToken: gasCostL1QuoteToken}
-         return route
+      // gasUsedL1 is the gas units used calculated from the bytes of the calldata
+      // gasCostL1USD and gasCostL1QuoteToken is the cost of gas in each of those tokens
+      route = {...route, estimatedGasUsed:l1FeeInWei, estimatedGasUsedUSD: gasCostL1USD, estimatedGasUsedQuoteToken: gasCostL1QuoteToken}
+      return route
     } else {
       const errMsg = `Failed to Simulate Via Tenderly!`
       log.info({resp:resp},errMsg)
