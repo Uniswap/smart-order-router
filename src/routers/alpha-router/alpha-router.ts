@@ -960,7 +960,10 @@ export class AlphaRouter
         tradeType == TradeType.EXACT_INPUT &&
         !routingConfig.disableMixedRoutesConsideration
       ) {
-        log.info('Routing across MixedRoutes');
+        log.info(
+          { protocols, swapType: tradeType },
+          'Routing across MixedRoutes'
+        );
         quotePromises.push(
           this.getMixedRouteQuotes(
             tokenIn,
@@ -1008,6 +1011,31 @@ export class AlphaRouter
           )
         );
       }
+      /// If protocolsSet is not empty, and we specify mixedRoutes, consider them if the chain has v2 liq
+      /// and tradeType === EXACT_INPUT, and if we did not disableMixedRoutesConsideration
+      if (
+        protocolsSet.has(Protocol.MIXED) &&
+        V2_SUPPORTED.includes(this.chainId) &&
+        tradeType == TradeType.EXACT_INPUT &&
+        !routingConfig.disableMixedRoutesConsideration
+      ) {
+        log.info(
+          { protocols, swapType: tradeType },
+          'Routing across MixedRoutes'
+        );
+        quotePromises.push(
+          this.getMixedRouteQuotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            mixedRouteGasModel,
+            tradeType,
+            routingConfig
+          )
+        );
+      }
     }
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
@@ -1040,8 +1068,6 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
-      /// TODO: we calculate everything with the V3 Gas model?
-      /// nvm, looks like its only used for L2 fees
       V3gasModel
     );
 

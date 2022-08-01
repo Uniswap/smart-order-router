@@ -213,7 +213,7 @@ describe.only('alpha router', () => {
 
     mockV3QuoteProvider = sinon.createStubInstance(OnChainQuoteProvider);
     mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
-      getQuotesManyExactInFn()
+      getQuotesManyExactInFn<V3Route>()
     );
     mockV3QuoteProvider.getQuotesManyExactOut.callsFake(
       async (
@@ -248,22 +248,11 @@ describe.only('alpha router', () => {
       }
     );
 
-    mockMixedRouteQuoteProvider = sinon.stub(
-      new OnChainQuoteProvider(
-        1,
-        mockProvider,
-        mockMulticallProvider,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        true
-      )
-    );
+    mockMixedRouteQuoteProvider =
+      sinon.createStubInstance(OnChainQuoteProvider);
 
     mockMixedRouteQuoteProvider.getQuotesManyExactIn.callsFake(
-      getQuotesManyExactInFn()
+      getQuotesManyExactInFn<MixedRoute>()
     );
 
     mockV2QuoteProvider = sinon.createStubInstance(V2QuoteProvider);
@@ -477,6 +466,43 @@ describe.only('alpha router', () => {
         }
       );
 
+      mockMixedRouteQuoteProvider.getQuotesManyExactIn.callsFake(
+        async (
+          amountIns: CurrencyAmount[],
+          routes: MixedRoute[],
+          _providerConfig?: ProviderConfig
+        ) => {
+          const routesWithQuotes = _.map(routes, (r, routeIdx) => {
+            const amountQuotes = _.map(amountIns, (amountIn, idx) => {
+              const quote =
+                idx == 1 && routeIdx == 1
+                  ? BigNumber.from(amountIn.quotient.toString()).mul(10)
+                  : BigNumber.from(amountIn.quotient.toString());
+              return {
+                amount: amountIn,
+                quote,
+                sqrtPriceX96AfterList: [
+                  BigNumber.from(1),
+                  BigNumber.from(1),
+                  BigNumber.from(1),
+                ],
+                initializedTicksCrossedList: [1],
+                gasEstimate: BigNumber.from(10000),
+              } as AmountQuote;
+            });
+            return [r, amountQuotes];
+          });
+
+          return {
+            routesWithQuotes: routesWithQuotes,
+            blockNumber: mockBlockBN,
+          } as {
+            routesWithQuotes: RouteWithQuotes<MixedRoute>[];
+            blockNumber: BigNumber;
+          };
+        }
+      );
+
       const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
 
       const swap = await alphaRouter.route(
@@ -506,6 +532,15 @@ describe.only('alpha router', () => {
           WRAPPED_NATIVE_CURRENCY[1]
         )
       ).toBeTruthy();
+      expect(
+        mockMixedRouteGasModelFactory.buildGasModel.calledWith(
+          1,
+          mockGasPriceWeiBN,
+          sinon.match.any, /// v3 pool provider
+          sinon.match.any, /// v2 pool provider
+          WRAPPED_NATIVE_CURRENCY[1]
+        )
+      ).toBeTruthy();
 
       sinon.assert.calledWith(
         mockV3QuoteProvider.getQuotesManyExactIn,
@@ -522,6 +557,16 @@ describe.only('alpha router', () => {
         }),
         sinon.match.array
       );
+      sinon.assert.calledWith(
+        mockMixedRouteQuoteProvider.getQuotesManyExactIn,
+        sinon.match((value) => {
+          return value instanceof Array && value.length == 4;
+        }),
+        sinon.match.array,
+        sinon.match({ blockNumber: sinon.match.defined })
+      );
+
+      console.log(swap);
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
@@ -558,6 +603,9 @@ describe.only('alpha router', () => {
       ).toHaveLength(1);
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
+      ).toHaveLength(1);
+      expect(
+        _.filter(swap!.route, (r) => r.protocol == Protocol.MIXED)
       ).toHaveLength(1);
 
       expect(
