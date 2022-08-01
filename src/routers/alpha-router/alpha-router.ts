@@ -1019,6 +1019,9 @@ export class AlphaRouter
       if(!this.simulator) {
         throw new Error("Simulator not initialized!")
       }
+      if(!swapConfig.fromAddress) {
+        throw new Error("Simulation requested but from address field not populated!")
+      }
       try {
         return await this.simulator.simulateTransaction(tokenIn, swapConfig.fromAddress!, swapRoute, this.v3PoolProvider)
       } catch {
