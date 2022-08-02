@@ -20,13 +20,13 @@ import {
   CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
   DAI_ON,
+  FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
   nativeOnChain,
   NATIVE_CURRENCY,
   parseAmount,
   SUPPORTED_CHAINS,
-  TenderlyProvider,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -56,8 +56,6 @@ import { WHALES } from '../../../test-util/whales';
 
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
-
-const SIMULATE = true
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -110,7 +108,8 @@ describe('alpha router integration', () => {
   const executeSwap = async (
     methodParameters: MethodParameters,
     tokenIn: Currency,
-    tokenOut: Currency
+    tokenOut: Currency,
+    gasLimit?: BigNumber
   ): Promise<{
     tokenInAfter: CurrencyAmount<Currency>;
     tokenInBefore: CurrencyAmount<Currency>;
@@ -137,8 +136,12 @@ describe('alpha router integration', () => {
       type: 1,
     };
 
-    const transactionResponse: providers.TransactionResponse =
-      await alice.sendTransaction(transaction);
+    let transactionResponse: providers.TransactionResponse
+    if(gasLimit) {
+      transactionResponse = await alice.sendTransaction({...transaction, gasLimit: gasLimit});
+    } else {
+      transactionResponse = await alice.sendTransaction(transaction);
+    }
 
     const receipt = await transactionResponse.wait();
     const gasUsed = receipt.gasUsed
@@ -217,6 +220,7 @@ describe('alpha router integration', () => {
    * @param tradeType: TradeType
    * @param checkTokenInAmount?: number - if defined, check that the tokenInBefore - tokenInAfter = checkTokenInAmount
    * @param checkTokenOutAmount?: number - if defined, check that the tokenOutBefore - tokenOutAfter = checkTokenOutAmount
+   * @param estimatedGasUsed?: BigNumber - if defined, use it as the gas limit
    */
   const validateExecuteSwap = async (
     quote: CurrencyAmount<Currency>,
@@ -229,13 +233,10 @@ describe('alpha router integration', () => {
     estimatedGasUsed?: BigNumber
   ) => {
     expect(methodParameters).not.toBeUndefined();
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
-      await executeSwap(methodParameters!, tokenIn, tokenOut!);
 
-    // If estimatedGasUsed is passed in, validate that it is at least gasUsed
-    if(estimatedGasUsed) {
-      expect(estimatedGasUsed>gasUsed).toBe(true)
-    }
+    // This call will revert if estimatedGasUsed is both passed in and is not high enough
+    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
+      await executeSwap(methodParameters!, tokenIn, tokenOut!, estimatedGasUsed);
 
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
@@ -335,7 +336,7 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      simulator: new TenderlyProvider(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!)
+      simulator: new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, hardhat.providers[0]!, )
     });
   });
 
@@ -344,7 +345,7 @@ describe('alpha router integration', () => {
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
-      describe(`+ simulate swap`, () => {
+      describe(`+ execute on Hardhat fork`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
@@ -362,8 +363,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -373,10 +373,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationErr } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
           
@@ -408,8 +408,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -418,10 +417,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, simulationErr, estimatedGasUsed } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, simulationError, estimatedGasUsed } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
@@ -454,8 +453,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -464,10 +462,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, estimatedGasUsed, route, simulationErr } = swap!;
+          const { quote, methodParameters, estimatedGasUsed, route, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           expect(route).not.toBeUndefined;
 
@@ -544,8 +542,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -555,10 +552,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, simulationErr } = swap!;
+          const { quote, methodParameters, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           expect(methodParameters).not.toBeUndefined();
 
@@ -612,8 +609,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -622,10 +618,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, estimatedGasUsed, simulationErr } = swap!;
+          const { quote, methodParameters, estimatedGasUsed, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           await validateExecuteSwap(
             quote,
@@ -655,8 +651,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -665,10 +660,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, estimatedGasUsed, simulationErr } = swap!;
+          const { quote, methodParameters, estimatedGasUsed, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           await validateExecuteSwap(
             quote,
@@ -698,8 +693,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -709,10 +703,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, route, methodParameters, estimatedGasUsed, simulationErr } = swap!;
+          const { quote, quoteGasAdjusted, route, methodParameters, estimatedGasUsed, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           for (const r of route) {
             expect(r.protocol).toEqual('V3');
@@ -748,8 +742,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -759,10 +752,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route, simulationErr } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           for (const r of route) {
             expect(r.protocol).toEqual('V2');
@@ -798,8 +791,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             },
             {
               ...ROUTING_CONFIG,
@@ -809,10 +801,10 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route, simulationErr } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route, simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           let hasV3Pool = false;
           let hasV2Pool = false;
@@ -977,7 +969,7 @@ describe('quote for other networks', () => {
             chainId: chain,
             provider,
             multicall2Provider,
-            simulator: new TenderlyProvider(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!)
+            simulator: new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider)
           });
         });
 
@@ -997,17 +989,16 @@ describe('quote for other networks', () => {
               recipient: WHALES(tokenIn.wrapped),
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped)
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
             }
           );
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { simulationErr } = swap!;
+          const { simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           // Scope limited for non mainnet network tests to validating the swap
         });
@@ -1028,8 +1019,7 @@ describe('quote for other networks', () => {
               recipient: WHALES(tokenIn.wrapped),
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped),
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)},
             },
             {
               // @ts-ignore[TS7053] - complaining about switch being non exhaustive
@@ -1040,10 +1030,10 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { simulationErr } = swap!;
+          const { simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
         });
 
         const native = NATIVE_CURRENCY[chain];
@@ -1072,8 +1062,7 @@ describe('quote for other networks', () => {
                   recipient: WHALES(tokenIn.wrapped),
                   slippageTolerance: SLIPPAGE,
                   deadline: parseDeadline(360),
-                  simulate: SIMULATE,
-                  fromAddress: WHALES(tokenIn.wrapped),
+                  simulate: {fromAddress: WHALES(tokenIn.wrapped)},
                 },
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
@@ -1084,10 +1073,10 @@ describe('quote for other networks', () => {
               expect(swap).toBeDefined();
               expect(swap).not.toBeNull();
     
-              const { simulationErr } = swap!;
+              const { simulationError } = swap!;
     
               // Expect tenderly simulation to be successful
-              expect(simulationErr).toBeFalsy;
+              expect(simulationError).toBeFalsy;
         });
         it(`has quoteGasAdjusted values`, async () => {
           const tokenIn = erc1;
@@ -1105,8 +1094,7 @@ describe('quote for other networks', () => {
               recipient: WHALES(tokenIn.wrapped),
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: SIMULATE,
-              fromAddress: WHALES(tokenIn.wrapped),
+              simulate: {fromAddress: WHALES(tokenIn.wrapped)},
             },
             {
               // @ts-ignore[TS7053] - complaining about switch being non exhaustive
@@ -1117,10 +1105,10 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { simulationErr, quote, quoteGasAdjusted } = swap!;
+          const { simulationError, quote, quoteGasAdjusted } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationErr).toBeFalsy;
+          expect(simulationError).toBeFalsy;
 
           if (tradeType == TradeType.EXACT_INPUT) {
             // === .lessThanOrEqualTo

@@ -71,7 +71,7 @@ export type SwapRoute = {
   /**
    * Flag that is true if and only if simulation is requested and simulation fails
    */
-  simulationErr?: boolean;
+  simulationError?: boolean;
 };
 
 export type SwapToRatioRoute = SwapRoute & {
@@ -108,8 +108,7 @@ export type SwapOptions = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
-  simulate?: boolean;
-  fromAddress?: string;
+  simulate?: {fromAddress: string;}
   inputTokenPermit?: {
     v: 0 | 1 | 27 | 28;
     r: string;

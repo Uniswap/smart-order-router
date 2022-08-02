@@ -14,6 +14,7 @@ import {
   CurrencyAmount,
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
+  FallbackTenderlySimulator,
   parseAmount,
   SwapAndAddConfig,
   SwapAndAddOptions,
@@ -94,6 +95,8 @@ describe('alpha router', () => {
 
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
   let mockTokenValidatorProvider: sinon.SinonStubbedInstance<TokenValidatorProvider>;
+
+  let mockFallbackTenderlySimulator: sinon.SinonStubbedInstance<FallbackTenderlySimulator>;
 
   let alphaRouter: AlphaRouter;
 
@@ -335,6 +338,9 @@ describe('alpha router', () => {
       getValidationByToken: () => TokenValidationResult.UNKN,
     });
 
+    mockFallbackTenderlySimulator = sinon.createStubInstance(FallbackTenderlySimulator)
+    mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_tokenIn, _fromAddress, route, _v3PoolProvider)=>route)
+
     alphaRouter = new AlphaRouter({
       chainId: 1,
       provider: mockProvider,
@@ -352,6 +358,7 @@ describe('alpha router', () => {
       v2SubgraphProvider: mockV2SubgraphProvider,
       swapRouterProvider: mockSwapRouterProvider,
       tokenValidatorProvider: mockTokenValidatorProvider,
+      simulator: mockFallbackTenderlySimulator
     });
   });
 
@@ -962,6 +969,151 @@ describe('alpha router', () => {
       expect(swap!.trade).toBeDefined();
       expect(swap!.methodParameters).toBeDefined();
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
+    });
+
+    test('simulates transaction when flag is set', async () => {
+      const swap = await alphaRouter.route(
+        CurrencyAmount.fromRawAmount(USDC, 10000),
+        WRAPPED_NATIVE_CURRENCY[1],
+        TradeType.EXACT_INPUT,
+        {
+          recipient: '0x63946551716781C32f0269F87DC08521818b6292',
+          slippageTolerance: new Percent(1),
+          deadline: 1,
+          simulate: {fromAddress: '0x63946551716781C32f0269F87DC08521818b6292'}
+        },
+        { ...ROUTING_CONFIG }
+      );
+      expect(swap).toBeDefined();
+
+      expect(mockProvider.getBlockNumber.called).toBeTruthy();
+      expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
+      expect(
+        mockV3GasModelFactory.buildGasModel.calledWith(
+          1,
+          mockGasPriceWeiBN,
+          sinon.match.any,
+          WRAPPED_NATIVE_CURRENCY[1]
+        )
+      ).toBeTruthy();
+
+      expect(mockFallbackTenderlySimulator
+        .simulateTransaction.called)
+        .toBeTruthy();
+
+      sinon.assert.calledWith(
+        mockV3QuoteProvider.getQuotesManyExactIn,
+        sinon.match((value) => {
+          return value instanceof Array && value.length == 4;
+        }),
+        sinon.match.array,
+        sinon.match({ blockNumber: sinon.match.defined })
+      );
+
+      expect(
+        swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      ).toBeTruthy();
+      expect(
+        swap!.quoteGasAdjusted.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      ).toBeTruthy();
+
+      for (const r of swap!.route) {
+        expect(r.route.input.equals(USDC)).toBeTruthy();
+        expect(
+          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+        ).toBeTruthy();
+      }
+
+      expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
+      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      expect(
+        swap!.estimatedGasUsedQuoteToken.currency.equals(
+          WRAPPED_NATIVE_CURRENCY[1]
+        )
+      ).toBeTruthy();
+      expect(
+        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      ).toBeTruthy();
+      expect(swap!.gasPriceWei.toString()).toEqual(
+        mockGasPriceWeiBN.toString()
+      );
+      expect(swap!.route).toHaveLength(1);
+      expect(swap!.trade).toBeDefined();
+      expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
+    });
+
+    test('does not simulate transaction when flag is not set', async () => {
+      const swap = await alphaRouter.route(
+        CurrencyAmount.fromRawAmount(USDC, 10000),
+        WRAPPED_NATIVE_CURRENCY[1],
+        TradeType.EXACT_INPUT,
+        {
+          recipient: '0x63946551716781C32f0269F87DC08521818b6292',
+          slippageTolerance: new Percent(1),
+          deadline: 1,
+        },
+        { ...ROUTING_CONFIG }
+      );
+      expect(swap).toBeDefined();
+
+      expect(mockProvider.getBlockNumber.called).toBeTruthy();
+      expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
+      expect(
+        mockV3GasModelFactory.buildGasModel.calledWith(
+          1,
+          mockGasPriceWeiBN,
+          sinon.match.any,
+          WRAPPED_NATIVE_CURRENCY[1]
+        )
+      ).toBeTruthy();
+
+      expect(mockFallbackTenderlySimulator
+        .simulateTransaction.called)
+        .toBeFalsy();
+
+      sinon.assert.calledWith(
+        mockV3QuoteProvider.getQuotesManyExactIn,
+        sinon.match((value) => {
+          return value instanceof Array && value.length == 4;
+        }),
+        sinon.match.array,
+        sinon.match({ blockNumber: sinon.match.defined })
+      );
+
+      expect(
+        swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      ).toBeTruthy();
+      expect(
+        swap!.quoteGasAdjusted.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      ).toBeTruthy();
+
+      for (const r of swap!.route) {
+        expect(r.route.input.equals(USDC)).toBeTruthy();
+        expect(
+          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+        ).toBeTruthy();
+      }
+
+      expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
+      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      expect(
+        swap!.estimatedGasUsedQuoteToken.currency.equals(
+          WRAPPED_NATIVE_CURRENCY[1]
+        )
+      ).toBeTruthy();
+      expect(
+        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      ).toBeTruthy();
+      expect(swap!.gasPriceWei.toString()).toEqual(
+        mockGasPriceWeiBN.toString()
+      );
+      expect(swap!.route).toHaveLength(1);
+      expect(swap!.trade).toBeDefined();
+      expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
   });
 

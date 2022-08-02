@@ -1,4 +1,4 @@
-import { CEUR_CELO, CEUR_CELO_ALFAJORES, ChainId, CUSD_CELO, CUSD_CELO_ALFAJORES, DAI_MAINNET, DAI_ON, UNI_GÖRLI, UNI_MAINNET, USDC_MAINNET, USDC_ON, USDT_MAINNET, WETH9 } from "../../src"
+import { CEUR_CELO, CEUR_CELO_ALFAJORES, ChainId, CUSD_CELO, DAI_MAINNET, DAI_ON, UNI_GÖRLI, UNI_MAINNET, USDC_MAINNET, USDC_ON, USDT_MAINNET, WETH9, WNATIVE_ON } from "../../src"
 import {
     Token,
 } from '@uniswap/sdk-core';
@@ -7,6 +7,20 @@ export const WHALES = (token:Token):string => {
     switch(token) {
         case WETH9[1]:
             return '0x06920c9fc643de77b99cb7670a944ad31eaaa260'
+        case WNATIVE_ON(ChainId.MAINNET):
+            return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e'
+        case WNATIVE_ON(ChainId.ARBITRUM_ONE):
+            return '0x80a9ae39310abf666a87c743d6ebbd0e8c42158e'
+        case WNATIVE_ON(ChainId.KOVAN):
+            return '0xa71937147b55deb8a530c7229c442fd3f31b7db2'
+        case WNATIVE_ON(ChainId.RINKEBY):
+            return '0xf1c9dc0baa21bb260e192c8a52ee97c887456fb2'
+        case WNATIVE_ON(ChainId.GÖRLI):
+            return '0x2372031bb0fc735722aa4009aebf66e8beaf4ba1'
+        case WNATIVE_ON(ChainId.ROPSTEN):
+            return '0xc1a0babbe0e77ba1e8d9f627d281823518735839'
+        case WNATIVE_ON(ChainId.POLYGON):
+            return '0x369582d2010b6ed950b571f4101e3bb9b554876f'
         case USDC_MAINNET:
         case UNI_MAINNET:
         case DAI_MAINNET:
@@ -32,10 +46,6 @@ export const WHALES = (token:Token):string => {
             return '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'
         case USDC_ON(ChainId.POLYGON_MUMBAI):
             return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe'
-        case CUSD_CELO:
-            return '0xC32cBaf3D44dA6fbC761289b871af1A30cc7f993'
-        case CUSD_CELO_ALFAJORES:
-            return '0x621843731fe33418007C06ee48CfD71e0ea828d9'
         case DAI_ON(ChainId.ROPSTEN):
             return '0x922b992698381c7dc8d23684e2caef396b0b73a4'
         case DAI_ON(ChainId.RINKEBY):
@@ -60,7 +70,11 @@ export const WHALES = (token:Token):string => {
             return '0x612A7c4E40EAcb63dADaD4939dFedb9d3397E6fd'
         case CEUR_CELO_ALFAJORES:
             return '0x489324b266DFb125CC791B91Bc68F307cE3f6691'
+        case WNATIVE_ON(ChainId.CELO):
+            return '0x6cC083Aed9e3ebe302A6336dBC7c921C9f03349E'
+        case CUSD_CELO:
+            return '0xC32cBaf3D44dA6fbC761289b871af1A30cc7f993'
         default:
-            return 'This should never be returned, invalid token for test case'
+            return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e'
     }
 }

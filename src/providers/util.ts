@@ -8,7 +8,7 @@ import { ChainId, CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from "../util";
 
 import { IV3PoolProvider } from "./v3/pool-provider";
 
-export async function GetHighestLiquidityNativePool(
+export async function getHighestLiquidityV3NativePool(
     chainId: ChainId,
     token: Token,
     poolProvider: IV3PoolProvider
@@ -44,7 +44,7 @@ export async function GetHighestLiquidityNativePool(
     return maxPool;
   }
   
-export async function GetHighestLiquidityUSDPool(
+export async function getHighestLiquidityV3USDPool(
   chainId: ChainId,
   poolProvider: IV3PoolProvider
 ): Promise<Pool> {
@@ -117,16 +117,16 @@ export async function getGasCostsInUSDandQuote(tokenIn: Token, l1FeeInWei: BigNu
       l1FeeInWei.toString()
     );
 
-    const usdPool: Pool = await GetHighestLiquidityUSDPool(
-    tokenIn.chainId,
-    poolProvider
+    const usdPool: Pool = await getHighestLiquidityV3USDPool(
+      tokenIn.chainId,
+      poolProvider
     );
 
     // convert fee into usd
     const nativeTokenPrice =
     usdPool.token0.address == nativeCurrency.address
-        ? usdPool.token0Price
-        : usdPool.token1Price;
+      ? usdPool.token0Price
+      : usdPool.token1Price;
 
     const gasCostL1USD: CurrencyAmount = nativeTokenPrice.quote(costNativeCurrency);
 
@@ -134,7 +134,7 @@ export async function getGasCostsInUSDandQuote(tokenIn: Token, l1FeeInWei: BigNu
     // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
   if (!tokenIn.equals(nativeCurrency)) {
     const nativePool: Pool | null =
-      await GetHighestLiquidityNativePool(
+      await getHighestLiquidityV3NativePool(
         tokenIn.chainId,
         tokenIn,
         poolProvider
