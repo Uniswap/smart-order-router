@@ -24,7 +24,6 @@ import {
   IV3GasModelFactory,
 } from '../gas-model';
 
-
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
 // Cost for crossing an uninitialized tick.

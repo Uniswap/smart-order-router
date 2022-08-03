@@ -285,7 +285,7 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x6555e1CC97d3cbA6eAddebBCD7Ca51d75771e0B8', // WETH token
+        '0x06920c9fc643de77b99cb7670a944ad31eaaa260', // WETH token
       ]
     );
 
