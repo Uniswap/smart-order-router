@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Percent, Token, TradeType } from '@uniswap/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
@@ -17,12 +17,13 @@ import {
   buildSwapMethodParameters,
   buildTrade,
 } from '../../../../util/methodParameters';
+import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../../../../util/v3PoolHelper'
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   IGasModel,
   IV3GasModelFactory,
-  usdGasTokensByChain,
 } from '../gas-model';
+
 
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
@@ -66,7 +67,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       ? await l2GasDataProvider.getGasData()
       : undefined;
 
-    const usdPool: Pool = await this.getHighestLiquidityUSDPool(
+    const usdPool: Pool = await getHighestLiquidityV3USDPool(
       chainId,
       poolProvider
     );
@@ -122,7 +123,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
       if (!token.equals(nativeCurrency)) {
         const nativePool: Pool | null =
-          await this.getHighestLiquidityNativePool(
+          await getHighestLiquidityV3NativePool(
             chainId,
             token,
             poolProvider
@@ -192,7 +193,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativePool: Pool | null = await this.getHighestLiquidityNativePool(
+    const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
       chainId,
       token,
       poolProvider
@@ -326,107 +327,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       totalInitializedTicksCrossed,
       baseGasUse,
     };
-  }
-
-  private async getHighestLiquidityNativePool(
-    chainId: ChainId,
-    token: Token,
-    poolProvider: IV3PoolProvider
-  ): Promise<Pool | null> {
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
-
-    const nativePools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
-      .map<[Token, Token, FeeAmount]>((feeAmount) => {
-        return [nativeCurrency, token, feeAmount];
-      })
-      .value();
-
-    const poolAccessor = await poolProvider.getPools(nativePools);
-
-    const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
-      .map((feeAmount) => {
-        return poolAccessor.getPool(nativeCurrency, token, feeAmount);
-      })
-      .compact()
-      .value();
-
-    if (pools.length == 0) {
-      log.error(
-        { pools },
-        `Could not find a ${nativeCurrency.symbol} pool with ${token.symbol} for computing gas costs.`
-      );
-
-      return null;
-    }
-
-    const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
-
-    return maxPool;
-  }
-
-  private async getHighestLiquidityUSDPool(
-    chainId: ChainId,
-    poolProvider: IV3PoolProvider
-  ): Promise<Pool> {
-    const usdTokens = usdGasTokensByChain[chainId];
-    const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
-
-    if (!usdTokens) {
-      throw new Error(
-        `Could not find a USD token for computing gas costs on ${chainId}`
-      );
-    }
-
-    const usdPools = _([
-      FeeAmount.HIGH,
-      FeeAmount.MEDIUM,
-      FeeAmount.LOW,
-      FeeAmount.LOWEST,
-    ])
-      .flatMap((feeAmount) => {
-        return _.map<Token, [Token, Token, FeeAmount]>(
-          usdTokens,
-          (usdToken) => [wrappedCurrency, usdToken, feeAmount]
-        );
-      })
-      .value();
-
-    const poolAccessor = await poolProvider.getPools(usdPools);
-
-    const pools = _([
-      FeeAmount.HIGH,
-      FeeAmount.MEDIUM,
-      FeeAmount.LOW,
-      FeeAmount.LOWEST,
-    ])
-      .flatMap((feeAmount) => {
-        const pools = [];
-
-        for (const usdToken of usdTokens) {
-          const pool = poolAccessor.getPool(
-            wrappedCurrency,
-            usdToken,
-            feeAmount
-          );
-          if (pool) {
-            pools.push(pool);
-          }
-        }
-
-        return pools;
-      })
-      .compact()
-      .value();
-
-    if (pools.length == 0) {
-      const message = `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`;
-      log.error({ pools }, message);
-      throw new Error(message);
-    }
-
-    const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
-
-    return maxPool;
   }
 
   /**
