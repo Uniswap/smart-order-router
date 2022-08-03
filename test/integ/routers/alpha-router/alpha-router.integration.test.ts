@@ -235,7 +235,7 @@ describe('alpha router integration', () => {
     expect(methodParameters).not.toBeUndefined();
 
     // This call will revert if estimatedGasUsed is both passed in and is not high enough
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, gasUsed } =
+    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
       await executeSwap(methodParameters!, tokenIn, tokenOut!, estimatedGasUsed);
 
     if (tradeType == TradeType.EXACT_INPUT) {
@@ -373,7 +373,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
 
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
@@ -417,8 +419,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, simulationError, estimatedGasUsed } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -462,8 +465,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, estimatedGasUsed, route, simulationError } = swap!;
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -552,8 +556,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, simulationError } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -618,8 +623,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, estimatedGasUsed, simulationError } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -660,8 +666,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters, estimatedGasUsed, simulationError } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -703,8 +710,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, route, methodParameters, estimatedGasUsed, simulationError } = swap!;
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -752,8 +760,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route, simulationError } = swap!;
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -801,8 +810,9 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, route, simulationError } = swap!;
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsed, simulationError, estimatedGasUsedQuoteToken } = swap!;
 
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
           expect(simulationError).toBeFalsy;
 
@@ -1121,4 +1131,4 @@ describe('quote for other networks', () => {
       });
     }
   }
-});
+})
