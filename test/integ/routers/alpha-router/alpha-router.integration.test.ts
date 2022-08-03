@@ -859,7 +859,7 @@ describe('alpha router integration', () => {
         });
       });
 
-      xit(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
+      it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
@@ -884,7 +884,7 @@ describe('alpha router integration', () => {
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
 
-      xit(`erc20 -> erc20 gas price specified`, async () => {
+      it(`erc20 -> erc20 gas price specified`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
