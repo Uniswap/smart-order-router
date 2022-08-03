@@ -271,7 +271,7 @@ describe('alpha router integration', () => {
                 expandDecimals(tokenIn, checkTokenInAmount)
               )
             )
-        );
+        ).toBe(true);
       }
       checkQuoteToken(
         tokenOutBefore,
@@ -290,7 +290,7 @@ describe('alpha router integration', () => {
                 expandDecimals(tokenOut, checkTokenOutAmount)
               )
             )
-        );
+        ).toBe(true);
       }
       checkQuoteToken(
         tokenInBefore,
@@ -923,7 +923,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe.only('Mixed routes', () => {
+  describe('Mixed routes', () => {
     const tradeType = TradeType.EXACT_INPUT;
 
     const BOND_MAINNET = new Token(
@@ -1001,7 +1001,7 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            100
+            10000
           );
         });
       });
