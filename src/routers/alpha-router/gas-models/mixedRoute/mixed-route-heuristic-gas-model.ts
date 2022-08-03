@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
 import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
@@ -218,42 +219,20 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
     let baseGasUse = BigNumber.from(0);
 
     const route = routeWithValidQuote.route;
-    let acc = [];
-    let j = 0;
-    while (j < route.pools.length) {
-      // seek forward until finding a pool of different type
-      let section = [];
-      if (route.pools[j] instanceof Pool) {
-        while (route.pools[j] instanceof Pool) {
-          section.push(route.pools[j]);
-          j++;
-          if (j === route.pools.length) {
-            // we've reached the end of the route
-            break;
-          }
-        }
-        acc.push(section);
-        /// we just added a complete v3 section
+
+    const res = partitionMixedRouteByProtocol(route);
+    res.map((section: (Pair | Pool)[]) => {
+      if (section.every((pool) => pool instanceof Pool)) {
         baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
         baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));
-      } else {
-        while (route.pools[j] instanceof Pair) {
-          section.push(route.pools[j]);
-          j++;
-          if (j === route.pools.length) {
-            // we've reached the end of the route
-            break;
-          }
-        }
-        acc.push(section);
-        /// we just added a complete v2 section
+      } else if (section.every((pool) => pool instanceof Pair)) {
         baseGasUse = baseGasUse.add(BASE_SWAP_COST_V2);
         baseGasUse = baseGasUse.add(
           /// same behavior in v2 heuristic gas model factory
           COST_PER_EXTRA_HOP_V2.mul(section.length - 1)
         );
       }
-    }
+    });
 
     const tickGasUse = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed
