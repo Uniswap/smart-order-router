@@ -923,23 +923,8 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe('QuoterV3', () => {
-    const WISE_MAINNET = new Token(
-      1,
-      '0x66a0f676479Cee1d7373f3DC2e2952778BfF5bd6',
-      18,
-      'WISE',
-      'WISE'
-    );
+  describe.only('Mixed routes', () => {
     const tradeType = TradeType.EXACT_INPUT;
-
-    const TRIBE_MAINNET = new Token(
-      1,
-      '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
-      18,
-      'TRIBE',
-      'TRIBE'
-    );
 
     const BOND_MAINNET = new Token(
       1,
@@ -947,14 +932,6 @@ describe('alpha router integration', () => {
       18,
       'BOND',
       'BOND'
-    );
-
-    const SOCKS_MAINNET = new Token(
-      1,
-      '0x23B608675a2B2fB1890d3ABBd85c5775c51691d5',
-      18,
-      'SOCKS',
-      'SOCKS'
     );
 
     const APE_MAINNET = new Token(
@@ -965,49 +942,28 @@ describe('alpha router integration', () => {
       'APE'
     );
 
-    const STETH_MAINNET = new Token(
-      1,
-      '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
-      18,
-      'STETH',
-      'STETH'
-    );
-
     beforeAll(async () => {
       await hardhat.fund(
         alice._address,
-        [parseAmount('1000', WISE_MAINNET)],
+        [parseAmount('10000', BOND_MAINNET)],
         [
-          '0xa66e19298a50d6e33fd6756af15d81dae39b47ee', // WISE token
+          '0xf510dde022a655e7e3189cdf67687e7ffcd80d91', // BOND token whale
         ]
       );
-      const aliceWISEBalance = await hardhat.getBalance(
+      const aliceBONDBalance = await hardhat.getBalance(
         alice._address,
-        WISE_MAINNET
+        BOND_MAINNET
       );
-      expect(aliceWISEBalance).toEqual(parseAmount('1000', WISE_MAINNET));
-
-      await hardhat.fund(
-        alice._address,
-        [parseAmount('10000', TRIBE_MAINNET)],
-        [
-          '0xea7b32c902daff20bda7b9d7b0964ff0cd33d7ea', // TRIBE whale
-        ]
-      );
-      const aliceTRIBEBalance = await hardhat.getBalance(
-        alice._address,
-        TRIBE_MAINNET
-      );
-      expect(aliceTRIBEBalance).toEqual(parseAmount('10000', TRIBE_MAINNET));
+      expect(aliceBONDBalance).toEqual(parseAmount('10000', BOND_MAINNET));
     });
 
     describe(`${
       tradeType === TradeType.EXACT_INPUT ? 'exactInput' : 'exactOutput'
     } mixedPath routes`, () => {
       describe('+ simulate swap', () => {
-        it('WISE -> USDC', async () => {
-          const tokenIn = USDC_MAINNET;
-          const tokenOut = USDT_MAINNET;
+        it('BOND -> APE', async () => {
+          const tokenIn = BOND_MAINNET;
+          const tokenOut = APE_MAINNET;
 
           const amount =
             tradeType == TradeType.EXACT_INPUT
@@ -1021,20 +977,21 @@ describe('alpha router integration', () => {
             {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(10000), // parseDeadline(360),
+              deadline: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
               protocols: [Protocol.V3, Protocol.V2],
-              // minSplits: 2,
-              // maxSplits: 5
             }
           );
 
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+          expect(route.length).toEqual(1);
+          expect(route[0]!.protocol).toEqual(Protocol.MIXED);
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
@@ -1052,7 +1009,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
