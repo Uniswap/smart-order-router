@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
 import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
@@ -10,12 +10,12 @@ import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { log } from '../../../../util/log';
-import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
-  IGasModel,
-  IMixedRouteGasModelFactory,
-  usdGasTokensByChain,
-} from '../gas-model';
+  getHighestLiquidityV3NativePool,
+  getHighestLiquidityV3USDPool,
+} from '../../../../util/v3PoolHelper';
+import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
+import { IGasModel, IMixedRouteGasModelFactory } from '../gas-model';
 import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
   COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
@@ -60,7 +60,7 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
     V2poolProvider: IV2PoolProvider,
     token: Token
   ): Promise<IGasModel<MixedRouteWithValidQuote>> {
-    const usdPool: Pool = await this.getHighestLiquidityUSDPool(
+    const usdPool: Pool = await getHighestLiquidityV3USDPool(
       chainId,
       V3poolProvider
     );
@@ -107,7 +107,7 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativePool: Pool | null = await this.getHighestLiquidityNativePool(
+    const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
       chainId,
       token,
       V3poolProvider
@@ -256,110 +256,5 @@ export class MixedRouteHeuristicGasModelFactory extends IMixedRouteGasModelFacto
       totalInitializedTicksCrossed,
       baseGasUse,
     };
-  }
-
-  private async getHighestLiquidityNativePool(
-    chainId: ChainId,
-    token: Token,
-    V3poolProvider: IV3PoolProvider
-  ): Promise<Pool | null> {
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
-
-    const nativePools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
-      .map<[Token, Token, FeeAmount]>((feeAmount) => {
-        return [nativeCurrency, token, feeAmount];
-      })
-      .value();
-
-    const poolAccessor = await V3poolProvider.getPools(nativePools);
-
-    const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
-      .map((feeAmount) => {
-        return poolAccessor.getPool(nativeCurrency, token, feeAmount);
-      })
-      .compact()
-      .value();
-
-    if (pools.length == 0) {
-      log.error(
-        { pools },
-        `Could not find a ${nativeCurrency.symbol} pool with ${token.symbol} for computing gas costs.`
-      );
-
-      return null;
-    }
-
-    const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
-
-    return maxPool;
-  }
-
-  private async getHighestLiquidityUSDPool(
-    chainId: ChainId,
-    V3poolProvider: IV3PoolProvider
-  ): Promise<Pool> {
-    const usdTokens = usdGasTokensByChain[chainId];
-    const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
-
-    if (!usdTokens) {
-      throw new Error(
-        `Could not find a USD token for computing gas costs on ${chainId}`
-      );
-    }
-
-    const usdPools = _([
-      FeeAmount.HIGH,
-      FeeAmount.MEDIUM,
-      FeeAmount.LOW,
-      FeeAmount.LOWEST,
-    ])
-      .flatMap((feeAmount) => {
-        return _.map<Token, [Token, Token, FeeAmount]>(
-          usdTokens,
-          (usdToken) => [wrappedCurrency, usdToken, feeAmount]
-        );
-      })
-      .value();
-
-    const poolAccessor = await V3poolProvider.getPools(usdPools);
-
-    const pools = _([
-      FeeAmount.HIGH,
-      FeeAmount.MEDIUM,
-      FeeAmount.LOW,
-      FeeAmount.LOWEST,
-    ])
-      .flatMap((feeAmount) => {
-        const pools = [];
-
-        for (const usdToken of usdTokens) {
-          const pool = poolAccessor.getPool(
-            wrappedCurrency,
-            usdToken,
-            feeAmount
-          );
-          if (pool) {
-            pools.push(pool);
-          }
-        }
-
-        return pools;
-      })
-      .compact()
-      .value();
-
-    if (pools.length == 0) {
-      log.error(
-        { pools },
-        `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`
-      );
-      throw new Error(
-        `Can't find USD/${wrappedCurrency.symbol} pool for computing gas costs.`
-      );
-    }
-
-    const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
-
-    return maxPool;
   }
 }
