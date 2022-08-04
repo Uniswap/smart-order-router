@@ -377,7 +377,10 @@ export class AlphaRouter
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-    this.simulator = simulator
+    if(simulator) {
+      simulator.v3PoolProvider = this.v3PoolProvider
+      this.simulator = simulator
+    }
     if (v3QuoteProvider) {
       this.v3QuoteProvider = v3QuoteProvider;
     } else {
@@ -1019,7 +1022,8 @@ export class AlphaRouter
       if(!this.simulator) {
         throw new Error("Simulator not initialized!")
       }
-      const resp = await this.simulator.simulateTransaction(currencyIn, quoteCurrency, swapConfig.simulate.fromAddress, swapRoute, this.v3PoolProvider, gasPriceWei, await this.l2GasDataProvider?.getGasData())
+      const resp = await this.simulator.simulateTransaction(currencyIn, quoteCurrency, swapConfig.simulate.fromAddress, swapRoute, gasPriceWei, await this.l2GasDataProvider?.getGasData())
+      console.log(resp.estimatedGasUsed.toBigInt(), resp.estimatedGasUsedQuoteToken.toFixed(2), resp.estimatedGasUsedUSD.toFixed(2))
       return resp
     }
 

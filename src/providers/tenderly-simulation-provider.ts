@@ -14,7 +14,7 @@ import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData
 import { calculateArbitrumToL1SecurityFee, calculateOptimismToL1SecurityFee, getGasCostInNativeCurrency, getGasCostInQuoteToken, getGasCostInUSD, getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../util/gasCalc'
 
 import { ArbitrumGasData, OptimismGasData } from "./v3/gas-data-provider";
-import { IV3PoolProvider } from './v3/pool-provider';
+import { IV3PoolProvider, V3PoolProvider } from './v3/pool-provider';
 
 type simulation_result = {
   transaction:{hash:string,gas_used:number,error_message:string},simulation:{state_overrides:Record<string,unknown>}
@@ -45,6 +45,7 @@ const ESTIMATE_MULTIPLIER = 1.25
  * @interface ISimulator
  */
 export interface ISimulator {
+  v3PoolProvider: IV3PoolProvider
   /**
    * Returns the gas fee that was paid to land the transaction in the simulation.
    * @returns number or Error
@@ -54,7 +55,6 @@ export interface ISimulator {
     quoteToken: Currency,
     fromAddress: string,
     route: SwapRoute,
-    v3PoolProvider: IV3PoolProvider,
     gasPriceWei: BigNumber,
     l2GasData?: OptimismGasData|ArbitrumGasData
   ) => Promise<SwapRoute>
@@ -63,10 +63,12 @@ export interface ISimulator {
 export class FallbackTenderlySimulator implements ISimulator {
   private provider: JsonRpcProvider;
   private tenderlySimulator: TenderlySimulator;
+  v3PoolProvider: IV3PoolProvider;
 
-  constructor(tenderlyBaseUrl: string, tenderlyUser: string, tenderlyProject: string, tenderlyAccessKey: string, provider: JsonRpcProvider,) {
+  constructor(tenderlyBaseUrl: string, tenderlyUser: string, tenderlyProject: string, tenderlyAccessKey: string, provider: JsonRpcProvider, v3PoolProvider: V3PoolProvider) {
     this.tenderlySimulator = new TenderlySimulator(tenderlyBaseUrl, tenderlyUser, tenderlyProject, tenderlyAccessKey)
     this.provider = provider
+    this.v3PoolProvider = v3PoolProvider
   }
 
   private async ethEstimateGas(fromAddress: string, tokenIn: Currency, calldata: string): Promise<{approved:boolean,estimatedGasUsed:BigNumber}> {
@@ -102,7 +104,6 @@ export class FallbackTenderlySimulator implements ISimulator {
     quoteToken: Currency,
     fromAddress: string,
     route: SwapRoute,
-    v3PoolProvider: IV3PoolProvider,
     gasPriceWei: BigNumber,
     l2GasData?: ArbitrumGasData|OptimismGasData
   ): Promise<SwapRoute> {
@@ -138,7 +139,7 @@ export class FallbackTenderlySimulator implements ISimulator {
 
     const usdPool: Pool = await getHighestLiquidityV3USDPool(
       tokenIn.chainId,
-      v3PoolProvider
+      this.v3PoolProvider
     );
 
     const gasCostUSD = await getGasCostInUSD(nativeCurrency, usdPool, costNativeCurrency)
@@ -149,7 +150,7 @@ export class FallbackTenderlySimulator implements ISimulator {
     if (!(quoteToken.wrapped.equals(nativeCurrency))) {
       const nativePool = await getHighestLiquidityV3NativePool(
         quoteToken.wrapped,
-        v3PoolProvider
+        this.v3PoolProvider
       );
       if(!nativePool) {
         log.info('Could not find a pool to convert the cost into the quote token')
