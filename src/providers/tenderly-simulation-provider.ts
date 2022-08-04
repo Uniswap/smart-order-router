@@ -158,8 +158,6 @@ export class FallbackTenderlySimulator implements ISimulator {
         gasCostQuoteToken = await getGasCostInQuoteToken(quoteToken.wrapped, nativePool, costNativeCurrency)
       }
     }
-    //console.log(route.estimatedGasUsed)
-    //console.log(gasCostUSD.toFixed(2))
 
     // Adjust quote for gas fees
     let quoteGasAdjusted: CurrencyAmount
@@ -232,9 +230,8 @@ export class TenderlySimulator {
       gas: 30000000,
       type: 1,
     }
-    approve
 
-    const body = {"simulations": [swap]}
+    const body = {"simulations": [approve, swap]}
     const opts = {
       headers: {
         'X-Access-Key': this.tenderlyAccessKey,
@@ -245,26 +242,20 @@ export class TenderlySimulator {
     try {
       resp = (await axios.post<TENDERLY_RESPONSE>(url, body, opts)).data
     } catch(err) {
-        console.log(tokenIn, swap, err)
-        const errMsg = `Failed to Simulate Via Tenderly!`
-        log.info({err:err},errMsg)
-        throw new Error(errMsg)
+        log.info({err:err},`Failed to Simulate Via Tenderly!`)
+        throw err
     }
 
     // Validate tenderly response body
     if(!(resp && resp.simulation_results.length == 2 && resp.simulation_results[1].transaction && !resp.simulation_results[1].transaction.error_message)) {
-      console.log(tokenIn)
-      console.log(resp.simulation_results[0].transaction)
-      console.log(resp.simulation_results[1].transaction)
-      const errMsg = `Failed to Simulate Via Tenderly!`
-      log.info({resp:resp},errMsg)
-      throw new Error(errMsg)
+      const err = resp.simulation_results[1].transaction.error_message
+      log.info({err:err},`Failed to Simulate Via Tenderly!`)
+      throw new Error(err)
     }
 
     log.info({approve:resp.simulation_results[0],swap:resp.simulation_results[1]}, 'Simulated Approval + Swap via Tenderly')
 
     // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
-    console.log(BigNumber.from((resp.simulation_results[1].transaction.gas_used*ESTIMATE_MULTIPLIER).toFixed(0)))
     return BigNumber.from((resp.simulation_results[1].transaction.gas_used*ESTIMATE_MULTIPLIER).toFixed(0))
   }
 }
