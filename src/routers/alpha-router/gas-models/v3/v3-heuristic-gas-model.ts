@@ -289,7 +289,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     };
   }
 
-  protected estimateGas(
+  private estimateGas(
     routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId

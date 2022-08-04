@@ -200,7 +200,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     };
   }
 
-  protected estimateGas(
+  private estimateGas(
     routeWithValidQuote: MixedRouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId
