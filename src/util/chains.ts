@@ -1,5 +1,4 @@
 import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
-import { WGLMR_MOONBEAM, WXDAI_GNOSIS } from '../providers';
 
 export enum ChainId {
   MAINNET = 1,
@@ -372,8 +371,20 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'CELO',
     'Celo native asset'
   ),
-  [ChainId.GNOSIS]: WXDAI_GNOSIS,
-  [ChainId.MOONBEAM]: WGLMR_MOONBEAM,
+  [ChainId.GNOSIS]: new Token(
+    ChainId.GNOSIS,
+    '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
+    18,
+    'WXDAI',
+    'Wrapped XDAI on Gnosis'
+  ),
+  [ChainId.MOONBEAM]: new Token(
+    ChainId.MOONBEAM,
+    '0xAcc15dC74880C9944775448304B263D191c6077F',
+    18,
+    'WGLMR',
+    'Wrapped GLMR'
+  ),
 };
 
 function isMatic(
