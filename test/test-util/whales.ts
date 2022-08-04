@@ -1,10 +1,20 @@
-import { CEUR_CELO, CEUR_CELO_ALFAJORES, ChainId, CUSD_CELO, DAI_MAINNET, DAI_ON, UNI_GÖRLI, UNI_MAINNET, USDC_MAINNET, USDC_ON, USDT_MAINNET, WETH9, WNATIVE_ON } from "../../src"
-import {
-    Token,
-} from '@uniswap/sdk-core';
+import { CEUR_CELO, CEUR_CELO_ALFAJORES, ChainId, CUSD_CELO, DAI_MAINNET, DAI_ON, ExtendedEther, nativeOnChain, UNI_GÖRLI, UNI_MAINNET, USDC_MAINNET, USDC_ON, USDT_MAINNET, WETH9, WNATIVE_ON } from "../../src"
+import { Currency, Ether } from '@uniswap/sdk-core';
 
-export const WHALES = (token:Token):string => {
+export const WHALES = (token:Currency):string => {
     switch(token) {
+        case Ether.onChain(1) as Currency:
+            return '0x0716a17FBAeE714f1E6aB0f9d59edbC5f09815C0'
+        case ExtendedEther.onChain(1):
+            return '0x0716a17FBAeE714f1E6aB0f9d59edbC5f09815C0'
+        case ExtendedEther.onChain(5):
+            return '0xe0a2bd4258d2768837baa26a28fe71dc079f84c7'
+        case ExtendedEther.onChain(42161):
+            return '0xf977814e90da44bfa03b6295a0616a897441acec'
+        case ExtendedEther.onChain(42):
+            return '0xb425fdbe8275361230a633c8d80ea371224d925c'
+        case nativeOnChain(137):
+            return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245'
         case WETH9[1]:
             return '0x06920c9fc643de77b99cb7670a944ad31eaaa260'
         case WNATIVE_ON(ChainId.MAINNET):

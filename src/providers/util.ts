@@ -1,20 +1,19 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Token } from '@uniswap/sdk-core';
+import { CurrencyAmount, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from "@uniswap/v3-sdk";
 import _ from "lodash";
 
 import { usdGasTokensByChain } from "../routers";
-import { ChainId, CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from "../util";
-import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from "../util";
 
+import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from "./v3/pool-provider";
 
 export async function getHighestLiquidityV3NativePool(
-    chainId: ChainId,
     token: Token,
     poolProvider: IV3PoolProvider
   ): Promise<Pool | null> {
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
   
     const nativePools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .map<[Token, Token, FeeAmount]>((feeAmount) => {
@@ -26,7 +25,7 @@ export async function getHighestLiquidityV3NativePool(
   
     const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
       .map((feeAmount) => {
-        return poolAccessor.getPool(nativeCurrency, token, feeAmount);
+          return poolAccessor.getPool(nativeCurrency, token, feeAmount);
       })
       .compact()
       .value();
@@ -110,50 +109,32 @@ export async function getHighestLiquidityV3USDPool(
   return maxPool;
 }
 
-export async function getGasCostsInUSDandQuote(tokenIn: Token, l1FeeInWei: BigNumber, poolProvider: IV3PoolProvider) {
-    // wrap fee to native currency
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[tokenIn.chainId as ChainId];
-    const costNativeCurrency = CurrencyAmount.fromRawAmount(
-      nativeCurrency,
-      l1FeeInWei.toString()
-    );
+export function getGasCostInUSD(nativeCurrency:Token, usdPool: Pool, costNativeCurrency: CurrencyAmount<Token>) {
+  // convert fee into usd
+  const nativeTokenPrice = usdPool.token0.address == nativeCurrency.address
+    ? usdPool.token0Price
+    : usdPool.token1Price;
 
-    const usdPool: Pool = await getHighestLiquidityV3USDPool(
-      tokenIn.chainId,
-      poolProvider
-    );
+  const gasCostUSD = nativeTokenPrice.quote(costNativeCurrency);
+  return gasCostUSD
+}
 
-    // convert fee into usd
-    const nativeTokenPrice =
-    usdPool.token0.address == nativeCurrency.address
-      ? usdPool.token0Price
-      : usdPool.token1Price;
+export function getGasCostInNativeCurrency(nativeCurrency:Token,gasCostInWei:BigNumber) {
+  // wrap fee to native currency
+  const costNativeCurrency = CurrencyAmount.fromRawAmount(
+    nativeCurrency,
+    gasCostInWei.toString()
+  );
+  return costNativeCurrency
+}
 
-    const gasCostUSD: CurrencyAmount = nativeTokenPrice.quote(costNativeCurrency);
-
-    let gasCostQuoteToken = costNativeCurrency;
-    // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
-  if (!tokenIn.equals(nativeCurrency)) {
-    const nativePool: Pool | null =
-      await getHighestLiquidityV3NativePool(
-        tokenIn.chainId,
-        tokenIn,
-        poolProvider
-      );
-    if (!nativePool) {
-      log.info(
-        'Could not find a pool to convert the cost into the quote token'
-      );
-      gasCostQuoteToken = CurrencyAmount.fromRawAmount(tokenIn, 0);
-    } else {
-      const nativeTokenPrice =
-        nativePool.token0.address == nativeCurrency.address
-          ? nativePool.token0Price
-          : nativePool.token1Price;
-      gasCostQuoteToken = nativeTokenPrice.quote(costNativeCurrency);
-    }
-  }
-  return {gasCostQuoteToken, gasCostUSD}
+export async function getGasCostInQuoteToken(quoteToken:Token, nativePool:Pool, costNativeCurrency: CurrencyAmount<Token>) {
+  const nativeTokenPrice =
+    nativePool.token0.address == quoteToken.address
+      ? nativePool.token1Price
+      : nativePool.token0Price;
+  const gasCostQuoteToken = nativeTokenPrice.quote(costNativeCurrency);
+  return gasCostQuoteToken
 }
 
 export function calculateArbitrumToL1SecurityFee(

@@ -363,7 +363,468 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+          
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100,
+          );
+        });
+
+        it(`erc20 -> eth`, async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = Ether.onChain(1) as Currency;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1000000', tokenIn)
+              : parseAmount('10', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            1000000,
+          );
+        });
+
+        it(`erc20 -> eth large trade`, async () => {
+          // Trade of this size almost always results in splits.
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = Ether.onChain(1) as Currency;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1000000', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          expect(route).not.toBeUndefined;
+
+          const amountInEdgesTotal = _(route)
+            // Defineness check first
+            .filter((routeWithValidQuote) =>
+              tradeType == TradeType.EXACT_INPUT
+                ? !!routeWithValidQuote.amount.quotient
+                : !!routeWithValidQuote.quote.quotient
+            )
+            .map((routeWithValidQuote) =>
+              tradeType == TradeType.EXACT_INPUT
+                ? BigNumber.from(routeWithValidQuote.amount.quotient.toString())
+                : BigNumber.from(routeWithValidQuote.quote.quotient.toString())
+            )
+            .reduce((cur, total) => total.add(cur), BigNumber.from(0));
+          /**
+           * @dev for exactIn, make sure the sum of the amountIn to every split = total amountIn for the route
+           * @dev for exactOut, make sure the sum of the quote of every split = total quote for the route
+           */
+          const amountIn =
+            tradeType == TradeType.EXACT_INPUT
+              ? BigNumber.from(amount.quotient.toString())
+              : BigNumber.from(quote.quotient.toString());
+          expect(amountIn).toEqual(amountInEdgesTotal);
+
+          const amountOutEdgesTotal = _(route)
+            .filter((routeWithValidQuote) =>
+              tradeType == TradeType.EXACT_INPUT
+                ? !!routeWithValidQuote.quote.quotient
+                : !!routeWithValidQuote.amount.quotient
+            )
+            .map((routeWithValidQuote) =>
+              tradeType == TradeType.EXACT_INPUT
+                ? BigNumber.from(routeWithValidQuote.quote.quotient.toString())
+                : BigNumber.from(routeWithValidQuote.amount.quotient.toString())
+            )
+            .reduce((cur, total) => total.add(cur), BigNumber.from(0));
+          /**
+           * @dev for exactIn, make sure the sum of the quote to every split = total quote for the route
+           * @dev for exactOut, make sure the sum of the amountIn of every split = total amountIn for the route
+           */
+          const amountOut =
+            tradeType == TradeType.EXACT_INPUT
+              ? BigNumber.from(quote.quotient.toString())
+              : BigNumber.from(amount.quotient.toString());
+          expect(amountOut).toEqual(amountOutEdgesTotal);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            1000000,
+          );
+        });
+
+        it(`eth -> erc20`, async () => {
+          const tokenIn = Ether.onChain(1) as Currency;
+          const tokenOut = UNI_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          expect(methodParameters).not.toBeUndefined();
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+            await executeSwap(methodParameters!, tokenIn, tokenOut);
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            // We've swapped 10 ETH + gas costs
+            expect(
+              tokenInBefore
+                .subtract(tokenInAfter)
+                .greaterThan(parseAmount('10', tokenIn))
+            ).toBe(true);
+            checkQuoteToken(
+              tokenOutBefore,
+              tokenOutAfter,
+              CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
+            );
+          } else {
+            /**
+             * @dev it is possible for an exactOut to generate more tokens on V2 due to precision errors
+             */
+            expect(
+              !tokenOutAfter
+                .subtract(tokenOutBefore)
+                // == .greaterThanOrEqualTo
+                .lessThan(
+                  CurrencyAmount.fromRawAmount(
+                    tokenOut,
+                    expandDecimals(tokenOut, 10000)
+                  )
+                )
+            ).toBe(true);
+            // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
+          }
+        });
+
+        it(`weth -> erc20`, async () => {
+          const tokenIn = WETH9[1];
+          const tokenOut = DAI_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100,
+          );
+        });
+
+        it(`erc20 -> weth`, async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = WETH9[1];
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100,
+          );
+        });
+
+        it('erc20 -> erc20 v3 only', async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V3],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          for (const r of route) {
+            expect(r.protocol).toEqual('V3');
+          }
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100,
+          );
+        });
+
+        it('erc20 -> erc20 v2 only', async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          for (const r of route) {
+            expect(r.protocol).toEqual('V2');
+          }
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100,
+          );
+        });
+
+        it('erc20 -> erc20 forceCrossProtocol', async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              forceCrossProtocol: true,
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, route, quoteGasAdjusted, methodParameters, estimatedGasUsedQuoteToken } = swap!;
+
+          expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
+
+          let hasV3Pool = false;
+          let hasV2Pool = false;
+          for (const r of route) {
+            if (r.protocol == 'V3') {
+              hasV3Pool = true;
+            }
+            if (r.protocol == 'V2') {
+              hasV2Pool = true;
+            }
+          }
+
+          expect(hasV3Pool && hasV2Pool).toBe(true);
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100,
+          );
+        });
+      });
+
+      describe(`+ Simulate on Tenderly fork + Execute on Hardhat fork`, () => {
+        it('erc20 -> erc20', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -410,7 +871,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -456,7 +917,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -546,7 +1007,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -614,7 +1075,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -657,7 +1118,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -700,7 +1161,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -750,7 +1211,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -800,7 +1261,7 @@ describe('alpha router integration', () => {
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
             },
             {
               ...ROUTING_CONFIG,
@@ -953,7 +1414,10 @@ describe('quote for other networks', () => {
       c != ChainId.ARBITRUM_RINKEBY &&
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
-      c != ChainId.CELO_ALFAJORES
+      c != ChainId.CELO_ALFAJORES &&
+      // Rinkeby and Ropsten are deprecated
+      c != ChainId.RINKEBY &&
+      c != ChainId.ROPSTEN
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];
@@ -995,11 +1459,177 @@ describe('quote for other networks', () => {
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
+            undefined,
             {
-              recipient: WHALES(tokenIn.wrapped),
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { simulationError } = swap!;
+
+          // Expect tenderly simulation to be successful
+          expect(simulationError).toBeFalsy;
+
+          // Scope limited for non mainnet network tests to validating the swap
+        });
+
+        it(`erc20 -> erc20`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { simulationError } = swap!;
+
+          // Expect tenderly simulation to be successful
+          expect(simulationError).toBeFalsy;
+        });
+
+        let native = NATIVE_CURRENCY[chain];
+
+        it(`${native} -> erc20`, async () => {
+          const tokenIn = nativeOnChain(chain);
+          const tokenOut = erc2;
+
+          // Celo currently has low liquidity and will not be able to find route for
+          // large input amounts
+          // TODO: Simplify this when Celo has more liquidity
+          const amount =
+            chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
+              ? tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10', tokenOut)
+              : tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                undefined,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V3, Protocol.V2],
+                }
+              );
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+    
+              const { simulationError } = swap!;
+    
+              // Expect tenderly simulation to be successful
+              expect(simulationError).toBeFalsy;
+        });
+        it(`has quoteGasAdjusted values`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { simulationError, quote, quoteGasAdjusted } = swap!;
+
+          // Expect tenderly simulation to be successful
+          expect(simulationError).toBeFalsy;
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            // === .lessThanOrEqualTo
+            expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
+          } else {
+            // === .greaterThanOrEqualTo
+            expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
+          }
+        });
+      });
+      
+      // Tenderly does not support Celo
+      if([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
+        continue
+      }
+      // Route + Fallback Tenderly 
+      describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx Route With Simulate`, function () {
+        // Help with test flakiness by retrying.
+        jest.retryTimes(1);
+
+        const wrappedNative = WNATIVE_ON(chain);
+
+        let alphaRouter: AlphaRouter;
+
+        const chainProvider = ID_TO_PROVIDER(chain);
+        const provider = new JsonRpcProvider(chainProvider, chain);
+        const multicall2Provider = new UniswapMulticallProvider(
+          chain,
+          provider
+        );
+
+        beforeAll(async () => {
+          alphaRouter = new AlphaRouter({
+            chainId: chain,
+            provider,
+            multicall2Provider,
+            simulator: new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider)
+          });
+        });
+
+        it(`${wrappedNative.symbol} -> erc20`, async () => {
+          const tokenIn = wrappedNative;
+          const tokenOut = erc1;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10', tokenIn)
+              : parseAmount('10', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: WHALES(tokenIn),
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)}
+              simulate: {fromAddress: WHALES(tokenIn)}
+            },
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [Protocol.V3, Protocol.V2],
             }
           );
           expect(swap).toBeDefined();
@@ -1026,10 +1656,10 @@ describe('quote for other networks', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-              recipient: WHALES(tokenIn.wrapped),
+              recipient: WHALES(tokenIn),
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)},
+              simulate: {fromAddress: WHALES(tokenIn)},
             },
             {
               // @ts-ignore[TS7053] - complaining about switch being non exhaustive
@@ -1051,16 +1681,7 @@ describe('quote for other networks', () => {
         it(`${native} -> erc20`, async () => {
           const tokenIn = nativeOnChain(chain);
           const tokenOut = erc2;
-
-          // Celo currently has low liquidity and will not be able to find route for
-          // large input amounts
-          // TODO: Simplify this when Celo has more liquidity
-          const amount =
-            chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
-              ? tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('10', tokenIn)
-                : parseAmount('10', tokenOut)
-              : tradeType == TradeType.EXACT_INPUT
+          const amount = tradeType == TradeType.EXACT_INPUT
               ? parseAmount('100', tokenIn)
               : parseAmount('100', tokenOut);
 
@@ -1069,10 +1690,10 @@ describe('quote for other networks', () => {
                 getQuoteToken(tokenIn, tokenOut, tradeType),
                 tradeType,
                 {
-                  recipient: WHALES(tokenIn.wrapped),
+                  recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadline: parseDeadline(360),
-                  simulate: {fromAddress: WHALES(tokenIn.wrapped)},
+                  simulate: {fromAddress: WHALES(tokenIn)},
                 },
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
@@ -1101,10 +1722,10 @@ describe('quote for other networks', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-              recipient: WHALES(tokenIn.wrapped),
+              recipient: WHALES(tokenIn),
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
-              simulate: {fromAddress: WHALES(tokenIn.wrapped)},
+              simulate: {fromAddress: WHALES(tokenIn)},
             },
             {
               // @ts-ignore[TS7053] - complaining about switch being non exhaustive

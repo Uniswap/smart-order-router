@@ -1,6 +1,7 @@
 import { Contract } from "@ethersproject/contracts";
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Currency, Token } from '@uniswap/sdk-core';
+import { Pool } from "@uniswap/v3-sdk";
 import axios from 'axios'
 import { BigNumber } from 'ethers/lib/ethers';
 import _ from 'lodash';
@@ -8,10 +9,10 @@ import _ from 'lodash';
 import v3SwapRouter from '../abis/v3SwapRouter.json';
 import { SwapRoute } from '../routers'
 import { IERC20Metadata__factory } from "../types/v3/factories/IERC20Metadata__factory";
-import { ChainId, CurrencyAmount, log, nativeOnChain } from '../util'
+import { ChainId, CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util'
 import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData'
 
-import { calculateArbitrumToL1SecurityFee, calculateOptimismToL1SecurityFee, getGasCostsInUSDandQuote } from './util'
+import { calculateArbitrumToL1SecurityFee, calculateOptimismToL1SecurityFee, getGasCostInNativeCurrency, getGasCostInQuoteToken, getGasCostInUSD, getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from './util'
 import { ArbitrumGasData, OptimismGasData } from "./v3/gas-data-provider";
 import { IV3PoolProvider } from './v3/pool-provider';
 
@@ -20,8 +21,6 @@ type simulation_result = {
 }
 
 export type TENDERLY_RESPONSE = {
-  status: number,
-  statusText: string,
   config: {
     url: string,
     method: string,
@@ -52,70 +51,130 @@ export interface ISimulator {
    */
   simulateTransaction: (
     tokenIn: Currency,
-    quoteToken: Token,
+    quoteToken: Currency,
     fromAddress: string,
     route: SwapRoute,
     v3PoolProvider: IV3PoolProvider,
+    gasPriceWei: BigNumber,
     l2GasData?: OptimismGasData|ArbitrumGasData
   ) => Promise<SwapRoute>
 }
 
-export class FallbackTenderlySimulator {
+export class FallbackTenderlySimulator implements ISimulator {
   private provider: JsonRpcProvider;
-  private tenderlySimulator: ISimulator;
+  private tenderlySimulator: TenderlySimulator;
 
   constructor(tenderlyBaseUrl: string, tenderlyUser: string, tenderlyProject: string, tenderlyAccessKey: string, provider: JsonRpcProvider,) {
     this.tenderlySimulator = new TenderlySimulator(tenderlyBaseUrl, tenderlyUser, tenderlyProject, tenderlyAccessKey)
     this.provider = provider
   }
 
-  private async ethEstimateGas(fromAddress: string, tokenIn: Token, calldata: string): Promise<{approved:boolean,estimatedGasUsed:BigNumber}> {
-    const provider = this.provider
-    const contract = new Contract(tokenIn.address, IERC20Metadata__factory.createInterface(), provider);
-    let allowance:number
-    try {
-      allowance = await contract.callStatic["allowance"]!(fromAddress, V3_ROUTER2_ADDRESS)
-    } catch(err) {
-        const msg = "Eth_EstimateGas failed!"
-        log.info({err:err}, msg)
-        throw new Error(msg)
-    }
-    // Since we max approve, assume that any non zero allowance is enough for the trade
-    if(allowance == 0) {
-      return {approved:false, estimatedGasUsed:BigNumber.from(-1)}
-    } else {
-      const router = new Contract(V3_ROUTER2_ADDRESS, v3SwapRouter, provider)
+  private async ethEstimateGas(fromAddress: string, tokenIn: Currency, calldata: string): Promise<{approved:boolean,estimatedGasUsed:BigNumber}> {
+    // For erc20s, we must check if the token allowance is sufficient
+    if(!tokenIn.isNative) {
+      const contract = new Contract(tokenIn.address, IERC20Metadata__factory.createInterface(), this.provider);
+      let allowance:number
       try {
-        const estimatedGasUsed:BigNumber = await router.estimateGas['multicall(bytes[])']!([calldata])
-        return {approved:true,estimatedGasUsed:estimatedGasUsed}
+        allowance = await contract.callStatic["allowance"]!(fromAddress, V3_ROUTER2_ADDRESS)
+        // Since we max approve, assume that any non zero allowance is enough for the trade
+        // TODO: check that allowance >= amount(tokenIn)
+        if(allowance == 0) return {approved:false, estimatedGasUsed:BigNumber.from(-1)}
       } catch(err) {
-        const msg = "Error calling eth_estimateGas!"
-        log.info({err:err}, msg)
-        throw new Error(msg)
+          const msg = "check allowance failed while simulating!"
+          log.info({err:err}, msg)
+          throw new Error(msg)
       }
+    }
+
+    const router = new Contract(V3_ROUTER2_ADDRESS, v3SwapRouter, this.provider)
+    try {
+      const estimatedGasUsed:BigNumber = await router.estimateGas['multicall(bytes[])']!([calldata])
+      return { approved:true,estimatedGasUsed:estimatedGasUsed }
+    } catch(err) {
+      const msg = "Error calling eth_estimateGas!"
+      log.info({err:err}, msg)
+      throw new Error(msg)
     }
   }
 
   public async simulateTransaction(
     tokenIn: Currency,
-    quoteToken: Token,
+    quoteToken: Currency,
     fromAddress: string,
     route: SwapRoute,
     v3PoolProvider: IV3PoolProvider,
+    gasPriceWei: BigNumber,
     l2GasData?: ArbitrumGasData|OptimismGasData
   ): Promise<SwapRoute> {
-    console.log("AY")
-    const {approved, estimatedGasUsed} = await this.ethEstimateGas(fromAddress, tokenIn.wrapped, route.methodParameters!.calldata)
-    if(approved) {
-      //return {...route, estimatedGasUsed: estimatedGasUsed}
-      estimatedGasUsed
-      return this.tenderlySimulator.simulateTransaction(tokenIn,quoteToken,fromAddress,route,v3PoolProvider,l2GasData)
-    } else {
-      return this.tenderlySimulator.simulateTransaction(tokenIn,quoteToken,fromAddress,route,v3PoolProvider,l2GasData)
+    // calculate L2 to L1 security fee if relevant
+    let L2toL1FeeInWei = BigNumber.from(0)
+    if([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(tokenIn.chainId)) {
+      L2toL1FeeInWei = calculateArbitrumToL1SecurityFee(route.methodParameters!.calldata, l2GasData as ArbitrumGasData)[1]
+    } else if([ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(tokenIn.chainId)) {
+      L2toL1FeeInWei = calculateOptimismToL1SecurityFee(route.methodParameters!.calldata, l2GasData as OptimismGasData)[1]
     }
+
+    let approved = false
+    try {
+      ({ approved, estimatedGasUsed:route.estimatedGasUsed } = await this.ethEstimateGas(fromAddress, tokenIn.wrapped, route.methodParameters!.calldata))
+    } catch {
+      // set error flag to true
+      return { ...route, simulationError: true }
+    }
+
+    if(!approved) {
+      try {
+        route.estimatedGasUsed = await this.tenderlySimulator.simulateTransaction(tokenIn.wrapped,fromAddress,route)
+      } catch(err) {
+          // set error flag to true
+          return { ...route, simulationError: true }
+      }
+    }
+
+    // add l2 fee and wrap fee to native currency
+    const gasCostInWei = (gasPriceWei.mul(route.estimatedGasUsed)).add(L2toL1FeeInWei);
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[tokenIn.chainId as ChainId];
+    const costNativeCurrency = getGasCostInNativeCurrency(nativeCurrency, gasCostInWei)
+
+    const usdPool: Pool = await getHighestLiquidityV3USDPool(
+      tokenIn.chainId,
+      v3PoolProvider
+    );
+
+    const gasCostUSD = await getGasCostInUSD(nativeCurrency, usdPool, costNativeCurrency)
+    
+    let gasCostQuoteToken = costNativeCurrency
+
+    // get fee in terms of quote token
+    if (!(quoteToken.wrapped.equals(nativeCurrency))) {
+      const nativePool = await getHighestLiquidityV3NativePool(
+        quoteToken.wrapped,
+        v3PoolProvider
+      );
+      if(!nativePool) {
+        log.info('Could not find a pool to convert the cost into the quote token')
+        gasCostQuoteToken = CurrencyAmount.fromRawAmount(quoteToken.wrapped, 0);
+      } else {
+        gasCostQuoteToken = await getGasCostInQuoteToken(quoteToken.wrapped, nativePool, costNativeCurrency)
+      }
+    }
+    //console.log(route.estimatedGasUsed)
+    //console.log(gasCostUSD.toFixed(2))
+
+    // Adjust quote for gas fees
+    let quoteGasAdjusted: CurrencyAmount
+    if(tokenIn.wrapped==quoteToken) {
+      // Exact output - need more of tokenIn to get the desired amount of tokenOut
+      quoteGasAdjusted = route.quote.add(gasCostQuoteToken)
+    } else {
+      // Exact input - can get less of tokenOut due to fees
+      quoteGasAdjusted = route.quote.subtract(gasCostQuoteToken)
+    }
+
+    return {...route, estimatedGasUsedUSD: gasCostUSD, estimatedGasUsedQuoteToken: gasCostQuoteToken, quoteGasAdjusted:quoteGasAdjusted}
   }
 }
-export class TenderlySimulator implements ISimulator {
+export class TenderlySimulator {
   private tenderlyBaseUrl: string
   private tenderlyUser: string
   private tenderlyProject: string
@@ -129,17 +188,19 @@ export class TenderlySimulator implements ISimulator {
   }
 
   public async simulateTransaction(
-    tokenIn: Currency,
-    quoteToken: Token,
+    tokenIn: Token,
     fromAddress: string,
     route: SwapRoute,
-    v3PoolProvider: IV3PoolProvider,
-    l2GasData?: ArbitrumGasData|OptimismGasData
-  ): Promise<SwapRoute> {
+  ):Promise<BigNumber> {
+    if([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(tokenIn.chainId)) {
+      const msg = "Celo not supported by Tenderly!"
+      log.info(msg)
+      throw new Error(msg)
+    }
+
     if(!route.methodParameters) {
       throw new Error("No calldata provided to simulate transaction")
     }
-    tokenIn = tokenIn.wrapped
     const { calldata } = route.methodParameters
     log.info(
       {
@@ -165,61 +226,45 @@ export class TenderlySimulator implements ISimulator {
       network_id: tokenIn.chainId,
       input: calldata,
       to: V3_ROUTER2_ADDRESS,
-      value: '0',
-      from: tokenIn.equals(nativeOnChain(1))?'0x2a240c8652c4Fe5EBf870104C8c38ff03639bADC':fromAddress,
+      value: BigNumber.from(route.methodParameters.value).toString(),
+      from: fromAddress,
       gasPrice: "0",
       gas: 30000000,
       type: 1,
     }
+    approve
 
-    const body = {"simulations": [approve, swap]}
+    const body = {"simulations": [swap]}
     const opts = {
       headers: {
         'X-Access-Key': this.tenderlyAccessKey,
       },
     }
     const url = TENDERLY_BATCH_SIMULATE_API(this.tenderlyBaseUrl, this.tenderlyUser, this.tenderlyProject)
-    const resp = await axios.post<TENDERLY_RESPONSE>(url, body, opts)
-
-    if(tokenIn.chainId==ChainId.MAINNET) {
-      console.log(resp)
+    let resp: TENDERLY_RESPONSE
+    try {
+      resp = (await axios.post<TENDERLY_RESPONSE>(url, body, opts)).data
+    } catch(err) {
+        console.log(tokenIn, swap, err)
+        const errMsg = `Failed to Simulate Via Tenderly!`
+        log.info({err:err},errMsg)
+        throw new Error(errMsg)
     }
 
     // Validate tenderly response body
-    if(!(resp.status==200 && resp.data && resp.data.simulation_results.length == 2 && resp.data.simulation_results[1].transaction && !resp.data.simulation_results[1].transaction.error_message)) {
+    if(!(resp && resp.simulation_results.length == 2 && resp.simulation_results[1].transaction && !resp.simulation_results[1].transaction.error_message)) {
+      console.log(tokenIn)
+      console.log(resp.simulation_results[0].transaction)
+      console.log(resp.simulation_results[1].transaction)
       const errMsg = `Failed to Simulate Via Tenderly!`
       log.info({resp:resp},errMsg)
       throw new Error(errMsg)
     }
 
-    log.info({approve:resp.data.simulation_results[0],swap:resp.data.simulation_results[1]}, 'Simulated Approval + Swap via Tenderly')
+    log.info({approve:resp.simulation_results[0],swap:resp.simulation_results[1]}, 'Simulated Approval + Swap via Tenderly')
 
     // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
-    const gasUsed = resp.data.simulation_results[1].transaction.gas_used * ESTIMATE_MULTIPLIER
-
-    // calculate L2 to L1 security fee if relevant and add it to the gas fee
-    let rawL2Fee: BigNumber = BigNumber.from(0)
-    if([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(tokenIn.chainId)) {
-      rawL2Fee = calculateArbitrumToL1SecurityFee(calldata, l2GasData as ArbitrumGasData)[1]
-    } else if([ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(tokenIn.chainId)) {
-      rawL2Fee = calculateOptimismToL1SecurityFee(calldata, l2GasData as OptimismGasData)[1]
-    }
-
-    const gasFeeInWei = BigNumber.from((gasUsed).toFixed()).add(rawL2Fee)
-
-    // gasCostUSD and gasCostQuoteToken is the cost of gas in each of those tokens
-    const { gasCostQuoteToken, gasCostUSD } = await getGasCostsInUSDandQuote(quoteToken,gasFeeInWei,v3PoolProvider)
-
-    // Adjust quote for gas fees
-    let quoteGasAdjusted: CurrencyAmount
-    if(tokenIn==quoteToken) {
-      // Exact output - need more of tokenIn to get the desired amount of tokenOut
-      quoteGasAdjusted = route.quote.add(gasCostQuoteToken)
-    } else {
-      // Exact input - can get less of tokenOut due to fees
-      quoteGasAdjusted = route.quote.subtract(gasCostQuoteToken)
-    }
-
-    return {...route, estimatedGasUsed:gasFeeInWei, estimatedGasUsedUSD: gasCostUSD, estimatedGasUsedQuoteToken: gasCostQuoteToken, quoteGasAdjusted:quoteGasAdjusted}
+    console.log(BigNumber.from((resp.simulation_results[1].transaction.gas_used*ESTIMATE_MULTIPLIER).toFixed(0)))
+    return BigNumber.from((resp.simulation_results[1].transaction.gas_used*ESTIMATE_MULTIPLIER).toFixed(0))
   }
 }

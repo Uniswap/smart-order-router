@@ -1019,12 +1019,8 @@ export class AlphaRouter
       if(!this.simulator) {
         throw new Error("Simulator not initialized!")
       }
-      try {
-        return await this.simulator.simulateTransaction(currencyIn, quoteCurrency.wrapped, swapConfig.simulate.fromAddress, swapRoute, this.v3PoolProvider, await this.l2GasDataProvider?.getGasData())
-      } catch(err) {
-        log.info({err:err}, "Error simulating transaction!")
-        return { ...swapRoute, simulationError: true }
-      }
+      const resp = await this.simulator.simulateTransaction(currencyIn, quoteCurrency, swapConfig.simulate.fromAddress, swapRoute, this.v3PoolProvider, gasPriceWei, await this.l2GasDataProvider?.getGasData())
+      return resp
     }
 
     return swapRoute

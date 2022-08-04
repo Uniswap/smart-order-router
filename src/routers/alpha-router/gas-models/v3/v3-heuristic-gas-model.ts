@@ -124,7 +124,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       if (!token.equals(nativeCurrency)) {
         const nativePool: Pool | null =
           await getHighestLiquidityV3NativePool(
-            chainId,
             token,
             poolProvider
           );
@@ -194,7 +193,6 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
     const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
-      chainId,
       token,
       poolProvider
     );
