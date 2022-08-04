@@ -11,8 +11,8 @@ import { SwapRoute } from '../routers'
 import { IERC20Metadata__factory } from "../types/v3/factories/IERC20Metadata__factory";
 import { ChainId, CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util'
 import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData'
+import { calculateArbitrumToL1SecurityFee, calculateOptimismToL1SecurityFee, getGasCostInNativeCurrency, getGasCostInQuoteToken, getGasCostInUSD, getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../util/gasCalc'
 
-import { calculateArbitrumToL1SecurityFee, calculateOptimismToL1SecurityFee, getGasCostInNativeCurrency, getGasCostInQuoteToken, getGasCostInUSD, getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from './util'
 import { ArbitrumGasData, OptimismGasData } from "./v3/gas-data-provider";
 import { IV3PoolProvider } from './v3/pool-provider';
 

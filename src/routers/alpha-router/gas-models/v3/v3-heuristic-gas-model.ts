@@ -4,7 +4,6 @@ import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
-import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../../../../providers/util'
 import {
   ArbitrumGasData,
   IL2GasDataProvider,
@@ -13,6 +12,7 @@ import {
 import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
+import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../../../../util/gasCalc'
 import { log } from '../../../../util/log';
 import {
   buildSwapMethodParameters,

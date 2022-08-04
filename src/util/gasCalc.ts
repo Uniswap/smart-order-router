@@ -6,8 +6,8 @@ import _ from "lodash";
 import { usdGasTokensByChain } from "../routers";
 import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from "../util";
 
-import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
-import { IV3PoolProvider } from "./v3/pool-provider";
+import { ArbitrumGasData, OptimismGasData } from '../providers/v3/gas-data-provider';
+import { IV3PoolProvider } from "../providers/v3/pool-provider";
 
 export async function getHighestLiquidityV3NativePool(
     token: Token,
