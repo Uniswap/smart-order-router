@@ -45,8 +45,10 @@ import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
 import {
+  MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
+  V3RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
 
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
@@ -142,5 +144,5 @@ export abstract class IOnChainGasModelFactory {
     l2GasDataProvider?:
       | IL2GasDataProvider<OptimismGasData>
       | IL2GasDataProvider<ArbitrumGasData>
-  ): Promise<IGasModel<RouteWithValidQuote>>;
+  ): Promise<IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>>;
 }
