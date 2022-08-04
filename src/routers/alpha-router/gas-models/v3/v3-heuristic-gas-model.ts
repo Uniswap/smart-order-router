@@ -21,11 +21,7 @@ import {
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
 } from '../../../../util/v3PoolHelper';
-import {
-  MixedRouteWithValidQuote,
-  RouteWithValidQuote,
-  V3RouteWithValidQuote,
-} from '../../entities/route-with-valid-quote';
+import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import { IGasModel, IOnChainGasModelFactory } from '../gas-model';
 
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
@@ -65,7 +61,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       | IL2GasDataProvider<ArbitrumGasData>
       | IL2GasDataProvider<OptimismGasData>
     // this is the quoteToken
-  ): Promise<IGasModel<RouteWithValidQuote>> {
+  ): Promise<IGasModel<V3RouteWithValidQuote>> {
     const l2GasData = l2GasDataProvider
       ? await l2GasDataProvider.getGasData()
       : undefined;
@@ -294,7 +290,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
   }
 
   protected estimateGas(
-    routeWithValidQuote: V3RouteWithValidQuote | MixedRouteWithValidQuote,
+    routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId
   ) {

@@ -1,12 +1,19 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
+import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
-import { ChainId } from '../../../../util';
+import { IV3PoolProvider } from '../../../../providers';
+import { ChainId, log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
+import {
+  getHighestLiquidityV3NativePool,
+  getHighestLiquidityV3USDPool,
+} from '../../../../util/v3PoolHelper';
 import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
+import { IGasModel, IOnChainGasModelFactory } from '../gas-model';
 import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
   COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
@@ -16,7 +23,6 @@ import {
   COST_PER_HOP,
   COST_PER_INIT_TICK,
 } from '../v3/gas-costs';
-import { V3HeuristicGasModelFactory } from '../v3/v3-heuristic-gas-model';
 
 // Cost for crossing an uninitialized tick.
 const COST_PER_UNINIT_TICK = BigNumber.from(0);
@@ -39,12 +45,162 @@ const COST_PER_UNINIT_TICK = BigNumber.from(0);
  * @export
  * @class MixedRouteHeuristicGasModelFactory
  */
-export class MixedRouteHeuristicGasModelFactory extends V3HeuristicGasModelFactory {
+export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory {
   constructor() {
     super();
   }
 
-  protected override estimateGas(
+  public async buildGasModel(
+    chainId: ChainId,
+    gasPriceWei: BigNumber,
+    V3poolProvider: IV3PoolProvider,
+    token: Token
+  ): Promise<IGasModel<MixedRouteWithValidQuote>> {
+    const usdPool: Pool = await getHighestLiquidityV3USDPool(
+      chainId,
+      V3poolProvider
+    );
+
+    // If our quote token is WETH, we don't need to convert our gas use to be in terms
+    // of the quote token in order to produce a gas adjusted amount.
+    // We do return a gas use in USD however, so we still convert to usd.
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    if (token.equals(nativeCurrency)) {
+      const estimateGasCost = (
+        routeWithValidQuote: MixedRouteWithValidQuote
+      ): {
+        gasEstimate: BigNumber;
+        gasCostInToken: CurrencyAmount;
+        gasCostInUSD: CurrencyAmount;
+      } => {
+        const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
+          routeWithValidQuote,
+          gasPriceWei,
+          chainId
+        );
+
+        const token0 = usdPool.token0.address == nativeCurrency.address;
+
+        const nativeTokenPrice = token0
+          ? usdPool.token0Price
+          : usdPool.token1Price;
+
+        const gasCostInTermsOfUSD: CurrencyAmount = nativeTokenPrice.quote(
+          totalGasCostNativeCurrency
+        ) as CurrencyAmount;
+
+        return {
+          gasEstimate: baseGasUse,
+          gasCostInToken: totalGasCostNativeCurrency,
+          gasCostInUSD: gasCostInTermsOfUSD,
+        };
+      };
+
+      return {
+        estimateGasCost,
+      };
+    }
+
+    // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
+    // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
+    const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
+      chainId,
+      token,
+      V3poolProvider
+    );
+
+    const usdToken =
+      usdPool.token0.address == nativeCurrency.address
+        ? usdPool.token1
+        : usdPool.token0;
+
+    const estimateGasCost = (
+      routeWithValidQuote: MixedRouteWithValidQuote
+    ): {
+      gasEstimate: BigNumber;
+      gasCostInToken: CurrencyAmount;
+      gasCostInUSD: CurrencyAmount;
+    } => {
+      const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
+        routeWithValidQuote,
+        gasPriceWei,
+        chainId
+      );
+
+      if (!nativePool) {
+        log.info(
+          `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${token.symbol} to produce gas adjusted costs. Route will not account for gas.`
+        );
+        return {
+          gasEstimate: baseGasUse,
+          gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
+        };
+      }
+
+      const token0 = nativePool.token0.address == nativeCurrency.address;
+
+      // returns mid price in terms of the native currency (the ratio of quoteToken/nativeToken)
+      const nativeTokenPrice = token0
+        ? nativePool.token0Price
+        : nativePool.token1Price;
+
+      let gasCostInTermsOfQuoteToken: CurrencyAmount;
+      try {
+        // native token is base currency
+        gasCostInTermsOfQuoteToken = nativeTokenPrice.quote(
+          totalGasCostNativeCurrency
+        ) as CurrencyAmount;
+      } catch (err) {
+        log.info(
+          {
+            nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
+            nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
+            gasCostInEth: totalGasCostNativeCurrency.currency,
+          },
+          'Debug eth price token issue'
+        );
+        throw err;
+      }
+
+      // true if token0 is the native currency
+      const token0USDPool = usdPool.token0.address == nativeCurrency.address;
+
+      // gets the mid price of the pool in terms of the native token
+      const nativeTokenPriceUSDPool = token0USDPool
+        ? usdPool.token0Price
+        : usdPool.token1Price;
+
+      let gasCostInTermsOfUSD: CurrencyAmount;
+      try {
+        gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
+          totalGasCostNativeCurrency
+        ) as CurrencyAmount;
+      } catch (err) {
+        log.info(
+          {
+            usdT1: usdPool.token0.symbol,
+            usdT2: usdPool.token1.symbol,
+            gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
+          },
+          'Failed to compute USD gas price'
+        );
+        throw err;
+      }
+
+      return {
+        gasEstimate: baseGasUse,
+        gasCostInToken: gasCostInTermsOfQuoteToken,
+        gasCostInUSD: gasCostInTermsOfUSD!,
+      };
+    };
+
+    return {
+      estimateGasCost: estimateGasCost.bind(this),
+    };
+  }
+
+  protected estimateGas(
     routeWithValidQuote: MixedRouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId
