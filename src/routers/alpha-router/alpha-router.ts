@@ -127,9 +127,8 @@ import {
 } from './functions/get-candidate-pools';
 import {
   IGasModel,
-  IMixedRouteGasModelFactory,
+  IOnChainGasModelFactory,
   IV2GasModelFactory,
-  IV3GasModelFactory,
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
@@ -193,7 +192,7 @@ export type AlphaRouterParams = {
    * A factory for generating a gas model that is used when estimating the gas used by
    * V3 routes.
    */
-  v3GasModelFactory?: IV3GasModelFactory;
+  v3GasModelFactory?: IOnChainGasModelFactory;
   /**
    * A factory for generating a gas model that is used when estimating the gas used by
    * V2 routes.
@@ -203,7 +202,7 @@ export type AlphaRouterParams = {
    * A factory for generating a gas model that is used when estimating the gas used by
    * V3 routes.
    */
-  mixedRouteGasModelFactory?: IMixedRouteGasModelFactory;
+  mixedRouteGasModelFactory?: IOnChainGasModelFactory;
   /**
    * A token list that specifies Token that should be blocked from routing through.
    * Defaults to Uniswap's unsupported token list.
@@ -348,9 +347,9 @@ export class AlphaRouter
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected swapRouterProvider: ISwapRouterProvider;
-  protected v3GasModelFactory: IV3GasModelFactory;
+  protected v3GasModelFactory: IOnChainGasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
-  protected mixedRouteGasModelFactory: IMixedRouteGasModelFactory;
+  protected mixedRouteGasModelFactory: IOnChainGasModelFactory;
   protected mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
@@ -921,7 +920,6 @@ export class AlphaRouter
         this.chainId,
         gasPriceWei,
         this.v3PoolProvider,
-        this.v2PoolProvider,
         quoteToken
       );
 

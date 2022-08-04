@@ -45,10 +45,8 @@ import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
 import {
-  MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
 
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
@@ -113,29 +111,6 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
  *
  * @export
  * @abstract
- * @class IV3GasModelFactory
- */
-export abstract class IV3GasModelFactory {
-  public abstract buildGasModel(
-    chainId: number,
-    gasPriceWei: BigNumber,
-    poolProvider: IV3PoolProvider,
-    inTermsOfToken: Token,
-    l2GasDataProvider?:
-      | IL2GasDataProvider<OptimismGasData>
-      | IL2GasDataProvider<ArbitrumGasData>
-  ): Promise<IGasModel<V3RouteWithValidQuote>>;
-}
-
-/**
- * Factory for building gas models that can be used with any route to generate
- * gas estimates.
- *
- * Factory model is used so that any supporting data can be fetched once and
- * returned as part of the model.
- *
- * @export
- * @abstract
  * @class IV2GasModelFactory
  */
 export abstract class IV2GasModelFactory {
@@ -154,18 +129,18 @@ export abstract class IV2GasModelFactory {
  * Factory model is used so that any supporting data can be fetched once and
  * returned as part of the model.
  *
- * No support for L2 since no V2 liquidity on L2s.
- *
  * @export
  * @abstract
- * @class IMixedRouteGasModelFactory
+ * @class IOnChainGasModelFactory
  */
-export abstract class IMixedRouteGasModelFactory {
+export abstract class IOnChainGasModelFactory {
   public abstract buildGasModel(
     chainId: number,
     gasPriceWei: BigNumber,
     V3poolProvider: IV3PoolProvider,
-    V2poolProvider: IV2PoolProvider,
-    inTermsOfToken: Token
-  ): Promise<IGasModel<MixedRouteWithValidQuote>>;
+    inTermsOfToken: Token,
+    l2GasDataProvider?:
+      | IL2GasDataProvider<OptimismGasData>
+      | IL2GasDataProvider<ArbitrumGasData>
+  ): Promise<IGasModel<RouteWithValidQuote>>;
 }

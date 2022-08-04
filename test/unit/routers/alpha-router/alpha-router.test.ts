@@ -537,7 +537,6 @@ describe.only('alpha router', () => {
           1,
           mockGasPriceWeiBN,
           sinon.match.any, /// v3 pool provider
-          sinon.match.any, /// v2 pool provider
           WRAPPED_NATIVE_CURRENCY[1]
         )
       ).toBeTruthy();

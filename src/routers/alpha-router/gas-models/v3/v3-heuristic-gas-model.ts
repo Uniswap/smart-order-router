@@ -17,12 +17,16 @@ import {
   buildSwapMethodParameters,
   buildTrade,
 } from '../../../../util/methodParameters';
-import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../../../../util/v3PoolHelper'
-import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
-  IGasModel,
-  IV3GasModelFactory,
-} from '../gas-model';
+  getHighestLiquidityV3NativePool,
+  getHighestLiquidityV3USDPool,
+} from '../../../../util/v3PoolHelper';
+import {
+  MixedRouteWithValidQuote,
+  RouteWithValidQuote,
+  V3RouteWithValidQuote,
+} from '../../entities/route-with-valid-quote';
+import { IGasModel, IOnChainGasModelFactory } from '../gas-model';
 
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
@@ -47,7 +51,7 @@ const COST_PER_UNINIT_TICK = BigNumber.from(0);
  * @export
  * @class V3HeuristicGasModelFactory
  */
-export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
+export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
   constructor() {
     super();
   }
@@ -61,7 +65,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       | IL2GasDataProvider<ArbitrumGasData>
       | IL2GasDataProvider<OptimismGasData>
     // this is the quoteToken
-  ): Promise<IGasModel<V3RouteWithValidQuote>> {
+  ): Promise<IGasModel<RouteWithValidQuote>> {
     const l2GasData = l2GasDataProvider
       ? await l2GasDataProvider.getGasData()
       : undefined;
@@ -121,12 +125,11 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       let gasCostL1QuoteToken = costNativeCurrency;
       // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
       if (!token.equals(nativeCurrency)) {
-        const nativePool: Pool | null =
-          await getHighestLiquidityV3NativePool(
-            chainId,
-            token,
-            poolProvider
-          );
+        const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
+          chainId,
+          token,
+          poolProvider
+        );
         if (!nativePool) {
           log.info(
             'Could not find a pool to convert the cost into the quote token'
@@ -290,8 +293,8 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     };
   }
 
-  private estimateGas(
-    routeWithValidQuote: V3RouteWithValidQuote,
+  protected estimateGas(
+    routeWithValidQuote: V3RouteWithValidQuote | MixedRouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId
   ) {
