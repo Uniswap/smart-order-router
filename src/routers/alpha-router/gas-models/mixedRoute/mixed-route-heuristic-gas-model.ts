@@ -7,6 +7,7 @@ import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { ChainId, log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
+  getEthV2Pool,
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
 } from '../../../../util/gas-factory-helpers';
@@ -108,11 +109,17 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
+    const nativeV3Pool: Pool | null = await getHighestLiquidityV3NativePool(
       chainId,
       token,
       V3poolProvider
     );
+
+    let nativeV2Pool: Pair | null;
+    if (V2poolProvider) {
+      /// MixedRoutes
+      nativeV2Pool = await getEthV2Pool(chainId, token, V2poolProvider);
+    }
 
     const usdToken =
       usdPool.token0.address == nativeCurrency.address
@@ -132,7 +139,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         chainId
       );
 
-      if (!nativePool) {
+      if (!nativeV3Pool && !nativeV2Pool) {
         log.info(
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${token.symbol} to produce gas adjusted costs. Route will not account for gas.`
         );
@@ -142,6 +149,11 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
         };
       }
+
+      /// we will use nativeV2Pool for fallback if nativeV3 does not exist
+      /// can use ! here because we return above if v3Pool and v2Pool are null
+      const nativePool =
+        !nativeV3Pool && nativeV2Pool ? nativeV2Pool : nativeV3Pool!;
 
       const token0 = nativePool.token0.address == nativeCurrency.address;
 
