@@ -1022,8 +1022,6 @@ export class AlphaRouter
         throw new Error("Simulator not initialized!")
       }
       const resp = await this.simulator.simulateTransaction(currencyIn, quoteCurrency, swapConfig.simulate.fromAddress, swapRoute, gasPriceWei, await this.l2GasDataProvider?.getGasData())
-      console.log(resp.estimatedGasUsed.toBigInt(), resp.estimatedGasUsedQuoteToken.toFixed(5), resp.estimatedGasUsedUSD.toFixed(2))
-      console.log(currencyIn, currencyOut, quoteCurrency)
       return resp
     }
 
