@@ -603,9 +603,6 @@ describe.only('alpha router', () => {
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
       ).toHaveLength(1);
-      expect(
-        _.filter(swap!.route, (r) => r.protocol == Protocol.MIXED)
-      ).toHaveLength(1);
 
       expect(
         _(swap!.route)
