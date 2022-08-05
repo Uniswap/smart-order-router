@@ -52,7 +52,6 @@ export interface ISimulator {
    */
   simulateTransaction: (
     tokenIn: Currency,
-    quoteToken: Currency,
     fromAddress: string,
     route: SwapRoute,
     gasPriceWei: BigNumber,
@@ -100,12 +99,12 @@ export class FallbackTenderlySimulator implements ISimulator {
 
   public async simulateTransaction(
     tokenIn: Currency,
-    quoteToken: Currency,
     fromAddress: string,
     route: SwapRoute,
     gasPriceWei: BigNumber,
     l2GasData?: ArbitrumGasData|OptimismGasData
   ): Promise<SwapRoute> {
+    const quoteToken = route.quote.currency
     // calculate L2 to L1 security fee if relevant
     let L2toL1FeeInWei = BigNumber.from(0)
     if([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(tokenIn.chainId)) {
@@ -161,7 +160,7 @@ export class FallbackTenderlySimulator implements ISimulator {
 
     // Adjust quote for gas fees
     let quoteGasAdjusted: CurrencyAmount
-    if(tokenIn.wrapped==quoteToken) {
+    if(tokenIn.wrapped.equals(quoteToken.wrapped)) {
       // Exact output - need more of tokenIn to get the desired amount of tokenOut
       quoteGasAdjusted = route.quote.add(gasCostQuoteToken)
     } else {
