@@ -1,6 +1,6 @@
 import { Contract } from "@ethersproject/contracts";
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { Currency, Token } from '@uniswap/sdk-core';
+import { Currency } from '@uniswap/sdk-core';
 import { Pool } from "@uniswap/v3-sdk";
 import axios from 'axios'
 import { BigNumber } from 'ethers/lib/ethers';
