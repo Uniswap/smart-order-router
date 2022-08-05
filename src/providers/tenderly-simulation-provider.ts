@@ -51,7 +51,6 @@ export interface ISimulator {
    * @returns number or Error
    */
   simulateTransaction: (
-    tokenIn: Currency,
     fromAddress: string,
     route: SwapRoute,
     gasPriceWei: BigNumber,
@@ -98,13 +97,13 @@ export class FallbackTenderlySimulator implements ISimulator {
   }
 
   public async simulateTransaction(
-    tokenIn: Currency,
     fromAddress: string,
     route: SwapRoute,
     gasPriceWei: BigNumber,
     l2GasData?: ArbitrumGasData|OptimismGasData
   ): Promise<SwapRoute> {
     const quoteToken = route.quote.currency
+    const tokenIn = route.trade.inputAmount.currency
     // calculate L2 to L1 security fee if relevant
     let L2toL1FeeInWei = BigNumber.from(0)
     if([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(tokenIn.chainId)) {
@@ -123,7 +122,7 @@ export class FallbackTenderlySimulator implements ISimulator {
 
     if(!approved) {
       try {
-        route.estimatedGasUsed = await this.tenderlySimulator.simulateTransaction(tokenIn.wrapped,fromAddress,route)
+        route.estimatedGasUsed = await this.tenderlySimulator.simulateTransaction(fromAddress,route)
       } catch(err) {
           // set error flag to true
           return { ...route, simulationError: true }
@@ -185,10 +184,10 @@ export class TenderlySimulator {
   }
 
   public async simulateTransaction(
-    tokenIn: Token,
     fromAddress: string,
     route: SwapRoute,
   ):Promise<BigNumber> {
+    const tokenIn = route.quote.currency.wrapped
     if([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(tokenIn.chainId)) {
       const msg = "Celo not supported by Tenderly!"
       log.info(msg)
