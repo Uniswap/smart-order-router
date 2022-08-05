@@ -14,7 +14,7 @@ import { APPROVE_TOKEN_FOR_TRANSFER, V3_ROUTER2_ADDRESS } from '../util/callData
 import { calculateArbitrumToL1SecurityFee, calculateOptimismToL1SecurityFee, getGasCostInNativeCurrency, getGasCostInQuoteToken, getGasCostInUSD, getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../util/gasCalc'
 
 import { ArbitrumGasData, OptimismGasData } from "./v3/gas-data-provider";
-import { IV3PoolProvider, V3PoolProvider } from './v3/pool-provider';
+import { IV3PoolProvider } from './v3/pool-provider';
 
 type simulation_result = {
   transaction:{hash:string,gas_used:number,error_message:string},simulation:{state_overrides:Record<string,unknown>}
@@ -45,7 +45,7 @@ const ESTIMATE_MULTIPLIER = 1.25
  * @interface ISimulator
  */
 export interface ISimulator {
-  v3PoolProvider: IV3PoolProvider
+  v3PoolProvider?: IV3PoolProvider
   /**
    * Returns the gas fee that was paid to land the transaction in the simulation.
    * @returns number or Error
@@ -63,12 +63,11 @@ export interface ISimulator {
 export class FallbackTenderlySimulator implements ISimulator {
   private provider: JsonRpcProvider;
   private tenderlySimulator: TenderlySimulator;
-  v3PoolProvider: IV3PoolProvider;
+  v3PoolProvider?: IV3PoolProvider;
 
-  constructor(tenderlyBaseUrl: string, tenderlyUser: string, tenderlyProject: string, tenderlyAccessKey: string, provider: JsonRpcProvider, v3PoolProvider: V3PoolProvider) {
+  constructor(tenderlyBaseUrl: string, tenderlyUser: string, tenderlyProject: string, tenderlyAccessKey: string, provider: JsonRpcProvider) {
     this.tenderlySimulator = new TenderlySimulator(tenderlyBaseUrl, tenderlyUser, tenderlyProject, tenderlyAccessKey)
     this.provider = provider
-    this.v3PoolProvider = v3PoolProvider
   }
 
   private async ethEstimateGas(fromAddress: string, tokenIn: Currency, calldata: string): Promise<{approved:boolean,estimatedGasUsed:BigNumber}> {
@@ -80,7 +79,7 @@ export class FallbackTenderlySimulator implements ISimulator {
         allowance = await contract.callStatic["allowance"]!(fromAddress, V3_ROUTER2_ADDRESS)
         // Since we max approve, assume that any non zero allowance is enough for the trade
         // TODO: check that allowance >= amount(tokenIn)
-        if(allowance == 0) return {approved:false, estimatedGasUsed:BigNumber.from(-1)}
+        if(allowance <= 0) return {approved:false, estimatedGasUsed:BigNumber.from(-1)}
       } catch(err) {
           const msg = "check allowance failed while simulating!"
           log.info({err:err}, msg)
@@ -128,6 +127,7 @@ export class FallbackTenderlySimulator implements ISimulator {
         route.estimatedGasUsed = await this.tenderlySimulator.simulateTransaction(tokenIn.wrapped,fromAddress,route)
       } catch(err) {
           // set error flag to true
+          console.log(err, tokenIn, quoteToken)
           return { ...route, simulationError: true }
       }
     }
@@ -139,7 +139,7 @@ export class FallbackTenderlySimulator implements ISimulator {
 
     const usdPool: Pool = await getHighestLiquidityV3USDPool(
       tokenIn.chainId,
-      this.v3PoolProvider
+      this.v3PoolProvider!
     );
 
     const gasCostUSD = await getGasCostInUSD(nativeCurrency, usdPool, costNativeCurrency)
@@ -150,7 +150,7 @@ export class FallbackTenderlySimulator implements ISimulator {
     if (!(quoteToken.wrapped.equals(nativeCurrency))) {
       const nativePool = await getHighestLiquidityV3NativePool(
         quoteToken.wrapped,
-        this.v3PoolProvider
+        this.v3PoolProvider!
       );
       if(!nativePool) {
         log.info('Could not find a pool to convert the cost into the quote token')
@@ -244,12 +244,14 @@ export class TenderlySimulator {
       resp = (await axios.post<TENDERLY_RESPONSE>(url, body, opts)).data
     } catch(err) {
         log.info({err:err},`Failed to Simulate Via Tenderly!`)
+        console.log(approve,swap)
         throw err
     }
 
     // Validate tenderly response body
     if(!(resp && resp.simulation_results.length == 2 && resp.simulation_results[1].transaction && !resp.simulation_results[1].transaction.error_message)) {
       const err = resp.simulation_results[1].transaction.error_message
+      console.log(approve,swap)
       log.info({err:err},`Failed to Simulate Via Tenderly!`)
       throw new Error(err)
     }
