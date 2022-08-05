@@ -565,8 +565,6 @@ describe.only('alpha router', () => {
         sinon.match({ blockNumber: sinon.match.defined })
       );
 
-      console.log(swap);
-
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
         expect(
