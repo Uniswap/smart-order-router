@@ -1504,6 +1504,15 @@ describe.only('alpha router', () => {
           USDC
         )
       ).toBeTruthy();
+      expect(
+        mockMixedRouteGasModelFactory.buildGasModel.calledWith(
+          1,
+          mockGasPriceWeiBN,
+          sinon.match.any,
+          sinon.match.any,
+          USDC
+        )
+      ).toBeTruthy();
 
       sinon.assert.calledWith(
         mockV3QuoteProvider.getQuotesManyExactOut,
@@ -1520,6 +1529,7 @@ describe.only('alpha router', () => {
         }),
         sinon.match.array
       );
+      sinon.assert.notCalled(mockMixedRouteQuoteProvider.getQuotesManyExactOut);
 
       expect(swap!.quote.currency.equals(USDC)).toBeTruthy();
       expect(swap!.quoteGasAdjusted.currency.equals(USDC)).toBeTruthy();
