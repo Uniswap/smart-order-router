@@ -517,28 +517,30 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV3GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV3GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any,
+          inTermsOfToken: WRAPPED_NATIVE_CURRENCY[1],
+          l2GasDataProvider: undefined,
+        })
       ).toBeTruthy();
       expect(
-        mockV2GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV2GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          poolProvider: sinon.match.any,
+          token: WRAPPED_NATIVE_CURRENCY[1],
+        })
       ).toBeTruthy();
       expect(
-        mockMixedRouteGasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any, /// v3 pool provider
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockMixedRouteGasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any, /// v3 pool provider
+          V2poolProvider: sinon.match.any,
+          inTermsOfToken: WRAPPED_NATIVE_CURRENCY[1],
+        })
       ).toBeTruthy();
 
       sinon.assert.calledWith(
@@ -564,8 +566,6 @@ describe.only('alpha router', () => {
         sinon.match.array,
         sinon.match({ blockNumber: sinon.match.defined })
       );
-
-      console.log(swap);
 
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
@@ -602,9 +602,6 @@ describe.only('alpha router', () => {
       ).toHaveLength(1);
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
-      ).toHaveLength(1);
-      expect(
-        _.filter(swap!.route, (r) => r.protocol == Protocol.MIXED)
       ).toHaveLength(1);
 
       expect(
@@ -700,20 +697,21 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV3GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV3GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any,
+          inTermsOfToken: WRAPPED_NATIVE_CURRENCY[1],
+          l2GasDataProvider: undefined,
+        })
       ).toBeTruthy();
       expect(
-        mockV2GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV2GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          poolProvider: sinon.match.any,
+          token: WRAPPED_NATIVE_CURRENCY[1],
+        })
       ).toBeTruthy();
 
       sinon.assert.calledWith(
@@ -815,12 +813,13 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV3GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV3GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any,
+          inTermsOfToken: WRAPPED_NATIVE_CURRENCY[1],
+          l2GasDataProvider: undefined,
+        })
       ).toBeTruthy();
 
       sinon.assert.calledWith(
@@ -880,12 +879,12 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV2GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV2GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          poolProvider: sinon.match.any,
+          token: WRAPPED_NATIVE_CURRENCY[1],
+        })
       ).toBeTruthy();
 
       sinon.assert.calledWith(
@@ -950,12 +949,13 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV3GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV3GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any,
+          inTermsOfToken: WRAPPED_NATIVE_CURRENCY[1],
+          l2GasDataProvider: undefined,
+        })
       ).toBeTruthy();
 
       sinon.assert.calledWith(
@@ -1021,12 +1021,12 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV2GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
+        mockV2GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          poolProvider: sinon.match.any,
+          token: WRAPPED_NATIVE_CURRENCY[1],
+        })
       ).toBeTruthy();
 
       sinon.assert.calledWith(
@@ -1151,20 +1151,21 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV3GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          USDC
-        )
+        mockV3GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any,
+          inTermsOfToken: USDC,
+          l2GasDataProvider: undefined,
+        })
       ).toBeTruthy();
       expect(
-        mockV2GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          USDC
-        )
+        mockV2GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          poolProvider: sinon.match.any,
+          token: USDC,
+        })
       ).toBeTruthy();
 
       sinon.assert.calledWith(
@@ -1241,12 +1242,13 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV3GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          USDC
-        )
+        mockV3GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any,
+          inTermsOfToken: USDC,
+          l2GasDataProvider: undefined,
+        })
       ).toBeTruthy();
       expect(
         mockV3QuoteProvider.getQuotesManyExactOut.calledWith(
@@ -1300,12 +1302,12 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV2GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          USDC
-        )
+        mockV2GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          poolProvider: sinon.match.any,
+          token: USDC,
+        })
       ).toBeTruthy();
       expect(
         mockV2QuoteProvider.getQuotesManyExactOut.calledWith(
@@ -1365,12 +1367,13 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV3GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          USDC
-        )
+        mockV3GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          V3poolProvider: sinon.match.any,
+          inTermsOfToken: USDC,
+          l2GasDataProvider: undefined,
+        })
       ).toBeTruthy();
       expect(
         mockV3QuoteProvider.getQuotesManyExactOut.calledWith(
@@ -1431,12 +1434,12 @@ describe.only('alpha router', () => {
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
-        mockV2GasModelFactory.buildGasModel.calledWith(
-          1,
-          mockGasPriceWeiBN,
-          sinon.match.any,
-          USDC
-        )
+        mockV2GasModelFactory.buildGasModel.calledWith({
+          chainId: 1,
+          gasPriceWei: mockGasPriceWeiBN,
+          poolProvider: sinon.match.any,
+          token: USDC,
+        })
       ).toBeTruthy();
       expect(
         mockV2QuoteProvider.getQuotesManyExactOut.calledWith(
