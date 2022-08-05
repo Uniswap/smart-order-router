@@ -127,7 +127,6 @@ export class FallbackTenderlySimulator implements ISimulator {
         route.estimatedGasUsed = await this.tenderlySimulator.simulateTransaction(tokenIn.wrapped,fromAddress,route)
       } catch(err) {
           // set error flag to true
-          console.log(err, tokenIn, quoteToken)
           return { ...route, simulationError: true }
       }
     }
@@ -244,14 +243,12 @@ export class TenderlySimulator {
       resp = (await axios.post<TENDERLY_RESPONSE>(url, body, opts)).data
     } catch(err) {
         log.info({err:err},`Failed to Simulate Via Tenderly!`)
-        console.log(approve,swap)
         throw err
     }
 
     // Validate tenderly response body
     if(!(resp && resp.simulation_results.length == 2 && resp.simulation_results[1].transaction && !resp.simulation_results[1].transaction.error_message)) {
       const err = resp.simulation_results[1].transaction.error_message
-      console.log(approve,swap)
       log.info({err:err},`Failed to Simulate Via Tenderly!`)
       throw new Error(err)
     }
