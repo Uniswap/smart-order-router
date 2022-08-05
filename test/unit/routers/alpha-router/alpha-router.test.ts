@@ -339,7 +339,7 @@ describe('alpha router', () => {
     });
 
     mockFallbackTenderlySimulator = sinon.createStubInstance(FallbackTenderlySimulator)
-    mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_tokenIn, _quoteToken, _fromAddress, route, _v3PoolProvider)=>route)
+    mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_fromAddress, route)=>route)
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
