@@ -146,16 +146,42 @@ Calldata: 0x414bf389000000000000000000000000dac17f958d2ee523a2206206994597c13d83
 ./bin/cli quote --tokenIn 0x2791bca1f2de4661ed88a30c99a7a9449aa84174 --tokenOut 0x7ceb23fd6bc0add59e62ac25578270cff1b9f619 --amount 5 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 137
 ```
 
-## Adding a new Chain
-The main components to complete are:
-* Deploy contracts on chain, add the pools to subgraph
-* Populate v3 providers in `src/providers/v3/subgraph-provider` and `src/providers/v3/static-subgraph-provider`
-* Populate chainId and addresses in `src/util/chains.ts` and `src/util/addresses.ts`
-* Populate token providers in `src/providers/caching-token-provider` and `src/providers/token-provider.ts`
-* Populate gas constants in `src/routers/alpha-router/gas-models/*`
-* Populate bases in `src/routers/legacy-router/bases.ts`
-* Populate `test/integ/routers/alpha-router/alpha-router.integration.test.ts` and `src/providers/v2/static-subgraph-provider.ts`
-* Populate `src/routers/alpha-router/*`
-* Add a log to `/CHANGELOG.md`
-* Run `npm run integ-test` successfully
+## Celo Mainnet
 
+```
+./bin/cli quote --tokenIn CELO --tokenOut 0x765DE816845861e75A25fCA122bb6898B8B1282a --amount 5 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 42220
+```
+
+## Adding a new Chain
+
+The main components to complete are:
+
+- Deploy contracts on chain, add the pools to subgraph
+- Populate v3 providers in `src/providers/v3/subgraph-provider` and `src/providers/v3/static-subgraph-provider`
+- Populate chainId and addresses in `src/util/chains.ts` and `src/util/addresses.ts`
+- Populate token providers in `src/providers/caching-token-provider` and `src/providers/token-provider.ts`
+- Populate gas constants in `src/routers/alpha-router/gas-models/*`
+- Populate bases in `src/routers/legacy-router/bases.ts`
+- Populate `test/integ/routers/alpha-router/alpha-router.integration.test.ts` and `src/providers/v2/static-subgraph-provider.ts`
+- Populate `src/routers/alpha-router/*`
+- Add a log to `/CHANGELOG.md`
+- Run `npm run integ-test` successfully
+
+# Troubleshooting
+
+## ProviderGasLimit errors
+
+The package sends many large multicall requests to nodes. You must ensure that your node provider's `eth_call` gas limit is high enough to succesfully process the RPC calls.
+
+By default each `eth_call` will consume up to:
+
+- 132,000,000 gas on Optimism
+- 120,000,000 gas on Arbitrum
+- 50,000,000 gas on Celo
+- 150,000,000 gas on every other network (Mainnet, Goerli, etc.)
+
+If you are using a node provider with a lower gas limit per `eth_call` you will need to override the default `V3QuoteProvider` with an instance that lowers the `multicallChunk` and `gasLimitPerCall` parameters. Lowering these values will cause each multicall to consume less gas. See [here](https://github.com/Uniswap/smart-order-router/blob/main/src/routers/alpha-router/alpha-router.ts#L379) for examples of how to set these values.
+
+If you are running your own node, we recommend you configure start your node with a higher gas limit per call. For example, on Geth you can use the command line argument `--rpc.gascap 150000000` to raise the limit to 150m, which is enough to run the default configuration of this package.
+
+If you are using Hardhat mainnet forking, you should add `blockGasLimit: 150_000_000` to your Hardhat config to use the default package configuration.

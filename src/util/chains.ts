@@ -1,6 +1,5 @@
 import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
 
-import { WGLMR_MOONBEAM, WXDAI_GNOSIS } from '../providers';
 export enum ChainId {
   MAINNET = 1,
   ROPSTEN = 3,
@@ -129,6 +128,62 @@ export enum NativeCurrencyName {
   GNOSIS = 'XDAI',
   MOONBEAM = 'GLMR',
 }
+export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
+  [ChainId.MAINNET]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.RINKEBY]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.GÖRLI]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.KOVAN]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.ROPSTEN]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.OPTIMISM]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.OPTIMISTIC_KOVAN]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.ARBITRUM_ONE]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.ARBITRUM_RINKEBY]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.POLYGON]: ['MATIC', '0x0000000000000000000000000000000000001010'],
+  [ChainId.POLYGON_MUMBAI]: [
+    'MATIC',
+    '0x0000000000000000000000000000000000001010',
+  ],
+  [ChainId.CELO]: ['CELO'],
+  [ChainId.CELO_ALFAJORES]: ['CELO'],
+  [ChainId.GNOSIS]: ['XDAI'],
+  [ChainId.MOONBEAM]: ['GLMR'],
+};
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.MAINNET]: NativeCurrencyName.ETHER,
@@ -316,8 +371,20 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'CELO',
     'Celo native asset'
   ),
-  [ChainId.GNOSIS]: WXDAI_GNOSIS,
-  [ChainId.MOONBEAM]: WGLMR_MOONBEAM,
+  [ChainId.GNOSIS]: new Token(
+    ChainId.GNOSIS,
+    '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
+    18,
+    'WXDAI',
+    'Wrapped XDAI on Gnosis'
+  ),
+  [ChainId.MOONBEAM]: new Token(
+    ChainId.MOONBEAM,
+    '0xAcc15dC74880C9944775448304B263D191c6077F',
+    18,
+    'WGLMR',
+    'Wrapped GLMR'
+  ),
 };
 
 function isMatic(

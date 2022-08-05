@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.8.2](https://github.com/Uniswap/smart-order-router/compare/v2.8.1...v2.8.2) (2022-08-02)
+
+### [2.8.1](https://github.com/Uniswap/smart-order-router/compare/v2.8.0...v2.8.1) (2022-07-31)
+
+## [2.8.0](https://github.com/Uniswap/smart-order-router/compare/v2.6.1...v2.8.0) (2022-07-20)
+
+
+### Features
+
+* add stale config ([#116](https://github.com/Uniswap/smart-order-router/issues/116)) ([3c4a32f](https://github.com/Uniswap/smart-order-router/commit/3c4a32fc671ee1b57c48f494090caede2d5f776f))
+
 ## [2.7.0](https://github.com/Uniswap/smart-order-router/compare/v2.6.1...v2.7.0) (2022-07-14)
 
 

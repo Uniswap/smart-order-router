@@ -6,12 +6,11 @@ import dotenv from 'dotenv';
 import _ from 'lodash';
 import {
   ID_TO_CHAIN_ID,
-  NativeCurrencyName,
   nativeOnChain,
   parseAmount,
   SwapRoute,
 } from '../../src';
-import { TO_PROTOCOL } from '../../src/util';
+import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
 import { BaseCommand } from '../base-command';
 
 dotenv.config();
@@ -85,20 +84,20 @@ export class Quote extends BaseCommand {
     const tokenProvider = this.tokenProvider;
     const router = this.router;
 
-    const tokenAccessor = await tokenProvider.getTokens([
-      tokenInStr,
-      tokenOutStr,
-    ]);
+    // if the tokenIn str is 'ETH' or 'MATIC' or in NATIVE_NAMES_BY_ID
+    const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
+      ? nativeOnChain(chainId)
+      : (await tokenProvider.getTokens([tokenInStr])).getTokenByAddress(
+          tokenInStr
+        )!;
 
-    // if the tokenIn str is 'ETH' or 'MATIC' or NATIVE_CURRENCY_STRING
-    const tokenIn: Currency =
-      tokenInStr in NativeCurrencyName
-        ? nativeOnChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenInStr)!;
-    const tokenOut: Currency =
-      tokenOutStr in NativeCurrencyName
-        ? nativeOnChain(chainId)
-        : tokenAccessor.getTokenByAddress(tokenOutStr)!;
+    const tokenOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
+      tokenOutStr
+    )
+      ? nativeOnChain(chainId)
+      : (await tokenProvider.getTokens([tokenOutStr])).getTokenByAddress(
+          tokenOutStr
+        )!;
 
     let swapRoutes: SwapRoute | null;
     if (exactIn) {
