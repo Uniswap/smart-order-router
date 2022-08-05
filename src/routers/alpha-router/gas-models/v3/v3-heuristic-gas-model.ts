@@ -1,28 +1,30 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { Percent, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import {
   ArbitrumGasData,
-  IL2GasDataProvider,
   OptimismGasData,
 } from '../../../../providers/v3/gas-data-provider';
-import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
+import {
+  getHighestLiquidityV3NativePool,
+  getHighestLiquidityV3USDPool,
+} from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
 import {
   buildSwapMethodParameters,
   buildTrade,
 } from '../../../../util/methodParameters';
-import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
-} from '../../../../util/v3PoolHelper';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import { IGasModel, IOnChainGasModelFactory } from '../gas-model';
+import {
+  BuildOnChainGasModelFactoryType,
+  IGasModel,
+  IOnChainGasModelFactory,
+} from '../gas-model';
 
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
@@ -52,16 +54,15 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     super();
   }
 
-  public async buildGasModel(
-    chainId: ChainId,
-    gasPriceWei: BigNumber,
-    poolProvider: IV3PoolProvider,
-    token: Token,
-    l2GasDataProvider?:
-      | IL2GasDataProvider<ArbitrumGasData>
-      | IL2GasDataProvider<OptimismGasData>
-    // this is the quoteToken
-  ): Promise<IGasModel<V3RouteWithValidQuote>> {
+  public async buildGasModel({
+    chainId,
+    gasPriceWei,
+    V3poolProvider: poolProvider,
+    inTermsOfToken: token,
+    l2GasDataProvider,
+  }: BuildOnChainGasModelFactoryType): Promise<
+    IGasModel<V3RouteWithValidQuote>
+  > {
     const l2GasData = l2GasDataProvider
       ? await l2GasDataProvider.getGasData()
       : undefined;

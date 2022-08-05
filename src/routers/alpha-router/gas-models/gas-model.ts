@@ -79,6 +79,24 @@ export type L1ToL2GasCosts = {
   gasCostL1QuoteToken: CurrencyAmount;
 };
 
+export type BuildOnChainGasModelFactoryType = {
+  chainId: ChainId;
+  gasPriceWei: BigNumber;
+  V3poolProvider: IV3PoolProvider;
+  inTermsOfToken: Token;
+  l2GasDataProvider?:
+    | IL2GasDataProvider<OptimismGasData>
+    | IL2GasDataProvider<ArbitrumGasData>;
+  V2poolProvider?: IV2PoolProvider;
+};
+
+export type BuildV2GasModelFactoryType = {
+  chainId: ChainId;
+  gasPriceWei: BigNumber;
+  poolProvider: IV2PoolProvider;
+  token: Token;
+};
+
 /**
  * Contains functions for generating gas estimates for given routes.
  *
@@ -116,12 +134,12 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
  * @class IV2GasModelFactory
  */
 export abstract class IV2GasModelFactory {
-  public abstract buildGasModel(
-    chainId: number,
-    gasPriceWei: BigNumber,
-    poolProvider: IV2PoolProvider,
-    token: Token
-  ): Promise<IGasModel<V2RouteWithValidQuote>>;
+  public abstract buildGasModel({
+    chainId,
+    gasPriceWei,
+    poolProvider,
+    token,
+  }: BuildV2GasModelFactoryType): Promise<IGasModel<V2RouteWithValidQuote>>;
 }
 
 /**
@@ -136,13 +154,14 @@ export abstract class IV2GasModelFactory {
  * @class IOnChainGasModelFactory
  */
 export abstract class IOnChainGasModelFactory {
-  public abstract buildGasModel(
-    chainId: number,
-    gasPriceWei: BigNumber,
-    V3poolProvider: IV3PoolProvider,
-    inTermsOfToken: Token,
-    l2GasDataProvider?:
-      | IL2GasDataProvider<OptimismGasData>
-      | IL2GasDataProvider<ArbitrumGasData>
-  ): Promise<IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>>;
+  public abstract buildGasModel({
+    chainId,
+    gasPriceWei,
+    V3poolProvider,
+    inTermsOfToken,
+    l2GasDataProvider,
+    V2poolProvider,
+  }: BuildOnChainGasModelFactoryType): Promise<
+    IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
+  >;
 }

@@ -1,19 +1,21 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
-import { IV3PoolProvider } from '../../../../providers';
 import { ChainId, log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
-} from '../../../../util/v3PoolHelper';
+} from '../../../../util/gas-factory-helpers';
 import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import { IGasModel, IOnChainGasModelFactory } from '../gas-model';
+import {
+  BuildOnChainGasModelFactoryType,
+  IGasModel,
+  IOnChainGasModelFactory,
+} from '../gas-model';
 import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
   COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
@@ -50,12 +52,15 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     super();
   }
 
-  public async buildGasModel(
-    chainId: ChainId,
-    gasPriceWei: BigNumber,
-    V3poolProvider: IV3PoolProvider,
-    token: Token
-  ): Promise<IGasModel<MixedRouteWithValidQuote>> {
+  public async buildGasModel({
+    chainId,
+    gasPriceWei,
+    V3poolProvider,
+    inTermsOfToken: token,
+    V2poolProvider,
+  }: BuildOnChainGasModelFactoryType): Promise<
+    IGasModel<MixedRouteWithValidQuote>
+  > {
     const usdPool: Pool = await getHighestLiquidityV3USDPool(
       chainId,
       V3poolProvider
