@@ -77,7 +77,7 @@ export class FallbackTenderlySimulator implements ISimulator {
         allowance = await contract.callStatic["allowance"]!(fromAddress, V3_ROUTER2_ADDRESS)
         // Since we max approve, assume that any non zero allowance is enough for the trade
         // TODO: check that allowance >= amount(tokenIn)
-        if(allowance <= 0) return {approved:false, estimatedGasUsed:BigNumber.from(-1)}
+        if(allowance <= 0) return {approved:false, estimatedGasUsed:BigNumber.from(0)}
       } catch(err) {
           const msg = "check allowance failed while simulating!"
           log.info({err:err}, msg)
@@ -187,7 +187,7 @@ export class TenderlySimulator {
     fromAddress: string,
     route: SwapRoute,
   ):Promise<BigNumber> {
-    const tokenIn = route.quote.currency.wrapped
+    const tokenIn = route.trade.inputAmount.currency.wrapped
     if([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(tokenIn.chainId)) {
       const msg = "Celo not supported by Tenderly!"
       log.info(msg)
