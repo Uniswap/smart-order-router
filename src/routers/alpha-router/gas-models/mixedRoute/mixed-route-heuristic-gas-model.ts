@@ -25,10 +25,8 @@ import {
   BASE_SWAP_COST,
   COST_PER_HOP,
   COST_PER_INIT_TICK,
+  COST_PER_UNINIT_TICK,
 } from '../v3/gas-costs';
-
-// Cost for crossing an uninitialized tick.
-const COST_PER_UNINIT_TICK = BigNumber.from(0);
 
 /**
  * Computes a gas estimate for a mixed route swap using heuristics.
