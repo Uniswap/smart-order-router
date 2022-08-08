@@ -907,21 +907,22 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
-    const V3gasModel = await this.v3GasModelFactory.buildGasModel(
-      this.chainId,
+    const V3gasModel = await this.v3GasModelFactory.buildGasModel({
+      chainId: this.chainId,
       gasPriceWei,
-      this.v3PoolProvider,
-      quoteToken,
-      this.l2GasDataProvider
-    );
+      V3poolProvider: this.v3PoolProvider,
+      token: quoteToken,
+      l2GasDataProvider: this.l2GasDataProvider,
+    });
 
     const mixedRouteGasModel =
-      await this.mixedRouteGasModelFactory.buildGasModel(
-        this.chainId,
+      await this.mixedRouteGasModelFactory.buildGasModel({
+        chainId: this.chainId,
         gasPriceWei,
-        this.v3PoolProvider,
-        quoteToken
-      );
+        V3poolProvider: this.v3PoolProvider,
+        token: quoteToken,
+        V2poolProvider: this.v2PoolProvider,
+      });
 
     if (
       (protocolsSet.size == 0 ||
@@ -1408,12 +1409,12 @@ export class AlphaRouter
     );
     const { routesWithQuotes } = await quoteFn(amounts, routes);
 
-    const V2gasModel = await this.v2GasModelFactory.buildGasModel(
-      this.chainId,
+    const V2gasModel = await this.v2GasModelFactory.buildGasModel({
+      chainId: this.chainId,
       gasPriceWei,
-      this.v2PoolProvider,
-      quoteToken
-    );
+      poolProvider: this.v2PoolProvider,
+      token: quoteToken,
+    });
 
     metric.putMetric(
       'V2QuotesLoad',

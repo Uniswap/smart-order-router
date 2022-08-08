@@ -8,6 +8,7 @@ import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { V2RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
+  BuildV2GasModelFactoryType,
   IGasModel,
   IV2GasModelFactory,
   usdGasTokensByChain,
@@ -41,12 +42,12 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     super();
   }
 
-  public async buildGasModel(
-    chainId: ChainId,
-    gasPriceWei: BigNumber,
-    poolProvider: IV2PoolProvider,
-    token: Token
-  ): Promise<IGasModel<V2RouteWithValidQuote>> {
+  public async buildGasModel({
+    chainId,
+    gasPriceWei,
+    poolProvider,
+    token,
+  }: BuildV2GasModelFactoryType): Promise<IGasModel<V2RouteWithValidQuote>> {
     if (token.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
       const usdPool: Pair = await this.getHighestLiquidityUSDPool(
         chainId,

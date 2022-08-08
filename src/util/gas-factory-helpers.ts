@@ -1,10 +1,12 @@
 import { Token } from '@uniswap/sdk-core';
+import { Pair } from '@uniswap/v2-sdk';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '.';
+import { IV2PoolProvider } from '../providers';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import { usdGasTokensByChain } from '../routers';
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 export async function getHighestLiquidityV3NativePool(
   chainId: ChainId,
@@ -100,6 +102,75 @@ export async function getHighestLiquidityV3USDPool(
   }
 
   const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
+
+  return maxPool;
+}
+
+export async function getEthV2Pool(
+  chainId: ChainId,
+  token: Token,
+  poolProvider: IV2PoolProvider
+): Promise<Pair | null> {
+  const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
+
+  const poolAccessor = await poolProvider.getPools([[weth, token]]);
+  const pool = poolAccessor.getPool(weth, token);
+
+  if (!pool || pool.reserve0.equalTo(0) || pool.reserve1.equalTo(0)) {
+    log.error(
+      {
+        weth,
+        token,
+        reserve0: pool?.reserve0.toExact(),
+        reserve1: pool?.reserve1.toExact(),
+      },
+      `Could not find a valid WETH pool with ${token.symbol} for computing gas costs.`
+    );
+
+    return null;
+  }
+
+  return pool;
+}
+
+export async function getHighestLiquidityUSDV2Pool(
+  chainId: ChainId,
+  poolProvider: IV2PoolProvider
+): Promise<Pair> {
+  const usdTokens = usdGasTokensByChain[chainId];
+
+  if (!usdTokens) {
+    throw new Error(
+      `Could not find a USD token for computing gas costs on ${chainId}`
+    );
+  }
+
+  const usdPools = _.map<Token, [Token, Token]>(usdTokens, (usdToken) => [
+    usdToken,
+    WRAPPED_NATIVE_CURRENCY[chainId]!,
+  ]);
+  const poolAccessor = await poolProvider.getPools(usdPools);
+  const poolsRaw = poolAccessor.getAllPools();
+  const pools = _.filter(
+    poolsRaw,
+    (pool) => pool.reserve0.greaterThan(0) && pool.reserve1.greaterThan(0)
+  );
+
+  if (pools.length == 0) {
+    log.error(
+      { pools },
+      `Could not find a USD/WETH pool for computing gas costs.`
+    );
+    throw new Error(`Can't find USD/WETH pool for computing gas costs.`);
+  }
+
+  const maxPool = _.maxBy(pools, (pool) => {
+    if (pool.token0.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
+      return parseFloat(pool.reserve0.toSignificant(2));
+    } else {
+      return parseFloat(pool.reserve1.toSignificant(2));
+    }
+  }) as Pair;
 
   return maxPool;
 }
