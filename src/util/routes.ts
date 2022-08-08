@@ -13,13 +13,13 @@ export const routeToString = (
 ): string => {
   const routeStr = [];
   const tokens =
-    route instanceof V3Route
+    route.protocol === Protocol.V3
       ? route.tokenPath
       : // MixedRoute and V2Route have path
         route.path;
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools =
-    route instanceof V3Route || route instanceof MixedRoute
+    route.protocol === Protocol.V3 || route.protocol === Protocol.MIXED
       ? route.pools
       : route.pairs;
   const poolFeePath = _.map(pools, (pool) => {
