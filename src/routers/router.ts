@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
+  Protocol,
   Trade,
 } from '@uniswap/router-sdk';
 import {
@@ -23,9 +24,15 @@ import { CurrencyAmount } from '../util/amounts';
 
 import { RouteWithValidQuote } from './alpha-router';
 
-export class V3Route extends V3RouteRaw<Token, Token> {}
-export class V2Route extends V2RouteRaw<Token, Token> {}
-export class MixedRoute extends MixedRouteSDK<Token, Token> {}
+export class V3Route extends V3RouteRaw<Token, Token> {
+  protocol: Protocol.V3 = Protocol.V3;
+}
+export class V2Route extends V2RouteRaw<Token, Token> {
+  protocol: Protocol.V2 = Protocol.V2;
+}
+export class MixedRoute extends MixedRouteSDK<Token, Token> {
+  protocol: Protocol.MIXED = Protocol.MIXED;
+}
 
 export type SwapRoute = {
   /**
