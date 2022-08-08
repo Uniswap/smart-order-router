@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import { encodeMixedRouteToPath } from '@uniswap/router-sdk';
+import { encodeMixedRouteToPath, Protocol } from '@uniswap/router-sdk';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
@@ -341,7 +341,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     routesWithQuotes: RouteWithQuotes[];
     blockNumber: BigNumber;
   }> {
-    const isMixedRoutes = routes.every((route) => route instanceof MixedRoute);
+    const isMixedRoutes = routes.every(
+      (route) => route.protocol === Protocol.MIXED
+    );
 
     this.validateRoutes(routes, functionName, isMixedRoutes);
 
@@ -360,7 +362,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const inputs: [string, string][] = _(routes)
       .flatMap((route) => {
         const encodedRoute =
-          route instanceof V3Route
+          route.protocol === Protocol.V3
             ? encodeRouteToPath(
                 route,
                 functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
