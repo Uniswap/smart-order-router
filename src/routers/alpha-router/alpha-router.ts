@@ -911,7 +911,7 @@ export class AlphaRouter
       chainId: this.chainId,
       gasPriceWei,
       V3poolProvider: this.v3PoolProvider,
-      inTermsOfToken: quoteToken,
+      token: quoteToken,
       l2GasDataProvider: this.l2GasDataProvider,
     });
 
@@ -920,7 +920,7 @@ export class AlphaRouter
         chainId: this.chainId,
         gasPriceWei,
         V3poolProvider: this.v3PoolProvider,
-        inTermsOfToken: quoteToken,
+        token: quoteToken,
         V2poolProvider: this.v2PoolProvider,
       });
 

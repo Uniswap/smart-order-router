@@ -60,7 +60,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     chainId,
     gasPriceWei,
     V3poolProvider: poolProvider,
-    inTermsOfToken: token,
+    token,
     l2GasDataProvider,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote>
