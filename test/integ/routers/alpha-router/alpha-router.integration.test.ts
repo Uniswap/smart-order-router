@@ -1,7 +1,6 @@
 /**
  * @jest-environment hardhat
  */
-/// <reference types="../../../types/bunyan-debug-stream" />
 
 import {
   Currency,
@@ -60,36 +59,6 @@ import MixedRouteQuoterV1_ABI from '../../../../src/abis/MixedRouteQuoterV1.json
 const V2_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
-
-import bunyan from 'bunyan';
-import bunyanDebugStream from 'bunyan-debug-stream';
-
-const logLevel =
-  process.env.DEBUG || process.env.DEBUG_JSON ? bunyan.DEBUG : bunyan.INFO;
-
-let logger = bunyan.createLogger({
-  name: 'Uniswap Smart Order Router',
-  serializers: bunyan.stdSerializers,
-  level: bunyan.DEBUG,
-  streams: process.env.DEBUG_JSON
-    ? undefined
-    : [
-        {
-          level: bunyan.DEBUG,
-          type: 'stream',
-          stream: bunyanDebugStream({
-            basepath: __dirname,
-            forceColor: false,
-            showDate: false,
-            showPid: false,
-            showLoggerName: false,
-            showLevel: !!process.env.DEBUG,
-          }),
-        },
-      ],
-});
-
-// setGlobalLogger(logger);
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
