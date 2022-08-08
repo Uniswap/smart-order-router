@@ -11,7 +11,7 @@ import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__f
 import { ChainId, CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import {
   APPROVE_TOKEN_FOR_TRANSFER,
-  V3_ROUTER2_ADDRESS,
+  SWAPROUTER02_ADDRESS,
 } from '../util/callData';
 import {
   calculateArbitrumToL1SecurityFee,
@@ -24,20 +24,20 @@ import {
 } from '../util/gasCalc';
 
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
-import { IV3PoolProvider } from './v3/pool-provider';
+import { IV3PoolProvider, V3PoolAccessor } from './v3/pool-provider';
 
-type simulation_result = {
+type simulationResult = {
   transaction: { hash: string; gas_used: number; error_message: string };
   simulation: { state_overrides: Record<string, unknown> };
 };
 
-export type TENDERLY_RESPONSE = {
+export type tenderlyResponse = {
   config: {
     url: string;
     method: string;
     data: string;
   };
-  simulation_results: [simulation_result, simulation_result];
+  simulation_results: [simulationResult, simulationResult];
 };
 
 const TENDERLY_BATCH_SIMULATE_API = (
@@ -51,15 +51,15 @@ const TENDERLY_BATCH_SIMULATE_API = (
 const ESTIMATE_MULTIPLIER = 1.25;
 
 /**
- * Provider for dry running transactions on tenderly.
+ * Provider for dry running transactions.
  *
  * @export
  * @interface ISimulator
  */
 export interface ISimulator {
-  v3PoolProvider?: IV3PoolProvider;
+  v3PoolProvider: IV3PoolProvider;
   /**
-   * Returns the gas fee that was paid to land the transaction in the simulation.
+   * Returns a new Swaproute with updated gas estimates
    * @returns number or Error
    */
   simulateTransaction: (
@@ -73,14 +73,15 @@ export interface ISimulator {
 export class FallbackTenderlySimulator implements ISimulator {
   private provider: JsonRpcProvider;
   private tenderlySimulator: TenderlySimulator;
-  v3PoolProvider?: IV3PoolProvider;
+  v3PoolProvider: IV3PoolProvider;
 
   constructor(
     tenderlyBaseUrl: string,
     tenderlyUser: string,
     tenderlyProject: string,
     tenderlyAccessKey: string,
-    provider: JsonRpcProvider
+    provider: JsonRpcProvider,
+    v3PoolProvider: IV3PoolProvider
   ) {
     this.tenderlySimulator = new TenderlySimulator(
       tenderlyBaseUrl,
@@ -89,6 +90,7 @@ export class FallbackTenderlySimulator implements ISimulator {
       tenderlyAccessKey
     );
     this.provider = provider;
+    this.v3PoolProvider = v3PoolProvider
   }
 
   private async ethEstimateGas(
@@ -107,7 +109,7 @@ export class FallbackTenderlySimulator implements ISimulator {
       try {
         allowance = await contract.callStatic['allowance']!(
           fromAddress,
-          V3_ROUTER2_ADDRESS
+          SWAPROUTER02_ADDRESS
         );
         // Since we max approve, assume that any non zero allowance is enough for the trade
         // TODO: check that allowance >= amount(tokenIn)
@@ -121,7 +123,7 @@ export class FallbackTenderlySimulator implements ISimulator {
     }
 
     const router = new Contract(
-      V3_ROUTER2_ADDRESS,
+      SWAPROUTER02_ADDRESS,
       v3SwapRouter,
       this.provider
     );
@@ -145,19 +147,20 @@ export class FallbackTenderlySimulator implements ISimulator {
   ): Promise<SwapRoute> {
     const quoteToken = route.quote.currency;
     const tokenIn = route.trade.inputAmount.currency;
+    const chainId:ChainId = tokenIn.chainId
     // calculate L2 to L1 security fee if relevant
-    let L2toL1FeeInWei = BigNumber.from(0);
+    let l2toL1FeeInWei = BigNumber.from(0);
     if (
-      [ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(tokenIn.chainId)
+      [ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(chainId)
     ) {
-      L2toL1FeeInWei = calculateArbitrumToL1SecurityFee(
+      l2toL1FeeInWei = calculateArbitrumToL1SecurityFee(
         route.methodParameters!.calldata,
         l2GasData as ArbitrumGasData
       )[1];
     } else if (
-      [ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(tokenIn.chainId)
+      [ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(chainId)
     ) {
-      L2toL1FeeInWei = calculateOptimismToL1SecurityFee(
+      l2toL1FeeInWei = calculateOptimismToL1SecurityFee(
         route.methodParameters!.calldata,
         l2GasData as OptimismGasData
       )[1];
@@ -189,8 +192,8 @@ export class FallbackTenderlySimulator implements ISimulator {
     // add l2 fee and wrap fee to native currency
     const gasCostInWei = gasPriceWei
       .mul(route.estimatedGasUsed)
-      .add(L2toL1FeeInWei);
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[tokenIn.chainId as ChainId];
+      .add(l2toL1FeeInWei);
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
     const costNativeCurrency = getGasCostInNativeCurrency(
       nativeCurrency,
       gasCostInWei
@@ -303,7 +306,7 @@ export class TenderlySimulator {
     const swap = {
       network_id: tokenIn.chainId,
       input: calldata,
-      to: V3_ROUTER2_ADDRESS,
+      to: SWAPROUTER02_ADDRESS,
       value: BigNumber.from(route.methodParameters.value).toString(),
       from: fromAddress,
       gasPrice: '0',
@@ -322,9 +325,9 @@ export class TenderlySimulator {
       this.tenderlyUser,
       this.tenderlyProject
     );
-    let resp: TENDERLY_RESPONSE;
+    let resp: tenderlyResponse;
     try {
-      resp = (await axios.post<TENDERLY_RESPONSE>(url, body, opts)).data;
+      resp = (await axios.post<tenderlyResponse>(url, body, opts)).data;
     } catch (err) {
       log.info({ err: err }, `Failed to Simulate Via Tenderly!`);
       throw err;

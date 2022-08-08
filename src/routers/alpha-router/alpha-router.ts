@@ -219,7 +219,7 @@ export type AlphaRouterParams = {
   arbitrumGasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
 
   /**
-   * Simulates swaps (currently through tenderly) and provides transaction receipt
+   * Simulates swaps and returns new SwapRoute with updated gas estimates
    */
   simulator?: ISimulator;
 };
