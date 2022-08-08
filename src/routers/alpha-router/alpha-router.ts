@@ -342,7 +342,7 @@ export class AlphaRouter
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
-  protected simulator?: ISimulator
+  protected simulator?: ISimulator;
 
   constructor({
     chainId,
@@ -377,9 +377,9 @@ export class AlphaRouter
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-    if(simulator) {
-      simulator.v3PoolProvider = this.v3PoolProvider
-      this.simulator = simulator
+    if (simulator) {
+      simulator.v3PoolProvider = this.v3PoolProvider;
+      this.simulator = simulator;
     }
     if (v3QuoteProvider) {
       this.v3QuoteProvider = v3QuoteProvider;
@@ -1005,7 +1005,7 @@ export class AlphaRouter
 
     this.emitPoolSelectionMetrics(swapRouteRaw, allCandidatePools);
 
-    const swapRoute:SwapRoute = {
+    const swapRoute: SwapRoute = {
       quote,
       quoteGasAdjusted,
       estimatedGasUsed,
@@ -1017,15 +1017,25 @@ export class AlphaRouter
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
     };
-    if(swapConfig && swapConfig.simulate && methodParameters && methodParameters.calldata) {
-      if(!this.simulator) {
-        throw new Error("Simulator not initialized!")
+    if (
+      swapConfig &&
+      swapConfig.simulate &&
+      methodParameters &&
+      methodParameters.calldata
+    ) {
+      if (!this.simulator) {
+        throw new Error('Simulator not initialized!');
       }
-      const resp = await this.simulator.simulateTransaction(swapConfig.simulate.fromAddress, swapRoute, gasPriceWei, await this.l2GasDataProvider?.getGasData())
-      return resp
+      const resp = await this.simulator.simulateTransaction(
+        swapConfig.simulate.fromAddress,
+        swapRoute,
+        gasPriceWei,
+        await this.l2GasDataProvider?.getGasData()
+      );
+      return resp;
     }
 
-    return swapRoute
+    return swapRoute;
   }
 
   private async applyTokenValidatorToPools<T extends Pool | Pair>(

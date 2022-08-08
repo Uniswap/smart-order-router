@@ -12,18 +12,17 @@ import {
 import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
-import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../../../../util/gasCalc'
+import {
+  getHighestLiquidityV3NativePool,
+  getHighestLiquidityV3USDPool,
+} from '../../../../util/gasCalc';
 import { log } from '../../../../util/log';
 import {
   buildSwapMethodParameters,
   buildTrade,
 } from '../../../../util/methodParameters';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import {
-  IGasModel,
-  IV3GasModelFactory,
-} from '../gas-model';
-
+import { IGasModel, IV3GasModelFactory } from '../gas-model';
 
 import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
 
@@ -122,11 +121,10 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
       let gasCostL1QuoteToken = costNativeCurrency;
       // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
       if (!token.equals(nativeCurrency)) {
-        const nativePool: Pool | null =
-          await getHighestLiquidityV3NativePool(
-            token,
-            poolProvider
-          );
+        const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
+          token,
+          poolProvider
+        );
         if (!nativePool) {
           log.info(
             'Could not find a pool to convert the cost into the quote token'
