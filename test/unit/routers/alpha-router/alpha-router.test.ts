@@ -1067,6 +1067,10 @@ describe.only('alpha router', () => {
       ).toBeTruthy();
 
       expect(
+        mockOnChainQuoteProvider.getQuotesManyExactOut.notCalled
+      ).toBeTruthy();
+
+      expect(
         swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
       ).toBeTruthy();
       expect(
@@ -1285,6 +1289,10 @@ describe.only('alpha router', () => {
           V2poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
         })
+      ).toBeTruthy();
+
+      expect(
+        mockOnChainQuoteProvider.getQuotesManyExactOut.notCalled
       ).toBeTruthy();
 
       expect(
