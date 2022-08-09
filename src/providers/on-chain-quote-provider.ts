@@ -1,6 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import { encodeMixedRouteToPath, Protocol } from '@uniswap/router-sdk';
+import {
+  encodeMixedRouteToPath,
+  MixedRouteSDK,
+  Protocol,
+} from '@uniswap/router-sdk';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
@@ -9,7 +13,7 @@ import stats from 'stats-lite';
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
 import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { ChainId, metric, MetricLoggerUnit, V2_SUPPORTED } from '../util';
+import { ChainId, metric, MetricLoggerUnit } from '../util';
 import {
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   QUOTER_V2_ADDRESSES,
@@ -22,7 +26,7 @@ import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
 
 /**
- * An on chain quote for a V3 or MixedRoute swap.
+ * An on chain quote for a swap.
  */
 export type AmountQuote = {
   amount: CurrencyAmount;
@@ -80,7 +84,10 @@ export type QuoteRetryOptions = RetryOptions;
 /**
  * The V3 route and a list of quotes for that route.
  */
-export type RouteWithQuotes = [V2Route | V3Route | MixedRoute, AmountQuote[]];
+export type RouteWithQuotes<TRoute extends V3Route | V2Route | MixedRoute> = [
+  TRoute,
+  AmountQuote[]
+];
 
 type QuoteBatchSuccess = {
   status: 'success';
@@ -111,14 +118,15 @@ type QuoteBatchPending = {
 type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 
 /**
- * Provider for getting on chain quotes using either V3 pools or V2 pairs.
+ * Provider for getting on chain quotes using routes containing V3 pools or V2 pools.
  *
  * @export
- * @interface IV3QuoteProvider
+ * @interface IOnChainQuoteProvider
  */
 export interface IOnChainQuoteProvider {
   /**
    * For every route, gets an exactIn quotes for every amount provided.
+   * @notice While passing in exactIn V2Routes is supported, we recommend using the V2QuoteProvider to compute off chain quotes for V2 whenever possible
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
@@ -126,18 +134,18 @@ export interface IOnChainQuoteProvider {
    * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
-  getQuotesManyExactIn(
+  getQuotesManyExactIn<TRoute extends V3Route | V2Route | MixedRoute>(
     amountIns: CurrencyAmount[],
-    routes: (V3Route | V2Route | MixedRoute)[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }>;
 
   /**
    * For every route, gets ane exactOut quote for every amount provided.
-   * @notice This does not support quotes for MixedRoutes (routes with both V3 and V2 pools/pairs)
+   * @notice This does not support quotes for MixedRoutes (routes with both V3 and V2 pools/pairs) or pure V2 routes
    *
    * @param amountOuts The amounts to get quotes for.
    * @param routes The routes to get quotes for.
@@ -145,12 +153,12 @@ export interface IOnChainQuoteProvider {
    * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
-  getQuotesManyExactOut(
+  getQuotesManyExactOut<TRoute extends V3Route>(
     amountOuts: CurrencyAmount[],
-    routes: (V2Route | V3Route)[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }>;
 }
@@ -218,7 +226,7 @@ const DEFAULT_BATCH_RETRIES = 2;
 
 /**
  * Computes on chain quotes for swaps. For pure V3 routes, quotes are computed on-chain using
- * the 'QuoterV2' smart contract. For mixed routes, quotes are computed using the 'MixedRouteQuoterV1' contract
+ * the 'QuoterV2' smart contract. For exactIn mixed and V2 routes, quotes are computed using the 'MixedRouteQuoterV1' contract
  * This is because computing quotes off-chain would require fetching all the tick data for each pool, which is a lot of data.
  *
  * To minimize the number of requests for quotes we use a Multicall contract. Generally
@@ -240,7 +248,6 @@ const DEFAULT_BATCH_RETRIES = 2;
  * @class OnChainQuoteProvider
  */
 export class OnChainQuoteProvider implements IOnChainQuoteProvider {
-  protected quoterAddress: string;
   /**
    * Creates an instance of OnChainQuoteProvider.
    *
@@ -282,30 +289,32 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       baseBlockOffset: 0,
       rollback: { enabled: false },
     },
-    protected isMixedRouteQuoteProvider: boolean = false,
     protected quoterAddressOverride?: string
-  ) {
-    const quoterAddress = quoterAddressOverride
-      ? quoterAddressOverride
-      : isMixedRouteQuoteProvider
+  ) {}
+
+  private getQuoterAddress(isMixedRoutes: boolean): string {
+    if (this.quoterAddressOverride) {
+      return this.quoterAddressOverride;
+    }
+    const quoterAddress = isMixedRoutes
       ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
       : QUOTER_V2_ADDRESSES[this.chainId];
-
     if (!quoterAddress) {
       throw new Error(
-        `No address for the quoter contract on chain id: ${chainId}`
+        `No address for the quoter contract on chain id: ${this.chainId}`
       );
     }
-
-    this.quoterAddress = quoterAddress;
+    return quoterAddress;
   }
 
-  public async getQuotesManyExactIn(
+  public async getQuotesManyExactIn<
+    TRoute extends V3Route | V2Route | MixedRoute
+  >(
     amountIns: CurrencyAmount[],
-    routes: (V2Route | V3Route | MixedRoute)[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
     return this.getQuotesManyData(
@@ -316,12 +325,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
   }
 
-  public async getQuotesManyExactOut(
+  public async getQuotesManyExactOut<TRoute extends V3Route>(
     amountOuts: CurrencyAmount[],
-    routes: (V2Route | V3Route)[],
+    routes: TRoute[],
     providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
     return this.getQuotesManyData(
@@ -332,20 +341,23 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
   }
 
-  private async getQuotesManyData(
+  private async getQuotesManyData<
+    TRoute extends V3Route | V2Route | MixedRoute
+  >(
     amounts: CurrencyAmount[],
-    routes: (V2Route | V3Route | MixedRoute)[],
+    routes: TRoute[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
     _providerConfig?: ProviderConfig
   ): Promise<{
-    routesWithQuotes: RouteWithQuotes[];
+    routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
-    const isMixedRoutes = routes.every(
-      (route) => route.protocol === Protocol.MIXED
-    );
+    const usesMixedRouteQuoter =
+      routes.some((route) => route instanceof MixedRoute) ||
+      routes.some((route) => route instanceof V2Route);
 
-    this.validateRoutes(routes, functionName, isMixedRoutes);
+    /// Validate that there are no incorrect routes / function combinations
+    this.validateRoutes(routes, functionName, usesMixedRouteQuoter);
 
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
@@ -367,7 +379,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 route,
                 functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
               )
-            : encodeMixedRouteToPath(route);
+            : encodeMixedRouteToPath(
+                route instanceof V2Route
+                  ? new MixedRouteSDK(route.pairs, route.input, route.output)
+                  : route
+              );
         const routeInputs: [string, string][] = amounts.map((amount) => [
           encodedRoute,
           `0x${amount.quotient.toString(16)}`,
@@ -449,8 +465,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     [string, string],
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
-                    address: this.quoterAddress,
-                    contractInterface: isMixedRoutes
+                    address: this.getQuoterAddress(usesMixedRouteQuoter),
+                    contractInterface: usesMixedRouteQuoter
                       ? IMixedRouteQuoterV1__factory.createInterface()
                       : IQuoterV2__factory.createInterface(),
                     functionName,
@@ -773,7 +789,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
 
     const [successfulQuotes, failedQuotes] = _(routesQuotes)
-      .flatMap((routeWithQuotes: RouteWithQuotes) => routeWithQuotes[1])
+      .flatMap((routeWithQuotes: RouteWithQuotes<TRoute>) => routeWithQuotes[1])
       .partition((quote) => quote.quote != null)
       .value();
 
@@ -821,12 +837,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     return [successfulQuoteStates, failedQuoteStates, pendingQuoteStates];
   }
 
-  private processQuoteResults(
+  private processQuoteResults<TRoute extends V3Route | V2Route | MixedRoute>(
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     routes: TRoute[],
     amounts: CurrencyAmount[]
-  ): RouteWithQuotes[] {
-    const routesQuotes: RouteWithQuotes[] = [];
+  ): RouteWithQuotes<TRoute>[] {
+    const routesQuotes: RouteWithQuotes<TRoute>[] = [];
 
     const quotesResultsByRoute = _.chunk(quoteResults, amounts.length);
 
@@ -971,32 +987,30 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     }
   }
 
+  /**
+   * Throw an error for incorrect routes / function combinations
+   * @param routes Any combination of V3, V2, and Mixed routes.
+   * @param functionName
+   * @param usesMixedRouteQuoter Boolean indicating whether the mixedRouteQuoter needs to be used (for pure V2 and Mixed routes)
+   */
   protected validateRoutes(
-    routes: TRoute[],
+    routes: (V3Route | V2Route | MixedRoute)[],
     functionName: string,
-    isMixedRoutes: boolean
+    usesMixedRouteQuoter: boolean
   ) {
-    // we cannot have both V3 and MixedRoutes in the same call
+    // we cannot have both V3 and MixedRoutes or V2Routes in the same call since they use different quoter contracts
     if (
       routes.some((route) => route instanceof V3Route) &&
-      routes.some((route) => route instanceof MixedRoute)
+      usesMixedRouteQuoter
     ) {
       throw new Error(
-        'Cannot have both V3 and MixedRoutes in the same call to on chain Quoter'
+        'Cannot have mix and match V3 on chain quotes with MixedRoutes and/or V2Routes'
       );
     }
-    // cannot make an exactOutput call with mixedRouteQuotes
-    if (isMixedRoutes && functionName === 'quoteExactOutput') {
-      throw new Error('Cannot make an exactOutput call with MixedRoutes');
-    }
-
-    // we only support getting mixedRouteQuotes for chains that support V2 liq
-    if (
-      isMixedRoutes &&
-      !V2_SUPPORTED.some((chainId) => chainId === this.chainId)
-    ) {
+    // cannot make an exactOutput call with mixedRouteQuotes OR V2Route
+    if (usesMixedRouteQuoter && functionName === 'quoteExactOutput') {
       throw new Error(
-        `Cannot get MixedRoute quotes on ${this.chainId} because it does not support V2 liquidity`
+        'Cannot make an exactOutput call with MixedRoutes and/or V2Routes'
       );
     }
   }

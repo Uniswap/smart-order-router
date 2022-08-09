@@ -24,7 +24,6 @@ import {
   ID_TO_PROVIDER,
   nativeOnChain,
   NATIVE_CURRENCY,
-  OnChainQuoteProvider,
   parseAmount,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
@@ -34,12 +33,11 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
-  V3_CORE_FACTORY_ADDRESSES,
+  V2_SUPPORTED,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 
 import 'jest-environment-hardhat';
@@ -54,8 +52,6 @@ import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-pri
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
-import MixedRouteQuoterV1_ABI from '../../../../src/abis/MixedRouteQuoterV1.json';
-const V2_FACTORY = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
 const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
 
@@ -273,19 +269,6 @@ describe('alpha router integration', () => {
     const aliceAddress = await alice.getAddress();
     expect(aliceAddress).toBe(alice._address);
 
-    const MixedRouteQuoterV1Factory =
-      await hardhat.hre.ethers.getContractFactoryFromArtifact(
-        MixedRouteQuoterV1_ABI,
-        alice
-      );
-    const MixedRouteQuoterV1 = await MixedRouteQuoterV1Factory.deploy(
-      V3_CORE_FACTORY_ADDRESSES[ChainId.MAINNET],
-      V2_FACTORY,
-      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET].address // TODO: change to be chain dependent
-    );
-
-    const MixedRouteQuoterV1Address = MixedRouteQuoterV1.address;
-
     await hardhat.fund(
       alice._address,
       [
@@ -343,30 +326,6 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      mixedRouteQuoteProvider: new OnChainQuoteProvider(
-        ChainId.MAINNET,
-        hardhat.provider,
-        multicall2Provider,
-        /// Different config than v3
-        {
-          retries: 2,
-          minTimeout: 100,
-          maxTimeout: 1000,
-        },
-        {
-          multicallChunk: 180,
-          gasLimitPerCall: 705_000,
-          quoteMinSuccessRate: 0.15,
-        },
-        {
-          gasLimitOverride: 2_000_000,
-          multicallChunk: 75,
-        },
-        undefined,
-        undefined,
-        true,
-        MixedRouteQuoterV1Address
-      ),
     });
   });
 
@@ -925,9 +884,7 @@ describe('alpha router integration', () => {
       expect(aliceBONDBalance).toEqual(parseAmount('10000', BOND_MAINNET));
     });
 
-    describe(`${
-      tradeType === TradeType.EXACT_INPUT ? 'exactInput' : 'exactOutput'
-    } mixedPath routes`, () => {
+    describe(`exactIn mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('BOND -> APE', async () => {
           const tokenIn = BOND_MAINNET;
@@ -949,7 +906,8 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V3, Protocol.V2],
+              protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+              forceMixedRoutes: true,
             }
           );
 
@@ -1131,6 +1089,7 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
         });
+
         it(`has quoteGasAdjusted values`, async () => {
           const tokenIn = erc1;
           const tokenOut = erc2;
@@ -1163,6 +1122,53 @@ describe('quote for other networks', () => {
             expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
           }
         });
+
+        it(`does not error when protocols array is empty`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+        });
+
+        if (!V2_SUPPORTED.includes(chain)) {
+          it(`is null when considering MIXED on non supported chains for exactInput & exactOutput`, async () => {
+            const tokenIn = erc1;
+            const tokenOut = erc2;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: [Protocol.MIXED],
+              }
+            );
+            expect(swap).toBeNull();
+          });
+        }
       });
     }
   }

@@ -30,7 +30,7 @@ export type LegacyRouterParams = {
   chainId: ChainId;
   multicall2Provider: IMulticallProvider;
   poolProvider: IV3PoolProvider;
-  quoteProvider: IOnChainQuoteProvider<V3Route>;
+  quoteProvider: IOnChainQuoteProvider;
   tokenProvider: ITokenProvider;
 };
 
@@ -50,7 +50,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
   protected chainId: ChainId;
   protected multicall2Provider: IMulticallProvider;
   protected poolProvider: IV3PoolProvider;
-  protected quoteProvider: IOnChainQuoteProvider<V3Route>;
+  protected quoteProvider: IOnChainQuoteProvider;
   protected tokenProvider: ITokenProvider;
 
   constructor({
@@ -203,9 +203,13 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     routingConfig?: LegacyRoutingConfig
   ): Promise<V3RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactIn([amountIn], routes, {
-        blockNumber: routingConfig?.blockNumber,
-      });
+      await this.quoteProvider.getQuotesManyExactIn<V3Route>(
+        [amountIn],
+        routes,
+        {
+          blockNumber: routingConfig?.blockNumber,
+        }
+      );
 
     const quotes100Percent = _.map(
       quotesRaw,
@@ -231,9 +235,13 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     routingConfig?: LegacyRoutingConfig
   ): Promise<V3RouteWithValidQuote | null> {
     const { routesWithQuotes: quotesRaw } =
-      await this.quoteProvider.getQuotesManyExactOut([amountOut], routes, {
-        blockNumber: routingConfig?.blockNumber,
-      });
+      await this.quoteProvider.getQuotesManyExactOut<V3Route>(
+        [amountOut],
+        routes,
+        {
+          blockNumber: routingConfig?.blockNumber,
+        }
+      );
     const bestQuote = await this.getBestQuote(
       routes,
       quotesRaw,
