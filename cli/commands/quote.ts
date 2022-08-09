@@ -33,7 +33,7 @@ export class Quote extends BaseCommand {
     exactOut: flags.boolean({ required: false }),
     protocols: flags.string({ required: false }),
     forceCrossProtocol: flags.boolean({ required: false, default: false }),
-    disableMixedRoutesConsideration: flags.boolean({
+    forceMixedRoutes: flags.boolean({
       required: false,
       default: false,
     }),
@@ -63,7 +63,7 @@ export class Quote extends BaseCommand {
       chainId: chainIdNumb,
       protocols: protocolsStr,
       forceCrossProtocol,
-      disableMixedRoutesConsideration,
+      forceMixedRoutes,
     } = flags;
 
     if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
@@ -135,7 +135,7 @@ export class Quote extends BaseCommand {
           distributionPercent,
           protocols,
           forceCrossProtocol,
-          disableMixedRoutesConsideration,
+          forceMixedRoutes,
         }
       );
     } else {
@@ -168,7 +168,7 @@ export class Quote extends BaseCommand {
           distributionPercent,
           protocols,
           forceCrossProtocol,
-          disableMixedRoutesConsideration,
+          forceMixedRoutes,
         }
       );
     }

@@ -313,7 +313,7 @@ export type AlphaRouterConfig = {
    * Prevent the alpha router from considering mixedRoutes as a valid swap.
    * Default will be falsy.
    */
-  disableMixedRoutesConsideration?: boolean;
+  forceMixedRoutes?: boolean;
   /**
    * The minimum percentage of the input token to use for each route in a split route.
    * All routes will have a multiple of this value. For example is distribution percentage is 5,
@@ -691,8 +691,6 @@ export class AlphaRouter
           ...DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
           ...routingConfig,
           protocols: [Protocol.V3, Protocol.V2],
-          /// @notice we don't want to query mixedRoutes for routeToRatio
-          disableMixedRoutesConsideration: true,
         }
       );
       if (!swap) {
@@ -911,10 +909,11 @@ export class AlphaRouter
           routingConfig
         )
       );
-      /// depending on tradeType & config, optionally find mixed routes
+      /// @dev only add mixedRoutes in the case where no protocols were specified, and if TradeType is correct
       if (
         tradeType == TradeType.EXACT_INPUT &&
-        !routingConfig.disableMixedRoutesConsideration
+        /// The cases where protocols = [] and protocols = [V2, V3, MIXED]
+        (protocolsSet.size == 0 || protocolsSet.has(Protocol.MIXED))
       ) {
         log.info(
           { protocols, swapType: tradeType },
@@ -968,12 +967,11 @@ export class AlphaRouter
         );
       }
       /// If protocolsSet is not empty, and we specify mixedRoutes, consider them if the chain has v2 liq
-      /// and tradeType === EXACT_INPUT, and if we did not disableMixedRoutesConsideration
+      /// and tradeType === EXACT_INPUT, OR if we forceMixedRoutes
       if (
         protocolsSet.has(Protocol.MIXED) &&
         V2_SUPPORTED.includes(this.chainId) &&
-        tradeType == TradeType.EXACT_INPUT &&
-        !routingConfig.disableMixedRoutesConsideration
+        tradeType == TradeType.EXACT_INPUT
       ) {
         log.info(
           { protocols, swapType: tradeType },

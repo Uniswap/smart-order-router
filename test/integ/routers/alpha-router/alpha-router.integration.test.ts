@@ -22,10 +22,8 @@ import {
   DAI_ON,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
-  MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
-  OnChainQuoteProvider,
   parseAmount,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
@@ -344,30 +342,6 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      mixedRouteQuoteProvider: new OnChainQuoteProvider<MixedRoute>(
-        ChainId.MAINNET,
-        hardhat.provider,
-        multicall2Provider,
-        /// Different config than v3
-        {
-          retries: 2,
-          minTimeout: 100,
-          maxTimeout: 1000,
-        },
-        {
-          multicallChunk: 180,
-          gasLimitPerCall: 705_000,
-          quoteMinSuccessRate: 0.15,
-        },
-        {
-          gasLimitOverride: 2_000_000,
-          multicallChunk: 75,
-        },
-        undefined,
-        undefined,
-        true,
-        MixedRouteQuoterV1Address
-      ),
     });
   });
 
@@ -926,9 +900,7 @@ describe('alpha router integration', () => {
       expect(aliceBONDBalance).toEqual(parseAmount('10000', BOND_MAINNET));
     });
 
-    describe(`${
-      tradeType === TradeType.EXACT_INPUT ? 'exactInput' : 'exactOutput'
-    } mixedPath routes`, () => {
+    describe(`exactIn mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('BOND -> APE', async () => {
           const tokenIn = BOND_MAINNET;
@@ -950,7 +922,8 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.V3, Protocol.V2],
+              protocols: [],
+              forceMixedRoutes: true,
             }
           );
 
