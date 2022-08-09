@@ -105,8 +105,9 @@ export class FallbackTenderlySimulator implements ISimulator {
         fromAddress,
         SWAPROUTER02_ADDRESS
       );
+      console.log("z",inputAmount.multiply(10**18).toFixed(0))
       // Check that token allowance is more than amountIn
-      if (allowance.lt(BigNumber.from(inputAmount.multiply(10**18).toSignificant(18))))
+      if (allowance.lt(BigNumber.from(inputAmount.multiply(10**18).toFixed(0))))
         return { approved: false, estimatedGasUsed: BigNumber.from(0) };
     }
     const router = SwapRouter02__factory.connect(
@@ -114,6 +115,7 @@ export class FallbackTenderlySimulator implements ISimulator {
       this.provider
     );
     try {
+      console.log("a",inputAmount.multiply(10**18).toFixed(0))
       const estimatedGasUsed: BigNumber = await router.estimateGas[
         'multicall(bytes[])'
       ]([calldata], {from:fromAddress, value:BigNumber.from(inputAmount.multiply(10**18).toFixed(0))});
