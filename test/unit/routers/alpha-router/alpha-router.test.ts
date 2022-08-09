@@ -1823,6 +1823,19 @@ describe.only('alpha router', () => {
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
+    test('is null with mixed only', async () => {
+      const swap = await alphaRouter.route(
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000),
+        USDC,
+        TradeType.EXACT_OUTPUT,
+        undefined,
+        { ...ROUTING_CONFIG, protocols: [Protocol.MIXED] }
+      );
+      expect(swap).toBeNull();
+
+      sinon.assert.notCalled(mockOnChainQuoteProvider.getQuotesManyExactOut);
+    });
+
     test('succeeds to route and generates calldata on v3 only', async () => {
       const swapParams = {
         deadline: Math.floor(Date.now() / 1000) + 1000000,
