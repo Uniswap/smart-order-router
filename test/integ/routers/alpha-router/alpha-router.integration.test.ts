@@ -935,7 +935,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe.only('quote for other networks', () => {
+describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
