@@ -115,11 +115,11 @@ export type MixedRouteGetCandidatePoolsParams = {
   tokenOut: Token;
   routeType: TradeType;
   routingConfig: AlphaRouterConfig;
-  V2subgraphProvider: IV2SubgraphProvider;
-  V3subgraphProvider: IV3SubgraphProvider;
+  v2subgraphProvider: IV2SubgraphProvider;
+  v3subgraphProvider: IV3SubgraphProvider;
   tokenProvider: ITokenProvider;
-  V2poolProvider: IV2PoolProvider;
-  V3poolProvider: IV3PoolProvider;
+  v2poolProvider: IV2PoolProvider;
+  v3poolProvider: IV3PoolProvider;
   blockedTokenListProvider?: ITokenListProvider;
   chainId: ChainId;
 };
@@ -968,11 +968,11 @@ export async function getMixedRouteCandidatePools({
   tokenOut,
   routeType,
   routingConfig,
-  V3subgraphProvider,
-  V2subgraphProvider,
+  v3subgraphProvider,
+  v2subgraphProvider,
   tokenProvider,
-  V3poolProvider,
-  V2poolProvider,
+  v3poolProvider,
+  v2poolProvider,
   blockedTokenListProvider,
   chainId,
 }: MixedRouteGetCandidatePoolsParams): Promise<{
@@ -988,9 +988,9 @@ export async function getMixedRouteCandidatePools({
       tokenOut,
       tokenProvider,
       blockedTokenListProvider,
-      poolProvider: V3poolProvider,
+      poolProvider: v3poolProvider,
       routeType,
-      subgraphProvider: V3subgraphProvider,
+      subgraphProvider: v3subgraphProvider,
       routingConfig,
       chainId,
     });
@@ -1000,9 +1000,9 @@ export async function getMixedRouteCandidatePools({
       tokenOut,
       tokenProvider,
       blockedTokenListProvider,
-      poolProvider: V2poolProvider,
+      poolProvider: v2poolProvider,
       routeType,
-      subgraphProvider: V2subgraphProvider,
+      subgraphProvider: v2subgraphProvider,
       routingConfig,
       chainId,
     });
@@ -1015,18 +1015,20 @@ export async function getMixedRouteCandidatePools({
    */
   /// We only really care about pools involving the tokenIn or tokenOut explictly,
   /// since there's no way a long tail token in V2 would be routed through as an intermediary
-  const V2topByTVLPools = [
-    ...V2candidatePools.selections.topByTVLUsingTokenIn,
-    ...V2candidatePools.selections.topByBaseWithTokenIn,
-    /// tokenOut:
-    ...V2candidatePools.selections.topByTVLUsingTokenOut,
-    ...V2candidatePools.selections.topByBaseWithTokenOut,
-    /// Direct swap:
-    ...V2candidatePools.selections.topByDirectSwapPool,
-  ];
+  const V2topByTVLPoolIds = new Set(
+    [
+      ...V2candidatePools.selections.topByTVLUsingTokenIn,
+      ...V2candidatePools.selections.topByBaseWithTokenIn,
+      /// tokenOut:
+      ...V2candidatePools.selections.topByTVLUsingTokenOut,
+      ...V2candidatePools.selections.topByBaseWithTokenOut,
+      /// Direct swap:
+      ...V2candidatePools.selections.topByDirectSwapPool,
+    ].map((poolId) => poolId.id)
+  );
 
   const V2topByTVLSortedPools = _(V2subgraphPools)
-    .filter((pool) => V2topByTVLPools.map((p) => p.id).includes(pool.id))
+    .filter((pool) => V2topByTVLPoolIds.has(pool.id))
     .sortBy((pool) => -pool.reserveUSD)
     .value();
 
@@ -1037,7 +1039,7 @@ export async function getMixedRouteCandidatePools({
 
   /// Finding pools with greater reserveUSD on v2 than tvlUSD on v3, or if there is no v3 liquidity
   const buildV2Pools: V2SubgraphPool[] = [];
-  V2topByTVLSortedPools.map((V2subgraphPool) => {
+  V2topByTVLSortedPools.forEach((V2subgraphPool) => {
     const V3subgraphPool = V3sortedPools.find(
       (pool) =>
         (pool.token0.id == V2subgraphPool.token0.id &&
@@ -1145,10 +1147,10 @@ export async function getMixedRouteCandidatePools({
 
   const V2tokenPairs = _.compact(V2tokenPairsRaw);
 
-  const V2poolAccessor = await V2poolProvider.getPools(V2tokenPairs, {
+  const V2poolAccessor = await v2poolProvider.getPools(V2tokenPairs, {
     blockNumber,
   });
-  const V3poolAccessor = await V3poolProvider.getPools(V3tokenPairs, {
+  const V3poolAccessor = await v3poolProvider.getPools(V3tokenPairs, {
     blockNumber,
   });
 

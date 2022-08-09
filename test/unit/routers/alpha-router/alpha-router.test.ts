@@ -520,8 +520,9 @@ describe.only('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
       ).toBeTruthy();
@@ -537,8 +538,8 @@ describe.only('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any, /// v3 pool provider
-          V2poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any, /// v3 pool provider
+          v2poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
@@ -700,8 +701,9 @@ describe.only('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
       ).toBeTruthy();
@@ -816,8 +818,9 @@ describe.only('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
       ).toBeTruthy();
@@ -952,8 +955,9 @@ describe.only('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
       ).toBeTruthy();
@@ -1154,8 +1158,9 @@ describe.only('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any,
           token: USDC,
+          v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
       ).toBeTruthy();
@@ -1245,8 +1250,9 @@ describe.only('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any,
           token: USDC,
+          v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
       ).toBeTruthy();
@@ -1370,8 +1376,9 @@ describe.only('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          V3poolProvider: sinon.match.any,
+          v3poolProvider: sinon.match.any,
           token: USDC,
+          v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
       ).toBeTruthy();

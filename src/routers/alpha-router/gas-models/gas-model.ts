@@ -82,12 +82,12 @@ export type L1ToL2GasCosts = {
 export type BuildOnChainGasModelFactoryType = {
   chainId: ChainId;
   gasPriceWei: BigNumber;
-  V3poolProvider: IV3PoolProvider;
+  v3poolProvider: IV3PoolProvider;
   token: Token;
+  v2poolProvider: IV2PoolProvider;
   l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
-  V2poolProvider?: IV2PoolProvider;
 };
 
 export type BuildV2GasModelFactoryType = {
@@ -157,10 +157,10 @@ export abstract class IOnChainGasModelFactory {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,
-    V3poolProvider,
+    v3poolProvider: V3poolProvider,
     token,
+    v2poolProvider: V2poolProvider,
     l2GasDataProvider,
-    V2poolProvider,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
   >;

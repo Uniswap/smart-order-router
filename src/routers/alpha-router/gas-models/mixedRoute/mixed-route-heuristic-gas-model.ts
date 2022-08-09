@@ -54,9 +54,9 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
   public async buildGasModel({
     chainId,
     gasPriceWei,
-    V3poolProvider,
+    v3poolProvider: V3poolProvider,
     token,
-    V2poolProvider,
+    v2poolProvider: V2poolProvider,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {

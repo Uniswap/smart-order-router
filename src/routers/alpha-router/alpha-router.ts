@@ -907,11 +907,12 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
-    const V3gasModel = await this.v3GasModelFactory.buildGasModel({
+    const v3gasModel = await this.v3GasModelFactory.buildGasModel({
       chainId: this.chainId,
       gasPriceWei,
-      V3poolProvider: this.v3PoolProvider,
+      v3poolProvider: this.v3PoolProvider,
       token: quoteToken,
+      v2poolProvider: this.v2PoolProvider,
       l2GasDataProvider: this.l2GasDataProvider,
     });
 
@@ -919,9 +920,9 @@ export class AlphaRouter
       await this.mixedRouteGasModelFactory.buildGasModel({
         chainId: this.chainId,
         gasPriceWei,
-        V3poolProvider: this.v3PoolProvider,
+        v3poolProvider: this.v3PoolProvider,
         token: quoteToken,
-        V2poolProvider: this.v2PoolProvider,
+        v2poolProvider: this.v2PoolProvider,
       });
 
     if (
@@ -937,7 +938,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
-          V3gasModel,
+          v3gasModel,
           tradeType,
           routingConfig
         )
@@ -989,7 +990,7 @@ export class AlphaRouter
             amounts,
             percents,
             quoteToken,
-            V3gasModel,
+            v3gasModel,
             tradeType,
             routingConfig
           )
@@ -1067,7 +1068,7 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
-      V3gasModel
+      v3gasModel
     );
 
     if (!swapRouteRaw) {
@@ -1501,11 +1502,11 @@ export class AlphaRouter
       tokenOut,
       tokenProvider: this.tokenProvider,
       blockedTokenListProvider: this.blockedTokenListProvider,
-      V3poolProvider: this.v3PoolProvider,
-      V2poolProvider: this.v2PoolProvider,
+      v3poolProvider: this.v3PoolProvider,
+      v2poolProvider: this.v2PoolProvider,
       routeType: swapType,
-      V3subgraphProvider: this.v3SubgraphProvider,
-      V2subgraphProvider: this.v2SubgraphProvider,
+      v3subgraphProvider: this.v3SubgraphProvider,
+      v2subgraphProvider: this.v2SubgraphProvider,
       routingConfig,
       chainId: this.chainId,
     });
