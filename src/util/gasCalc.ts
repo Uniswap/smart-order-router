@@ -1,15 +1,25 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { CurrencyAmount, Token } from '@uniswap/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Protocol } from '@uniswap/router-sdk';
+import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
+import { FeeAmount, MethodParameters, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+import { TradeType } from '@uniswap/sdk-core';
 
+import { IV2PoolProvider } from '../providers';
 import {
   ArbitrumGasData,
   OptimismGasData,
 } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
-import { usdGasTokensByChain } from '../routers';
+import {
+  SwapRoute,
+  usdGasTokensByChain,
+  V2RouteWithValidQuote,
+  V3RouteWithValidQuote,
+} from '../routers';
 import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+
+import { buildTrade } from './methodParameters';
 
 export async function getHighestLiquidityV3NativePool(
   token: Token,
@@ -193,4 +203,150 @@ function getL2ToL1GasUsed(data: string, overhead: BigNumber): BigNumber {
   const unsigned = overhead.add(count);
   const signedConversion = 68 * 16;
   return unsigned.add(signedConversion);
+}
+
+export async function calculateGasUsed(
+  chainId: ChainId,
+  route: SwapRoute,
+  simulatedGasUsed: BigNumber,
+  v3PoolProvider: IV3PoolProvider,
+  l2GasData?: ArbitrumGasData | OptimismGasData
+) {
+  const quoteToken = route.quote.currency.wrapped;
+  const tokenIn = route.trade.inputAmount.currency;
+  const gasPriceWei = route.gasPriceWei;
+  // calculate L2 to L1 security fee if relevant
+  let l2toL1FeeInWei = BigNumber.from(0);
+  if ([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(chainId)) {
+    l2toL1FeeInWei = calculateArbitrumToL1SecurityFee(
+      route.methodParameters!.calldata,
+      l2GasData as ArbitrumGasData
+    )[1];
+  } else if ([ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(chainId)) {
+    l2toL1FeeInWei = calculateOptimismToL1SecurityFee(
+      route.methodParameters!.calldata,
+      l2GasData as OptimismGasData
+    )[1];
+  }
+
+  // add l2 fee and wrap fee to native currency
+  const gasCostInWei = gasPriceWei.mul(simulatedGasUsed).add(l2toL1FeeInWei);
+  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+  const costNativeCurrency = getGasCostInNativeCurrency(
+    nativeCurrency,
+    gasCostInWei
+  );
+
+  const usdPool: Pool = await getHighestLiquidityV3USDPool(
+    chainId,
+    v3PoolProvider
+  );
+
+  const gasCostUSD = await getGasCostInUSD(
+    nativeCurrency,
+    usdPool,
+    costNativeCurrency
+  );
+
+  let gasCostQuoteToken = costNativeCurrency;
+  // get fee in terms of quote token
+  if (!quoteToken.wrapped.equals(nativeCurrency)) {
+    const nativePools = await Promise.all([getHighestLiquidityV3NativePool(quoteToken.wrapped,v3PoolProvider
+      ), getHighestLiquidityV3NativePool(
+        quoteToken.wrapped,
+        v3PoolProvider
+      )])
+    const nativePool = (nativePools.find(pool => pool !== null))
+    if (!nativePool) {
+      log.info(
+        'Could not find any V2 or V3 pools to convert the cost into the quote token'
+      );
+      gasCostQuoteToken = CurrencyAmount.fromRawAmount(quoteToken.wrapped, 0);
+    } else {
+      gasCostQuoteToken = await getGasCostInQuoteToken(
+        quoteToken.wrapped,
+        nativePool,
+        costNativeCurrency
+      );
+    }
+  }
+
+  // Adjust quote for gas fees
+  let quoteGasAdjusted;
+  if (tokenIn.wrapped.equals(quoteToken.wrapped)) {
+    // Exact output - need more of tokenIn to get the desired amount of tokenOut
+    quoteGasAdjusted = route.quote.add(gasCostQuoteToken);
+  } else {
+    // Exact input - can get less of tokenOut due to fees
+    quoteGasAdjusted = route.quote.subtract(gasCostQuoteToken);
+  }
+
+  return {
+    estimatedGasUsedUSD: gasCostUSD,
+    estimatedGasUsedQuoteToken: gasCostQuoteToken,
+    quoteGasAdjusted: quoteGasAdjusted,
+  };
+}
+
+export function initSwapRouteFromExisting(
+  swapRoute: SwapRoute,
+  v2PoolProvider: IV2PoolProvider,
+  v3PoolProvider: IV3PoolProvider,
+  quoteGasAdjusted: CurrencyAmount<Currency>,
+  estimatedGasUsed: BigNumber,
+  estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
+  estimatedGasUsedUSD: CurrencyAmount<Currency>
+) {
+  const currencyIn = swapRoute.trade.inputAmount.currency;
+  const currencyOut = swapRoute.trade.outputAmount.currency;
+  const tradeType = swapRoute.trade.tradeType.valueOf()?TradeType.EXACT_OUTPUT:TradeType.EXACT_INPUT;
+  const routesWithValidQuote = swapRoute.route.map((route) =>
+    route.protocol == Protocol.V3
+      ? new V3RouteWithValidQuote({
+          amount: CurrencyAmount.fromFractionalAmount(route.amount.currency, route.amount.numerator, route.amount.denominator),
+          rawQuote: BigNumber.from(route.rawQuote),
+          sqrtPriceX96AfterList: route.sqrtPriceX96AfterList.map(num => BigNumber.from(num)),
+          initializedTicksCrossedList: [...route.initializedTicksCrossedList],
+          quoterGasEstimate: BigNumber.from(route.gasEstimate),
+          percent: route.percent,
+          route: route.route,
+          gasModel: route.gasModel,
+          quoteToken: new Token(currencyIn.chainId, route.quoteToken.address, route.quoteToken.decimals, route.quoteToken.symbol, route.quoteToken.name),
+          tradeType: tradeType,
+          v3PoolProvider: v3PoolProvider,
+        })
+      : new V2RouteWithValidQuote({
+          amount: CurrencyAmount.fromFractionalAmount(route.amount.currency, route.amount.numerator, route.amount.denominator),
+          rawQuote: BigNumber.from(route.rawQuote),
+          percent: route.percent,
+          route: route.route,
+          gasModel: route.gasModel,
+          quoteToken: new Token(currencyIn.chainId, route.quoteToken.address, route.quoteToken.decimals, route.quoteToken.symbol, route.quoteToken.name),
+          tradeType: tradeType,
+          v2PoolProvider: v2PoolProvider,
+        })
+  );
+  const trade = buildTrade<typeof tradeType>(
+    currencyIn,
+    currencyOut,
+    swapRoute.trade.tradeType,
+    routesWithValidQuote
+  );
+  return {
+    quote: swapRoute.quote,
+    quoteGasAdjusted,
+    estimatedGasUsed,
+    estimatedGasUsedQuoteToken,
+    estimatedGasUsedUSD,
+    gasPriceWei: BigNumber.from(swapRoute.gasPriceWei),
+    trade,
+    route: routesWithValidQuote,
+    blockNumber: BigNumber.from(swapRoute.blockNumber),
+    methodParameters: swapRoute.methodParameters
+      ? ({
+          calldata: swapRoute.methodParameters.calldata,
+          value: swapRoute.methodParameters.value,
+        } as MethodParameters)
+      : undefined,
+  } as SwapRoute;
 }

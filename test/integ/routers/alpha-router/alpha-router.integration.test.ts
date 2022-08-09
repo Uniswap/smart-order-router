@@ -336,8 +336,9 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      simulator:new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, hardhat.providers[0]!)
     });
+    const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, hardhat.providers[0]!, alphaRouter.v2PoolProvider, alphaRouter.v3PoolProvider)
+    alphaRouter.simulator = simulator
   });
 
   /**
@@ -1443,8 +1444,10 @@ describe('quote for other networks', () => {
             chainId: chain,
             provider,
             multicall2Provider,
-            simulator: new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider)
+            
           });
+          const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider, alphaRouter.v2PoolProvider, alphaRouter.v3PoolProvider)
+          alphaRouter.simulator = simulator
         });
 
         it(`${wrappedNative.symbol} -> erc20`, async () => {
@@ -1604,8 +1607,9 @@ describe('quote for other networks', () => {
             chainId: chain,
             provider,
             multicall2Provider,
-            simulator: new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider)
           });
+          const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider, alphaRouter.v2PoolProvider, alphaRouter.v3PoolProvider)
+          alphaRouter.simulator = simulator
         });
 
         it(`${wrappedNative.symbol} -> erc20`, async () => {

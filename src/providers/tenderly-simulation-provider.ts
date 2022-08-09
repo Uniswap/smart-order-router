@@ -1,30 +1,21 @@
-import { Contract } from '@ethersproject/contracts';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { Currency } from '@uniswap/sdk-core';
-import { Pool } from '@uniswap/v3-sdk';
 import axios from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
-import v3SwapRouter from '../abis/v3SwapRouter.json';
 import { SwapRoute } from '../routers';
-import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
-import { ChainId, CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { Erc20__factory } from '../types/other/factories/Erc20__factory';
+import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
+import { ChainId, CurrencyAmount, log } from '../util';
 import {
   APPROVE_TOKEN_FOR_TRANSFER,
   SWAPROUTER02_ADDRESS,
 } from '../util/callData';
-import {
-  calculateArbitrumToL1SecurityFee,
-  calculateOptimismToL1SecurityFee,
-  getGasCostInNativeCurrency,
-  getGasCostInQuoteToken,
-  getGasCostInUSD,
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
-} from '../util/gasCalc';
+import { calculateGasUsed, initSwapRouteFromExisting } from '../util/gasCalc';
 
+import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
-import { IV3PoolProvider, V3PoolAccessor } from './v3/pool-provider';
+import { IV3PoolProvider } from './v3/pool-provider';
 
 type simulationResult = {
   transaction: { hash: string; gas_used: number; error_message: string };
@@ -57,6 +48,7 @@ const ESTIMATE_MULTIPLIER = 1.25;
  * @interface ISimulator
  */
 export interface ISimulator {
+  v2PoolProvider: IV2PoolProvider;
   v3PoolProvider: IV3PoolProvider;
   /**
    * Returns a new Swaproute with updated gas estimates
@@ -65,7 +57,6 @@ export interface ISimulator {
   simulateTransaction: (
     fromAddress: string,
     route: SwapRoute,
-    gasPriceWei: BigNumber,
     l2GasData?: OptimismGasData | ArbitrumGasData
   ) => Promise<SwapRoute>;
 }
@@ -74,6 +65,7 @@ export class FallbackTenderlySimulator implements ISimulator {
   private provider: JsonRpcProvider;
   private tenderlySimulator: TenderlySimulator;
   v3PoolProvider: IV3PoolProvider;
+  v2PoolProvider: IV2PoolProvider;
 
   constructor(
     tenderlyBaseUrl: string,
@@ -81,199 +73,144 @@ export class FallbackTenderlySimulator implements ISimulator {
     tenderlyProject: string,
     tenderlyAccessKey: string,
     provider: JsonRpcProvider,
+    v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider
   ) {
     this.tenderlySimulator = new TenderlySimulator(
       tenderlyBaseUrl,
       tenderlyUser,
       tenderlyProject,
-      tenderlyAccessKey
+      tenderlyAccessKey,
+      v2PoolProvider,
+      v3PoolProvider
     );
     this.provider = provider;
-    this.v3PoolProvider = v3PoolProvider
+    this.v2PoolProvider = v2PoolProvider;
+    this.v3PoolProvider = v3PoolProvider;
   }
 
   private async ethEstimateGas(
     fromAddress: string,
-    tokenIn: Currency,
+    inputAmount: CurrencyAmount,
     calldata: string
   ): Promise<{ approved: boolean; estimatedGasUsed: BigNumber }> {
+    const currencyIn = inputAmount.currency
     // For erc20s, we must check if the token allowance is sufficient
-    if (!tokenIn.isNative) {
-      const contract = new Contract(
-        tokenIn.address,
-        IERC20Metadata__factory.createInterface(),
+    if (!currencyIn.isNative) {
+      const tokenContract = Erc20__factory.connect(
+        currencyIn.address,
         this.provider
       );
-      let allowance: number;
-      try {
-        allowance = await contract.callStatic['allowance']!(
-          fromAddress,
-          SWAPROUTER02_ADDRESS
-        );
-        // Since we max approve, assume that any non zero allowance is enough for the trade
-        // TODO: check that allowance >= amount(tokenIn)
-        if (allowance <= 0)
-          return { approved: false, estimatedGasUsed: BigNumber.from(0) };
-      } catch (err) {
-        const msg = 'check allowance failed while simulating!';
-        log.info({ err: err }, msg);
-        throw new Error(msg);
-      }
+      const allowance = await tokenContract.allowance(
+        fromAddress,
+        SWAPROUTER02_ADDRESS
+      );
+      // Check that token allowance is more than amountIn
+      if (allowance.lt(BigNumber.from(inputAmount.multiply(10**18).toSignificant(18))))
+        return { approved: false, estimatedGasUsed: BigNumber.from(0) };
     }
-
-    const router = new Contract(
+    const router = SwapRouter02__factory.connect(
       SWAPROUTER02_ADDRESS,
-      v3SwapRouter,
       this.provider
     );
     try {
       const estimatedGasUsed: BigNumber = await router.estimateGas[
         'multicall(bytes[])'
-      ]!([calldata]);
+      ]([calldata], {from:fromAddress, value:BigNumber.from(inputAmount.multiply(10**18).toFixed(0))});
+      console.log("bet", estimatedGasUsed.toNumber())
       return { approved: true, estimatedGasUsed: estimatedGasUsed };
     } catch (err) {
-      const msg = 'Error calling eth_estimateGas!';
-      log.info({ err: err }, msg);
-      throw new Error(msg);
+        const msg = "Error calling eth_estimateGas!";
+        log.info({ err: err }, msg);
+        throw new Error(msg);
     }
   }
 
   public async simulateTransaction(
     fromAddress: string,
-    route: SwapRoute,
-    gasPriceWei: BigNumber,
+    swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData
   ): Promise<SwapRoute> {
-    const quoteToken = route.quote.currency;
-    const tokenIn = route.trade.inputAmount.currency;
-    const chainId:ChainId = tokenIn.chainId
-    // calculate L2 to L1 security fee if relevant
-    let l2toL1FeeInWei = BigNumber.from(0);
-    if (
-      [ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(chainId)
-    ) {
-      l2toL1FeeInWei = calculateArbitrumToL1SecurityFee(
-        route.methodParameters!.calldata,
-        l2GasData as ArbitrumGasData
-      )[1];
-    } else if (
-      [ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(chainId)
-    ) {
-      l2toL1FeeInWei = calculateOptimismToL1SecurityFee(
-        route.methodParameters!.calldata,
-        l2GasData as OptimismGasData
-      )[1];
-    }
-
+    const currencyIn = swapRoute.trade.inputAmount.currency;
+    const tokenIn = currencyIn.wrapped;
+    const chainId: ChainId = tokenIn.chainId;
     let approved = false;
-    try {
-      ({ approved, estimatedGasUsed: route.estimatedGasUsed } =
-        await this.ethEstimateGas(
-          fromAddress,
-          tokenIn.wrapped,
-          route.methodParameters!.calldata
-        ));
-    } catch {
-      // set error flag to true
-      return { ...route, simulationError: true };
-    }
+    let estimatedGasUsed: BigNumber;
+    // eslint-disable-next-line prefer-const
+    ({ approved, estimatedGasUsed } = await this.ethEstimateGas(
+        fromAddress,
+        swapRoute.trade.inputAmount,
+        swapRoute.methodParameters!.calldata
+      ));
 
     if (!approved) {
       try {
-        route.estimatedGasUsed =
-          await this.tenderlySimulator.simulateTransaction(fromAddress, route);
+        return await this.tenderlySimulator.simulateTransaction(
+          fromAddress,
+          swapRoute,
+          l2GasData
+        );
       } catch (err) {
+        log.info({ err: err }, 'Failed to simulate via Tenderly!');
         // set error flag to true
-        return { ...route, simulationError: true };
+        return { ...swapRoute, simulationError: true };
       }
     }
-
-    // add l2 fee and wrap fee to native currency
-    const gasCostInWei = gasPriceWei
-      .mul(route.estimatedGasUsed)
-      .add(l2toL1FeeInWei);
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
-    const costNativeCurrency = getGasCostInNativeCurrency(
-      nativeCurrency,
-      gasCostInWei
+    const {
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+      quoteGasAdjusted,
+    } = await calculateGasUsed(
+      chainId,
+      swapRoute,
+      estimatedGasUsed,
+      this.v3PoolProvider,
+      l2GasData
     );
-
-    const usdPool: Pool = await getHighestLiquidityV3USDPool(
-      tokenIn.chainId,
-      this.v3PoolProvider!
+    return initSwapRouteFromExisting(
+      swapRoute,
+      this.v2PoolProvider,
+      this.v3PoolProvider,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD
     );
-
-    const gasCostUSD = await getGasCostInUSD(
-      nativeCurrency,
-      usdPool,
-      costNativeCurrency
-    );
-
-    let gasCostQuoteToken = costNativeCurrency;
-
-    // get fee in terms of quote token
-    if (!quoteToken.wrapped.equals(nativeCurrency)) {
-      const nativePool = await getHighestLiquidityV3NativePool(
-        quoteToken.wrapped,
-        this.v3PoolProvider!
-      );
-      if (!nativePool) {
-        log.info(
-          'Could not find a pool to convert the cost into the quote token'
-        );
-        gasCostQuoteToken = CurrencyAmount.fromRawAmount(quoteToken.wrapped, 0);
-      } else {
-        gasCostQuoteToken = await getGasCostInQuoteToken(
-          quoteToken.wrapped,
-          nativePool,
-          costNativeCurrency
-        );
-      }
-    }
-
-    // Adjust quote for gas fees
-    let quoteGasAdjusted: CurrencyAmount;
-    if (tokenIn.wrapped.equals(quoteToken.wrapped)) {
-      // Exact output - need more of tokenIn to get the desired amount of tokenOut
-      quoteGasAdjusted = route.quote.add(gasCostQuoteToken);
-    } else {
-      // Exact input - can get less of tokenOut due to fees
-      quoteGasAdjusted = route.quote.subtract(gasCostQuoteToken);
-    }
-
-    return {
-      ...route,
-      estimatedGasUsedUSD: gasCostUSD,
-      estimatedGasUsedQuoteToken: gasCostQuoteToken,
-      quoteGasAdjusted: quoteGasAdjusted,
-    };
   }
 }
-export class TenderlySimulator {
+export class TenderlySimulator implements ISimulator {
   private tenderlyBaseUrl: string;
   private tenderlyUser: string;
   private tenderlyProject: string;
   private tenderlyAccessKey: string;
+  v2PoolProvider: IV2PoolProvider;
+  v3PoolProvider: IV3PoolProvider;
 
   constructor(
     tenderlyBaseUrl: string,
     tenderlyUser: string,
     tenderlyProject: string,
-    tenderlyAccessKey: string
+    tenderlyAccessKey: string,
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider
   ) {
     this.tenderlyBaseUrl = tenderlyBaseUrl;
     this.tenderlyUser = tenderlyUser;
     this.tenderlyProject = tenderlyProject;
     this.tenderlyAccessKey = tenderlyAccessKey;
+    this.v2PoolProvider = v2PoolProvider;
+    this.v3PoolProvider = v3PoolProvider;
   }
 
   public async simulateTransaction(
     fromAddress: string,
-    route: SwapRoute
-  ): Promise<BigNumber> {
-    const tokenIn = route.trade.inputAmount.currency.wrapped;
-    if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(tokenIn.chainId)) {
+    route: SwapRoute,
+    l2GasData?: ArbitrumGasData | OptimismGasData
+  ): Promise<SwapRoute> {
+    const currencyIn = route.trade.inputAmount.currency;
+    const tokenIn = currencyIn.wrapped;
+    const chainId = tokenIn.chainId;
+    if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
       const msg = 'Celo not supported by Tenderly!';
       log.info(msg);
       throw new Error(msg);
@@ -287,7 +224,7 @@ export class TenderlySimulator {
       {
         calldata: route.methodParameters.calldata,
         fromAddress: fromAddress,
-        chainId: tokenIn.chainId,
+        chainId: chainId,
         tokenInAddress: tokenIn.address,
       },
       'Simulating transaction via Tenderly'
@@ -304,10 +241,12 @@ export class TenderlySimulator {
     };
 
     const swap = {
-      network_id: tokenIn.chainId,
+      network_id: chainId,
       input: calldata,
       to: SWAPROUTER02_ADDRESS,
-      value: BigNumber.from(route.methodParameters.value).toString(),
+      value: currencyIn.isNative
+        ? BigNumber.from(route.methodParameters.value).toString()
+        : '0',
       from: fromAddress,
       gasPrice: '0',
       gas: 30000000,
@@ -353,10 +292,32 @@ export class TenderlySimulator {
     );
 
     // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
-    return BigNumber.from(
+    const estimatedGasUsed = BigNumber.from(
       (
         resp.simulation_results[1].transaction.gas_used * ESTIMATE_MULTIPLIER
       ).toFixed(0)
+    );
+
+    const {
+      estimatedGasUsedUSD,
+      estimatedGasUsedQuoteToken,
+      quoteGasAdjusted,
+    } = await calculateGasUsed(
+      chainId,
+      route,
+      estimatedGasUsed,
+      this.v3PoolProvider,
+      l2GasData
+    );
+
+    return initSwapRouteFromExisting(
+      route,
+      this.v2PoolProvider,
+      this.v3PoolProvider,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD
     );
   }
 }

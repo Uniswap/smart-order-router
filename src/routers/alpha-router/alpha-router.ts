@@ -323,14 +323,15 @@ export class AlphaRouter
     IRouter<AlphaRouterConfig>,
     ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
 {
+  v2PoolProvider: IV2PoolProvider;
+  v3PoolProvider: IV3PoolProvider;
+  simulator?: ISimulator;
   protected chainId: ChainId;
   protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
-  protected v3PoolProvider: IV3PoolProvider;
   protected v3QuoteProvider: IV3QuoteProvider;
   protected v2SubgraphProvider: IV2SubgraphProvider;
-  protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
@@ -342,7 +343,6 @@ export class AlphaRouter
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
-  protected simulator?: ISimulator;
 
   constructor({
     chainId,
@@ -377,10 +377,7 @@ export class AlphaRouter
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-    if (simulator) {
-      simulator.v3PoolProvider = this.v3PoolProvider;
-      this.simulator = simulator;
-    }
+    this.simulator = simulator;
     if (v3QuoteProvider) {
       this.v3QuoteProvider = v3QuoteProvider;
     } else {
@@ -1026,13 +1023,14 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
-      const resp = await this.simulator.simulateTransaction(
+      const swapRouteWithSimulation = await this.simulator.simulateTransaction(
         swapConfig.simulate.fromAddress,
         swapRoute,
-        gasPriceWei,
-        await this.l2GasDataProvider?.getGasData()
+        this.l2GasDataProvider
+          ? await this.l2GasDataProvider!.getGasData()
+          : undefined
       );
-      return resp;
+      return swapRouteWithSimulation;
     }
 
     return swapRoute;
