@@ -33,6 +33,7 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+  V2_SUPPORTED,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
@@ -934,7 +935,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe('quote for other networks', () => {
+describe.only('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
@@ -1088,6 +1089,7 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
         });
+
         it(`has quoteGasAdjusted values`, async () => {
           const tokenIn = erc1;
           const tokenOut = erc2;
@@ -1120,6 +1122,53 @@ describe('quote for other networks', () => {
             expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
           }
         });
+
+        it(`does not error when protocols array is empty`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+        });
+
+        if (!V2_SUPPORTED.includes(chain)) {
+          it(`is null when considering MIXED on non supported chains for exactInput & exactOutput`, async () => {
+            const tokenIn = erc1;
+            const tokenOut = erc2;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: [Protocol.MIXED],
+              }
+            );
+            expect(swap).toBeNull();
+          });
+        }
       });
     }
   }

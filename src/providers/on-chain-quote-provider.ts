@@ -26,7 +26,7 @@ import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
 
 /**
- * An on chain quote for a V3 or MixedRoute swap.
+ * An on chain quote for a swap.
  */
 export type AmountQuote = {
   amount: CurrencyAmount;
@@ -118,10 +118,10 @@ type QuoteBatchPending = {
 type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 
 /**
- * Provider for getting on chain quotes using either V3 pools or V2 pairs.
+ * Provider for getting on chain quotes using routes containing V3 pools or V2 pools.
  *
  * @export
- * @interface IV3QuoteProvider
+ * @interface IOnChainQuoteProvider
  */
 export interface IOnChainQuoteProvider {
   /**
