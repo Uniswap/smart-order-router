@@ -94,7 +94,7 @@ export class FallbackTenderlySimulator implements ISimulator {
     inputAmount: CurrencyAmount,
     calldata: string
   ): Promise<{ approved: boolean; estimatedGasUsed: BigNumber }> {
-    const currencyIn = inputAmount.currency
+    const currencyIn = inputAmount.currency;
     // For erc20s, we must check if the token allowance is sufficient
     if (!currencyIn.isNative) {
       const tokenContract = Erc20__factory.connect(
@@ -106,7 +106,9 @@ export class FallbackTenderlySimulator implements ISimulator {
         SWAPROUTER02_ADDRESS
       );
       // Check that token allowance is more than amountIn
-      if (allowance.lt(BigNumber.from(inputAmount.multiply(10**18).toFixed(0))))
+      if (
+        allowance.lt(BigNumber.from(inputAmount.multiply(10 ** 18).toFixed(0)))
+      )
         return { approved: false, estimatedGasUsed: BigNumber.from(0) };
     }
     const router = SwapRouter02__factory.connect(
@@ -116,12 +118,15 @@ export class FallbackTenderlySimulator implements ISimulator {
     try {
       const estimatedGasUsed: BigNumber = await router.estimateGas[
         'multicall(bytes[])'
-      ]([calldata], {from:fromAddress, value:BigNumber.from(inputAmount.multiply(10**18).toFixed(0))});
+      ]([calldata], {
+        from: fromAddress,
+        value: BigNumber.from(inputAmount.multiply(10 ** 18).toFixed(0)),
+      });
       return { approved: true, estimatedGasUsed: estimatedGasUsed };
     } catch (err) {
-        const msg = "Error calling eth_estimateGas!";
-        log.info({ err: err }, msg);
-        throw new Error(msg);
+      const msg = 'Error calling eth_estimateGas!';
+      log.info({ err: err }, msg);
+      throw new Error(msg);
     }
   }
 
@@ -137,10 +142,10 @@ export class FallbackTenderlySimulator implements ISimulator {
     let estimatedGasUsed: BigNumber;
     // eslint-disable-next-line prefer-const
     ({ approved, estimatedGasUsed } = await this.ethEstimateGas(
-        fromAddress,
-        swapRoute.trade.inputAmount,
-        swapRoute.methodParameters!.calldata
-      ));
+      fromAddress,
+      swapRoute.trade.inputAmount,
+      swapRoute.methodParameters!.calldata
+    ));
 
     if (!approved) {
       try {

@@ -1,9 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Token } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, MethodParameters, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { TradeType } from '@uniswap/sdk-core';
 
 import { IV2PoolProvider } from '../providers';
 import {
@@ -251,12 +250,11 @@ export async function calculateGasUsed(
   let gasCostQuoteToken = costNativeCurrency;
   // get fee in terms of quote token
   if (!quoteToken.wrapped.equals(nativeCurrency)) {
-    const nativePools = await Promise.all([getHighestLiquidityV3NativePool(quoteToken.wrapped,v3PoolProvider
-      ), getHighestLiquidityV3NativePool(
-        quoteToken.wrapped,
-        v3PoolProvider
-      )])
-    const nativePool = (nativePools.find(pool => pool !== null))
+    const nativePools = await Promise.all([
+      getHighestLiquidityV3NativePool(quoteToken.wrapped, v3PoolProvider),
+      getHighestLiquidityV3NativePool(quoteToken.wrapped, v3PoolProvider),
+    ]);
+    const nativePool = nativePools.find((pool) => pool !== null);
     if (!nativePool) {
       log.info(
         'Could not find any V2 or V3 pools to convert the cost into the quote token'
@@ -299,29 +297,53 @@ export function initSwapRouteFromExisting(
 ) {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
-  const tradeType = swapRoute.trade.tradeType.valueOf()?TradeType.EXACT_OUTPUT:TradeType.EXACT_INPUT;
+  const tradeType = swapRoute.trade.tradeType.valueOf()
+    ? TradeType.EXACT_OUTPUT
+    : TradeType.EXACT_INPUT;
   const routesWithValidQuote = swapRoute.route.map((route) =>
     route.protocol == Protocol.V3
       ? new V3RouteWithValidQuote({
-          amount: CurrencyAmount.fromFractionalAmount(route.amount.currency, route.amount.numerator, route.amount.denominator),
+          amount: CurrencyAmount.fromFractionalAmount(
+            route.amount.currency,
+            route.amount.numerator,
+            route.amount.denominator
+          ),
           rawQuote: BigNumber.from(route.rawQuote),
-          sqrtPriceX96AfterList: route.sqrtPriceX96AfterList.map(num => BigNumber.from(num)),
+          sqrtPriceX96AfterList: route.sqrtPriceX96AfterList.map((num) =>
+            BigNumber.from(num)
+          ),
           initializedTicksCrossedList: [...route.initializedTicksCrossedList],
           quoterGasEstimate: BigNumber.from(route.gasEstimate),
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteToken: new Token(currencyIn.chainId, route.quoteToken.address, route.quoteToken.decimals, route.quoteToken.symbol, route.quoteToken.name),
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
         })
       : new V2RouteWithValidQuote({
-          amount: CurrencyAmount.fromFractionalAmount(route.amount.currency, route.amount.numerator, route.amount.denominator),
+          amount: CurrencyAmount.fromFractionalAmount(
+            route.amount.currency,
+            route.amount.numerator,
+            route.amount.denominator
+          ),
           rawQuote: BigNumber.from(route.rawQuote),
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteToken: new Token(currencyIn.chainId, route.quoteToken.address, route.quoteToken.decimals, route.quoteToken.symbol, route.quoteToken.name),
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
           tradeType: tradeType,
           v2PoolProvider: v2PoolProvider,
         })
