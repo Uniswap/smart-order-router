@@ -7,9 +7,9 @@ import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { ChainId, log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
-  getEthV2Pool,
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
+  getV2NativePool,
 } from '../../../../util/gas-factory-helpers';
 import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
@@ -116,7 +116,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     let nativeV2Pool: Pair | null;
     if (V2poolProvider) {
       /// MixedRoutes
-      nativeV2Pool = await getEthV2Pool(chainId, token, V2poolProvider);
+      nativeV2Pool = await getV2NativePool(chainId, token, V2poolProvider);
     }
 
     const usdToken =

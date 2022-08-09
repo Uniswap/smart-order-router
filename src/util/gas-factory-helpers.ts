@@ -106,7 +106,7 @@ export async function getHighestLiquidityV3USDPool(
   return maxPool;
 }
 
-export async function getEthV2Pool(
+export async function getV2NativePool(
   chainId: ChainId,
   token: Token,
   poolProvider: IV2PoolProvider
