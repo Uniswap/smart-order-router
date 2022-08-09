@@ -22,7 +22,6 @@ import {
   DAI_ON,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
-  MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
   OnChainQuoteProvider,
@@ -344,7 +343,7 @@ describe('alpha router integration', () => {
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
-      mixedRouteQuoteProvider: new OnChainQuoteProvider<MixedRoute>(
+      mixedRouteQuoteProvider: new OnChainQuoteProvider(
         ChainId.MAINNET,
         hardhat.provider,
         multicall2Provider,
@@ -1031,7 +1030,7 @@ describe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        // jest.retryTimes(1);
+        jest.retryTimes(1);
 
         const wrappedNative = WNATIVE_ON(chain);
 
