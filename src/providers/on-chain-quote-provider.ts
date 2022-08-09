@@ -356,7 +356,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       routes.some((route) => route instanceof MixedRoute) ||
       routes.some((route) => route instanceof V2Route);
 
-    /// Validate that there are no incorrect routes / funcitonName combinations
+    /// Validate that there are no incorrect routes / function combinations
     this.validateRoutes(routes, functionName, usesMixedRouteQuoter);
 
     let multicallChunk = this.batchParams.multicallChunk;
@@ -988,7 +988,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
   }
 
   /**
-   * Throw an error for incorrect routes / funcitonName combinations
+   * Throw an error for incorrect routes / function combinations
    * @param routes Any combination of V3, V2, and Mixed routes.
    * @param functionName
    * @param usesMixedRouteQuoter Boolean indicating whether the mixedRouteQuoter needs to be used (for pure V2 and Mixed routes)
