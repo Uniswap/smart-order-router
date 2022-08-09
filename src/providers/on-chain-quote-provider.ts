@@ -126,7 +126,7 @@ type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 export interface IOnChainQuoteProvider {
   /**
    * For every route, gets an exactIn quotes for every amount provided.
-   * @notice While passing in V2Routes is supported, we recommend using the V2QuoteProvider to compute off chain quotes for V2 whenever possible
+   * @notice While passing in exactIn V2Routes is supported, we recommend using the V2QuoteProvider to compute off chain quotes for V2 whenever possible
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
