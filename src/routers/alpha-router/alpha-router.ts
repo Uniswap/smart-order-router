@@ -90,7 +90,6 @@ import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
-  MixedRoute,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapAndAddParameters,
@@ -98,7 +97,6 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
-  V3Route,
 } from '../router';
 
 import {
@@ -161,7 +159,7 @@ export type AlphaRouterParams = {
   /**
    * The provider for getting V3 quotes.
    */
-  v3QuoteProvider?: IOnChainQuoteProvider<V3Route>;
+  v3QuoteProvider?: IOnChainQuoteProvider;
   /**
    * The provider for getting all pools that exist on V2 from the Subgraph. The pools
    * from this provider are filtered during the algorithm to a set of candidate pools.
@@ -178,7 +176,7 @@ export type AlphaRouterParams = {
   /**
    * The provider for getting on chain quotes (V3 or MixedRoute)
    */
-  mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
+  mixedRouteQuoteProvider?: IOnChainQuoteProvider;
   /**
    * The provider for getting data about Tokens.
    */
@@ -340,7 +338,7 @@ export class AlphaRouter
   protected multicall2Provider: UniswapMulticallProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
-  protected v3QuoteProvider: IOnChainQuoteProvider<V3Route>;
+  protected v3QuoteProvider: IOnChainQuoteProvider;
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
@@ -350,7 +348,7 @@ export class AlphaRouter
   protected v3GasModelFactory: IOnChainGasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
   protected mixedRouteGasModelFactory: IOnChainGasModelFactory;
-  protected mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
+  protected mixedRouteQuoteProvider?: IOnChainQuoteProvider;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
@@ -398,7 +396,7 @@ export class AlphaRouter
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISTIC_KOVAN:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.v3QuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -432,7 +430,7 @@ export class AlphaRouter
           break;
         case ChainId.ARBITRUM_ONE:
         case ChainId.ARBITRUM_RINKEBY:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.v3QuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -458,7 +456,7 @@ export class AlphaRouter
           break;
         case ChainId.CELO:
         case ChainId.CELO_ALFAJORES:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.v3QuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -483,7 +481,7 @@ export class AlphaRouter
           );
           break;
         default:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.v3QuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -521,7 +519,7 @@ export class AlphaRouter
         case ChainId.KOVAN:
         case ChainId.GÖRLI:
         case ChainId.MAINNET:
-          this.mixedRouteQuoteProvider = new OnChainQuoteProvider<MixedRoute>(
+          this.mixedRouteQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
