@@ -967,7 +967,7 @@ export class AlphaRouter
         );
       }
       /// If protocolsSet is not empty, and we specify mixedRoutes, consider them if the chain has v2 liq
-      /// and tradeType === EXACT_INPUT, OR if we forceMixedRoutes
+      /// and tradeType === EXACT_INPUT
       if (
         protocolsSet.has(Protocol.MIXED) &&
         V2_SUPPORTED.includes(this.chainId) &&

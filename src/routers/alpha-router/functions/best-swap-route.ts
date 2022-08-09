@@ -39,6 +39,7 @@ export async function getBestSwapRoute(
 
   const { forceMixedRoutes } = routingConfig;
 
+  /// Like with forceCrossProtocol, we apply that logic here when determining the bestSwapRoute
   if (forceMixedRoutes) {
     log.info(
       {
