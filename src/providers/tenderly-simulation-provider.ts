@@ -6,10 +6,9 @@ import { BigNumber } from 'ethers/lib/ethers';
 import { SwapRoute } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { ChainId, CurrencyAmount, log } from '../util';
+import { ChainId, CurrencyAmount, log, SWAP_ROUTER_ADDRESS } from '../util';
 import {
   APPROVE_TOKEN_FOR_TRANSFER,
-  SWAPROUTER02_ADDRESS,
 } from '../util/callData';
 import { calculateGasUsed, initSwapRouteFromExisting } from '../util/gasCalc';
 
@@ -103,7 +102,7 @@ export class FallbackTenderlySimulator implements ISimulator {
       );
       const allowance = await tokenContract.allowance(
         fromAddress,
-        SWAPROUTER02_ADDRESS
+        SWAP_ROUTER_ADDRESS
       );
       // Check that token allowance is more than amountIn
       if (
@@ -112,7 +111,7 @@ export class FallbackTenderlySimulator implements ISimulator {
         return { approved: false, estimatedGasUsed: BigNumber.from(0) };
     }
     const router = SwapRouter02__factory.connect(
-      SWAPROUTER02_ADDRESS,
+      SWAP_ROUTER_ADDRESS,
       this.provider
     );
     try {
@@ -247,7 +246,7 @@ export class TenderlySimulator implements ISimulator {
     const swap = {
       network_id: chainId,
       input: calldata,
-      to: SWAPROUTER02_ADDRESS,
+      to: SWAP_ROUTER_ADDRESS,
       value: currencyIn.isNative
         ? BigNumber.from(route.methodParameters.value).toString()
         : '0',

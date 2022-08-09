@@ -157,7 +157,7 @@ export async function getGasCostInQuoteToken(
   return gasCostQuoteToken;
 }
 
-export function calculateArbitrumToL1SecurityFee(
+export function calculateArbitrumToL1FeeFromCalldata(
   calldata: string,
   gasData: ArbitrumGasData
 ): [BigNumber, BigNumber] {
@@ -170,7 +170,7 @@ export function calculateArbitrumToL1SecurityFee(
   return [l1GasUsed, l1Fee];
 }
 
-export function calculateOptimismToL1SecurityFee(
+export function calculateOptimismToL1FeeFromCalldata(
   calldata: string,
   gasData: OptimismGasData
 ): [BigNumber, BigNumber] {
@@ -217,12 +217,12 @@ export async function calculateGasUsed(
   // calculate L2 to L1 security fee if relevant
   let l2toL1FeeInWei = BigNumber.from(0);
   if ([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_RINKEBY].includes(chainId)) {
-    l2toL1FeeInWei = calculateArbitrumToL1SecurityFee(
+    l2toL1FeeInWei = calculateArbitrumToL1FeeFromCalldata(
       route.methodParameters!.calldata,
       l2GasData as ArbitrumGasData
     )[1];
   } else if ([ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(chainId)) {
-    l2toL1FeeInWei = calculateOptimismToL1SecurityFee(
+    l2toL1FeeInWei = calculateOptimismToL1FeeFromCalldata(
       route.methodParameters!.calldata,
       l2GasData as OptimismGasData
     )[1];
