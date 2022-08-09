@@ -126,6 +126,7 @@ type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
 export interface IOnChainQuoteProvider {
   /**
    * For every route, gets an exactIn quotes for every amount provided.
+   * @notice While passing in V2Routes is supported, we recommend using the V2QuoteProvider to compute off chain quotes for V2 whenever possible
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
@@ -144,7 +145,7 @@ export interface IOnChainQuoteProvider {
 
   /**
    * For every route, gets ane exactOut quote for every amount provided.
-   * @notice This does not support quotes for MixedRoutes (routes with both V3 and V2 pools/pairs)
+   * @notice This does not support quotes for MixedRoutes (routes with both V3 and V2 pools/pairs) or pure V2 routes
    *
    * @param amountOuts The amounts to get quotes for.
    * @param routes The routes to get quotes for.
@@ -225,7 +226,7 @@ const DEFAULT_BATCH_RETRIES = 2;
 
 /**
  * Computes on chain quotes for swaps. For pure V3 routes, quotes are computed on-chain using
- * the 'QuoterV2' smart contract. For mixed routes, quotes are computed using the 'MixedRouteQuoterV1' contract
+ * the 'QuoterV2' smart contract. For exactIn mixed and V2 routes, quotes are computed using the 'MixedRouteQuoterV1' contract
  * This is because computing quotes off-chain would require fetching all the tick data for each pool, which is a lot of data.
  *
  * To minimize the number of requests for quotes we use a Multicall contract. Generally
@@ -355,6 +356,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       routes.some((route) => route instanceof MixedRoute) ||
       routes.some((route) => route instanceof V2Route);
 
+    /// Validate that there are no incorrect routes / funcitonName combinations
     this.validateRoutes(routes, functionName, usesMixedRouteQuoter);
 
     let multicallChunk = this.batchParams.multicallChunk;
@@ -985,6 +987,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     }
   }
 
+  /**
+   * Throw an error for incorrect routes / funcitonName combinations
+   * @param routes Any combination of V3, V2, and Mixed routes.
+   * @param functionName
+   * @param usesMixedRouteQuoter Boolean indicating whether the mixedRouteQuoter needs to be used (for pure V2 and Mixed routes)
+   */
   protected validateRoutes(
     routes: (V3Route | V2Route | MixedRoute)[],
     functionName: string,
@@ -996,12 +1004,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       usesMixedRouteQuoter
     ) {
       throw new Error(
-        'Cannot have mix and match V3 on chain quotes with MixedRoute / V2Route ones'
+        'Cannot have mix and match V3 on chain quotes with MixedRoutes and/or V2Routes'
       );
     }
     // cannot make an exactOutput call with mixedRouteQuotes OR V2Route
     if (usesMixedRouteQuoter && functionName === 'quoteExactOutput') {
-      throw new Error('Cannot make an exactOutput call with MixedRoutes');
+      throw new Error(
+        'Cannot make an exactOutput call with MixedRoutes and/or V2Routes'
+      );
     }
   }
 }
