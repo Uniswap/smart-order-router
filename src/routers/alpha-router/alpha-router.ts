@@ -161,7 +161,7 @@ export type AlphaRouterParams = {
   /**
    * The provider for getting V3 quotes.
    */
-  v3QuoteProvider?: IOnChainQuoteProvider<V3Route>;
+  onChainQuoteProvider?: IOnChainQuoteProvider;
   /**
    * The provider for getting all pools that exist on V2 from the Subgraph. The pools
    * from this provider are filtered during the algorithm to a set of candidate pools.
@@ -175,10 +175,6 @@ export type AlphaRouterParams = {
    * The provider for getting V3 quotes.
    */
   v2QuoteProvider?: IV2QuoteProvider;
-  /**
-   * The provider for getting on chain quotes (V3 or MixedRoute)
-   */
-  mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   /**
    * The provider for getting data about Tokens.
    */
@@ -340,7 +336,7 @@ export class AlphaRouter
   protected multicall2Provider: UniswapMulticallProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
-  protected v3QuoteProvider: IOnChainQuoteProvider<V3Route>;
+  protected onChainQuoteProvider: IOnChainQuoteProvider;
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
@@ -350,7 +346,6 @@ export class AlphaRouter
   protected v3GasModelFactory: IOnChainGasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
   protected mixedRouteGasModelFactory: IOnChainGasModelFactory;
-  protected mixedRouteQuoteProvider?: IOnChainQuoteProvider<MixedRoute>;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
@@ -362,10 +357,9 @@ export class AlphaRouter
     provider,
     multicall2Provider,
     v3PoolProvider,
-    v3QuoteProvider,
+    onChainQuoteProvider,
     v2PoolProvider,
     v2QuoteProvider,
-    mixedRouteQuoteProvider,
     v2SubgraphProvider,
     tokenProvider,
     blockedTokenListProvider,
@@ -392,13 +386,13 @@ export class AlphaRouter
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
 
-    if (v3QuoteProvider) {
-      this.v3QuoteProvider = v3QuoteProvider;
+    if (onChainQuoteProvider) {
+      this.onChainQuoteProvider = onChainQuoteProvider;
     } else {
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISTIC_KOVAN:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -432,7 +426,7 @@ export class AlphaRouter
           break;
         case ChainId.ARBITRUM_ONE:
         case ChainId.ARBITRUM_RINKEBY:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -458,7 +452,7 @@ export class AlphaRouter
           break;
         case ChainId.CELO:
         case ChainId.CELO_ALFAJORES:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -483,7 +477,7 @@ export class AlphaRouter
           );
           break;
         default:
-          this.v3QuoteProvider = new OnChainQuoteProvider<V3Route>(
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
@@ -509,43 +503,6 @@ export class AlphaRouter
     this.v2PoolProvider =
       v2PoolProvider ?? new V2PoolProvider(chainId, this.multicall2Provider);
     this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
-
-    if (mixedRouteQuoteProvider) {
-      this.mixedRouteQuoteProvider = mixedRouteQuoteProvider;
-    } else {
-      switch (chainId) {
-        /// @dev We only explicitly support chains with V2 liquidity for mixedRoutes.
-        ///      so by default, mixedRouteQuoteProvider is undefined
-        case ChainId.RINKEBY:
-        case ChainId.ROPSTEN:
-        case ChainId.KOVAN:
-        case ChainId.GÖRLI:
-        case ChainId.MAINNET:
-          this.mixedRouteQuoteProvider = new OnChainQuoteProvider<MixedRoute>(
-            chainId,
-            provider,
-            this.multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 210,
-              gasLimitPerCall: 705_000,
-              quoteMinSuccessRate: 0.15,
-            },
-            {
-              gasLimitOverride: 2_000_000,
-              multicallChunk: 25,
-            },
-            undefined,
-            undefined,
-            true
-          );
-          break;
-      }
-    }
 
     this.blockedTokenListProvider =
       blockedTokenListProvider ??
@@ -1247,15 +1204,19 @@ export class AlphaRouter
     // For all our routes, and all the fractional amounts, fetch quotes on-chain.
     const quoteFn =
       swapType == TradeType.EXACT_INPUT
-        ? this.v3QuoteProvider.getQuotesManyExactIn.bind(this.v3QuoteProvider)
-        : this.v3QuoteProvider.getQuotesManyExactOut.bind(this.v3QuoteProvider);
+        ? this.onChainQuoteProvider.getQuotesManyExactIn.bind(
+            this.onChainQuoteProvider
+          )
+        : this.onChainQuoteProvider.getQuotesManyExactOut.bind(
+            this.onChainQuoteProvider
+          );
 
     const beforeQuotes = Date.now();
     log.info(
       `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
 
-    const { routesWithQuotes } = await quoteFn(amounts, routes, {
+    const { routesWithQuotes } = await quoteFn<V3Route>(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
 
@@ -1484,10 +1445,6 @@ export class AlphaRouter
   }> {
     log.info('Starting to get mixed quotes');
 
-    if (!this.mixedRouteQuoteProvider) {
-      throw new Error('Mixed route quote provider is not set');
-    }
-
     if (swapType != TradeType.EXACT_INPUT) {
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
@@ -1562,8 +1519,8 @@ export class AlphaRouter
     }
 
     // For all our routes, and all the fractional amounts, fetch quotes on-chain.
-    const quoteFn = this.mixedRouteQuoteProvider.getQuotesManyExactIn.bind(
-      this.mixedRouteQuoteProvider
+    const quoteFn = this.onChainQuoteProvider.getQuotesManyExactIn.bind(
+      this.onChainQuoteProvider
     );
 
     const beforeQuotes = Date.now();
@@ -1571,7 +1528,7 @@ export class AlphaRouter
       `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
 
-    const { routesWithQuotes } = await quoteFn(amounts, routes, {
+    const { routesWithQuotes } = await quoteFn<MixedRoute>(amounts, routes, {
       blockNumber: routingConfig.blockNumber,
     });
 

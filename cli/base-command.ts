@@ -36,7 +36,6 @@ import {
   TokenProvider,
   UniswapMulticallProvider,
   V3PoolProvider,
-  V3Route,
   V3RouteWithValidQuote,
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
@@ -254,7 +253,7 @@ export abstract class BaseCommand extends Command {
         chainId,
         multicall2Provider,
         poolProvider: new V3PoolProvider(chainId, multicall2Provider),
-        quoteProvider: new OnChainQuoteProvider<V3Route>(
+        quoteProvider: new OnChainQuoteProvider(
           chainId,
           provider,
           multicall2Provider

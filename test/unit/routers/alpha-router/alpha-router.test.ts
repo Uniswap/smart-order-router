@@ -85,14 +85,8 @@ describe.only('alpha router', () => {
 
   let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let mockV3SubgraphProvider: sinon.SinonStubbedInstance<V3SubgraphProvider>;
-  let mockV3QuoteProvider: sinon.SinonStubbedInstance<
-    OnChainQuoteProvider<V3Route>
-  >;
+  let mockOnChainQuoteProvider: sinon.SinonStubbedInstance<OnChainQuoteProvider>;
   let mockV3GasModelFactory: sinon.SinonStubbedInstance<V3HeuristicGasModelFactory>;
-
-  let mockMixedRouteQuoteProvider: sinon.SinonStubbedInstance<
-    OnChainQuoteProvider<MixedRoute>
-  >;
   let mockMixedRouteGasModelFactory: sinon.SinonStubbedInstance<MixedRouteHeuristicGasModelFactory>;
 
   let mockV2PoolProvider: sinon.SinonStubbedInstance<V2PoolProvider>;
@@ -211,11 +205,11 @@ describe.only('alpha router', () => {
     );
     mockV2SubgraphProvider.getPools.resolves(v2MockSubgraphPools);
 
-    mockV3QuoteProvider = sinon.createStubInstance(OnChainQuoteProvider);
-    mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
-      getQuotesManyExactInFn<V3Route>()
+    mockOnChainQuoteProvider = sinon.createStubInstance(OnChainQuoteProvider);
+    mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
+      getQuotesManyExactInFn<V3Route | V2Route | MixedRoute>()
     );
-    mockV3QuoteProvider.getQuotesManyExactOut.callsFake(
+    mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
       async (
         amountOuts: CurrencyAmount[],
         routes: V3Route[],
@@ -246,13 +240,6 @@ describe.only('alpha router', () => {
           blockNumber: BigNumber;
         };
       }
-    );
-
-    mockMixedRouteQuoteProvider =
-      sinon.createStubInstance(OnChainQuoteProvider);
-
-    mockMixedRouteQuoteProvider.getQuotesManyExactIn.callsFake(
-      getQuotesManyExactInFn<MixedRoute>()
     );
 
     mockV2QuoteProvider = sinon.createStubInstance(V2QuoteProvider);
@@ -386,7 +373,7 @@ describe.only('alpha router', () => {
       multicall2Provider: mockMulticallProvider as any,
       v3SubgraphProvider: mockV3SubgraphProvider,
       v3PoolProvider: mockV3PoolProvider,
-      v3QuoteProvider: mockV3QuoteProvider,
+      onChainQuoteProvider: mockOnChainQuoteProvider,
       tokenProvider: mockTokenProvider,
       gasPriceProvider: mockGasPriceProvider,
       v3GasModelFactory: mockV3GasModelFactory,
@@ -394,7 +381,6 @@ describe.only('alpha router', () => {
       v2GasModelFactory: mockV2GasModelFactory,
       v2PoolProvider: mockV2PoolProvider,
       v2QuoteProvider: mockV2QuoteProvider,
-      mixedRouteQuoteProvider: mockMixedRouteQuoteProvider,
       mixedRouteGasModelFactory: mockMixedRouteGasModelFactory,
       v2SubgraphProvider: mockV2SubgraphProvider,
       swapRouterProvider: mockSwapRouterProvider,
@@ -429,10 +415,10 @@ describe.only('alpha router', () => {
         }
       );
 
-      mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+      mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: V3Route[],
+          routes: (V3Route | V2Route | MixedRoute)[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -461,43 +447,6 @@ describe.only('alpha router', () => {
             blockNumber: mockBlockBN,
           } as {
             routesWithQuotes: RouteWithQuotes<V3Route>[];
-            blockNumber: BigNumber;
-          };
-        }
-      );
-
-      mockMixedRouteQuoteProvider.getQuotesManyExactIn.callsFake(
-        async (
-          amountIns: CurrencyAmount[],
-          routes: MixedRoute[],
-          _providerConfig?: ProviderConfig
-        ) => {
-          const routesWithQuotes = _.map(routes, (r, routeIdx) => {
-            const amountQuotes = _.map(amountIns, (amountIn, idx) => {
-              const quote =
-                idx == 1 && routeIdx == 1
-                  ? BigNumber.from(amountIn.quotient.toString()).mul(10)
-                  : BigNumber.from(amountIn.quotient.toString());
-              return {
-                amount: amountIn,
-                quote,
-                sqrtPriceX96AfterList: [
-                  BigNumber.from(1),
-                  BigNumber.from(1),
-                  BigNumber.from(1),
-                ],
-                initializedTicksCrossedList: [1],
-                gasEstimate: BigNumber.from(10000),
-              } as AmountQuote;
-            });
-            return [r, amountQuotes];
-          });
-
-          return {
-            routesWithQuotes: routesWithQuotes,
-            blockNumber: mockBlockBN,
-          } as {
-            routesWithQuotes: RouteWithQuotes<MixedRoute>[];
             blockNumber: BigNumber;
           };
         }
@@ -544,7 +493,7 @@ describe.only('alpha router', () => {
       ).toBeTruthy();
 
       sinon.assert.calledWith(
-        mockV3QuoteProvider.getQuotesManyExactIn,
+        mockOnChainQuoteProvider.getQuotesManyExactIn,
         sinon.match((value) => {
           return value instanceof Array && value.length == 4;
         }),
@@ -557,14 +506,6 @@ describe.only('alpha router', () => {
           return value instanceof Array && value.length == 4;
         }),
         sinon.match.array
-      );
-      sinon.assert.calledWith(
-        mockMixedRouteQuoteProvider.getQuotesManyExactIn,
-        sinon.match((value) => {
-          return value instanceof Array && value.length == 4;
-        }),
-        sinon.match.array,
-        sinon.match({ blockNumber: sinon.match.defined })
       );
 
       for (const r of swap!.route) {
@@ -643,10 +584,10 @@ describe.only('alpha router', () => {
         }
       );
 
-      mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+      mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: V3Route[],
+          routes: (V3Route | V2Route | MixedRoute)[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -715,7 +656,7 @@ describe.only('alpha router', () => {
       ).toBeTruthy();
 
       sinon.assert.calledWith(
-        mockV3QuoteProvider.getQuotesManyExactIn,
+        mockOnChainQuoteProvider.getQuotesManyExactIn,
         sinon.match((value) => {
           return value instanceof Array && value.length == 4;
         }),
@@ -823,7 +764,7 @@ describe.only('alpha router', () => {
       ).toBeTruthy();
 
       sinon.assert.calledWith(
-        mockV3QuoteProvider.getQuotesManyExactIn,
+        mockOnChainQuoteProvider.getQuotesManyExactIn,
         sinon.match((value) => {
           return value instanceof Array && value.length == 4;
         }),
@@ -959,7 +900,7 @@ describe.only('alpha router', () => {
       ).toBeTruthy();
 
       sinon.assert.calledWith(
-        mockV3QuoteProvider.getQuotesManyExactIn,
+        mockOnChainQuoteProvider.getQuotesManyExactIn,
         sinon.match((value) => {
           return value instanceof Array && value.length == 4;
         }),
@@ -1100,7 +1041,7 @@ describe.only('alpha router', () => {
         }
       );
 
-      mockV3QuoteProvider.getQuotesManyExactOut.callsFake(
+      mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
         async (
           amountIns: CurrencyAmount[],
           routes: V3Route[],
@@ -1169,7 +1110,7 @@ describe.only('alpha router', () => {
       ).toBeTruthy();
 
       sinon.assert.calledWith(
-        mockV3QuoteProvider.getQuotesManyExactOut,
+        mockOnChainQuoteProvider.getQuotesManyExactOut,
         sinon.match((value) => {
           return value instanceof Array && value.length == 4;
         }),
@@ -1251,7 +1192,7 @@ describe.only('alpha router', () => {
         })
       ).toBeTruthy();
       expect(
-        mockV3QuoteProvider.getQuotesManyExactOut.calledWith(
+        mockOnChainQuoteProvider.getQuotesManyExactOut.calledWith(
           sinon.match((value) => {
             return value instanceof Array && value.length == 4;
           }),
@@ -1376,7 +1317,7 @@ describe.only('alpha router', () => {
         })
       ).toBeTruthy();
       expect(
-        mockV3QuoteProvider.getQuotesManyExactOut.calledWith(
+        mockOnChainQuoteProvider.getQuotesManyExactOut.calledWith(
           sinon.match((value) => {
             return value instanceof Array && value.length == 4;
           }),
@@ -1759,17 +1700,17 @@ describe.only('alpha router', () => {
           }
         );
         // prompt many loops
-        mockV3QuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
+        mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
           getQuotesManyExactInFn({
             quoteMultiplier: new Fraction(1, 2),
           })
         );
-        mockV3QuoteProvider.getQuotesManyExactIn.onCall(2).callsFake(
+        mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(2).callsFake(
           getQuotesManyExactInFn({
             quoteMultiplier: new Fraction(1, 2),
           })
         );
-        mockV3QuoteProvider.getQuotesManyExactIn.onCall(4).callsFake(
+        mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(4).callsFake(
           getQuotesManyExactInFn({
             quoteMultiplier: new Fraction(1, 2),
           })
@@ -1823,7 +1764,7 @@ describe.only('alpha router', () => {
               } as { routesWithQuotes: V2RouteWithQuotes[] };
             }
           );
-          mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+          mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
             getQuotesManyExactInFn({
               quoteMultiplier: new Fraction(1, 2),
             })
@@ -1885,7 +1826,7 @@ describe.only('alpha router', () => {
           const sqrtTwoX96 = BigNumber.from(
             encodeSqrtRatioX96(2, 1).toString()
           );
-          mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+          mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
             getQuotesManyExactInFn({
               sqrtPriceX96AfterList: [sqrtTwoX96, sqrtTwoX96, sqrtTwoX96],
             })
@@ -1948,12 +1889,12 @@ describe.only('alpha router', () => {
           const sqrtFourX96 = BigNumber.from(
             encodeSqrtRatioX96(4, 1).toString()
           );
-          mockV3QuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
+          mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
             getQuotesManyExactInFn({
               sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96],
             })
           );
-          mockV3QuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(
+          mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(
             getQuotesManyExactInFn({
               sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96],
             })
@@ -2031,7 +1972,7 @@ describe.only('alpha router', () => {
               } as { routesWithQuotes: V2RouteWithQuotes[] };
             }
           );
-          mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+          mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
             getQuotesManyExactInFn({
               quoteMultiplier: new Fraction(1, 2),
             })
@@ -2094,7 +2035,7 @@ describe.only('alpha router', () => {
             const oneHalfX96 = BigNumber.from(
               encodeSqrtRatioX96(1, 2).toString()
             );
-            mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+            mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
               getQuotesManyExactInFn({
                 sqrtPriceX96AfterList: [oneHalfX96, oneHalfX96, oneHalfX96],
               })
@@ -2157,7 +2098,7 @@ describe.only('alpha router', () => {
             const oneHalfX96 = BigNumber.from(
               encodeSqrtRatioX96(1, 2).toString()
             );
-            mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+            mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
               getQuotesManyExactInFn({
                 sqrtPriceX96AfterList: [oneHalfX96, oneHalfX96, oneHalfX96],
               })
@@ -2198,7 +2139,7 @@ describe.only('alpha router', () => {
             const oneQuarterX96 = BigNumber.from(
               encodeSqrtRatioX96(1, 2).toString()
             );
-            mockV3QuoteProvider.getQuotesManyExactIn.callsFake(
+            mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
               getQuotesManyExactInFn({
                 sqrtPriceX96AfterList: [
                   oneQuarterX96,
@@ -2362,7 +2303,7 @@ type GetQuotesManyExactInFnParams = {
   sqrtPriceX96AfterList?: BigNumber[];
 };
 
-function getQuotesManyExactInFn<TRoute extends V3Route | MixedRoute>(
+function getQuotesManyExactInFn<TRoute extends V3Route | V2Route | MixedRoute>(
   options: GetQuotesManyExactInFnParams = {}
 ): (
   amountIns: CurrencyAmount[],
