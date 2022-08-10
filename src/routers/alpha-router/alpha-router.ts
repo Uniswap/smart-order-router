@@ -673,6 +673,8 @@ export class AlphaRouter
         {
           ...DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
           ...routingConfig,
+          /// @dev We do not want to query for mixedRoutes for routeToRatio as they are not supported
+          /// [Protocol.V3, Protocol.V2] will make sure we only query for V3 and V2
           protocols: [Protocol.V3, Protocol.V2],
         }
       );
