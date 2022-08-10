@@ -257,7 +257,7 @@ export async function calculateGasUsed(
     )[1];
   }
 
-  // add l2 fee and wrap fee to native currency
+  // add l2 to l1 fee and wrap fee to native currency
   const gasCostInWei = gasPriceWei.mul(simulatedGasUsed).add(l2toL1FeeInWei);
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
   const costNativeCurrency = getGasCostInNativeCurrency(
