@@ -37,6 +37,24 @@ export async function getBestSwapRoute(
 } | null> {
   const now = Date.now();
 
+  const { forceMixedRoutes } = routingConfig;
+
+  /// Like with forceCrossProtocol, we apply that logic here when determining the bestSwapRoute
+  if (forceMixedRoutes) {
+    log.info(
+      {
+        forceMixedRoutes: forceMixedRoutes,
+      },
+      'Forcing mixed routes by filtering out other route types'
+    );
+    routesWithValidQuotes = _.filter(routesWithValidQuotes, (quotes) => {
+      return quotes.protocol === Protocol.MIXED;
+    });
+    if (!routesWithValidQuotes) {
+      return null;
+    }
+  }
+
   // Build a map of percentage of the input to list of valid quotes.
   // Quotes can be null for a variety of reasons (not enough liquidity etc), so we drop them here too.
   const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
