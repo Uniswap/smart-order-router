@@ -945,7 +945,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe.only('external class tests', () => {
+describe('external class tests', () => {
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
