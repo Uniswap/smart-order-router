@@ -945,7 +945,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe('external class tests', () => {
+describe.only('external class tests', () => {
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
@@ -1022,18 +1022,7 @@ describe('external class tests', () => {
     const routes_v3_v2 = [v3Route, v2route];
     const routes_v3 = [v3Route, v3Route_2];
 
-    await expect(
-      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_mixed)
-    ).rejects.toThrow();
-
-    await expect(
-      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2_mixed)
-    ).rejects.toThrow();
-
-    await expect(
-      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2)
-    ).rejects.toThrow();
-
+    /// Should fail
     await expect(
       /// @dev so since we type the input argument, we can't really call it with a wrong configuration of routes
       /// however, we expect this to fail in case it is called somehow w/o type checking
@@ -1043,9 +1032,38 @@ describe('external class tests', () => {
       )
     ).rejects.toThrow();
 
-    /// should not throw
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(
+        amountOuts,
+        routes_v2_mixed as unknown as V3Route[]
+      )
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [
+        mixedRoute,
+      ] as unknown as V3Route[])
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [
+        v2route,
+      ] as unknown as V3Route[])
+    ).rejects.toThrow();
+
+    /// ExactIn passing tests
+    await onChainQuoteProvider.getQuotesManyExactIn(
+      amountIns,
+      routes_v3_v2_mixed
+    );
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_mixed);
     await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v2_mixed);
     await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v2route]);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [mixedRoute]);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v3Route]);
+    /// ExactOut passing tests
     await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, routes_v3);
   });
 });

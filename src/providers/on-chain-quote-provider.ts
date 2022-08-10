@@ -292,11 +292,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected quoterAddressOverride?: string
   ) {}
 
-  private getQuoterAddress(useQuoterV2: boolean): string {
+  private getQuoterAddress(isExactOutput: boolean): string {
     if (this.quoterAddressOverride) {
       return this.quoterAddressOverride;
     }
-    const quoterAddress = useQuoterV2
+    const quoterAddress = isExactOutput
       ? QUOTER_V2_ADDRESSES[this.chainId]
       : MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId];
 
@@ -353,10 +353,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     routesWithQuotes: RouteWithQuotes<TRoute>[];
     blockNumber: BigNumber;
   }> {
-    const useQuoterV2 = routes.every((route) => route.protocol === Protocol.V3);
-
     /// Validate that there are no incorrect routes / function combinations
-    this.validateRoutes(routes, functionName, useQuoterV2);
+    this.validateRoutes(routes, functionName);
 
     let multicallChunk = this.batchParams.multicallChunk;
     let gasLimitOverride = this.batchParams.gasLimitPerCall;
@@ -464,10 +462,13 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     [string, string],
                     [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
                   >({
-                    address: this.getQuoterAddress(useQuoterV2),
-                    contractInterface: useQuoterV2
-                      ? IQuoterV2__factory.createInterface()
-                      : IMixedRouteQuoterV1__factory.createInterface(),
+                    address: this.getQuoterAddress(
+                      functionName === 'quoteExactOutput'
+                    ),
+                    contractInterface:
+                      functionName === 'quoteExactOutput'
+                        ? IQuoterV2__factory.createInterface()
+                        : IMixedRouteQuoterV1__factory.createInterface(),
                     functionName,
                     functionParams: inputs,
                     providerConfig,
@@ -994,23 +995,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
    */
   protected validateRoutes(
     routes: (V3Route | V2Route | MixedRoute)[],
-    functionName: string,
-    useQuoterV2: boolean
+    functionName: string
   ) {
-    // we cannot have both V3 and MixedRoutes or V2Routes in the same call since they use different quoter contracts
+    /// We cannot call quoteExactOutput with V2 or Mixed routes
     if (
-      !useQuoterV2 &&
-      routes.some((route) => route.protocol === Protocol.V3)
+      functionName === 'quoteExactOutput' &&
+      (routes.some((route) => route.protocol === Protocol.V2) ||
+        routes.some((route) => route.protocol === Protocol.MIXED))
     ) {
-      throw new Error(
-        'Cannot have mix and match V3 on chain quotes with MixedRoutes and/or V2Routes'
-      );
-    }
-    // cannot make an exactOutput call with mixedRouteQuotes OR V2Route
-    if (!useQuoterV2 && functionName === 'quoteExactOutput') {
-      throw new Error(
-        'Cannot make an exactOutput call with MixedRoutes and/or V2Routes'
-      );
+      throw new Error('Cannot call quoteExactOutput with V2 or Mixed routes');
     }
   }
 }
