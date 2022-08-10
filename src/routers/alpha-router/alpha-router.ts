@@ -310,8 +310,8 @@ export type AlphaRouterConfig = {
    */
   forceCrossProtocol: boolean;
   /**
-   * Prevent the alpha router from considering mixedRoutes as a valid swap.
-   * Default will be falsy.
+   * Force the alpha router to choose a mixed route swap.
+   * Default will be falsy. It is only included for testing purposes.
    */
   forceMixedRoutes?: boolean;
   /**
