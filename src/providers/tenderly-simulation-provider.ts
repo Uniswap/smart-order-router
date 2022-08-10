@@ -88,9 +88,9 @@ export class FallbackTenderlySimulator implements ISimulator {
 
   private async ethEstimateGas(
     fromAddress: string,
-    route: SwapRoute,
+    route: SwapRoute
   ): Promise<{ approved: boolean; estimatedGasUsed: BigNumber }> {
-    const currencyIn = route.trade.inputAmount.currency
+    const currencyIn = route.trade.inputAmount.currency;
     // For erc20s, we must check if the token allowance is sufficient
     if (!currencyIn.isNative) {
       const tokenContract = Erc20__factory.connect(
@@ -102,9 +102,13 @@ export class FallbackTenderlySimulator implements ISimulator {
         SWAP_ROUTER_ADDRESS
       );
       // Check that token allowance is more than amountIn
-      const decimals = currencyIn.decimals
+      const decimals = currencyIn.decimals;
       if (
-        allowance.lt(BigNumber.from(route.trade.inputAmount.multiply(10 ** decimals).toFixed(0)))
+        allowance.lt(
+          BigNumber.from(
+            route.trade.inputAmount.multiply(10 ** decimals).toFixed(0)
+          )
+        )
       )
         return { approved: false, estimatedGasUsed: BigNumber.from(0) };
     }
@@ -117,14 +121,15 @@ export class FallbackTenderlySimulator implements ISimulator {
         'multicall(bytes[])'
       ]([route.methodParameters!.calldata], {
         from: fromAddress,
-        value: BigNumber.from(currencyIn.isNative
-          ? route.methodParameters!.value : '0')
+        value: BigNumber.from(
+          currencyIn.isNative ? route.methodParameters!.value : '0'
+        ),
       });
       return { approved: true, estimatedGasUsed: estimatedGasUsed };
     } catch (err) {
-        const msg = 'Error calling eth_estimateGas!';
-        log.info({ err: err }, msg);
-        throw new Error(msg);
+      const msg = 'Error calling eth_estimateGas!';
+      log.info({ err: err }, msg);
+      throw new Error(msg);
     }
   }
 
@@ -246,9 +251,7 @@ export class TenderlySimulator implements ISimulator {
       network_id: chainId,
       input: calldata,
       to: SWAP_ROUTER_ADDRESS,
-      value: currencyIn.isNative
-        ? swapRoute.methodParameters.value
-        : '0',
+      value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
       from: fromAddress,
       gasPrice: '0',
       gas: 30000000,

@@ -149,7 +149,7 @@ export function getGasCostInUSD(
   usdPool: Pool,
   costNativeCurrency: CurrencyAmount<Token>
 ) {
-  const nativeCurrency = costNativeCurrency.currency
+  const nativeCurrency = costNativeCurrency.currency;
   // convert fee into usd
   const nativeTokenPrice =
     usdPool.token0.address == nativeCurrency.address
@@ -174,7 +174,7 @@ export function getGasCostInNativeCurrency(
 
 export async function getGasCostInQuoteToken(
   quoteToken: Token,
-  nativePool: Pool|Pair,
+  nativePool: Pool | Pair,
   costNativeCurrency: CurrencyAmount<Token>
 ) {
   const nativeTokenPrice =
@@ -270,10 +270,7 @@ export async function calculateGasUsed(
     v3PoolProvider
   );
 
-  const gasCostUSD = await getGasCostInUSD(
-    usdPool,
-    costNativeCurrency
-  );
+  const gasCostUSD = await getGasCostInUSD(usdPool, costNativeCurrency);
 
   let gasCostQuoteToken = costNativeCurrency;
   // get fee in terms of quote token
@@ -290,11 +287,11 @@ export async function calculateGasUsed(
       );
       gasCostQuoteToken = CurrencyAmount.fromRawAmount(quoteToken, 0);
     } else {
-        gasCostQuoteToken = await getGasCostInQuoteToken(
-          quoteToken,
-          nativePool,
-          costNativeCurrency
-        );
+      gasCostQuoteToken = await getGasCostInQuoteToken(
+        quoteToken,
+        nativePool,
+        costNativeCurrency
+      );
     }
   }
 
