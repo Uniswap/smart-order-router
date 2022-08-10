@@ -292,6 +292,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected quoterAddressOverride?: string
   ) {}
 
+  /// Only exactIn quotes can use the new MixedRouteQuoterV1 contract
+  /// only exactOut V3 routes can use the new QuoterV2 contract
   private getQuoterAddress(isExactOutput: boolean): string {
     if (this.quoterAddressOverride) {
       return this.quoterAddressOverride;
@@ -991,7 +993,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
    * Throw an error for incorrect routes / function combinations
    * @param routes Any combination of V3, V2, and Mixed routes.
    * @param functionName
-   * @param useQuoterV2 Boolean indicating whether the QuoterV2 needs to be used (for pure V3)
    */
   protected validateRoutes(
     routes: (V3Route | V2Route | MixedRoute)[],
