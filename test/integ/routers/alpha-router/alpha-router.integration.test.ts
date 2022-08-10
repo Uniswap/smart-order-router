@@ -1065,6 +1065,7 @@ describe('external class tests', () => {
     await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v3Route]);
     /// ExactOut passing tests
     await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, routes_v3);
+    await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [v3Route]);
   });
 });
 
