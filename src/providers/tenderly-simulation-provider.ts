@@ -141,13 +141,10 @@ export class FallbackTenderlySimulator implements ISimulator {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
     const chainId: ChainId = tokenIn.chainId;
-    let approved = false;
-    let estimatedGasUsed: BigNumber;
-    // eslint-disable-next-line prefer-const
-    ({ approved, estimatedGasUsed } = await this.ethEstimateGas(
+    const { approved, estimatedGasUsed } = await this.ethEstimateGas(
       fromAddress,
       swapRoute
-    ));
+    );
 
     if (!approved) {
       try {
@@ -157,6 +154,7 @@ export class FallbackTenderlySimulator implements ISimulator {
           l2GasData
         );
       } catch (err) {
+        console.log(currencyIn, err);
         log.info({ err: err }, 'Failed to simulate via Tenderly!');
         // set error flag to true
         return { ...swapRoute, simulationError: true };
@@ -279,12 +277,10 @@ export class TenderlySimulator implements ISimulator {
 
     // Validate tenderly response body
     if (
-      !(
-        resp &&
-        resp.simulation_results.length == 2 &&
-        resp.simulation_results[1].transaction &&
-        !resp.simulation_results[1].transaction.error_message
-      )
+      !resp ||
+      resp.simulation_results.length < 2 ||
+      !resp.simulation_results[1].transaction ||
+      resp.simulation_results[1].transaction.error_message
     ) {
       const err = resp.simulation_results[1].transaction.error_message;
       log.info({ err: err }, `Failed to Simulate Via Tenderly!`);

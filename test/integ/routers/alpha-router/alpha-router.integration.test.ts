@@ -840,7 +840,7 @@ describe('alpha router integration', () => {
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
 
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
           
@@ -885,7 +885,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
@@ -931,7 +931,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           expect(route).not.toBeUndefined;
 
@@ -1022,7 +1022,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           expect(methodParameters).not.toBeUndefined();
 
@@ -1089,7 +1089,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           await validateExecuteSwap(
             quote,
@@ -1132,7 +1132,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           await validateExecuteSwap(
             quote,
@@ -1176,7 +1176,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           for (const r of route) {
             expect(r.protocol).toEqual('V3');
@@ -1226,7 +1226,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           for (const r of route) {
             expect(r.protocol).toEqual('V2');
@@ -1276,7 +1276,7 @@ describe('alpha router integration', () => {
 
           expect(quoteGasAdjusted.subtract(quote).equalTo(estimatedGasUsedQuoteToken))
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           let hasV3Pool = false;
           let hasV2Pool = false;
@@ -1475,7 +1475,7 @@ describe('quote for other networks', () => {
           const { simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           // Scope limited for non mainnet network tests to validating the swap
         });
@@ -1505,7 +1505,7 @@ describe('quote for other networks', () => {
           const { simulationError } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
         });
 
         let native = NATIVE_CURRENCY[chain];
@@ -1543,7 +1543,7 @@ describe('quote for other networks', () => {
               const { simulationError } = swap!;
     
               // Expect tenderly simulation to be successful
-              expect(simulationError).toBeFalsy;
+              expect(simulationError).toBeUndefined();
         });
         it(`has quoteGasAdjusted values`, async () => {
           const tokenIn = erc1;
@@ -1570,7 +1570,7 @@ describe('quote for other networks', () => {
           const { simulationError, quote, quoteGasAdjusted } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           if (tradeType == TradeType.EXACT_INPUT) {
             // === .lessThanOrEqualTo
@@ -1639,10 +1639,8 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { simulationError } = swap!;
-
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(swap!.simulationError).toBeUndefined();
 
           // Scope limited for non mainnet network tests to validating the swap
         });
@@ -1674,10 +1672,8 @@ describe('quote for other networks', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { simulationError } = swap!;
-
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(swap!.simulationError).toBeUndefined();
         });
 
         const native = NATIVE_CURRENCY[chain];
@@ -1708,10 +1704,8 @@ describe('quote for other networks', () => {
               expect(swap).toBeDefined();
               expect(swap).not.toBeNull();
     
-              const { simulationError } = swap!;
-    
               // Expect tenderly simulation to be successful
-              expect(simulationError).toBeFalsy;
+              expect(swap!.simulationError).toBeUndefined();
         });
         it(`has quoteGasAdjusted values`, async () => {
           const tokenIn = erc1;
@@ -1743,7 +1737,7 @@ describe('quote for other networks', () => {
           const { simulationError, quote, quoteGasAdjusted } = swap!;
 
           // Expect tenderly simulation to be successful
-          expect(simulationError).toBeFalsy;
+          expect(simulationError).toBeUndefined();
 
           if (tradeType == TradeType.EXACT_INPUT) {
             // === .lessThanOrEqualTo
