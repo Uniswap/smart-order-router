@@ -31,12 +31,6 @@
     "node": ">=10"
   },
   "dependencies": {
-    "@types/async-retry": "^1.4.2",
-    "@types/await-timeout": "^0.3.1",
-    "@types/bunyan": "^1.8.6",
-    "@types/bunyan-blackhole": "^0.2.2",
-    "@types/lodash": "^4.14.168",
-    "@types/stats-lite": "^2.2.0",
     "@uniswap/default-token-list": "^2.0.0",
     "@uniswap/router-sdk": "^1.2.0",
     "@uniswap/swap-router-contracts": "1.2.0",
@@ -57,6 +51,12 @@
     "stats-lite": "^2.2.0"
   },
   "devDependencies": {
+    "@types/async-retry": "^1.4.2",
+    "@types/await-timeout": "^0.3.1",
+    "@types/bunyan": "^1.8.6",
+    "@types/bunyan-blackhole": "^0.2.2",
+    "@types/lodash": "^4.14.168",
+    "@types/stats-lite": "^2.2.0",
     "@ethersproject/providers": "^5.4.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
