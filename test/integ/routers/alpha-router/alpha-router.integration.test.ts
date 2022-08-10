@@ -1024,6 +1024,16 @@ describe('external class tests', () => {
 
     /// Should fail
     await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2_mixed)
+    ).rejects.toThrow();
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2)
+    ).rejects.toThrow();
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_mixed)
+    ).rejects.toThrow();
+
+    await expect(
       /// @dev so since we type the input argument, we can't really call it with a wrong configuration of routes
       /// however, we expect this to fail in case it is called somehow w/o type checking
       onChainQuoteProvider.getQuotesManyExactOut(
@@ -1052,12 +1062,6 @@ describe('external class tests', () => {
     ).rejects.toThrow();
 
     /// ExactIn passing tests
-    await onChainQuoteProvider.getQuotesManyExactIn(
-      amountIns,
-      routes_v3_v2_mixed
-    );
-    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2);
-    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_mixed);
     await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v2_mixed);
     await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3);
     await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v2route]);
