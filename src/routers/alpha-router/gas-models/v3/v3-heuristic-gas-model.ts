@@ -15,6 +15,7 @@ import { CurrencyAmount } from '../../../../util/amounts';
 import {
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
+  getL2ToL1GasUsed,
 } from '../../../../util/gasCalc';
 import { log } from '../../../../util/log';
 import {
@@ -349,7 +350,7 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     // build trade for swap calldata
     const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
-    const l1GasUsed = this.getL2ToL1GasUsed(data, overhead);
+    const l1GasUsed = getL2ToL1GasUsed(data, overhead);
     // l1BaseFee is L1 Gas Price on etherscan
     const l1Fee = l1GasUsed.mul(l1BaseFee);
     const unscaled = l1Fee.mul(scalar);
@@ -381,29 +382,10 @@ export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
     const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
     const data = buildSwapMethodParameters(trade, swapConfig).calldata;
     // calculates gas amounts based on bytes of calldata, use 0 as overhead.
-    const l1GasUsed = this.getL2ToL1GasUsed(data, BigNumber.from(0));
+    const l1GasUsed = getL2ToL1GasUsed(data, BigNumber.from(0));
     // multiply by the fee per calldata and add the flat l2 fee
     let l1Fee = l1GasUsed.mul(perL1CalldataFee);
     l1Fee = l1Fee.add(perL2TxFee);
     return [l1GasUsed, l1Fee];
-  }
-
-  // based on the code from the optimism OVM_GasPriceOracle contract
-  private getL2ToL1GasUsed(data: string, overhead: BigNumber): BigNumber {
-    // data is hex encoded
-    const dataArr: string[] = data.slice(2).match(/.{1,2}/g)!;
-    const numBytes = dataArr.length;
-    let count = 0;
-    for (let i = 0; i < numBytes; i += 1) {
-      const byte = parseInt(dataArr[i]!, 16);
-      if (byte == 0) {
-        count += 4;
-      } else {
-        count += 16;
-      }
-    }
-    const unsigned = overhead.add(count);
-    const signedConversion = 68 * 16;
-    return unsigned.add(signedConversion);
   }
 }

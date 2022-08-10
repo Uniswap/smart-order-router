@@ -6,10 +6,8 @@ import { BigNumber } from 'ethers/lib/ethers';
 import { SwapRoute } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { ChainId, CurrencyAmount, log, SWAP_ROUTER_ADDRESS } from '../util';
-import {
-  APPROVE_TOKEN_FOR_TRANSFER,
-} from '../util/callData';
+import { ChainId, log, SWAP_ROUTER_ADDRESS } from '../util';
+import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import { calculateGasUsed, initSwapRouteFromExisting } from '../util/gasCalc';
 
 import { IV2PoolProvider } from './v2/pool-provider';
@@ -55,7 +53,7 @@ export interface ISimulator {
    */
   simulateTransaction: (
     fromAddress: string,
-    route: SwapRoute,
+    swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData
   ) => Promise<SwapRoute>;
 }
@@ -90,10 +88,9 @@ export class FallbackTenderlySimulator implements ISimulator {
 
   private async ethEstimateGas(
     fromAddress: string,
-    inputAmount: CurrencyAmount,
-    calldata: string
+    route: SwapRoute,
   ): Promise<{ approved: boolean; estimatedGasUsed: BigNumber }> {
-    const currencyIn = inputAmount.currency;
+    const currencyIn = route.trade.inputAmount.currency
     // For erc20s, we must check if the token allowance is sufficient
     if (!currencyIn.isNative) {
       const tokenContract = Erc20__factory.connect(
@@ -105,8 +102,9 @@ export class FallbackTenderlySimulator implements ISimulator {
         SWAP_ROUTER_ADDRESS
       );
       // Check that token allowance is more than amountIn
+      const decimals = currencyIn.decimals
       if (
-        allowance.lt(BigNumber.from(inputAmount.multiply(10 ** 18).toFixed(0)))
+        allowance.lt(BigNumber.from(route.trade.inputAmount.multiply(10 ** decimals).toFixed(0)))
       )
         return { approved: false, estimatedGasUsed: BigNumber.from(0) };
     }
@@ -117,15 +115,16 @@ export class FallbackTenderlySimulator implements ISimulator {
     try {
       const estimatedGasUsed: BigNumber = await router.estimateGas[
         'multicall(bytes[])'
-      ]([calldata], {
+      ]([route.methodParameters!.calldata], {
         from: fromAddress,
-        value: BigNumber.from(inputAmount.multiply(10 ** 18).toFixed(0)),
+        value: BigNumber.from(currencyIn.isNative
+          ? route.methodParameters!.value : '0')
       });
       return { approved: true, estimatedGasUsed: estimatedGasUsed };
     } catch (err) {
-      const msg = 'Error calling eth_estimateGas!';
-      log.info({ err: err }, msg);
-      throw new Error(msg);
+        const msg = 'Error calling eth_estimateGas!';
+        log.info({ err: err }, msg);
+        throw new Error(msg);
     }
   }
 
@@ -142,8 +141,7 @@ export class FallbackTenderlySimulator implements ISimulator {
     // eslint-disable-next-line prefer-const
     ({ approved, estimatedGasUsed } = await this.ethEstimateGas(
       fromAddress,
-      swapRoute.trade.inputAmount,
-      swapRoute.methodParameters!.calldata
+      swapRoute
     ));
 
     if (!approved) {
@@ -167,6 +165,7 @@ export class FallbackTenderlySimulator implements ISimulator {
       chainId,
       swapRoute,
       estimatedGasUsed,
+      this.v2PoolProvider,
       this.v3PoolProvider,
       l2GasData
     );
@@ -207,10 +206,10 @@ export class TenderlySimulator implements ISimulator {
 
   public async simulateTransaction(
     fromAddress: string,
-    route: SwapRoute,
+    swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData
   ): Promise<SwapRoute> {
-    const currencyIn = route.trade.inputAmount.currency;
+    const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
     const chainId = tokenIn.chainId;
     if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
@@ -219,13 +218,13 @@ export class TenderlySimulator implements ISimulator {
       throw new Error(msg);
     }
 
-    if (!route.methodParameters) {
+    if (!swapRoute.methodParameters) {
       throw new Error('No calldata provided to simulate transaction');
     }
-    const { calldata } = route.methodParameters;
+    const { calldata } = swapRoute.methodParameters;
     log.info(
       {
-        calldata: route.methodParameters.calldata,
+        calldata: swapRoute.methodParameters.calldata,
         fromAddress: fromAddress,
         chainId: chainId,
         tokenInAddress: tokenIn.address,
@@ -234,7 +233,7 @@ export class TenderlySimulator implements ISimulator {
     );
 
     const approve = {
-      network_id: tokenIn.chainId,
+      network_id: chainId,
       input: APPROVE_TOKEN_FOR_TRANSFER,
       to: tokenIn.address,
       value: '0',
@@ -248,7 +247,7 @@ export class TenderlySimulator implements ISimulator {
       input: calldata,
       to: SWAP_ROUTER_ADDRESS,
       value: currencyIn.isNative
-        ? BigNumber.from(route.methodParameters.value).toString()
+        ? swapRoute.methodParameters.value
         : '0',
       from: fromAddress,
       gasPrice: '0',
@@ -307,14 +306,14 @@ export class TenderlySimulator implements ISimulator {
       quoteGasAdjusted,
     } = await calculateGasUsed(
       chainId,
-      route,
+      swapRoute,
       estimatedGasUsed,
+      this.v2PoolProvider,
       this.v3PoolProvider,
       l2GasData
     );
-
     return initSwapRouteFromExisting(
-      route,
+      swapRoute,
       this.v2PoolProvider,
       this.v3PoolProvider,
       quoteGasAdjusted,

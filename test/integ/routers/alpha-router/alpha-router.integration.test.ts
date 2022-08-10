@@ -27,6 +27,7 @@ import {
   NATIVE_CURRENCY,
   parseAmount,
   SUPPORTED_CHAINS,
+  SWAP_ROUTER_ADDRESS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -54,7 +55,6 @@ import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-r
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { WHALES } from '../../../test-util/whales';
 
-const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
 
 const checkQuoteToken = (
@@ -122,14 +122,14 @@ describe('alpha router integration', () => {
     // because there is custom logic built in for handling USDT and other checks
     const tokenInBefore = await getBalanceAndApprove(
       alice,
-      SWAP_ROUTER_V2,
+      SWAP_ROUTER_ADDRESS,
       tokenIn
     );
     const tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
 
     const transaction = {
       data: methodParameters.calldata,
-      to: SWAP_ROUTER_V2,
+      to: SWAP_ROUTER_ADDRESS,
       value: BigNumber.from(methodParameters.value),
       from: alice._address,
       gasPrice: BigNumber.from(2000000000000),
