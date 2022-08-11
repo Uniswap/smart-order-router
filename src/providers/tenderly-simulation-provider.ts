@@ -154,7 +154,6 @@ export class FallbackTenderlySimulator implements ISimulator {
           l2GasData
         );
       } catch (err) {
-        console.log(currencyIn, err);
         log.info({ err: err }, 'Failed to simulate via Tenderly!');
         // set error flag to true
         return { ...swapRoute, simulationError: true };
