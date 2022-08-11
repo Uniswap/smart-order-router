@@ -914,7 +914,8 @@ export class AlphaRouter
       );
       /// @dev only add mixedRoutes in the case where no protocols were specified, and if TradeType is correct
       if (
-        tradeType == TradeType.EXACT_INPUT &&
+        tradeType === TradeType.EXACT_INPUT &&
+        (this.chainId === ChainId.MAINNET || this.chainId === ChainId.GÖRLI) &&
         /// The cases where protocols = [] and protocols = [V2, V3, MIXED]
         (protocolsSet.size == 0 || protocolsSet.has(Protocol.MIXED))
       ) {
@@ -973,7 +974,7 @@ export class AlphaRouter
       /// and tradeType === EXACT_INPUT
       if (
         protocolsSet.has(Protocol.MIXED) &&
-        V2_SUPPORTED.includes(this.chainId) &&
+        (this.chainId === ChainId.MAINNET || this.chainId === ChainId.GÖRLI) &&
         tradeType == TradeType.EXACT_INPUT
       ) {
         log.info(
