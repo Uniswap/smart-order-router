@@ -864,6 +864,7 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
+    /// TODO: parallelize this
     const v3gasModel = await this.v3GasModelFactory.buildGasModel({
       chainId: this.chainId,
       gasPriceWei,
