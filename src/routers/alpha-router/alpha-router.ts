@@ -864,24 +864,23 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
-    /// TODO: parallelize this
-    const v3gasModel = await this.v3GasModelFactory.buildGasModel({
-      chainId: this.chainId,
-      gasPriceWei,
-      v3poolProvider: this.v3PoolProvider,
-      token: quoteToken,
-      v2poolProvider: this.v2PoolProvider,
-      l2GasDataProvider: this.l2GasDataProvider,
-    });
-
-    const mixedRouteGasModel =
-      await this.mixedRouteGasModelFactory.buildGasModel({
+    const [v3gasModel, mixedRouteGasModel] = await Promise.all([
+      this.v3GasModelFactory.buildGasModel({
         chainId: this.chainId,
         gasPriceWei,
         v3poolProvider: this.v3PoolProvider,
         token: quoteToken,
         v2poolProvider: this.v2PoolProvider,
-      });
+        l2GasDataProvider: this.l2GasDataProvider,
+      }),
+      this.mixedRouteGasModelFactory.buildGasModel({
+        chainId: this.chainId,
+        gasPriceWei,
+        v3poolProvider: this.v3PoolProvider,
+        token: quoteToken,
+        v2poolProvider: this.v2PoolProvider,
+      }),
+    ]);
 
     if (
       (protocolsSet.size == 0 ||
