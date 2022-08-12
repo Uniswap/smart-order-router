@@ -2,7 +2,9 @@ import { Protocol } from '@uniswap/router-sdk';
 import { Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+import { CurrencyAmount } from '../../../util/amounts';
 
+import { BigNumber } from 'ethers';
 import {
   ITokenListProvider,
   IV2SubgraphProvider,
@@ -122,6 +124,7 @@ export type MixedRouteGetCandidatePoolsParams = {
   v3poolProvider: IV3PoolProvider;
   blockedTokenListProvider?: ITokenListProvider;
   chainId: ChainId;
+  amounts?: CurrencyAmount[];
 };
 
 const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
@@ -975,6 +978,7 @@ export async function getMixedRouteCandidatePools({
   v2poolProvider,
   blockedTokenListProvider,
   chainId,
+  amounts,
 }: MixedRouteGetCandidatePoolsParams): Promise<{
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
@@ -1027,7 +1031,7 @@ export async function getMixedRouteCandidatePools({
     ].map((poolId) => poolId.id)
   );
 
-  const V2topByTVLSortedPools = _(V2subgraphPools)
+  let V2topByTVLSortedPools = _(V2subgraphPools)
     .filter((pool) => V2topByTVLPoolIds.has(pool.id))
     .sortBy((pool) => -pool.reserveUSD)
     .value();
@@ -1036,6 +1040,18 @@ export async function getMixedRouteCandidatePools({
   const V3sortedPools = _(V3subgraphPools)
     .sortBy((pool) => -pool.tvlUSD)
     .value();
+
+  /// If we have the full amount
+  if (amounts && amounts[100]) {
+    /// Only consider V2 pools if amounts[100] (full amountIn) is of significant size compared to pool TVL
+    /// start out very conservative, let's do like 0.5%
+    const amountIn = amounts[100];
+    V2topByTVLSortedPools = V2topByTVLSortedPools.filter((pool) => {
+      return BigNumber.from(amountIn.toExact()).gt(
+        BigNumber.from(pool.reserveUSD * 0.005) // 0.5 / 100
+      );
+    });
+  }
 
   /// Finding pools with greater reserveUSD on v2 than tvlUSD on v3, or if there is no v3 liquidity
   const buildV2Pools: V2SubgraphPool[] = [];
