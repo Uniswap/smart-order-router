@@ -111,6 +111,17 @@ export function computeAllRoutes<
         ? curPool.token1
         : curPool.token0;
 
+      /// Filter out routes that repeat the same token
+      /// If this would be ultimatelynchosen as the best route, an arbitrage exists
+      /// It's unlikely a user of AutoRouter would find an open arbitrage opportunity
+      if (
+        _.flatten(
+          currentRoute.map((pool) => [pool.token0, pool.token1])
+        ).includes(currentTokenOut)
+      ) {
+        continue;
+      }
+
       currentRoute.push(curPool);
       poolsUsed[i] = true;
       computeRoutes(
