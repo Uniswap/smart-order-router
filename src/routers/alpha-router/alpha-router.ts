@@ -1470,35 +1470,62 @@ export class AlphaRouter
     });
 
     const V3poolsRaw = V3poolAccessor.getAllPools();
-    let V2poolsRaw = V2poolAccessor.getAllPools();
+    const V2poolsRaw = V2poolAccessor.getAllPools();
 
-    console.log('amount based heuristic');
-    console.log(V2poolsRaw);
-    /// Only consider V2 pools if amounts[100] (full amountIn) is of significant size compared to pool TVL
-    /// start out very conservative, let's do like 0.5%
-    const amountIn = amounts[amounts.length - 1]!;
-    console.log(
-      'V2poolsRaw pool.reserveOf(amountIn.currency.wrapped)',
-      V2poolsRaw.map((pool) =>
-        pool.reserveOf(amountIn.currency.wrapped).toExact()
-      )
-    );
-    console.log('amountIn', amountIn.toExact());
-    /// TODO: direct swap pool is usually 10_000 (does not exist) so we could remove that
-    V2poolsRaw = V2poolsRaw.filter((pool) => {
-      return pool.involvesToken(amountIn.currency.wrapped)
-        ? amountIn.greaterThan(
+    /// not just [Protocol.MIXED]
+    let chosenV2Pools: Pair[] = [];
+    if (
+      !routingConfig.forceMixedRoutes &&
+      routingConfig.protocols !== undefined &&
+      routingConfig.protocols.length > 1
+    ) {
+      /// Only consider V2 pools if amounts[100] (full amountIn) is of significant size compared to pool TVL
+      /// start out very conservative, let's do like 0.5%
+      const amountIn = amounts[amounts.length - 1]!;
+      /// TODO: direct swap pool is usually 10_000 (does not exist) so we could remove that
+      V2poolsRaw.forEach((pool) => {
+        if (
+          pool.involvesToken(amountIn.currency.wrapped) &&
+          amountIn.greaterThan(
             pool.reserveOf(amountIn.currency.wrapped).divide(2000) // 0.005%
           )
-        : true || pool.involvesToken(quoteToken)
-        ? amountIn.greaterThan(
+        ) {
+          log.info(
+            {
+              pool: pool.toString(),
+              amountIn: amountIn.toString(),
+              reserveAmountIn: pool
+                .reserveOf(amountIn.currency.wrapped)
+                .toString(),
+            },
+            'AmountHeuristic[AmountIn]: Considering V2 pool for mixed routes'
+          );
+          chosenV2Pools.push(pool);
+        }
+        if (
+          pool.involvesToken(quoteToken) &&
+          amountIn.greaterThan(
             pool.reserveOf(quoteToken).divide(2000) // 0.005%
           )
-        : true;
-    });
-    console.log(V2poolsRaw);
+        ) {
+          log.info(
+            {
+              pool: pool.toString(),
+              amountIn: amountIn.toString(),
+              reserveQuoteToken: pool.reserveOf(quoteToken).toString(),
+            },
+            'AmountHeuristic[AmountIn]: Considering V2 pool for mixed routes'
+          );
+          chosenV2Pools.push(pool);
+        }
+      });
+    }
 
-    const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
+    log.info(
+      `Chose ${chosenV2Pools.length} out of ${V2poolsRaw.length} V2 pools for mixed routes`
+    );
+
+    const poolsRaw = [...V3poolsRaw, ...chosenV2Pools];
 
     const candidatePools = mixedRouteCandidatePools;
 
