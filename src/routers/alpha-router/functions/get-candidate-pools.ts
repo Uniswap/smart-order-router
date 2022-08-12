@@ -1147,12 +1147,14 @@ export async function getMixedRouteCandidatePools({
 
   const V2tokenPairs = _.compact(V2tokenPairsRaw);
 
-  const V2poolAccessor = await v2poolProvider.getPools(V2tokenPairs, {
-    blockNumber,
-  });
-  const V3poolAccessor = await v3poolProvider.getPools(V3tokenPairs, {
-    blockNumber,
-  });
+  const [V2poolAccessor, V3poolAccessor] = await Promise.all([
+    v2poolProvider.getPools(V2tokenPairs, {
+      blockNumber,
+    }),
+    v3poolProvider.getPools(V3tokenPairs, {
+      blockNumber,
+    }),
+  ]);
 
   /// @dev a bit tricky here since the original V2CandidateSelections object included pools that we may have dropped
   /// as part of the heuristic. We need to reconstruct a new object with the v3 pools too.
