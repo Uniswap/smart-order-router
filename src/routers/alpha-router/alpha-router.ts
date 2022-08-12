@@ -1470,7 +1470,33 @@ export class AlphaRouter
     });
 
     const V3poolsRaw = V3poolAccessor.getAllPools();
-    const V2poolsRaw = V2poolAccessor.getAllPools();
+    let V2poolsRaw = V2poolAccessor.getAllPools();
+
+    console.log('amount based heuristic');
+    console.log(V2poolsRaw);
+    /// Only consider V2 pools if amounts[100] (full amountIn) is of significant size compared to pool TVL
+    /// start out very conservative, let's do like 0.5%
+    const amountIn = amounts[amounts.length - 1]!;
+    console.log(
+      'V2poolsRaw pool.reserveOf(amountIn.currency.wrapped)',
+      V2poolsRaw.map((pool) =>
+        pool.reserveOf(amountIn.currency.wrapped).toExact()
+      )
+    );
+    console.log('amountIn', amountIn.toExact());
+    /// TODO: direct swap pool is usually 10_000 (does not exist) so we could remove that
+    V2poolsRaw = V2poolsRaw.filter((pool) => {
+      return pool.involvesToken(amountIn.currency.wrapped)
+        ? amountIn.greaterThan(
+            pool.reserveOf(amountIn.currency.wrapped).divide(2000) // 0.005%
+          )
+        : true || pool.involvesToken(quoteToken)
+        ? amountIn.greaterThan(
+            pool.reserveOf(quoteToken).divide(2000) // 0.005%
+          )
+        : true;
+    });
+    console.log(V2poolsRaw);
 
     const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
 
