@@ -24,9 +24,14 @@ import {
   FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
+  MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
+<<<<<<< HEAD
   NodeJSCache,
+=======
+  OnChainQuoteProvider,
+>>>>>>> main
   parseAmount,
   SUPPORTED_CHAINS,
   SWAP_ROUTER_ADDRESS,
@@ -37,8 +42,14 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+<<<<<<< HEAD
   V2PoolProvider,
   V3PoolProvider,
+=======
+  V2Route,
+  V2_SUPPORTED,
+  V3Route,
+>>>>>>> main
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
@@ -48,9 +59,14 @@ import {
 import 'jest-environment-hardhat';
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
-
 import { Protocol } from '@uniswap/router-sdk';
-import { MethodParameters } from '@uniswap/v3-sdk';
+import { Pair } from '@uniswap/v2-sdk';
+import {
+  encodeSqrtRatioX96,
+  FeeAmount,
+  MethodParameters,
+  Pool,
+} from '@uniswap/v3-sdk';
 import { BigNumber, providers } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
@@ -246,14 +262,15 @@ describe('alpha router integration', () => {
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
         expect(
-          tokenInBefore.subtract(tokenInAfter).equalTo(
-            CurrencyAmount.fromRawAmount(
-              tokenIn,
-              /// @dev since we are passing in numbers, we need to expand to the correct decimal scale
-              expandDecimals(tokenIn, checkTokenInAmount)
+          tokenInBefore
+            .subtract(tokenInAfter)
+            .equalTo(
+              CurrencyAmount.fromRawAmount(
+                tokenIn,
+                expandDecimals(tokenIn, checkTokenInAmount)
+              )
             )
-          )
-        );
+        ).toBe(true);
       }
       checkQuoteToken(
         tokenOutBefore,
@@ -272,7 +289,7 @@ describe('alpha router integration', () => {
                 expandDecimals(tokenOut, checkTokenOutAmount)
               )
             )
-        );
+        ).toBe(true);
       }
       checkQuoteToken(
         tokenInBefore,
@@ -304,13 +321,20 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
+<<<<<<< HEAD
         WHALES(WETH9[1]), // WETH token
+=======
+        '0x06920c9fc643de77b99cb7670a944ad31eaaa260', // WETH whale
+>>>>>>> main
       ]
     );
 
     // alice should always have 10000 ETH
     const aliceEthBalance = await hardhat.provider.getBalance(alice._address);
-    expect(aliceEthBalance).toEqual(parseEther('10000'));
+    /// Since alice is deploying the QuoterV3 contract, expect to have slightly less than 10_000 ETH but not too little
+    expect(aliceEthBalance.toBigInt()).toBeGreaterThanOrEqual(
+      parseEther('9995').toBigInt()
+    );
     const aliceUSDCBalance = await hardhat.getBalance(
       alice._address,
       USDC_MAINNET
@@ -530,6 +554,7 @@ describe('alpha router integration', () => {
         });
 
         it(`eth -> erc20`, async () => {
+          /// Fails for v3 for some reason, ProviderGasError
           const tokenIn = Ether.onChain(1) as Currency;
           const tokenOut = UNI_MAINNET;
           const amount =
@@ -820,11 +845,368 @@ describe('alpha router integration', () => {
         });
       });
 
+<<<<<<< HEAD
       describe(`+ Simulate on Tenderly fork + Execute on Hardhat fork`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
+=======
+      it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount =
+          tradeType == TradeType.EXACT_INPUT
+            ? parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+        const swap = await alphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+          }
+        );
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const { quote, quoteGasAdjusted } = swap!;
+
+        await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+      });
+
+      it(`erc20 -> erc20 gas price specified`, async () => {
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount =
+          tradeType == TradeType.EXACT_INPUT
+            ? parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+        const gasPriceWeiBN = BigNumber.from(60000000000);
+        const gasPriceProvider = new StaticGasPriceProvider(gasPriceWeiBN);
+        // Create a new AlphaRouter with the new gas price provider
+        const customAlphaRouter: AlphaRouter = new AlphaRouter({
+          chainId: 1,
+          provider: hardhat.providers[0]!,
+          multicall2Provider,
+          gasPriceProvider,
+        });
+
+        const swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+          }
+        );
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const { quote, quoteGasAdjusted, gasPriceWei } = swap!;
+
+        expect(gasPriceWei.eq(BigNumber.from(60000000000))).toBe(true);
+
+        await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+      });
+    });
+  }
+
+  describe('Mixed routes', () => {
+    const tradeType = TradeType.EXACT_INPUT;
+
+    const BOND_MAINNET = new Token(
+      1,
+      '0x0391D2021f89DC339F60Fff84546EA23E337750f',
+      18,
+      'BOND',
+      'BOND'
+    );
+
+    const APE_MAINNET = new Token(
+      1,
+      '0x4d224452801aced8b2f0aebe155379bb5d594381',
+      18,
+      'APE',
+      'APE'
+    );
+
+    beforeAll(async () => {
+      await hardhat.fund(
+        alice._address,
+        [parseAmount('10000', BOND_MAINNET)],
+        [
+          '0xf510dde022a655e7e3189cdf67687e7ffcd80d91', // BOND token whale
+        ]
+      );
+      const aliceBONDBalance = await hardhat.getBalance(
+        alice._address,
+        BOND_MAINNET
+      );
+      expect(aliceBONDBalance).toEqual(parseAmount('10000', BOND_MAINNET));
+    });
+
+    describe(`exactIn mixedPath routes`, () => {
+      describe('+ simulate swap', () => {
+        it('BOND -> APE', async () => {
+          const tokenIn = BOND_MAINNET;
+          const tokenOut = APE_MAINNET;
+
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadline: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+              forceMixedRoutes: true,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+          expect(route.length).toEqual(1);
+          expect(route[0]!.protocol).toEqual(Protocol.MIXED);
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            10000
+          );
+        });
+      });
+    });
+  });
+});
+
+describe('external class tests', () => {
+  const multicall2Provider = new UniswapMulticallProvider(
+    ChainId.MAINNET,
+    hardhat.provider
+  );
+  const onChainQuoteProvider = new OnChainQuoteProvider(
+    1,
+    hardhat.provider,
+    multicall2Provider
+  );
+
+  const token0 = new Token(
+    1,
+    '0x0000000000000000000000000000000000000001',
+    18,
+    't0',
+    'token0'
+  );
+  const token1 = new Token(
+    1,
+    '0x0000000000000000000000000000000000000002',
+    18,
+    't1',
+    'token1'
+  );
+  const token2 = new Token(
+    1,
+    '0x0000000000000000000000000000000000000003',
+    18,
+    't2',
+    'token2'
+  );
+
+  const pool_0_1 = new Pool(
+    token0,
+    token1,
+    FeeAmount.MEDIUM,
+    encodeSqrtRatioX96(1, 1),
+    0,
+    0,
+    []
+  );
+
+  const pool_1_2 = new Pool(
+    token1,
+    token2,
+    FeeAmount.MEDIUM,
+    encodeSqrtRatioX96(1, 1),
+    0,
+    0,
+    []
+  );
+
+  const pair_0_1 = new Pair(
+    CurrencyAmount.fromRawAmount(token0, 100),
+    CurrencyAmount.fromRawAmount(token1, 100)
+  );
+
+  it('Prevents incorrect routes array configurations', async () => {
+    const amountIns = [
+      CurrencyAmount.fromRawAmount(token0, 1),
+      CurrencyAmount.fromRawAmount(token0, 2),
+    ];
+    const amountOuts = [
+      CurrencyAmount.fromRawAmount(token1, 1),
+      CurrencyAmount.fromRawAmount(token1, 2),
+    ];
+    const v3Route = new V3Route([pool_0_1], token0, token1);
+    const v3Route_2 = new V3Route([pool_0_1, pool_1_2], token0, token2);
+    const v2route = new V2Route([pair_0_1], token0, token1);
+    const mixedRoute = new MixedRoute([pool_0_1], token0, token1);
+    const routes_v3_mixed = [v3Route, mixedRoute];
+    const routes_v2_mixed = [v2route, mixedRoute];
+    const routes_v3_v2_mixed = [v3Route, v2route, mixedRoute];
+    const routes_v3_v2 = [v3Route, v2route];
+    const routes_v3 = [v3Route, v3Route_2];
+
+    /// Should fail
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2_mixed)
+    ).rejects.toThrow();
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2)
+    ).rejects.toThrow();
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_mixed)
+    ).rejects.toThrow();
+
+    await expect(
+      /// @dev so since we type the input argument, we can't really call it with a wrong configuration of routes
+      /// however, we expect this to fail in case it is called somehow w/o type checking
+      onChainQuoteProvider.getQuotesManyExactOut(
+        amountOuts,
+        routes_v3_v2_mixed as unknown as V3Route[]
+      )
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(
+        amountOuts,
+        routes_v2_mixed as unknown as V3Route[]
+      )
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [
+        mixedRoute,
+      ] as unknown as V3Route[])
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [
+        v2route,
+      ] as unknown as V3Route[])
+    ).rejects.toThrow();
+
+    /// ExactIn passing tests
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v2_mixed);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v2route]);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [mixedRoute]);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v3Route]);
+    /// ExactOut passing tests
+    await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, routes_v3);
+    await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [v3Route]);
+  });
+});
+
+describe('quote for other networks', () => {
+  const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
+    [ChainId.MAINNET]: USDC_ON(1),
+    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
+    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
+    [ChainId.GÖRLI]: UNI_GÖRLI,
+    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
+    [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
+    [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: CUSD_CELO,
+    [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: WBTC_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
+  };
+  const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
+    [ChainId.MAINNET]: DAI_ON(1),
+    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
+    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
+    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
+    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
+    [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
+    [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: CEUR_CELO,
+    [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
+  };
+
+  // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
+  for (const chain of _.filter(
+    SUPPORTED_CHAINS,
+    (c) =>
+      c != ChainId.OPTIMISTIC_KOVAN &&
+      c != ChainId.POLYGON_MUMBAI &&
+      c != ChainId.ARBITRUM_RINKEBY &&
+      c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
+      // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
+      c != ChainId.CELO_ALFAJORES
+  )) {
+    for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+      const erc1 = TEST_ERC20_1[chain];
+      const erc2 = TEST_ERC20_2[chain];
+
+      describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
+        // Help with test flakiness by retrying.
+        jest.retryTimes(1);
+
+        const wrappedNative = WNATIVE_ON(chain);
+
+        let alphaRouter: AlphaRouter;
+
+        const chainProvider = ID_TO_PROVIDER(chain);
+        const provider = new JsonRpcProvider(chainProvider, chain);
+        const multicall2Provider = new UniswapMulticallProvider(
+          chain,
+          provider
+        );
+
+        beforeAll(async () => {
+          alphaRouter = new AlphaRouter({
+            chainId: chain,
+            provider,
+            multicall2Provider,
+          });
+        });
+
+        it(`${wrappedNative.symbol} -> erc20`, async () => {
+          const tokenIn = wrappedNative;
+          const tokenOut = erc1;
+>>>>>>> main
           const amount =
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('100', tokenIn)
@@ -914,10 +1296,16 @@ describe('alpha router integration', () => {
           );
         });
 
+<<<<<<< HEAD
         it(`erc20 -> eth large trade`, async () => {
           // Trade of this size almost always results in splits.
           const tokenIn = USDC_MAINNET;
           const tokenOut = Ether.onChain(1) as Currency;
+=======
+        it(`has quoteGasAdjusted values`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+>>>>>>> main
           const amount =
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('1000000', tokenIn)
@@ -1765,6 +2153,53 @@ describe('quote for other networks', () => {
             expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
           }
         });
+
+        it(`does not error when protocols array is empty`, async () => {
+          const tokenIn = erc1;
+          const tokenOut = erc2;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            undefined,
+            {
+              // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+              ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              protocols: [],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+        });
+
+        if (!V2_SUPPORTED.includes(chain)) {
+          it(`is null when considering MIXED on non supported chains for exactInput & exactOutput`, async () => {
+            const tokenIn = erc1;
+            const tokenOut = erc2;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: [Protocol.MIXED],
+              }
+            );
+            expect(swap).toBeNull();
+          });
+        }
       });
     }
   }

@@ -1,15 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { Percent, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import {
   ArbitrumGasData,
-  IL2GasDataProvider,
   OptimismGasData,
 } from '../../../../providers/v3/gas-data-provider';
-import { IV3PoolProvider } from '../../../../providers/v3/pool-provider';
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
@@ -23,12 +21,18 @@ import {
   buildTrade,
 } from '../../../../util/methodParameters';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import { IGasModel, IV3GasModelFactory } from '../gas-model';
+import {
+  BuildOnChainGasModelFactoryType,
+  IGasModel,
+  IOnChainGasModelFactory,
+} from '../gas-model';
 
-import { BASE_SWAP_COST, COST_PER_HOP, COST_PER_INIT_TICK } from './gas-costs';
-
-// Cost for crossing an uninitialized tick.
-const COST_PER_UNINIT_TICK = BigNumber.from(0);
+import {
+  BASE_SWAP_COST,
+  COST_PER_HOP,
+  COST_PER_INIT_TICK,
+  COST_PER_UNINIT_TICK,
+} from './gas-costs';
 
 /**
  * Computes a gas estimate for a V3 swap using heuristics.
@@ -48,21 +52,20 @@ const COST_PER_UNINIT_TICK = BigNumber.from(0);
  * @export
  * @class V3HeuristicGasModelFactory
  */
-export class V3HeuristicGasModelFactory extends IV3GasModelFactory {
+export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
   constructor() {
     super();
   }
 
-  public async buildGasModel(
-    chainId: ChainId,
-    gasPriceWei: BigNumber,
-    poolProvider: IV3PoolProvider,
-    token: Token,
-    l2GasDataProvider?:
-      | IL2GasDataProvider<ArbitrumGasData>
-      | IL2GasDataProvider<OptimismGasData>
-    // this is the quoteToken
-  ): Promise<IGasModel<V3RouteWithValidQuote>> {
+  public async buildGasModel({
+    chainId,
+    gasPriceWei,
+    v3poolProvider: poolProvider,
+    token,
+    l2GasDataProvider,
+  }: BuildOnChainGasModelFactoryType): Promise<
+    IGasModel<V3RouteWithValidQuote>
+  > {
     const l2GasData = l2GasDataProvider
       ? await l2GasDataProvider.getGasData()
       : undefined;

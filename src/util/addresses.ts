@@ -24,6 +24,15 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
+export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
+  /// TODO: change this once we deploy
+  [ChainId.MAINNET]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
+  [ChainId.RINKEBY]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
+  [ChainId.KOVAN]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
+  [ChainId.ROPSTEN]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
+  [ChainId.GÖRLI]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
+};
+
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
   [ChainId.CELO]: CELO_MULTICALL_ADDRESS,
@@ -43,7 +52,7 @@ export const SWAP_ROUTER_ADDRESS = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 export const V3_MIGRATOR_ADDRESS = '0xA5644E29708357803b5A882D272c41cC0dF92B34';
 export const MULTICALL2_ADDRESS = '0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696';
 
-type AddressMap = { [chainId: number]: string };
+export type AddressMap = { [chainId: number]: string };
 
 export function constructSameAddressMap<T extends string>(
   address: T,
