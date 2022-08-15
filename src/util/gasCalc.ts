@@ -12,6 +12,7 @@ import {
 } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
+  MixedRouteWithValidQuote,
   SwapRoute,
   usdGasTokensByChain,
   V2RouteWithValidQuote,
@@ -326,9 +327,10 @@ export function initSwapRouteFromExisting(
   const tradeType = swapRoute.trade.tradeType.valueOf()
     ? TradeType.EXACT_OUTPUT
     : TradeType.EXACT_INPUT;
-  const routesWithValidQuote = swapRoute.route.map((route) =>
-    route.protocol == Protocol.V3
-      ? new V3RouteWithValidQuote({
+  const routesWithValidQuote = swapRoute.route.map((route) => {
+    switch (route.protocol) {
+      case Protocol.V3:
+        return new V3RouteWithValidQuote({
           amount: CurrencyAmount.fromFractionalAmount(
             route.amount.currency,
             route.amount.numerator,
@@ -352,8 +354,9 @@ export function initSwapRouteFromExisting(
           ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
-        })
-      : new V2RouteWithValidQuote({
+        });
+      case Protocol.V2:
+        return new V2RouteWithValidQuote({
           amount: CurrencyAmount.fromFractionalAmount(
             route.amount.currency,
             route.amount.numerator,
@@ -372,8 +375,36 @@ export function initSwapRouteFromExisting(
           ),
           tradeType: tradeType,
           v2PoolProvider: v2PoolProvider,
-        })
-  );
+        });
+      case Protocol.MIXED:
+        return new MixedRouteWithValidQuote({
+          amount: CurrencyAmount.fromFractionalAmount(
+            route.amount.currency,
+            route.amount.numerator,
+            route.amount.denominator
+          ),
+          rawQuote: BigNumber.from(route.rawQuote),
+          sqrtPriceX96AfterList: route.sqrtPriceX96AfterList.map((num) =>
+            BigNumber.from(num)
+          ),
+          initializedTicksCrossedList: [...route.initializedTicksCrossedList],
+          quoterGasEstimate: BigNumber.from(route.gasEstimate),
+          percent: route.percent,
+          route: route.route,
+          mixedRouteGasModel: route.gasModel,
+          v2PoolProvider,
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
+          tradeType: tradeType,
+          v3PoolProvider: v3PoolProvider,
+        });
+    }
+  });
   const trade = buildTrade<typeof tradeType>(
     currencyIn,
     currencyOut,

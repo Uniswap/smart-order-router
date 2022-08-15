@@ -1109,6 +1109,8 @@ export class AlphaRouter
           ? await this.l2GasDataProvider!.getGasData()
           : undefined
       );
+      console.log(swapRouteWithSimulation.estimatedGasUsed.toNumber());
+      console.log(swapRouteWithSimulation.simulationError);
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
