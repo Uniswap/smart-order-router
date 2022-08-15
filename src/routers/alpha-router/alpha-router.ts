@@ -323,9 +323,6 @@ export class AlphaRouter
     IRouter<AlphaRouterConfig>,
     ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
 {
-  v2PoolProvider: IV2PoolProvider;
-  v3PoolProvider: IV3PoolProvider;
-  simulator?: ISimulator;
   protected chainId: ChainId;
   protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
@@ -338,11 +335,14 @@ export class AlphaRouter
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IV3GasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
+  protected v2PoolProvider: IV2PoolProvider;
+  protected v3PoolProvider: IV3PoolProvider;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
+  protected simulator?: ISimulator;
 
   constructor({
     chainId,
@@ -1023,12 +1023,18 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
+      const beforeSimulate = Date.now();
       const swapRouteWithSimulation = await this.simulator.simulateTransaction(
         swapConfig.simulate.fromAddress,
         swapRoute,
         this.l2GasDataProvider
           ? await this.l2GasDataProvider!.getGasData()
           : undefined
+      );
+      metric.putMetric(
+        'SimulateTransaction',
+        Date.now() - beforeSimulate,
+        MetricLoggerUnit.Milliseconds
       );
       return swapRouteWithSimulation;
     }

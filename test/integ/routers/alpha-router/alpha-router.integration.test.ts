@@ -13,6 +13,7 @@ import {
 import {
   AlphaRouter,
   AlphaRouterConfig,
+  CachingV3PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
   ChainId,
@@ -25,6 +26,7 @@ import {
   ID_TO_PROVIDER,
   nativeOnChain,
   NATIVE_CURRENCY,
+  NodeJSCache,
   parseAmount,
   SUPPORTED_CHAINS,
   SWAP_ROUTER_ADDRESS,
@@ -35,6 +37,8 @@ import {
   USDC_MAINNET,
   USDC_ON,
   USDT_MAINNET,
+  V2PoolProvider,
+  V3PoolProvider,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
@@ -54,6 +58,7 @@ import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-pri
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { WHALES } from '../../../test-util/whales';
+import NodeCache from 'node-cache';
 
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
 
@@ -331,14 +336,22 @@ describe('alpha router integration', () => {
       UNI_MAINNET
     );
     expect(aliceUNIBalance).toEqual(parseAmount('1000', UNI_MAINNET));
+    const v3PoolProvider = new CachingV3PoolProvider(
+      ChainId.MAINNET,
+      new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
+      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+    );
+    const v2PoolProvider = new V2PoolProvider(ChainId.MAINNET, multicall2Provider);
 
+    const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, hardhat.providers[0]!,v2PoolProvider, v3PoolProvider)
     alphaRouter = new AlphaRouter({
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
       multicall2Provider,
+      v2PoolProvider,
+      v3PoolProvider,
+      simulator
     });
-    const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, hardhat.providers[0]!, alphaRouter.v2PoolProvider, alphaRouter.v3PoolProvider)
-    alphaRouter.simulator = simulator
   });
 
   /**
@@ -1446,8 +1459,6 @@ describe('quote for other networks', () => {
             multicall2Provider,
             
           });
-          const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider, alphaRouter.v2PoolProvider, alphaRouter.v3PoolProvider)
-          alphaRouter.simulator = simulator
         });
 
         it(`${wrappedNative.symbol} -> erc20`, async () => {
@@ -1603,13 +1614,20 @@ describe('quote for other networks', () => {
         );
 
         beforeAll(async () => {
+          const v3PoolProvider = new CachingV3PoolProvider(
+            ChainId.MAINNET,
+            new V3PoolProvider(chain, multicall2Provider),
+            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+          );
+          const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider);
+          const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider, v2PoolProvider, v3PoolProvider)
           alphaRouter = new AlphaRouter({
             chainId: chain,
             provider,
             multicall2Provider,
+            v2PoolProvider,
+            simulator
           });
-          const simulator = new FallbackTenderlySimulator(process.env.TENDERLY_BASE_URL!, process.env.TENDERLY_USER!, process.env.TENDERLY_PROJECT!, process.env.TENDERLY_ACCESS_KEY!, provider, alphaRouter.v2PoolProvider, alphaRouter.v3PoolProvider)
-          alphaRouter.simulator = simulator
         });
 
         it(`${wrappedNative.symbol} -> erc20`, async () => {

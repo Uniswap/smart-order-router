@@ -6,7 +6,7 @@ import { BigNumber } from 'ethers/lib/ethers';
 import { SwapRoute } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { ChainId, log, SWAP_ROUTER_ADDRESS } from '../util';
+import { ChainId, CurrencyAmount, log, SWAP_ROUTER_ADDRESS } from '../util';
 import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import { calculateGasUsed, initSwapRouteFromExisting } from '../util/gasCalc';
 
@@ -14,18 +14,18 @@ import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
 
-type simulationResult = {
+type SimulationResult = {
   transaction: { hash: string; gas_used: number; error_message: string };
   simulation: { state_overrides: Record<string, unknown> };
 };
 
-export type tenderlyResponse = {
+export type TenderlyResponse = {
   config: {
     url: string;
     method: string;
     data: string;
   };
-  simulation_results: [simulationResult, simulationResult];
+  simulation_results: [SimulationResult, SimulationResult];
 };
 
 const TENDERLY_BATCH_SIMULATE_API = (
@@ -45,11 +45,9 @@ const ESTIMATE_MULTIPLIER = 1.25;
  * @interface ISimulator
  */
 export interface ISimulator {
-  v2PoolProvider: IV2PoolProvider;
-  v3PoolProvider: IV3PoolProvider;
   /**
-   * Returns a new Swaproute with updated gas estimates
-   * @returns number or Error
+   * Returns a new SwapRoute with updated gas estimates
+   * @returns SwapRoute
    */
   simulateTransaction: (
     fromAddress: string,
@@ -57,6 +55,23 @@ export interface ISimulator {
     l2GasData?: OptimismGasData | ArbitrumGasData
   ) => Promise<SwapRoute>;
 }
+
+const checkTokenApproved = async (
+  fromAddress: string,
+  inputAmount: CurrencyAmount,
+  provider: JsonRpcProvider
+): Promise<boolean> => {
+  const tokenContract = Erc20__factory.connect(
+    inputAmount.currency.wrapped.address,
+    provider
+  );
+  const allowance = await tokenContract.allowance(
+    fromAddress,
+    SWAP_ROUTER_ADDRESS
+  );
+  // Return false if token allowance is less than input amount
+  return allowance.gt(BigNumber.from(inputAmount.quotient.toString()));
+};
 
 export class FallbackTenderlySimulator implements ISimulator {
   private provider: JsonRpcProvider;
@@ -88,91 +103,36 @@ export class FallbackTenderlySimulator implements ISimulator {
 
   private async ethEstimateGas(
     fromAddress: string,
-    route: SwapRoute
-  ): Promise<{ approved: boolean; estimatedGasUsed: BigNumber }> {
+    route: SwapRoute,
+    l2GasData?: ArbitrumGasData | OptimismGasData
+  ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
-    // For erc20s, we must check if the token allowance is sufficient
-    if (!currencyIn.isNative) {
-      const tokenContract = Erc20__factory.connect(
-        currencyIn.address,
-        this.provider
-      );
-      const allowance = await tokenContract.allowance(
-        fromAddress,
-        SWAP_ROUTER_ADDRESS
-      );
-      // Check that token allowance is more than amountIn
-      const decimals = currencyIn.decimals;
-      if (
-        allowance.lt(
-          BigNumber.from(
-            route.trade.inputAmount.multiply(10 ** decimals).toFixed(0)
-          )
-        )
-      )
-        return { approved: false, estimatedGasUsed: BigNumber.from(0) };
-    }
     const router = SwapRouter02__factory.connect(
       SWAP_ROUTER_ADDRESS,
       this.provider
     );
-    try {
-      const estimatedGasUsed: BigNumber = await router.estimateGas[
-        'multicall(bytes[])'
-      ]([route.methodParameters!.calldata], {
-        from: fromAddress,
-        value: BigNumber.from(
-          currencyIn.isNative ? route.methodParameters!.value : '0'
-        ),
-      });
-      return { approved: true, estimatedGasUsed: estimatedGasUsed };
-    } catch (err) {
-      const msg = 'Error calling eth_estimateGas!';
-      log.info({ err: err }, msg);
-      throw new Error(msg);
-    }
-  }
-
-  public async simulateTransaction(
-    fromAddress: string,
-    swapRoute: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData
-  ): Promise<SwapRoute> {
-    const currencyIn = swapRoute.trade.inputAmount.currency;
-    const tokenIn = currencyIn.wrapped;
-    const chainId: ChainId = tokenIn.chainId;
-    const { approved, estimatedGasUsed } = await this.ethEstimateGas(
-      fromAddress,
-      swapRoute
-    );
-
-    if (!approved) {
-      try {
-        return await this.tenderlySimulator.simulateTransaction(
-          fromAddress,
-          swapRoute,
-          l2GasData
-        );
-      } catch (err) {
-        log.info({ err: err }, 'Failed to simulate via Tenderly!');
-        // set error flag to true
-        return { ...swapRoute, simulationError: true };
-      }
-    }
+    const estimatedGasUsed: BigNumber = await router.estimateGas[
+      'multicall(bytes[])'
+    ]([route.methodParameters!.calldata], {
+      from: fromAddress,
+      value: BigNumber.from(
+        currencyIn.isNative ? route.methodParameters!.value : '0'
+      ),
+    });
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
       quoteGasAdjusted,
     } = await calculateGasUsed(
-      chainId,
-      swapRoute,
+      route.quote.currency.chainId,
+      route,
       estimatedGasUsed,
       this.v2PoolProvider,
       this.v3PoolProvider,
       l2GasData
     );
     return initSwapRouteFromExisting(
-      swapRoute,
+      route,
       this.v2PoolProvider,
       this.v3PoolProvider,
       quoteGasAdjusted,
@@ -180,6 +140,45 @@ export class FallbackTenderlySimulator implements ISimulator {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD
     );
+  }
+
+  public async simulateTransaction(
+    fromAddress: string,
+    swapRoute: SwapRoute,
+    l2GasData?: ArbitrumGasData | OptimismGasData
+  ): Promise<SwapRoute> {
+    // Make call to eth estimate gas if possible
+    // For erc20s, we must check if the token allowance is sufficient
+    const inputAmount = swapRoute.trade.inputAmount;
+    if (
+      inputAmount.currency.isNative ||
+      (await checkTokenApproved(fromAddress, inputAmount, this.provider))
+    ) {
+      try {
+        const swapRouteWithGasEstimate = await this.ethEstimateGas(
+          fromAddress,
+          swapRoute,
+          l2GasData
+        );
+        return swapRouteWithGasEstimate;
+      } catch (err) {
+        log.info({ err: err }, 'Error calling eth estimate gas!');
+        return { ...swapRoute, simulationError: false };
+      }
+    }
+    // simulate via tenderly
+    try {
+      return await this.tenderlySimulator.simulateTransaction(
+        fromAddress,
+        swapRoute,
+        l2GasData
+      );
+    } catch (err) {
+      console.log(err);
+      log.info({ err: err }, 'Failed to simulate via Tenderly!');
+      // set error flag to true
+      return { ...swapRoute, simulationError: true };
+    }
   }
 }
 export class TenderlySimulator implements ISimulator {
@@ -266,13 +265,7 @@ export class TenderlySimulator implements ISimulator {
       this.tenderlyUser,
       this.tenderlyProject
     );
-    let resp: tenderlyResponse;
-    try {
-      resp = (await axios.post<tenderlyResponse>(url, body, opts)).data;
-    } catch (err) {
-      log.info({ err: err }, `Failed to Simulate Via Tenderly!`);
-      throw err;
-    }
+    const resp = (await axios.post<TenderlyResponse>(url, body, opts)).data;
 
     // Validate tenderly response body
     if (
@@ -281,9 +274,12 @@ export class TenderlySimulator implements ISimulator {
       !resp.simulation_results[1].transaction ||
       resp.simulation_results[1].transaction.error_message
     ) {
-      const err = resp.simulation_results[1].transaction.error_message;
-      log.info({ err: err }, `Failed to Simulate Via Tenderly!`);
-      throw new Error(err);
+      const msg = `Failed to Simulate Via Tenderly!: ${resp.simulation_results[1].transaction.error_message}`;
+      log.info(
+        { err: resp.simulation_results[1].transaction.error_message },
+        msg
+      );
+      throw new Error(msg);
     }
 
     log.info(
