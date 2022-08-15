@@ -72,7 +72,7 @@ const checkTokenApproved = async (
     fromAddress,
     SWAP_ROUTER_ADDRESS
   );
-  // Return false if token allowance is less than input amount
+  // Return true if token allowance is greater than input amount
   return allowance.gt(BigNumber.from(inputAmount.quotient.toString()));
 };
 
@@ -89,16 +89,19 @@ export class FallbackTenderlySimulator implements ISimulator {
     tenderlyAccessKey: string,
     provider: JsonRpcProvider,
     v2PoolProvider: IV2PoolProvider,
-    v3PoolProvider: IV3PoolProvider
+    v3PoolProvider: IV3PoolProvider,
+    tenderlySimulator?: TenderlySimulator
   ) {
-    this.tenderlySimulator = new TenderlySimulator(
-      tenderlyBaseUrl,
-      tenderlyUser,
-      tenderlyProject,
-      tenderlyAccessKey,
-      v2PoolProvider,
-      v3PoolProvider
-    );
+    this.tenderlySimulator =
+      tenderlySimulator ??
+      new TenderlySimulator(
+        tenderlyBaseUrl,
+        tenderlyUser,
+        tenderlyProject,
+        tenderlyAccessKey,
+        v2PoolProvider,
+        v3PoolProvider
+      );
     this.provider = provider;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
@@ -177,7 +180,6 @@ export class FallbackTenderlySimulator implements ISimulator {
         l2GasData
       );
     } catch (err) {
-      console.log(err);
       log.info({ err: err }, 'Failed to simulate via Tenderly!');
       // set error flag to true
       return { ...swapRoute, simulationError: true };
