@@ -14,7 +14,7 @@ import {
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
   getL2ToL1GasUsed,
-} from '../../../../util/gasCalc';
+} from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
 import {
   buildSwapMethodParameters,

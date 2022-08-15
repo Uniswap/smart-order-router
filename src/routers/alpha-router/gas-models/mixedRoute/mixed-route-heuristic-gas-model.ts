@@ -3,6 +3,7 @@ import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
+
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { ChainId, log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
@@ -108,7 +109,6 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
     const nativeV3Pool: Pool | null = await getHighestLiquidityV3NativePool(
-      chainId,
       token,
       V3poolProvider
     );
@@ -116,7 +116,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     let nativeV2Pool: Pair | null;
     if (V2poolProvider) {
       /// MixedRoutes
-      nativeV2Pool = await getV2NativePool(chainId, token, V2poolProvider);
+      nativeV2Pool = await getV2NativePool(token, V2poolProvider);
     }
 
     const usdToken =

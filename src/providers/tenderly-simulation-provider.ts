@@ -8,7 +8,10 @@ import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
 import { ChainId, CurrencyAmount, log, SWAP_ROUTER_ADDRESS } from '../util';
 import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
-import { calculateGasUsed, initSwapRouteFromExisting } from '../util/gasCalc';
+import {
+  calculateGasUsed,
+  initSwapRouteFromExisting,
+} from '../util/gas-factory-helpers';
 
 import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
