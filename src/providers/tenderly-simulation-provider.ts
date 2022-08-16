@@ -168,6 +168,7 @@ export class FallbackTenderlySimulator implements ISimulator {
         );
         return swapRouteWithGasEstimate;
       } catch (err) {
+        console.log(inputAmount.currency, err)
         log.info({ err: err }, 'Error calling eth estimate gas!');
         return { ...swapRoute, simulationError: false };
       }
@@ -191,8 +192,8 @@ export class TenderlySimulator implements ISimulator {
   private tenderlyUser: string;
   private tenderlyProject: string;
   private tenderlyAccessKey: string;
-  v2PoolProvider: IV2PoolProvider;
-  v3PoolProvider: IV3PoolProvider;
+  private v2PoolProvider: IV2PoolProvider;
+  private v3PoolProvider: IV3PoolProvider;
 
   constructor(
     tenderlyBaseUrl: string,
