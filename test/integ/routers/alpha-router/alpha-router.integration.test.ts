@@ -2,7 +2,7 @@
  * @jest-environment hardhat
  */
 
- import {
+import {
   Currency,
   CurrencyAmount,
   Ether,
@@ -409,7 +409,7 @@ describe('alpha router integration', () => {
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
     
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -448,7 +448,7 @@ describe('alpha router integration', () => {
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
     
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -534,7 +534,7 @@ describe('alpha router integration', () => {
               ? BigNumber.from(quote.quotient.toString())
               : BigNumber.from(amount.quotient.toString());
           expect(amountOut).toEqual(amountOutEdgesTotal);
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -634,7 +634,7 @@ describe('alpha router integration', () => {
           expect(swap).not.toBeNull();
     
           const { quote, methodParameters } = swap!;
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -671,7 +671,7 @@ describe('alpha router integration', () => {
           expect(swap).not.toBeNull();
     
           const { quote, methodParameters } = swap!;
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -717,7 +717,7 @@ describe('alpha router integration', () => {
           }
     
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -763,7 +763,7 @@ describe('alpha router integration', () => {
           }
     
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -818,7 +818,7 @@ describe('alpha router integration', () => {
           expect(hasV3Pool && hasV2Pool).toBe(true);
     
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
-    
+
           await validateExecuteSwap(
             quote,
             tokenIn,
@@ -860,7 +860,7 @@ describe('alpha router integration', () => {
 
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
 
-          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10)
 
           await validateExecuteSwap(
             quote,
