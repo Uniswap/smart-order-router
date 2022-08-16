@@ -830,7 +830,7 @@ describe('alpha router integration', () => {
           );
         });
       });
-      describe(`+ Simulate on Tenderly fork + Execute on Hardhat fork`, () => {
+      describe(`+ Simulate on Tenderly + Execute on Hardhat fork`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
