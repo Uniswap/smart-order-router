@@ -168,7 +168,6 @@ export class FallbackTenderlySimulator implements ISimulator {
         );
         return swapRouteWithGasEstimate;
       } catch (err) {
-        console.log(inputAmount.currency, err)
         log.info({ err: err }, 'Error calling eth estimate gas!');
         return { ...swapRoute, simulationError: false };
       }
