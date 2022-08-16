@@ -428,7 +428,7 @@ describe('alpha router integration', () => {
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('1000000', tokenIn)
               : parseAmount('10', tokenOut);
-    
+
           const swap = await alphaRouter.route(
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -444,9 +444,9 @@ describe('alpha router integration', () => {
           );
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
-    
+
           const { quote, quoteGasAdjusted, methodParameters } = swap!;
-    
+
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
           await validateExecuteSwap(
@@ -467,7 +467,7 @@ describe('alpha router integration', () => {
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('1000000', tokenIn)
               : parseAmount('100', tokenOut);
-    
+
           const swap = await alphaRouter.route(
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -774,7 +774,7 @@ describe('alpha router integration', () => {
             100
           );
         });
-    
+
         it('erc20 -> erc20 forceCrossProtocol', async () => {
           const tokenIn = USDC_MAINNET;
           const tokenOut = USDT_MAINNET;
