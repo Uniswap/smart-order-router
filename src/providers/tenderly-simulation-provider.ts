@@ -51,7 +51,7 @@ export interface ISimulator {
   /**
    * Returns a new SwapRoute with updated gas estimates
    * All clients that implement this interface must set
-   * simulationFailure = true in the returned SwapRoute
+   * simulationError = true in the returned SwapRoute
    * if simulation is not successful
    * @returns SwapRoute
    */
