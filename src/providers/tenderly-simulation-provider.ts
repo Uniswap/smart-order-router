@@ -82,8 +82,8 @@ const checkTokenApproved = async (
 export class FallbackTenderlySimulator implements ISimulator {
   private provider: JsonRpcProvider;
   private tenderlySimulator: TenderlySimulator;
-  v3PoolProvider: IV3PoolProvider;
-  v2PoolProvider: IV2PoolProvider;
+  private v3PoolProvider: IV3PoolProvider;
+  private v2PoolProvider: IV2PoolProvider;
 
   constructor(
     tenderlyBaseUrl: string,
