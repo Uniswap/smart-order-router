@@ -249,17 +249,6 @@ describe('alpha router integration', () => {
       await executeSwap(methodParameters!, tokenIn, tokenOut!, estimatedGasUsed);
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
-        if(tokenIn.equals(nativeOnChain(1))) {
-          console.log(tokenIn, tokenInBefore.toFixed(3), tokenInAfter.toFixed(3), checkTokenInAmount, estimatedGasUsed)
-          console.log(tokenInBefore
-            .subtract(tokenInAfter)
-            .equalTo(
-              CurrencyAmount.fromRawAmount(
-                tokenIn,
-                expandDecimals(tokenIn, checkTokenInAmount)
-              )
-            ))
-        }
         expect(
           tokenInBefore
             .subtract(tokenInAfter)

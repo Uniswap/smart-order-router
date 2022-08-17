@@ -50,6 +50,8 @@ const ESTIMATE_MULTIPLIER = 1.25;
 export interface ISimulator {
   /**
    * Returns a new SwapRoute with updated gas estimates
+   * All clients that implement this interface must set
+   * simulationFailure = true in the returned SwapRoute object
    * @returns SwapRoute
    */
   simulateTransaction: (
@@ -169,7 +171,7 @@ export class FallbackTenderlySimulator implements ISimulator {
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error calling eth estimate gas!');
-        return { ...swapRoute, simulationError: false };
+        return { ...swapRoute, simulationError: true };
       }
     }
     // simulate via tenderly
@@ -221,7 +223,7 @@ export class TenderlySimulator implements ISimulator {
     if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
       const msg = 'Celo not supported by Tenderly!';
       log.info(msg);
-      throw new Error(msg);
+      return { ...swapRoute, simulationError: true };
     }
 
     if (!swapRoute.methodParameters) {
@@ -284,7 +286,7 @@ export class TenderlySimulator implements ISimulator {
         { err: resp.simulation_results[1].transaction.error_message },
         msg
       );
-      throw new Error(msg);
+      return { ...swapRoute, simulationError: true };
     }
 
     log.info(
