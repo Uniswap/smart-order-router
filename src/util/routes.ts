@@ -4,9 +4,10 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import { CurrencyAmount } from '.';
 import { RouteWithValidQuote } from '../routers/alpha-router';
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
+
+import { CurrencyAmount } from '.';
 
 export const routeToString = (
   route: V3Route | V2Route | MixedRoute

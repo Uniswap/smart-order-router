@@ -21,6 +21,7 @@ import {
   GasPrice,
   ID_TO_CHAIN_ID,
   ID_TO_PROVIDER,
+  ID_TO_NETWORK_NAME,
   IRouter,
   ISwapToRatio,
   ITokenProvider,
@@ -207,11 +208,14 @@ export abstract class BaseCommand extends Command {
       setGlobalLogger(this.logger);
     }
 
-    const metricLogger: MetricLogger = new MetricLogger();
-    setGlobalMetric(metricLogger);
-
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainProvider = ID_TO_PROVIDER(chainId);
+
+    const metricLogger: MetricLogger = new MetricLogger({ 
+      chainId: chainIdNumb, 
+      networkName: ID_TO_NETWORK_NAME(chainId) 
+    });
+    setGlobalMetric(metricLogger);
 
     const provider = new JsonRpcProvider(chainProvider, chainId);
     this._blockNumber = await provider.getBlockNumber();
