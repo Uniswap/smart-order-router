@@ -26,6 +26,7 @@ import {
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
+  ISimulator,
   ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
@@ -225,6 +226,11 @@ export type AlphaRouterParams = {
    * Calls the arbitrum gas data contract to fetch constants for calculating the l1 fee.
    */
   arbitrumGasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
+
+  /**
+   * Simulates swaps and returns new SwapRoute with updated gas estimates
+   */
+  simulator?: ISimulator;
 };
 
 /**
@@ -338,8 +344,8 @@ export class AlphaRouter
   protected v3PoolProvider: IV3PoolProvider;
   protected onChainQuoteProvider: IOnChainQuoteProvider;
   protected v2SubgraphProvider: IV2SubgraphProvider;
-  protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
+  protected v2PoolProvider: IV2PoolProvider;
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected swapRouterProvider: ISwapRouterProvider;
@@ -351,6 +357,7 @@ export class AlphaRouter
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
+  protected simulator?: ISimulator;
 
   constructor({
     chainId,
@@ -372,6 +379,7 @@ export class AlphaRouter
     optimismGasDataProvider,
     tokenValidatorProvider,
     arbitrumGasDataProvider,
+    simulator,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -385,6 +393,7 @@ export class AlphaRouter
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
+    this.simulator = simulator;
 
     if (onChainQuoteProvider) {
       this.onChainQuoteProvider = onChainQuoteProvider;
@@ -1071,7 +1080,7 @@ export class AlphaRouter
 
     this.emitPoolSelectionMetrics(swapRouteRaw, allCandidatePools);
 
-    return {
+    const swapRoute: SwapRoute = {
       quote,
       quoteGasAdjusted,
       estimatedGasUsed,
@@ -1083,6 +1092,32 @@ export class AlphaRouter
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
     };
+    if (
+      swapConfig &&
+      swapConfig.simulate &&
+      methodParameters &&
+      methodParameters.calldata
+    ) {
+      if (!this.simulator) {
+        throw new Error('Simulator not initialized!');
+      }
+      const beforeSimulate = Date.now();
+      const swapRouteWithSimulation = await this.simulator.simulateTransaction(
+        swapConfig.simulate.fromAddress,
+        swapRoute,
+        this.l2GasDataProvider
+          ? await this.l2GasDataProvider!.getGasData()
+          : undefined
+      );
+      metric.putMetric(
+        'SimulateTransaction',
+        Date.now() - beforeSimulate,
+        MetricLoggerUnit.Milliseconds
+      );
+      return swapRouteWithSimulation;
+    }
+
+    return swapRoute;
   }
 
   private async applyTokenValidatorToPools<T extends Pool | Pair>(

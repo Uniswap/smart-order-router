@@ -2,7 +2,7 @@ import { ApprovalTypes } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
 
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { log } from '../util';
+import { log, SWAP_ROUTER_ADDRESS } from '../util';
 
 import { IMulticallProvider } from './multicall-provider';
 
@@ -10,8 +10,6 @@ type TokenApprovalTypes = {
   approvalTokenIn: ApprovalTypes;
   approvalTokenOut: ApprovalTypes;
 };
-
-const SWAP_ROUTER_ADDRESS = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 
 /**
  * Provider for accessing the SwapRouter02 Contract .

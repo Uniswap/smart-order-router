@@ -80,6 +80,10 @@ export type SwapRoute = {
    * The calldata to execute the swap. Only returned if swapConfig was provided when calling the router.
    */
   methodParameters?: MethodParameters;
+  /**
+   * Flag that is true if and only if simulation is requested and simulation fails
+   */
+  simulationError?: boolean;
 };
 
 export type SwapToRatioRoute = SwapRoute & {
@@ -116,6 +120,7 @@ export type SwapOptions = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
+  simulate?: { fromAddress: string };
   inputTokenPermit?: {
     v: 0 | 1 | 27 | 28;
     r: string;

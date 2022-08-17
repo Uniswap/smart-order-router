@@ -15,6 +15,7 @@ import {
   CurrencyAmount,
   DAI_MAINNET as DAI,
   ETHGasStationInfoProvider,
+  FallbackTenderlySimulator,
   MixedRoute,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
@@ -98,6 +99,8 @@ describe.only('alpha router', () => {
 
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
   let mockTokenValidatorProvider: sinon.SinonStubbedInstance<TokenValidatorProvider>;
+
+  let mockFallbackTenderlySimulator: sinon.SinonStubbedInstance<FallbackTenderlySimulator>;
 
   let alphaRouter: AlphaRouter;
 
@@ -367,6 +370,9 @@ describe.only('alpha router', () => {
       getValidationByToken: () => TokenValidationResult.UNKN,
     });
 
+    mockFallbackTenderlySimulator = sinon.createStubInstance(FallbackTenderlySimulator)
+    mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_fromAddress, route)=>route)
+
     alphaRouter = new AlphaRouter({
       chainId: 1,
       provider: mockProvider,
@@ -385,6 +391,7 @@ describe.only('alpha router', () => {
       v2SubgraphProvider: mockV2SubgraphProvider,
       swapRouterProvider: mockSwapRouterProvider,
       tokenValidatorProvider: mockTokenValidatorProvider,
+      simulator: mockFallbackTenderlySimulator
     });
   });
 
@@ -1843,11 +1850,12 @@ describe.only('alpha router', () => {
       sinon.assert.notCalled(mockOnChainQuoteProvider.getQuotesManyExactOut);
     });
 
-    test('succeeds to route and generates calldata on v3 only', async () => {
+    test('succeeds to route and generates calldata on v3 only and simulates', async () => {
       const swapParams = {
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
+        simulate: {fromAddress: '0x63946551716781C32f0269F87DC08521818b6292'}
       };
 
       const swap = await alphaRouter.route(
@@ -1855,10 +1863,11 @@ describe.only('alpha router', () => {
         USDC,
         TradeType.EXACT_OUTPUT,
         swapParams,
-        { ...ROUTING_CONFIG, protocols: [Protocol.V3] }
+        { ...ROUTING_CONFIG, protocols: [Protocol.V3] },
       );
 
       expect(swap).toBeDefined();
+      expect(mockFallbackTenderlySimulator.simulateTransaction.called).toBeTruthy()
 
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
