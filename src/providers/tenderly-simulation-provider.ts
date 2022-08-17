@@ -51,7 +51,8 @@ export interface ISimulator {
   /**
    * Returns a new SwapRoute with updated gas estimates
    * All clients that implement this interface must set
-   * simulationFailure = true in the returned SwapRoute object
+   * simulationFailure = true in the returned SwapRoute
+   * if simulation is not successful
    * @returns SwapRoute
    */
   simulateTransaction: (
@@ -227,7 +228,9 @@ export class TenderlySimulator implements ISimulator {
     }
 
     if (!swapRoute.methodParameters) {
-      throw new Error('No calldata provided to simulate transaction');
+      const msg = 'No calldata provided to simulate transaction'
+      log.info(msg)
+      throw new Error(msg);
     }
     const { calldata } = swapRoute.methodParameters;
     log.info(
