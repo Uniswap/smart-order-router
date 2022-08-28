@@ -1,4 +1,6 @@
-import { log, setGlobalLogger } from './log';
+import Logger from 'bunyan';
+
+import { log } from './log';
 
 export enum MetricLoggerUnit {
   Seconds = 'Seconds',
@@ -35,17 +37,25 @@ export abstract class IMetric {
   abstract putMetric(key: string, value: number, unit?: MetricLoggerUnit): void;
 }
 
+interface MetricContext {
+  chainId: number;
+  networkName: string;
+}
+
 export class MetricLogger extends IMetric {
-  constructor() {
+  private log: Logger;
+
+  constructor(context?: MetricContext) {
     super();
+    this.log = log.child(context || {});
   }
 
   public putDimensions(dimensions: Record<string, string>): void {
-    setGlobalLogger(log.child(dimensions));
+    this.log = this.log.child(dimensions);
   }
 
   public putMetric(key: string, value: number, unit?: MetricLoggerUnit): void {
-    log.info(
+    this.log.info(
       { key, value, unit },
       `[Metric]: ${key}: ${value} | ${unit ? unit : ''}`
     );
