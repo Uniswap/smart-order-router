@@ -1,6 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
-
 import { ChainId, NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
 const CELO_V3_CORE_FACTORY_ADDRESSES =
@@ -28,7 +27,7 @@ export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
   [ChainId.MAINNET]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
   [ChainId.RINKEBY]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
   [ChainId.ROPSTEN]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
-  [ChainId.GÖRLI]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
+  [ChainId.GÖRLI]: '0xBa60b6e6fF25488308789E6e0A65D838be34194e',
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
