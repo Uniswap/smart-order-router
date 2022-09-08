@@ -873,23 +873,23 @@ export class AlphaRouter
 
     const protocolsSet = new Set(protocols ?? []);
 
-    const v3gasModel = await this.v3GasModelFactory.buildGasModel({
-      chainId: this.chainId,
-      gasPriceWei,
-      v3poolProvider: this.v3PoolProvider,
-      token: quoteToken,
-      v2poolProvider: this.v2PoolProvider,
-      l2GasDataProvider: this.l2GasDataProvider,
-    });
-
-    const mixedRouteGasModel =
-      await this.mixedRouteGasModelFactory.buildGasModel({
+    const [v3gasModel, mixedRouteGasModel] = await Promise.all([
+      this.v3GasModelFactory.buildGasModel({
         chainId: this.chainId,
         gasPriceWei,
         v3poolProvider: this.v3PoolProvider,
         token: quoteToken,
         v2poolProvider: this.v2PoolProvider,
-      });
+        l2GasDataProvider: this.l2GasDataProvider,
+      }),
+      this.mixedRouteGasModelFactory.buildGasModel({
+        chainId: this.chainId,
+        gasPriceWei,
+        v3poolProvider: this.v3PoolProvider,
+        token: quoteToken,
+        v2poolProvider: this.v2PoolProvider,
+      }),
+    ]);
 
     if (
       (protocolsSet.size == 0 ||
@@ -923,7 +923,8 @@ export class AlphaRouter
       );
       /// @dev only add mixedRoutes in the case where no protocols were specified, and if TradeType is correct
       if (
-        tradeType == TradeType.EXACT_INPUT &&
+        tradeType === TradeType.EXACT_INPUT &&
+        (this.chainId === ChainId.MAINNET || this.chainId === ChainId.GÖRLI) &&
         /// The cases where protocols = [] and protocols = [V2, V3, MIXED]
         (protocolsSet.size == 0 || protocolsSet.has(Protocol.MIXED))
       ) {
@@ -982,7 +983,7 @@ export class AlphaRouter
       /// and tradeType === EXACT_INPUT
       if (
         protocolsSet.has(Protocol.MIXED) &&
-        V2_SUPPORTED.includes(this.chainId) &&
+        (this.chainId === ChainId.MAINNET || this.chainId === ChainId.GÖRLI) &&
         tradeType == TradeType.EXACT_INPUT
       ) {
         log.info(
