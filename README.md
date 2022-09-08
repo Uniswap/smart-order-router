@@ -22,6 +22,19 @@ Make sure the `.env` file is configured to connect to mainnet and other chains. 
 npm run integ-test
 ```
 
+### Tenderly Simulations
+
+Quotes can be simulated on Tenderly
+
+Ensure you set the following environment variables:
+
+```
+process.env.TENDERLY_BASE_URL!,
+process.env.TENDERLY_USER!,
+process.env.TENDERLY_PROJECT!,
+process.env.TENDERLY_ACCESS_KEY!,
+```
+
 ### CLI
 
 The package can be run as a CLI for testing purposes.
@@ -35,13 +48,18 @@ JSON_RPC_PROVIDER = '<JSON_RPC_PROVIDER>'
 To run on chains other than mainnet set up a connection by specifying the environment variable
 
 ```
-JSON_RPC_PROVIDER_{CHAIN} = '<JSON_RPC_PROVIDER>'
-```
-
-For example, specifying a provider for Optimism :
-
-```
+JSON_RPC_PROVIDER_ROPSTEN = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_RINKEBY = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_GORLI = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_KOVAN = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_OPTIMISM = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_OPTIMISTIC_KOVAN = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_ARBITRUM_ONE = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_ARBITRUM_RINKEBY = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_POLYGON = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_POLYGON_MUMBAI = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_CELO = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_CELO_ALFAJORES = '<JSON_RPC_PROVIDER>'
 ```
 
 Then from the root directory you can execute the CLI.
