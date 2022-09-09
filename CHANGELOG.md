@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.10.0](https://github.com/Uniswap/smart-order-router/compare/v2.9.3...v2.10.0) (2022-09-09)
+
+
+### Features
+
+* add network context to logs ([#163](https://github.com/Uniswap/smart-order-router/issues/163)) ([d686a14](https://github.com/Uniswap/smart-order-router/commit/d686a14a0d0cf248caf29bc1c0384c4d84719475))
+
 ### [2.9.3](https://github.com/Uniswap/smart-order-router/compare/v2.9.2...v2.9.3) (2022-08-17)
 
 ### [2.9.2](https://github.com/Uniswap/smart-order-router/compare/v2.9.1...v2.9.2) (2022-08-10)
