@@ -20,6 +20,7 @@ import NodeCache from 'node-cache';
 import {
   CachingGasStationProvider,
   CachingTokenProviderWithFallback,
+  CachingV2PoolProvider,
   CachingV2SubgraphProvider,
   CachingV3PoolProvider,
   CachingV3SubgraphProvider,
@@ -510,7 +511,13 @@ export class AlphaRouter
     }
 
     this.v2PoolProvider =
-      v2PoolProvider ?? new V2PoolProvider(chainId, this.multicall2Provider);
+      v2PoolProvider ??
+      new CachingV2PoolProvider(
+        chainId,
+        new V2PoolProvider(chainId, this.multicall2Provider),
+        new NodeJSCache(new NodeCache({ stdTTL: 60, useClones: false }))
+      );
+
     this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
 
     this.blockedTokenListProvider =

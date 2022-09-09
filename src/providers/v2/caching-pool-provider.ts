@@ -1,5 +1,5 @@
 import { Token } from '@uniswap/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 
 import { ChainId } from '../../util/chains';
@@ -7,17 +7,15 @@ import { log } from '../../util/log';
 
 import { ICache } from './../cache';
 import { ProviderConfig } from './../provider';
-import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
+import { IV2PoolProvider, V2PoolAccessor } from './pool-provider';
 
 /**
- * Provider for getting V3 pools, with functionality for caching the results.
- * Does not cache by block because we compute quotes using the on-chain quoter
- * so do not mind if the liquidity values are out of date.
+ * Provider for getting V2 pools, with functionality for caching the results per block.
  *
  * @export
- * @class CachingV3PoolProvider
+ * @class CachingV2PoolProvider
  */
-export class CachingV3PoolProvider implements IV3PoolProvider {
+export class CachingV2PoolProvider implements IV2PoolProvider {
   private POOL_KEY = (chainId: ChainId, address: string) =>
     `pool-${chainId}-${address}`;
 
@@ -29,24 +27,28 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
    */
   constructor(
     protected chainId: ChainId,
-    protected poolProvider: IV3PoolProvider,
-    private cache: ICache<Pool>
+    protected poolProvider: IV2PoolProvider,
+    // Cache is block aware. For V2 pools we need to use the current blocks reserves values since
+    // we compute quotes off-chain.
+    // If no block is specified in the call to getPools we just return whatever is in the cache.
+    private cache: ICache<{ pair: Pair; block?: number }>
   ) {}
 
   public async getPools(
-    tokenPairs: [Token, Token, FeeAmount][],
+    tokenPairs: [Token, Token][],
     providerConfig?: ProviderConfig
-  ): Promise<V3PoolAccessor> {
+  ): Promise<V2PoolAccessor> {
     const poolAddressSet: Set<string> = new Set<string>();
-    const poolsToGetTokenPairs: Array<[Token, Token, FeeAmount]> = [];
+    const poolsToGetTokenPairs: Array<[Token, Token]> = [];
     const poolsToGetAddresses: string[] = [];
-    const poolAddressToPool: { [poolAddress: string]: Pool } = {};
+    const poolAddressToPool: { [poolAddress: string]: Pair } = {};
 
-    for (const [tokenA, tokenB, feeAmount] of tokenPairs) {
+    const blockNumber = await providerConfig?.blockNumber;
+
+    for (const [tokenA, tokenB] of tokenPairs) {
       const { poolAddress, token0, token1 } = this.getPoolAddress(
         tokenA,
-        tokenB,
-        feeAmount
+        tokenB
       );
 
       if (poolAddressSet.has(poolAddress)) {
@@ -58,12 +60,18 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
       const cachedPool = await this.cache.get(
         this.POOL_KEY(this.chainId, poolAddress)
       );
+
       if (cachedPool) {
-        poolAddressToPool[poolAddress] = cachedPool;
-        continue;
+        // If a block was specified by the caller, ensure that the result in our cache matches the
+        // expected block number. If a block number is not specified, just return whatever is in the
+        // cache.
+        if (!blockNumber || (blockNumber && cachedPool.block == blockNumber)) {
+          poolAddressToPool[poolAddress] = cachedPool.pair;
+          continue;
+        }
       }
 
-      poolsToGetTokenPairs.push([token0, token1, feeAmount]);
+      poolsToGetTokenPairs.push([token0, token1]);
       poolsToGetAddresses.push(poolAddress);
     }
 
@@ -71,16 +79,16 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
       {
         poolsFound: _.map(
           Object.values(poolAddressToPool),
-          (p) => `${p.token0.symbol} ${p.token1.symbol} ${p.fee}`
+          (p) => p.token0.symbol + ' ' + p.token1.symbol
         ),
         poolsToGetTokenPairs: _.map(
           poolsToGetTokenPairs,
-          (t) => `${t[0].symbol} ${t[1].symbol} ${t[2]}`
+          (t) => t[0].symbol + ' ' + t[1].symbol
         ),
       },
       `Found ${
         Object.keys(poolAddressToPool).length
-      } V3 pools already in local cache. About to get liquidity and slot0s for ${
+      } V2 pools already in local cache for block ${blockNumber}. About to get reserves for ${
         poolsToGetTokenPairs.length
       } pools.`
     );
@@ -94,31 +102,29 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
         const pool = poolAccessor.getPoolByAddress(address);
         if (pool) {
           poolAddressToPool[address] = pool;
-          await this.cache.set(this.POOL_KEY(this.chainId, address), pool);
+          await this.cache.set(this.POOL_KEY(this.chainId, address), {
+            pair: pool,
+            block: blockNumber,
+          });
         }
       }
     }
 
     return {
-      getPool: (
-        tokenA: Token,
-        tokenB: Token,
-        feeAmount: FeeAmount
-      ): Pool | undefined => {
-        const { poolAddress } = this.getPoolAddress(tokenA, tokenB, feeAmount);
+      getPool: (tokenA: Token, tokenB: Token): Pair | undefined => {
+        const { poolAddress } = this.getPoolAddress(tokenA, tokenB);
         return poolAddressToPool[poolAddress];
       },
-      getPoolByAddress: (address: string): Pool | undefined =>
+      getPoolByAddress: (address: string): Pair | undefined =>
         poolAddressToPool[address],
-      getAllPools: (): Pool[] => Object.values(poolAddressToPool),
+      getAllPools: (): Pair[] => Object.values(poolAddressToPool),
     };
   }
 
   public getPoolAddress(
     tokenA: Token,
-    tokenB: Token,
-    feeAmount: FeeAmount
+    tokenB: Token
   ): { poolAddress: string; token0: Token; token1: Token } {
-    return this.poolProvider.getPoolAddress(tokenA, tokenB, feeAmount);
+    return this.poolProvider.getPoolAddress(tokenA, tokenB);
   }
 }
