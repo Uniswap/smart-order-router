@@ -96,6 +96,9 @@
     "typechain": "^5.0.0",
     "typescript": "^4.2.2"
   },
+  "peerDependencies": {
+    "jsbi": "3.2.5"
+  },
   "files": [
     "build/main",
     "build/module",
