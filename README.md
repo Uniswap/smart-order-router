@@ -216,7 +216,9 @@ By default each `eth_call` will consume up to:
 - 50,000,000 gas on Celo
 - 150,000,000 gas on every other network (Mainnet, Goerli, etc.)
 
-If you are using a node provider with a lower gas limit per `eth_call` you will need to override the default `V3QuoteProvider` with an instance that lowers the `multicallChunk` and `gasLimitPerCall` parameters. Lowering these values will cause each multicall to consume less gas. See [here](https://github.com/Uniswap/smart-order-router/blob/main/src/routers/alpha-router/alpha-router.ts#L379) for examples of how to set these values.
+These parameters should work on Infura and Alchemy by default.
+
+This total amount of gas each `eth_call` can consume is equal to the `multicallChunk` config value multiplied by the `gasLimitPerCall` config value. If you are using a node provider with a lower gas limit per `eth_call` you will need to override the default `V3QuoteProvider` with an instance that lowers the `multicallChunk` and `gasLimitPerCall` parameters such that the multiplication is below your node providers limit. Lowering these values will cause each multicall to consume less gas. See [here](https://github.com/Uniswap/smart-order-router/blob/98c58bdee9981fd9ffac9e7d7a97b18302d5f77a/src/routers/alpha-router/alpha-router.ts#L415-L416) for examples of how to set these values. Note some providers have different limits per chain.
 
 If you are running your own node, we recommend you configure start your node with a higher gas limit per call. For example, on Geth you can use the command line argument `--rpc.gascap 150000000` to raise the limit to 150m, which is enough to run the default configuration of this package.
 
