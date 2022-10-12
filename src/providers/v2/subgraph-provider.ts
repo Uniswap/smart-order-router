@@ -68,7 +68,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     private chainId: ChainId,
     private retries = 2,
     private timeout = 360000,
-    private rollback = true
+    private rollback = true,
+    private pageSize = PAGE_SIZE
   ) {
     const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
@@ -106,7 +107,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     let pools: RawV2SubgraphPool[] = [];
 
     log.info(
-      `Getting V2 pools from the subgraph with page size ${PAGE_SIZE}${
+      `Getting V2 pools from the subgraph with page size ${this.pageSize}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
@@ -128,7 +129,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                 const poolsResult = await this.client.request<{
                   pairs: RawV2SubgraphPool[];
                 }>(query2, {
-                  pageSize: PAGE_SIZE,
+                  pageSize: this.pageSize,
                   id: lastId,
                 });
 
