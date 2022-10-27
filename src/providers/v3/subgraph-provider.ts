@@ -203,7 +203,11 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     );
 
     const poolsSanitized = pools
-      .filter((pool) => parseInt(pool.liquidity) > 0)
+      .filter(
+        (pool) =>
+          parseInt(pool.liquidity) > 0 ||
+          parseFloat(pool.totalValueLockedETH) > 0.01
+      )
       .map((pool) => {
         const { totalValueLockedETH, totalValueLockedUSD, ...rest } = pool;
 
