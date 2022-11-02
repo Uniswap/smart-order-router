@@ -1858,7 +1858,7 @@ describe.only('alpha router', () => {
         simulate: {fromAddress: '0x63946551716781C32f0269F87DC08521818b6292'}
       };
 
-      const stubbedBalanceCheck = sinon.stub(alphaRouter, "userHasSufficientBalance").callsFake(async () => false)
+      const stubbedBalanceCheck = sinon.stub(alphaRouter, "userHasSufficientBalance").callsFake(async () => true)
 
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000),
