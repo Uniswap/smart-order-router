@@ -1111,24 +1111,32 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
-      const fromAddress = swapConfig.simulate.fromAddress
-      if(await this.userHasSufficientBalance(fromAddress, tradeType, amount, quote)) {
-        const beforeSimulate = Date.now();
-        const swapRouteWithSimulation = await this.simulator.simulateTransaction(
+      const fromAddress = swapConfig.simulate.fromAddress;
+      if (
+        await this.userHasSufficientBalance(
           fromAddress,
-          swapRoute,
-          this.l2GasDataProvider
-            ? await this.l2GasDataProvider!.getGasData()
-            : undefined
-        );
+          tradeType,
+          amount,
+          quote
+        )
+      ) {
+        const beforeSimulate = Date.now();
+        const swapRouteWithSimulation =
+          await this.simulator.simulateTransaction(
+            fromAddress,
+            swapRoute,
+            this.l2GasDataProvider
+              ? await this.l2GasDataProvider!.getGasData()
+              : undefined
+          );
         metric.putMetric(
           'SimulateTransaction',
           Date.now() - beforeSimulate,
           MetricLoggerUnit.Milliseconds
         );
-        return { ...swapRouteWithSimulation, simulationAttempted: true}
+        return { ...swapRouteWithSimulation, simulationAttempted: true };
       } else {
-        return { ...swapRoute, simulationAttempted: false}
+        return { ...swapRoute, simulationAttempted: false };
       }
     }
 
@@ -1892,22 +1900,28 @@ export class AlphaRouter
     return optimalRatio;
   }
 
-  private async userHasSufficientBalance(fromAddress: string, tradeType: TradeType, amount: CurrencyAmount, quote: CurrencyAmount): Promise<boolean> {
+  private async userHasSufficientBalance(
+    fromAddress: string,
+    tradeType: TradeType,
+    amount: CurrencyAmount,
+    quote: CurrencyAmount
+  ): Promise<boolean> {
     try {
-      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote
-      let balance
-      if(neededBalance.currency.isNative) {
-        balance = await this.provider.getBalance(fromAddress)
+      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
+      let balance;
+      if (neededBalance.currency.isNative) {
+        balance = await this.provider.getBalance(fromAddress);
       } else {
         const tokenContract = Erc20__factory.connect(
           neededBalance.currency.address,
           this.provider
         );
-        balance = await tokenContract.balanceOf(fromAddress)
+        balance = await tokenContract.balanceOf(fromAddress);
       }
-      return(balance.gte(BigNumber.from(neededBalance.quotient.toString())))
-    } catch(e) {
-      return false
+      return balance.gte(BigNumber.from(neededBalance.quotient.toString()));
+    } catch (e) {
+      log.info(e, 'Error while checking user balance');
+      return false;
     }
   }
 

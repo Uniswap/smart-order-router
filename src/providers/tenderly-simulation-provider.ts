@@ -228,8 +228,8 @@ export class TenderlySimulator implements ISimulator {
     }
 
     if (!swapRoute.methodParameters) {
-      const msg = 'No calldata provided to simulate transaction'
-      log.info(msg)
+      const msg = 'No calldata provided to simulate transaction';
+      log.info(msg);
       throw new Error(msg);
     }
     const { calldata } = swapRoute.methodParameters;
@@ -317,13 +317,13 @@ export class TenderlySimulator implements ISimulator {
       l2GasData
     );
     return initSwapRouteFromExisting(
-        swapRoute,
-        this.v2PoolProvider,
-        this.v3PoolProvider,
-        quoteGasAdjusted,
-        estimatedGasUsed,
-        estimatedGasUsedQuoteToken,
-        estimatedGasUsedUSD
-      )
+      swapRoute,
+      this.v2PoolProvider,
+      this.v3PoolProvider,
+      quoteGasAdjusted,
+      estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD
+    );
   }
 }
