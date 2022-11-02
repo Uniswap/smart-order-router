@@ -1923,6 +1923,29 @@ describe.only('alpha router', () => {
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
+    test('succeeds to route and generates calldata on v3 only and does not simulate if user does not have sufficient funds', async () => {
+      const swapParams = {
+        deadline: Math.floor(Date.now() / 1000) + 1000000,
+        recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
+        slippageTolerance: new Percent(500, 10_000),
+        simulate: {fromAddress: '0x63946551716781C32f0269F87DC08521818b6292'}
+      };
+
+      const stubbedBalanceCheck = sinon.stub(alphaRouter, "userHasSufficientBalance").callsFake(async () => false)
+
+      const swap = await alphaRouter.route(
+        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000),
+        USDC,
+        TradeType.EXACT_OUTPUT,
+        swapParams,
+        { ...ROUTING_CONFIG, protocols: [Protocol.V3] },
+      );
+
+      expect(swap).toBeDefined();
+      expect(stubbedBalanceCheck.called)
+      expect(mockFallbackTenderlySimulator.simulateTransaction.called).toBeFalsy()
+    });
+
     test('succeeds to route and generates calldata on v2 only', async () => {
       const swapParams = {
         deadline: Math.floor(Date.now() / 1000) + 1000000,
