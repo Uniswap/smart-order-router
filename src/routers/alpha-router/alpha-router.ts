@@ -1900,7 +1900,7 @@ export class AlphaRouter
     return optimalRatio;
   }
 
-  private async userHasSufficientBalance(
+  public async userHasSufficientBalance(
     fromAddress: string,
     tradeType: TradeType,
     amount: CurrencyAmount,
