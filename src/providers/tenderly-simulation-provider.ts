@@ -290,7 +290,7 @@ export class TenderlySimulator implements ISimulator {
         { err: resp.simulation_results[1].transaction.error_message },
         msg
       );
-      return { ...swapRoute, simulationAttempted: true, simulationError: true };
+      return { ...swapRoute, simulationError: true };
     }
 
     log.info(

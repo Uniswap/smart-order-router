@@ -1083,6 +1083,106 @@ describe('alpha router integration', () => {
               estimatedGasUsed
             );
           });
+
+          it('erc20 -> erc20 without sufficient token balance', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const { quote, quoteGasAdjusted, methodParameters, simulationError, simulationAttempted } = swap!;
+
+            await validateSwapRoute(
+              quote,
+              quoteGasAdjusted,
+              tradeType,
+              100,
+              10
+            );
+
+            // simulation should 1: not run, and 2: not fail
+            expect(simulationAttempted).toBeFalsy();
+            expect(simulationError).toBeUndefined();
+
+            await validateExecuteSwap(
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
+            );
+          });
+
+          // specifically testing native currency balance check before simulation
+          if(tradeType == TradeType.EXACT_INPUT) {
+            it('ETH -> erc20 without sufficient ETH balance', async () => {
+              /// Fails for v3 for some reason, ProviderGasError
+              const tokenIn = Ether.onChain(1) as Currency;
+              const tokenOut = UNI_MAINNET;
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount('10', tokenIn)
+                  : parseAmount('10000', tokenOut);
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                {
+                  recipient: alice._address,
+                  slippageTolerance: SLIPPAGE,
+                  deadline: parseDeadline(360),
+                  simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
+                },
+                {
+                  ...ROUTING_CONFIG,
+                  protocols: [Protocol.V2],
+                }
+              );
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+
+              const {
+                quote,
+                quoteGasAdjusted,
+                simulationError,
+                simulationAttempted,
+                estimatedGasUsedQuoteToken,
+              } = swap!;
+              expect(
+                quoteGasAdjusted
+                  .subtract(quote)
+                  .equalTo(estimatedGasUsedQuoteToken)
+              );
+
+              // simulation should 1: run, and 2: not fail
+              expect(simulationAttempted).toBeTruthy();
+              expect(simulationError).toBeUndefined();
+            });
+          }
         });
       }
 

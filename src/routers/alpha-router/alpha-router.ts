@@ -1101,7 +1101,7 @@ export class AlphaRouter
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
     };
-    log.info("HERE")
+
     if (
       swapConfig &&
       swapConfig.simulate &&
@@ -1111,26 +1111,11 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
-      log.info("HERE2")
       const fromAddress = swapConfig.simulate.fromAddress
-      let balance
-      if(currencyIn.isNative) {
-        balance = this.provider.getBalance(fromAddress)
-      } else {
-        const tokenContract = Erc20__factory.connect(
-          currencyIn.address,
-          this.provider
-        );
-        balance = await tokenContract.balanceOf(fromAddress)
-      }
-      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote
-      if(balance < BigNumber.from(neededBalance.quotient.toString())) {
-        log.info('Simulation requested, but user balance not sufficient. Choosing not to simulate.')
-        return { ...swapRoute, simulationAttempted: false }
-      } else {
+      if(await this.userHasSufficientBalance(fromAddress, tradeType, amount, quote)) {
         const beforeSimulate = Date.now();
         const swapRouteWithSimulation = await this.simulator.simulateTransaction(
-          swapConfig.simulate.fromAddress,
+          fromAddress,
           swapRoute,
           this.l2GasDataProvider
             ? await this.l2GasDataProvider!.getGasData()
@@ -1142,6 +1127,8 @@ export class AlphaRouter
           MetricLoggerUnit.Milliseconds
         );
         return swapRouteWithSimulation;
+      } else {
+        return { ...swapRoute, simulationAttempted: false}
       }
     }
 
@@ -1903,6 +1890,21 @@ export class AlphaRouter
     );
     if (!zeroForOne) optimalRatio = optimalRatio.invert();
     return optimalRatio;
+  }
+
+  private async userHasSufficientBalance(fromAddress: string, tradeType: TradeType, amount: CurrencyAmount, quote: CurrencyAmount): Promise<boolean> {
+    const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote
+    let balance
+    if(neededBalance.currency.isNative) {
+      balance = await this.provider.getBalance(fromAddress)
+    } else {
+      const tokenContract = Erc20__factory.connect(
+        neededBalance.currency.address,
+        this.provider
+      );
+      balance = await tokenContract.balanceOf(fromAddress)
+    }
+    return(balance.gte(BigNumber.from(neededBalance.quotient.toString())))
   }
 
   private absoluteValue(fraction: Fraction): Fraction {
