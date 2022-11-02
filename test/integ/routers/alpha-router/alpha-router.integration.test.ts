@@ -895,7 +895,7 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters } = swap!;
+            const { quote, quoteGasAdjusted, methodParameters, simulationError, simulationAttempted } = swap!;
 
             await validateSwapRoute(
               quote,
@@ -904,6 +904,10 @@ describe('alpha router integration', () => {
               100,
               10
             );
+
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
+            expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
               quote,
@@ -949,6 +953,7 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
+              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -958,7 +963,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1005,6 +1011,7 @@ describe('alpha router integration', () => {
               quote,
               quoteGasAdjusted,
               simulationError,
+              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
             expect(
@@ -1013,233 +1020,9 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
-          });
-
-          it(`weth -> erc20`, async () => {
-            const tokenIn = WETH9[1];
-            const tokenOut = DAI_MAINNET;
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
-            const amount =
-              tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('100', tokenIn)
-                : parseAmount('100', tokenOut);
-
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
-              tradeType,
-              {
-                recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
-              },
-              {
-                ...ROUTING_CONFIG,
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
-
-            const {
-              quote,
-              quoteGasAdjusted,
-              methodParameters,
-              estimatedGasUsed,
-              simulationError,
-              estimatedGasUsedQuoteToken,
-            } = swap!;
-
-            expect(
-              quoteGasAdjusted
-                .subtract(quote)
-                .equalTo(estimatedGasUsedQuoteToken)
-            );
-
-            // Expect tenderly simulation to be successful
-            expect(simulationError).toBeUndefined();
-
-            await validateExecuteSwap(
-              quote,
-              tokenIn,
-              tokenOut,
-              methodParameters,
-              tradeType,
-              100,
-              100,
-              estimatedGasUsed
-            );
-          });
-
-          it(`erc20 -> weth`, async () => {
-            const tokenIn = USDC_MAINNET;
-            const tokenOut = WETH9[1];
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
-            const amount =
-              tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('100', tokenIn)
-                : parseAmount('100', tokenOut);
-
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
-              tradeType,
-              {
-                recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
-              },
-              {
-                ...ROUTING_CONFIG,
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
-
-            const {
-              quote,
-              quoteGasAdjusted,
-              methodParameters,
-              estimatedGasUsed,
-              simulationError,
-              estimatedGasUsedQuoteToken,
-            } = swap!;
-
-            expect(
-              quoteGasAdjusted
-                .subtract(quote)
-                .equalTo(estimatedGasUsedQuoteToken)
-            );
-
-            // Expect tenderly simulation to be successful
-            expect(simulationError).toBeUndefined();
-
-            await validateExecuteSwap(
-              quote,
-              tokenIn,
-              tokenOut,
-              methodParameters,
-              tradeType,
-              100,
-              100,
-              estimatedGasUsed
-            );
-          });
-
-          it('erc20 -> erc20 v3 only', async () => {
-            const tokenIn = USDC_MAINNET;
-            const tokenOut = USDT_MAINNET;
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
-            const amount =
-              tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('100', tokenIn)
-                : parseAmount('100', tokenOut);
-
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
-              tradeType,
-              {
-                recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
-              },
-              {
-                ...ROUTING_CONFIG,
-                protocols: [Protocol.V3],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
-
-            const {
-              quote,
-              quoteGasAdjusted,
-              methodParameters,
-              estimatedGasUsed,
-              simulationError,
-              estimatedGasUsedQuoteToken,
-            } = swap!;
-            expect(
-              quoteGasAdjusted
-                .subtract(quote)
-                .equalTo(estimatedGasUsedQuoteToken)
-            );
-
-            // Expect tenderly simulation to be successful
-            expect(simulationError).toBeUndefined();
-
-            await validateExecuteSwap(
-              quote,
-              tokenIn,
-              tokenOut,
-              methodParameters,
-              tradeType,
-              100,
-              100,
-              estimatedGasUsed
-            );
-          });
-
-          it('erc20 -> erc20 v2 only', async () => {
-            const tokenIn = USDC_MAINNET;
-            const tokenOut = USDT_MAINNET;
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
-            const amount =
-              tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('100', tokenIn)
-                : parseAmount('100', tokenOut);
-
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
-              tradeType,
-              {
-                recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
-              },
-              {
-                ...ROUTING_CONFIG,
-                protocols: [Protocol.V2],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
-
-            const {
-              quote,
-              quoteGasAdjusted,
-              methodParameters,
-              estimatedGasUsed,
-              simulationError,
-              estimatedGasUsedQuoteToken,
-            } = swap!;
-
-            expect(
-              quoteGasAdjusted
-                .subtract(quote)
-                .equalTo(estimatedGasUsedQuoteToken)
-            );
-
-            // Expect tenderly simulation to be successful
-            expect(simulationError).toBeUndefined();
-
-            await validateExecuteSwap(
-              quote,
-              tokenIn,
-              tokenOut,
-              methodParameters,
-              tradeType,
-              100,
-              100,
-              estimatedGasUsed
-            );
           });
 
           it('erc20 -> erc20 forceCrossProtocol', async () => {
@@ -1275,6 +1058,7 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
+              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1284,7 +1068,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1633,7 +1418,7 @@ describe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        jest.retryTimes(1);
+        jest.retryTimes(2);
 
         const wrappedNative = WNATIVE_ON(chain);
 

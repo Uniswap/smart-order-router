@@ -1141,7 +1141,7 @@ export class AlphaRouter
           Date.now() - beforeSimulate,
           MetricLoggerUnit.Milliseconds
         );
-        return { ...swapRouteWithSimulation, simulationAttempted: true };
+        return swapRouteWithSimulation;
       }
     }
 

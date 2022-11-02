@@ -171,7 +171,6 @@ export class FallbackTenderlySimulator implements ISimulator {
         );
         return swapRouteWithGasEstimate;
       } catch (err) {
-        console.log(err, "HUH")
         log.info({ err: err }, 'Error calling eth estimate gas!');
         return { ...swapRoute, simulationError: true };
       }
@@ -185,7 +184,6 @@ export class FallbackTenderlySimulator implements ISimulator {
       );
     } catch (err) {
       log.info({ err: err }, 'Failed to simulate via Tenderly!');
-      console.log("bruh")
       // set error flag to true
       return { ...swapRoute, simulationError: true };
     }
@@ -277,6 +275,7 @@ export class TenderlySimulator implements ISimulator {
       this.tenderlyUser,
       this.tenderlyProject
     );
+    swapRoute.simulationAttempted = true
     const resp = (await axios.post<TenderlyResponse>(url, body, opts)).data;
 
     // Validate tenderly response body
@@ -287,12 +286,11 @@ export class TenderlySimulator implements ISimulator {
       resp.simulation_results[1].transaction.error_message
     ) {
       const msg = `Failed to Simulate Via Tenderly!: ${resp.simulation_results[1].transaction.error_message}`;
-      console.log("WTF", msg)
       log.info(
         { err: resp.simulation_results[1].transaction.error_message },
         msg
       );
-      return { ...swapRoute, simulationError: true };
+      return { ...swapRoute, simulationAttempted: true, simulationError: true };
     }
 
     log.info(
