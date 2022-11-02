@@ -74,6 +74,7 @@ import {
   V3PoolProvider,
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
+import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ChainId,
@@ -1100,6 +1101,7 @@ export class AlphaRouter
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
     };
+    log.info("HERE")
     if (
       swapConfig &&
       swapConfig.simulate &&
@@ -1109,20 +1111,38 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
-      const beforeSimulate = Date.now();
-      const swapRouteWithSimulation = await this.simulator.simulateTransaction(
-        swapConfig.simulate.fromAddress,
-        swapRoute,
-        this.l2GasDataProvider
-          ? await this.l2GasDataProvider!.getGasData()
-          : undefined
-      );
-      metric.putMetric(
-        'SimulateTransaction',
-        Date.now() - beforeSimulate,
-        MetricLoggerUnit.Milliseconds
-      );
-      return swapRouteWithSimulation;
+      log.info("HERE2")
+      const fromAddress = swapConfig.simulate.fromAddress
+      let balance
+      if(currencyIn.isNative) {
+        balance = this.provider.getBalance(fromAddress)
+      } else {
+        const tokenContract = Erc20__factory.connect(
+          currencyIn.address,
+          this.provider
+        );
+        balance = await tokenContract.balanceOf(fromAddress)
+      }
+      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote
+      if(balance < BigNumber.from(neededBalance.quotient.toString())) {
+        log.info('Simulation requested, but user balance not sufficient. Choosing not to simulate.')
+        return { ...swapRoute, simulationAttempted: false }
+      } else {
+        const beforeSimulate = Date.now();
+        const swapRouteWithSimulation = await this.simulator.simulateTransaction(
+          swapConfig.simulate.fromAddress,
+          swapRoute,
+          this.l2GasDataProvider
+            ? await this.l2GasDataProvider!.getGasData()
+            : undefined
+        );
+        metric.putMetric(
+          'SimulateTransaction',
+          Date.now() - beforeSimulate,
+          MetricLoggerUnit.Milliseconds
+        );
+        return { ...swapRouteWithSimulation, simulationAttempted: true };
+      }
     }
 
     return swapRoute;

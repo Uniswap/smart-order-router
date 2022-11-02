@@ -30,7 +30,7 @@ import {
   NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
-  SUPPORTED_CHAINS,
+  //SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -871,6 +871,7 @@ describe('alpha router integration', () => {
             // declaring these to reduce confusion
             const tokenIn = USDC_MAINNET;
             const tokenOut = USDT_MAINNET;
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -884,7 +885,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -919,6 +920,7 @@ describe('alpha router integration', () => {
             // Trade of this size almost always results in splits.
             const tokenIn = USDC_MAINNET;
             const tokenOut = Ether.onChain(1) as Currency;
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1000000', tokenIn)
@@ -932,7 +934,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -975,6 +977,7 @@ describe('alpha router integration', () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
             const tokenOut = UNI_MAINNET;
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('10', tokenIn)
@@ -988,7 +991,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1017,6 +1020,7 @@ describe('alpha router integration', () => {
           it(`weth -> erc20`, async () => {
             const tokenIn = WETH9[1];
             const tokenOut = DAI_MAINNET;
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -1030,7 +1034,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1072,6 +1076,7 @@ describe('alpha router integration', () => {
           it(`erc20 -> weth`, async () => {
             const tokenIn = USDC_MAINNET;
             const tokenOut = WETH9[1];
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -1085,7 +1090,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1127,6 +1132,7 @@ describe('alpha router integration', () => {
           it('erc20 -> erc20 v3 only', async () => {
             const tokenIn = USDC_MAINNET;
             const tokenOut = USDT_MAINNET;
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -1140,7 +1146,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1182,6 +1188,7 @@ describe('alpha router integration', () => {
           it('erc20 -> erc20 v2 only', async () => {
             const tokenIn = USDC_MAINNET;
             const tokenOut = USDT_MAINNET;
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -1195,7 +1202,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1238,6 +1245,7 @@ describe('alpha router integration', () => {
           it('erc20 -> erc20 forceCrossProtocol', async () => {
             const tokenIn = USDC_MAINNET;
             const tokenOut = USDT_MAINNET;
+            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -1251,7 +1259,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(tokenIn) },
+                simulate: { fromAddress: WHALES(inputToken) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1608,7 +1616,7 @@ describe('quote for other networks', () => {
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
   for (const chain of _.filter(
-    SUPPORTED_CHAINS,
+    [ChainId.MAINNET],
     (c) =>
       c != ChainId.RINKEBY &&
       c != ChainId.ROPSTEN &&

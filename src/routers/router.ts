@@ -84,6 +84,10 @@ export type SwapRoute = {
    * Flag that is true if and only if simulation is requested and simulation fails
    */
   simulationError?: boolean;
+  /**
+   * Flag that is true if and only if simulation is requested and also attempted
+   */
+  simulationAttempted?: boolean;
 };
 
 export type SwapToRatioRoute = SwapRoute & {
