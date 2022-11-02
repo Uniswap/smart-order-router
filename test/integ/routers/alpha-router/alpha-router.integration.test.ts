@@ -30,7 +30,7 @@ import {
   NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
-  //SUPPORTED_CHAINS,
+  SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -1501,7 +1501,7 @@ describe('quote for other networks', () => {
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
   for (const chain of _.filter(
-    [ChainId.MAINNET],
+    SUPPORTED_CHAINS,
     (c) =>
       c != ChainId.RINKEBY &&
       c != ChainId.ROPSTEN &&
