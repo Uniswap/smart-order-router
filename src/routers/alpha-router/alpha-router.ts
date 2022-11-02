@@ -1920,7 +1920,7 @@ export class AlphaRouter
       }
       return balance.gte(BigNumber.from(neededBalance.quotient.toString()));
     } catch (e) {
-      log.info(e, 'Error while checking user balance');
+      log.error(e, 'Error while checking user balance');
       return false;
     }
   }
