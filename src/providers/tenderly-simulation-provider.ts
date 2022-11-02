@@ -275,7 +275,6 @@ export class TenderlySimulator implements ISimulator {
       this.tenderlyUser,
       this.tenderlyProject
     );
-    swapRoute.simulationAttempted = true
     const resp = (await axios.post<TenderlyResponse>(url, body, opts)).data;
 
     // Validate tenderly response body
@@ -318,13 +317,13 @@ export class TenderlySimulator implements ISimulator {
       l2GasData
     );
     return initSwapRouteFromExisting(
-      swapRoute,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD
-    );
+        swapRoute,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        quoteGasAdjusted,
+        estimatedGasUsed,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD
+      )
   }
 }

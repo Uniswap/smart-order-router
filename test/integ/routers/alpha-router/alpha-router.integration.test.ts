@@ -30,7 +30,7 @@ import {
   NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
-  SUPPORTED_CHAINS,
+  //SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -864,14 +864,13 @@ describe('alpha router integration', () => {
           );
         });
       });
-
+      
       if (isTenderlyEnvironmentSet()) {
         describe(`+ Simulate on Tenderly + Execute on Hardhat fork`, () => {
           it('erc20 -> erc20', async () => {
             // declaring these to reduce confusion
             const tokenIn = USDC_MAINNET;
             const tokenOut = USDT_MAINNET;
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -885,7 +884,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
+                simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -924,7 +923,6 @@ describe('alpha router integration', () => {
             // Trade of this size almost always results in splits.
             const tokenIn = USDC_MAINNET;
             const tokenOut = Ether.onChain(1) as Currency;
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1000000', tokenIn)
@@ -938,7 +936,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
+                simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -978,57 +976,56 @@ describe('alpha router integration', () => {
               estimatedGasUsed
             );
           });
+          
+          // This is mostly for testing simulation of native currency
+          // That's why its only run for exact-input
+          if(tradeType == TradeType.EXACT_INPUT) {
+            it(`eth -> erc20`, async () => {
+              /// Fails for v3 for some reason, ProviderGasError
+              const tokenIn = Ether.onChain(1) as Currency;
+              const tokenOut = UNI_MAINNET;
+              const amount = parseAmount('10', tokenIn)
 
-          it(`eth -> erc20`, async () => {
-            /// Fails for v3 for some reason, ProviderGasError
-            const tokenIn = Ether.onChain(1) as Currency;
-            const tokenOut = UNI_MAINNET;
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
-            const amount =
-              tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('10', tokenIn)
-                : parseAmount('10000', tokenOut);
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                {
+                  recipient: alice._address,
+                  slippageTolerance: SLIPPAGE,
+                  deadline: parseDeadline(360),
+                  simulate: { fromAddress: WHALES(tokenIn) },
+                },
+                {
+                  ...ROUTING_CONFIG,
+                  protocols: [Protocol.V2],
+                }
+              );
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
 
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
-              tradeType,
-              {
-                recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
-              },
-              {
-                ...ROUTING_CONFIG,
-                protocols: [Protocol.V2],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
+              const {
+                quote,
+                quoteGasAdjusted,
+                simulationError,
+                simulationAttempted,
+                estimatedGasUsedQuoteToken,
+              } = swap!;
+              expect(
+                quoteGasAdjusted
+                  .subtract(quote)
+                  .equalTo(estimatedGasUsedQuoteToken)
+              );
 
-            const {
-              quote,
-              quoteGasAdjusted,
-              simulationError,
-              simulationAttempted,
-              estimatedGasUsedQuoteToken,
-            } = swap!;
-            expect(
-              quoteGasAdjusted
-                .subtract(quote)
-                .equalTo(estimatedGasUsedQuoteToken)
-            );
-
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
-            expect(simulationError).toBeUndefined();
-          });
+              // simulation should 1: run, and 2: not fail
+              expect(simulationAttempted).toBeTruthy();
+              expect(simulationError).toBeUndefined();
+            });
+          }
 
           it('erc20 -> erc20 forceCrossProtocol', async () => {
             const tokenIn = USDC_MAINNET;
             const tokenOut = USDT_MAINNET;
-            const inputToken = TradeType.EXACT_INPUT ? tokenIn : tokenOut
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -1042,7 +1039,7 @@ describe('alpha router integration', () => {
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
-                simulate: { fromAddress: WHALES(inputToken) },
+                simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1136,16 +1133,14 @@ describe('alpha router integration', () => {
             );
           });
 
-          // specifically testing native currency balance check before simulation
+          // This is mostly for testing simulation of native currency
+          // That's why its only run for exact-input
           if(tradeType == TradeType.EXACT_INPUT) {
-            it('ETH -> erc20 without sufficient ETH balance', async () => {
+            it('eth -> erc20 without sufficient ETH balance', async () => {
               /// Fails for v3 for some reason, ProviderGasError
               const tokenIn = Ether.onChain(1) as Currency;
               const tokenOut = UNI_MAINNET;
-              const amount =
-                tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('10', tokenIn)
-                  : parseAmount('10000', tokenOut);
+              const amount = parseAmount('10', tokenIn)
 
               const swap = await alphaRouter.route(
                 amount,
@@ -1179,7 +1174,7 @@ describe('alpha router integration', () => {
               );
 
               // simulation should 1: run, and 2: not fail
-              expect(simulationAttempted).toBeTruthy();
+              expect(simulationAttempted).toBeFalsy();
               expect(simulationError).toBeUndefined();
             });
           }
@@ -1501,7 +1496,7 @@ describe('quote for other networks', () => {
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
   for (const chain of _.filter(
-    SUPPORTED_CHAINS,
+    [ChainId.MAINNET],
     (c) =>
       c != ChainId.RINKEBY &&
       c != ChainId.ROPSTEN &&

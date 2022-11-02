@@ -320,7 +320,7 @@ export function initSwapRouteFromExisting(
   quoteGasAdjusted: CurrencyAmount<Currency>,
   estimatedGasUsed: BigNumber,
   estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
-  estimatedGasUsedUSD: CurrencyAmount<Currency>
+  estimatedGasUsedUSD: CurrencyAmount<Currency>,
 ) {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;

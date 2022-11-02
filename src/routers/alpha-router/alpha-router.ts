@@ -1126,13 +1126,13 @@ export class AlphaRouter
           Date.now() - beforeSimulate,
           MetricLoggerUnit.Milliseconds
         );
-        return swapRouteWithSimulation;
+        return { ...swapRouteWithSimulation, simulationAttempted: true}
       } else {
         return { ...swapRoute, simulationAttempted: false}
       }
     }
 
-    return swapRoute;
+    return { ...swapRoute, simulationAttempted: false };
   }
 
   private async applyTokenValidatorToPools<T extends Pool | Pair>(
@@ -1893,18 +1893,22 @@ export class AlphaRouter
   }
 
   private async userHasSufficientBalance(fromAddress: string, tradeType: TradeType, amount: CurrencyAmount, quote: CurrencyAmount): Promise<boolean> {
-    const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote
-    let balance
-    if(neededBalance.currency.isNative) {
-      balance = await this.provider.getBalance(fromAddress)
-    } else {
-      const tokenContract = Erc20__factory.connect(
-        neededBalance.currency.address,
-        this.provider
-      );
-      balance = await tokenContract.balanceOf(fromAddress)
+    try {
+      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote
+      let balance
+      if(neededBalance.currency.isNative) {
+        balance = await this.provider.getBalance(fromAddress)
+      } else {
+        const tokenContract = Erc20__factory.connect(
+          neededBalance.currency.address,
+          this.provider
+        );
+        balance = await tokenContract.balanceOf(fromAddress)
+      }
+      return(balance.gte(BigNumber.from(neededBalance.quotient.toString())))
+    } catch(e) {
+      return false
     }
-    return(balance.gte(BigNumber.from(neededBalance.quotient.toString())))
   }
 
   private absoluteValue(fraction: Fraction): Fraction {
