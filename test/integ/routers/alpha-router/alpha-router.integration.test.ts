@@ -2,7 +2,7 @@
  * @jest-environment hardhat
  */
 
-import {
+ import {
   Currency,
   CurrencyAmount,
   Ether,
@@ -981,7 +981,10 @@ describe('alpha router integration', () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
             const tokenOut = UNI_MAINNET;
-            const amount = parseAmount('10', tokenIn)
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10000', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -1133,7 +1136,10 @@ describe('alpha router integration', () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
             const tokenOut = UNI_MAINNET;
-            const amount = parseAmount('10', tokenIn)
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10000', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
