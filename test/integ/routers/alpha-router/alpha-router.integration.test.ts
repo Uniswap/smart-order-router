@@ -2,7 +2,7 @@
  * @jest-environment hardhat
  */
 
- import {
+import {
   Currency,
   CurrencyAmount,
   Ether,
