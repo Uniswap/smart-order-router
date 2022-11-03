@@ -1022,6 +1022,235 @@ describe('alpha router integration', () => {
             expect(simulationError).toBeUndefined();
           });
 
+          it(`weth -> erc20`, async () => {
+            const tokenIn = WETH9[1];
+            const tokenOut = DAI_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              estimatedGasUsed,
+              simulationError,
+              simulationAttempted,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
+            expect(simulationError).toBeUndefined();
+
+            await validateExecuteSwap(
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100,
+              estimatedGasUsed
+            );
+          });
+
+          it(`erc20 -> weth`, async () => {
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = WETH9[1];
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              estimatedGasUsed,
+              simulationError,
+              simulationAttempted,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
+            expect(simulationError).toBeUndefined();
+
+            await validateExecuteSwap(
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100,
+              estimatedGasUsed
+            );
+          });
+
+          it('erc20 -> erc20 v3 only', async () => {
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                protocols: [Protocol.V3],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              estimatedGasUsed,
+              simulationError,
+              simulationAttempted,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
+            expect(simulationError).toBeUndefined();
+
+            await validateExecuteSwap(
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100,
+              estimatedGasUsed
+            );
+          });
+
+          it('erc20 -> erc20 v2 only', async () => {
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                protocols: [Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              estimatedGasUsed,
+              simulationError,
+              simulationAttempted,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
+            expect(simulationError).toBeUndefined();
+
+            await validateExecuteSwap(
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100,
+              estimatedGasUsed
+            );
+          });
+
           it('erc20 -> erc20 forceCrossProtocol', async () => {
             const tokenIn = USDC_MAINNET;
             const tokenOut = USDT_MAINNET;
