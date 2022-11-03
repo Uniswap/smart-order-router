@@ -2,7 +2,7 @@
  * @jest-environment hardhat
  */
 
- import {
+import {
   Currency,
   CurrencyAmount,
   Ether,
@@ -864,7 +864,7 @@ describe('alpha router integration', () => {
           );
         });
       });
-      
+
       if (isTenderlyEnvironmentSet()) {
         describe(`+ Simulate on Tenderly + Execute on Hardhat fork`, () => {
           it('erc20 -> erc20', async () => {
