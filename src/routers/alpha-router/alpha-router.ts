@@ -1117,7 +1117,9 @@ export class AlphaRouter
           fromAddress,
           tradeType,
           amount,
-          quote
+          // Quote will be in WETH even if quoteCurrency is ETH
+          // So we init a new CurrencyAmount object here
+          CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString())
         )
       ) {
         const beforeSimulate = Date.now();

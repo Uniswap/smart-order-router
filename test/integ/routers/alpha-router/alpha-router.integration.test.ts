@@ -2,7 +2,7 @@
  * @jest-environment hardhat
  */
 
-import {
+ import {
   Currency,
   CurrencyAmount,
   Ether,
@@ -977,51 +977,47 @@ describe('alpha router integration', () => {
             );
           });
           
-          // This is mostly for testing simulation with native currency input
-          // That's why its only run for exact-input
-          if(tradeType == TradeType.EXACT_INPUT) {
-            it(`eth -> erc20`, async () => {
-              /// Fails for v3 for some reason, ProviderGasError
-              const tokenIn = Ether.onChain(1) as Currency;
-              const tokenOut = UNI_MAINNET;
-              const amount = parseAmount('10', tokenIn)
+          it(`eth -> erc20`, async () => {
+            /// Fails for v3 for some reason, ProviderGasError
+            const tokenIn = Ether.onChain(1) as Currency;
+            const tokenOut = UNI_MAINNET;
+            const amount = parseAmount('10', tokenIn)
 
-              const swap = await alphaRouter.route(
-                amount,
-                getQuoteToken(tokenIn, tokenOut, tradeType),
-                tradeType,
-                {
-                  recipient: alice._address,
-                  slippageTolerance: SLIPPAGE,
-                  deadline: parseDeadline(360),
-                  simulate: { fromAddress: WHALES(tokenIn) },
-                },
-                {
-                  ...ROUTING_CONFIG,
-                  protocols: [Protocol.V2],
-                }
-              );
-              expect(swap).toBeDefined();
-              expect(swap).not.toBeNull();
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                protocols: [Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
 
-              const {
-                quote,
-                quoteGasAdjusted,
-                simulationError,
-                simulationAttempted,
-                estimatedGasUsedQuoteToken,
-              } = swap!;
-              expect(
-                quoteGasAdjusted
-                  .subtract(quote)
-                  .equalTo(estimatedGasUsedQuoteToken)
-              );
+            const {
+              quote,
+              quoteGasAdjusted,
+              simulationError,
+              simulationAttempted,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
 
-              // simulation should 1: run, and 2: not fail
-              expect(simulationAttempted).toBeTruthy();
-              expect(simulationError).toBeUndefined();
-            });
-          }
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeTruthy();
+            expect(simulationError).toBeUndefined();
+          });
 
           it('erc20 -> erc20 forceCrossProtocol', async () => {
             const tokenIn = USDC_MAINNET;
@@ -1133,51 +1129,47 @@ describe('alpha router integration', () => {
             );
           });
 
-          // This is mostly for testing simulation with native currency input
-          // That's why its only run for exact-input
-          if(tradeType == TradeType.EXACT_INPUT) {
-            it('eth -> erc20 without sufficient ETH balance', async () => {
-              /// Fails for v3 for some reason, ProviderGasError
-              const tokenIn = Ether.onChain(1) as Currency;
-              const tokenOut = UNI_MAINNET;
-              const amount = parseAmount('10', tokenIn)
+          it('eth -> erc20 without sufficient ETH balance', async () => {
+            /// Fails for v3 for some reason, ProviderGasError
+            const tokenIn = Ether.onChain(1) as Currency;
+            const tokenOut = UNI_MAINNET;
+            const amount = parseAmount('10', tokenIn)
 
-              const swap = await alphaRouter.route(
-                amount,
-                getQuoteToken(tokenIn, tokenOut, tradeType),
-                tradeType,
-                {
-                  recipient: alice._address,
-                  slippageTolerance: SLIPPAGE,
-                  deadline: parseDeadline(360),
-                  simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
-                },
-                {
-                  ...ROUTING_CONFIG,
-                  protocols: [Protocol.V2],
-                }
-              );
-              expect(swap).toBeDefined();
-              expect(swap).not.toBeNull();
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
+              },
+              {
+                ...ROUTING_CONFIG,
+                protocols: [Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
 
-              const {
-                quote,
-                quoteGasAdjusted,
-                simulationError,
-                simulationAttempted,
-                estimatedGasUsedQuoteToken,
-              } = swap!;
-              expect(
-                quoteGasAdjusted
-                  .subtract(quote)
-                  .equalTo(estimatedGasUsedQuoteToken)
-              );
+            const {
+              quote,
+              quoteGasAdjusted,
+              simulationError,
+              simulationAttempted,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
 
-              // simulation should 1: run, and 2: not fail
-              expect(simulationAttempted).toBeFalsy();
-              expect(simulationError).toBeUndefined();
-            });
-          }
+            // simulation should 1: run, and 2: not fail
+            expect(simulationAttempted).toBeFalsy();
+            expect(simulationError).toBeUndefined();
+          });
         });
       }
 
