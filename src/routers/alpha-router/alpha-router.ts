@@ -27,7 +27,6 @@ import {
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
-  ISimulator,
   ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
@@ -35,6 +34,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
   SwapRouterProvider,
@@ -232,7 +232,7 @@ export type AlphaRouterParams = {
   /**
    * Simulates swaps and returns new SwapRoute with updated gas estimates
    */
-  simulator?: ISimulator;
+  simulator?: Simulator;
 };
 
 /**
@@ -359,7 +359,7 @@ export class AlphaRouter
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
-  protected simulator?: ISimulator;
+  protected simulator?: Simulator;
 
   constructor({
     chainId,
@@ -1112,37 +1112,27 @@ export class AlphaRouter
         throw new Error('Simulator not initialized!');
       }
       const fromAddress = swapConfig.simulate.fromAddress;
-      if (
-        await this.userHasSufficientBalance(
-          fromAddress,
-          tradeType,
-          amount,
-          // Quote will be in WETH even if quoteCurrency is ETH
-          // So we init a new CurrencyAmount object here
-          CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString())
-        )
-      ) {
-        const beforeSimulate = Date.now();
-        const swapRouteWithSimulation =
-          await this.simulator.simulateTransaction(
-            fromAddress,
-            swapRoute,
-            this.l2GasDataProvider
-              ? await this.l2GasDataProvider!.getGasData()
-              : undefined
-          );
-        metric.putMetric(
-          'SimulateTransaction',
-          Date.now() - beforeSimulate,
-          MetricLoggerUnit.Milliseconds
-        );
-        return { ...swapRouteWithSimulation, simulationAttempted: true };
-      } else {
-        return { ...swapRoute, simulationAttempted: false };
-      }
+      const beforeSimulate = Date.now();
+      const swapRouteWithSimulation = await this.simulator.simulate(
+        fromAddress,
+        swapRoute,
+        amount,
+        // Quote will be in WETH even if quoteCurrency is ETH
+        // So we init a new CurrencyAmount object here
+        CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
+        this.l2GasDataProvider
+          ? await this.l2GasDataProvider!.getGasData()
+          : undefined
+      );
+      metric.putMetric(
+        'SimulateTransaction',
+        Date.now() - beforeSimulate,
+        MetricLoggerUnit.Milliseconds
+      );
+      return swapRouteWithSimulation;
     }
 
-    return { ...swapRoute, simulationAttempted: false };
+    return { ...swapRoute, simulationError: true };
   }
 
   private async applyTokenValidatorToPools<T extends Pool | Pair>(

@@ -894,7 +894,7 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters, simulationError, simulationAttempted } = swap!;
+            const { quote, quoteGasAdjusted, methodParameters, simulationError } = swap!;
 
             await validateSwapRoute(
               quote,
@@ -904,8 +904,6 @@ describe('alpha router integration', () => {
               10
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -951,7 +949,6 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -961,8 +958,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1008,7 +1003,6 @@ describe('alpha router integration', () => {
               quote,
               quoteGasAdjusted,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
             expect(
@@ -1017,8 +1011,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
           });
 
@@ -1053,7 +1045,6 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1063,8 +1054,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1110,7 +1099,6 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1120,8 +1108,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1168,7 +1154,6 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
             expect(
@@ -1177,8 +1162,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1225,7 +1208,6 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1235,8 +1217,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1283,7 +1263,6 @@ describe('alpha router integration', () => {
               methodParameters,
               estimatedGasUsed,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1293,8 +1272,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeTruthy();
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1336,7 +1313,7 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters, simulationError, simulationAttempted } = swap!;
+            const { quote, quoteGasAdjusted, methodParameters, simulationError } = swap!;
 
             await validateSwapRoute(
               quote,
@@ -1346,9 +1323,7 @@ describe('alpha router integration', () => {
               10
             );
 
-            // simulation should 1: not run, and 2: not fail
-            expect(simulationAttempted).toBeFalsy();
-            expect(simulationError).toBeUndefined();
+            expect(simulationError).toEqual(true);
 
             await validateExecuteSwap(
               quote,
@@ -1392,7 +1367,6 @@ describe('alpha router integration', () => {
               quote,
               quoteGasAdjusted,
               simulationError,
-              simulationAttempted,
               estimatedGasUsedQuoteToken,
             } = swap!;
             expect(
@@ -1401,9 +1375,7 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // simulation should 1: run, and 2: not fail
-            expect(simulationAttempted).toBeFalsy();
-            expect(simulationError).toBeUndefined();
+            expect(simulationError).toEqual(true);
           });
         });
       }
