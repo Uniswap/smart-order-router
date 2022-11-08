@@ -1132,9 +1132,7 @@ export class AlphaRouter
       return swapRouteWithSimulation;
     }
 
-    // anytime we don't have a simulated gasLimit estimate
-    // we set simulationError to true
-    return { ...swapRoute, simulationError: true };
+    return swapRoute;
   }
 
   private async applyTokenValidatorToPools<T extends Pool | Pair>(
