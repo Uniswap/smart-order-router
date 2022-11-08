@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { TradeType } from '@uniswap/sdk-core';
 import axios from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
@@ -38,28 +39,82 @@ const TENDERLY_BATCH_SIMULATE_API = (
 ) =>
   `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`;
 
-// We multiply tenderly gas estimate by this estimate to overestimate gas fee
+// We multiply tenderly gas limit by this to overestimate gas limit
 const ESTIMATE_MULTIPLIER = 1.25;
 
 /**
  * Provider for dry running transactions.
  *
  * @export
- * @interface ISimulator
+ * @class Simulator
  */
-export interface ISimulator {
+export abstract class Simulator {
+  protected provider: JsonRpcProvider;
   /**
    * Returns a new SwapRoute with updated gas estimates
-   * All clients that implement this interface must set
+   * All clients that extend this must set
    * simulationError = true in the returned SwapRoute
    * if simulation is not successful
    * @returns SwapRoute
    */
-  simulateTransaction: (
+  constructor(provider: JsonRpcProvider) {
+    this.provider = provider;
+  }
+  abstract simulateTransaction(
     fromAddress: string,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData
-  ) => Promise<SwapRoute>;
+  ): Promise<SwapRoute>;
+
+  public async userHasSufficientBalance(
+    fromAddress: string,
+    tradeType: TradeType,
+    amount: CurrencyAmount,
+    quote: CurrencyAmount
+  ): Promise<boolean> {
+    try {
+      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
+      let balance;
+      if (neededBalance.currency.isNative) {
+        balance = await this.provider.getBalance(fromAddress);
+      } else {
+        const tokenContract = Erc20__factory.connect(
+          neededBalance.currency.address,
+          this.provider
+        );
+        balance = await tokenContract.balanceOf(fromAddress);
+      }
+      return balance.gte(BigNumber.from(neededBalance.quotient.toString()));
+    } catch (e) {
+      log.error(e, 'Error while checking user balance');
+      return false;
+    }
+  }
+
+  public async simulate(
+    fromAddress: string,
+    swapRoute: SwapRoute,
+    amount: CurrencyAmount,
+    quote: CurrencyAmount,
+    l2GasData?: OptimismGasData | ArbitrumGasData
+  ) {
+    if (
+      await this.userHasSufficientBalance(
+        fromAddress,
+        swapRoute.trade.tradeType,
+        amount,
+        quote
+      )
+    ) {
+      log.info(
+        'User has sufficient balance to simulate. Simulating transaction.'
+      );
+      return this.simulateTransaction(fromAddress, swapRoute, l2GasData);
+    } else {
+      log.error('User does not have sufficient balance to simulate.');
+      return { ...swapRoute, simulationError: true };
+    }
+  }
 }
 
 const checkTokenApproved = async (
@@ -79,8 +134,7 @@ const checkTokenApproved = async (
   return allowance.gt(BigNumber.from(inputAmount.quotient.toString()));
 };
 
-export class FallbackTenderlySimulator implements ISimulator {
-  private provider: JsonRpcProvider;
+export class FallbackTenderlySimulator extends Simulator {
   private tenderlySimulator: TenderlySimulator;
   private v3PoolProvider: IV3PoolProvider;
   private v2PoolProvider: IV2PoolProvider;
@@ -95,6 +149,7 @@ export class FallbackTenderlySimulator implements ISimulator {
     v3PoolProvider: IV3PoolProvider,
     tenderlySimulator?: TenderlySimulator
   ) {
+    super(provider);
     this.tenderlySimulator =
       tenderlySimulator ??
       new TenderlySimulator(
@@ -103,9 +158,9 @@ export class FallbackTenderlySimulator implements ISimulator {
         tenderlyProject,
         tenderlyAccessKey,
         v2PoolProvider,
-        v3PoolProvider
+        v3PoolProvider,
+        provider
       );
-    this.provider = provider;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
   }
@@ -189,7 +244,7 @@ export class FallbackTenderlySimulator implements ISimulator {
     }
   }
 }
-export class TenderlySimulator implements ISimulator {
+export class TenderlySimulator extends Simulator {
   private tenderlyBaseUrl: string;
   private tenderlyUser: string;
   private tenderlyProject: string;
@@ -203,8 +258,10 @@ export class TenderlySimulator implements ISimulator {
     tenderlyProject: string,
     tenderlyAccessKey: string,
     v2PoolProvider: IV2PoolProvider,
-    v3PoolProvider: IV3PoolProvider
+    v3PoolProvider: IV3PoolProvider,
+    provider: JsonRpcProvider
   ) {
+    super(provider);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
     this.tenderlyUser = tenderlyUser;
     this.tenderlyProject = tenderlyProject;
@@ -228,8 +285,8 @@ export class TenderlySimulator implements ISimulator {
     }
 
     if (!swapRoute.methodParameters) {
-      const msg = 'No calldata provided to simulate transaction'
-      log.info(msg)
+      const msg = 'No calldata provided to simulate transaction';
+      log.info(msg);
       throw new Error(msg);
     }
     const { calldata } = swapRoute.methodParameters;

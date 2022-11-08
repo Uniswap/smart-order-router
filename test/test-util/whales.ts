@@ -32,6 +32,7 @@ export const WHALES = (token:Currency):string => {
         case WNATIVE_ON(ChainId.POLYGON):
             return '0x369582d2010b6ed950b571f4101e3bb9b554876f'
         case USDC_MAINNET:
+            return '0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1'
         case UNI_MAINNET:
         case DAI_MAINNET:
         case USDT_MAINNET:

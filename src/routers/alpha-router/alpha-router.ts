@@ -27,7 +27,6 @@ import {
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
-  ISimulator,
   ISwapRouterProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
@@ -35,6 +34,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
   SwapRouterProvider,
@@ -74,6 +74,7 @@ import {
   V3PoolProvider,
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
+import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ChainId,
@@ -231,7 +232,7 @@ export type AlphaRouterParams = {
   /**
    * Simulates swaps and returns new SwapRoute with updated gas estimates
    */
-  simulator?: ISimulator;
+  simulator?: Simulator;
 };
 
 /**
@@ -358,7 +359,7 @@ export class AlphaRouter
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
-  protected simulator?: ISimulator;
+  protected simulator?: Simulator;
 
   constructor({
     chainId,
@@ -1100,6 +1101,7 @@ export class AlphaRouter
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
     };
+
     if (
       swapConfig &&
       swapConfig.simulate &&
@@ -1109,10 +1111,15 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
+      const fromAddress = swapConfig.simulate.fromAddress;
       const beforeSimulate = Date.now();
-      const swapRouteWithSimulation = await this.simulator.simulateTransaction(
-        swapConfig.simulate.fromAddress,
+      const swapRouteWithSimulation = await this.simulator.simulate(
+        fromAddress,
         swapRoute,
+        amount,
+        // Quote will be in WETH even if quoteCurrency is ETH
+        // So we init a new CurrencyAmount object here
+        CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
         this.l2GasDataProvider
           ? await this.l2GasDataProvider!.getGasData()
           : undefined
@@ -1883,6 +1890,31 @@ export class AlphaRouter
     );
     if (!zeroForOne) optimalRatio = optimalRatio.invert();
     return optimalRatio;
+  }
+
+  public async userHasSufficientBalance(
+    fromAddress: string,
+    tradeType: TradeType,
+    amount: CurrencyAmount,
+    quote: CurrencyAmount
+  ): Promise<boolean> {
+    try {
+      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
+      let balance;
+      if (neededBalance.currency.isNative) {
+        balance = await this.provider.getBalance(fromAddress);
+      } else {
+        const tokenContract = Erc20__factory.connect(
+          neededBalance.currency.address,
+          this.provider
+        );
+        balance = await tokenContract.balanceOf(fromAddress);
+      }
+      return balance.gte(BigNumber.from(neededBalance.quotient.toString()));
+    } catch (e) {
+      log.error(e, 'Error while checking user balance');
+      return false;
+    }
   }
 
   private absoluteValue(fraction: Fraction): Fraction {

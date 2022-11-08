@@ -81,7 +81,8 @@ export type SwapRoute = {
    */
   methodParameters?: MethodParameters;
   /**
-   * Flag that is true if and only if simulation is requested and simulation fails
+   * Flag that is set true if we don't have a simulated gasLimit estimate
+   * This is the case if no/not all swapParams are not set, or if simulation fails
    */
   simulationError?: boolean;
 };

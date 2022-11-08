@@ -894,7 +894,7 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters } = swap!;
+            const { quote, quoteGasAdjusted, methodParameters, simulationError } = swap!;
 
             await validateSwapRoute(
               quote,
@@ -903,6 +903,8 @@ describe('alpha router integration', () => {
               100,
               10
             );
+
+            expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
               quote,
@@ -956,7 +958,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -970,7 +971,7 @@ describe('alpha router integration', () => {
               estimatedGasUsed
             );
           });
-
+          
           it(`eth -> erc20`, async () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
@@ -1010,7 +1011,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
             expect(simulationError).toBeUndefined();
           });
 
@@ -1054,7 +1054,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1109,7 +1108,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1164,7 +1162,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1220,7 +1217,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1276,7 +1272,6 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            // Expect tenderly simulation to be successful
             expect(simulationError).toBeUndefined();
 
             await validateExecuteSwap(
@@ -1289,6 +1284,98 @@ describe('alpha router integration', () => {
               100,
               estimatedGasUsed
             );
+          });
+
+          it('erc20 -> erc20 without sufficient token balance', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const { quote, quoteGasAdjusted, methodParameters, simulationError } = swap!;
+
+            await validateSwapRoute(
+              quote,
+              quoteGasAdjusted,
+              tradeType,
+              100,
+              10
+            );
+
+            expect(simulationError).toEqual(true);
+
+            await validateExecuteSwap(
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
+            );
+          });
+
+          it('eth -> erc20 without sufficient ETH balance', async () => {
+            /// Fails for v3 for some reason, ProviderGasError
+            const tokenIn = Ether.onChain(1) as Currency;
+            const tokenOut = UNI_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10000', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
+              },
+              {
+                ...ROUTING_CONFIG,
+                protocols: [Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              simulationError,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            expect(simulationError).toEqual(true);
           });
         });
       }
@@ -1625,7 +1712,7 @@ describe('quote for other networks', () => {
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         // Help with test flakiness by retrying.
-        jest.retryTimes(1);
+        jest.retryTimes(2);
 
         const wrappedNative = WNATIVE_ON(chain);
 
@@ -1836,6 +1923,7 @@ describe('quote for other networks', () => {
             });
           }
         });
+        
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap`, function () {
             // Tenderly does not support Celo
