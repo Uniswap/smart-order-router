@@ -52,7 +52,7 @@ export abstract class Simulator {
   protected provider: JsonRpcProvider;
   /**
    * Returns a new SwapRoute with updated gas estimates
-   * All clients that implement this interface must set
+   * All clients that extend this must set
    * simulationError = true in the returned SwapRoute
    * if simulation is not successful
    * @returns SwapRoute
@@ -106,8 +106,12 @@ export abstract class Simulator {
         quote
       )
     ) {
+      log.info(
+        'User has sufficient balance to simulate. Simulating transaction.'
+      );
       return this.simulateTransaction(fromAddress, swapRoute, l2GasData);
     } else {
+      log.error('User does not have sufficient balance to simulate.');
       return { ...swapRoute, simulationError: true };
     }
   }
