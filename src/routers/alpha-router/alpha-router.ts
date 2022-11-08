@@ -1132,7 +1132,7 @@ export class AlphaRouter
       return swapRouteWithSimulation;
     }
 
-    // anytime we don't have a simulate gasLimit estimate
+    // anytime we don't have a simulated gasLimit estimate
     // we set simulationError to true
     return { ...swapRoute, simulationError: true };
   }
