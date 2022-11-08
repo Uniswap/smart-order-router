@@ -1641,6 +1641,7 @@ describe.only('alpha router', () => {
       expect(swap!.trade).toBeDefined();
       expect(swap!.methodParameters).toBeDefined();
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
+    });
   });
 
   describe('exact out', () => {
@@ -3007,4 +3008,4 @@ function getQuotesManyExactInFn<TRoute extends V3Route | V2Route | MixedRoute>(
       blockNumber: BigNumber;
     };
   };
-}})
+}
