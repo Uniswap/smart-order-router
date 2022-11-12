@@ -8,6 +8,8 @@ import JSBI from 'jsbi';
 
 export class CurrencyAmount extends CurrencyAmountRaw<Currency> {}
 
+export const MAX_UINT160 = '0xffffffffffffffffffffffffffffffffffffffff';
+
 // Try to parse a user entered amount for a given token
 export function parseAmount(value: string, currency: Currency): CurrencyAmount {
   const typedValueParsed = parseUnits(value, currency.decimals).toString();

@@ -3,7 +3,10 @@ import { Percent, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
+import {
+  SwapOptions,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../../..';
 import {
   ArbitrumGasData,
   OptimismGasData,
@@ -84,7 +87,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     }> => {
       const swapOptions: SwapOptions = {
         recipient: '0x0000000000000000000000000000000000000001',
-        deadline: 100,
+        deadlineOrPreviousBlockhash: 100,
         slippageTolerance: new Percent(5, 10_000),
       };
       let l1Used = BigNumber.from(0);
