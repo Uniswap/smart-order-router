@@ -65,7 +65,7 @@ import {
   Pool,
 } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
-import { BigNumber, providers } from 'ethers';
+import { BigNumber, providers, Wallet } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
@@ -74,7 +74,7 @@ import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-r
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
-const FORK_BLOCK = 15947700;
+const FORK_BLOCK = 15972155;
 const PERMIT2_ADDRESS = '0x6fEe9BeC3B3fc8f9DA5740f0efc6BbE6966cd6A6';
 const UNIVERSAL_ROUTER_ADDRESS = '0x5393904db506415D941726f3Cf0404Bb167537A0';
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
@@ -128,6 +128,18 @@ const isTenderlyEnvironmentSet = (): boolean => {
   return isSet;
 };
 
+let warnedTesterPK = false;
+const isTesterPKEnvironmentSet = (): boolean => {
+  const isSet = !!process.env.TESTER_PK;
+  if (!isSet && !warnedTesterPK) {
+    console.log(
+      'Skipping Permit Tenderly Simulation Test since env variables for TESTER_PK is not set.'
+    );
+    warnedTesterPK = true;
+  }
+  return isSet;
+};
+
 // Flag for enabling logs for debugging integ tests
 if (process.env.INTEG_TEST_DEBUG) {
   setGlobalLogger(
@@ -138,7 +150,7 @@ if (process.env.INTEG_TEST_DEBUG) {
     })
   );
 }
-
+jest.retryTimes(0);
 describe('alpha router integration', () => {
   let alice: JsonRpcSigner;
   jest.setTimeout(500 * 1000); // 500s
@@ -1201,6 +1213,79 @@ describe('alpha router integration', () => {
               100
             );
           });
+
+          if (isTesterPKEnvironmentSet()) {
+            it('erc20 -> erc20 with permit', async () => {
+              // This test requires a private key with at least 10 USDC
+              // at FORK_BLOCK time.
+
+              // declaring these to reduce confusion
+              const tokenIn = USDC_MAINNET;
+              const tokenOut = USDT_MAINNET;
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount('10', tokenIn)
+                  : parseAmount('10', tokenOut);
+
+              const nonce = '0';
+
+              const permit: PermitSingle = {
+                details: {
+                  token: tokenIn.address,
+                  amount: amount.quotient.toString(),
+                  expiration: Math.floor(
+                    new Date().getTime() / 1000 + 100000
+                  ).toString(),
+                  nonce,
+                },
+                spender: UNIVERSAL_ROUTER_ADDRESS,
+                sigDeadline: Math.floor(
+                  new Date().getTime() / 1000 + 100000
+                ).toString(),
+              };
+
+              const { domain, types, values } = AllowanceTransfer.getPermitData(
+                permit,
+                PERMIT2_ADDRESS,
+                1
+              );
+
+              const wallet = new Wallet(process.env.TESTER_PK!);
+
+              const signature = await wallet._signTypedData(
+                domain,
+                types,
+                values
+              );
+
+              const permit2permit: Permit2Permit = {
+                ...permit,
+                signature,
+              };
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                {
+                  recipient: wallet.address,
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                  simulate: { fromAddress: wallet.address },
+                  inputTokenPermit: permit2permit,
+                },
+                {
+                  ...ROUTING_CONFIG,
+                }
+              );
+
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+
+              // Expect tenderly simulation to be successful
+              expect(swap!.simulationError).toBeUndefined();
+            });
+          }
 
           it(`erc20 -> eth large trade`, async () => {
             // Trade of this size almost always results in splits.

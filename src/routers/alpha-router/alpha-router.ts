@@ -1115,6 +1115,7 @@ export class AlphaRouter
       const beforeSimulate = Date.now();
       const swapRouteWithSimulation = await this.simulator.simulate(
         fromAddress,
+        swapConfig,
         swapRoute,
         amount,
         // Quote will be in WETH even if quoteCurrency is ETH
