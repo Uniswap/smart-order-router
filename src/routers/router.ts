@@ -78,16 +78,16 @@ export type SwapRoute = {
    */
   blockNumber: BigNumber;
   /**
+   * The calldata to execute the swap. Only returned if swapConfig was provided when calling the router.
+   */
+  methodParameters?: MethodParameters;
+  /**
    * Enum that is:
    * 0 if simulation was not attempted
    * 1 if simulation was attempted and failed
    * 2 if simulation was successful (simulated gas estimates are returned)
    */
-  simulationStatus: SimulationStatus;
-  /**
-   * The calldata to execute the swap. Only returned if swapConfig was provided when calling the router.
-   */
-  methodParameters?: MethodParameters;
+   simulationStatus: SimulationStatus;
 };
 
 export type SwapToRatioRoute = SwapRoute & {
