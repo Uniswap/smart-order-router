@@ -20,6 +20,7 @@ import {
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
 
+import { SimulationStatus } from '../providers';
 import { CurrencyAmount } from '../util/amounts';
 
 import { RouteWithValidQuote } from './alpha-router';
@@ -77,14 +78,16 @@ export type SwapRoute = {
    */
   blockNumber: BigNumber;
   /**
+   * Enum that is:
+   * 0 if simulation was not attempted
+   * 1 if simulation was attempted and failed
+   * 2 if simulation was successful (simulated gas estimates are returned)
+   */
+  simulationStatus: SimulationStatus;
+  /**
    * The calldata to execute the swap. Only returned if swapConfig was provided when calling the router.
    */
   methodParameters?: MethodParameters;
-  /**
-   * Flag that is set true if we don't have a simulated gasLimit estimate
-   * This is the case if no/not all swapParams are not set, or if simulation fails
-   */
-  simulationError?: boolean;
 };
 
 export type SwapToRatioRoute = SwapRoute & {
