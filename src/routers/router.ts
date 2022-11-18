@@ -87,7 +87,7 @@ export type SwapRoute = {
    * 1 if simulation was attempted and failed
    * 2 if simulation was successful (simulated gas estimates are returned)
    */
-  simulationStatus: SimulationStatus;
+  simulationStatus?: SimulationStatus;
 };
 
 export type SwapToRatioRoute = SwapRoute & {

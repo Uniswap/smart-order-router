@@ -30,6 +30,7 @@ import {
   NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
+  SimulationStatus,
   SUPPORTED_CHAINS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -894,7 +895,7 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters, simulationError } = swap!;
+            const { quote, quoteGasAdjusted, methodParameters, simulationStatus } = swap!;
 
             await validateSwapRoute(
               quote,
@@ -904,7 +905,8 @@ describe('alpha router integration', () => {
               10
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
               quote,
@@ -948,7 +950,7 @@ describe('alpha router integration', () => {
               quoteGasAdjusted,
               methodParameters,
               estimatedGasUsed,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -958,7 +960,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
               quote,
@@ -1002,7 +1005,7 @@ describe('alpha router integration', () => {
             const {
               quote,
               quoteGasAdjusted,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
             expect(
@@ -1011,7 +1014,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
 
           it(`weth -> erc20`, async () => {
@@ -1044,7 +1048,7 @@ describe('alpha router integration', () => {
               quoteGasAdjusted,
               methodParameters,
               estimatedGasUsed,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1054,7 +1058,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
               quote,
@@ -1098,7 +1103,7 @@ describe('alpha router integration', () => {
               quoteGasAdjusted,
               methodParameters,
               estimatedGasUsed,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1108,7 +1113,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
               quote,
@@ -1153,7 +1159,7 @@ describe('alpha router integration', () => {
               quoteGasAdjusted,
               methodParameters,
               estimatedGasUsed,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
             expect(
@@ -1162,7 +1168,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
               quote,
@@ -1207,7 +1214,7 @@ describe('alpha router integration', () => {
               quoteGasAdjusted,
               methodParameters,
               estimatedGasUsed,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1217,7 +1224,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
               quote,
@@ -1262,7 +1270,7 @@ describe('alpha router integration', () => {
               quoteGasAdjusted,
               methodParameters,
               estimatedGasUsed,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
 
@@ -1272,7 +1280,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toBeUndefined();
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
               quote,
@@ -1313,7 +1322,10 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters, simulationError } = swap!;
+            const { quote, quoteGasAdjusted, methodParameters, simulationStatus } = swap!;
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Unattempted)
 
             await validateSwapRoute(
               quote,
@@ -1322,8 +1334,6 @@ describe('alpha router integration', () => {
               100,
               10
             );
-
-            expect(simulationError).toEqual(true);
 
             await validateExecuteSwap(
               quote,
@@ -1366,7 +1376,7 @@ describe('alpha router integration', () => {
             const {
               quote,
               quoteGasAdjusted,
-              simulationError,
+              simulationStatus,
               estimatedGasUsedQuoteToken,
             } = swap!;
             expect(
@@ -1375,7 +1385,8 @@ describe('alpha router integration', () => {
                 .equalTo(estimatedGasUsedQuoteToken)
             );
 
-            expect(simulationError).toEqual(true);
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Unattempted)
           });
         });
       }
@@ -1964,7 +1975,7 @@ describe('quote for other networks', () => {
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationError).toBeUndefined();
+                expect(swap.simulationStatus).toEqual(SimulationStatus.Succeeded);
               }
 
               // Scope limited for non mainnet network tests to validating the swap
@@ -2004,7 +2015,7 @@ describe('quote for other networks', () => {
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationError).toBeUndefined();
+                expect(swap.simulationStatus).toEqual(SimulationStatus.Succeeded);
               }
             });
 
@@ -2052,7 +2063,7 @@ describe('quote for other networks', () => {
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationError).toBeUndefined();
+                expect(swap.simulationStatus).toEqual(SimulationStatus.Succeeded);
               }
             });
           });

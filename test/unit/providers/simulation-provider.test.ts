@@ -2,7 +2,7 @@ import { JsonRpcProvider } from "@ethersproject/providers"
 import { Trade } from "@uniswap/router-sdk"
 import { BigNumber } from "ethers"
 import sinon from "sinon";
-import { TenderlySimulator, FallbackTenderlySimulator, V2PoolProvider, V3PoolProvider, SwapRoute, CurrencyAmount, RouteWithValidQuote } from "../../../src"
+import { TenderlySimulator, FallbackTenderlySimulator, V2PoolProvider, V3PoolProvider, SwapRoute, CurrencyAmount, RouteWithValidQuote, SimulationStatus } from "../../../src"
 
 describe('fallback tenderly simulator', () => {
     const fromAddressMock = 'fromAddress'
@@ -29,7 +29,8 @@ describe('fallback tenderly simulator', () => {
         gasPriceWei: estimatedGasUsedMock,
         trade: tradeMock,
         route: routeMock,
-        blockNumber: blockNumberMock
+        blockNumber: blockNumberMock,
+        simulationStatus: SimulationStatus.Succeeded
     }
 
     beforeAll(() => {
@@ -50,12 +51,12 @@ describe('fallback tenderly simulator', () => {
         sinon.stub(simulator, "userHasSufficientBalance").resolves(true)
         const swapRoute = await simulator.simulate(fromAddressMock, swapRouteMock, amountMock, quoteMock)
         expect(simulateTxStub.calledOnce).toBeTruthy()
-        expect(swapRoute.simulationError).toBeUndefined()
+        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded)
     })
     test('does not simulate when user does not have sufficient balance', async () => {
         sinon.replace(simulator, "userHasSufficientBalance", async () => false)
         const swapRoute = await simulator.simulate(fromAddressMock, swapRouteMock, amountMock, quoteMock)
         expect(simulateTxStub.called).toBeFalsy()
-        expect(swapRoute.simulationError).toBeDefined()
+        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted)
     })
 })

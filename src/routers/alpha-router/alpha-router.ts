@@ -34,7 +34,6 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
-  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -1100,7 +1099,6 @@ export class AlphaRouter
       route: routeAmounts,
       trade,
       methodParameters,
-      simulationStatus: SimulationStatus.Unattempted,
       blockNumber: BigNumber.from(await blockNumber),
     };
 

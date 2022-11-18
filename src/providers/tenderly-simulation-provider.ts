@@ -26,7 +26,7 @@ type SimulationResult = {
 export enum SimulationStatus {
   Unattempted = 0,
   Failed = 1,
-  Suceeded = 2
+  Succeeded = 2
 }
 
 export type TenderlyResponse = {
@@ -198,15 +198,18 @@ export class FallbackTenderlySimulator extends Simulator {
       this.v3PoolProvider,
       l2GasData
     );
-    return initSwapRouteFromExisting(
-      route,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD
-    );
+    return {
+      simulationStatus: SimulationStatus.Succeeded,
+      ...initSwapRouteFromExisting(
+        route,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        quoteGasAdjusted,
+        estimatedGasUsed,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD
+      )
+    }
   }
 
   public async simulateTransaction(
@@ -376,14 +379,17 @@ export class TenderlySimulator extends Simulator {
       this.v3PoolProvider,
       l2GasData
     );
-    return initSwapRouteFromExisting(
-      swapRoute,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD
-    );
+    return {
+      simulationStatus: SimulationStatus.Succeeded,
+      ...initSwapRouteFromExisting(
+        swapRoute,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        quoteGasAdjusted,
+        estimatedGasUsed,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD
+      )
+    }
   }
 }
