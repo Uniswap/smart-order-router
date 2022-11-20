@@ -15,9 +15,9 @@ import {
 import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
+  MethodParameters as SDKMethodParameters,
   Pool,
   Position,
-  MethodParameters as SDKMethodParameters,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
 
@@ -88,7 +88,7 @@ export type SwapRoute = {
    * 1 if simulation was attempted and failed
    * 2 if simulation was successful (simulated gas estimates are returned)
    */
-  simulationStatus?: SimulationStatus;
+  simulationStatus: SimulationStatus;
 };
 
 export type MethodParameters = SDKMethodParameters & { to: string };

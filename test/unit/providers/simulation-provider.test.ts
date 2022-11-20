@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import { JsonRpcProvider } from "@ethersproject/providers"
-import { Trade } from "@uniswap/router-sdk"
-import { BigNumber } from "ethers"
-import sinon from "sinon";
-import { TenderlySimulator, FallbackTenderlySimulator, V2PoolProvider, V3PoolProvider, SwapRoute, CurrencyAmount, RouteWithValidQuote, SimulationStatus } from "../../../src"
-=======
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Trade } from '@uniswap/router-sdk';
 import { Percent } from '@uniswap/sdk-core';
@@ -14,13 +7,14 @@ import {
   CurrencyAmount,
   FallbackTenderlySimulator,
   RouteWithValidQuote,
+  SimulationStatus,
   SwapOptions,
   SwapRoute,
+  SwapType,
   TenderlySimulator,
   V2PoolProvider,
   V3PoolProvider,
 } from '../../../src';
->>>>>>> 025526b (s)
 
 describe('fallback tenderly simulator', () => {
   const fromAddressMock = 'fromAddress';
@@ -38,51 +32,13 @@ describe('fallback tenderly simulator', () => {
   let tenderlySimulator: sinon.SinonStubbedInstance<TenderlySimulator>;
   let simulateTxStub: sinon.SinonStub;
 
-<<<<<<< HEAD
-    const swapRouteMock: SwapRoute = {
-        quote: quoteMock,
-        quoteGasAdjusted: quoteMock,
-        estimatedGasUsed: estimatedGasUsedMock,
-        estimatedGasUsedQuoteToken: quoteMock,
-        estimatedGasUsedUSD: quoteMock,
-        gasPriceWei: estimatedGasUsedMock,
-        trade: tradeMock,
-        route: routeMock,
-        blockNumber: blockNumberMock,
-        simulationStatus: SimulationStatus.Succeeded
-    }
-
-    beforeAll(() => {
-        provider = sinon.createStubInstance(JsonRpcProvider)
-        v2PoolProvider = sinon.createStubInstance(V2PoolProvider)
-        v3PoolProvider = sinon.createStubInstance(V3PoolProvider)
-        tenderlySimulator = sinon.createStubInstance(TenderlySimulator)
-        simulator = new FallbackTenderlySimulator('base', 'user', 'project', 'key', provider, v2PoolProvider, v3PoolProvider, tenderlySimulator)
-    })
-    beforeEach(() => {
-        simulateTxStub = sinon.stub(simulator, "simulateTransaction")
-        simulateTxStub.resolvesArg(1)
-    })
-    afterEach(() => {
-        sinon.restore()
-    })
-    test('simulates when user has sufficient balance', async () => {
-        sinon.stub(simulator, "userHasSufficientBalance").resolves(true)
-        const swapRoute = await simulator.simulate(fromAddressMock, swapRouteMock, amountMock, quoteMock)
-        expect(simulateTxStub.calledOnce).toBeTruthy()
-        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded)
-    })
-    test('does not simulate when user does not have sufficient balance', async () => {
-        sinon.replace(simulator, "userHasSufficientBalance", async () => false)
-        const swapRoute = await simulator.simulate(fromAddressMock, swapRouteMock, amountMock, quoteMock)
-        expect(simulateTxStub.called).toBeFalsy()
-        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted)
-    })
-})
-=======
   const swapOptionsMock: SwapOptions = {
+    type: SwapType.UNIVERSAL_ROUTER,
     slippageTolerance: new Percent(5, 100),
+    deadlineOrPreviousBlockhash: 10000000,
+    recipient: '0x0',
   };
+
   const swapRouteMock: SwapRoute = {
     quote: quoteMock,
     quoteGasAdjusted: quoteMock,
@@ -93,6 +49,7 @@ describe('fallback tenderly simulator', () => {
     trade: tradeMock,
     route: routeMock,
     blockNumber: blockNumberMock,
+    simulationStatus: SimulationStatus.Succeeded,
   };
 
   beforeAll(() => {
@@ -101,6 +58,7 @@ describe('fallback tenderly simulator', () => {
     v3PoolProvider = sinon.createStubInstance(V3PoolProvider);
     tenderlySimulator = sinon.createStubInstance(TenderlySimulator);
     simulator = new FallbackTenderlySimulator(
+      1,
       'base',
       'user',
       'project',
@@ -111,13 +69,16 @@ describe('fallback tenderly simulator', () => {
       tenderlySimulator
     );
   });
+
   beforeEach(() => {
     simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
-    simulateTxStub.resolvesArg(2);
+    simulateTxStub.resolves(swapRouteMock);
   });
+
   afterEach(() => {
     sinon.restore();
   });
+
   test('simulates when user has sufficient balance', async () => {
     sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
     const swapRoute = await simulator.simulate(
@@ -128,8 +89,9 @@ describe('fallback tenderly simulator', () => {
       quoteMock
     );
     expect(simulateTxStub.calledOnce).toBeTruthy();
-    expect(swapRoute.simulationError).toBeUndefined();
+    expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
   });
+
   test('does not simulate when user does not have sufficient balance', async () => {
     sinon.replace(
       simulator,
@@ -144,7 +106,6 @@ describe('fallback tenderly simulator', () => {
       quoteMock
     );
     expect(simulateTxStub.called).toBeFalsy();
-    expect(swapRoute.simulationError).toBeDefined();
+    expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
   });
 });
->>>>>>> 025526b (s)

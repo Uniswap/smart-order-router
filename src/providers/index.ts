@@ -11,6 +11,7 @@ export * from './multicall-provider';
 export * from './multicall-uniswap-provider';
 export * from './on-chain-gas-price-provider';
 export * from './on-chain-quote-provider';
+export * from './simulation-provider';
 export * from './static-gas-price-provider';
 export * from './swap-router-provider';
 export * from './tenderly-simulation-provider';

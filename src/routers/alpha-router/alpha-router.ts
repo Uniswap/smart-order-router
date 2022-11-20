@@ -28,6 +28,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -1101,6 +1102,7 @@ export class AlphaRouter
       trade,
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
+      simulationStatus: SimulationStatus.Unattempted
     };
 
     if (
