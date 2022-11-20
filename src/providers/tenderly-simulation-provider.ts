@@ -1,21 +1,26 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { SwapOptions } from '@uniswap/narwhal-sdk';
 import { TradeType } from '@uniswap/sdk-core';
+import {
+  PERMIT2_ADDRESS,
+  UNIVERSAL_ROUTER_ADDRESS,
+} from '@uniswap/universal-router-sdk';
 import axios from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
-import { SwapRoute } from '../routers';
+import { SwapOptions, SwapRoute, SwapType } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
+import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
 import {
   ChainId,
   CurrencyAmount,
   log,
   MAX_UINT160,
-  SWAP_ROUTER_ADDRESS,
+  SWAP_ROUTER_02_ADDRESS,
 } from '../util';
+import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
@@ -25,9 +30,6 @@ import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
 
-const UNIVERSAL_ROUTER_ADDRESS = '0x5393904db506415D941726f3Cf0404Bb167537A0';
-const PERMIT2_ADDRESS = '0x6fEe9BeC3B3fc8f9DA5740f0efc6BbE6966cd6A6';
-
 type SimulationResult = {
   transaction: { hash: string; gas_used: number; error_message: string };
   simulation: { state_overrides: Record<string, unknown> };
@@ -36,7 +38,7 @@ type SimulationResult = {
 export enum SimulationStatus {
   Unattempted = 0,
   Failed = 1,
-  Succeeded = 2
+  Succeeded = 2,
 }
 
 export type TenderlyResponse = {
@@ -66,11 +68,12 @@ const ESTIMATE_MULTIPLIER = 1.25;
  */
 export abstract class Simulator {
   protected provider: JsonRpcProvider;
+
   /**
    * Returns a new SwapRoute with simulated gas estimates
    * @returns SwapRoute
    */
-  constructor(provider: JsonRpcProvider) {
+  constructor(provider: JsonRpcProvider, protected chainId: ChainId) {
     this.provider = provider;
   }
 
@@ -112,7 +115,7 @@ export abstract class Simulator {
     }
   }
 
-  private async userHasSufficientBalance(
+  protected async userHasSufficientBalance(
     fromAddress: string,
     tradeType: TradeType,
     amount: CurrencyAmount,
@@ -159,53 +162,67 @@ export abstract class Simulator {
       provider
     );
 
-    const permit2Allowance = await tokenContract.allowance(
-      fromAddress,
-      PERMIT2_ADDRESS
-    );
+    if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
+      const permit2Allowance = await tokenContract.allowance(
+        fromAddress,
+        PERMIT2_ADDRESS
+      );
 
-    // If a permit has been provided we don't need to check if UR has already been allowed.
-    if (swapOptions.inputTokenPermit) {
+      // If a permit has been provided we don't need to check if UR has already been allowed.
+      if (swapOptions.inputTokenPermit) {
+        log.info(
+          {
+            permitAllowance: permit2Allowance.toString(),
+            inputAmount: inputAmount.quotient.toString(),
+          },
+          'Permit was provided for simulation, checking that Permit2 has been approved.'
+        );
+        return permit2Allowance.gte(
+          BigNumber.from(inputAmount.quotient.toString())
+        );
+      }
+
+      // Check UR has been approved from Permit2.
+      const permit2Contract = Permit2__factory.connect(
+        PERMIT2_ADDRESS,
+        provider
+      );
+
+      const { amount: tokenAllowance, expiration: tokenExpiration } =
+        await permit2Contract.allowance(
+          fromAddress,
+          inputAmount.currency.wrapped.address,
+          SWAP_ROUTER_02_ADDRESS
+        );
+
+      const nowTimestampS = Math.round(Date.now() / 1000);
+      const inputAmountBN = BigNumber.from(inputAmount.quotient.toString());
+
       log.info(
         {
           permitAllowance: permit2Allowance.toString(),
+          tokenAllowance: tokenAllowance.toString(),
+          tokenExpirationS: tokenExpiration,
+          nowTimestampS,
           inputAmount: inputAmount.quotient.toString(),
         },
-        'Permit was provided for simulation, checking that Permit2 has been approved.'
+        'Permit was not provided for simulation, Permit2 is approved, UR is approved from P2, and expiration hasnt expired.'
       );
-      return permit2Allowance.gte(
-        BigNumber.from(inputAmount.quotient.toString())
+      return (
+        permit2Allowance.gte(inputAmountBN) &&
+        tokenAllowance.gte(inputAmountBN) &&
+        tokenExpiration > nowTimestampS
       );
+    } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
+      const allowance = await tokenContract.allowance(
+        fromAddress,
+        SWAP_ROUTER_02_ADDRESS
+      );
+      // Return true if token allowance is greater than input amount
+      return allowance.gt(BigNumber.from(inputAmount.quotient.toString()));
     }
 
-    // Check UR has been approved from Permit2.
-    const permit2Contract = Permit2__factory.connect(PERMIT2_ADDRESS, provider);
-
-    const { amount: tokenAllowance, expiration: tokenExpiration } =
-      await permit2Contract.allowance(
-        fromAddress,
-        inputAmount.currency.wrapped.address,
-        SWAP_ROUTER_ADDRESS
-      );
-
-    const nowTimestampS = Math.round(Date.now() / 1000);
-    const inputAmountBN = BigNumber.from(inputAmount.quotient.toString());
-
-    log.info(
-      {
-        permitAllowance: permit2Allowance.toString(),
-        tokenAllowance: tokenAllowance.toString(),
-        tokenExpirationS: tokenExpiration,
-        nowTimestampS,
-        inputAmount: inputAmount.quotient.toString(),
-      },
-      'Permit was not provided for simulation, Permit2 is approved, UR is approved from P2, and expiration hasnt expired.'
-    );
-    return (
-      permit2Allowance.gte(inputAmountBN) &&
-      tokenAllowance.gte(inputAmountBN) &&
-      tokenExpiration > nowTimestampS
-    );
+    throw new Error(`Unsupported swap type ${swapOptions}`);
   }
 }
 
@@ -215,6 +232,7 @@ export class FallbackTenderlySimulator extends Simulator {
   private v2PoolProvider: IV2PoolProvider;
 
   constructor(
+    chainId: ChainId,
     tenderlyBaseUrl: string,
     tenderlyUser: string,
     tenderlyProject: string,
@@ -224,10 +242,11 @@ export class FallbackTenderlySimulator extends Simulator {
     v3PoolProvider: IV3PoolProvider,
     tenderlySimulator?: TenderlySimulator
   ) {
-    super(provider);
+    super(provider, chainId);
     this.tenderlySimulator =
       tenderlySimulator ??
       new TenderlySimulator(
+        chainId,
         tenderlyBaseUrl,
         tenderlyUser,
         tenderlyProject,
@@ -261,6 +280,7 @@ export class FallbackTenderlySimulator extends Simulator {
       try {
         const swapRouteWithGasEstimate = await this.ethEstimateGas(
           fromAddress,
+          swapOptions,
           swapRoute,
           l2GasData
         );
@@ -287,19 +307,60 @@ export class FallbackTenderlySimulator extends Simulator {
 
   private async ethEstimateGas(
     fromAddress: string,
+    swapOptions: SwapOptions,
     route: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData
   ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
+    let estimatedGasUsed: BigNumber;
+    if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
+      estimatedGasUsed = await this.provider.estimateGas({
+        data: route.methodParameters!.calldata,
+        to: UNIVERSAL_ROUTER_ADDRESS(this.chainId), // TODO
+        from: fromAddress,
+        value: BigNumber.from(
+          currencyIn.isNative ? route.methodParameters!.value : '0'
+        ),
+      });
 
-    const estimatedGasUsed: BigNumber = await this.provider.estimateGas({
-      data: route.methodParameters!.calldata,
-      to: UNIVERSAL_ROUTER_ADDRESS,
-      from: fromAddress,
-      value: BigNumber.from(
-        currencyIn.isNative ? route.methodParameters!.value : '0'
-      ),
-    });
+      const {
+        estimatedGasUsedUSD,
+        estimatedGasUsedQuoteToken,
+        quoteGasAdjusted,
+      } = await calculateGasUsed(
+        route.quote.currency.chainId,
+        route,
+        estimatedGasUsed,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        l2GasData
+      );
+      return initSwapRouteFromExisting(
+        route,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        quoteGasAdjusted,
+        estimatedGasUsed,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD
+      );
+    } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
+      const router = SwapRouter02__factory.connect(
+        SWAP_ROUTER_02_ADDRESS,
+        this.provider
+      );
+      estimatedGasUsed = await router.estimateGas['multicall(bytes[])'](
+        [route.methodParameters!.calldata],
+        {
+          from: fromAddress,
+          value: BigNumber.from(
+            currencyIn.isNative ? route.methodParameters!.value : '0'
+          ),
+        }
+      );
+    } else {
+      throw new Error(`Unsupported swap type ${swapOptions}`);
+    }
 
     const {
       estimatedGasUsedUSD,
@@ -323,8 +384,8 @@ export class FallbackTenderlySimulator extends Simulator {
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD
-      )
-    }
+      ),
+    };
   }
 }
 export class TenderlySimulator extends Simulator {
@@ -336,6 +397,7 @@ export class TenderlySimulator extends Simulator {
   private v3PoolProvider: IV3PoolProvider;
 
   constructor(
+    chainId: ChainId,
     tenderlyBaseUrl: string,
     tenderlyUser: string,
     tenderlyProject: string,
@@ -344,7 +406,7 @@ export class TenderlySimulator extends Simulator {
     v3PoolProvider: IV3PoolProvider,
     provider: JsonRpcProvider
   ) {
-    super(provider);
+    super(provider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
     this.tenderlyUser = tenderlyUser;
     this.tenderlyProject = tenderlyProject;
@@ -355,7 +417,7 @@ export class TenderlySimulator extends Simulator {
 
   public async simulateTransaction(
     fromAddress: string,
-    _swapOptions: SwapOptions,
+    swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData
   ): Promise<SwapRoute> {
@@ -382,161 +444,230 @@ export class TenderlySimulator extends Simulator {
         fromAddress: fromAddress,
         chainId: chainId,
         tokenInAddress: tokenIn.address,
+        router: swapOptions.type,
       },
       'Simulating transaction via Tenderly'
     );
 
-    // Do initial onboarding approval of Permit2.
-    const erc20Interface = Erc20__factory.createInterface();
-    const approvePermit2Calldata = erc20Interface.encodeFunctionData(
-      'approve',
-      [PERMIT2_ADDRESS, MaxUint256]
-    );
+    let estimatedGasUsed;
 
-    // We are unsure if the users calldata contains a permit or not. We just
-    // max approve the Univeral Router from Permit2 instead, which will cover both cases.
-    const permit2Interface = Permit2__factory.createInterface();
-    const approveUniversalRouterCallData = permit2Interface.encodeFunctionData(
-      'approve',
-      [
-        tokenIn.address,
-        UNIVERSAL_ROUTER_ADDRESS,
-        MAX_UINT160,
-        Math.floor(new Date().getTime() / 1000) + 10000000,
-      ]
-    );
+    if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
+      // Do initial onboarding approval of Permit2.
+      const erc20Interface = Erc20__factory.createInterface();
+      const approvePermit2Calldata = erc20Interface.encodeFunctionData(
+        'approve',
+        [PERMIT2_ADDRESS, MaxUint256]
+      );
 
-    const approvePermit2 = {
-      network_id: chainId,
-      input: approvePermit2Calldata,
-      to: tokenIn.address,
-      value: '0',
-      from: fromAddress,
-      gasPrice: '0',
-      gas: 30000000,
-    };
+      // We are unsure if the users calldata contains a permit or not. We just
+      // max approve the Univeral Router from Permit2 instead, which will cover both cases.
+      const permit2Interface = Permit2__factory.createInterface();
+      const approveUniversalRouterCallData =
+        permit2Interface.encodeFunctionData('approve', [
+          tokenIn.address,
+          UNIVERSAL_ROUTER_ADDRESS(this.chainId), //TODO
+          MAX_UINT160,
+          Math.floor(new Date().getTime() / 1000) + 10000000,
+        ]);
 
-    const approveUniversalRouter = {
-      network_id: chainId,
-      input: approveUniversalRouterCallData,
-      to: PERMIT2_ADDRESS,
-      value: '0',
-      from: fromAddress,
-      gasPrice: '0',
-      gas: 30000000,
-    };
+      const approvePermit2 = {
+        network_id: chainId,
+        input: approvePermit2Calldata,
+        to: tokenIn.address,
+        value: '0',
+        from: fromAddress,
+        gasPrice: '0',
+        gas: 30000000,
+      };
 
-    const swap = {
-      network_id: chainId,
-      input: calldata,
-      to: UNIVERSAL_ROUTER_ADDRESS,
-      value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
-      from: fromAddress,
-      gasPrice: '0',
-      gas: 30000000,
-      type: 1,
-    };
+      const approveUniversalRouter = {
+        network_id: chainId,
+        input: approveUniversalRouterCallData,
+        to: PERMIT2_ADDRESS,
+        value: '0',
+        from: fromAddress,
+        gasPrice: '0',
+        gas: 30000000,
+      };
 
-    const body = {
-      simulations: [approvePermit2, approveUniversalRouter, swap],
-    };
-    const opts = {
-      headers: {
-        'X-Access-Key': this.tenderlyAccessKey,
-      },
-    };
-    const url = TENDERLY_BATCH_SIMULATE_API(
-      this.tenderlyBaseUrl,
-      this.tenderlyUser,
-      this.tenderlyProject
-    );
-    const resp = (await axios.post<TenderlyResponse>(url, body, opts)).data;
+      const swap = {
+        network_id: chainId,
+        input: calldata,
+        to: UNIVERSAL_ROUTER_ADDRESS(this.chainId),
+        value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
+        from: fromAddress,
+        gasPrice: '0',
+        gas: 30000000,
+        type: 1,
+      };
 
-    // Validate tenderly response body
-    if (
-      !resp ||
-      resp.simulation_results.length < 3 ||
-      !resp.simulation_results[2].transaction ||
-      resp.simulation_results[2].transaction.error_message
-    ) {
+      const body = {
+        simulations: [approvePermit2, approveUniversalRouter, swap],
+      };
+      const opts = {
+        headers: {
+          'X-Access-Key': this.tenderlyAccessKey,
+        },
+      };
+      const url = TENDERLY_BATCH_SIMULATE_API(
+        this.tenderlyBaseUrl,
+        this.tenderlyUser,
+        this.tenderlyProject
+      );
+      const resp = (await axios.post<TenderlyResponse>(url, body, opts)).data;
+
+      // Validate tenderly response body
+      if (
+        !resp ||
+        resp.simulation_results.length < 3 ||
+        !resp.simulation_results[2].transaction ||
+        resp.simulation_results[2].transaction.error_message
+      ) {
+        log.info(
+          {
+            resp,
+          },
+          'Failed to Simulate on Tenderly'
+        );
+        log.info(
+          {
+            err:
+              resp.simulation_results.length >= 1
+                ? resp.simulation_results[0].transaction
+                : {},
+          },
+          'Failed to Simulate on Tenderly #1 Transaction'
+        );
+        log.info(
+          {
+            err:
+              resp.simulation_results.length >= 1
+                ? resp.simulation_results[0].simulation
+                : {},
+          },
+          'Failed to Simulate on Tenderly #1 Simulation'
+        );
+        log.info(
+          {
+            err:
+              resp.simulation_results.length >= 2
+                ? resp.simulation_results[1].transaction
+                : {},
+          },
+          'Failed to Simulate on Tenderly #2 Transaction'
+        );
+        log.info(
+          {
+            err:
+              resp.simulation_results.length >= 2
+                ? resp.simulation_results[1].simulation
+                : {},
+          },
+          'Failed to Simulate on Tenderly #2 Simulation'
+        );
+        log.info(
+          {
+            err:
+              resp.simulation_results.length >= 3
+                ? resp.simulation_results[2].transaction
+                : {},
+          },
+          'Failed to Simulate on Tenderly #3 Transaction'
+        );
+        log.info(
+          {
+            err:
+              resp.simulation_results.length >= 3
+                ? resp.simulation_results[2].simulation
+                : {},
+          },
+          'Failed to Simulate on Tenderly #3 Simulation'
+        );
+        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+      }
+
       log.info(
         {
-          resp,
+          approvePermit2: resp.simulation_results[0],
+          approveUniversalRouter: resp.simulation_results[1],
+          swap: resp.simulation_results[2],
         },
-        'Failed to Simulate on Tenderly'
+        'Simulated Approvals + Swap via Tenderly'
       );
+
+      // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
+      estimatedGasUsed = BigNumber.from(
+        (
+          resp.simulation_results[2].transaction.gas_used * ESTIMATE_MULTIPLIER
+        ).toFixed(0)
+      );
+    } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
+      const approve = {
+        network_id: chainId,
+        input: APPROVE_TOKEN_FOR_TRANSFER,
+        to: tokenIn.address,
+        value: '0',
+        from: fromAddress,
+        gasPrice: '0',
+        gas: 30000000,
+      };
+
+      const swap = {
+        network_id: chainId,
+        input: calldata,
+        to: SWAP_ROUTER_02_ADDRESS,
+        value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
+        from: fromAddress,
+        gasPrice: '0',
+        gas: 30000000,
+        type: 1,
+      };
+
+      const body = { simulations: [approve, swap] };
+      const opts = {
+        headers: {
+          'X-Access-Key': this.tenderlyAccessKey,
+        },
+      };
+      const url = TENDERLY_BATCH_SIMULATE_API(
+        this.tenderlyBaseUrl,
+        this.tenderlyUser,
+        this.tenderlyProject
+      );
+      const resp = (await axios.post<TenderlyResponse>(url, body, opts)).data;
+
+      // Validate tenderly response body
+      if (
+        !resp ||
+        resp.simulation_results.length < 2 ||
+        !resp.simulation_results[1].transaction ||
+        resp.simulation_results[1].transaction.error_message
+      ) {
+        const msg = `Failed to Simulate Via Tenderly!: ${resp.simulation_results[1].transaction.error_message}`;
+        log.info(
+          { err: resp.simulation_results[1].transaction.error_message },
+          msg
+        );
+        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+      }
+
       log.info(
         {
-          err:
-            resp.simulation_results.length >= 1
-              ? resp.simulation_results[0].transaction
-              : {},
+          approve: resp.simulation_results[0],
+          swap: resp.simulation_results[1],
         },
-        'Failed to Simulate on Tenderly #1 Transaction'
+        'Simulated Approval + Swap via Tenderly'
       );
-      log.info(
-        {
-          err:
-            resp.simulation_results.length >= 1
-              ? resp.simulation_results[0].simulation
-              : {},
-        },
-        'Failed to Simulate on Tenderly #1 Simulation'
+
+      // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
+      estimatedGasUsed = BigNumber.from(
+        (
+          resp.simulation_results[1].transaction.gas_used * ESTIMATE_MULTIPLIER
+        ).toFixed(0)
       );
-      log.info(
-        {
-          err:
-            resp.simulation_results.length >= 2
-              ? resp.simulation_results[1].transaction
-              : {},
-        },
-        'Failed to Simulate on Tenderly #2 Transaction'
-      );
-      log.info(
-        {
-          err:
-            resp.simulation_results.length >= 2
-              ? resp.simulation_results[1].simulation
-              : {},
-        },
-        'Failed to Simulate on Tenderly #2 Simulation'
-      );
-      log.info(
-        {
-          err:
-            resp.simulation_results.length >= 3
-              ? resp.simulation_results[2].transaction
-              : {},
-        },
-        'Failed to Simulate on Tenderly #3 Transaction'
-      );
-      log.info(
-        {
-          err:
-            resp.simulation_results.length >= 3
-              ? resp.simulation_results[2].simulation
-              : {},
-        },
-        'Failed to Simulate on Tenderly #3 Simulation'
-      );
-      return { ...swapRoute, simulationError: true };
+    } else {
+      throw new Error(`Unsupported swap type: ${swapOptions}`);
     }
-
-    log.info(
-      {
-        approvePermit2: resp.simulation_results[0],
-        approveUniversalRouter: resp.simulation_results[1],
-        swap: resp.simulation_results[2],
-      },
-      'Simulated Approvals + Swap via Tenderly'
-    );
-
-    // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
-    const estimatedGasUsed = BigNumber.from(
-      (
-        resp.simulation_results[2].transaction.gas_used * ESTIMATE_MULTIPLIER
-      ).toFixed(0)
-    );
 
     const {
       estimatedGasUsedUSD,
@@ -560,7 +691,7 @@ export class TenderlySimulator extends Simulator {
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD
-      )
-    }
+      ),
+    };
   }
 }

@@ -1,5 +1,4 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { SwapOptions as NarwhalSwapOptions } from '@uniswap/narwhal-sdk';
 import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
@@ -13,11 +12,12 @@ import {
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
+import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  MethodParameters,
   Pool,
   Position,
+  MethodParameters as SDKMethodParameters,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
 
@@ -91,6 +91,8 @@ export type SwapRoute = {
   simulationStatus?: SimulationStatus;
 };
 
+export type MethodParameters = SDKMethodParameters & { to: string };
+
 export type SwapToRatioRoute = SwapRoute & {
   optimalRatio: Fraction;
   postSwapTargetPool: Pool;
@@ -121,13 +123,20 @@ export type SwapToRatioResponse =
   | SwapToRatioFail
   | SwapToRatioNoSwapNeeded;
 
+export enum SwapType {
+  UNIVERSAL_ROUTER,
+  SWAP_ROUTER_02,
+}
+
 // Swap options for Universal Router and Permit2.
-export type SwapOptions = NarwhalSwapOptions & {
-  simulate?: { fromAddress: string }
+export type SwapOptionsUniversalRouter = UniversalRouterSwapOptions & {
+  type: SwapType.UNIVERSAL_ROUTER;
+  simulate?: { fromAddress: string };
 };
 
 // Swap options for router-sdk and SwapRouter02.
-export type SwapOptionsLegacy = {
+export type SwapOptionsSwapRouter02 = {
+  type: SwapType.SWAP_ROUTER_02;
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
@@ -148,6 +157,8 @@ export type SwapOptionsLegacy = {
   );
 };
 
+export type SwapOptions = SwapOptionsUniversalRouter | SwapOptionsSwapRouter02;
+
 // Config passed in to determine configurations on acceptable liquidity
 // to add to a position and max iterations on the route-finding algorithm
 export type SwapAndAddConfig = {
@@ -158,7 +169,7 @@ export type SwapAndAddConfig = {
 // Options for executing the swap and add.
 // If provided, calldata for executing the swap and add will also be returned.
 export type SwapAndAddOptions = {
-  swapOptions: SwapOptionsLegacy;
+  swapOptions: SwapOptionsSwapRouter02;
   addLiquidityOptions: CondensedAddLiquidityOptions;
 };
 

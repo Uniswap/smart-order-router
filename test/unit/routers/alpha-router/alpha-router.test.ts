@@ -25,6 +25,7 @@ import {
   SwapAndAddOptions,
   SwapRouterProvider,
   SwapToRatioStatus,
+  SwapType,
   TokenProvider,
   UniswapMulticallProvider,
   USDC_MAINNET as USDC,
@@ -138,6 +139,7 @@ describe('alpha router', () => {
       recipient: `0x${'00'.repeat(19)}01`,
     },
     swapOptions: {
+      type: SwapType.SWAP_ROUTER_02,
       deadline: 100,
       recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
       slippageTolerance: new Percent(5, 10_000),
@@ -1356,6 +1358,7 @@ describe('alpha router', () => {
 
     test('succeeds to route and generates calldata on v3 only', async () => {
       const swapParams = {
+        type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1430,6 +1433,7 @@ describe('alpha router', () => {
 
     test('succeeds to route and generates calldata on v2 only', async () => {
       const swapParams = {
+        type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1501,6 +1505,7 @@ describe('alpha router', () => {
 
     test('succeeds to route and generates calldata on mixed only', async () => {
       const swapParams = {
+        type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1570,6 +1575,7 @@ describe('alpha router', () => {
 
     test('succeeds to route and generate calldata and simulates', async () => {
       const swapParams = {
+        type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1948,6 +1954,7 @@ describe('alpha router', () => {
 
     test('succeeds to route and generates calldata on v2 only', async () => {
       const swapParams = {
+        type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -2008,11 +2015,13 @@ describe('alpha router', () => {
       expect(swap!.route).toHaveLength(1);
       expect(swap!.trade).toBeDefined();
       expect(swap!.methodParameters).toBeDefined();
+      expect(swap!.methodParameters?.to).toBeDefined();
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
     test('succeeds to route and generate calldata and simulates', async () => {
       const swapParams = {
+        type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -2080,6 +2089,7 @@ describe('alpha router', () => {
       expect(swap!.route).toHaveLength(1);
       expect(swap!.trade).toBeDefined();
       expect(swap!.methodParameters).toBeDefined();
+      expect(swap!.methodParameters?.to).toBeDefined();
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
   });

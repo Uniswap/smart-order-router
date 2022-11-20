@@ -1,16 +1,27 @@
-import { SwapRouter } from '@uniswap/narwhal-sdk';
-import { MixedRouteSDK, Protocol, Trade } from '@uniswap/router-sdk';
+import {
+  MixedRouteSDK,
+  Protocol,
+  SwapRouter as SwapRouter02,
+  Trade,
+} from '@uniswap/router-sdk';
 import { Currency, TradeType } from '@uniswap/sdk-core';
+import {
+  SwapRouter as UniveralRouter,
+  UNIVERSAL_ROUTER_ADDRESS,
+} from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
-import { MethodParameters, Route as V3RouteRaw } from '@uniswap/v3-sdk';
+import { Route as V3RouteRaw } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import {
+  ChainId,
   CurrencyAmount,
-  log,
+  MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
+  SWAP_ROUTER_02_ADDRESS,
   SwapOptions,
+  SwapType,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';
@@ -220,31 +231,28 @@ export function buildTrade<TTradeType extends TradeType>(
 
 export function buildSwapMethodParameters(
   trade: Trade<Currency, Currency, TradeType>,
-  swapConfig: SwapOptions
+  swapConfig: SwapOptions,
+  chainId: ChainId
 ): MethodParameters {
-  const {
-    recipient,
-    slippageTolerance,
-    deadlineOrPreviousBlockhash,
-    inputTokenPermit,
-  } = swapConfig;
+  if (swapConfig.type == SwapType.UNIVERSAL_ROUTER) {
+    return {
+      ...UniveralRouter.swapERC20CallParameters(trade, swapConfig),
+      to: UNIVERSAL_ROUTER_ADDRESS(chainId),
+    };
+  } else if (swapConfig.type == SwapType.SWAP_ROUTER_02) {
+    const { recipient, slippageTolerance, deadline, inputTokenPermit } =
+      swapConfig;
 
-  const swapOptions = {
-    recipient,
-    slippageTolerance,
-    deadlineOrPreviousBlockhash,
-    inputTokenPermit,
-  };
+    return {
+      ...SwapRouter02.swapCallParameters(trade, {
+        recipient,
+        slippageTolerance,
+        deadlineOrPreviousBlockhash: deadline,
+        inputTokenPermit,
+      }),
+      to: SWAP_ROUTER_02_ADDRESS,
+    };
+  }
 
-  const methodParameters = SwapRouter.swapERC20CallParameters(
-    trade,
-    swapOptions
-  );
-
-  log.info(
-    { swapOptions, methodParameters },
-    'Generated method params calldata'
-  );
-
-  return methodParameters;
+  throw new Error(`Unsupported swap type ${swapConfig}`);
 }

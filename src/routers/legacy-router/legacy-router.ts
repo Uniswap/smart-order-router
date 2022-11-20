@@ -13,12 +13,13 @@ import {
   USDC_MAINNET,
 } from '../../providers/token-provider';
 import { IV3PoolProvider } from '../../providers/v3/pool-provider';
+import { SWAP_ROUTER_02_ADDRESS } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
 import { V3RouteWithValidQuote } from '../alpha-router';
-import { SwapOptionsLegacy, SwapRoute, V3Route } from '../router';
+import { SwapOptionsSwapRouter02, SwapRoute, V3Route } from '../router';
 
 import {
   ADDITIONAL_BASES,
@@ -70,7 +71,7 @@ export class LegacyRouter {
     amount: CurrencyAmount,
     quoteCurrency: Currency,
     swapType: TradeType,
-    swapConfig?: SwapOptionsLegacy,
+    swapConfig?: SwapOptionsSwapRouter02,
     partialRoutingConfig?: Partial<LegacyRoutingConfig>
   ): Promise<SwapRoute | null> {
     if (swapType == TradeType.EXACT_INPUT) {
@@ -96,7 +97,7 @@ export class LegacyRouter {
     currencyIn: Currency,
     currencyOut: Currency,
     amountIn: CurrencyAmount,
-    swapConfig?: SwapOptionsLegacy,
+    swapConfig?: SwapOptionsSwapRouter02,
     routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
@@ -138,7 +139,7 @@ export class LegacyRouter {
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? this.buildMethodParameters(trade, swapConfig)
+        ? { ...this.buildMethodParameters(trade, swapConfig), to: SWAP_ROUTER_02_ADDRESS }
         : undefined,
       blockNumber: BigNumber.from(0),
     };
@@ -148,7 +149,7 @@ export class LegacyRouter {
     currencyIn: Currency,
     currencyOut: Currency,
     amountOut: CurrencyAmount,
-    swapConfig?: SwapOptionsLegacy,
+    swapConfig?: SwapOptionsSwapRouter02,
     routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
@@ -190,7 +191,7 @@ export class LegacyRouter {
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? this.buildMethodParameters(trade, swapConfig)
+        ? { ...this.buildMethodParameters(trade, swapConfig), to: SWAP_ROUTER_02_ADDRESS }
         : undefined,
       blockNumber: BigNumber.from(0),
     };
@@ -537,7 +538,7 @@ export class LegacyRouter {
 
   private buildMethodParameters<TTradeType extends TradeType>(
     trade: Trade<Currency, Currency, TTradeType>,
-    swapConfig: SwapOptionsLegacy
+    swapConfig: SwapOptionsSwapRouter02
   ): MethodParameters {
     const { recipient, slippageTolerance, deadline } = swapConfig;
 
