@@ -23,6 +23,12 @@ type SimulationResult = {
   simulation: { state_overrides: Record<string, unknown> };
 };
 
+export enum SimulationStatus {
+  Unattempted = 0,
+  Failed = 1,
+  Succeeded = 2
+}
+
 export type TenderlyResponse = {
   config: {
     url: string;
@@ -51,10 +57,7 @@ const ESTIMATE_MULTIPLIER = 1.25;
 export abstract class Simulator {
   protected provider: JsonRpcProvider;
   /**
-   * Returns a new SwapRoute with updated gas estimates
-   * All clients that extend this must set
-   * simulationError = true in the returned SwapRoute
-   * if simulation is not successful
+   * Returns a new SwapRoute with simulated gas estimates
    * @returns SwapRoute
    */
   constructor(provider: JsonRpcProvider) {
@@ -97,7 +100,7 @@ export abstract class Simulator {
     amount: CurrencyAmount,
     quote: CurrencyAmount,
     l2GasData?: OptimismGasData | ArbitrumGasData
-  ) {
+  ): Promise<SwapRoute> {
     if (
       await this.userHasSufficientBalance(
         fromAddress,
@@ -112,7 +115,7 @@ export abstract class Simulator {
       return this.simulateTransaction(fromAddress, swapRoute, l2GasData);
     } else {
       log.error('User does not have sufficient balance to simulate.');
-      return { ...swapRoute, simulationError: true };
+      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
     }
   }
 }
@@ -195,15 +198,18 @@ export class FallbackTenderlySimulator extends Simulator {
       this.v3PoolProvider,
       l2GasData
     );
-    return initSwapRouteFromExisting(
-      route,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD
-    );
+    return {
+      simulationStatus: SimulationStatus.Succeeded,
+      ...initSwapRouteFromExisting(
+        route,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        quoteGasAdjusted,
+        estimatedGasUsed,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD
+      )
+    }
   }
 
   public async simulateTransaction(
@@ -227,7 +233,7 @@ export class FallbackTenderlySimulator extends Simulator {
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error calling eth estimate gas!');
-        return { ...swapRoute, simulationError: true };
+        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
     }
     // simulate via tenderly
@@ -240,7 +246,7 @@ export class FallbackTenderlySimulator extends Simulator {
     } catch (err) {
       log.info({ err: err }, 'Failed to simulate via Tenderly!');
       // set error flag to true
-      return { ...swapRoute, simulationError: true };
+      return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
   }
 }
@@ -281,7 +287,7 @@ export class TenderlySimulator extends Simulator {
     if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
       const msg = 'Celo not supported by Tenderly!';
       log.info(msg);
-      return { ...swapRoute, simulationError: true };
+      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
     }
 
     if (!swapRoute.methodParameters) {
@@ -346,7 +352,7 @@ export class TenderlySimulator extends Simulator {
         { err: resp.simulation_results[1].transaction.error_message },
         msg
       );
-      return { ...swapRoute, simulationError: true };
+      return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
 
     log.info(
@@ -373,14 +379,17 @@ export class TenderlySimulator extends Simulator {
       this.v3PoolProvider,
       l2GasData
     );
-    return initSwapRouteFromExisting(
-      swapRoute,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      quoteGasAdjusted,
-      estimatedGasUsed,
-      estimatedGasUsedQuoteToken,
-      estimatedGasUsedUSD
-    );
+    return {
+      simulationStatus: SimulationStatus.Succeeded,
+      ...initSwapRouteFromExisting(
+        swapRoute,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        quoteGasAdjusted,
+        estimatedGasUsed,
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD
+      )
+    }
   }
 }
