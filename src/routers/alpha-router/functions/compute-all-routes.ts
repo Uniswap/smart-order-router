@@ -2,7 +2,7 @@ import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { log } from '../../../util/log';
-import { routeToString } from '../../../util/routes';
+import { poolToString, routeToString } from '../../../util/routes';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 
 export function computeAllV3Routes(
@@ -130,8 +130,9 @@ export function computeAllRoutes<
   log.info(
     {
       routes: routes.map(routeToString),
+      pools: pools.map(poolToString),
     },
-    `Computed ${routes.length} possible routes.`
+    `Computed ${routes.length} possible routes for type ${routes[0]?.protocol}.`
   );
 
   return routes;

@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { SwapOptions as NarwhalSwapOptions } from '@uniswap/narwhal-sdk';
 import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
@@ -120,7 +121,13 @@ export type SwapToRatioResponse =
   | SwapToRatioFail
   | SwapToRatioNoSwapNeeded;
 
-export type SwapOptions = {
+// Swap options for Universal Router and Permit2.
+export type SwapOptions = NarwhalSwapOptions & {
+  simulate?: { fromAddress: string }
+};
+
+// Swap options for router-sdk and SwapRouter02.
+export type SwapOptionsLegacy = {
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
@@ -151,7 +158,7 @@ export type SwapAndAddConfig = {
 // Options for executing the swap and add.
 // If provided, calldata for executing the swap and add will also be returned.
 export type SwapAndAddOptions = {
-  swapOptions: SwapOptions;
+  swapOptions: SwapOptionsLegacy;
   addLiquidityOptions: CondensedAddLiquidityOptions;
 };
 

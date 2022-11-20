@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { TradeType } from '@uniswap/sdk-core';
 import axios from 'axios';
@@ -6,9 +7,14 @@ import { BigNumber } from 'ethers/lib/ethers';
 
 import { SwapRoute } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
-import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { ChainId, CurrencyAmount, log, SWAP_ROUTER_ADDRESS } from '../util';
-import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
+import { Permit2__factory } from '../types/other/factories/Permit2__factory';
+import {
+  ChainId,
+  CurrencyAmount,
+  log,
+  MAX_UINT160,
+  SWAP_ROUTER_ADDRESS,
+} from '../util';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
@@ -17,6 +23,9 @@ import {
 import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
+
+const UNIVERSAL_ROUTER_ADDRESS = '0x5393904db506415D941726f3Cf0404Bb167537A0';
+const PERMIT2_ADDRESS = '0x6fEe9BeC3B3fc8f9DA5740f0efc6BbE6966cd6A6';
 
 type SimulationResult = {
   transaction: { hash: string; gas_used: number; error_message: string };
@@ -35,7 +44,7 @@ export type TenderlyResponse = {
     method: string;
     data: string;
   };
-  simulation_results: [SimulationResult, SimulationResult];
+  simulation_results: [SimulationResult, SimulationResult, SimulationResult];
 };
 
 const TENDERLY_BATCH_SIMULATE_API = (
@@ -174,18 +183,16 @@ export class FallbackTenderlySimulator extends Simulator {
     l2GasData?: ArbitrumGasData | OptimismGasData
   ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
-    const router = SwapRouter02__factory.connect(
-      SWAP_ROUTER_ADDRESS,
-      this.provider
-    );
-    const estimatedGasUsed: BigNumber = await router.estimateGas[
-      'multicall(bytes[])'
-    ]([route.methodParameters!.calldata], {
+
+    const estimatedGasUsed: BigNumber = await this.provider.estimateGas({
+      data: route.methodParameters!.calldata,
+      to: UNIVERSAL_ROUTER_ADDRESS,
       from: fromAddress,
       value: BigNumber.from(
         currencyIn.isNative ? route.methodParameters!.value : '0'
       ),
     });
+
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
@@ -306,10 +313,40 @@ export class TenderlySimulator extends Simulator {
       'Simulating transaction via Tenderly'
     );
 
-    const approve = {
+    // Do initial onboarding approval of Permit2.
+    const erc20Interface = Erc20__factory.createInterface();
+    const approvePermit2Calldata = erc20Interface.encodeFunctionData(
+      'approve',
+      [PERMIT2_ADDRESS, MaxUint256]
+    );
+
+    // We are unsure if the users calldata contains a permit or not. We just
+    // max approve the Univeral Router from Permit2 instead, which will cover both cases.
+    const permit2Interface = Permit2__factory.createInterface();
+    const approveUniversalRouterCallData = permit2Interface.encodeFunctionData(
+      'approve',
+      [
+        tokenIn.address,
+        UNIVERSAL_ROUTER_ADDRESS,
+        MAX_UINT160,
+        Math.floor(new Date().getTime() / 1000) + 10000000,
+      ]
+    );
+
+    const approvePermit2 = {
       network_id: chainId,
-      input: APPROVE_TOKEN_FOR_TRANSFER,
+      input: approvePermit2Calldata,
       to: tokenIn.address,
+      value: '0',
+      from: fromAddress,
+      gasPrice: '0',
+      gas: 30000000,
+    };
+
+    const approveUniversalRouter = {
+      network_id: chainId,
+      input: approveUniversalRouterCallData,
+      to: PERMIT2_ADDRESS,
       value: '0',
       from: fromAddress,
       gasPrice: '0',
@@ -319,7 +356,7 @@ export class TenderlySimulator extends Simulator {
     const swap = {
       network_id: chainId,
       input: calldata,
-      to: SWAP_ROUTER_ADDRESS,
+      to: UNIVERSAL_ROUTER_ADDRESS,
       value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
       from: fromAddress,
       gasPrice: '0',
@@ -327,7 +364,9 @@ export class TenderlySimulator extends Simulator {
       type: 1,
     };
 
-    const body = { simulations: [approve, swap] };
+    const body = {
+      simulations: [approvePermit2, approveUniversalRouter, swap],
+    };
     const opts = {
       headers: {
         'X-Access-Key': this.tenderlyAccessKey,
@@ -343,27 +382,30 @@ export class TenderlySimulator extends Simulator {
     // Validate tenderly response body
     if (
       !resp ||
-      resp.simulation_results.length < 2 ||
-      !resp.simulation_results[1].transaction ||
-      resp.simulation_results[1].transaction.error_message
+      resp.simulation_results.length < 3 ||
+      !resp.simulation_results[2].transaction ||
+      resp.simulation_results[2].transaction.error_message
     ) {
-      const msg = `Failed to Simulate Via Tenderly!: ${resp.simulation_results[1].transaction.error_message}`;
       log.info(
-        { err: resp.simulation_results[1].transaction.error_message },
-        msg
+        { err: resp.simulation_results },
+        'Failed to Simulate on Tenderly'
       );
       return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
 
     log.info(
-      { approve: resp.simulation_results[0], swap: resp.simulation_results[1] },
-      'Simulated Approval + Swap via Tenderly'
+      {
+        approvePermit2: resp.simulation_results[0],
+        approveUniversalRouter: resp.simulation_results[1],
+        swap: resp.simulation_results[2],
+      },
+      'Simulated Approvals + Swap via Tenderly'
     );
 
     // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
     const estimatedGasUsed = BigNumber.from(
       (
-        resp.simulation_results[1].transaction.gas_used * ESTIMATE_MULTIPLIER
+        resp.simulation_results[2].transaction.gas_used * ESTIMATE_MULTIPLIER
       ).toFixed(0)
     );
 

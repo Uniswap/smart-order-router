@@ -1,7 +1,7 @@
 import { CEUR_CELO, CEUR_CELO_ALFAJORES, ChainId, CUSD_CELO, DAI_MAINNET, DAI_ON, ExtendedEther, nativeOnChain, UNI_GÖRLI, UNI_MAINNET, USDC_MAINNET, USDC_ON, USDT_MAINNET, WETH9, WNATIVE_ON } from "../../src"
 import { Currency, Ether } from '@uniswap/sdk-core';
 
-export const WHALES = (token:Currency):string => {
+export const WHALES = (token: Currency): string => {
     switch(token) {
         case Ether.onChain(1) as Currency:
             return '0x0716a17FBAeE714f1E6aB0f9d59edbC5f09815C0'
@@ -32,7 +32,7 @@ export const WHALES = (token:Currency):string => {
         case WNATIVE_ON(ChainId.POLYGON):
             return '0x369582d2010b6ed950b571f4101e3bb9b554876f'
         case USDC_MAINNET:
-            return '0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1'
+            return '0x8eb8a3b98659cce290402893d0123abb75e3ab28'
         case UNI_MAINNET:
         case DAI_MAINNET:
         case USDT_MAINNET:

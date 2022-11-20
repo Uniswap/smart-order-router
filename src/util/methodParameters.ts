@@ -1,9 +1,5 @@
-import {
-  MixedRouteSDK,
-  Protocol,
-  SwapRouter,
-  Trade,
-} from '@uniswap/router-sdk';
+import { SwapRouter } from '@uniswap/narwhal-sdk';
+import { MixedRouteSDK, Protocol, Trade } from '@uniswap/router-sdk';
 import { Currency, TradeType } from '@uniswap/sdk-core';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import { MethodParameters, Route as V3RouteRaw } from '@uniswap/v3-sdk';
@@ -11,6 +7,7 @@ import _ from 'lodash';
 
 import {
   CurrencyAmount,
+  log,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   SwapOptions,
@@ -225,12 +222,29 @@ export function buildSwapMethodParameters(
   trade: Trade<Currency, Currency, TradeType>,
   swapConfig: SwapOptions
 ): MethodParameters {
-  const { recipient, slippageTolerance, deadline, inputTokenPermit } =
-    swapConfig;
-  return SwapRouter.swapCallParameters(trade, {
+  const {
     recipient,
     slippageTolerance,
-    deadlineOrPreviousBlockhash: deadline,
+    deadlineOrPreviousBlockhash,
     inputTokenPermit,
-  });
+  } = swapConfig;
+
+  const swapOptions = {
+    recipient,
+    slippageTolerance,
+    deadlineOrPreviousBlockhash,
+    inputTokenPermit,
+  };
+
+  const methodParameters = SwapRouter.swapERC20CallParameters(
+    trade,
+    swapOptions
+  );
+
+  log.info(
+    { swapOptions, methodParameters },
+    'Generated method params calldata'
+  );
+
+  return methodParameters;
 }
