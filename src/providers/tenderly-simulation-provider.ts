@@ -143,28 +143,6 @@ export class FallbackTenderlySimulator extends Simulator {
           currencyIn.isNative ? route.methodParameters!.value : '0'
         ),
       });
-
-      const {
-        estimatedGasUsedUSD,
-        estimatedGasUsedQuoteToken,
-        quoteGasAdjusted,
-      } = await calculateGasUsed(
-        route.quote.currency.chainId,
-        route,
-        estimatedGasUsed,
-        this.v2PoolProvider,
-        this.v3PoolProvider,
-        l2GasData
-      );
-      return initSwapRouteFromExisting(
-        route,
-        this.v2PoolProvider,
-        this.v3PoolProvider,
-        quoteGasAdjusted,
-        estimatedGasUsed,
-        estimatedGasUsedQuoteToken,
-        estimatedGasUsedUSD
-      );
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
       const router = SwapRouter02__factory.connect(
         SWAP_ROUTER_02_ADDRESS,

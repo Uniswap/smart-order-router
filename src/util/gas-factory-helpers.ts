@@ -322,7 +322,7 @@ export function initSwapRouteFromExisting(
   estimatedGasUsed: BigNumber,
   estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
   estimatedGasUsedUSD: CurrencyAmount<Currency>
-) {
+): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
   const tradeType = swapRoute.trade.tradeType.valueOf()
@@ -429,5 +429,6 @@ export function initSwapRouteFromExisting(
           to: swapRoute.methodParameters.to,
         } as MethodParameters)
       : undefined,
-  } as SwapRoute;
+    simulationStatus: swapRoute.simulationStatus,
+  };
 }
