@@ -4,7 +4,7 @@ import { SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, MethodParameters, Pool, Route } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { IOnChainQuoteProvider, RouteWithQuotes } from '../../providers';
+import { IOnChainQuoteProvider, RouteWithQuotes, SimulationStatus } from '../../providers';
 
 import { IMulticallProvider } from '../../providers/multicall-provider';
 import {
@@ -13,12 +13,13 @@ import {
   USDC_MAINNET,
 } from '../../providers/token-provider';
 import { IV3PoolProvider } from '../../providers/v3/pool-provider';
+import { SWAP_ROUTER_02_ADDRESS } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';
 import { V3RouteWithValidQuote } from '../alpha-router';
-import { IRouter, SwapOptions, SwapRoute, V3Route } from '../router';
+import { SwapOptionsSwapRouter02, SwapRoute, V3Route } from '../router';
 
 import {
   ADDITIONAL_BASES,
@@ -46,7 +47,7 @@ export type LegacyRoutingConfig = {
  * Code is mostly a copy from https://github.com/Uniswap/uniswap-interface/blob/0190b5a408c13016c87e1030ffc59326c085f389/src/hooks/useBestV3Trade.ts#L22-L23
  * with React/Redux hooks removed, and refactoring to allow re-use in other routers.
  */
-export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
+export class LegacyRouter {
   protected chainId: ChainId;
   protected multicall2Provider: IMulticallProvider;
   protected poolProvider: IV3PoolProvider;
@@ -70,7 +71,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     amount: CurrencyAmount,
     quoteCurrency: Currency,
     swapType: TradeType,
-    swapConfig?: SwapOptions,
+    swapConfig?: SwapOptionsSwapRouter02,
     partialRoutingConfig?: Partial<LegacyRoutingConfig>
   ): Promise<SwapRoute | null> {
     if (swapType == TradeType.EXACT_INPUT) {
@@ -96,7 +97,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountIn: CurrencyAmount,
-    swapConfig?: SwapOptions,
+    swapConfig?: SwapOptionsSwapRouter02,
     routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
@@ -138,9 +139,10 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? this.buildMethodParameters(trade, swapConfig)
+        ? { ...this.buildMethodParameters(trade, swapConfig), to: SWAP_ROUTER_02_ADDRESS }
         : undefined,
       blockNumber: BigNumber.from(0),
+      simulationStatus: SimulationStatus.Unattempted
     };
   }
 
@@ -148,7 +150,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
     currencyIn: Currency,
     currencyOut: Currency,
     amountOut: CurrencyAmount,
-    swapConfig?: SwapOptions,
+    swapConfig?: SwapOptionsSwapRouter02,
     routingConfig?: LegacyRoutingConfig
   ): Promise<SwapRoute | null> {
     const tokenIn = currencyIn.wrapped;
@@ -190,9 +192,10 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? this.buildMethodParameters(trade, swapConfig)
+        ? { ...this.buildMethodParameters(trade, swapConfig), to: SWAP_ROUTER_02_ADDRESS }
         : undefined,
       blockNumber: BigNumber.from(0),
+      simulationStatus: SimulationStatus.Unattempted
     };
   }
 
@@ -537,7 +540,7 @@ export class LegacyRouter implements IRouter<LegacyRoutingConfig> {
 
   private buildMethodParameters<TTradeType extends TradeType>(
     trade: Trade<Currency, Currency, TTradeType>,
-    swapConfig: SwapOptions
+    swapConfig: SwapOptionsSwapRouter02
   ): MethodParameters {
     const { recipient, slippageTolerance, deadline } = swapConfig;
 

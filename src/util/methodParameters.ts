@@ -1,19 +1,27 @@
 import {
   MixedRouteSDK,
   Protocol,
-  SwapRouter,
+  SwapRouter as SwapRouter02,
   Trade,
 } from '@uniswap/router-sdk';
 import { Currency, TradeType } from '@uniswap/sdk-core';
+import {
+  SwapRouter as UniveralRouter,
+  UNIVERSAL_ROUTER_ADDRESS,
+} from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
-import { MethodParameters, Route as V3RouteRaw } from '@uniswap/v3-sdk';
+import { Route as V3RouteRaw } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import {
+  ChainId,
   CurrencyAmount,
+  MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
+  SWAP_ROUTER_02_ADDRESS,
   SwapOptions,
+  SwapType,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';
@@ -223,14 +231,28 @@ export function buildTrade<TTradeType extends TradeType>(
 
 export function buildSwapMethodParameters(
   trade: Trade<Currency, Currency, TradeType>,
-  swapConfig: SwapOptions
+  swapConfig: SwapOptions,
+  chainId: ChainId
 ): MethodParameters {
-  const { recipient, slippageTolerance, deadline, inputTokenPermit } =
-    swapConfig;
-  return SwapRouter.swapCallParameters(trade, {
-    recipient,
-    slippageTolerance,
-    deadlineOrPreviousBlockhash: deadline,
-    inputTokenPermit,
-  });
+  if (swapConfig.type == SwapType.UNIVERSAL_ROUTER) {
+    return {
+      ...UniveralRouter.swapERC20CallParameters(trade, swapConfig),
+      to: UNIVERSAL_ROUTER_ADDRESS(chainId),
+    };
+  } else if (swapConfig.type == SwapType.SWAP_ROUTER_02) {
+    const { recipient, slippageTolerance, deadline, inputTokenPermit } =
+      swapConfig;
+
+    return {
+      ...SwapRouter02.swapCallParameters(trade, {
+        recipient,
+        slippageTolerance,
+        deadlineOrPreviousBlockhash: deadline,
+        inputTokenPermit,
+      }),
+      to: SWAP_ROUTER_02_ADDRESS,
+    };
+  }
+
+  throw new Error(`Unsupported swap type ${swapConfig}`);
 }

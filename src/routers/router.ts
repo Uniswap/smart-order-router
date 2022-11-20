@@ -12,9 +12,10 @@ import {
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
+import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  MethodParameters,
+  MethodParameters as SDKMethodParameters,
   Pool,
   Position,
   Route as V3RouteRaw,
@@ -87,8 +88,10 @@ export type SwapRoute = {
    * 1 if simulation was attempted and failed
    * 2 if simulation was successful (simulated gas estimates are returned)
    */
-  simulationStatus?: SimulationStatus;
+  simulationStatus: SimulationStatus;
 };
+
+export type MethodParameters = SDKMethodParameters & { to: string };
 
 export type SwapToRatioRoute = SwapRoute & {
   optimalRatio: Fraction;
@@ -120,7 +123,20 @@ export type SwapToRatioResponse =
   | SwapToRatioFail
   | SwapToRatioNoSwapNeeded;
 
-export type SwapOptions = {
+export enum SwapType {
+  UNIVERSAL_ROUTER,
+  SWAP_ROUTER_02,
+}
+
+// Swap options for Universal Router and Permit2.
+export type SwapOptionsUniversalRouter = UniversalRouterSwapOptions & {
+  type: SwapType.UNIVERSAL_ROUTER;
+  simulate?: { fromAddress: string };
+};
+
+// Swap options for router-sdk and SwapRouter02.
+export type SwapOptionsSwapRouter02 = {
+  type: SwapType.SWAP_ROUTER_02;
   recipient: string;
   slippageTolerance: Percent;
   deadline: number;
@@ -141,6 +157,8 @@ export type SwapOptions = {
   );
 };
 
+export type SwapOptions = SwapOptionsUniversalRouter | SwapOptionsSwapRouter02;
+
 // Config passed in to determine configurations on acceptable liquidity
 // to add to a position and max iterations on the route-finding algorithm
 export type SwapAndAddConfig = {
@@ -151,7 +169,7 @@ export type SwapAndAddConfig = {
 // Options for executing the swap and add.
 // If provided, calldata for executing the swap and add will also be returned.
 export type SwapAndAddOptions = {
-  swapOptions: SwapOptions;
+  swapOptions: SwapOptionsSwapRouter02;
   addLiquidityOptions: CondensedAddLiquidityOptions;
 };
 

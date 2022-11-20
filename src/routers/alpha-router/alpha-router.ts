@@ -5,13 +5,7 @@ import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
-import {
-  MethodParameters,
-  Pool,
-  Position,
-  SqrtPriceMath,
-  TickMath,
-} from '@uniswap/v3-sdk';
+import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
@@ -34,6 +28,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -75,6 +70,7 @@ import {
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
+import { SWAP_ROUTER_02_ADDRESS } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ChainId,
@@ -93,6 +89,7 @@ import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
+  MethodParameters,
   MixedRoute,
   SwapAndAddConfig,
   SwapAndAddOptions,
@@ -137,6 +134,7 @@ import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixe
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 
 import { V3HeuristicGasModelFactory } from '.';
+
 
 export type AlphaRouterParams = {
   /**
@@ -1072,7 +1070,11 @@ export class AlphaRouter
     // If user provided recipient, deadline etc. we also generate the calldata required to execute
     // the swap and return it too.
     if (swapConfig) {
-      methodParameters = buildSwapMethodParameters(trade, swapConfig);
+      methodParameters = buildSwapMethodParameters(
+        trade,
+        swapConfig,
+        this.chainId
+      );
     }
 
     metric.putMetric(
@@ -1100,6 +1102,7 @@ export class AlphaRouter
       trade,
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
+      simulationStatus: SimulationStatus.Unattempted
     };
 
     if (
@@ -1115,6 +1118,7 @@ export class AlphaRouter
       const beforeSimulate = Date.now();
       const swapRouteWithSimulation = await this.simulator.simulate(
         fromAddress,
+        swapConfig,
         swapRoute,
         amount,
         // Quote will be in WETH even if quoteCurrency is ETH
@@ -1692,30 +1696,33 @@ export class AlphaRouter
     const zeroForOne = finalBalanceTokenIn.currency.wrapped.sortsBefore(
       finalBalanceTokenOut.currency.wrapped
     );
-    return SwapRouter.swapAndAddCallParameters(
-      trade,
-      {
-        recipient,
-        slippageTolerance,
-        deadlineOrPreviousBlockhash: deadline,
-        inputTokenPermit,
-      },
-      Position.fromAmounts({
-        pool: preLiquidityPosition.pool,
-        tickLower: preLiquidityPosition.tickLower,
-        tickUpper: preLiquidityPosition.tickUpper,
-        amount0: zeroForOne
-          ? finalBalanceTokenIn.quotient.toString()
-          : finalBalanceTokenOut.quotient.toString(),
-        amount1: zeroForOne
-          ? finalBalanceTokenOut.quotient.toString()
-          : finalBalanceTokenIn.quotient.toString(),
-        useFullPrecision: false,
-      }),
-      addLiquidityConfig,
-      approvalTypes.approvalTokenIn,
-      approvalTypes.approvalTokenOut
-    );
+    return {
+      ...SwapRouter.swapAndAddCallParameters(
+        trade,
+        {
+          recipient,
+          slippageTolerance,
+          deadlineOrPreviousBlockhash: deadline,
+          inputTokenPermit,
+        },
+        Position.fromAmounts({
+          pool: preLiquidityPosition.pool,
+          tickLower: preLiquidityPosition.tickLower,
+          tickUpper: preLiquidityPosition.tickUpper,
+          amount0: zeroForOne
+            ? finalBalanceTokenIn.quotient.toString()
+            : finalBalanceTokenOut.quotient.toString(),
+          amount1: zeroForOne
+            ? finalBalanceTokenOut.quotient.toString()
+            : finalBalanceTokenIn.quotient.toString(),
+          useFullPrecision: false,
+        }),
+        addLiquidityConfig,
+        approvalTypes.approvalTokenIn,
+        approvalTypes.approvalTokenOut
+      ),
+      to: SWAP_ROUTER_02_ADDRESS,
+    };
   }
 
   private emitPoolSelectionMetrics(

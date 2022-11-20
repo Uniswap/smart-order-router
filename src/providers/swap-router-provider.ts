@@ -2,7 +2,7 @@ import { ApprovalTypes } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
 
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { log, SWAP_ROUTER_ADDRESS } from '../util';
+import { log, SWAP_ROUTER_02_ADDRESS } from '../util';
 
 import { IMulticallProvider } from './multicall-provider';
 
@@ -54,7 +54,7 @@ export class SwapRouterProvider implements ISwapRouterProvider {
         [string, string],
         [ApprovalTypes]
       >({
-        address: SWAP_ROUTER_ADDRESS,
+        address: SWAP_ROUTER_02_ADDRESS,
         contractInterface: SwapRouter02__factory.createInterface(),
         functionName: 'getApprovalType',
         functionParams,

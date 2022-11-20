@@ -3,7 +3,11 @@ import { Percent, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import { SwapOptions, WRAPPED_NATIVE_CURRENCY } from '../../../..';
+import {
+  SwapOptionsUniversalRouter,
+  SwapType,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../../..';
 import {
   ArbitrumGasData,
   OptimismGasData,
@@ -82,9 +86,10 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       gasCostL1USD: CurrencyAmount;
       gasCostL1QuoteToken: CurrencyAmount;
     }> => {
-      const swapOptions: SwapOptions = {
+      const swapOptions: SwapOptionsUniversalRouter = {
+        type: SwapType.UNIVERSAL_ROUTER,
         recipient: '0x0000000000000000000000000000000000000001',
-        deadline: 100,
+        deadlineOrPreviousBlockhash: 100,
         slippageTolerance: new Percent(5, 10_000),
       };
       let l1Used = BigNumber.from(0);
@@ -335,7 +340,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
    */
   private calculateOptimismToL1SecurityFee(
     routes: V3RouteWithValidQuote[],
-    swapConfig: SwapOptions,
+    swapConfig: SwapOptionsUniversalRouter,
     gasData: OptimismGasData
   ): [BigNumber, BigNumber] {
     const { l1BaseFee, scalar, decimals, overhead } = gasData;
@@ -352,7 +357,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
     // build trade for swap calldata
     const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
-    const data = buildSwapMethodParameters(trade, swapConfig).calldata;
+    const data = buildSwapMethodParameters(trade, swapConfig, ChainId.OPTIMISM).calldata;
     const l1GasUsed = getL2ToL1GasUsed(data, overhead);
     // l1BaseFee is L1 Gas Price on etherscan
     const l1Fee = l1GasUsed.mul(l1BaseFee);
@@ -365,7 +370,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
   private calculateArbitrumToL1SecurityFee(
     routes: V3RouteWithValidQuote[],
-    swapConfig: SwapOptions,
+    swapConfig: SwapOptionsUniversalRouter,
     gasData: ArbitrumGasData
   ): [BigNumber, BigNumber] {
     const { perL2TxFee, perL1CalldataFee } = gasData;
@@ -383,7 +388,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
     // build trade for swap calldata
     const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
-    const data = buildSwapMethodParameters(trade, swapConfig).calldata;
+    const data = buildSwapMethodParameters(trade, swapConfig, ChainId.ARBITRUM_ONE).calldata;
     // calculates gas amounts based on bytes of calldata, use 0 as overhead.
     const l1GasUsed = getL2ToL1GasUsed(data, BigNumber.from(0));
     // multiply by the fee per calldata and add the flat l2 fee

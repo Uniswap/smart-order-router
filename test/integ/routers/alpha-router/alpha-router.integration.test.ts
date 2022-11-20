@@ -24,14 +24,19 @@ import {
   FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
+  MethodParameters,
   MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
   NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
+  setGlobalLogger,
   SimulationStatus,
   SUPPORTED_CHAINS,
+  SwapOptions,
+  SwapType,
+  SWAP_ROUTER_02_ADDRESS,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -54,23 +59,27 @@ import { WHALES } from '../../../test-util/whales';
 import 'jest-environment-hardhat';
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
+import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { Pair } from '@uniswap/v2-sdk';
 import {
-  encodeSqrtRatioX96,
-  FeeAmount,
-  MethodParameters,
-  Pool,
-} from '@uniswap/v3-sdk';
-import { BigNumber, providers } from 'ethers';
+  PERMIT2_ADDRESS,
+  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
+} from '@uniswap/universal-router-sdk';
+import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/permit2';
+import { Pair } from '@uniswap/v2-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import bunyan from 'bunyan';
+import { BigNumber, providers, Wallet } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
 import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-price-provider';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
+import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 
-const SWAP_ROUTER_V2 = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
+const FORK_BLOCK = 15993650;
+const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
 
 const checkQuoteToken = (
@@ -85,8 +94,9 @@ const checkQuoteToken = (
   const tokensDiff = tokensQuoted.greaterThan(tokensSwapped)
     ? tokensQuoted.subtract(tokensSwapped)
     : tokensSwapped.subtract(tokensQuoted);
+
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction);
-  expect(percentDiff.lessThan(SLIPPAGE)).toBe(true);
+  expect(percentDiff.lessThan(SLIPPAGE.asFraction)).toBe(true);
 };
 
 const getQuoteToken = (
@@ -97,8 +107,8 @@ const getQuoteToken = (
   return tradeType == TradeType.EXACT_INPUT ? tokenOut : tokenIn;
 };
 
-export function parseDeadline(deadline: number): number {
-  return Math.floor(Date.now() / 1000) + deadline;
+export function parseDeadline(deadlineOrPreviousBlockhash: number): number {
+  return Math.floor(Date.now() / 1000) + deadlineOrPreviousBlockhash;
 }
 
 const expandDecimals = (currency: Currency, amount: number): number => {
@@ -121,9 +131,42 @@ const isTenderlyEnvironmentSet = (): boolean => {
   return isSet;
 };
 
+let warnedTesterPK = false;
+const isTesterPKEnvironmentSet = (): boolean => {
+  const isSet = !!process.env.TESTER_PK;
+  if (!isSet && !warnedTesterPK) {
+    console.log(
+      'Skipping Permit Tenderly Simulation Test since env variables for TESTER_PK is not set.'
+    );
+    warnedTesterPK = true;
+  }
+  return isSet;
+};
+
+// Flag for enabling logs for debugging integ tests
+if (process.env.INTEG_TEST_DEBUG) {
+  setGlobalLogger(
+    bunyan.createLogger({
+      name: 'Uniswap Smart Order Router',
+      serializers: bunyan.stdSerializers,
+      level: bunyan.DEBUG,
+    })
+  );
+}
+
+jest.retryTimes(1);
+
 describe('alpha router integration', () => {
   let alice: JsonRpcSigner;
   jest.setTimeout(500 * 1000); // 500s
+
+  let curNonce: number = 0;
+
+  let nextPermitNonce: () => string = () => {
+    const nonce = curNonce.toString();
+    curNonce = curNonce + 1;
+    return nonce;
+  };
 
   let alphaRouter: AlphaRouter;
   const multicall2Provider = new UniswapMulticallProvider(
@@ -138,10 +181,12 @@ describe('alpha router integration', () => {
   };
 
   const executeSwap = async (
+    swapType: SwapType,
     methodParameters: MethodParameters,
     tokenIn: Currency,
     tokenOut: Currency,
-    gasLimit?: BigNumber
+    gasLimit?: BigNumber,
+    permit?: boolean
   ): Promise<{
     tokenInAfter: CurrencyAmount<Currency>;
     tokenInBefore: CurrencyAmount<Currency>;
@@ -149,35 +194,81 @@ describe('alpha router integration', () => {
     tokenOutBefore: CurrencyAmount<Currency>;
   }> => {
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
-    // We use this helper function for approving rather than hardhat.provider.approve
-    // because there is custom logic built in for handling USDT and other checks
-    const tokenInBefore = await getBalanceAndApprove(
-      alice,
-      SWAP_ROUTER_V2,
-      tokenIn
-    );
-    const tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
-
-    const transaction = {
-      data: methodParameters.calldata,
-      to: SWAP_ROUTER_V2,
-      value: BigNumber.from(methodParameters.value),
-      from: alice._address,
-      gasPrice: BigNumber.from(2000000000000),
-      type: 1,
-    };
-
     let transactionResponse: providers.TransactionResponse;
-    if (gasLimit) {
-      transactionResponse = await alice.sendTransaction({
-        ...transaction,
-        gasLimit: gasLimit,
-      });
+
+    let tokenInBefore: CurrencyAmount<Currency>;
+    let tokenOutBefore: CurrencyAmount<Currency>;
+    if (swapType == SwapType.UNIVERSAL_ROUTER) {
+      // Approve Permit2
+      // We use this helper function for approving rather than hardhat.provider.approve
+      // because there is custom logic built in for handling USDT and other checks
+      tokenInBefore = await getBalanceAndApprove(
+        alice,
+        PERMIT2_ADDRESS,
+        tokenIn
+      );
+      const MAX_UINT160 = '0xffffffffffffffffffffffffffffffffffffffff';
+
+      // If not using permit do a regular approval allowing narwhal max balance.
+      if (!permit) {
+        const aliceP2 = Permit2__factory.connect(PERMIT2_ADDRESS, alice);
+        const approveNarwhal = await aliceP2.approve(
+          tokenIn.wrapped.address,
+          UNIVERSAL_ROUTER_ADDRESS,
+          MAX_UINT160,
+          20_000_000_000_000
+        );
+        await approveNarwhal.wait();
+      }
+
+      tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
+
+      const transaction = {
+        data: methodParameters.calldata,
+        to: methodParameters.to,
+        value: BigNumber.from(methodParameters.value),
+        from: alice._address,
+        gasPrice: BigNumber.from(2000000000000),
+        type: 1,
+      };
+
+      if (gasLimit) {
+        transactionResponse = await alice.sendTransaction({
+          ...transaction,
+          gasLimit: gasLimit,
+        });
+      } else {
+        transactionResponse = await alice.sendTransaction(transaction);
+      }
     } else {
-      transactionResponse = await alice.sendTransaction(transaction);
+      tokenInBefore = await getBalanceAndApprove(
+        alice,
+        SWAP_ROUTER_02_ADDRESS,
+        tokenIn
+      );
+      tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
+
+      const transaction = {
+        data: methodParameters.calldata,
+        to: methodParameters.to,
+        value: BigNumber.from(methodParameters.value),
+        from: alice._address,
+        gasPrice: BigNumber.from(2000000000000),
+        type: 1,
+      };
+
+      if (gasLimit) {
+        transactionResponse = await alice.sendTransaction({
+          ...transaction,
+          gasLimit: gasLimit,
+        });
+      } else {
+        transactionResponse = await alice.sendTransaction(transaction);
+      }
     }
 
     const receipt = await transactionResponse.wait();
+
     expect(receipt.status == 1).toBe(true); // Check for txn success
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
@@ -210,6 +301,7 @@ describe('alpha router integration', () => {
     if (targetQuoteDecimalsAmount !== undefined) {
       acceptableDifference =
         acceptableDifference !== undefined ? acceptableDifference : 0;
+
       expect(
         quote.greaterThan(
           CurrencyAmount.fromRawAmount(
@@ -254,6 +346,7 @@ describe('alpha router integration', () => {
    * @param checkTokenOutAmount?: number - if defined, check that the tokenOutBefore - tokenOutAfter = checkTokenOutAmount
    */
   const validateExecuteSwap = async (
+    swapType: SwapType,
     quote: CurrencyAmount<Currency>,
     tokenIn: Currency,
     tokenOut: Currency,
@@ -261,16 +354,20 @@ describe('alpha router integration', () => {
     tradeType: TradeType,
     checkTokenInAmount?: number,
     checkTokenOutAmount?: number,
-    estimatedGasUsed?: BigNumber
+    estimatedGasUsed?: BigNumber,
+    permit?: boolean
   ) => {
     expect(methodParameters).not.toBeUndefined();
     const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
       await executeSwap(
+        swapType,
         methodParameters!,
         tokenIn,
         tokenOut!,
-        estimatedGasUsed
+        estimatedGasUsed,
+        permit
       );
+
     if (tradeType == TradeType.EXACT_INPUT) {
       if (checkTokenInAmount) {
         expect(
@@ -312,6 +409,8 @@ describe('alpha router integration', () => {
   };
 
   beforeAll(async () => {
+    await hardhat.fork(FORK_BLOCK);
+
     alice = hardhat.providers[0]!.getSigner();
     const aliceAddress = await alice.getAddress();
     expect(aliceAddress).toBe(alice._address);
@@ -391,6 +490,7 @@ describe('alpha router integration', () => {
     );
 
     const simulator = new FallbackTenderlySimulator(
+      ChainId.MAINNET,
       process.env.TENDERLY_BASE_URL!,
       process.env.TENDERLY_USER!,
       process.env.TENDERLY_PROJECT!,
@@ -429,6 +529,50 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100
+          );
+        });
+
+        it('erc20 -> erc20 swapRouter02', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.SWAP_ROUTER_02,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
@@ -446,6 +590,7 @@ describe('alpha router integration', () => {
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
           await validateExecuteSwap(
+            SwapType.SWAP_ROUTER_02,
             quote,
             tokenIn,
             tokenOut,
@@ -453,6 +598,165 @@ describe('alpha router integration', () => {
             tradeType,
             100,
             100
+          );
+        });
+
+        it('erc20 -> erc20 with permit', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const nonce = nextPermitNonce();
+
+          const permit: PermitSingle = {
+            details: {
+              token: tokenIn.address,
+              amount: amount.quotient.toString(),
+              expiration: Math.floor(
+                new Date().getTime() / 1000 + 100000
+              ).toString(),
+              nonce,
+            },
+            spender: UNIVERSAL_ROUTER_ADDRESS,
+            sigDeadline: Math.floor(
+              new Date().getTime() / 1000 + 100000
+            ).toString(),
+          };
+
+          const { domain, types, values } = AllowanceTransfer.getPermitData(
+            permit,
+            PERMIT2_ADDRESS,
+            1
+          );
+
+          const signature = await alice._signTypedData(domain, types, values);
+
+          const permit2permit: Permit2Permit = {
+            ...permit,
+            signature,
+          };
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+              inputTokenPermit: permit2permit,
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100,
+            undefined,
+            true
+          );
+        });
+
+        it('erc20 -> erc20 split trade with permit', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const nonce = nextPermitNonce();
+
+          const permit: PermitSingle = {
+            details: {
+              token: tokenIn.address,
+              amount: amount.quotient.toString(),
+              expiration: Math.floor(
+                new Date().getTime() / 1000 + 1000
+              ).toString(),
+              nonce,
+            },
+            spender: UNIVERSAL_ROUTER_ADDRESS,
+            sigDeadline: Math.floor(
+              new Date().getTime() / 1000 + 1000
+            ).toString(),
+          };
+
+          const { domain, types, values } = AllowanceTransfer.getPermitData(
+            permit,
+            PERMIT2_ADDRESS,
+            1
+          );
+
+          const signature = await alice._signTypedData(domain, types, values);
+
+          const permit2permit: Permit2Permit = {
+            ...permit,
+            signature,
+          };
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+              inputTokenPermit: permit2permit,
+            },
+            {
+              ...ROUTING_CONFIG,
+              minSplits: 3,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+
+          await validateSwapRoute(
+            quote,
+            quoteGasAdjusted,
+            tradeType,
+            10000,
+            100
+          );
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            10000,
+            10000,
+            undefined,
+            true
           );
         });
 
@@ -469,9 +773,10 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
@@ -485,6 +790,7 @@ describe('alpha router integration', () => {
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
@@ -508,12 +814,14 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
+              minSplits: 3,
             }
           );
           expect(swap).toBeDefined();
@@ -571,12 +879,89 @@ describe('alpha router integration', () => {
           expect(amountOut).toEqual(amountOutEdgesTotal);
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
             methodParameters,
             tradeType,
             1000000
+          );
+        });
+
+        it(`erc20 -> eth split trade with permit`, async () => {
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = Ether.onChain(1) as Currency;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1000000', tokenIn)
+              : parseAmount('100', tokenOut);
+
+          const nonce = nextPermitNonce();
+
+          const permit: PermitSingle = {
+            details: {
+              token: tokenIn.address,
+              amount: amount.quotient.toString(),
+              expiration: Math.floor(
+                new Date().getTime() / 1000 + 1000
+              ).toString(),
+              nonce,
+            },
+            spender: UNIVERSAL_ROUTER_ADDRESS,
+            sigDeadline: Math.floor(
+              new Date().getTime() / 1000 + 1000
+            ).toString(),
+          };
+
+          const { domain, types, values } = AllowanceTransfer.getPermitData(
+            permit,
+            PERMIT2_ADDRESS,
+            1
+          );
+
+          const signature = await alice._signTypedData(domain, types, values);
+
+          const permit2permit: Permit2Permit = {
+            ...permit,
+            signature,
+          };
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE.multiply(10),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+              inputTokenPermit: permit2permit,
+            },
+            {
+              ...ROUTING_CONFIG,
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, methodParameters } = swap!;
+
+          const { route } = swap!;
+
+          expect(route).not.toBeUndefined;
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            1000000,
+            undefined,
+            undefined,
+            true
           );
         });
 
@@ -594,6 +979,77 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V2],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, methodParameters } = swap!;
+
+          expect(methodParameters).not.toBeUndefined();
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+            await executeSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              methodParameters!,
+              tokenIn,
+              tokenOut
+            );
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            // We've swapped 10 ETH + gas costs
+            expect(
+              tokenInBefore
+                .subtract(tokenInAfter)
+                .greaterThan(parseAmount('10', tokenIn))
+            ).toBe(true);
+            checkQuoteToken(
+              tokenOutBefore,
+              tokenOutAfter,
+              CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
+            );
+          } else {
+            /**
+             * @dev it is possible for an exactOut to generate more tokens on V2 due to precision errors
+             */
+            expect(
+              !tokenOutAfter
+                .subtract(tokenOutBefore)
+                // == .greaterThanOrEqualTo
+                .lessThan(
+                  CurrencyAmount.fromRawAmount(
+                    tokenOut,
+                    expandDecimals(tokenOut, 10000)
+                  )
+                )
+            ).toBe(true);
+            // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
+          }
+        });
+
+        it(`eth -> erc20 swaprouter02`, async () => {
+          /// Fails for v3 for some reason, ProviderGasError
+          const tokenIn = Ether.onChain(1) as Currency;
+          const tokenOut = UNI_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.SWAP_ROUTER_02,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadline: parseDeadline(360),
@@ -611,7 +1067,12 @@ describe('alpha router integration', () => {
           expect(methodParameters).not.toBeUndefined();
 
           const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
-            await executeSwap(methodParameters!, tokenIn, tokenOut);
+            await executeSwap(
+              SwapType.SWAP_ROUTER_02,
+              methodParameters!,
+              tokenIn,
+              tokenOut
+            );
 
           if (tradeType == TradeType.EXACT_INPUT) {
             // We've swapped 10 ETH + gas costs
@@ -657,9 +1118,10 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
@@ -671,6 +1133,7 @@ describe('alpha router integration', () => {
           const { quote, methodParameters } = swap!;
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
@@ -694,9 +1157,10 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
@@ -708,6 +1172,7 @@ describe('alpha router integration', () => {
           const { quote, methodParameters } = swap!;
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
@@ -731,9 +1196,10 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
@@ -754,6 +1220,7 @@ describe('alpha router integration', () => {
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
@@ -777,9 +1244,10 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
@@ -800,6 +1268,7 @@ describe('alpha router integration', () => {
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
@@ -823,9 +1292,10 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
@@ -855,6 +1325,7 @@ describe('alpha router integration', () => {
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
@@ -882,6 +1353,62 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            // Expect tenderly simulation to be successful
+            expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+            expect(swap!.methodParameters).toBeDefined();
+            expect(swap!.methodParameters!.to).toBeDefined();
+
+            const { quote, quoteGasAdjusted, methodParameters } = swap!;
+
+            await validateSwapRoute(
+              quote,
+              quoteGasAdjusted,
+              tradeType,
+              100,
+              10
+            );
+
+            await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
+            );
+          });
+
+          it('erc20 -> erc20 swaprouter02', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.SWAP_ROUTER_02,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadline: parseDeadline(360),
@@ -895,7 +1422,12 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters, simulationStatus } = swap!;
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              simulationStatus,
+            } = swap!;
 
             await validateSwapRoute(
               quote,
@@ -909,6 +1441,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
+              SwapType.SWAP_ROUTER_02,
               quote,
               tokenIn,
               tokenOut,
@@ -918,6 +1451,81 @@ describe('alpha router integration', () => {
               100
             );
           });
+
+          if (isTesterPKEnvironmentSet()) {
+            it('erc20 -> erc20 with permit', async () => {
+              // This test requires a private key with at least 10 USDC
+              // at FORK_BLOCK time.
+
+              // declaring these to reduce confusion
+              const tokenIn = USDC_MAINNET;
+              const tokenOut = USDT_MAINNET;
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount('10', tokenIn)
+                  : parseAmount('10', tokenOut);
+
+              const nonce = '0';
+
+              const permit: PermitSingle = {
+                details: {
+                  token: tokenIn.address,
+                  amount: amount.quotient.toString(),
+                  expiration: Math.floor(
+                    new Date().getTime() / 1000 + 100000
+                  ).toString(),
+                  nonce,
+                },
+                spender: UNIVERSAL_ROUTER_ADDRESS,
+                sigDeadline: Math.floor(
+                  new Date().getTime() / 1000 + 100000
+                ).toString(),
+              };
+
+              const { domain, types, values } = AllowanceTransfer.getPermitData(
+                permit,
+                PERMIT2_ADDRESS,
+                1
+              );
+
+              const wallet = new Wallet(process.env.TESTER_PK!);
+
+              const signature = await wallet._signTypedData(
+                domain,
+                types,
+                values
+              );
+
+              const permit2permit: Permit2Permit = {
+                ...permit,
+                signature,
+              };
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: wallet.address,
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                  simulate: { fromAddress: wallet.address },
+                  inputTokenPermit: permit2permit,
+                },
+                {
+                  ...ROUTING_CONFIG,
+                }
+              );
+
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+
+              expect(swap!.simulationStatus).toEqual(
+                SimulationStatus.Succeeded
+              );
+            });
+          }
 
           it(`erc20 -> eth large trade`, async () => {
             // Trade of this size almost always results in splits.
@@ -933,9 +1541,10 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
+                deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
@@ -964,6 +1573,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
               quote,
               tokenIn,
               tokenOut,
@@ -974,7 +1584,7 @@ describe('alpha router integration', () => {
               estimatedGasUsed
             );
           });
-          
+
           it(`eth -> erc20`, async () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
@@ -989,9 +1599,10 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
+                deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
@@ -1018,6 +1629,49 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
 
+          it(`eth -> erc20 swaprouter02`, async () => {
+            /// Fails for v3 for some reason, ProviderGasError
+            const tokenIn = Ether.onChain(1) as Currency;
+            const tokenOut = UNI_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10000', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.SWAP_ROUTER_02,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                protocols: [Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              simulationStatus,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+          });
+
           it(`weth -> erc20`, async () => {
             const tokenIn = WETH9[1];
             const tokenOut = DAI_MAINNET;
@@ -1031,9 +1685,10 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
+                deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
@@ -1062,6 +1717,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
               quote,
               tokenIn,
               tokenOut,
@@ -1086,9 +1742,10 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
+                deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
@@ -1117,6 +1774,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
               quote,
               tokenIn,
               tokenOut,
@@ -1141,9 +1799,10 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
+                deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
@@ -1172,6 +1831,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
               quote,
               tokenIn,
               tokenOut,
@@ -1196,9 +1856,10 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
+                deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
@@ -1228,6 +1889,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
               quote,
               tokenIn,
               tokenOut,
@@ -1252,9 +1914,10 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
+                deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
               {
@@ -1284,6 +1947,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
 
             await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
               quote,
               tokenIn,
               tokenOut,
@@ -1309,10 +1973,13 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
-                simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: {
+                  fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F',
+                },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1322,10 +1989,15 @@ describe('alpha router integration', () => {
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
 
-            const { quote, quoteGasAdjusted, methodParameters, simulationStatus } = swap!;
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              simulationStatus,
+            } = swap!;
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.Unattempted)
+            expect(simulationStatus).toEqual(SimulationStatus.Unattempted);
 
             await validateSwapRoute(
               quote,
@@ -1336,6 +2008,7 @@ describe('alpha router integration', () => {
             );
 
             await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
               quote,
               tokenIn,
               tokenOut,
@@ -1360,10 +2033,13 @@ describe('alpha router integration', () => {
               getQuoteToken(tokenIn, tokenOut, tradeType),
               tradeType,
               {
+                type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
-                deadline: parseDeadline(360),
-                simulate: { fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F' },
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: {
+                  fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F',
+                },
               },
               {
                 ...ROUTING_CONFIG,
@@ -1386,7 +2062,7 @@ describe('alpha router integration', () => {
             );
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.Unattempted)
+            expect(simulationStatus).toEqual(SimulationStatus.Unattempted);
           });
         });
       }
@@ -1505,9 +2181,10 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
+              type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
-              slippageTolerance: SLIPPAGE,
-              deadline: parseDeadline(360),
+              slippageTolerance: new Percent(50, 100),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
@@ -1527,6 +2204,7 @@ describe('alpha router integration', () => {
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
           await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
             quote,
             tokenIn,
             tokenOut,
@@ -1710,6 +2388,7 @@ describe('quote for other networks', () => {
     (c) =>
       c != ChainId.RINKEBY &&
       c != ChainId.ROPSTEN &&
+      c != ChainId.KOVAN &&
       c != ChainId.OPTIMISTIC_KOVAN &&
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_RINKEBY &&
@@ -1722,9 +2401,6 @@ describe('quote for other networks', () => {
       const erc2 = TEST_ERC20_2[chain];
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
-        // Help with test flakiness by retrying.
-        jest.retryTimes(2);
-
         const wrappedNative = WNATIVE_ON(chain);
 
         let alphaRouter: AlphaRouter;
@@ -1746,6 +2422,7 @@ describe('quote for other networks', () => {
         );
 
         const simulator = new FallbackTenderlySimulator(
+          chain,
           process.env.TENDERLY_BASE_URL!,
           process.env.TENDERLY_USER!,
           process.env.TENDERLY_PROJECT!,
@@ -1934,7 +2611,7 @@ describe('quote for other networks', () => {
             });
           }
         });
-        
+
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap`, function () {
             // Tenderly does not support Celo
@@ -1949,16 +2626,29 @@ describe('quote for other networks', () => {
                   ? parseAmount('10', tokenIn)
                   : parseAmount('10', tokenOut);
 
+              // Universal Router is not deployed on Gorli.
+              const swapOptions: SwapOptions =
+                chain == ChainId.GÖRLI
+                  ? {
+                      type: SwapType.SWAP_ROUTER_02,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadline: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    }
+                  : {
+                      type: SwapType.UNIVERSAL_ROUTER,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadlineOrPreviousBlockhash: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    };
+
               const swap = await alphaRouter.route(
                 amount,
                 getQuoteToken(tokenIn, tokenOut, tradeType),
                 tradeType,
-                {
-                  recipient: WHALES(tokenIn),
-                  slippageTolerance: SLIPPAGE,
-                  deadline: parseDeadline(360),
-                  simulate: { fromAddress: WHALES(tokenIn) },
-                },
+                swapOptions,
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
@@ -1975,7 +2665,9 @@ describe('quote for other networks', () => {
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                expect(swap.simulationStatus).toEqual(
+                  SimulationStatus.Succeeded
+                );
               }
 
               // Scope limited for non mainnet network tests to validating the swap
@@ -1989,16 +2681,29 @@ describe('quote for other networks', () => {
                   ? parseAmount('1', tokenIn)
                   : parseAmount('1', tokenOut);
 
+              // Universal Router is not deployed on Gorli.
+              const swapOptions: SwapOptions =
+                chain == ChainId.GÖRLI
+                  ? {
+                      type: SwapType.SWAP_ROUTER_02,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadline: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    }
+                  : {
+                      type: SwapType.UNIVERSAL_ROUTER,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadlineOrPreviousBlockhash: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    };
+
               const swap = await alphaRouter.route(
                 amount,
                 getQuoteToken(tokenIn, tokenOut, tradeType),
                 tradeType,
-                {
-                  recipient: WHALES(tokenIn),
-                  slippageTolerance: SLIPPAGE,
-                  deadline: parseDeadline(360),
-                  simulate: { fromAddress: WHALES(tokenIn) },
-                },
+                swapOptions,
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
@@ -2015,7 +2720,9 @@ describe('quote for other networks', () => {
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                expect(swap.simulationStatus).toEqual(
+                  SimulationStatus.Succeeded
+                );
               }
             });
 
@@ -2037,16 +2744,29 @@ describe('quote for other networks', () => {
                   ? parseAmount('100', tokenIn)
                   : parseAmount('100', tokenOut);
 
+              // Universal Router is not deployed on Gorli.
+              const swapOptions: SwapOptions =
+                chain == ChainId.GÖRLI
+                  ? {
+                      type: SwapType.SWAP_ROUTER_02,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadline: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    }
+                  : {
+                      type: SwapType.UNIVERSAL_ROUTER,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadlineOrPreviousBlockhash: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    };
+
               const swap = await alphaRouter.route(
                 amount,
                 getQuoteToken(tokenIn, tokenOut, tradeType),
                 tradeType,
-                {
-                  recipient: WHALES(tokenIn),
-                  slippageTolerance: SLIPPAGE,
-                  deadline: parseDeadline(360),
-                  simulate: { fromAddress: WHALES(tokenIn) },
-                },
+                swapOptions,
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
@@ -2063,7 +2783,9 @@ describe('quote for other networks', () => {
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                expect(swap.simulationStatus).toEqual(
+                  SimulationStatus.Succeeded
+                );
               }
             });
           });

@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk/dist/entities';
-import { FeeAmount, MethodParameters, Pool } from '@uniswap/v3-sdk';
+import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
@@ -12,6 +12,7 @@ import {
 } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
+  MethodParameters,
   MixedRouteWithValidQuote,
   SwapRoute,
   usdGasTokensByChain,
@@ -321,7 +322,7 @@ export function initSwapRouteFromExisting(
   estimatedGasUsed: BigNumber,
   estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
   estimatedGasUsedUSD: CurrencyAmount<Currency>
-) {
+): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
   const tradeType = swapRoute.trade.tradeType.valueOf()
@@ -425,7 +426,9 @@ export function initSwapRouteFromExisting(
       ? ({
           calldata: swapRoute.methodParameters.calldata,
           value: swapRoute.methodParameters.value,
+          to: swapRoute.methodParameters.to,
         } as MethodParameters)
       : undefined,
-  } as SwapRoute;
+    simulationStatus: swapRoute.simulationStatus,
+  };
 }
