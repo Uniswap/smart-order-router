@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { SwapOptions } from '@uniswap/narwhal-sdk';
 import { TradeType } from '@uniswap/sdk-core';
 import axios from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
@@ -72,13 +73,46 @@ export abstract class Simulator {
   constructor(provider: JsonRpcProvider) {
     this.provider = provider;
   }
-  abstract simulateTransaction(
+
+  protected abstract simulateTransaction(
     fromAddress: string,
+    swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData
   ): Promise<SwapRoute>;
 
-  public async userHasSufficientBalance(
+  public async simulate(
+    fromAddress: string,
+    swapOptions: SwapOptions,
+    swapRoute: SwapRoute,
+    amount: CurrencyAmount,
+    quote: CurrencyAmount,
+    l2GasData?: OptimismGasData | ArbitrumGasData
+  ) {
+    if (
+      await this.userHasSufficientBalance(
+        fromAddress,
+        swapRoute.trade.tradeType,
+        amount,
+        quote
+      )
+    ) {
+      log.info(
+        'User has sufficient balance to simulate. Simulating transaction.'
+      );
+      return this.simulateTransaction(
+        fromAddress,
+        swapOptions,
+        swapRoute,
+        l2GasData
+      );
+    } else {
+      log.error('User does not have sufficient balance to simulate.');
+      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
+    }
+  }
+
+  private async userHasSufficientBalance(
     fromAddress: string,
     tradeType: TradeType,
     amount: CurrencyAmount,
@@ -96,6 +130,16 @@ export abstract class Simulator {
         );
         balance = await tokenContract.balanceOf(fromAddress);
       }
+
+      log.info(
+        {
+          fromAddress,
+          balance: balance.toString(),
+          neededBalance: neededBalance.quotient.toString(),
+          neededAddress: neededBalance.wrapped.currency.address,
+        },
+        'Result of balance check for simulation'
+      );
       return balance.gte(BigNumber.from(neededBalance.quotient.toString()));
     } catch (e) {
       log.error(e, 'Error while checking user balance');
@@ -103,48 +147,67 @@ export abstract class Simulator {
     }
   }
 
-  public async simulate(
+  protected async checkTokenApproved(
     fromAddress: string,
-    swapRoute: SwapRoute,
-    amount: CurrencyAmount,
-    quote: CurrencyAmount,
-    l2GasData?: OptimismGasData | ArbitrumGasData
-  ): Promise<SwapRoute> {
-    if (
-      await this.userHasSufficientBalance(
-        fromAddress,
-        swapRoute.trade.tradeType,
-        amount,
-        quote
-      )
-    ) {
+    inputAmount: CurrencyAmount,
+    swapOptions: SwapOptions,
+    provider: JsonRpcProvider
+  ): Promise<boolean> {
+    // Check token has approved Permit2 more than expected amount.
+    const tokenContract = Erc20__factory.connect(
+      inputAmount.currency.wrapped.address,
+      provider
+    );
+
+    const permit2Allowance = await tokenContract.allowance(
+      fromAddress,
+      PERMIT2_ADDRESS
+    );
+
+    // If a permit has been provided we don't need to check if UR has already been allowed.
+    if (swapOptions.inputTokenPermit) {
       log.info(
-        'User has sufficient balance to simulate. Simulating transaction.'
+        {
+          permitAllowance: permit2Allowance.toString(),
+          inputAmount: inputAmount.quotient.toString(),
+        },
+        'Permit was provided for simulation, checking that Permit2 has been approved.'
       );
-      return this.simulateTransaction(fromAddress, swapRoute, l2GasData);
-    } else {
-      log.error('User does not have sufficient balance to simulate.');
-      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
+      return permit2Allowance.gte(
+        BigNumber.from(inputAmount.quotient.toString())
+      );
     }
+
+    // Check UR has been approved from Permit2.
+    const permit2Contract = Permit2__factory.connect(PERMIT2_ADDRESS, provider);
+
+    const { amount: tokenAllowance, expiration: tokenExpiration } =
+      await permit2Contract.allowance(
+        fromAddress,
+        inputAmount.currency.wrapped.address,
+        SWAP_ROUTER_ADDRESS
+      );
+
+    const nowTimestampS = Math.round(Date.now() / 1000);
+    const inputAmountBN = BigNumber.from(inputAmount.quotient.toString());
+
+    log.info(
+      {
+        permitAllowance: permit2Allowance.toString(),
+        tokenAllowance: tokenAllowance.toString(),
+        tokenExpirationS: tokenExpiration,
+        nowTimestampS,
+        inputAmount: inputAmount.quotient.toString(),
+      },
+      'Permit was not provided for simulation, Permit2 is approved, UR is approved from P2, and expiration hasnt expired.'
+    );
+    return (
+      permit2Allowance.gte(inputAmountBN) &&
+      tokenAllowance.gte(inputAmountBN) &&
+      tokenExpiration > nowTimestampS
+    );
   }
 }
-
-const checkTokenApproved = async (
-  fromAddress: string,
-  inputAmount: CurrencyAmount,
-  provider: JsonRpcProvider
-): Promise<boolean> => {
-  const tokenContract = Erc20__factory.connect(
-    inputAmount.currency.wrapped.address,
-    provider
-  );
-  const allowance = await tokenContract.allowance(
-    fromAddress,
-    SWAP_ROUTER_ADDRESS
-  );
-  // Return true if token allowance is greater than input amount
-  return allowance.gt(BigNumber.from(inputAmount.quotient.toString()));
-};
 
 export class FallbackTenderlySimulator extends Simulator {
   private tenderlySimulator: TenderlySimulator;
@@ -175,6 +238,51 @@ export class FallbackTenderlySimulator extends Simulator {
       );
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+  }
+
+  protected async simulateTransaction(
+    fromAddress: string,
+    swapOptions: SwapOptions,
+    swapRoute: SwapRoute,
+    l2GasData?: ArbitrumGasData | OptimismGasData
+  ): Promise<SwapRoute> {
+    // Make call to eth estimate gas if possible
+    // For erc20s, we must check if the token allowance is sufficient
+    const inputAmount = swapRoute.trade.inputAmount;
+    if (
+      inputAmount.currency.isNative ||
+      (await this.checkTokenApproved(
+        fromAddress,
+        inputAmount,
+        swapOptions,
+        this.provider
+      ))
+    ) {
+      try {
+        const swapRouteWithGasEstimate = await this.ethEstimateGas(
+          fromAddress,
+          swapRoute,
+          l2GasData
+        );
+        return swapRouteWithGasEstimate;
+      } catch (err) {
+        log.info({ err: err }, 'Error calling eth estimate gas!');
+        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+      }
+    }
+    // simulate via tenderly
+    try {
+      return await this.tenderlySimulator.simulateTransaction(
+        fromAddress,
+        swapOptions,
+        swapRoute,
+        l2GasData
+      );
+    } catch (err) {
+      log.info({ err: err }, 'Failed to simulate via Tenderly!');
+      // set error flag to true
+      return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+    }
   }
 
   private async ethEstimateGas(
@@ -218,44 +326,6 @@ export class FallbackTenderlySimulator extends Simulator {
       )
     }
   }
-
-  public async simulateTransaction(
-    fromAddress: string,
-    swapRoute: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData
-  ): Promise<SwapRoute> {
-    // Make call to eth estimate gas if possible
-    // For erc20s, we must check if the token allowance is sufficient
-    const inputAmount = swapRoute.trade.inputAmount;
-    if (
-      inputAmount.currency.isNative ||
-      (await checkTokenApproved(fromAddress, inputAmount, this.provider))
-    ) {
-      try {
-        const swapRouteWithGasEstimate = await this.ethEstimateGas(
-          fromAddress,
-          swapRoute,
-          l2GasData
-        );
-        return swapRouteWithGasEstimate;
-      } catch (err) {
-        log.info({ err: err }, 'Error calling eth estimate gas!');
-        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
-      }
-    }
-    // simulate via tenderly
-    try {
-      return await this.tenderlySimulator.simulateTransaction(
-        fromAddress,
-        swapRoute,
-        l2GasData
-      );
-    } catch (err) {
-      log.info({ err: err }, 'Failed to simulate via Tenderly!');
-      // set error flag to true
-      return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
-    }
-  }
 }
 export class TenderlySimulator extends Simulator {
   private tenderlyBaseUrl: string;
@@ -285,6 +355,7 @@ export class TenderlySimulator extends Simulator {
 
   public async simulateTransaction(
     fromAddress: string,
+    _swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData
   ): Promise<SwapRoute> {
@@ -302,7 +373,9 @@ export class TenderlySimulator extends Simulator {
       log.info(msg);
       throw new Error(msg);
     }
+
     const { calldata } = swapRoute.methodParameters;
+
     log.info(
       {
         calldata: swapRoute.methodParameters.calldata,
@@ -387,10 +460,66 @@ export class TenderlySimulator extends Simulator {
       resp.simulation_results[2].transaction.error_message
     ) {
       log.info(
-        { err: resp.simulation_results },
+        {
+          resp,
+        },
         'Failed to Simulate on Tenderly'
       );
-      return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+      log.info(
+        {
+          err:
+            resp.simulation_results.length >= 1
+              ? resp.simulation_results[0].transaction
+              : {},
+        },
+        'Failed to Simulate on Tenderly #1 Transaction'
+      );
+      log.info(
+        {
+          err:
+            resp.simulation_results.length >= 1
+              ? resp.simulation_results[0].simulation
+              : {},
+        },
+        'Failed to Simulate on Tenderly #1 Simulation'
+      );
+      log.info(
+        {
+          err:
+            resp.simulation_results.length >= 2
+              ? resp.simulation_results[1].transaction
+              : {},
+        },
+        'Failed to Simulate on Tenderly #2 Transaction'
+      );
+      log.info(
+        {
+          err:
+            resp.simulation_results.length >= 2
+              ? resp.simulation_results[1].simulation
+              : {},
+        },
+        'Failed to Simulate on Tenderly #2 Simulation'
+      );
+      log.info(
+        {
+          err:
+            resp.simulation_results.length >= 3
+              ? resp.simulation_results[2].transaction
+              : {},
+        },
+        'Failed to Simulate on Tenderly #3 Transaction'
+      );
+      log.info(
+        {
+          err:
+            resp.simulation_results.length >= 3
+              ? resp.simulation_results[2].simulation
+              : {},
+        },
+        'Failed to Simulate on Tenderly #3 Simulation'
+      );
+      return { ...swapRoute, simulationError: true };
     }
 
     log.info(

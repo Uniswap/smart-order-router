@@ -79,7 +79,7 @@ import {
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
-describe.only('alpha router', () => {
+describe('alpha router', () => {
   let mockProvider: sinon.SinonStubbedInstance<BaseProvider>;
   let mockMulticallProvider: sinon.SinonStubbedInstance<UniswapMulticallProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
@@ -370,8 +370,10 @@ describe.only('alpha router', () => {
       getValidationByToken: () => TokenValidationResult.UNKN,
     });
 
-    mockFallbackTenderlySimulator = sinon.createStubInstance(FallbackTenderlySimulator)
-    mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_fromAddress, route)=>route)
+    mockFallbackTenderlySimulator = sinon.createStubInstance(
+      FallbackTenderlySimulator
+    );
+    // mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_fromAddress, route)=>route)
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
@@ -391,7 +393,7 @@ describe.only('alpha router', () => {
       v2SubgraphProvider: mockV2SubgraphProvider,
       swapRouterProvider: mockSwapRouterProvider,
       tokenValidatorProvider: mockTokenValidatorProvider,
-      simulator: mockFallbackTenderlySimulator
+      simulator: mockFallbackTenderlySimulator,
     });
   });
 
@@ -470,7 +472,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -686,7 +688,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -856,7 +858,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -976,7 +978,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1046,7 +1048,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1111,7 +1113,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1184,7 +1186,7 @@ describe.only('alpha router', () => {
         }
       );
       expect(swap).toBeDefined();
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(
         swap!.route.every((route) => route.protocol === Protocol.MIXED)
       ).toBeTruthy();
@@ -1203,7 +1205,7 @@ describe.only('alpha router', () => {
         }
       );
       expect(swap).toBeDefined();
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(
         swap!.route.every((route) => route.protocol === Protocol.MIXED)
       ).toBeTruthy();
@@ -1222,7 +1224,7 @@ describe.only('alpha router', () => {
         }
       );
       expect(swap).toBeNull();
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
     });
 
     test('finds no route with v2 protocol specified and forceMixedRoutes is true', async () => {
@@ -1238,7 +1240,7 @@ describe.only('alpha router', () => {
         }
       );
       expect(swap).toBeNull();
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
     });
 
     test('finds no route with v3 protocol specified and forceMixedRoutes is true', async () => {
@@ -1254,7 +1256,7 @@ describe.only('alpha router', () => {
         }
       );
       expect(swap).toBeNull();
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
     });
 
     test('finds a non mixed that is favorable with no protocols specified', async () => {
@@ -1345,7 +1347,7 @@ describe.only('alpha router', () => {
         }
       );
       expect(swap).toBeDefined();
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
 
       expect(
         swap!.route.every((route) => route.protocol === Protocol.V3)
@@ -1368,7 +1370,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1442,7 +1444,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1513,7 +1515,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1571,10 +1573,10 @@ describe.only('alpha router', () => {
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
-        simulate: {fromAddress: 'fromAddress'}
+        simulate: { fromAddress: 'fromAddress' },
       };
 
-      mockFallbackTenderlySimulator.simulate.returnsArg(1)
+      mockFallbackTenderlySimulator.simulate.returnsArg(2);
 
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(USDC, 10000),
@@ -1585,7 +1587,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeTruthy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeTruthy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1719,7 +1721,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -1821,7 +1823,7 @@ describe.only('alpha router', () => {
       );
       expect(swap).toBeDefined();
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
       expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
       expect(
@@ -2014,20 +2016,20 @@ describe.only('alpha router', () => {
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
-        simulate: {fromAddress: 'fromAddress'}
+        simulate: { fromAddress: 'fromAddress' },
       };
 
-      mockFallbackTenderlySimulator.simulate.returnsArg(1)
+      mockFallbackTenderlySimulator.simulate.returnsArg(2);
 
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000),
         USDC,
         TradeType.EXACT_OUTPUT,
         swapParams,
-        { ...ROUTING_CONFIG },
+        { ...ROUTING_CONFIG }
       );
 
-      expect(mockFallbackTenderlySimulator.simulate.called).toBeTruthy()
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeTruthy();
       expect(swap).toBeDefined();
 
       expect(mockProvider.getBlockNumber.called).toBeTruthy();
