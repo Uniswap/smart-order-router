@@ -1677,8 +1677,8 @@ describe('alpha router integration', () => {
             const tokenOut = DAI_MAINNET;
             const amount =
               tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('100', tokenIn)
-                : parseAmount('100', tokenOut);
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -1687,7 +1687,7 @@ describe('alpha router integration', () => {
               {
                 type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
+                slippageTolerance: new Percent(50, 100),
                 deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
@@ -1723,8 +1723,8 @@ describe('alpha router integration', () => {
               tokenOut,
               methodParameters,
               tradeType,
-              100,
-              100,
+              10,
+              10,
               estimatedGasUsed
             );
           });

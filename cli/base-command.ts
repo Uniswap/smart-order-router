@@ -10,18 +10,21 @@ import bunyan, { default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
+
 import {
   AlphaRouter,
   CachingGasStationProvider,
   CachingTokenListProvider,
   CachingTokenProviderWithFallback,
-  ChainId,
+  CachingV3PoolProvider,
   CHAIN_IDS_LIST,
+  ChainId,
   EIP1559GasPriceProvider,
+  FallbackTenderlySimulator,
   GasPrice,
   ID_TO_CHAIN_ID,
-  ID_TO_PROVIDER,
   ID_TO_NETWORK_NAME,
+  ID_TO_PROVIDER,
   IRouter,
   ISwapToRatio,
   ITokenProvider,
@@ -34,8 +37,10 @@ import {
   RouteWithValidQuote,
   setGlobalLogger,
   setGlobalMetric,
+  SimulationStatus,
   TokenProvider,
   UniswapMulticallProvider,
+  V2PoolProvider,
   V3PoolProvider,
   V3RouteWithValidQuote,
 } from '../src';
@@ -272,6 +277,27 @@ export abstract class BaseCommand extends Command {
       // const useDefaultQuoteProvider =
       //   chainId != ChainId.ARBITRUM_ONE && chainId != ChainId.ARBITRUM_RINKEBY;
 
+      const v3PoolProvider = new CachingV3PoolProvider(
+        ChainId.MAINNET,
+        new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+      );
+      const v2PoolProvider = new V2PoolProvider(
+        ChainId.MAINNET,
+        multicall2Provider
+      );
+      
+      const simulator = new FallbackTenderlySimulator(
+        ChainId.MAINNET,
+        process.env.TENDERLY_BASE_URL!,
+        process.env.TENDERLY_USER!,
+        process.env.TENDERLY_PROJECT!,
+        process.env.TENDERLY_ACCESS_KEY!,
+        provider,
+        v2PoolProvider,
+        v3PoolProvider
+      );
+
       const router = new AlphaRouter({
         provider,
         chainId,
@@ -285,6 +311,7 @@ export abstract class BaseCommand extends Command {
           ),
           gasPriceCache
         ),
+        simulator
       });
 
       this._swapToRatioRouter = router;
@@ -301,7 +328,9 @@ export abstract class BaseCommand extends Command {
     methodParameters: MethodParameters | undefined,
     blockNumber: BigNumber,
     estimatedGasUsed: BigNumber,
-    gasPriceWei: BigNumber
+    gasPriceWei: BigNumber,
+    simulationStatus: SimulationStatus
+
   ) {
     this.logger.info(`Best Route:`);
     this.logger.info(`${routeAmountsToString(routeAmounts)}`);
@@ -333,6 +362,7 @@ export abstract class BaseCommand extends Command {
       blockNumber: blockNumber.toString(),
       estimatedGasUsed: estimatedGasUsed.toString(),
       gasPriceWei: gasPriceWei.toString(),
+      simulationStatus: simulationStatus
     });
 
     const v3Routes: V3RouteWithValidQuote[] =

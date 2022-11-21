@@ -45,7 +45,7 @@ export abstract class Simulator {
     amount: CurrencyAmount,
     quote: CurrencyAmount,
     l2GasData?: OptimismGasData | ArbitrumGasData
-  ) {
+  ): Promise<SwapRoute> {
     if (
       await this.userHasSufficientBalance(
         fromAddress,
@@ -95,16 +95,20 @@ export abstract class Simulator {
         balance = await tokenContract.balanceOf(fromAddress);
       }
 
+      const hasBalance = balance.gte(
+        BigNumber.from(neededBalance.quotient.toString())
+      );
       log.info(
         {
           fromAddress,
           balance: balance.toString(),
           neededBalance: neededBalance.quotient.toString(),
           neededAddress: neededBalance.wrapped.currency.address,
+          hasBalance,
         },
         'Result of balance check for simulation'
       );
-      return balance.gte(BigNumber.from(neededBalance.quotient.toString()));
+      return hasBalance;
     } catch (e) {
       log.error(e, 'Error while checking user balance');
       return false;
@@ -136,7 +140,7 @@ export abstract class Simulator {
             permitAllowance: permit2Allowance.toString(),
             inputAmount: inputAmount.quotient.toString(),
           },
-          'Permit was provided for simulation, checking that Permit2 has been approved.'
+          'Permit was provided for simulation on UR, checking that Permit2 has been approved.'
         );
         return permit2Allowance.gte(
           BigNumber.from(inputAmount.quotient.toString())
@@ -149,7 +153,7 @@ export abstract class Simulator {
         provider
       );
 
-      const { amount: tokenAllowance, expiration: tokenExpiration } =
+      const { amount: universalRouterAllowance, expiration: tokenExpiration } =
         await permit2Contract.allowance(
           fromAddress,
           inputAmount.currency.wrapped.address,
@@ -159,28 +163,52 @@ export abstract class Simulator {
       const nowTimestampS = Math.round(Date.now() / 1000);
       const inputAmountBN = BigNumber.from(inputAmount.quotient.toString());
 
+      const permit2Approved = permit2Allowance.gte(inputAmountBN);
+      const universalRouterApproved =
+        universalRouterAllowance.gte(inputAmountBN);
+      const expirationValid = tokenExpiration > nowTimestampS;
       log.info(
         {
           permitAllowance: permit2Allowance.toString(),
-          tokenAllowance: tokenAllowance.toString(),
+          tokenAllowance: universalRouterAllowance.toString(),
           tokenExpirationS: tokenExpiration,
           nowTimestampS,
           inputAmount: inputAmount.quotient.toString(),
+          permit2Approved,
+          universalRouterApproved,
+          expirationValid,
         },
-        'Permit was not provided for simulation, Permit2 is approved, UR is approved from P2, and expiration hasnt expired.'
+        `Simulating on UR, Permit2 approved: ${permit2Approved}, UR approved: ${universalRouterApproved}, Expiraton valid: ${expirationValid}.`
       );
-      return (
-        permit2Allowance.gte(inputAmountBN) &&
-        tokenAllowance.gte(inputAmountBN) &&
-        tokenExpiration > nowTimestampS
-      );
+      return permit2Approved && universalRouterApproved && expirationValid;
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
+      if (swapOptions.inputTokenPermit) {
+        log.info(
+          {
+            inputAmount: inputAmount.quotient.toString(),
+          },
+          'Simulating on SwapRouter02 info - Permit was provided for simulation. Not checking allowances.'
+        );
+        return true;
+      }
+
       const allowance = await tokenContract.allowance(
         fromAddress,
         SWAP_ROUTER_02_ADDRESS
       );
+      const hasAllowance = allowance.gte(
+        BigNumber.from(inputAmount.quotient.toString())
+      );
+      log.info(
+        {
+          hasAllowance,
+          allowance: allowance.toString(),
+          inputAmount: inputAmount.quotient.toString(),
+        },
+        `Simulating on UR - Has allowance: ${hasAllowance}`
+      );
       // Return true if token allowance is greater than input amount
-      return allowance.gt(BigNumber.from(inputAmount.quotient.toString()));
+      return hasAllowance;
     }
 
     throw new Error(`Unsupported swap type ${swapOptions}`);

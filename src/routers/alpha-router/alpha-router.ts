@@ -135,7 +135,6 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 
 import { V3HeuristicGasModelFactory } from '.';
 
-
 export type AlphaRouterParams = {
   /**
    * The chain id for this instance of the Alpha Router.
@@ -1102,7 +1101,7 @@ export class AlphaRouter
       trade,
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
-      simulationStatus: SimulationStatus.Unattempted
+      simulationStatus: SimulationStatus.Unattempted,
     };
 
     if (
@@ -1114,6 +1113,7 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
+      log.info({ swapConfig, methodParameters }, 'Starting simulation');
       const fromAddress = swapConfig.simulate.fromAddress;
       const beforeSimulate = Date.now();
       const swapRouteWithSimulation = await this.simulator.simulate(

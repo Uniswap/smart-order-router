@@ -4,11 +4,13 @@ import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import _ from 'lodash';
+
 import {
   ID_TO_CHAIN_ID,
   nativeOnChain,
   parseAmount,
   SwapRoute,
+  SwapType,
 } from '../../src';
 import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
 import { BaseCommand } from '../base-command';
@@ -37,6 +39,7 @@ export class Quote extends BaseCommand {
       required: false,
       default: false,
     }),
+    simulate: flags.boolean({ required: false, default: false }),
   };
 
   async run() {
@@ -64,6 +67,7 @@ export class Quote extends BaseCommand {
       protocols: protocolsStr,
       forceCrossProtocol,
       forceMixedRoutes,
+      simulate,
     } = flags;
 
     if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
@@ -113,9 +117,11 @@ export class Quote extends BaseCommand {
         TradeType.EXACT_INPUT,
         recipient
           ? {
-              deadline: 100,
+              type: SwapType.UNIVERSAL_ROUTER,
+              deadlineOrPreviousBlockhash: 10000000000000,
               recipient,
-              slippageTolerance: new Percent(5, 10_000),
+              slippageTolerance: new Percent(5, 100),
+              simulate: simulate ? { fromAddress: recipient } : undefined,
             }
           : undefined,
         {
@@ -146,6 +152,7 @@ export class Quote extends BaseCommand {
         TradeType.EXACT_OUTPUT,
         recipient
           ? {
+              type: SwapType.SWAP_ROUTER_02,
               deadline: 100,
               recipient,
               slippageTolerance: new Percent(5, 10_000),
@@ -192,6 +199,7 @@ export class Quote extends BaseCommand {
       quote,
       quoteGasAdjusted,
       route: routeAmounts,
+      simulationStatus,
     } = swapRoutes;
 
     this.logSwapResults(
@@ -203,7 +211,8 @@ export class Quote extends BaseCommand {
       methodParameters,
       blockNumber,
       estimatedGasUsed,
-      gasPriceWei
+      gasPriceWei,
+      simulationStatus
     );
   }
 }
