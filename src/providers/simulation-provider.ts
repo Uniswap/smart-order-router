@@ -7,6 +7,7 @@ import { SwapOptions, SwapRoute, SwapType } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { ChainId, CurrencyAmount, log, SWAP_ROUTER_02_ADDRESS } from '../util';
+import { ProviderConfig } from './provider';
 
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 
@@ -44,7 +45,8 @@ export abstract class Simulator {
     swapRoute: SwapRoute,
     amount: CurrencyAmount,
     quote: CurrencyAmount,
-    l2GasData?: OptimismGasData | ArbitrumGasData
+    l2GasData?: OptimismGasData | ArbitrumGasData,
+    providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     if (
       await this.userHasSufficientBalance(
@@ -61,7 +63,8 @@ export abstract class Simulator {
         fromAddress,
         swapOptions,
         swapRoute,
-        l2GasData
+        l2GasData,
+        providerConfig
       );
     } else {
       log.error('User does not have sufficient balance to simulate.');
@@ -73,7 +76,8 @@ export abstract class Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
-    l2GasData?: OptimismGasData | ArbitrumGasData
+    l2GasData?: OptimismGasData | ArbitrumGasData,
+    providerConfig?: ProviderConfig
   ): Promise<SwapRoute>;
 
   protected async userHasSufficientBalance(

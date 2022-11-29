@@ -1126,7 +1126,8 @@ export class AlphaRouter
         CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
         this.l2GasDataProvider
           ? await this.l2GasDataProvider!.getGasData()
-          : undefined
+          : undefined,
+        { blockNumber }
       );
       metric.putMetric(
         'SimulateTransaction',

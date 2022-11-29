@@ -17,6 +17,7 @@ import {
   calculateGasUsed,
   initSwapRouteFromExisting,
 } from '../util/gas-factory-helpers';
+import { ProviderConfig } from './provider';
 
 import {
   SimulationResult,
@@ -92,7 +93,8 @@ export class FallbackTenderlySimulator extends Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData
+    l2GasData?: ArbitrumGasData | OptimismGasData,
+    providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     // Make call to eth estimate gas if possible
     // For erc20s, we must check if the token allowance is sufficient
@@ -130,7 +132,8 @@ export class FallbackTenderlySimulator extends Simulator {
         fromAddress,
         swapOptions,
         swapRoute,
-        l2GasData
+        l2GasData,
+        providerConfig
       );
     } catch (err) {
       log.info({ err: err }, 'Failed to simulate via Tenderly');
@@ -235,7 +238,8 @@ export class TenderlySimulator extends Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData
+    l2GasData?: ArbitrumGasData | OptimismGasData,
+    providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
@@ -265,6 +269,7 @@ export class TenderlySimulator extends Simulator {
       'Simulating transaction on Tenderly'
     );
 
+    const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
 
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
@@ -288,37 +293,39 @@ export class TenderlySimulator extends Simulator {
 
       const approvePermit2 = {
         network_id: chainId,
+        gas_estimate: true,
         input: approvePermit2Calldata,
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
-        gasPrice: '0',
-        gas: 30000000,
       };
 
       const approveUniversalRouter = {
         network_id: chainId,
+        gas_estimate: true,
         input: approveUniversalRouterCallData,
         to: PERMIT2_ADDRESS,
         value: '0',
         from: fromAddress,
-        gasPrice: '0',
-        gas: 30000000,
       };
 
       const swap = {
         network_id: chainId,
         input: calldata,
+        gas_estimate: true,
         to: UNIVERSAL_ROUTER_ADDRESS(this.chainId),
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        gasPrice: '0',
-        gas: 30000000,
-        type: 1,
+        // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
+        block_number:
+          chainId == ChainId.ARBITRUM_ONE && blockNumber
+            ? blockNumber - 5
+            : undefined,
       };
 
       const body = {
         simulations: [approvePermit2, approveUniversalRouter, swap],
+        gas_estimate: true,
       };
       const opts = {
         headers: {
@@ -366,33 +373,35 @@ export class TenderlySimulator extends Simulator {
 
       log.info(
         { swapTransaction: resp.simulation_results[2].transaction },
-        'Successful Tenderly Swap Transaction for SwapRouter02'
+        'Successful Tenderly Swap Transaction for Universal Router'
       );
 
       log.info(
         { swapSimulation: resp.simulation_results[2].simulation },
-        'Successful Tenderly Swap Simulation for SwapRouter02'
+        'Successful Tenderly Swap Simulation for Universal Router'
       );
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
       const approve = {
         network_id: chainId,
         input: APPROVE_TOKEN_FOR_TRANSFER,
+        gas_estimate: true,
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
-        gasPrice: '0',
-        gas: 30000000,
       };
 
       const swap = {
         network_id: chainId,
         input: calldata,
         to: SWAP_ROUTER_02_ADDRESS,
+        gas_estimate: true,
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        gasPrice: '0',
-        gas: 30000000,
-        type: 1,
+        // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
+        block_number:
+          chainId == ChainId.ARBITRUM_ONE && blockNumber
+            ? blockNumber - 5
+            : undefined,
       };
 
       const body = { simulations: [approve, swap] };
