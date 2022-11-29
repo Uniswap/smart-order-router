@@ -361,6 +361,7 @@ export class TenderlySimulator extends Simulator {
 
       log.info(
         {
+          body,
           approvePermit2GasUsed:
             resp.simulation_results[0].transaction.gas_used,
           approveUniversalRouterGasUsed:
@@ -445,8 +446,9 @@ export class TenderlySimulator extends Simulator {
 
       log.info(
         {
-          approve: resp.simulation_results[0].transaction.gas_used,
-          swap: resp.simulation_results[1].transaction.gas_used,
+          body,
+          approveGasUsed: resp.simulation_results[0].transaction.gas_used,
+          swapGasUsed: resp.simulation_results[1].transaction.gas_used,
           swapWithMultiplier: estimatedGasUsed.toString(),
         },
         'Successfully Simulated Approval + Swap via Tenderly for SwapRouter02. Gas used.'
