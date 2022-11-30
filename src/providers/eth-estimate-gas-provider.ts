@@ -1,11 +1,13 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { BigNumber } from 'ethers';
+
 import { SwapOptions, SwapRoute, SwapType } from '../routers';
 import { ChainId, log } from '../util';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
 } from '../util/gas-factory-helpers';
+
 import { ProviderConfig } from './provider';
 import { SimulationStatus, Simulator } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
