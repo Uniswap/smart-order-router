@@ -53,6 +53,7 @@ export const WHALES = (token: Currency): string => {
             return '0x1714400ff23db4af24f9fd64e7039e6597f18c2b'
         case USDC_ON(ChainId.ARBITRUM_RINKEBY):
             return '0xa2aad83466241232290bebcd43dcbff6a7f8d23a'
+        // TODO: Make a ARBITRUM_GOERLI USDC whale
         case USDC_ON(ChainId.POLYGON):
             return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245'
         case USDC_ON(ChainId.POLYGON_MUMBAI):

@@ -102,7 +102,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         );
       } else if (
         chainId == ChainId.ARBITRUM_ONE ||
-        chainId == ChainId.ARBITRUM_RINKEBY
+        chainId == ChainId.ARBITRUM_RINKEBY ||
+        chainId == ChainId.ARBITRUM_GOERLI
       ) {
         [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(
           route,

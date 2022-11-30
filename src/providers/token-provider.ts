@@ -321,6 +321,15 @@ export const UNI_ARBITRUM_RINKEBY = new Token(
   'Uni token'
 );
 
+// Bridged version of official Goerli USDC 
+export const USDC_ARBITRUM_GOERLI = new Token(
+  ChainId.ARBITRUM_GOERLI,
+  '0x8FB1E3fC51F3b789dED7557E680551d93Ea9d892',
+  6,
+  'USDC',
+  'USD//C'
+);
+
 //polygon tokens
 export const WMATIC_POLYGON = new Token(
   ChainId.POLYGON,
@@ -686,6 +695,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ARBITRUM;
     case ChainId.ARBITRUM_RINKEBY:
       return USDC_ARBITRUM_RINKEBY;
+    case ChainId.ARBITRUM_GOERLI:
+      return USDC_ARBITRUM_GOERLI;
     case ChainId.POLYGON:
       return USDC_POLYGON;
     case ChainId.POLYGON_MUMBAI:
