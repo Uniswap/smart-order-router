@@ -96,7 +96,8 @@ export class EthEstimateGasSimulator extends Simulator {
     swapOptions: any,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData | undefined,
-    providerConfig?: ProviderConfig | undefined
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _providerConfig?: ProviderConfig | undefined
   ): Promise<SwapRoute> {
     return this.ethEstimateGas(fromAddress, swapOptions, swapRoute, l2GasData);
   }

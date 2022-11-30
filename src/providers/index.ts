@@ -15,6 +15,7 @@ export * from './simulation-provider';
 export * from './static-gas-price-provider';
 export * from './swap-router-provider';
 export * from './tenderly-simulation-provider';
+export * from './eth-estimate-gas-provider';
 export * from './token-provider';
 export * from './token-validator-provider';
 export * from './uri-subgraph-provider';
