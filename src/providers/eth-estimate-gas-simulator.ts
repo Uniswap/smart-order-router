@@ -84,5 +84,4 @@ export class EthEstimateGasSimulator extends Simulator {
     protected simulateTransaction(fromAddress: string, swapOptions: any, swapRoute: SwapRoute, l2GasData?: OptimismGasData | ArbitrumGasData | undefined, providerConfig?: ProviderConfig | undefined): Promise<SwapRoute> {
         return this.ethEstimateGas(fromAddress, swapOptions, swapRoute, l2GasData);
     }
-    
 }
