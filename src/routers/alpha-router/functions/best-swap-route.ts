@@ -467,7 +467,6 @@ export async function getBestSwapRouteBy(
   // For each gas estimate, normalize decimals to that of the chosen usd token.
   const estimatedGasUsedUSDs = _(bestSwap)
     .map((routeWithValidQuote) => {
-      // TODO: will error if gasToken has decimals greater than usdToken
       const decimalsDiff =
         usdTokenDecimals - routeWithValidQuote.gasCostInUSD.currency.decimals;
 
@@ -498,7 +497,10 @@ export async function getBestSwapRouteBy(
         usdToken,
         JSBI.multiply(
           gasCostL1USD.quotient,
-          JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimalsDiff))
+          JSBI.multiply(
+            JSBI.BigInt(decimalDiff >= 0 ? 1 : -1),
+            JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(Math.abs(decimalsDiff)))
+          )
         )
       )
     );
