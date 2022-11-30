@@ -93,7 +93,7 @@ export class EthEstimateGasSimulator extends Simulator {
       simulationStatus: SimulationStatus.Succeeded,
     };
   }
-  protected simulateTransaction(
+  protected async simulateTransaction(
     fromAddress: string,
     swapOptions: any,
     swapRoute: SwapRoute,
@@ -101,6 +101,27 @@ export class EthEstimateGasSimulator extends Simulator {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _providerConfig?: ProviderConfig | undefined
   ): Promise<SwapRoute> {
-    return this.ethEstimateGas(fromAddress, swapOptions, swapRoute, l2GasData);
+    const inputAmount = swapRoute.trade.inputAmount;
+    if (
+      inputAmount.currency.isNative ||
+      (await this.checkTokenApproved(
+        fromAddress,
+        inputAmount,
+        swapOptions,
+        this.provider
+      ))
+    ) {
+      return await this.ethEstimateGas(
+        fromAddress,
+        swapOptions,
+        swapRoute,
+        l2GasData
+      );
+    } else {
+      return {
+        ...swapRoute,
+        simulationStatus: SimulationStatus.Unattempted,
+      };
+    }
   }
 }

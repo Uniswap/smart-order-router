@@ -110,6 +110,7 @@ describe('fallback tenderly simulator', () => {
 describe('Eth estimate gas simulator', () => {
     const chainId = ChainId.MAINNET;
     const simulator = new EthEstimateGasSimulator(chainId, provider, v2PoolProvider, v3PoolProvider);
+    let ethEstimateGasStub: sinon.SinonStub;
     let simulateTxStub: sinon.SinonStub;
 
     const swaproute: SwapRoute = {
@@ -128,13 +129,19 @@ describe('Eth estimate gas simulator', () => {
     beforeEach(() => {
         simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
         simulateTxStub.resolves(swaproute);
+        ethEstimateGasStub = sinon.stub(simulator, <any>'ethEstimateGas');
+        ethEstimateGasStub.resolves(swaproute)
     });
     
     afterEach(() => {
         sinon.restore();
     });
-    test('simulates when user has sufficient balance', async () => {
+    test('simulates when user has sufficient balance and token is approved', async () => {
         sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
+        sinon.stub(
+            simulator,
+            <any>'checkTokenApproved',
+        ).resolves(true);
         const swapRoute = await simulator.simulate(
             fromAddress,
             swapOptions,
@@ -143,6 +150,7 @@ describe('Eth estimate gas simulator', () => {
             quote
         );
         expect(simulateTxStub.calledOnce).toBeTruthy();
+        expect(ethEstimateGasStub.calledOnce).toBeTruthy();
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
     });
     test('does not simulate when user does not have sufficient balance', async () => {
@@ -150,6 +158,10 @@ describe('Eth estimate gas simulator', () => {
             simulator,
             <any>'userHasSufficientBalance',
         ).resolves(false);
+        sinon.stub(
+            simulator,
+            <any>'checkTokenApproved',
+        ).resolves(true);
         const swapRoute = await simulator.simulate(
             fromAddress,
             swapOptions,
@@ -158,6 +170,27 @@ describe('Eth estimate gas simulator', () => {
             quote
         );
         expect(simulateTxStub.called).toBeFalsy();
+        expect(ethEstimateGasStub.calledOnce).toBeFalsy();
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
     });
+
+    test('does not simulate when token is not approved', async () => {
+        sinon.stub(
+            simulator,
+            <any>'userHasSufficientBalance',
+        ).resolves(true);
+        sinon.stub(
+            simulator,
+            <any>'checkTokenApproved',
+        ).resolves(false);
+        const swapRoute = await simulator.simulate(
+            fromAddress,
+            swapOptions,
+            swaproute,
+            amount,
+            quote
+        );
+        expect(simulateTxStub.called).toBeTruthy();
+        expect(ethEstimateGasStub.called).toBeFalsy();
+    })
 });
