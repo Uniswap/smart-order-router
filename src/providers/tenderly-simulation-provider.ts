@@ -180,6 +180,8 @@ export class FallbackTenderlySimulator extends Simulator {
       throw new Error(`Unsupported swap type ${swapOptions}`);
     }
 
+    estimatedGasUsed = estimatedGasUsed.mul(1.2);
+
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,

@@ -64,6 +64,8 @@ export class EthEstimateGasSimulator extends Simulator {
       throw new Error(`Unsupported swap type ${swapOptions}`);
     }
 
+    estimatedGasUsed = estimatedGasUsed.mul(BigNumber.from(1.2))
+
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
