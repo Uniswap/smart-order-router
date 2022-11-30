@@ -7,8 +7,8 @@ import { SwapOptions, SwapRoute, SwapType } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { ChainId, CurrencyAmount, log, SWAP_ROUTER_02_ADDRESS } from '../util';
-import { ProviderConfig } from './provider';
 
+import { ProviderConfig } from './provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 
 export type SimulationResult = {
