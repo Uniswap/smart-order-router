@@ -183,7 +183,7 @@ describe('Eth estimate gas simulator', () => {
             simulator,
             <any>'checkTokenApproved',
         ).resolves(false);
-        const swapRoute = await simulator.simulate(
+        await simulator.simulate(
             fromAddress,
             swapOptions,
             swaproute,
