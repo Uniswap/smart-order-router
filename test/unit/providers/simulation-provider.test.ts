@@ -150,7 +150,6 @@ describe('Eth estimate gas simulator', () => {
             quote
         );
         expect(simulateTxStub.calledOnce).toBeTruthy();
-        expect(ethEstimateGasStub.calledOnce).toBeTruthy();
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
     });
     test('does not simulate when user does not have sufficient balance', async () => {
