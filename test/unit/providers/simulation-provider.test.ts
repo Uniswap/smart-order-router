@@ -23,30 +23,29 @@ const v2PoolProvider = sinon.createStubInstance(V2PoolProvider);
 const v3PoolProvider = sinon.createStubInstance(V3PoolProvider);
 const fromAddress = 'fromAddress';
 const amount = sinon.createStubInstance(CurrencyAmount);
-const quoteMock = sinon.createStubInstance(CurrencyAmount);
+const quote = sinon.createStubInstance(CurrencyAmount);
 const estimatedGasUsed = BigNumber.from(0);
 const trade = sinon.createStubInstance(Trade);
 const route: RouteWithValidQuote[] = [];
 const blockNumber = BigNumber.from(0);
+const swapOptions: SwapOptions = {
+    type: SwapType.UNIVERSAL_ROUTER,
+    slippageTolerance: new Percent(5, 100),
+    deadlineOrPreviousBlockhash: 10000000,
+    recipient: '0x0',
+};
 
 describe('fallback tenderly simulator', () => {
   let simulator: FallbackTenderlySimulator;
   let tenderlySimulator: sinon.SinonStubbedInstance<TenderlySimulator>;
   let simulateTxStub: sinon.SinonStub;
 
-  const swapOptionsMock: SwapOptions = {
-    type: SwapType.UNIVERSAL_ROUTER,
-    slippageTolerance: new Percent(5, 100),
-    deadlineOrPreviousBlockhash: 10000000,
-    recipient: '0x0',
-  };
-
   const swaproute: SwapRoute = {
-    quote: quoteMock,
-    quoteGasAdjusted: quoteMock,
+    quote: quote,
+    quoteGasAdjusted: quote,
     estimatedGasUsed: estimatedGasUsed,
-    estimatedGasUsedQuoteToken: quoteMock,
-    estimatedGasUsedUSD: quoteMock,
+    estimatedGasUsedQuoteToken: quote,
+    estimatedGasUsedUSD: quote,
     gasPriceWei: estimatedGasUsed,
     trade: trade,
     route: route,
@@ -82,10 +81,10 @@ describe('fallback tenderly simulator', () => {
     sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
     const swapRoute = await simulator.simulate(
       fromAddress,
-      swapOptionsMock,
+      swapOptions,
       swaproute,
       amount,
-      quoteMock
+      quote
     );
     expect(simulateTxStub.calledOnce).toBeTruthy();
     expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
@@ -99,33 +98,26 @@ describe('fallback tenderly simulator', () => {
     );
     const swapRoute = await simulator.simulate(
       fromAddress,
-      swapOptionsMock,
+      swapOptions,
       swaproute,
       amount,
-      quoteMock
+      quote
     );
     expect(simulateTxStub.called).toBeFalsy();
     expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
   });
 });
 describe('Eth estimate gas simulator', () => {
-    const fromAddress = 'fromAddress';
     const chainId = ChainId.MAINNET;
     const simulator = new EthEstimateGasSimulator(chainId, provider, v2PoolProvider, v3PoolProvider);
     let simulateTxStub: sinon.SinonStub;
-    const swapOptionsMock: SwapOptions = {
-        type: SwapType.UNIVERSAL_ROUTER,
-        slippageTolerance: new Percent(5, 100),
-        deadlineOrPreviousBlockhash: 10000000,
-        recipient: '0x0',
-    };
 
     const swaproute: SwapRoute = {
-        quote: quoteMock,
-        quoteGasAdjusted: quoteMock,
+        quote: quote,
+        quoteGasAdjusted: quote,
         estimatedGasUsed: estimatedGasUsed,
-        estimatedGasUsedQuoteToken: quoteMock,
-        estimatedGasUsedUSD: quoteMock,
+        estimatedGasUsedQuoteToken: quote,
+        estimatedGasUsedUSD: quote,
         gasPriceWei: estimatedGasUsed,
         trade: trade,
         route: route,
@@ -145,10 +137,10 @@ describe('Eth estimate gas simulator', () => {
         sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
         const swapRoute = await simulator.simulate(
             fromAddress,
-            swapOptionsMock,
+            swapOptions,
             swaproute,
             amount,
-            quoteMock
+            quote
         );
         expect(simulateTxStub.calledOnce).toBeTruthy();
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
@@ -160,10 +152,10 @@ describe('Eth estimate gas simulator', () => {
         ).resolves(false);
         const swapRoute = await simulator.simulate(
             fromAddress,
-            swapOptionsMock,
+            swapOptions,
             swaproute,
             amount,
-            quoteMock
+            quote
         );
         expect(simulateTxStub.called).toBeFalsy();
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
