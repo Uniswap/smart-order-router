@@ -4,7 +4,9 @@ import { Percent } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import sinon from 'sinon';
 import {
+    ChainId,
   CurrencyAmount,
+  EthEstimateGasSimulator,
   FallbackTenderlySimulator,
   RouteWithValidQuote,
   SimulationStatus,
@@ -16,19 +18,19 @@ import {
   V3PoolProvider,
 } from '../../../src';
 
-describe('fallback tenderly simulator', () => {
-  const fromAddressMock = 'fromAddress';
-  const amountMock = sinon.createStubInstance(CurrencyAmount);
-  const quoteMock = sinon.createStubInstance(CurrencyAmount);
-  const estimatedGasUsedMock = BigNumber.from(0);
-  const tradeMock = sinon.createStubInstance(Trade);
-  const routeMock: RouteWithValidQuote[] = [];
-  const blockNumberMock = BigNumber.from(0);
+const provider = sinon.createStubInstance(JsonRpcProvider);
+const v2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+const v3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+const fromAddress = 'fromAddress';
+const amount = sinon.createStubInstance(CurrencyAmount);
+const quoteMock = sinon.createStubInstance(CurrencyAmount);
+const estimatedGasUsed = BigNumber.from(0);
+const trade = sinon.createStubInstance(Trade);
+const route: RouteWithValidQuote[] = [];
+const blockNumber = BigNumber.from(0);
 
+describe('fallback tenderly simulator', () => {
   let simulator: FallbackTenderlySimulator;
-  let provider: sinon.SinonStubbedInstance<JsonRpcProvider>;
-  let v2PoolProvider: sinon.SinonStubbedInstance<V2PoolProvider>;
-  let v3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let tenderlySimulator: sinon.SinonStubbedInstance<TenderlySimulator>;
   let simulateTxStub: sinon.SinonStub;
 
@@ -39,23 +41,20 @@ describe('fallback tenderly simulator', () => {
     recipient: '0x0',
   };
 
-  const swapRouteMock: SwapRoute = {
+  const swaproute: SwapRoute = {
     quote: quoteMock,
     quoteGasAdjusted: quoteMock,
-    estimatedGasUsed: estimatedGasUsedMock,
+    estimatedGasUsed: estimatedGasUsed,
     estimatedGasUsedQuoteToken: quoteMock,
     estimatedGasUsedUSD: quoteMock,
-    gasPriceWei: estimatedGasUsedMock,
-    trade: tradeMock,
-    route: routeMock,
-    blockNumber: blockNumberMock,
+    gasPriceWei: estimatedGasUsed,
+    trade: trade,
+    route: route,
+    blockNumber: blockNumber,
     simulationStatus: SimulationStatus.Succeeded,
   };
 
   beforeAll(() => {
-    provider = sinon.createStubInstance(JsonRpcProvider);
-    v2PoolProvider = sinon.createStubInstance(V2PoolProvider);
-    v3PoolProvider = sinon.createStubInstance(V3PoolProvider);
     tenderlySimulator = sinon.createStubInstance(TenderlySimulator);
     simulator = new FallbackTenderlySimulator(
       1,
@@ -72,7 +71,7 @@ describe('fallback tenderly simulator', () => {
 
   beforeEach(() => {
     simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
-    simulateTxStub.resolves(swapRouteMock);
+    simulateTxStub.resolves(swaproute);
   });
 
   afterEach(() => {
@@ -82,10 +81,10 @@ describe('fallback tenderly simulator', () => {
   test('simulates when user has sufficient balance', async () => {
     sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
     const swapRoute = await simulator.simulate(
-      fromAddressMock,
+      fromAddress,
       swapOptionsMock,
-      swapRouteMock,
-      amountMock,
+      swaproute,
+      amount,
       quoteMock
     );
     expect(simulateTxStub.calledOnce).toBeTruthy();
@@ -99,13 +98,75 @@ describe('fallback tenderly simulator', () => {
       async () => false
     );
     const swapRoute = await simulator.simulate(
-      fromAddressMock,
+      fromAddress,
       swapOptionsMock,
-      swapRouteMock,
-      amountMock,
+      swaproute,
+      amount,
       quoteMock
     );
     expect(simulateTxStub.called).toBeFalsy();
     expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
   });
+});
+describe('Eth estimate gas simulator', () => {
+    const fromAddress = 'fromAddress';
+    const chainId = ChainId.MAINNET;
+    const simulator = new EthEstimateGasSimulator(chainId, provider, v2PoolProvider, v3PoolProvider);
+    let simulateTxStub: sinon.SinonStub;
+    const swapOptionsMock: SwapOptions = {
+        type: SwapType.UNIVERSAL_ROUTER,
+        slippageTolerance: new Percent(5, 100),
+        deadlineOrPreviousBlockhash: 10000000,
+        recipient: '0x0',
+    };
+
+    
+    const swaproute: SwapRoute = {
+        quote: quoteMock,
+        quoteGasAdjusted: quoteMock,
+        estimatedGasUsed: estimatedGasUsed,
+        estimatedGasUsedQuoteToken: quoteMock,
+        estimatedGasUsedUSD: quoteMock,
+        gasPriceWei: estimatedGasUsed,
+        trade: trade,
+        route: route,
+        blockNumber: blockNumber,
+        simulationStatus: SimulationStatus.Succeeded,
+    };
+
+    beforeEach(() => {
+        simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
+        simulateTxStub.resolves(swaproute);
+    });
+    
+    afterEach(() => {
+        sinon.restore();
+    });
+    test('simulates when user has sufficient balance', async () => {
+        sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
+        const swapRoute = await simulator.simulate(
+            fromAddress,
+            swapOptionsMock,
+            swaproute,
+            amount,
+            quoteMock
+        );
+        expect(simulateTxStub.calledOnce).toBeTruthy();
+        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
+    });
+    test('does not simulate when user does not have sufficient balance', async () => {
+        sinon.stub(
+            simulator,
+            <any>'userHasSufficientBalance',
+        ).resolves(false);
+        const swapRoute = await simulator.simulate(
+            fromAddress,
+            swapOptionsMock,
+            swaproute,
+            amount,
+            quoteMock
+        );
+        expect(simulateTxStub.called).toBeFalsy();
+        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
+    });
 });
