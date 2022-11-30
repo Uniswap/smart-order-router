@@ -120,7 +120,6 @@ describe('Eth estimate gas simulator', () => {
         recipient: '0x0',
     };
 
-    
     const swaproute: SwapRoute = {
         quote: quoteMock,
         quoteGasAdjusted: quoteMock,
