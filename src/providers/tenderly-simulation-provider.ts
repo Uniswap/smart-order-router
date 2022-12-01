@@ -103,6 +103,8 @@ export class FallbackTenderlySimulator extends Simulator {
         );
         return swapRouteWithGasEstimate;
       } catch (err) {
+        console.log("FAIL", err)
+        console.log(inputAmount.currency)
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
         return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
