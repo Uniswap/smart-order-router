@@ -21,6 +21,7 @@ import {
   CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
   DAI_ON,
+  EthEstimateGasSimulator,
   FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
@@ -37,6 +38,7 @@ import {
   SwapOptions,
   SwapType,
   SWAP_ROUTER_02_ADDRESS,
+  TenderlySimulator,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -169,6 +171,7 @@ describe('alpha router integration', () => {
   };
 
   let alphaRouter: AlphaRouter;
+  let customAlphaRouter: AlphaRouter;
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
@@ -489,16 +492,31 @@ describe('alpha router integration', () => {
       multicall2Provider
     );
 
-    const simulator = new FallbackTenderlySimulator(
+    const ethEstimateGasSimulator = new EthEstimateGasSimulator(
+      ChainId.MAINNET,
+      hardhat.providers[0]!,
+      v2PoolProvider,
+      v3PoolProvider
+    );
+
+    const tenderlySimulator = new TenderlySimulator(
       ChainId.MAINNET,
       process.env.TENDERLY_BASE_URL!,
       process.env.TENDERLY_USER!,
       process.env.TENDERLY_PROJECT!,
       process.env.TENDERLY_ACCESS_KEY!,
-      hardhat.providers[0]!,
       v2PoolProvider,
-      v3PoolProvider
+      v3PoolProvider,
+      hardhat.providers[0]!
     );
+
+    const simulator = new FallbackTenderlySimulator(
+      ChainId.MAINNET,
+      hardhat.providers[0]!,
+      tenderlySimulator,
+      ethEstimateGasSimulator
+    );
+
     alphaRouter = new AlphaRouter({
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
@@ -506,6 +524,16 @@ describe('alpha router integration', () => {
       v2PoolProvider,
       v3PoolProvider,
       simulator,
+    });
+
+    // this will be used to test gas limit simulation for web flow
+    customAlphaRouter = new AlphaRouter({
+      chainId: ChainId.MAINNET,
+      provider: hardhat.providers[0]!,
+      multicall2Provider,
+      v2PoolProvider,
+      v3PoolProvider,
+      simulator: ethEstimateGasSimulator,
     });
   });
 
@@ -2064,6 +2092,64 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toBeDefined();
             expect(simulationStatus).toEqual(SimulationStatus.Unattempted);
           });
+          it('erc20 -> erc20 with ethEstimateGasSimulator', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            // route using custom alpha router with ethEstimateGasSimulator
+            const swap = await customAlphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.SWAP_ROUTER_02,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              simulationStatus,
+            } = swap!;
+
+            await validateSwapRoute(
+              quote,
+              quoteGasAdjusted,
+              tradeType,
+              100,
+              10
+            );
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+
+            await validateExecuteSwap(
+              SwapType.SWAP_ROUTER_02,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
+            );
+          });
         });
       }
 
@@ -2421,24 +2507,30 @@ describe('quote for other networks', () => {
           multicall2Provider
         );
 
-        const simulator = new FallbackTenderlySimulator(
-          chain,
+        const ethEstimateGasSimulator = new EthEstimateGasSimulator(
+          ChainId.MAINNET,
+          hardhat.providers[0]!,
+          v2PoolProvider,
+          v3PoolProvider
+        );
+    
+        const tenderlySimulator = new TenderlySimulator(
+          ChainId.MAINNET,
           process.env.TENDERLY_BASE_URL!,
           process.env.TENDERLY_USER!,
           process.env.TENDERLY_PROJECT!,
           process.env.TENDERLY_ACCESS_KEY!,
-          provider,
-          v2PoolProvider,
-          v3PoolProvider
-        );
-        alphaRouter = new AlphaRouter({
-          chainId: ChainId.MAINNET,
-          provider: provider,
-          multicall2Provider,
           v2PoolProvider,
           v3PoolProvider,
-          simulator,
-        });
+          hardhat.providers[0]!
+        );
+
+        const simulator = new FallbackTenderlySimulator(
+          chain,
+          provider,
+          tenderlySimulator,
+          ethEstimateGasSimulator
+        );
 
         beforeAll(async () => {
           alphaRouter = new AlphaRouter({

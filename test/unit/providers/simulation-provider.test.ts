@@ -4,7 +4,7 @@ import { Percent } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import sinon from 'sinon';
 import {
-    ChainId,
+  ChainId,
   CurrencyAmount,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
@@ -14,6 +14,7 @@ import {
   SwapRoute,
   SwapType,
   TenderlySimulator,
+  USDC_MAINNET,
   V2PoolProvider,
   V3PoolProvider,
 } from '../../../src';
@@ -22,10 +23,10 @@ const provider = sinon.createStubInstance(JsonRpcProvider);
 const v2PoolProvider = sinon.createStubInstance(V2PoolProvider);
 const v3PoolProvider = sinon.createStubInstance(V3PoolProvider);
 const fromAddress = 'fromAddress';
-const amount = sinon.createStubInstance(CurrencyAmount);
+const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 100);
 const quote = sinon.createStubInstance(CurrencyAmount);
 const estimatedGasUsed = BigNumber.from(0);
-const trade = sinon.createStubInstance(Trade);
+const trade = {inputAmount: amount};
 const route: RouteWithValidQuote[] = [];
 const blockNumber = BigNumber.from(0);
 const swapOptions: SwapOptions = {
@@ -38,7 +39,7 @@ const swapOptions: SwapOptions = {
 describe('fallback tenderly simulator', () => {
   let simulator: FallbackTenderlySimulator;
   let tenderlySimulator: sinon.SinonStubbedInstance<TenderlySimulator>;
-  let simulateTxStub: sinon.SinonStub;
+  let ethEstimateGasSimulator: sinon.SinonStubbedInstance<EthEstimateGasSimulator>;
 
   const swaproute: SwapRoute = {
     quote: quote,
@@ -47,38 +48,34 @@ describe('fallback tenderly simulator', () => {
     estimatedGasUsedQuoteToken: quote,
     estimatedGasUsedUSD: quote,
     gasPriceWei: estimatedGasUsed,
-    trade: trade,
+    trade: trade as Trade<any, any, any>,
     route: route,
     blockNumber: blockNumber,
     simulationStatus: SimulationStatus.Succeeded,
   };
 
-  beforeAll(() => {
+  beforeEach(() => {
+    ethEstimateGasSimulator = sinon.createStubInstance(EthEstimateGasSimulator);
     tenderlySimulator = sinon.createStubInstance(TenderlySimulator);
     simulator = new FallbackTenderlySimulator(
       1,
-      'base',
-      'user',
-      'project',
-      'key',
       provider,
-      v2PoolProvider,
-      v3PoolProvider,
-      tenderlySimulator
+      tenderlySimulator,
+      ethEstimateGasSimulator
     );
-  });
-
-  beforeEach(() => {
-    simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
-    simulateTxStub.resolves(swaproute);
   });
 
   afterEach(() => {
     sinon.restore();
   });
 
-  test('simulates when user has sufficient balance', async () => {
+  test('simulates through eth estimate gas when user has sufficient balance and approval', async () => {
     sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
+    sinon.stub(
+      simulator,
+      <any>'checkTokenApproved',
+    ).resolves(true);
+    ethEstimateGasSimulator.ethEstimateGas.resolves({simulationStatus: SimulationStatus.Succeeded} as SwapRoute);
     const swapRoute = await simulator.simulate(
       fromAddress,
       swapOptions,
@@ -86,16 +83,36 @@ describe('fallback tenderly simulator', () => {
       amount,
       quote
     );
-    expect(simulateTxStub.calledOnce).toBeTruthy();
+
+    expect(ethEstimateGasSimulator.ethEstimateGas.calledOnce).toBeTruthy();
+    expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
+  });
+
+  test('simulates through tenderly when user has sufficient balance but not approval', async () => {
+    sinon.stub(simulator, <any>'userHasSufficientBalance').resolves(true);
+    sinon.stub(
+      simulator,
+      <any>'checkTokenApproved',
+    ).resolves(false);
+    tenderlySimulator.simulateTransaction.resolves({simulationStatus: SimulationStatus.Succeeded} as SwapRoute);
+    const swapRoute = await simulator.simulate(
+      fromAddress,
+      swapOptions,
+      swaproute,
+      amount,
+      quote
+    );
+
+    expect(ethEstimateGasSimulator.ethEstimateGas.called).toBeFalsy();
+    expect(tenderlySimulator.simulateTransaction.calledOnce).toBeTruthy();
     expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
   });
 
   test('does not simulate when user does not have sufficient balance', async () => {
-    sinon.replace(
+    sinon.stub(
       simulator,
-      <any>'userHasSufficientBalance',
-      async () => false
-    );
+      <any>'userHasSufficientBalance'
+    ).resolves(false);
     const swapRoute = await simulator.simulate(
       fromAddress,
       swapOptions,
@@ -103,7 +120,8 @@ describe('fallback tenderly simulator', () => {
       amount,
       quote
     );
-    expect(simulateTxStub.called).toBeFalsy();
+    expect(ethEstimateGasSimulator.ethEstimateGas.called).toBeFalsy();
+    expect(tenderlySimulator.simulateTransaction.called).toBeFalsy();
     expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
   });
 });
@@ -120,15 +138,13 @@ describe('Eth estimate gas simulator', () => {
         estimatedGasUsedQuoteToken: quote,
         estimatedGasUsedUSD: quote,
         gasPriceWei: estimatedGasUsed,
-        trade: trade,
+        trade: trade as Trade<any, any, any>,
         route: route,
         blockNumber: blockNumber,
         simulationStatus: SimulationStatus.Succeeded,
     };
 
     beforeEach(() => {
-        simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
-        simulateTxStub.resolves(swaproute);
         ethEstimateGasStub = sinon.stub(simulator, <any>'ethEstimateGas');
         ethEstimateGasStub.resolves(swaproute)
     });
@@ -149,10 +165,12 @@ describe('Eth estimate gas simulator', () => {
             amount,
             quote
         );
-        expect(simulateTxStub.calledOnce).toBeTruthy();
+        expect(ethEstimateGasStub.calledOnce).toBeTruthy();
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
     });
     test('does not simulate when user does not have sufficient balance', async () => {
+        simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
+        simulateTxStub.resolves(swaproute);
         sinon.stub(
             simulator,
             <any>'userHasSufficientBalance',
@@ -189,7 +207,6 @@ describe('Eth estimate gas simulator', () => {
             amount,
             quote
         );
-        expect(simulateTxStub.called).toBeTruthy();
         expect(ethEstimateGasStub.called).toBeFalsy();
     })
 });

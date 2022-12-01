@@ -14,6 +14,8 @@ import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
 
+const GASLIMIT_INFLATION_FACTOR = 1.2;
+
 export class EthEstimateGasSimulator extends Simulator {
   v2PoolProvider: IV2PoolProvider;
   v3PoolProvider: IV3PoolProvider;
@@ -27,7 +29,7 @@ export class EthEstimateGasSimulator extends Simulator {
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
   }
-  private async ethEstimateGas(
+  async ethEstimateGas(
     fromAddress: string,
     swapOptions: SwapOptions,
     route: SwapRoute,
@@ -54,6 +56,7 @@ export class EthEstimateGasSimulator extends Simulator {
         'Simulating using eth_estimateGas on SwapRouter02'
       );
 
+      try {
       estimatedGasUsed = await this.provider.estimateGas({
         data: route.methodParameters!.calldata,
         to: route.methodParameters!.to,
@@ -62,11 +65,18 @@ export class EthEstimateGasSimulator extends Simulator {
           currencyIn.isNative ? route.methodParameters!.value : '0'
         ),
       });
+      } catch (e) {
+        log.error({ e }, 'Error estimating gas');
+        return {
+          ...route,
+          simulationStatus: SimulationStatus.Failed,
+        };
+      }
     } else {
       throw new Error(`Unsupported swap type ${swapOptions}`);
     }
 
-    estimatedGasUsed = estimatedGasUsed.mul(BigNumber.from(1.2));
+    estimatedGasUsed = estimatedGasUsed.mul(GASLIMIT_INFLATION_FACTOR);
 
     const {
       estimatedGasUsedUSD,
