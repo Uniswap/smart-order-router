@@ -69,7 +69,6 @@ export abstract class Simulator {
         providerConfig
       );
     } else {
-      console.log('insufficient balance', fromAddress, swapOptions, amount);
       log.error('User does not have sufficient balance to simulate.');
       return {
         ...swapRoute,

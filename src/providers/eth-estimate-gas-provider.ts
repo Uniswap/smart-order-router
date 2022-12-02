@@ -132,7 +132,6 @@ export class EthEstimateGasSimulator extends Simulator {
       );
     } else {
       log.info('Token not approved, skipping simulation');
-      console.log('token not approved', fromAddress, inputAmount, swapOptions);
       return {
         ...swapRoute,
         simulationStatus: SimulationStatus.NotApproved,

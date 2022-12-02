@@ -20,7 +20,9 @@ import {
   FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
   MethodParameters,
+  MixedRoute,
   NodeJSCache,
+  OnChainQuoteProvider,
   parseAmount,
   setGlobalLogger,
   SimulationStatus,
@@ -33,7 +35,9 @@ import {
   USDC_MAINNET,
   USDT_MAINNET,
   V2PoolProvider,
+  V2Route,
   V3PoolProvider,
+  V3Route,
   WETH9,
 } from '../../../../src';
 import { WHALES } from '../../../test-util/whales';
@@ -57,6 +61,8 @@ import NodeCache from 'node-cache';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
+import { Pair } from '@uniswap/v2-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 
 const FORK_BLOCK = 15993650;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
@@ -2004,7 +2010,7 @@ describe('alpha router integration', () => {
             } = swap!;
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.Unattempted);
+            expect(simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
 
             await validateSwapRoute(
               quote,
@@ -2238,6 +2244,7 @@ describe('alpha router integration', () => {
       });
     });
   }
+
   describe('Mixed routes', () => {
     const tradeType = TradeType.EXACT_INPUT;
 
@@ -2322,6 +2329,134 @@ describe('alpha router integration', () => {
         });
       });
     });
+  });
+});
+
+describe('external class tests', () => {
+  const multicall2Provider = new UniswapMulticallProvider(
+    ChainId.MAINNET,
+    hardhat.provider
+  );
+  const onChainQuoteProvider = new OnChainQuoteProvider(
+    1,
+    hardhat.provider,
+    multicall2Provider
+  );
+
+  const token0 = new Token(
+    1,
+    '0x0000000000000000000000000000000000000001',
+    18,
+    't0',
+    'token0'
+  );
+  const token1 = new Token(
+    1,
+    '0x0000000000000000000000000000000000000002',
+    18,
+    't1',
+    'token1'
+  );
+  const token2 = new Token(
+    1,
+    '0x0000000000000000000000000000000000000003',
+    18,
+    't2',
+    'token2'
+  );
+
+  const pool_0_1 = new Pool(
+    token0,
+    token1,
+    FeeAmount.MEDIUM,
+    encodeSqrtRatioX96(1, 1),
+    0,
+    0,
+    []
+  );
+
+  const pool_1_2 = new Pool(
+    token1,
+    token2,
+    FeeAmount.MEDIUM,
+    encodeSqrtRatioX96(1, 1),
+    0,
+    0,
+    []
+  );
+
+  const pair_0_1 = new Pair(
+    CurrencyAmount.fromRawAmount(token0, 100),
+    CurrencyAmount.fromRawAmount(token1, 100)
+  );
+
+  it('Prevents incorrect routes array configurations', async () => {
+    const amountIns = [
+      CurrencyAmount.fromRawAmount(token0, 1),
+      CurrencyAmount.fromRawAmount(token0, 2),
+    ];
+    const amountOuts = [
+      CurrencyAmount.fromRawAmount(token1, 1),
+      CurrencyAmount.fromRawAmount(token1, 2),
+    ];
+    const v3Route = new V3Route([pool_0_1], token0, token1);
+    const v3Route_2 = new V3Route([pool_0_1, pool_1_2], token0, token2);
+    const v2route = new V2Route([pair_0_1], token0, token1);
+    const mixedRoute = new MixedRoute([pool_0_1], token0, token1);
+    const routes_v3_mixed = [v3Route, mixedRoute];
+    const routes_v2_mixed = [v2route, mixedRoute];
+    const routes_v3_v2_mixed = [v3Route, v2route, mixedRoute];
+    const routes_v3_v2 = [v3Route, v2route];
+    const routes_v3 = [v3Route, v3Route_2];
+
+    /// Should fail
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2_mixed)
+    ).rejects.toThrow();
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_v2)
+    ).rejects.toThrow();
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3_mixed)
+    ).rejects.toThrow();
+
+    await expect(
+      /// @dev so since we type the input argument, we can't really call it with a wrong configuration of routes
+      /// however, we expect this to fail in case it is called somehow w/o type checking
+      onChainQuoteProvider.getQuotesManyExactOut(
+        amountOuts,
+        routes_v3_v2_mixed as unknown as V3Route[]
+      )
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(
+        amountOuts,
+        routes_v2_mixed as unknown as V3Route[]
+      )
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [
+        mixedRoute,
+      ] as unknown as V3Route[])
+    ).rejects.toThrow();
+
+    await expect(
+      onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [
+        v2route,
+      ] as unknown as V3Route[])
+    ).rejects.toThrow();
+
+    /// ExactIn passing tests
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v2_mixed);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes_v3);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v2route]);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [mixedRoute]);
+    await onChainQuoteProvider.getQuotesManyExactIn(amountIns, [v3Route]);
+    /// ExactOut passing tests
+    await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, routes_v3);
+    await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [v3Route]);
   });
 });
 /*
