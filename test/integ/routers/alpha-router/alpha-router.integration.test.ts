@@ -14,37 +14,53 @@ import {
   AlphaRouter,
   AlphaRouterConfig,
   CachingV3PoolProvider,
+  CEUR_CELO,
+  CEUR_CELO_ALFAJORES,
   ChainId,
+  CUSD_CELO,
+  CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
+  DAI_ON,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
+  ID_TO_PROVIDER,
   MethodParameters,
   MixedRoute,
+  nativeOnChain,
+  NATIVE_CURRENCY,
   NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
   setGlobalLogger,
   SimulationStatus,
   StaticGasPriceProvider,
+  SUPPORTED_CHAINS,
+  SwapOptions,
   SwapType,
   SWAP_ROUTER_02_ADDRESS,
   TenderlySimulator,
   UniswapMulticallProvider,
+  UNI_GÖRLI,
   UNI_MAINNET,
+  USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
+  USDC_ON,
   USDT_MAINNET,
   V2PoolProvider,
   V2Route,
   V3PoolProvider,
   V3Route,
+  WBTC_GNOSIS,
+  WBTC_MOONBEAM,
   WETH9,
+  WNATIVE_ON,
 } from '../../../../src';
 import { WHALES } from '../../../test-util/whales';
 
 import 'jest-environment-hardhat';
 
-import { JsonRpcSigner } from '@ethersproject/providers';
+import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
 import {
@@ -2459,7 +2475,7 @@ describe('external class tests', () => {
     await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, [v3Route]);
   });
 });
-/*
+
 describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
@@ -2743,4 +2759,3 @@ describe('quote for other networks', () => {
     }
   }
 });
-*/
