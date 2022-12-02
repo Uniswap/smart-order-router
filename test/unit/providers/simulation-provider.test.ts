@@ -122,7 +122,7 @@ describe('fallback tenderly simulator', () => {
     );
     expect(ethEstimateGasSimulator.ethEstimateGas.called).toBeFalsy();
     expect(tenderlySimulator.simulateTransaction.called).toBeFalsy();
-    expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
+    expect(swapRoute.simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
   });
 });
 describe('Eth estimate gas simulator', () => {
@@ -188,7 +188,7 @@ describe('Eth estimate gas simulator', () => {
         );
         expect(simulateTxStub.called).toBeFalsy();
         expect(ethEstimateGasStub.calledOnce).toBeFalsy();
-        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Unattempted);
+        expect(swapRoute.simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
     });
 
     test('does not simulate when token is not approved', async () => {

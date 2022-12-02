@@ -32,7 +32,7 @@ export const WHALES = (token: Currency): string => {
         case WNATIVE_ON(ChainId.POLYGON):
             return '0x369582d2010b6ed950b571f4101e3bb9b554876f'
         case USDC_MAINNET:
-            return '0xf2368aC64710499E9eaE6BA6f965F23d154D6faE'
+            return '0x8eb8a3b98659cce290402893d0123abb75e3ab28'
         case UNI_MAINNET:
         case DAI_MAINNET:
         case USDT_MAINNET:

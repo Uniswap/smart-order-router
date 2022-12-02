@@ -20,6 +20,8 @@ export enum SimulationStatus {
   Unattempted = 0,
   Failed = 1,
   Succeeded = 2,
+  InsufficientBalance = 3,
+  NotApproved = 4,
 }
 
 /**
@@ -67,8 +69,9 @@ export abstract class Simulator {
         providerConfig
       );
     } else {
+      console.log('insufficient balance', fromAddress, swapOptions, amount)
       log.error('User does not have sufficient balance to simulate.');
-      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
+      return { ...swapRoute, simulationStatus: SimulationStatus.InsufficientBalance };
     }
   }
 

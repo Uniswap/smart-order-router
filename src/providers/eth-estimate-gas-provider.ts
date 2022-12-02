@@ -73,10 +73,8 @@ export class EthEstimateGasSimulator extends Simulator {
     } else {
       throw new Error(`Unsupported swap type ${swapOptions}`);
     }
-    console.log("GAS USED", estimatedGasUsed.toString());
 
     estimatedGasUsed = this.inflateGasLimit(estimatedGasUsed);
-    console.log(estimatedGasUsed.toString());
 
     const {
       estimatedGasUsedUSD,
@@ -133,11 +131,11 @@ export class EthEstimateGasSimulator extends Simulator {
         l2GasData
       );
     } else {
-      console.log("NOT APPROVED");
-      console.log(inputAmount.currency)
+      log.info('Token not approved, skipping simulation');
+      console.log("token not approved", fromAddress, inputAmount, swapOptions);
       return {
         ...swapRoute,
-        simulationStatus: SimulationStatus.Unattempted,
+        simulationStatus: SimulationStatus.NotApproved,
       };
     }
   }
