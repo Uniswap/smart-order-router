@@ -6,6 +6,7 @@ import {
   Currency,
   CurrencyAmount,
   Ether,
+  Token,
   Percent,
   TradeType,
 } from '@uniswap/sdk-core';
@@ -2024,7 +2025,7 @@ describe('alpha router integration', () => {
               100
             );
           });
-          
+
           it('eth -> erc20 without sufficient ETH balance', async () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
@@ -2237,6 +2238,91 @@ describe('alpha router integration', () => {
       });
     });
   }
+  describe('Mixed routes', () => {
+    const tradeType = TradeType.EXACT_INPUT;
+
+    const BOND_MAINNET = new Token(
+      1,
+      '0x0391D2021f89DC339F60Fff84546EA23E337750f',
+      18,
+      'BOND',
+      'BOND'
+    );
+
+    const APE_MAINNET = new Token(
+      1,
+      '0x4d224452801aced8b2f0aebe155379bb5d594381',
+      18,
+      'APE',
+      'APE'
+    );
+
+    beforeAll(async () => {
+      await hardhat.fund(
+        alice._address,
+        [parseAmount('10000', BOND_MAINNET)],
+        [
+          '0xf510dde022a655e7e3189cdf67687e7ffcd80d91', // BOND token whale
+        ]
+      );
+      const aliceBONDBalance = await hardhat.getBalance(
+        alice._address,
+        BOND_MAINNET
+      );
+      expect(aliceBONDBalance).toEqual(parseAmount('10000', BOND_MAINNET));
+    });
+
+    describe(`exactIn mixedPath routes`, () => {
+      describe('+ simulate swap', () => {
+        it('BOND -> APE', async () => {
+          const tokenIn = BOND_MAINNET;
+          const tokenOut = APE_MAINNET;
+
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: new Percent(50, 100),
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+              forceMixedRoutes: true,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+          expect(route.length).toEqual(1);
+          expect(route[0]!.protocol).toEqual(Protocol.MIXED);
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            10000
+          );
+        });
+      });
+    });
+  });
 });
 /*
 describe('quote for other networks', () => {
