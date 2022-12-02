@@ -2139,7 +2139,7 @@ describe('alpha router integration', () => {
             );
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
+            expect(simulationStatus).toEqual(SimulationStatus.NotApproved);
 
             await validateExecuteSwap(
               SwapType.SWAP_ROUTER_02,
