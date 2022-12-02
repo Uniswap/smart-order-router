@@ -55,14 +55,14 @@ export class EthEstimateGasSimulator extends Simulator {
       );
 
       try {
-      estimatedGasUsed = await this.provider.estimateGas({
-        data: route.methodParameters!.calldata,
-        to: route.methodParameters!.to,
-        from: fromAddress,
-        value: BigNumber.from(
-          currencyIn.isNative ? route.methodParameters!.value : '0'
-        ),
-      });
+        estimatedGasUsed = await this.provider.estimateGas({
+          data: route.methodParameters!.calldata,
+          to: route.methodParameters!.to,
+          from: fromAddress,
+          value: BigNumber.from(
+            currencyIn.isNative ? route.methodParameters!.value : '0'
+          ),
+        });
       } catch (e) {
         log.error({ e }, 'Error estimating gas');
         return {
@@ -132,7 +132,7 @@ export class EthEstimateGasSimulator extends Simulator {
       );
     } else {
       log.info('Token not approved, skipping simulation');
-      console.log("token not approved", fromAddress, inputAmount, swapOptions);
+      console.log('token not approved', fromAddress, inputAmount, swapOptions);
       return {
         ...swapRoute,
         simulationStatus: SimulationStatus.NotApproved,

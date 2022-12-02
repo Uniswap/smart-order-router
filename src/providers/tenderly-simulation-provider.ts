@@ -66,7 +66,7 @@ export class FallbackTenderlySimulator extends Simulator {
     ethEstimateGasSimulator: EthEstimateGasSimulator
   ) {
     super(provider, chainId);
-    this.tenderlySimulator = tenderlySimulator
+    this.tenderlySimulator = tenderlySimulator;
     this.ethEstimateGasSimulator = ethEstimateGasSimulator;
   }
 
@@ -95,15 +95,16 @@ export class FallbackTenderlySimulator extends Simulator {
       );
 
       try {
-        const swapRouteWithGasEstimate = await this.ethEstimateGasSimulator.ethEstimateGas(
-          fromAddress,
-          swapOptions,
-          swapRoute,
-          l2GasData
-        );
+        const swapRouteWithGasEstimate =
+          await this.ethEstimateGasSimulator.ethEstimateGas(
+            fromAddress,
+            swapOptions,
+            swapRoute,
+            l2GasData
+          );
         return swapRouteWithGasEstimate;
       } catch (err) {
-        console.log("HERE", err, swapRoute.trade.inputAmount, fromAddress)
+        console.log('HERE', err, swapRoute.trade.inputAmount, fromAddress);
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
         return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
@@ -119,7 +120,7 @@ export class FallbackTenderlySimulator extends Simulator {
       );
     } catch (err) {
       log.info({ err: err }, 'Failed to simulate via Tenderly');
-      console.log("HERE2")
+      console.log('HERE2');
       return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
   }
@@ -267,7 +268,7 @@ export class TenderlySimulator extends Simulator {
         resp.simulation_results[2].transaction.error_message
       ) {
         this.logTenderlyErrorResponse(resp);
-        console.log("HERE 3")
+        console.log('HERE 3');
         return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
 
@@ -353,7 +354,7 @@ export class TenderlySimulator extends Simulator {
           { err: resp.simulation_results[1].transaction.error_message },
           msg
         );
-        console.log("HERE 4")
+        console.log('HERE 4');
         return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
 
