@@ -162,7 +162,6 @@ describe('alpha router integration', () => {
   jest.setTimeout(500 * 1000); // 500s
 
   let curNonce: number = 0;
-  curNonce;
 
   let nextPermitNonce: () => string = () => {
     const nonce = curNonce.toString();
