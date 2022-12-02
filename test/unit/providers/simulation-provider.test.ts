@@ -129,7 +129,6 @@ describe('Eth estimate gas simulator', () => {
     const chainId = ChainId.MAINNET;
     const simulator = new EthEstimateGasSimulator(chainId, provider, v2PoolProvider, v3PoolProvider);
     let ethEstimateGasStub: sinon.SinonStub;
-    let simulateTxStub: sinon.SinonStub;
 
     const swaproute: SwapRoute = {
         quote: quote,
@@ -169,8 +168,6 @@ describe('Eth estimate gas simulator', () => {
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.Succeeded);
     });
     test('does not simulate when user does not have sufficient balance', async () => {
-        simulateTxStub = sinon.stub(simulator, <any>'simulateTransaction');
-        simulateTxStub.resolves(swaproute);
         sinon.stub(
             simulator,
             <any>'userHasSufficientBalance',
@@ -186,7 +183,6 @@ describe('Eth estimate gas simulator', () => {
             amount,
             quote
         );
-        expect(simulateTxStub.called).toBeFalsy();
         expect(ethEstimateGasStub.calledOnce).toBeFalsy();
         expect(swapRoute.simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
     });
