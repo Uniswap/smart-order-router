@@ -23,6 +23,7 @@ import {
   parseAmount,
   setGlobalLogger,
   SimulationStatus,
+  StaticGasPriceProvider,
   SwapType,
   SWAP_ROUTER_02_ADDRESS,
   TenderlySimulator,
@@ -2171,8 +2172,69 @@ describe('alpha router integration', () => {
 
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
-        });
+        }); 
       }
+      it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount =
+          tradeType == TradeType.EXACT_INPUT
+            ? parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+        const swap = await alphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+          }
+        );
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const { quote, quoteGasAdjusted } = swap!;
+
+        await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+      });
+
+      it(`erc20 -> erc20 gas price specified`, async () => {
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount =
+          tradeType == TradeType.EXACT_INPUT
+            ? parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+        const gasPriceWeiBN = BigNumber.from(60000000000);
+        const gasPriceProvider = new StaticGasPriceProvider(gasPriceWeiBN);
+        // Create a new AlphaRouter with the new gas price provider
+        const customAlphaRouter: AlphaRouter = new AlphaRouter({
+          chainId: 1,
+          provider: hardhat.providers[0]!,
+          multicall2Provider,
+          gasPriceProvider,
+        });
+
+        const swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+          }
+        );
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const { quote, quoteGasAdjusted, gasPriceWei } = swap!;
+
+        expect(gasPriceWei.eq(BigNumber.from(60000000000))).toBe(true);
+
+        await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+      });
     });
   }
 });
