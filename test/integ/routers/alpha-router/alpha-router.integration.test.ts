@@ -1341,6 +1341,7 @@ describe('alpha router integration', () => {
           );
         });
       });
+
       if (isTenderlyEnvironmentSet()) {
         describe(`+ Simulate on Tenderly + Execute on Hardhat fork`, () => {
           it('erc20 -> erc20', async () => {
@@ -1455,6 +1456,7 @@ describe('alpha router integration', () => {
               100
             );
           });
+
           if (isTesterPKEnvironmentSet()) {
             it('erc20 -> erc20 with permit', async () => {
               // This test requires a private key with at least 10 USDC
@@ -1901,6 +1903,124 @@ describe('alpha router integration', () => {
               100,
               100,
               estimatedGasUsed
+            );
+          });
+
+          it('erc20 -> erc20 forceCrossProtocol', async () => {
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                forceCrossProtocol: true,
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              estimatedGasUsed,
+              simulationStatus,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+
+            await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100,
+              estimatedGasUsed
+            );
+          });
+
+          it('erc20 -> erc20 without sufficient token balance', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: {
+                  fromAddress: '0xeaf1c41339f7D33A2c47f82F7b9309B5cBC83B5F',
+                },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              simulationStatus,
+            } = swap!;
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Unattempted);
+
+            await validateSwapRoute(
+              quote,
+              quoteGasAdjusted,
+              tradeType,
+              100,
+              10
+            );
+
+            await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
             );
           });
           
