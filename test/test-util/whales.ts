@@ -50,7 +50,7 @@ export const WHALES = (token: Currency): string => {
         case USDC_ON(ChainId.OPTIMISTIC_KOVAN):
             return '0x81df215205befdad042b54d4c0dbe44e07748c1f'
         case USDC_ON(ChainId.ARBITRUM_ONE):
-            return '0x1714400ff23db4af24f9fd64e7039e6597f18c2b'
+            return '0xf89d7b9c864f589bbf53a82105107622b35eaa40'
         case USDC_ON(ChainId.ARBITRUM_RINKEBY):
             return '0xa2aad83466241232290bebcd43dcbff6a7f8d23a'
         case USDC_ON(ChainId.POLYGON):
@@ -70,7 +70,7 @@ export const WHALES = (token: Currency): string => {
         case DAI_ON(ChainId.OPTIMISTIC_KOVAN):
             return '0xf1c9dc0baa21bb260e192c8a52ee97c887456fb2'
         case DAI_ON(ChainId.ARBITRUM_ONE):
-            return '0xba479d5585ecec47edc2a571da430a40f43c3851'
+            return '0x07b23ec6aedf011114d3ab6027d69b561a2f635e'
         case DAI_ON(ChainId.ARBITRUM_RINKEBY):
             return '0x7c8942a8aa007fc46ee50ddbaeb5d294b49b7efc'
         case DAI_ON(ChainId.POLYGON):

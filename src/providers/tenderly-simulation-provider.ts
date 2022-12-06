@@ -16,9 +16,9 @@ import {
   calculateGasUsed,
   initSwapRouteFromExisting,
 } from '../util/gas-factory-helpers';
+
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { ProviderConfig } from './provider';
-
 import {
   SimulationResult,
   SimulationStatus,
