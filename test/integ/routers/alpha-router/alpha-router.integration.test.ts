@@ -2228,6 +2228,7 @@ describe('alpha router integration', () => {
           });
         });
       }
+
       it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
@@ -2289,7 +2290,8 @@ describe('alpha router integration', () => {
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
-  });
+    });
+  }
 
   describe('Mixed routes', () => {
     const tradeType = TradeType.EXACT_INPUT;
@@ -2376,7 +2378,7 @@ describe('alpha router integration', () => {
       });
     });
   });
-}});
+});
 
 describe('external class tests', () => {
   const multicall2Provider = new UniswapMulticallProvider(
