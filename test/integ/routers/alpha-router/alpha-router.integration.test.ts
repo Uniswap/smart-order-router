@@ -2227,6 +2227,7 @@ describe('alpha router integration', () => {
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
         });
+      }
       it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
@@ -2288,7 +2289,6 @@ describe('alpha router integration', () => {
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
-    }
   });
 
   describe('Mixed routes', () => {
