@@ -2901,8 +2901,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                   tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('1', tokenIn)
-                  : parseAmount('1', tokenOut);
+                  ? parseAmount('10', tokenIn)
+                  : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
