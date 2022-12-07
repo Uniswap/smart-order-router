@@ -20,8 +20,8 @@ export class EthEstimateGasSimulator extends Simulator {
   constructor(
     chainId: ChainId,
     provider: JsonRpcProvider,
-    v2PoolProvider: any,
-    v3PoolProvider: any
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider
   ) {
     super(provider, chainId);
     this.v2PoolProvider = v2PoolProvider;
