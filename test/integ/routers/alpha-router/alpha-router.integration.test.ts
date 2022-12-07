@@ -2152,7 +2152,7 @@ describe('alpha router integration', () => {
             );
           });
 
-          it(`eth -> erc20 with ethEstimateGasSimulator`, async () => {
+          it(`eth -> erc20 with ethEstimateGasSimulator and Swap Router 02`, async () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
             const tokenOut = UNI_MAINNET;
@@ -2195,8 +2195,38 @@ describe('alpha router integration', () => {
 
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
-        }); 
-      }
+
+          it('eth -> erc20 with ethEstimateGasSimulator and Universal Router', async () => {
+              /// Fails for v3 for some reason, ProviderGasError
+            const tokenIn = Ether.onChain(1) as Currency;
+            const tokenOut = USDC_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1000', tokenOut);
+
+            const swap = await customAlphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const { simulationStatus, methodParameters } = swap!;
+
+            expect(methodParameters).not.toBeUndefined();
+
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+          });
+        });
       it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
@@ -2258,8 +2288,8 @@ describe('alpha router integration', () => {
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
-    });
-  }
+    }
+  });
 
   describe('Mixed routes', () => {
     const tradeType = TradeType.EXACT_INPUT;
@@ -2346,7 +2376,7 @@ describe('alpha router integration', () => {
       });
     });
   });
-});
+}});
 
 describe('external class tests', () => {
   const multicall2Provider = new UniswapMulticallProvider(
@@ -2869,8 +2899,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                   tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('10', tokenIn)
-                  : parseAmount('10', tokenOut);
+                  ? parseAmount('1', tokenIn)
+                  : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
@@ -2880,14 +2910,14 @@ describe('quote for other networks', () => {
                       recipient: WHALES(tokenIn),
                       slippageTolerance: SLIPPAGE,
                       deadline: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn.wrapped) },
+                      simulate: { fromAddress: WHALES(tokenIn) },
                     }
                   : {
                       type: SwapType.UNIVERSAL_ROUTER,
                       recipient: WHALES(tokenIn),
                       slippageTolerance: SLIPPAGE,
                       deadlineOrPreviousBlockhash: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn.wrapped) },
+                      simulate: { fromAddress: WHALES(tokenIn) },
                     };
 
               const swap = await alphaRouter.route(
@@ -2909,11 +2939,18 @@ describe('quote for other networks', () => {
                     .subtract(swap.quote)
                     .equalTo(swap.estimatedGasUsedQuoteToken)
                 );
-
-                // Expect Eth Estimate Gas to not fail
-                expect(swap.simulationStatus).not.toEqual(
-                  SimulationStatus.Failed
-                );
+                // Can't find an account with balance on Gorli, and the block explorer is broken.
+                if(chain == ChainId.GÖRLI) {
+                  expect(swap.simulationStatus).toEqual(
+                    SimulationStatus.InsufficientBalance
+                  );
+                }
+                else {
+                  // Expect Eth Estimate Gas to succeed
+                  expect(swap.simulationStatus).toEqual(
+                    SimulationStatus.Succeeded
+                  );
+                }
               }
             });
           });
