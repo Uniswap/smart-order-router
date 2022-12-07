@@ -2940,6 +2940,7 @@ describe('quote for other networks', () => {
                     .equalTo(swap.estimatedGasUsedQuoteToken)
                 );
                 // Can't find an account with balance on Gorli, and the block explorer is broken.
+                // TODO: Find an account with sufficient balance on Gorli
                 if(chain == ChainId.GÖRLI) {
                   expect(swap.simulationStatus).toEqual(
                     SimulationStatus.InsufficientBalance

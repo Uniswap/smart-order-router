@@ -164,7 +164,7 @@ export class TenderlySimulator extends Simulator {
     if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
       const msg = 'Celo not supported by Tenderly!';
       log.info(msg);
-      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
+      return { ...swapRoute, simulationStatus: SimulationStatus.NotSupported };
     }
 
     if (!swapRoute.methodParameters) {

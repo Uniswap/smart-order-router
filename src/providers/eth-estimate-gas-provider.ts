@@ -40,14 +40,22 @@ export class EthEstimateGasSimulator extends Simulator {
         { methodParameters: route.methodParameters },
         'Simulating using eth_estimateGas on Universal Router'
       );
-      estimatedGasUsed = await this.provider.estimateGas({
-        data: route.methodParameters!.calldata,
-        to: route.methodParameters!.to,
-        from: fromAddress,
-        value: BigNumber.from(
-          currencyIn.isNative ? route.methodParameters!.value : '0'
-        ),
-      });
+      try {
+        estimatedGasUsed = await this.provider.estimateGas({
+          data: route.methodParameters!.calldata,
+          to: route.methodParameters!.to,
+          from: fromAddress,
+          value: BigNumber.from(
+            currencyIn.isNative ? route.methodParameters!.value : '0'
+          ),
+        });
+      } catch (e) {
+        log.error({ e }, 'Error estimating gas');
+        return {
+          ...route,
+          simulationStatus: SimulationStatus.Failed,
+        };
+      }
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
       log.info(
         { methodParameters: route.methodParameters },

@@ -72,7 +72,7 @@ const v3PoolProvider = {
   getPools: jest.fn().mockImplementation(() => Promise.resolve(v3PoolAccessor)),
 } as unknown as IV3PoolProvider;
 const fromAddress = 'fromAddress';
-const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 100);
+const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 300);
 const trade = { inputAmount: amount, tradeType: TradeType.EXACT_INPUT };
 const route: RouteWithValidQuote[] = [];
 const quote = {
@@ -109,14 +109,6 @@ describe('Fallback Tenderly simulator', () => {
     },
   };
   beforeEach(() => {
-    permit2Contract = {
-      allowance: async () => {
-        return {
-          amount: BigNumber.from(1000000000),
-          expiration: 2147483647,
-        };
-      },
-    } as unknown as Permit2;
     sinon.stub(provider, 'estimateGas').resolves(BigNumber.from(100));
     ethEstimateGasSimulator = sinon.createStubInstance(
       EthEstimateGasSimulator,
@@ -133,6 +125,14 @@ describe('Fallback Tenderly simulator', () => {
       tenderlySimulator,
       ethEstimateGasSimulator
     );
+    permit2Contract = {
+      allowance: async () => {
+        return {
+          amount: BigNumber.from(325),
+          expiration: 2147483647,
+        };
+      },
+    } as unknown as Permit2;
   });
 
   afterEach(() => {
@@ -141,10 +141,10 @@ describe('Fallback Tenderly simulator', () => {
   test('simulates through eth estimate gas when user has sufficient balance and allowance', async () => {
     tokenContract = {
       balanceOf: async () => {
-        return BigNumber.from(1000000000);
+        return BigNumber.from(325);
       },
       allowance: async () => {
-        return BigNumber.from(1000000000);
+        return BigNumber.from(325);
       },
     } as unknown as Erc20;
     const swapRouteWithGasEstimate = await simulator.simulate(
@@ -163,7 +163,7 @@ describe('Fallback Tenderly simulator', () => {
   test('simulates through tenderly when user has sufficient balance but not allowance', async () => {
     tokenContract = {
       balanceOf: async () => {
-        return BigNumber.from(1000000000);
+        return BigNumber.from(325);
       },
       allowance: async () => {
         return BigNumber.from(0);
@@ -188,7 +188,7 @@ describe('Fallback Tenderly simulator', () => {
         return BigNumber.from(0);
       },
       allowance: async () => {
-        return BigNumber.from(1000000000);
+        return BigNumber.from(325);
       },
     } as unknown as Erc20;
     const swapRouteWithGasEstimate = await simulator.simulate(
@@ -202,6 +202,50 @@ describe('Fallback Tenderly simulator', () => {
     expect(tenderlySimulator.simulateTransaction.called).toBeFalsy();
     expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
       SimulationStatus.InsufficientBalance
+    );
+  });
+  test('when tenderly simulator throws', async () => {
+    tokenContract = {
+      balanceOf: async () => {
+        return BigNumber.from(325);
+      },
+      allowance: async () => {
+        return BigNumber.from(0);
+      },
+    } as unknown as Erc20;
+    tenderlySimulator.simulateTransaction.throwsException();
+    const swapRouteWithGasEstimate = await simulator.simulate(
+      fromAddress,
+      swapOptions,
+      swaproute,
+      amount,
+      quote
+    );
+    expect(tenderlySimulator.simulateTransaction.called).toBeTruthy();
+    expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
+      SimulationStatus.Failed
+    );
+  });
+  test('when eth estimate gas simulator throws', async () => {
+    tokenContract = {
+      balanceOf: async () => {
+        return BigNumber.from(325);
+      },
+      allowance: async () => {
+        return BigNumber.from(325);
+      },
+    } as unknown as Erc20;
+    ethEstimateGasSimulator.ethEstimateGas.throwsException();
+    const swapRouteWithGasEstimate = await simulator.simulate(
+      fromAddress,
+      swapOptions,
+      swaproute,
+      amount,
+      quote
+    );
+    expect(ethEstimateGasSimulator.ethEstimateGas.called).toBeTruthy();
+    expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
+      SimulationStatus.Failed
     );
   });
 });
@@ -237,7 +281,7 @@ describe('Eth estimate gas simulator', () => {
     permit2Contract = {
       allowance: async () => {
         return {
-          amount: BigNumber.from(1000000000),
+          amount: BigNumber.from(325),
           expiration: 2147483647,
         };
       },
@@ -251,10 +295,10 @@ describe('Eth estimate gas simulator', () => {
   test('simulates when user has sufficient balance and token is approved', async () => {
     tokenContract = {
       balanceOf: async () => {
-        return BigNumber.from(10000000000000);
+        return BigNumber.from(3250000);
       },
       allowance: async () => {
-        return BigNumber.from(10000000000000);
+        return BigNumber.from(3250000);
       },
     } as unknown as Erc20;
     const swapRouteWithGasEstimate = await simulator.simulate(
@@ -283,7 +327,7 @@ describe('Eth estimate gas simulator', () => {
     } as unknown as Erc20;
     sinon
       .stub(provider, <any>'getBalance')
-      .resolves(BigNumber.from(1000000000));
+      .resolves(BigNumber.from(325));
     const swapRouteWithGasEstimate = await simulator.simulate(
       fromAddress,
       swapOptions,
@@ -307,7 +351,7 @@ describe('Eth estimate gas simulator', () => {
   test('does not simulate when user has sufficient balance and token is not approved', async () => {
     tokenContract = {
       balanceOf: async () => {
-        return BigNumber.from(1000000000);
+        return BigNumber.from(325);
       },
       allowance: async () => {
         return BigNumber.from(0);
@@ -350,6 +394,31 @@ describe('Eth estimate gas simulator', () => {
     );
     expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
       SimulationStatus.InsufficientBalance
+    );
+    expect(swapRouteWithGasEstimate.estimatedGasUsed).toEqual(
+      BigNumber.from(100)
+    );
+  });
+  test('when provider.estimateGas throws', async () => {
+    sinon
+      .stub(provider, <any>'getBalance')
+      .resolves(BigNumber.from(325));
+    sinon.replace(provider, 'estimateGas', () => {throw new Error()})
+    const swapRouteWithGasEstimate = await simulator.simulate(
+      fromAddress,
+      swapOptions,
+      {
+        ...swaproute,
+        trade: {
+          tradeType: TradeType.EXACT_INPUT,
+          inputAmount: CurrencyAmount.fromRawAmount(nativeOnChain(1), 0),
+        } as Trade<any, any, any>,
+      },
+      CurrencyAmount.fromRawAmount(nativeOnChain(1), 1),
+      quote
+    );
+    expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
+      SimulationStatus.Failed
     );
     expect(swapRouteWithGasEstimate.estimatedGasUsed).toEqual(
       BigNumber.from(100)

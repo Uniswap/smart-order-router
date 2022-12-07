@@ -17,7 +17,7 @@ export type SimulationResult = {
 };
 
 export enum SimulationStatus {
-  Unattempted = 0,
+  NotSupported = 0,
   Failed = 1,
   Succeeded = 2,
   InsufficientBalance = 3,
@@ -61,13 +61,21 @@ export abstract class Simulator {
       log.info(
         'User has sufficient balance to simulate. Simulating transaction.'
       );
-      return this.simulateTransaction(
-        fromAddress,
-        swapOptions,
-        swapRoute,
-        l2GasData,
-        providerConfig
-      );
+      try {
+        return this.simulateTransaction(
+          fromAddress,
+          swapOptions,
+          swapRoute,
+          l2GasData,
+          providerConfig
+        );
+      } catch (e) {
+        log.error({ e }, 'Error simulating transaction');
+        return {
+          ...swapRoute,
+          simulationStatus: SimulationStatus.Failed,
+        };
+      }
     } else {
       log.error('User does not have sufficient balance to simulate.');
       return {
@@ -189,7 +197,6 @@ export abstract class Simulator {
         },
         `Simulating on UR, Permit2 approved: ${permit2Approved}, UR approved: ${universalRouterApproved}, Expiraton valid: ${expirationValid}.`
       );
-      console.log(permit2Approved, universalRouterApproved, expirationValid);
       return permit2Approved && universalRouterApproved && expirationValid;
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
       if (swapOptions.inputTokenPermit) {
@@ -215,7 +222,7 @@ export abstract class Simulator {
           allowance: allowance.toString(),
           inputAmount: inputAmount.quotient.toString(),
         },
-        `Simulating on UR - Has allowance: ${hasAllowance}`
+        `Simulating on SwapRouter02 - Has allowance: ${hasAllowance}`
       );
       // Return true if token allowance is greater than input amount
       return hasAllowance;

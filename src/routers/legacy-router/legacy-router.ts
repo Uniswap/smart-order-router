@@ -7,7 +7,6 @@ import _ from 'lodash';
 import {
   IOnChainQuoteProvider,
   RouteWithQuotes,
-  SimulationStatus,
 } from '../../providers';
 
 import { IMulticallProvider } from '../../providers/multicall-provider';
@@ -149,7 +148,6 @@ export class LegacyRouter {
           }
         : undefined,
       blockNumber: BigNumber.from(0),
-      simulationStatus: SimulationStatus.Unattempted,
     };
   }
 
@@ -205,7 +203,6 @@ export class LegacyRouter {
           }
         : undefined,
       blockNumber: BigNumber.from(0),
-      simulationStatus: SimulationStatus.Unattempted,
     };
   }
 
