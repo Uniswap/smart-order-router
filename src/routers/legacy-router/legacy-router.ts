@@ -4,7 +4,7 @@ import { SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, MethodParameters, Pool, Route } from '@uniswap/v3-sdk';
 import _ from 'lodash';
-import { IOnChainQuoteProvider, RouteWithQuotes, SimulationStatus } from '../../providers';
+import { IOnChainQuoteProvider, RouteWithQuotes } from '../../providers';
 
 import { IMulticallProvider } from '../../providers/multicall-provider';
 import {
@@ -139,10 +139,12 @@ export class LegacyRouter {
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? { ...this.buildMethodParameters(trade, swapConfig), to: SWAP_ROUTER_02_ADDRESS }
+        ? {
+            ...this.buildMethodParameters(trade, swapConfig),
+            to: SWAP_ROUTER_02_ADDRESS,
+          }
         : undefined,
       blockNumber: BigNumber.from(0),
-      simulationStatus: SimulationStatus.Unattempted
     };
   }
 
@@ -192,10 +194,12 @@ export class LegacyRouter {
       gasPriceWei: BigNumber.from(0),
       trade,
       methodParameters: swapConfig
-        ? { ...this.buildMethodParameters(trade, swapConfig), to: SWAP_ROUTER_02_ADDRESS }
+        ? {
+            ...this.buildMethodParameters(trade, swapConfig),
+            to: SWAP_ROUTER_02_ADDRESS,
+          }
         : undefined,
       blockNumber: BigNumber.from(0),
-      simulationStatus: SimulationStatus.Unattempted
     };
   }
 

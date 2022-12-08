@@ -21,6 +21,7 @@ import {
   CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
   DAI_ON,
+  EthEstimateGasSimulator,
   FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
@@ -33,10 +34,12 @@ import {
   parseAmount,
   setGlobalLogger,
   SimulationStatus,
+  StaticGasPriceProvider,
   SUPPORTED_CHAINS,
   SwapOptions,
   SwapType,
   SWAP_ROUTER_02_ADDRESS,
+  TenderlySimulator,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -73,11 +76,9 @@ import { BigNumber, providers, Wallet } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { StaticGasPriceProvider } from '../../../../src/providers/static-gas-price-provider';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
-
 const FORK_BLOCK = 15993650;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
@@ -169,6 +170,7 @@ describe('alpha router integration', () => {
   };
 
   let alphaRouter: AlphaRouter;
+  let customAlphaRouter: AlphaRouter;
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
@@ -489,16 +491,31 @@ describe('alpha router integration', () => {
       multicall2Provider
     );
 
-    const simulator = new FallbackTenderlySimulator(
+    const ethEstimateGasSimulator = new EthEstimateGasSimulator(
+      ChainId.MAINNET,
+      hardhat.providers[0]!,
+      v2PoolProvider,
+      v3PoolProvider
+    );
+
+    const tenderlySimulator = new TenderlySimulator(
       ChainId.MAINNET,
       process.env.TENDERLY_BASE_URL!,
       process.env.TENDERLY_USER!,
       process.env.TENDERLY_PROJECT!,
       process.env.TENDERLY_ACCESS_KEY!,
-      hardhat.providers[0]!,
       v2PoolProvider,
-      v3PoolProvider
+      v3PoolProvider,
+      hardhat.providers[0]!
     );
+
+    const simulator = new FallbackTenderlySimulator(
+      ChainId.MAINNET,
+      hardhat.providers[0]!,
+      tenderlySimulator,
+      ethEstimateGasSimulator
+    );
+
     alphaRouter = new AlphaRouter({
       chainId: ChainId.MAINNET,
       provider: hardhat.providers[0]!,
@@ -506,6 +523,17 @@ describe('alpha router integration', () => {
       v2PoolProvider,
       v3PoolProvider,
       simulator,
+    });
+
+    // this will be used to test gas limit simulation for web flow
+    // in the web flow, we won't simulate on tenderly, only through eth estimate gas
+    customAlphaRouter = new AlphaRouter({
+      chainId: ChainId.MAINNET,
+      provider: hardhat.providers[0]!,
+      multicall2Provider,
+      v2PoolProvider,
+      v3PoolProvider,
+      simulator: ethEstimateGasSimulator,
     });
   });
 
@@ -1997,7 +2025,7 @@ describe('alpha router integration', () => {
             } = swap!;
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.Unattempted);
+            expect(simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
 
             await validateSwapRoute(
               quote,
@@ -2062,7 +2090,141 @@ describe('alpha router integration', () => {
             );
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.Unattempted);
+            expect(simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
+          });
+
+          it('erc20 -> erc20 with ethEstimateGasSimulator without token approval', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+
+            // route using custom alpha router with ethEstimateGasSimulator
+            const swap = await customAlphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.SWAP_ROUTER_02,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+              }
+            );
+
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              methodParameters,
+              simulationStatus,
+            } = swap!;
+
+            await validateSwapRoute(
+              quote,
+              quoteGasAdjusted,
+              tradeType,
+              100,
+              10
+            );
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.NotApproved);
+
+            await validateExecuteSwap(
+              SwapType.SWAP_ROUTER_02,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
+            );
+          });
+
+          it(`eth -> erc20 with ethEstimateGasSimulator and Swap Router 02`, async () => {
+            /// Fails for v3 for some reason, ProviderGasError
+            const tokenIn = Ether.onChain(1) as Currency;
+            const tokenOut = UNI_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('10', tokenIn)
+                : parseAmount('10000', tokenOut);
+
+            // route using custom alpha router with ethEstimateGasSimulator
+            const swap = await customAlphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.SWAP_ROUTER_02,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadline: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                protocols: [Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const {
+              quote,
+              quoteGasAdjusted,
+              simulationStatus,
+              estimatedGasUsedQuoteToken,
+            } = swap!;
+            expect(
+              quoteGasAdjusted
+                .subtract(quote)
+                .equalTo(estimatedGasUsedQuoteToken)
+            );
+
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+          });
+
+          it('eth -> erc20 with ethEstimateGasSimulator and Universal Router', async () => {
+              /// Fails for v3 for some reason, ProviderGasError
+            const tokenIn = Ether.onChain(1) as Currency;
+            const tokenOut = USDC_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1000', tokenOut);
+
+            const swap = await customAlphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+
+            const { simulationStatus, methodParameters } = swap!;
+
+            expect(methodParameters).not.toBeUndefined();
+
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
         });
       }
@@ -2421,32 +2583,38 @@ describe('quote for other networks', () => {
           multicall2Provider
         );
 
-        const simulator = new FallbackTenderlySimulator(
+        const ethEstimateGasSimulator = new EthEstimateGasSimulator(
+          chain,
+          hardhat.providers[0]!,
+          v2PoolProvider,
+          v3PoolProvider
+        );
+    
+        const tenderlySimulator = new TenderlySimulator(
           chain,
           process.env.TENDERLY_BASE_URL!,
           process.env.TENDERLY_USER!,
           process.env.TENDERLY_PROJECT!,
           process.env.TENDERLY_ACCESS_KEY!,
-          provider,
-          v2PoolProvider,
-          v3PoolProvider
-        );
-        alphaRouter = new AlphaRouter({
-          chainId: ChainId.MAINNET,
-          provider: provider,
-          multicall2Provider,
           v2PoolProvider,
           v3PoolProvider,
-          simulator,
-        });
+          hardhat.providers[0]!
+        );
 
-        beforeAll(async () => {
-          alphaRouter = new AlphaRouter({
-            chainId: chain,
-            provider,
-            multicall2Provider,
-            simulator,
-          });
+        const simulator = new FallbackTenderlySimulator(
+          chain,
+          provider,
+          tenderlySimulator,
+          ethEstimateGasSimulator
+        );
+
+        alphaRouter = new AlphaRouter({
+          chainId: chain,
+          provider,
+          v2PoolProvider,
+          v3PoolProvider,
+          multicall2Provider,
+          simulator,
         });
 
         describe(`Swap`, function () {
@@ -2731,18 +2899,10 @@ describe('quote for other networks', () => {
             it(`${native} -> erc20`, async () => {
               const tokenIn = nativeOnChain(chain);
               const tokenOut = erc2;
-
-              // Celo currently has low liquidity and will not be able to find route for
-              // large input amounts
-              // TODO: Simplify this when Celo has more liquidity
               const amount =
-                chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
-                  ? tradeType == TradeType.EXACT_INPUT
-                    ? parseAmount('10', tokenIn)
-                    : parseAmount('10', tokenOut)
-                  : tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('100', tokenIn)
-                  : parseAmount('100', tokenOut);
+                  tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount('10', tokenIn)
+                  : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
@@ -2781,11 +2941,19 @@ describe('quote for other networks', () => {
                     .subtract(swap.quote)
                     .equalTo(swap.estimatedGasUsedQuoteToken)
                 );
-
-                // Expect tenderly simulation to be successful
-                expect(swap.simulationStatus).toEqual(
-                  SimulationStatus.Succeeded
-                );
+                // Can't find an account with balance on Gorli, and the block explorer is broken.
+                // TODO: Find an account with sufficient balance on Gorli
+                if(chain == ChainId.GÖRLI) {
+                  expect(swap.simulationStatus).toEqual(
+                    SimulationStatus.InsufficientBalance
+                  );
+                }
+                else {
+                  // Expect Eth Estimate Gas to succeed
+                  expect(swap.simulationStatus).toEqual(
+                    SimulationStatus.Succeeded
+                  );
+                }
               }
             });
           });

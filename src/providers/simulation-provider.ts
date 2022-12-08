@@ -7,8 +7,8 @@ import { SwapOptions, SwapRoute, SwapType } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { ChainId, CurrencyAmount, log, SWAP_ROUTER_02_ADDRESS } from '../util';
-import { ProviderConfig } from './provider';
 
+import { ProviderConfig } from './provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 
 export type SimulationResult = {
@@ -17,9 +17,11 @@ export type SimulationResult = {
 };
 
 export enum SimulationStatus {
-  Unattempted = 0,
+  NotSupported = 0,
   Failed = 1,
   Succeeded = 2,
+  InsufficientBalance = 3,
+  NotApproved = 4,
 }
 
 /**
@@ -59,16 +61,27 @@ export abstract class Simulator {
       log.info(
         'User has sufficient balance to simulate. Simulating transaction.'
       );
-      return this.simulateTransaction(
-        fromAddress,
-        swapOptions,
-        swapRoute,
-        l2GasData,
-        providerConfig
-      );
+      try {
+        return this.simulateTransaction(
+          fromAddress,
+          swapOptions,
+          swapRoute,
+          l2GasData,
+          providerConfig
+        );
+      } catch (e) {
+        log.error({ e }, 'Error simulating transaction');
+        return {
+          ...swapRoute,
+          simulationStatus: SimulationStatus.Failed,
+        };
+      }
     } else {
       log.error('User does not have sufficient balance to simulate.');
-      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
+      return {
+        ...swapRoute,
+        simulationStatus: SimulationStatus.InsufficientBalance,
+      };
     }
   }
 
@@ -209,7 +222,7 @@ export abstract class Simulator {
           allowance: allowance.toString(),
           inputAmount: inputAmount.quotient.toString(),
         },
-        `Simulating on UR - Has allowance: ${hasAllowance}`
+        `Simulating on SwapRouter02 - Has allowance: ${hasAllowance}`
       );
       // Return true if token allowance is greater than input amount
       return hasAllowance;
