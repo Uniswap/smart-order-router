@@ -54,7 +54,7 @@ const TENDERLY_BATCH_SIMULATE_API = (
   `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`;
 
 // We multiply tenderly gas limit by this to overestimate gas limit
-const ESTIMATE_MULTIPLIER = 1.25;
+const DEFAULT_ESTIMATE_MULTIPLIER = 1.25;
 
 export class FallbackTenderlySimulator extends Simulator {
   private tenderlySimulator: TenderlySimulator;
@@ -131,6 +131,7 @@ export class TenderlySimulator extends Simulator {
   private tenderlyAccessKey: string;
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
+  private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
 
   constructor(
     chainId: ChainId,
@@ -140,7 +141,8 @@ export class TenderlySimulator extends Simulator {
     tenderlyAccessKey: string,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
-    provider: JsonRpcProvider
+    provider: JsonRpcProvider,
+    overrideEstimateMultiplier?: { [chainId in ChainId]?: number }
   ) {
     super(provider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
@@ -149,6 +151,7 @@ export class TenderlySimulator extends Simulator {
     this.tenderlyAccessKey = tenderlyAccessKey;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+    this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
   }
 
   public async simulateTransaction(
@@ -160,7 +163,7 @@ export class TenderlySimulator extends Simulator {
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
-    const chainId = tokenIn.chainId;
+    const chainId = this.chainId;
     if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
       const msg = 'Celo not supported by Tenderly!';
       log.info(msg);
@@ -188,6 +191,7 @@ export class TenderlySimulator extends Simulator {
 
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
+    const estimateMultiplier = this.overrideEstimateMultiplier[chainId] ?? DEFAULT_ESTIMATE_MULTIPLIER
 
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
       // Do initial onboarding approval of Permit2.
@@ -272,7 +276,7 @@ export class TenderlySimulator extends Simulator {
       // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
       estimatedGasUsed = BigNumber.from(
         (
-          resp.simulation_results[2].transaction.gas_used * ESTIMATE_MULTIPLIER
+          resp.simulation_results[2].transaction.gas_used * estimateMultiplier
         ).toFixed(0)
       );
 
@@ -357,7 +361,7 @@ export class TenderlySimulator extends Simulator {
       // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
       estimatedGasUsed = BigNumber.from(
         (
-          resp.simulation_results[1].transaction.gas_used * ESTIMATE_MULTIPLIER
+          resp.simulation_results[1].transaction.gas_used * estimateMultiplier
         ).toFixed(0)
       );
 
