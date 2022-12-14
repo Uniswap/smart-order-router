@@ -191,7 +191,8 @@ export class TenderlySimulator extends Simulator {
 
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
-    const estimateMultiplier = this.overrideEstimateMultiplier[chainId] ?? DEFAULT_ESTIMATE_MULTIPLIER
+    const estimateMultiplier =
+      this.overrideEstimateMultiplier[chainId] ?? DEFAULT_ESTIMATE_MULTIPLIER;
 
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
       // Do initial onboarding approval of Permit2.

@@ -79,9 +79,9 @@ import NodeCache from 'node-cache';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
-const FORK_BLOCK = 15993650;
+const FORK_BLOCK = 16075500;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
-const SLIPPAGE = new Percent(5, 100); // 5% or 10_000?
+const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -155,7 +155,7 @@ if (process.env.INTEG_TEST_DEBUG) {
   );
 }
 
-jest.retryTimes(1);
+jest.retryTimes(0);
 
 describe('alpha router integration', () => {
   let alice: JsonRpcSigner;
@@ -829,13 +829,12 @@ describe('alpha router integration', () => {
         });
 
         it(`erc20 -> eth large trade`, async () => {
-          // Trade of this size almost always results in splits.
           const tokenIn = USDC_MAINNET;
           const tokenOut = Ether.onChain(1) as Currency;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1000000', tokenIn)
-              : parseAmount('100', tokenOut);
+              ? parseAmount('10000', tokenIn)
+              : parseAmount('10', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -849,7 +848,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              minSplits: 3,
+              minSplits: 2,
             }
           );
           expect(swap).toBeDefined();
@@ -913,7 +912,7 @@ describe('alpha router integration', () => {
             tokenOut,
             methodParameters,
             tradeType,
-            1000000
+            10000
           );
         });
 
@@ -968,6 +967,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
+              minSplits: 2,
             }
           );
           expect(swap).toBeDefined();
@@ -1481,7 +1481,7 @@ describe('alpha router integration', () => {
           });
 
           if (isTesterPKEnvironmentSet()) {
-            it('erc20 -> erc20 with permit', async () => {
+            it('erc20 -> erc20 with permit with tester pk', async () => {
               // This test requires a private key with at least 10 USDC
               // at FORK_BLOCK time.
 
@@ -1555,14 +1555,13 @@ describe('alpha router integration', () => {
             });
           }
 
-          it(`erc20 -> eth large trade`, async () => {
-            // Trade of this size almost always results in splits.
+          it(`erc20 -> eth split trade`, async () => {
             const tokenIn = USDC_MAINNET;
             const tokenOut = Ether.onChain(1) as Currency;
             const amount =
               tradeType == TradeType.EXACT_INPUT
-                ? parseAmount('1000000', tokenIn)
-                : parseAmount('100', tokenOut);
+                ? parseAmount('10000', tokenIn)
+                : parseAmount('1', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -1577,6 +1576,7 @@ describe('alpha router integration', () => {
               },
               {
                 ...ROUTING_CONFIG,
+                minSplits: 2,
               }
             );
             expect(swap).toBeDefined();
@@ -1607,7 +1607,7 @@ describe('alpha router integration', () => {
               tokenOut,
               methodParameters,
               tradeType,
-              1000000,
+              10000,
               undefined,
               estimatedGasUsed
             );
@@ -2025,7 +2025,9 @@ describe('alpha router integration', () => {
             } = swap!;
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
+            expect(simulationStatus).toEqual(
+              SimulationStatus.InsufficientBalance
+            );
 
             await validateSwapRoute(
               quote,
@@ -2090,7 +2092,9 @@ describe('alpha router integration', () => {
             );
 
             expect(simulationStatus).toBeDefined();
-            expect(simulationStatus).toEqual(SimulationStatus.InsufficientBalance);
+            expect(simulationStatus).toEqual(
+              SimulationStatus.InsufficientBalance
+            );
           });
 
           it('erc20 -> erc20 with ethEstimateGasSimulator without token approval', async () => {
@@ -2197,7 +2201,7 @@ describe('alpha router integration', () => {
           });
 
           it('eth -> erc20 with ethEstimateGasSimulator and Universal Router', async () => {
-              /// Fails for v3 for some reason, ProviderGasError
+            /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
             const tokenOut = USDC_MAINNET;
             const amount =
@@ -2215,7 +2219,7 @@ describe('alpha router integration', () => {
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
-              },
+              }
             );
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
@@ -2567,54 +2571,53 @@ describe('quote for other networks', () => {
 
         let alphaRouter: AlphaRouter;
 
-        const chainProvider = ID_TO_PROVIDER(chain);
-        const provider = new JsonRpcProvider(chainProvider, chain);
-        const multicall2Provider = new UniswapMulticallProvider(
-          chain,
-          provider
-        );
-        const v3PoolProvider = new CachingV3PoolProvider(
-          ChainId.MAINNET,
-          new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
-          new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-        );
-        const v2PoolProvider = new V2PoolProvider(
-          ChainId.MAINNET,
-          multicall2Provider
-        );
+        beforeAll(async () => {
+          const chainProvider = ID_TO_PROVIDER(chain);
+          const provider = new JsonRpcProvider(chainProvider, chain);
 
-        const ethEstimateGasSimulator = new EthEstimateGasSimulator(
-          chain,
-          hardhat.providers[0]!,
-          v2PoolProvider,
-          v3PoolProvider
-        );
-    
-        const tenderlySimulator = new TenderlySimulator(
-          chain,
-          process.env.TENDERLY_BASE_URL!,
-          process.env.TENDERLY_USER!,
-          process.env.TENDERLY_PROJECT!,
-          process.env.TENDERLY_ACCESS_KEY!,
-          v2PoolProvider,
-          v3PoolProvider,
-          hardhat.providers[0]!
-        );
+          const multicall2Provider = new UniswapMulticallProvider(
+            chain,
+            provider
+          );
 
-        const simulator = new FallbackTenderlySimulator(
-          chain,
-          provider,
-          tenderlySimulator,
-          ethEstimateGasSimulator
-        );
+          const v3PoolProvider = new CachingV3PoolProvider(
+            chain,
+            new V3PoolProvider(chain, multicall2Provider),
+            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+          );
+          const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider);
 
-        alphaRouter = new AlphaRouter({
-          chainId: chain,
-          provider,
-          v2PoolProvider,
-          v3PoolProvider,
-          multicall2Provider,
-          simulator,
+          const ethEstimateGasSimulator = new EthEstimateGasSimulator(
+            chain,
+            provider,
+            v2PoolProvider,
+            v3PoolProvider
+          );
+
+          const tenderlySimulator = new TenderlySimulator(
+            chain,
+            process.env.TENDERLY_BASE_URL!,
+            process.env.TENDERLY_USER!,
+            process.env.TENDERLY_PROJECT!,
+            process.env.TENDERLY_ACCESS_KEY!,
+            v2PoolProvider,
+            v3PoolProvider,
+            provider
+          );
+
+          const simulator = new FallbackTenderlySimulator(
+            chain,
+            provider,
+            tenderlySimulator,
+            ethEstimateGasSimulator
+          );
+
+          alphaRouter = new AlphaRouter({
+            chainId: chain,
+            provider,
+            multicall2Provider,
+            simulator,
+          });
         });
 
         describe(`Swap`, function () {
@@ -2900,9 +2903,9 @@ describe('quote for other networks', () => {
               const tokenIn = nativeOnChain(chain);
               const tokenOut = erc2;
               const amount =
-                  tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('10', tokenIn)
-                  : parseAmount('10', tokenOut);
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount('1', tokenIn)
+                  : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
@@ -2941,19 +2944,11 @@ describe('quote for other networks', () => {
                     .subtract(swap.quote)
                     .equalTo(swap.estimatedGasUsedQuoteToken)
                 );
-                // Can't find an account with balance on Gorli, and the block explorer is broken.
-                // TODO: Find an account with sufficient balance on Gorli
-                if(chain == ChainId.GÖRLI) {
-                  expect(swap.simulationStatus).toEqual(
-                    SimulationStatus.InsufficientBalance
-                  );
-                }
-                else {
-                  // Expect Eth Estimate Gas to succeed
-                  expect(swap.simulationStatus).toEqual(
-                    SimulationStatus.Succeeded
-                  );
-                }
+
+                // Expect Eth Estimate Gas to succeed
+                expect(swap.simulationStatus).toEqual(
+                  SimulationStatus.Succeeded
+                );
               }
             });
           });

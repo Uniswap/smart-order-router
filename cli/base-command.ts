@@ -17,9 +17,10 @@ import {
   CachingTokenListProvider,
   CachingTokenProviderWithFallback,
   CachingV3PoolProvider,
-  CHAIN_IDS_LIST,
   ChainId,
+  CHAIN_IDS_LIST,
   EIP1559GasPriceProvider,
+  EthEstimateGasSimulator,
   FallbackTenderlySimulator,
   GasPrice,
   ID_TO_CHAIN_ID,
@@ -38,6 +39,7 @@ import {
   setGlobalLogger,
   setGlobalMetric,
   SimulationStatus,
+  TenderlySimulator,
   TokenProvider,
   UniswapMulticallProvider,
   V2PoolProvider,
@@ -216,9 +218,9 @@ export abstract class BaseCommand extends Command {
     const chainId = ID_TO_CHAIN_ID(chainIdNumb);
     const chainProvider = ID_TO_PROVIDER(chainId);
 
-    const metricLogger: MetricLogger = new MetricLogger({ 
-      chainId: chainIdNumb, 
-      networkName: ID_TO_NETWORK_NAME(chainId) 
+    const metricLogger: MetricLogger = new MetricLogger({
+      chainId: chainIdNumb,
+      networkName: ID_TO_NETWORK_NAME(chainId),
     });
     setGlobalMetric(metricLogger);
 
@@ -286,16 +288,31 @@ export abstract class BaseCommand extends Command {
         ChainId.MAINNET,
         multicall2Provider
       );
-      
-      const simulator = new FallbackTenderlySimulator(
-        ChainId.MAINNET,
-        process.env.TENDERLY_BASE_URL!,
+
+      const tenderlySimulator = new TenderlySimulator(
+        chainId,
+        'http://api.tenderly.co',
         process.env.TENDERLY_USER!,
         process.env.TENDERLY_PROJECT!,
         process.env.TENDERLY_ACCESS_KEY!,
+        v2PoolProvider,
+        v3PoolProvider,
+        provider,
+        { [ChainId.ARBITRUM_ONE]: 1 }
+      );
+
+      const ethEstimateGasSimulator = new EthEstimateGasSimulator(
+        chainId,
         provider,
         v2PoolProvider,
         v3PoolProvider
+      );
+
+      const simulator = new FallbackTenderlySimulator(
+        chainId,
+        provider,
+        tenderlySimulator,
+        ethEstimateGasSimulator
       );
 
       const router = new AlphaRouter({
@@ -311,7 +328,7 @@ export abstract class BaseCommand extends Command {
           ),
           gasPriceCache
         ),
-        simulator
+        simulator,
       });
 
       this._swapToRatioRouter = router;
@@ -329,8 +346,7 @@ export abstract class BaseCommand extends Command {
     blockNumber: BigNumber,
     estimatedGasUsed: BigNumber,
     gasPriceWei: BigNumber,
-    simulationStatus: SimulationStatus
-
+    simulationStatus: SimulationStatus | undefined
   ) {
     this.logger.info(`Best Route:`);
     this.logger.info(`${routeAmountsToString(routeAmounts)}`);
@@ -362,7 +378,7 @@ export abstract class BaseCommand extends Command {
       blockNumber: blockNumber.toString(),
       estimatedGasUsed: estimatedGasUsed.toString(),
       gasPriceWei: gasPriceWei.toString(),
-      simulationStatus: simulationStatus
+      simulationStatus: simulationStatus,
     });
 
     const v3Routes: V3RouteWithValidQuote[] =
