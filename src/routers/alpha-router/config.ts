@@ -37,6 +37,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     // have to adjust the routing config so we explore fewer routes.
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_RINKEBY:
+    case ChainId.ARBITRUM_GOERLI:
     case ChainId.CELO:
     case ChainId.CELO_ALFAJORES:
       return {

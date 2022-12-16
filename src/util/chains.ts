@@ -10,6 +10,7 @@ export enum ChainId {
   OPTIMISTIC_KOVAN = 69,
   ARBITRUM_ONE = 42161,
   ARBITRUM_RINKEBY = 421611,
+  ARBITRUM_GOERLI = 421613,
   POLYGON = 137,
   POLYGON_MUMBAI = 80001,
   CELO = 42220,
@@ -28,6 +29,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.OPTIMISTIC_KOVAN,
   ChainId.ARBITRUM_ONE,
   ChainId.ARBITRUM_RINKEBY,
+  ChainId.ARBITRUM_GOERLI,
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
   ChainId.GÖRLI,
@@ -49,6 +51,7 @@ export const HAS_L1_FEE = [
   ChainId.OPTIMISTIC_KOVAN,
   ChainId.ARBITRUM_ONE,
   ChainId.ARBITRUM_RINKEBY,
+  ChainId.ARBITRUM_GOERLI,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -85,6 +88,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.ARBITRUM_ONE;
     case 421611:
       return ChainId.ARBITRUM_RINKEBY;
+    case 421613:
+      return ChainId.ARBITRUM_GOERLI;
     case 137:
       return ChainId.POLYGON;
     case 80001:
@@ -112,6 +117,7 @@ export enum ChainName {
   OPTIMISTIC_KOVAN = 'optimism-kovan',
   ARBITRUM_ONE = 'arbitrum-mainnet',
   ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
+  ARBITRUM_GOERLI = 'arbitrum-goerli',
   POLYGON = 'polygon-mainnet',
   POLYGON_MUMBAI = 'polygon-mumbai',
   CELO = 'celo-mainnet',
@@ -174,6 +180,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.ARBITRUM_GOERLI]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
   [ChainId.POLYGON]: ['MATIC', '0x0000000000000000000000000000000000001010'],
   [ChainId.POLYGON_MUMBAI]: [
     'MATIC',
@@ -195,6 +206,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.OPTIMISTIC_KOVAN]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_ONE]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_RINKEBY]: NativeCurrencyName.ETHER,
+  [ChainId.ARBITRUM_GOERLI]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
   [ChainId.CELO]: NativeCurrencyName.CELO,
@@ -223,6 +235,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.ARBITRUM_ONE;
     case 421611:
       return ChainName.ARBITRUM_RINKEBY;
+    case 421613:
+      return ChainName.ARBITRUM_GOERLI;
     case 137:
       return ChainName.POLYGON;
     case 80001:
@@ -264,6 +278,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE!;
     case ChainId.ARBITRUM_RINKEBY:
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_RINKEBY!;
+    case ChainId.ARBITRUM_GOERLI:
+      return process.env.JSON_RPC_PROVIDER_ARBITRUM_GOERLI!;
     case ChainId.POLYGON:
       return process.env.JSON_RPC_PROVIDER_POLYGON!;
     case ChainId.POLYGON_MUMBAI:
@@ -337,6 +353,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   [ChainId.ARBITRUM_RINKEBY]: new Token(
     ChainId.ARBITRUM_RINKEBY,
     '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ARBITRUM_GOERLI]: new Token(
+    ChainId.ARBITRUM_GOERLI,
+    '0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3',
     18,
     'WETH',
     'Wrapped Ether'

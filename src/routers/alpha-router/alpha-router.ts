@@ -433,6 +433,7 @@ export class AlphaRouter
           break;
         case ChainId.ARBITRUM_ONE:
         case ChainId.ARBITRUM_RINKEBY:
+        case ChainId.ARBITRUM_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
@@ -608,7 +609,8 @@ export class AlphaRouter
     }
     if (
       chainId == ChainId.ARBITRUM_ONE ||
-      chainId == ChainId.ARBITRUM_RINKEBY
+      chainId == ChainId.ARBITRUM_RINKEBY ||
+      chainId == ChainId.ARBITRUM_GOERLI
     ) {
       this.l2GasDataProvider =
         arbitrumGasDataProvider ??
