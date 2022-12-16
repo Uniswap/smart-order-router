@@ -358,7 +358,11 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
     // build trade for swap calldata
     const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
-    const data = buildSwapMethodParameters(trade, swapConfig, ChainId.OPTIMISM).calldata;
+    const data = buildSwapMethodParameters(
+      trade,
+      swapConfig,
+      ChainId.OPTIMISM
+    ).calldata;
     const l1GasUsed = getL2ToL1GasUsed(data, overhead);
     // l1BaseFee is L1 Gas Price on etherscan
     const l1Fee = l1GasUsed.mul(l1BaseFee);
@@ -389,7 +393,11 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
     // build trade for swap calldata
     const trade = buildTrade(inputToken, outputToken, route.tradeType, routes);
-    const data = buildSwapMethodParameters(trade, swapConfig, ChainId.ARBITRUM_ONE).calldata;
+    const data = buildSwapMethodParameters(
+      trade,
+      swapConfig,
+      ChainId.ARBITRUM_ONE
+    ).calldata;
     // calculates gas amounts based on bytes of calldata, use 0 as overhead.
     const l1GasUsed = getL2ToL1GasUsed(data, BigNumber.from(0));
     // multiply by the fee per calldata and add the flat l2 fee

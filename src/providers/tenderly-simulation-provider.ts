@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import {
@@ -17,8 +16,9 @@ import {
   calculateGasUsed,
   initSwapRouteFromExisting,
 } from '../util/gas-factory-helpers';
-import { ProviderConfig } from './provider';
 
+import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
+import { ProviderConfig } from './provider';
 import {
   SimulationResult,
   SimulationStatus,
@@ -54,39 +54,20 @@ const TENDERLY_BATCH_SIMULATE_API = (
   `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`;
 
 // We multiply tenderly gas limit by this to overestimate gas limit
-const ESTIMATE_MULTIPLIER = 1.25;
+const DEFAULT_ESTIMATE_MULTIPLIER = 1.25;
 
 export class FallbackTenderlySimulator extends Simulator {
   private tenderlySimulator: TenderlySimulator;
-  private v3PoolProvider: IV3PoolProvider;
-  private v2PoolProvider: IV2PoolProvider;
-
+  private ethEstimateGasSimulator: EthEstimateGasSimulator;
   constructor(
     chainId: ChainId,
-    tenderlyBaseUrl: string,
-    tenderlyUser: string,
-    tenderlyProject: string,
-    tenderlyAccessKey: string,
     provider: JsonRpcProvider,
-    v2PoolProvider: IV2PoolProvider,
-    v3PoolProvider: IV3PoolProvider,
-    tenderlySimulator?: TenderlySimulator
+    tenderlySimulator: TenderlySimulator,
+    ethEstimateGasSimulator: EthEstimateGasSimulator
   ) {
     super(provider, chainId);
-    this.tenderlySimulator =
-      tenderlySimulator ??
-      new TenderlySimulator(
-        chainId,
-        tenderlyBaseUrl,
-        tenderlyUser,
-        tenderlyProject,
-        tenderlyAccessKey,
-        v2PoolProvider,
-        v3PoolProvider,
-        provider
-      );
-    this.v2PoolProvider = v2PoolProvider;
-    this.v3PoolProvider = v3PoolProvider;
+    this.tenderlySimulator = tenderlySimulator;
+    this.ethEstimateGasSimulator = ethEstimateGasSimulator;
   }
 
   protected async simulateTransaction(
@@ -114,12 +95,13 @@ export class FallbackTenderlySimulator extends Simulator {
       );
 
       try {
-        const swapRouteWithGasEstimate = await this.ethEstimateGas(
-          fromAddress,
-          swapOptions,
-          swapRoute,
-          l2GasData
-        );
+        const swapRouteWithGasEstimate =
+          await this.ethEstimateGasSimulator.ethEstimateGas(
+            fromAddress,
+            swapOptions,
+            swapRoute,
+            l2GasData
+          );
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
@@ -140,71 +122,6 @@ export class FallbackTenderlySimulator extends Simulator {
       return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
   }
-
-  private async ethEstimateGas(
-    fromAddress: string,
-    swapOptions: SwapOptions,
-    route: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData
-  ): Promise<SwapRoute> {
-    const currencyIn = route.trade.inputAmount.currency;
-    let estimatedGasUsed: BigNumber;
-    if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
-      log.info(
-        { methodParameters: route.methodParameters },
-        'Simulating using eth_estimateGas on Universal Router'
-      );
-      estimatedGasUsed = await this.provider.estimateGas({
-        data: route.methodParameters!.calldata,
-        to: route.methodParameters!.to,
-        from: fromAddress,
-        value: BigNumber.from(
-          currencyIn.isNative ? route.methodParameters!.value : '0'
-        ),
-      });
-    } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
-      log.info(
-        { methodParameters: route.methodParameters },
-        'Simulating using eth_estimateGas on SwapRouter02'
-      );
-
-      estimatedGasUsed = await this.provider.estimateGas({
-        data: route.methodParameters!.calldata,
-        to: route.methodParameters!.to,
-        from: fromAddress,
-        value: BigNumber.from(
-          currencyIn.isNative ? route.methodParameters!.value : '0'
-        ),
-      });
-    } else {
-      throw new Error(`Unsupported swap type ${swapOptions}`);
-    }
-
-    const {
-      estimatedGasUsedUSD,
-      estimatedGasUsedQuoteToken,
-      quoteGasAdjusted,
-    } = await calculateGasUsed(
-      route.quote.currency.chainId,
-      route,
-      estimatedGasUsed,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      l2GasData
-    );
-    return {
-      ...initSwapRouteFromExisting(
-        route,
-        this.v2PoolProvider,
-        this.v3PoolProvider,
-        quoteGasAdjusted,
-        estimatedGasUsed,
-        estimatedGasUsedQuoteToken,
-        estimatedGasUsedUSD
-      ),
-      simulationStatus: SimulationStatus.Succeeded,
-    };
-  }
 }
 
 export class TenderlySimulator extends Simulator {
@@ -214,6 +131,7 @@ export class TenderlySimulator extends Simulator {
   private tenderlyAccessKey: string;
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
+  private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
 
   constructor(
     chainId: ChainId,
@@ -223,7 +141,8 @@ export class TenderlySimulator extends Simulator {
     tenderlyAccessKey: string,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
-    provider: JsonRpcProvider
+    provider: JsonRpcProvider,
+    overrideEstimateMultiplier?: { [chainId in ChainId]?: number }
   ) {
     super(provider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
@@ -232,6 +151,7 @@ export class TenderlySimulator extends Simulator {
     this.tenderlyAccessKey = tenderlyAccessKey;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+    this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
   }
 
   public async simulateTransaction(
@@ -243,11 +163,11 @@ export class TenderlySimulator extends Simulator {
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
-    const chainId = tokenIn.chainId;
+    const chainId = this.chainId;
     if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
       const msg = 'Celo not supported by Tenderly!';
       log.info(msg);
-      return { ...swapRoute, simulationStatus: SimulationStatus.Unattempted };
+      return { ...swapRoute, simulationStatus: SimulationStatus.NotSupported };
     }
 
     if (!swapRoute.methodParameters) {
@@ -271,6 +191,8 @@ export class TenderlySimulator extends Simulator {
 
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
+    const estimateMultiplier =
+      this.overrideEstimateMultiplier[chainId] ?? DEFAULT_ESTIMATE_MULTIPLIER;
 
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
       // Do initial onboarding approval of Permit2.
@@ -355,7 +277,7 @@ export class TenderlySimulator extends Simulator {
       // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
       estimatedGasUsed = BigNumber.from(
         (
-          resp.simulation_results[2].transaction.gas_used * ESTIMATE_MULTIPLIER
+          resp.simulation_results[2].transaction.gas_used * estimateMultiplier
         ).toFixed(0)
       );
 
@@ -440,7 +362,7 @@ export class TenderlySimulator extends Simulator {
       // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
       estimatedGasUsed = BigNumber.from(
         (
-          resp.simulation_results[1].transaction.gas_used * ESTIMATE_MULTIPLIER
+          resp.simulation_results[1].transaction.gas_used * estimateMultiplier
         ).toFixed(0)
       );
 
