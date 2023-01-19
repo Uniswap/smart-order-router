@@ -8,6 +8,7 @@ import {
   parseAmount,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  SwapType,
 } from '../../src';
 import { BaseCommand } from '../base-command';
 
@@ -121,6 +122,7 @@ export class QuoteToRatio extends BaseCommand {
           deadline: 100,
           recipient,
           slippageTolerance: new Percent(5, 10_000),
+          type: SwapType.SWAP_ROUTER_02
         },
       },
       {
