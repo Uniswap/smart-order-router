@@ -303,7 +303,7 @@ export const DAI_ARBITRUM_GOERLI = new Token(
   18,
   'DAI',
   'Dai Stablecoin'
-)
+);
 
 export const USDT_ARBITRUM_RINKEBY = new Token(
   ChainId.ARBITRUM_RINKEBY,
@@ -329,7 +329,7 @@ export const UNI_ARBITRUM_RINKEBY = new Token(
   'Uni token'
 );
 
-// Bridged version of official Goerli USDC 
+// Bridged version of official Goerli USDC
 export const USDC_ARBITRUM_GOERLI = new Token(
   ChainId.ARBITRUM_GOERLI,
   '0x8FB1E3fC51F3b789dED7557E680551d93Ea9d892',
