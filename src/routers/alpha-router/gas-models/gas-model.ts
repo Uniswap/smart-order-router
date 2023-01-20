@@ -85,7 +85,8 @@ export type BuildOnChainGasModelFactoryType = {
   chainId: ChainId;
   gasPriceWei: BigNumber;
   v3poolProvider: IV3PoolProvider;
-  token: Token;
+  inputToken: Token;
+  quoteToken: Token;
   v2poolProvider: IV2PoolProvider;
   l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
@@ -160,7 +161,8 @@ export abstract class IOnChainGasModelFactory {
     chainId,
     gasPriceWei,
     v3poolProvider: V3poolProvider,
-    token,
+    inputToken,
+    quoteToken,
     v2poolProvider: V2poolProvider,
     l2GasDataProvider,
   }: BuildOnChainGasModelFactoryType): Promise<

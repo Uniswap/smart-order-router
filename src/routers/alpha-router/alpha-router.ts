@@ -870,6 +870,7 @@ export class AlphaRouter
       MetricLoggerUnit.Milliseconds
     );
 
+    const inputToken = currencyIn.wrapped;
     const quoteToken = quoteCurrency.wrapped;
 
     const quotePromises: Promise<{
@@ -884,7 +885,8 @@ export class AlphaRouter
         chainId: this.chainId,
         gasPriceWei,
         v3poolProvider: this.v3PoolProvider,
-        token: quoteToken,
+        inputToken,
+        quoteToken,
         v2poolProvider: this.v2PoolProvider,
         l2GasDataProvider: this.l2GasDataProvider,
       }),
@@ -892,7 +894,8 @@ export class AlphaRouter
         chainId: this.chainId,
         gasPriceWei,
         v3poolProvider: this.v3PoolProvider,
-        token: quoteToken,
+        inputToken,
+        quoteToken,
         v2poolProvider: this.v2PoolProvider,
       }),
     ]);
