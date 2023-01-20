@@ -870,8 +870,9 @@ export class AlphaRouter
       MetricLoggerUnit.Milliseconds
     );
 
-    const inputToken = currencyIn.wrapped;
     const quoteToken = quoteCurrency.wrapped;
+    // inputToken is always the token that is not the quote token
+    const inputToken = quoteToken == currencyIn.wrapped ? currencyOut.wrapped : currencyIn.wrapped;
 
     const quotePromises: Promise<{
       routesWithValidQuotes: RouteWithValidQuote[];

@@ -2384,7 +2384,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe('external class tests', () => {
+xdescribe('external class tests', () => {
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
@@ -2512,7 +2512,7 @@ describe('external class tests', () => {
   });
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),

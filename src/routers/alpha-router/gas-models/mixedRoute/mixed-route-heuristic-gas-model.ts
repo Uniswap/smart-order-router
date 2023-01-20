@@ -56,6 +56,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     chainId,
     gasPriceWei,
     v3poolProvider: V3poolProvider,
+    // @ts-ignore unused variable
     inputToken,
     quoteToken,
     v2poolProvider: V2poolProvider,
@@ -113,9 +114,6 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       quoteToken,
       V3poolProvider
     );
-
-    // TODO: Remove this log
-    console.log(inputToken.address)
 
     let nativeV2Pool: Pair | null;
     if (V2poolProvider) {

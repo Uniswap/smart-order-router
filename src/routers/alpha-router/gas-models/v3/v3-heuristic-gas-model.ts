@@ -206,11 +206,14 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       poolProvider
     );
 
-    // Highest liquidity pool for the non quote token / ETH
-    const nativeInputPool: Pool | null = await getHighestLiquidityV3NativePool(
-      inputToken,
-      poolProvider
-    );
+    let nativeInputPool: Pool | null = null;
+    // We don't need to construct a synthetic price for the quoteToken and ETH if it is already paired with ETH
+    if(!inputToken.equals(nativeCurrency)) {
+      nativeInputPool = await getHighestLiquidityV3NativePool(
+        inputToken,
+        poolProvider
+      );
+    }
 
     const usdToken =
       usdPool.token0.address == nativeCurrency.address
@@ -267,7 +270,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       }
 
       try {
-      // A pool with the non quote token / ETH should not be required and errors should be handled separately 
+        // Highest liquidity pool for the non quote token / ETH
+        // A pool with the non quote token / ETH should not be required and errors should be handled separately 
         if(nativeInputPool) {
           const inputIsToken0 = nativeInputPool.token0.address == nativeCurrency.address;
           // ratio of input / native
@@ -281,19 +285,20 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           // get current execution price (inputToken / quoteToken)
           const executionPrice = routeWithValidQuote.route.midPrice;
           /*
-            nativeInputTokenPrice
+            nativeInputTokenPrice (quote / base)
               quoteCurrency = inputToken
               baseCurrency = nativeCurrency
-            executionPrice
+            executionPrice (quote / base)
               quoteCurrency = quoteToken
               baseCurrency = inputToken
+            - for exactOutput, its quoteCurrency: inputToken / baseCurrency: quoteToken
             
             To get quoteToken / nativeCurrency, we just need to multiply the two prices, cancelling out inputToken
           */
           const syntheticQuoteTokenPrice = nativeInputTokenPrice.multiply(
-            executionPrice
+            routeWithValidQuote.tradeType == TradeType.EXACT_INPUT ? executionPrice : executionPrice.invert()
           );
-          // Use the smaller of our calculated quoteToken / native price and the fetched price from the pool
+          // If our new calculated quoteToken / native price is smaller than the fetched price from the pool, use it instead for calculations
           if(syntheticQuoteTokenPrice.lessThan(nativeTokenPrice.asFraction)) {
             console.log({
               nativeTokenPriceInTermsOfQuoteToken: nativeTokenPrice.toSignificant(6),

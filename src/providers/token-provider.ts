@@ -297,6 +297,14 @@ export const DAI_ARBITRUM_RINKEBY = new Token(
   'Dai Stablecoin'
 );
 
+export const DAI_ARBITRUM_GOERLI = new Token(
+  ChainId.ARBITRUM_GOERLI,
+  '0x0000000000000000000000000000000000000000', // TODO: add address
+  18,
+  'DAI',
+  'Dai Stablecoin'
+)
+
 export const USDT_ARBITRUM_RINKEBY = new Token(
   ChainId.ARBITRUM_RINKEBY,
   '0x920b9301c2de92186299cd2abc7199e25b9728b3',
@@ -635,6 +643,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_ARBITRUM;
     case ChainId.ARBITRUM_RINKEBY:
       return DAI_ARBITRUM_RINKEBY;
+    case ChainId.ARBITRUM_GOERLI:
+      return DAI_ARBITRUM_GOERLI;
     case ChainId.POLYGON:
       return DAI_POLYGON;
     case ChainId.POLYGON_MUMBAI:
