@@ -482,7 +482,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -501,7 +502,8 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
 
@@ -698,7 +700,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -709,7 +712,8 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
 
@@ -868,7 +872,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -971,8 +976,9 @@ describe('alpha router', () => {
     });
 
     test('succeeds to route on v3 only', async () => {
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(USDC, 10000),
+        amount,
         WRAPPED_NATIVE_CURRENCY[1],
         TradeType.EXACT_INPUT,
         undefined,
@@ -988,7 +994,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -1106,8 +1113,9 @@ describe('alpha router', () => {
     });
 
     test('succeeds to route on mixed only', async () => {
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000)
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(USDC, 10000),
+        amount,
         WRAPPED_NATIVE_CURRENCY[1],
         TradeType.EXACT_INPUT,
         undefined,
@@ -1124,7 +1132,8 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
           v2poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
 
@@ -1364,8 +1373,10 @@ describe('alpha router', () => {
         slippageTolerance: new Percent(500, 10_000),
       };
 
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
+
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(USDC, 10000),
+        amount,
         WRAPPED_NATIVE_CURRENCY[1],
         TradeType.EXACT_INPUT,
         swapParams,
@@ -1381,7 +1392,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -1511,8 +1523,10 @@ describe('alpha router', () => {
         slippageTolerance: new Percent(500, 10_000),
       };
 
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
+
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(USDC, 10000),
+        amount,
         WRAPPED_NATIVE_CURRENCY[1],
         TradeType.EXACT_INPUT,
         swapParams,
@@ -1529,7 +1543,8 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
           v2poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
 
@@ -1584,8 +1599,9 @@ describe('alpha router', () => {
 
       mockFallbackTenderlySimulator.simulate.returnsArg(2);
 
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(USDC, 10000),
+        amount,
         WRAPPED_NATIVE_CURRENCY[1],
         TradeType.EXACT_INPUT,
         swapParams,
@@ -1601,7 +1617,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: WRAPPED_NATIVE_CURRENCY[1],
+          inputToken: amount.currency,
+          quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -1735,7 +1752,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: USDC,
+          inputToken: WRAPPED_NATIVE_CURRENCY[1],
+          quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -1754,7 +1772,8 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
           v2poolProvider: sinon.match.any,
-          token: USDC,
+          inputToken: WRAPPED_NATIVE_CURRENCY[1],
+          quoteToken: USDC,
         })
       ).toBeTruthy();
 
@@ -1820,8 +1839,9 @@ describe('alpha router', () => {
     });
 
     test('succeeds to route on v3 only', async () => {
+      const amount = CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000)
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000),
+        amount,
         USDC,
         TradeType.EXACT_OUTPUT,
         undefined,
@@ -1837,7 +1857,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: USDC,
+          inputToken: amount.currency,
+          quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -1858,7 +1879,7 @@ describe('alpha router', () => {
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
         expect(
-          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+          r.route.output.equals(amount.currency.wrapped)
         ).toBeTruthy();
       }
 
@@ -2020,6 +2041,7 @@ describe('alpha router', () => {
     });
 
     test('succeeds to route and generate calldata and simulates', async () => {
+      const amount = CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000);
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
@@ -2031,7 +2053,7 @@ describe('alpha router', () => {
       mockFallbackTenderlySimulator.simulate.returnsArg(2);
 
       const swap = await alphaRouter.route(
-        CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000),
+        amount,
         USDC,
         TradeType.EXACT_OUTPUT,
         swapParams,
@@ -2048,7 +2070,8 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          token: USDC,
+          inputToken: amount.currency,
+          quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
         })
@@ -2069,7 +2092,7 @@ describe('alpha router', () => {
       for (const r of swap!.route) {
         expect(r.route.input.equals(USDC)).toBeTruthy();
         expect(
-          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+          r.route.output.equals(amount.currency.wrapped)
         ).toBeTruthy();
       }
 
