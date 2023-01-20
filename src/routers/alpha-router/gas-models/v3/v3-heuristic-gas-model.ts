@@ -269,8 +269,9 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       try {
       // A pool with the non quote token / ETH should not be required and errors should be handled separately 
         if(nativeInputPool) {
+          const inputIsToken0 = nativeInputPool.token0.address == nativeCurrency.address;
           // ratio of input / native
-          const nativeInputTokenPrice = token0 
+          const nativeInputTokenPrice = inputIsToken0 
               ? nativeInputPool.token0Price
               : nativeInputPool.token1Price;
           
