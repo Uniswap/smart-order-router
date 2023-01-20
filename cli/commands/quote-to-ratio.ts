@@ -119,10 +119,10 @@ export class QuoteToRatio extends BaseCommand {
           recipient: '0x0000000000000000000000000000000000000001',
         },
         swapOptions: {
+          type: SwapType.SWAP_ROUTER_02,
           deadline: 100,
           recipient,
           slippageTolerance: new Percent(5, 10_000),
-          type: SwapType.SWAP_ROUTER_02
         },
       },
       {
