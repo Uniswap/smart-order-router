@@ -871,11 +871,6 @@ export class AlphaRouter
     );
 
     const quoteToken = quoteCurrency.wrapped;
-    // inputToken is always the token that is not the quote token
-    const inputToken =
-      quoteToken == currencyIn.wrapped
-        ? currencyOut.wrapped
-        : currencyIn.wrapped;
 
     const quotePromises: Promise<{
       routesWithValidQuotes: RouteWithValidQuote[];
@@ -889,7 +884,7 @@ export class AlphaRouter
         chainId: this.chainId,
         gasPriceWei,
         v3poolProvider: this.v3PoolProvider,
-        inputToken,
+        amountToken: tokenIn,
         quoteToken,
         v2poolProvider: this.v2PoolProvider,
         l2GasDataProvider: this.l2GasDataProvider,
@@ -898,7 +893,7 @@ export class AlphaRouter
         chainId: this.chainId,
         gasPriceWei,
         v3poolProvider: this.v3PoolProvider,
-        inputToken,
+        amountToken: tokenIn,
         quoteToken,
         v2poolProvider: this.v2PoolProvider,
       }),

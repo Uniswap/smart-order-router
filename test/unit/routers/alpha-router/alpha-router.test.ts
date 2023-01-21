@@ -482,7 +482,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -502,7 +502,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
@@ -700,7 +700,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -712,7 +712,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
@@ -872,7 +872,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -994,7 +994,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -1132,7 +1132,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
           v2poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
@@ -1392,7 +1392,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -1543,7 +1543,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
           v2poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
         })
       ).toBeTruthy();
@@ -1617,7 +1617,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -1752,7 +1752,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: WRAPPED_NATIVE_CURRENCY[1],
+          amountToken: WRAPPED_NATIVE_CURRENCY[1],
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -1772,7 +1772,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
           v2poolProvider: sinon.match.any,
-          inputToken: WRAPPED_NATIVE_CURRENCY[1],
+          amountToken: WRAPPED_NATIVE_CURRENCY[1],
           quoteToken: USDC,
         })
       ).toBeTruthy();
@@ -1857,7 +1857,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
@@ -2070,7 +2070,7 @@ describe('alpha router', () => {
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
           v3poolProvider: sinon.match.any,
-          inputToken: amount.currency,
+          amountToken: amount.currency,
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,

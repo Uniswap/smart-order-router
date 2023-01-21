@@ -56,15 +56,12 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     chainId,
     gasPriceWei,
     v3poolProvider: V3poolProvider,
-    inputToken,
+    // amountToken,
     quoteToken,
     v2poolProvider: V2poolProvider,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
-    // TODO: remove in the future, use it now to pass eslint
-    inputToken.address;
-
     const usdPool: Pool = await getHighestLiquidityV3USDPool(
       chainId,
       V3poolProvider
