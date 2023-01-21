@@ -310,7 +310,9 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           log.info(
             {
               nativeAmountTokenPrice: nativeAmountTokenPrice.toSignificant(6),
-              gasCostInTermsOfQuoteToken: gasCostInTermsOfQuoteToken ? gasCostInTermsOfQuoteToken.toExact() : 0,
+              gasCostInTermsOfQuoteToken: gasCostInTermsOfQuoteToken
+                ? gasCostInTermsOfQuoteToken.toExact()
+                : 0,
               gasCostInTermsOfAmountToken:
                 gasCostInTermsOfAmountToken.toExact(),
               executionPrice: executionPrice.toSignificant(6),
@@ -357,7 +359,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           gasEstimate: baseGasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
           gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
-        }
+        };
       }
 
       return {
