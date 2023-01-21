@@ -264,15 +264,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${quoteToken.symbol} to produce gas adjusted costs. Using amountToken to calculate gas costs.`
         );
       }
-      /*
-        We want to get the gas cost in terms of the quote token.
-        Sometimes, the quote token / native token pair is very illiquid and the price is incorrect.
-        We can get the gas cost in terms of the amount token, 
-          using the amountTokenNativePool and quoting for the amount of ETH required for gas
-        Then, we can use the execution price to get the respective amounts of quote tokens
-        Then, we can take the minimum of the initial quoted gas cost in terms of quote token
-          and our calculated one.
-      */
+      
       // get current execution price (amountToken / quoteToken)
       const executionPrice = new Price(
         routeWithValidQuote.amount.currency,
@@ -299,8 +291,9 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           gasCostInTermsOfAmountToken
         );
 
-        // If the cost in quote tokens over the execution price is lessThan the cost found using the quoteToken/native pool
-        // then we use our synthetic gas cost in tokens
+        // Note that the syntheticGasCost being lessThan the original quoted value is not always strictly better
+        // e.g. the scenario where the amountToken/ETH pool is very illiquid as well and returns an extremely small number
+        // however, it is better to have the gasEstimation be almost 0 than almost infinity, as the user will still receive a quote
         if (
           gasCostInTermsOfQuoteToken === null ||
           syntheticGasCostInTermsOfQuoteToken.lessThan(
@@ -351,6 +344,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         throw err;
       }
 
+      // If gasCostInTermsOfQuoteToken is null, both attempts to calculate gasCostInTermsOfQuoteToken failed (nativePool and amountNativePool)
       if (gasCostInTermsOfQuoteToken === null) {
         log.info(
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${quoteToken.symbol}, or amount Token, ${amountToken.symbol} to produce gas adjusted costs. Route will not account for gas.`
