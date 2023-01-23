@@ -265,16 +265,17 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         );
       }
       
-      // get current execution price (amountToken / quoteToken)
-      const executionPrice = new Price(
-        routeWithValidQuote.amount.currency,
-        routeWithValidQuote.quote.currency,
-        routeWithValidQuote.amount.quotient,
-        routeWithValidQuote.quote.quotient
-      );
       // Highest liquidity pool for the non quote token / ETH
       // A pool with the non quote token / ETH should not be required and errors should be handled separately
       if (nativeAmountPool) {
+        // get current execution price (amountToken / quoteToken)
+        const executionPrice = new Price(
+          routeWithValidQuote.amount.currency,
+          routeWithValidQuote.quote.currency,
+          routeWithValidQuote.amount.quotient,
+          routeWithValidQuote.quote.quotient
+        );
+        
         const inputIsToken0 =
           nativeAmountPool.token0.address == nativeCurrency.address;
         // ratio of input / native
