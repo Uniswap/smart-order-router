@@ -1029,7 +1029,7 @@ export async function getMixedRouteCandidatePools({
     ].map((poolId) => poolId.id)
   );
 
-  let V2topByTVLSortedPools = _(V2subgraphPools)
+  const V2topByTVLSortedPools = _(V2subgraphPools)
     .filter((pool) => V2topByTVLPoolIds.has(pool.id))
     .sortBy((pool) => -pool.reserveUSD)
     .value();
