@@ -56,7 +56,6 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     chainId,
     gasPriceWei,
     v3poolProvider: V3poolProvider,
-    // amountToken,
     quoteToken,
     v2poolProvider: V2poolProvider,
   }: BuildOnChainGasModelFactoryType): Promise<
