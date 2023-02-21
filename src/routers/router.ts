@@ -4,6 +4,7 @@ import {
   MixedRouteSDK,
   Protocol,
   Trade,
+  MixedRouteTrade
 } from '@uniswap/router-sdk';
 import {
   Currency,
@@ -13,12 +14,13 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
-import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
+import { Route as V2RouteRaw, Trade as V2Trade } from '@uniswap/v2-sdk';
 import {
   Pool,
   Position,
   MethodParameters as SDKMethodParameters,
   Route as V3RouteRaw,
+  Trade as V3Trade
 } from '@uniswap/v3-sdk';
 
 import { SimulationStatus } from '../providers';
@@ -35,6 +37,11 @@ export class V2Route extends V2RouteRaw<Token, Token> {
 export class MixedRoute extends MixedRouteSDK<Token, Token> {
   protocol: Protocol.MIXED = Protocol.MIXED;
 }
+export type AnyTrade =
+  | V2Trade<Currency, Currency, TradeType>
+  | V3Trade<Currency, Currency, TradeType>
+  | Trade<Currency, Currency, TradeType>
+  | MixedRouteTrade<Currency, Currency, TradeType> 
 
 export type SwapRoute = {
   /**
@@ -69,7 +76,7 @@ export type SwapRoute = {
   /**
    * The Trade object representing the swap.
    */
-  trade: Trade<Currency, Currency, TradeType>;
+  trade: AnyTrade;
   /**
    * The routes of the swap.
    */
