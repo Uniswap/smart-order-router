@@ -880,7 +880,7 @@ export class AlphaRouter
     const isGorli = this.chainId === ChainId.GÖRLI
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified and v2 is not supported
-    if (v3ProtocolSpecified || noProtocolsSpecified && !v2SupportedInChain) {
+    if (v3ProtocolSpecified || (noProtocolsSpecified && !v2SupportedInChain)) {
       // Open Question: Should we quote V3 if only V2 is specified but v2 is not supported?
       log.info({ protocols, swapType: tradeType }, 'Routing across V3');
       quotePromises.push(
@@ -937,6 +937,7 @@ export class AlphaRouter
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
 
+    // Manual reduce of Array<RouteWithValidQuote[],CandidatePoolsBySelectionCriteria>
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
     for (const {
