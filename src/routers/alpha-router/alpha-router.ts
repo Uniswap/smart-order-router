@@ -879,8 +879,8 @@ export class AlphaRouter
     const isMainnet = this.chainId === ChainId.MAINNET
     const isGorli = this.chainId === ChainId.GÖRLI
 
-    // Maybe Quote V3 - if V3 is specified, or no protocol is specified and v2 is not supported
-    if (v3ProtocolSpecified || (noProtocolsSpecified && !v2SupportedInChain)) {
+    // Maybe Quote V3 - if V3 is specified, or no protocol is specified
+    if (v3ProtocolSpecified || noProtocolsSpecified) {
       // Open Question: Should we quote V3 if only V2 is specified but v2 is not supported?
       log.info({ protocols, swapType: tradeType }, 'Routing across V3');
       quotePromises.push(
@@ -897,8 +897,8 @@ export class AlphaRouter
       );
     }
 
-    // Maybe Quote V2 - if V2 is specified AND v2 is supported in this chain
-    if (v2ProtocolSpecified && v2SupportedInChain) {
+    // Maybe Quote V2 - if V2 is specified, or no protocol is specified AND v2 is supported in this chain
+    if ((v2ProtocolSpecified || noProtocolsSpecified) && v2SupportedInChain) {
       log.info({ protocols, swapType: tradeType }, 'Routing across V2');
       quotePromises.push(
         this.getV2Quotes(
@@ -915,6 +915,8 @@ export class AlphaRouter
     }
 
     // Maybe Quote mixed routes
+    // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
+    // AND is Mainnet or Gorli
     const shouldQueryMixedProtocol = mixedProtocolSpecified || (noProtocolsSpecified && v2SupportedInChain)
     if (shouldQueryMixedProtocol && tradeTypeIsExactInput && (isMainnet || isGorli)) {
       log.info(
