@@ -6,6 +6,7 @@ import {
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
+  DAI_BSC,
   DAI_GÖRLI,
   DAI_KOVAN,
   DAI_MAINNET,
@@ -17,6 +18,7 @@ import {
   DAI_ROPSTEN,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
+  USDC_BSC,
   USDC_ETHEREUM_GNOSIS,
   USDC_GÖRLI,
   USDC_KOVAN,
@@ -28,6 +30,7 @@ import {
   USDC_ROPSTEN,
   USDT_ARBITRUM,
   USDT_ARBITRUM_RINKEBY,
+  USDT_BSC,
   USDT_GÖRLI,
   USDT_KOVAN,
   USDT_MAINNET,
@@ -73,6 +76,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
+  [ChainId.BSC]: [USDC_BSC, USDT_BSC, DAI_BSC],
 };
 
 export type L1ToL2GasCosts = {

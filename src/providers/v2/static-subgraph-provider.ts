@@ -47,6 +47,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.CELO_ALFAJORES]: [],
   [ChainId.GNOSIS]: [],
   [ChainId.MOONBEAM]: [],
+  [ChainId.BSC]: [],
 };
 
 /**

@@ -61,6 +61,7 @@ JSON_RPC_PROVIDER_POLYGON = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_POLYGON_MUMBAI = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_CELO = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_CELO_ALFAJORES = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_BSC = '<JSON_RPC_PROVIDER>'
 ```
 
 Then from the root directory you can execute the CLI.
@@ -193,6 +194,12 @@ Total ticks crossed: 7
 
 ```
 ./bin/cli quote --tokenIn CELO --tokenOut 0x765DE816845861e75A25fCA122bb6898B8B1282a --amount 5 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 42220
+```
+
+## BSC Mainnet
+
+```
+./bin/cli quote --tokenIn 0x55d398326f99059fF775485246999027B3197955 --tokenOut 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d --amount 1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 56
 ```
 
 ## Adding a new Chain
