@@ -299,10 +299,8 @@ export type AlphaRouterConfig = {
 };
 
 export class AlphaRouter
-  implements
-  IRouter<AlphaRouterConfig>,
-  ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
-{
+  implements IRouter<AlphaRouterConfig>,
+    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
@@ -357,7 +355,7 @@ export class AlphaRouter
       new CachingV3PoolProvider(
         this.chainId,
         new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
-        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
       );
     this.simulator = simulator;
 
@@ -396,7 +394,7 @@ export class AlphaRouter
                 attemptsBeforeRollback: 1,
                 rollbackBlockOffset: -10,
               },
-            }
+            },
           );
           break;
         case ChainId.ARBITRUM_ONE:
@@ -423,7 +421,7 @@ export class AlphaRouter
             {
               gasLimitOverride: 30_000_000,
               multicallChunk: 6,
-            }
+            },
           );
           break;
         case ChainId.CELO:
@@ -449,7 +447,7 @@ export class AlphaRouter
             {
               gasLimitOverride: 6_250_000,
               multicallChunk: 4,
-            }
+            },
           );
           break;
         default:
@@ -470,7 +468,7 @@ export class AlphaRouter
             {
               gasLimitOverride: 2_000_000,
               multicallChunk: 70,
-            }
+            },
           );
           break;
       }
@@ -481,7 +479,7 @@ export class AlphaRouter
       new CachingV2PoolProvider(
         chainId,
         new V2PoolProvider(chainId, this.multicall2Provider),
-        new NodeJSCache(new NodeCache({ stdTTL: 60, useClones: false }))
+        new NodeJSCache(new NodeCache({ stdTTL: 60, useClones: false })),
       );
 
     this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
@@ -491,7 +489,7 @@ export class AlphaRouter
       new CachingTokenListProvider(
         chainId,
         UNSUPPORTED_TOKENS as TokenList,
-        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
+        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
       );
     this.tokenProvider =
       tokenProvider ??
@@ -501,9 +499,9 @@ export class AlphaRouter
         new CachingTokenListProvider(
           chainId,
           DEFAULT_TOKEN_LIST,
-          new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
+          new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
         ),
-        new TokenProvider(chainId, this.multicall2Provider)
+        new TokenProvider(chainId, this.multicall2Provider),
       );
 
     const chainName = ID_TO_NETWORK_NAME(chainId);
@@ -519,9 +517,9 @@ export class AlphaRouter
             chainId,
             `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
             undefined,
-            0
+            0,
           ),
-          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false })),
         ),
         new StaticV2SubgraphProvider(chainId),
       ]);
@@ -537,9 +535,9 @@ export class AlphaRouter
             chainId,
             `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
             undefined,
-            0
+            0,
           ),
-          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false })),
         ),
         new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
       ]);
@@ -553,12 +551,12 @@ export class AlphaRouter
           ? new OnChainGasPriceProvider(
             chainId,
             new EIP1559GasPriceProvider(this.provider),
-            new LegacyGasPriceProvider(this.provider)
+            new LegacyGasPriceProvider(this.provider),
           )
           : new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL),
         new NodeJSCache<GasPrice>(
-          new NodeCache({ stdTTL: 15, useClones: false })
-        )
+          new NodeCache({ stdTTL: 15, useClones: false }),
+        ),
       );
     this.v3GasModelFactory =
       v3GasModelFactory ?? new V3HeuristicGasModelFactory();
@@ -590,7 +588,7 @@ export class AlphaRouter
       this.tokenValidatorProvider = new TokenValidatorProvider(
         this.chainId,
         this.multicall2Provider,
-        new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
+        new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false })),
       );
     }
   }
@@ -602,8 +600,8 @@ export class AlphaRouter
     swapAndAddConfig: SwapAndAddConfig,
     swapAndAddOptions?: SwapAndAddOptions,
     routingConfig: Partial<AlphaRouterConfig> = DEFAULT_ROUTING_CONFIG_BY_CHAIN(
-      this.chainId
-    )
+      this.chainId,
+    ),
   ): Promise<SwapToRatioResponse> {
     if (
       token1Balance.currency.wrapped.sortsBefore(token0Balance.currency.wrapped)
@@ -614,7 +612,7 @@ export class AlphaRouter
     let preSwapOptimalRatio = this.calculateOptimalRatio(
       position,
       position.pool.sqrtRatioX96,
-      true
+      true,
     );
     // set up parameters according to which token will be swapped
     let zeroForOne: boolean;
@@ -625,7 +623,7 @@ export class AlphaRouter
     } else {
       zeroForOne = new Fraction(
         token0Balance.quotient,
-        token1Balance.quotient
+        token1Balance.quotient,
       ).greaterThan(preSwapOptimalRatio);
       if (!zeroForOne) preSwapOptimalRatio = preSwapOptimalRatio.invert();
     }
@@ -657,7 +655,7 @@ export class AlphaRouter
         optimalRatio,
         exchangeRate,
         inputBalance,
-        outputBalance
+        outputBalance,
       );
       if (amountToSwap.equalTo(0)) {
         log.info(`no swap needed: amountToSwap = 0`);
@@ -676,7 +674,7 @@ export class AlphaRouter
           /// @dev We do not want to query for mixedRoutes for routeToRatio as they are not supported
           /// [Protocol.V3, Protocol.V2] will make sure we only query for V3 and V2
           protocols: [Protocol.V3, Protocol.V2],
-        }
+        },
       );
       if (!swap) {
         log.info('no route found from this.route()');
@@ -687,7 +685,7 @@ export class AlphaRouter
       }
 
       const inputBalanceUpdated = inputBalance.subtract(
-        swap.trade!.inputAmount
+        swap.trade!.inputAmount,
       );
       const outputBalanceUpdated = outputBalance.add(swap.trade!.outputAmount);
       const newRatio = inputBalanceUpdated.divide(outputBalanceUpdated);
@@ -703,12 +701,12 @@ export class AlphaRouter
               pool.fee == position.pool.fee
             ) {
               targetPoolPriceUpdate = JSBI.BigInt(
-                v3Route.sqrtPriceX96AfterList[i]!.toString()
+                v3Route.sqrtPriceX96AfterList[i]!.toString(),
               );
               optimalRatio = this.calculateOptimalRatio(
                 position,
                 JSBI.BigInt(targetPoolPriceUpdate!.toString()),
-                zeroForOne
+                zeroForOne,
               );
             }
           });
@@ -720,7 +718,7 @@ export class AlphaRouter
       ratioAchieved =
         newRatio.equalTo(optimalRatio) ||
         this.absoluteValue(
-          newRatio.asFraction.divide(optimalRatio).subtract(1)
+          newRatio.asFraction.divide(optimalRatio).subtract(1),
         ).lessThan(swapAndAddConfig.ratioErrorTolerance);
 
       if (ratioAchieved && targetPoolPriceUpdate) {
@@ -731,7 +729,7 @@ export class AlphaRouter
           targetPoolPriceUpdate,
           position.pool.liquidity,
           TickMath.getTickAtSqrtRatio(targetPoolPriceUpdate),
-          position.pool.tickDataProvider
+          position.pool.tickDataProvider,
         );
       }
       exchangeRate = swap.trade!.outputAmount.divide(swap.trade!.inputAmount);
@@ -746,7 +744,7 @@ export class AlphaRouter
           ratioErrorTolerance: swapAndAddConfig.ratioErrorTolerance.toFixed(18),
           iterationN: n.toString(),
         },
-        'QuoteToRatio Iteration Parameters'
+        'QuoteToRatio Iteration Parameters',
       );
 
       if (exchangeRate.equalTo(0)) {
@@ -773,7 +771,7 @@ export class AlphaRouter
           initialBalanceTokenIn: inputBalance,
           initialBalanceTokenOut: outputBalance,
           preLiquidityPosition: position,
-        }
+        },
       );
     }
 
@@ -791,12 +789,12 @@ export class AlphaRouter
     quoteCurrency: Currency,
     tradeType: TradeType,
     swapConfig?: SwapOptions,
-    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {},
   ): Promise<SwapRoute | null> {
     metric.putMetric(
       `QuoteRequestedForChain${this.chainId}`,
       1,
-      MetricLoggerUnit.Count
+      MetricLoggerUnit.Count,
     );
 
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
@@ -808,10 +806,10 @@ export class AlphaRouter
       {},
       DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
       partialRoutingConfig,
-      { blockNumber }
+      { blockNumber },
     );
 
-    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency)
+    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
 
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
@@ -821,10 +819,10 @@ export class AlphaRouter
     // combine to generate split routes.
     const [percents, amounts] = this.getAmountDistribution(
       amount,
-      routingConfig
+      routingConfig,
     );
 
-    const gasPriceWei = await this.getGasPriceWei()
+    const gasPriceWei = await this.getGasPriceWei();
 
     const quoteToken = quoteCurrency.wrapped;
 
@@ -839,12 +837,12 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols = Array.from(new Set(routingConfig.protocols).values());
 
-    const noProtocolsSpecified = protocols.length == 0
-    const v3ProtocolSpecified = protocols.includes(Protocol.V3)
-    const v2ProtocolSpecified = protocols.includes(Protocol.V2)
-    const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId)
-    const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain)
-    const mixedProtocolAllowed = tradeType === TradeType.EXACT_INPUT && ([ChainId.MAINNET, ChainId.GÖRLI].includes(this.chainId))
+    const noProtocolsSpecified = protocols.length == 0;
+    const v3ProtocolSpecified = protocols.includes(Protocol.V3);
+    const v2ProtocolSpecified = protocols.includes(Protocol.V2);
+    const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId);
+    const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain);
+    const mixedProtocolAllowed = tradeType === TradeType.EXACT_INPUT && ([ChainId.MAINNET, ChainId.GÖRLI].includes(this.chainId));
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {
@@ -858,8 +856,8 @@ export class AlphaRouter
           quoteToken,
           v3gasModel,
           tradeType,
-          routingConfig
-        )
+          routingConfig,
+        ),
       );
     }
 
@@ -875,8 +873,8 @@ export class AlphaRouter
           quoteToken,
           gasPriceWei,
           tradeType,
-          routingConfig
-        )
+          routingConfig,
+        ),
       );
     }
 
@@ -894,8 +892,8 @@ export class AlphaRouter
           quoteToken,
           mixedRouteGasModel,
           tradeType,
-          routingConfig
-        )
+          routingConfig,
+        ),
       );
     }
 
@@ -932,7 +930,7 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
-      v3gasModel
+      v3gasModel,
     );
 
     if (!swapRouteRaw) {
@@ -953,7 +951,7 @@ export class AlphaRouter
       currencyIn,
       currencyOut,
       tradeType,
-      routeAmounts
+      routeAmounts,
     );
 
     let methodParameters: MethodParameters | undefined;
@@ -964,20 +962,20 @@ export class AlphaRouter
       methodParameters = buildSwapMethodParameters(
         trade,
         swapConfig,
-        this.chainId
+        this.chainId,
       );
     }
 
     metric.putMetric(
       'FindBestSwapRoute',
       Date.now() - beforeBestSwap,
-      MetricLoggerUnit.Milliseconds
+      MetricLoggerUnit.Milliseconds,
     );
 
     metric.putMetric(
       `QuoteFoundForChain${this.chainId}`,
       1,
-      MetricLoggerUnit.Count
+      MetricLoggerUnit.Count,
     );
 
     this.emitPoolSelectionMetrics(swapRouteRaw, allCandidatePools);
@@ -1018,12 +1016,12 @@ export class AlphaRouter
         this.l2GasDataProvider
           ? await this.l2GasDataProvider!.getGasData()
           : undefined,
-        { blockNumber }
+        { blockNumber },
       );
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
-        MetricLoggerUnit.Milliseconds
+        MetricLoggerUnit.Milliseconds,
       );
       return swapRouteWithSimulation;
     }
@@ -1035,13 +1033,13 @@ export class AlphaRouter
     if (tradeType == TradeType.EXACT_INPUT) {
       return {
         currencyIn: amount.currency,
-        currencyOut: quoteCurrency
-      }
+        currencyOut: quoteCurrency,
+      };
     } else {
       return {
         currencyIn: quoteCurrency,
-        currencyOut: amount.currency
-      }
+        currencyOut: amount.currency,
+      };
     }
   }
 
@@ -1055,13 +1053,17 @@ export class AlphaRouter
     metric.putMetric(
       'GasPriceLoad',
       Date.now() - beforeGasTimestamp,
-      MetricLoggerUnit.Milliseconds
+      MetricLoggerUnit.Milliseconds,
     );
 
     return gasPriceWei;
   }
 
-  private async getGasModels(gasPriceWei: BigNumber, amountToken: Token, quoteToken: Token): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
+  private async getGasModels(
+    gasPriceWei: BigNumber,
+    amountToken: Token,
+    quoteToken: Token,
+  ): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
     const beforeGasModel = Date.now();
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
@@ -1088,7 +1090,7 @@ export class AlphaRouter
     metric.putMetric(
       'GasModelCreation',
       Date.now() - beforeGasModel,
-      MetricLoggerUnit.Milliseconds
+      MetricLoggerUnit.Milliseconds,
     );
 
     return [v3GasModel, mixedRouteGasModel];
@@ -1098,8 +1100,8 @@ export class AlphaRouter
     pools: T[],
     isInvalidFn: (
       token: Currency,
-      tokenValidation: TokenValidationResult | undefined
-    ) => boolean
+      tokenValidation: TokenValidationResult | undefined,
+    ) => boolean,
   ): Promise<T[]> {
     if (!this.tokenValidatorProvider) {
       return pools;
@@ -1114,10 +1116,10 @@ export class AlphaRouter
 
     const poolsFiltered = _.filter(pools, (pool: T) => {
       const token0Validation = tokenValidationResults.getValidationByToken(
-        pool.token0
+        pool.token0,
       );
       const token1Validation = tokenValidationResults.getValidationByToken(
-        pool.token1
+        pool.token1,
       );
 
       const token0Invalid = isInvalidFn(pool.token0, token0Validation);
@@ -1126,7 +1128,7 @@ export class AlphaRouter
       if (token0Invalid || token1Invalid) {
         log.info(
           `Dropping pool ${poolToString(pool)} because token is invalid. ${pool.token0.symbol
-          }: ${token0Validation}, ${pool.token1.symbol}: ${token1Validation}`
+          }: ${token0Validation}, ${pool.token1.symbol}: ${token1Validation}`,
         );
       }
 
@@ -1144,7 +1146,7 @@ export class AlphaRouter
     quoteToken: Token,
     gasModel: IGasModel<V3RouteWithValidQuote>,
     swapType: TradeType,
-    routingConfig: AlphaRouterConfig
+    routingConfig: AlphaRouterConfig,
   ): Promise<{
     routesWithValidQuotes: V3RouteWithValidQuote[];
     candidatePools: CandidatePoolsBySelectionCriteria;
@@ -1171,7 +1173,7 @@ export class AlphaRouter
       poolsRaw,
       (
         token: Currency,
-        tokenValidation: TokenValidationResult | undefined
+        tokenValidation: TokenValidationResult | undefined,
       ): boolean => {
         // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
@@ -1194,7 +1196,7 @@ export class AlphaRouter
           tokenValidation == TokenValidationResult.FOT ||
           tokenValidation == TokenValidationResult.STF
         );
-      }
+      },
     );
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
@@ -1203,7 +1205,7 @@ export class AlphaRouter
       tokenIn,
       tokenOut,
       pools,
-      maxSwapsPerPath
+      maxSwapsPerPath,
     );
 
     if (routes.length == 0) {
@@ -1214,15 +1216,15 @@ export class AlphaRouter
     const quoteFn =
       swapType == TradeType.EXACT_INPUT
         ? this.onChainQuoteProvider.getQuotesManyExactIn.bind(
-          this.onChainQuoteProvider
+          this.onChainQuoteProvider,
         )
         : this.onChainQuoteProvider.getQuotesManyExactOut.bind(
-          this.onChainQuoteProvider
+          this.onChainQuoteProvider,
         );
 
     const beforeQuotes = Date.now();
     log.info(
-      `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
+      `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`,
     );
 
     const { routesWithQuotes } = await quoteFn<V3Route>(amounts, routes, {
@@ -1232,7 +1234,7 @@ export class AlphaRouter
     metric.putMetric(
       'V3QuotesLoad',
       Date.now() - beforeQuotes,
-      MetricLoggerUnit.Milliseconds
+      MetricLoggerUnit.Milliseconds,
     );
 
     metric.putMetric(
@@ -1240,7 +1242,7 @@ export class AlphaRouter
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
-      MetricLoggerUnit.Count
+      MetricLoggerUnit.Count,
     );
 
     const routesWithValidQuotes = [];
@@ -1270,7 +1272,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null V3 quote for route.'
+            'Dropping a null V3 quote for route.',
           );
           continue;
         }
@@ -1304,7 +1306,7 @@ export class AlphaRouter
     quoteToken: Token,
     gasPriceWei: BigNumber,
     swapType: TradeType,
-    routingConfig: AlphaRouterConfig
+    routingConfig: AlphaRouterConfig,
   ): Promise<{
     routesWithValidQuotes: V2RouteWithValidQuote[];
     candidatePools: CandidatePoolsBySelectionCriteria;
@@ -1331,7 +1333,7 @@ export class AlphaRouter
       poolsRaw,
       (
         token: Currency,
-        tokenValidation: TokenValidationResult | undefined
+        tokenValidation: TokenValidationResult | undefined,
       ): boolean => {
         // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
@@ -1350,7 +1352,7 @@ export class AlphaRouter
         }
 
         return tokenValidation == TokenValidationResult.STF;
-      }
+      },
     );
 
     // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
@@ -1359,7 +1361,7 @@ export class AlphaRouter
       tokenIn,
       tokenOut,
       pools,
-      maxSwapsPerPath
+      maxSwapsPerPath,
     );
 
     if (routes.length == 0) {
@@ -1375,7 +1377,7 @@ export class AlphaRouter
     const beforeQuotes = Date.now();
 
     log.info(
-      `Getting quotes for V2 for ${routes.length} routes with ${amounts.length} amounts per route.`
+      `Getting quotes for V2 for ${routes.length} routes with ${amounts.length} amounts per route.`,
     );
     const { routesWithQuotes } = await quoteFn(amounts, routes);
 
@@ -1389,7 +1391,7 @@ export class AlphaRouter
     metric.putMetric(
       'V2QuotesLoad',
       Date.now() - beforeQuotes,
-      MetricLoggerUnit.Milliseconds
+      MetricLoggerUnit.Milliseconds,
     );
 
     metric.putMetric(
@@ -1397,7 +1399,7 @@ export class AlphaRouter
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
-      MetricLoggerUnit.Count
+      MetricLoggerUnit.Count,
     );
 
     const routesWithValidQuotes = [];
@@ -1416,7 +1418,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null V2 quote for route.'
+            'Dropping a null V2 quote for route.',
           );
           continue;
         }
@@ -1447,7 +1449,7 @@ export class AlphaRouter
     quoteToken: Token,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     swapType: TradeType,
-    routingConfig: AlphaRouterConfig
+    routingConfig: AlphaRouterConfig,
   ): Promise<{
     routesWithValidQuotes: MixedRouteWithValidQuote[];
     candidatePools: CandidatePoolsBySelectionCriteria;
@@ -1488,7 +1490,7 @@ export class AlphaRouter
       poolsRaw,
       (
         token: Currency,
-        tokenValidation: TokenValidationResult | undefined
+        tokenValidation: TokenValidationResult | undefined,
       ): boolean => {
         // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
@@ -1511,7 +1513,7 @@ export class AlphaRouter
           tokenValidation == TokenValidationResult.FOT ||
           tokenValidation == TokenValidationResult.STF
         );
-      }
+      },
     );
 
     const { maxSwapsPerPath } = routingConfig;
@@ -1520,7 +1522,7 @@ export class AlphaRouter
       tokenIn,
       tokenOut,
       pools,
-      maxSwapsPerPath
+      maxSwapsPerPath,
     );
 
     if (routes.length == 0) {
@@ -1529,12 +1531,12 @@ export class AlphaRouter
 
     // For all our routes, and all the fractional amounts, fetch quotes on-chain.
     const quoteFn = this.onChainQuoteProvider.getQuotesManyExactIn.bind(
-      this.onChainQuoteProvider
+      this.onChainQuoteProvider,
     );
 
     const beforeQuotes = Date.now();
     log.info(
-      `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`
+      `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`,
     );
 
     const { routesWithQuotes } = await quoteFn<MixedRoute>(amounts, routes, {
@@ -1544,7 +1546,7 @@ export class AlphaRouter
     metric.putMetric(
       'MixedQuotesLoad',
       Date.now() - beforeQuotes,
-      MetricLoggerUnit.Milliseconds
+      MetricLoggerUnit.Milliseconds,
     );
 
     metric.putMetric(
@@ -1552,7 +1554,7 @@ export class AlphaRouter
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
-      MetricLoggerUnit.Count
+      MetricLoggerUnit.Count,
     );
 
     const routesWithValidQuotes = [];
@@ -1582,7 +1584,7 @@ export class AlphaRouter
               route: routeToString(route),
               amountQuote,
             },
-            'Dropping a null mixed quote for route.'
+            'Dropping a null mixed quote for route.',
           );
           continue;
         }
@@ -1614,7 +1616,7 @@ export class AlphaRouter
   // the splits in the route.
   private getAmountDistribution(
     amount: CurrencyAmount,
-    routingConfig: AlphaRouterConfig
+    routingConfig: AlphaRouterConfig,
   ): [number[], CurrencyAmount[]] {
     const { distributionPercent } = routingConfig;
     const percents = [];
@@ -1631,7 +1633,7 @@ export class AlphaRouter
   private async buildSwapAndAddMethodParameters(
     trade: Trade<Currency, Currency, TradeType>,
     swapAndAddOptions: SwapAndAddOptions,
-    swapAndAddParameters: SwapAndAddParameters
+    swapAndAddParameters: SwapAndAddParameters,
   ): Promise<MethodParameters> {
     const {
       swapOptions: { recipient, slippageTolerance, deadline, inputTokenPermit },
@@ -1645,10 +1647,10 @@ export class AlphaRouter
       swapAndAddParameters.initialBalanceTokenOut.add(trade.outputAmount);
     const approvalTypes = await this.swapRouterProvider.getApprovalType(
       finalBalanceTokenIn,
-      finalBalanceTokenOut
+      finalBalanceTokenOut,
     );
     const zeroForOne = finalBalanceTokenIn.currency.wrapped.sortsBefore(
-      finalBalanceTokenOut.currency.wrapped
+      finalBalanceTokenOut.currency.wrapped,
     );
     return {
       ...SwapRouter.swapAndAddCallParameters(
@@ -1673,7 +1675,7 @@ export class AlphaRouter
         }),
         addLiquidityConfig,
         approvalTypes.approvalTokenIn,
-        approvalTypes.approvalTokenOut
+        approvalTypes.approvalTokenOut,
       ),
       to: SWAP_ROUTER_02_ADDRESS,
     };
@@ -1686,7 +1688,7 @@ export class AlphaRouter
       routes: RouteWithValidQuote[];
       estimatedGasUsed: BigNumber;
     },
-    allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
+    allPoolsBySelection: CandidatePoolsBySelectionCriteria[],
   ) {
     const poolAddressesUsed = new Set<string>();
     const { routes: routeAmounts } = swapRouteRaw;
@@ -1706,14 +1708,14 @@ export class AlphaRouter
         (pools: PoolId[], topNSelection: string) => {
           const topNUsed =
             _.findLastIndex(pools, (pool) =>
-              poolAddressesUsed.has(pool.id.toLowerCase())
+              poolAddressesUsed.has(pool.id.toLowerCase()),
             ) + 1;
           metric.putMetric(
             _.capitalize(`${protocol}${topNSelection}`),
             topNUsed,
-            MetricLoggerUnit.Count
+            MetricLoggerUnit.Count,
           );
-        }
+        },
       );
     }
 
@@ -1737,26 +1739,26 @@ export class AlphaRouter
         metric.putMetric(
           `MixedAndV3AndV2SplitRoute`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
         metric.putMetric(
           `MixedAndV3AndV2SplitRouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       } else if (hasV3Route) {
         metric.putMetric(`MixedAndV3SplitRoute`, 1, MetricLoggerUnit.Count);
         metric.putMetric(
           `MixedAndV3SplitRouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       } else if (hasV2Route) {
         metric.putMetric(`MixedAndV2SplitRoute`, 1, MetricLoggerUnit.Count);
         metric.putMetric(
           `MixedAndV2SplitRouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       }
     } else if (hasV3Route && hasV2Route) {
@@ -1764,7 +1766,7 @@ export class AlphaRouter
       metric.putMetric(
         `V3AndV2SplitRouteForChain${this.chainId}`,
         1,
-        MetricLoggerUnit.Count
+        MetricLoggerUnit.Count,
       );
     } else if (hasMixedRoute) {
       if (routeAmounts.length > 1) {
@@ -1772,14 +1774,14 @@ export class AlphaRouter
         metric.putMetric(
           `MixedSplitRouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       } else {
         metric.putMetric(`MixedRoute`, 1, MetricLoggerUnit.Count);
         metric.putMetric(
           `MixedRouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       }
     } else if (hasV3Route) {
@@ -1788,14 +1790,14 @@ export class AlphaRouter
         metric.putMetric(
           `V3SplitRouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       } else {
         metric.putMetric(`V3Route`, 1, MetricLoggerUnit.Count);
         metric.putMetric(
           `V3RouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       }
     } else if (hasV2Route) {
@@ -1804,14 +1806,14 @@ export class AlphaRouter
         metric.putMetric(
           `V2SplitRouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       } else {
         metric.putMetric(`V2Route`, 1, MetricLoggerUnit.Count);
         metric.putMetric(
           `V2RouteForChain${this.chainId}`,
           1,
-          MetricLoggerUnit.Count
+          MetricLoggerUnit.Count,
         );
       }
     }
@@ -1820,7 +1822,7 @@ export class AlphaRouter
   private calculateOptimalRatio(
     position: Position,
     sqrtRatioX96: JSBI,
-    zeroForOne: boolean
+    zeroForOne: boolean,
   ): Fraction {
     const upperSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickUpper);
     const lowerSqrtRatioX96 = TickMath.getSqrtRatioAtTick(position.tickLower);
@@ -1840,14 +1842,14 @@ export class AlphaRouter
         sqrtRatioX96,
         upperSqrtRatioX96,
         precision,
-        true
+        true,
       ),
       SqrtPriceMath.getAmount1Delta(
         sqrtRatioX96,
         lowerSqrtRatioX96,
         precision,
-        true
-      )
+        true,
+      ),
     );
     if (!zeroForOne) optimalRatio = optimalRatio.invert();
     return optimalRatio;
@@ -1857,7 +1859,7 @@ export class AlphaRouter
     fromAddress: string,
     tradeType: TradeType,
     amount: CurrencyAmount,
-    quote: CurrencyAmount
+    quote: CurrencyAmount,
   ): Promise<boolean> {
     try {
       const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
@@ -1867,7 +1869,7 @@ export class AlphaRouter
       } else {
         const tokenContract = Erc20__factory.connect(
           neededBalance.currency.address,
-          this.provider
+          this.provider,
         );
         balance = await tokenContract.balanceOf(fromAddress);
       }
@@ -1900,7 +1902,7 @@ export class AlphaRouter
         retries: 2,
         minTimeout: 100,
         maxTimeout: 1000,
-      }
+      },
     );
   }
 }
