@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 
 import {
+  BUSD_BSC,
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
@@ -76,7 +77,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
-  [ChainId.BSC]: [USDC_BSC, USDT_BSC, DAI_BSC],
+  [ChainId.BSC]: [BUSD_BSC, USDC_BSC, USDT_BSC, DAI_BSC],
 };
 
 export type L1ToL2GasCosts = {
