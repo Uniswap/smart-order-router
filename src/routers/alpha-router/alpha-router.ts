@@ -299,10 +299,8 @@ export type AlphaRouterConfig = {
 };
 
 export class AlphaRouter
-  implements
-  IRouter<AlphaRouterConfig>,
-  ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
-{
+  implements IRouter<AlphaRouterConfig>,
+    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
@@ -811,7 +809,7 @@ export class AlphaRouter
       { blockNumber }
     );
 
-    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency)
+    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
 
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
@@ -824,7 +822,7 @@ export class AlphaRouter
       routingConfig
     );
 
-    const gasPriceWei = await this.getGasPriceWei()
+    const gasPriceWei = await this.getGasPriceWei();
 
     const quoteToken = quoteCurrency.wrapped;
 
@@ -839,12 +837,13 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols = Array.from(new Set(routingConfig.protocols).values());
 
-    const noProtocolsSpecified = protocols.length == 0
-    const v3ProtocolSpecified = protocols.includes(Protocol.V3)
-    const v2ProtocolSpecified = protocols.includes(Protocol.V2)
-    const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId)
-    const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain)
-    const mixedProtocolAllowed = tradeType === TradeType.EXACT_INPUT && ([ChainId.MAINNET, ChainId.GÖRLI].includes(this.chainId))
+    const noProtocolsSpecified = protocols.length == 0;
+    const v3ProtocolSpecified = protocols.includes(Protocol.V3);
+    const v2ProtocolSpecified = protocols.includes(Protocol.V2);
+    const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId);
+    const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain);
+    const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GÖRLI].includes(this.chainId) &&
+      tradeType === TradeType.EXACT_INPUT;
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {
@@ -1036,12 +1035,12 @@ export class AlphaRouter
       return {
         currencyIn: amount.currency,
         currencyOut: quoteCurrency
-      }
+      };
     } else {
       return {
         currencyIn: quoteCurrency,
         currencyOut: amount.currency
-      }
+      };
     }
   }
 
@@ -1061,7 +1060,11 @@ export class AlphaRouter
     return gasPriceWei;
   }
 
-  private async getGasModels(gasPriceWei: BigNumber, amountToken: Token, quoteToken: Token): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
+  private async getGasModels(
+    gasPriceWei: BigNumber,
+    amountToken: Token,
+    quoteToken: Token
+  ): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
     const beforeGasModel = Date.now();
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
