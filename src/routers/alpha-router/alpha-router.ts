@@ -543,17 +543,22 @@ export class AlphaRouter
       ]);
     }
 
+    let gasPriceProviderInstance: IGasPriceProvider;
+    if (this.provider instanceof JsonRpcProvider) {
+      gasPriceProviderInstance = new OnChainGasPriceProvider(
+        chainId,
+        new EIP1559GasPriceProvider(this.provider),
+        new LegacyGasPriceProvider(this.provider)
+      );
+    } else {
+      gasPriceProviderInstance = new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL);
+    }
+
     this.gasPriceProvider =
       gasPriceProvider ??
       new CachingGasStationProvider(
         chainId,
-        this.provider instanceof JsonRpcProvider
-          ? new OnChainGasPriceProvider(
-            chainId,
-            new EIP1559GasPriceProvider(this.provider),
-            new LegacyGasPriceProvider(this.provider)
-          )
-          : new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL),
+        gasPriceProviderInstance,
         new NodeJSCache<GasPrice>(
           new NodeCache({ stdTTL: 15, useClones: false })
         )
