@@ -10,6 +10,7 @@ import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
+import { V3HeuristicGasModelFactory } from '.';
 
 import {
   CachingGasStationProvider,
@@ -38,24 +39,15 @@ import {
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
 } from '../../providers';
-import {
-  CachingTokenListProvider,
-  ITokenListProvider,
-} from '../../providers/caching-token-list-provider';
-import {
-  GasPrice,
-  IGasPriceProvider,
-} from '../../providers/gas-price-provider';
+import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
+import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
   TokenValidationResult,
   TokenValidatorProvider,
 } from '../../providers/token-validator-provider';
-import {
-  IV2PoolProvider,
-  V2PoolProvider,
-} from '../../providers/v2/pool-provider';
+import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
@@ -63,25 +55,14 @@ import {
   OptimismGasData,
   OptimismGasDataProvider,
 } from '../../providers/v3/gas-data-provider';
-import {
-  IV3PoolProvider,
-  V3PoolProvider,
-} from '../../providers/v3/pool-provider';
+import { IV3PoolProvider, V3PoolProvider } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESS } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
-import {
-  ChainId,
-  ID_TO_CHAIN_ID,
-  ID_TO_NETWORK_NAME,
-  V2_SUPPORTED,
-} from '../../util/chains';
+import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
 import { log } from '../../util/log';
-import {
-  buildSwapMethodParameters,
-  buildTrade,
-} from '../../util/methodParameters';
+import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { poolToString, routeToString } from '../../util/routes';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
@@ -100,10 +81,7 @@ import {
   V3Route,
 } from '../router';
 
-import {
-  DEFAULT_ROUTING_CONFIG_BY_CHAIN,
-  ETH_GAS_STATION_API_URL,
-} from './config';
+import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
@@ -112,11 +90,7 @@ import {
 } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
-import {
-  computeAllMixedRoutes,
-  computeAllV2Routes,
-  computeAllV3Routes,
-} from './functions/compute-all-routes';
+import { computeAllMixedRoutes, computeAllV2Routes, computeAllV3Routes } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
   getMixedRouteCandidatePools,
@@ -124,14 +98,9 @@ import {
   getV3CandidatePools,
   PoolId,
 } from './functions/get-candidate-pools';
-import {
-  IGasModel,
-  IOnChainGasModelFactory,
-  IV2GasModelFactory,
-} from './gas-models/gas-model';
+import { IGasModel, IOnChainGasModelFactory, IV2GasModelFactory } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
-import { V3HeuristicGasModelFactory } from '.';
 
 export type AlphaRouterParams = {
   /**
