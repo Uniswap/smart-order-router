@@ -881,8 +881,7 @@ export class AlphaRouter
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {
-      // Open Question: Should we quote V3 if only V2 is specified but v2 is not supported?
-      log.info({ protocols, swapType: tradeType }, 'Routing across V3');
+      log.info({ protocols, tradeType }, 'Routing across V3');
       quotePromises.push(
         this.getV3Quotes(
           tokenIn,
@@ -898,8 +897,8 @@ export class AlphaRouter
     }
 
     // Maybe Quote V2 - if V2 is specified, or no protocol is specified AND v2 is supported in this chain
-    if ((v2ProtocolSpecified || noProtocolsSpecified) && v2SupportedInChain) {
-      log.info({ protocols, swapType: tradeType }, 'Routing across V2');
+    if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
+      log.info({ protocols, tradeType }, 'Routing across V2');
       quotePromises.push(
         this.getV2Quotes(
           tokenIn,
@@ -919,10 +918,7 @@ export class AlphaRouter
     // AND is Mainnet or Gorli
     const shouldQueryMixedProtocol = mixedProtocolSpecified || (noProtocolsSpecified && v2SupportedInChain)
     if (shouldQueryMixedProtocol && tradeTypeIsExactInput && (isMainnet || isGorli)) {
-      log.info(
-        { protocols, swapType: tradeType },
-        'Routing across MixedRoutes'
-      );
+      log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
       quotePromises.push(
         this.getMixedRouteQuotes(
           tokenIn,
@@ -939,7 +935,9 @@ export class AlphaRouter
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
 
-    // Manual reduce of Array<RouteWithValidQuote[],CandidatePoolsBySelectionCriteria>
+    // The following block of codoe performs a manual reduce operation
+    // from the Array<RouteWithValidQuote[],CandidatePoolsBySelectionCriteria>
+    // to 2 arrays: RouteWithValidQuote[] AND CandidatePoolsBySelectionCriteria[]
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
     for (const {
@@ -1082,14 +1080,15 @@ export class AlphaRouter
   }
 
   private async getGasPriceWei(metric: IMetric): Promise<BigNumber> {
-    // Get an estimate of the gas price to use when estimating gas cost of different routes.
-    const beforeGas = Date.now();
+    // Track how long it takes to resolve this async call.
+    const beforeGasTimestamp = Date.now();
 
+    // Get an estimate of the gas price to use when estimating gas cost of different routes.
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
 
     metric.putMetric(
       'GasPriceLoad',
-      Date.now() - beforeGas,
+      Date.now() - beforeGasTimestamp,
       MetricLoggerUnit.Milliseconds
     );
 
