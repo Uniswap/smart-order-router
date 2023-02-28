@@ -69,7 +69,7 @@ import {
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
-import { SWAP_ROUTER_02_ADDRESS } from '../../util';
+import { SWAP_ROUTER_02_ADDRESSES } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ChainId,
@@ -600,7 +600,8 @@ export class AlphaRouter
       mixedRouteGasModelFactory ?? new MixedRouteHeuristicGasModelFactory();
 
     this.swapRouterProvider =
-      swapRouterProvider ?? new SwapRouterProvider(this.multicall2Provider);
+      swapRouterProvider ??
+      new SwapRouterProvider(this.multicall2Provider, this.chainId);
 
     if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
       this.l2GasDataProvider =
@@ -1724,7 +1725,7 @@ export class AlphaRouter
         approvalTypes.approvalTokenIn,
         approvalTypes.approvalTokenOut
       ),
-      to: SWAP_ROUTER_02_ADDRESS,
+      to: SWAP_ROUTER_02_ADDRESSES(this.chainId),
     };
   }
 

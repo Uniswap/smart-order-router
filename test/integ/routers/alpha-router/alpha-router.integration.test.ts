@@ -38,7 +38,7 @@ import {
   SUPPORTED_CHAINS,
   SwapOptions,
   SwapType,
-  SWAP_ROUTER_02_ADDRESS,
+  SWAP_ROUTER_02_ADDRESSES,
   TenderlySimulator,
   UniswapMulticallProvider,
   UNI_GÖRLI,
@@ -247,7 +247,7 @@ describe('alpha router integration', () => {
     } else {
       tokenInBefore = await getBalanceAndApprove(
         alice,
-        SWAP_ROUTER_02_ADDRESS,
+        SWAP_ROUTER_02_ADDRESSES(tokenIn.chainId),
         tokenIn
       );
       tokenOutBefore = await hardhat.getBalance(alice._address, tokenOut);
