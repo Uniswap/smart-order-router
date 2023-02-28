@@ -41,7 +41,7 @@ export async function getV2NativePool(
         reserve0: pool?.reserve0.toExact(),
         reserve1: pool?.reserve1.toExact(),
       },
-      `Could not find a valid WETH pool with ${token.symbol} for computing gas costs.`
+      `Could not find a valid WETH V2 pool with ${token.symbol} for computing gas costs.`
     );
 
     return null;
@@ -56,7 +56,12 @@ export async function getHighestLiquidityV3NativePool(
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
-  const nativePools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
+  const nativePools = _([
+    FeeAmount.HIGH,
+    FeeAmount.MEDIUM,
+    FeeAmount.LOW,
+    FeeAmount.LOWEST,
+  ])
     .map<[Token, Token, FeeAmount]>((feeAmount) => {
       return [nativeCurrency, token, feeAmount];
     })
@@ -64,7 +69,12 @@ export async function getHighestLiquidityV3NativePool(
 
   const poolAccessor = await poolProvider.getPools(nativePools);
 
-  const pools = _([FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW])
+  const pools = _([
+    FeeAmount.HIGH,
+    FeeAmount.MEDIUM,
+    FeeAmount.LOW,
+    FeeAmount.LOWEST,
+  ])
     .map((feeAmount) => {
       return poolAccessor.getPool(nativeCurrency, token, feeAmount);
     })
