@@ -43,9 +43,11 @@ import {
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
+  USDC_BSC,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_ON,
+  USDT_BSC,
   USDT_MAINNET,
   V2PoolProvider,
   V2Route,
@@ -2530,6 +2532,7 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
     [ChainId.GNOSIS]: WBTC_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
+    [ChainId.BSC]: USDC_BSC,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
@@ -2548,6 +2551,7 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
     [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
+    [ChainId.BSC]: USDT_BSC,
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
