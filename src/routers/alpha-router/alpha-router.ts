@@ -82,7 +82,7 @@ import {
   buildSwapMethodParameters,
   buildTrade,
 } from '../../util/methodParameters';
-import { IMetric, metric, MetricLoggerUnit } from '../../util/metric';
+import { metric, MetricLoggerUnit } from '../../util/metric';
 import { poolToString, routeToString } from '../../util/routes';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
@@ -842,8 +842,6 @@ export class AlphaRouter
       { blockNumber }
     );
 
-    const protocols = routingConfig.protocols ?? [];
-
     const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency)
 
     const tokenIn = currencyIn.wrapped;
@@ -857,7 +855,7 @@ export class AlphaRouter
       routingConfig
     );
 
-    const gasPriceWei = await this.getGasPriceWei(metric)
+    const gasPriceWei = await this.getGasPriceWei()
 
     const quoteToken = quoteCurrency.wrapped;
 
@@ -866,18 +864,18 @@ export class AlphaRouter
       candidatePools: CandidatePoolsBySelectionCriteria;
     }>[] = [];
 
-    const protocolsSet = new Set(protocols);
+    const [v3gasModel, mixedRouteGasModel] = await this.getGasModels(gasPriceWei, amount.currency.wrapped, quoteToken);
 
-    const [v3gasModel, mixedRouteGasModel] = await this.getGasModels(gasPriceWei, amount.currency.wrapped, quoteToken, metric);
+    // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,
+    // Then create an Array from the values of that Set.
+    const protocols = Array.from(new Set(routingConfig.protocols).values());
 
-    const noProtocolsSpecified = protocolsSet.size == 0
-    const v3ProtocolSpecified = protocolsSet.has(Protocol.V3)
-    const v2ProtocolSpecified = protocolsSet.has(Protocol.V2)
-    const mixedProtocolSpecified = protocolsSet.has(Protocol.MIXED)
+    const noProtocolsSpecified = protocols.length == 0
+    const v3ProtocolSpecified = protocols.includes(Protocol.V3)
+    const v2ProtocolSpecified = protocols.includes(Protocol.V2)
     const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId)
-    const tradeTypeIsExactInput = tradeType === TradeType.EXACT_INPUT
-    const isMainnet = this.chainId === ChainId.MAINNET
-    const isGorli = this.chainId === ChainId.GÖRLI
+    const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain)
+    const mixedProtocolAllowed = tradeType === TradeType.EXACT_INPUT && ([ChainId.MAINNET, ChainId.GÖRLI].includes(this.chainId))
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {
@@ -916,8 +914,7 @@ export class AlphaRouter
     // Maybe Quote mixed routes
     // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
     // AND is Mainnet or Gorli
-    const shouldQueryMixedProtocol = mixedProtocolSpecified || (noProtocolsSpecified && v2SupportedInChain)
-    if (shouldQueryMixedProtocol && tradeTypeIsExactInput && (isMainnet || isGorli)) {
+    if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
       log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
       quotePromises.push(
         this.getMixedRouteQuotes(
@@ -1079,7 +1076,7 @@ export class AlphaRouter
     }
   }
 
-  private async getGasPriceWei(metric: IMetric): Promise<BigNumber> {
+  private async getGasPriceWei(): Promise<BigNumber> {
     // Track how long it takes to resolve this async call.
     const beforeGasTimestamp = Date.now();
 
@@ -1095,7 +1092,7 @@ export class AlphaRouter
     return gasPriceWei;
   }
 
-  private async getGasModels(gasPriceWei: BigNumber, amountToken: Token, quoteToken: Token, metric: IMetric): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
+  private async getGasModels(gasPriceWei: BigNumber, amountToken: Token, quoteToken: Token): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
     const beforeGasModel = Date.now();
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
