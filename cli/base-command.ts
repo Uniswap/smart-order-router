@@ -280,14 +280,11 @@ export abstract class BaseCommand extends Command {
       //   chainId != ChainId.ARBITRUM_ONE && chainId != ChainId.ARBITRUM_RINKEBY;
 
       const v3PoolProvider = new CachingV3PoolProvider(
-        ChainId.MAINNET,
-        new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
+        chainId,
+        new V3PoolProvider(chainId, multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-      const v2PoolProvider = new V2PoolProvider(
-        ChainId.MAINNET,
-        multicall2Provider
-      );
+      const v2PoolProvider = new V2PoolProvider(chainId, multicall2Provider);
 
       const tenderlySimulator = new TenderlySimulator(
         chainId,

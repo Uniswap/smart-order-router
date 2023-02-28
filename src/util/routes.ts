@@ -6,6 +6,7 @@ import _ from 'lodash';
 
 import { RouteWithValidQuote } from '../routers/alpha-router';
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
+import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';
 
@@ -29,7 +30,9 @@ export const routeToString = (
         ? ` -- ${pool.fee / 10000}% [${Pool.getAddress(
             pool.token0,
             pool.token1,
-            pool.fee
+            pool.fee,
+            undefined,
+            V3_CORE_FACTORY_ADDRESSES[pool.chainId]
           )}]`
         : ` -- [${Pair.getAddress(
             (pool as Pair).token0,
