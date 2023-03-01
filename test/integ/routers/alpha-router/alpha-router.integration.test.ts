@@ -13,7 +13,6 @@ import {
 import {
   AlphaRouter,
   AlphaRouterConfig,
-  BUSD_BSC,
   CachingV3PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
@@ -2992,10 +2991,9 @@ describe('quote for other networks', () => {
           });
         });
 
-        // Low liquidity (0.1 WBNB / 30 BUSD)
-        it(`${wrappedNative.symbol} -> BUSD`, async () => {
+        it(`${wrappedNative.symbol} -> USDT`, async () => {
           const tokenIn = wrappedNative;
-          const tokenOut = BUSD_BSC;
+          const tokenOut = USDT_BSC;
           const amount =
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('1', tokenIn)
@@ -3023,8 +3021,8 @@ describe('quote for other networks', () => {
           const tokenOut = USDT_BSC;
           const amount =
             tradeType == TradeType.EXACT_INPUT
-              ? parseAmount('1', tokenIn)
-              : parseAmount('1', tokenOut);
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
 
           const swap = await alphaRouter.route(
             amount,
@@ -3043,9 +3041,9 @@ describe('quote for other networks', () => {
 
         const native = NATIVE_CURRENCY[chain];
 
-        it(`${native} -> BUSD`, async () => {
+        it(`${native} -> USDT`, async () => {
           const tokenIn = nativeOnChain(chain);
-          const tokenOut = BUSD_BSC;
+          const tokenOut = USDT_BSC;
 
           const amount =
             tradeType == TradeType.EXACT_INPUT
