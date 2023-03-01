@@ -905,7 +905,7 @@ export class AlphaRouter
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
 
-    // The following block of codoe performs a manual reduce operation
+    // The following block of code performs a manual reduce operation
     // from the Array<RouteWithValidQuote[],CandidatePoolsBySelectionCriteria>
     // to 2 arrays: RouteWithValidQuote[] AND CandidatePoolsBySelectionCriteria[]
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
