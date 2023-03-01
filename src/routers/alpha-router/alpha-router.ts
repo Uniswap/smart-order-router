@@ -38,24 +38,15 @@ import {
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
 } from '../../providers';
-import {
-  CachingTokenListProvider,
-  ITokenListProvider,
-} from '../../providers/caching-token-list-provider';
-import {
-  GasPrice,
-  IGasPriceProvider,
-} from '../../providers/gas-price-provider';
+import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
+import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
   TokenValidationResult,
   TokenValidatorProvider,
 } from '../../providers/token-validator-provider';
-import {
-  IV2PoolProvider,
-  V2PoolProvider,
-} from '../../providers/v2/pool-provider';
+import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
@@ -63,25 +54,14 @@ import {
   OptimismGasData,
   OptimismGasDataProvider,
 } from '../../providers/v3/gas-data-provider';
-import {
-  IV3PoolProvider,
-  V3PoolProvider,
-} from '../../providers/v3/pool-provider';
+import { IV3PoolProvider, V3PoolProvider } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESSES } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
-import {
-  ChainId,
-  ID_TO_CHAIN_ID,
-  ID_TO_NETWORK_NAME,
-  V2_SUPPORTED,
-} from '../../util/chains';
+import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
 import { log } from '../../util/log';
-import {
-  buildSwapMethodParameters,
-  buildTrade,
-} from '../../util/methodParameters';
+import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import { poolToString, routeToString } from '../../util/routes';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
@@ -100,10 +80,7 @@ import {
   V3Route,
 } from '../router';
 
-import {
-  DEFAULT_ROUTING_CONFIG_BY_CHAIN,
-  ETH_GAS_STATION_API_URL,
-} from './config';
+import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
@@ -112,11 +89,7 @@ import {
 } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
-import {
-  computeAllMixedRoutes,
-  computeAllV2Routes,
-  computeAllV3Routes,
-} from './functions/compute-all-routes';
+import { computeAllMixedRoutes, computeAllV2Routes, computeAllV3Routes } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
   getMixedRouteCandidatePools,
@@ -124,15 +97,10 @@ import {
   getV3CandidatePools,
   PoolId,
 } from './functions/get-candidate-pools';
-import {
-  IGasModel,
-  IOnChainGasModelFactory,
-  IV2GasModelFactory,
-} from './gas-models/gas-model';
+import { IGasModel, IOnChainGasModelFactory, IV2GasModelFactory } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
-
-import { V3HeuristicGasModelFactory } from '.';
+import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 
 export type AlphaRouterParams = {
   /**
@@ -226,7 +194,7 @@ export type AlphaRouterParams = {
   arbitrumGasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
 
   /**
-   * Simulates swaps and returns new SwapRoute with updated gas estimates
+   * Simulates swaps and returns new SwapRoute with updated gas estimates.
    */
   simulator?: Simulator;
 };
@@ -331,10 +299,8 @@ export type AlphaRouterConfig = {
 };
 
 export class AlphaRouter
-  implements
-    IRouter<AlphaRouterConfig>,
-    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
-{
+  implements IRouter<AlphaRouterConfig>,
+    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
@@ -577,17 +543,22 @@ export class AlphaRouter
       ]);
     }
 
+    let gasPriceProviderInstance: IGasPriceProvider;
+    if (this.provider instanceof JsonRpcProvider) {
+      gasPriceProviderInstance = new OnChainGasPriceProvider(
+        chainId,
+        new EIP1559GasPriceProvider(this.provider),
+        new LegacyGasPriceProvider(this.provider)
+      );
+    } else {
+      gasPriceProviderInstance = new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL);
+    }
+
     this.gasPriceProvider =
       gasPriceProvider ??
       new CachingGasStationProvider(
         chainId,
-        this.provider instanceof JsonRpcProvider
-          ? new OnChainGasPriceProvider(
-              chainId,
-              new EIP1559GasPriceProvider(this.provider),
-              new LegacyGasPriceProvider(this.provider)
-            )
-          : new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL),
+        gasPriceProviderInstance,
         new NodeJSCache<GasPrice>(
           new NodeCache({ stdTTL: 15, useClones: false })
         )
@@ -844,12 +815,8 @@ export class AlphaRouter
       { blockNumber }
     );
 
-    const { protocols } = routingConfig;
+    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
 
-    const currencyIn =
-      tradeType == TradeType.EXACT_INPUT ? amount.currency : quoteCurrency;
-    const currencyOut =
-      tradeType == TradeType.EXACT_INPUT ? quoteCurrency : amount.currency;
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
 
@@ -861,15 +828,7 @@ export class AlphaRouter
       routingConfig
     );
 
-    // Get an estimate of the gas price to use when estimating gas cost of different routes.
-    const beforeGas = Date.now();
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
-
-    metric.putMetric(
-      'GasPriceLoad',
-      Date.now() - beforeGas,
-      MetricLoggerUnit.Milliseconds
-    );
+    const gasPriceWei = await this.getGasPriceWei();
 
     const quoteToken = quoteCurrency.wrapped;
 
@@ -878,34 +837,23 @@ export class AlphaRouter
       candidatePools: CandidatePoolsBySelectionCriteria;
     }>[] = [];
 
-    const protocolsSet = new Set(protocols ?? []);
+    const [v3gasModel, mixedRouteGasModel] = await this.getGasModels(gasPriceWei, amount.currency.wrapped, quoteToken);
 
-    const [v3gasModel, mixedRouteGasModel] = await Promise.all([
-      this.v3GasModelFactory.buildGasModel({
-        chainId: this.chainId,
-        gasPriceWei,
-        v3poolProvider: this.v3PoolProvider,
-        amountToken: amount.currency.wrapped,
-        quoteToken,
-        v2poolProvider: this.v2PoolProvider,
-        l2GasDataProvider: this.l2GasDataProvider,
-      }),
-      this.mixedRouteGasModelFactory.buildGasModel({
-        chainId: this.chainId,
-        gasPriceWei,
-        v3poolProvider: this.v3PoolProvider,
-        amountToken: amount.currency.wrapped,
-        quoteToken,
-        v2poolProvider: this.v2PoolProvider,
-      }),
-    ]);
+    // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,
+    // Then create an Array from the values of that Set.
+    const protocols = Array.from(new Set(routingConfig.protocols).values());
 
-    if (
-      (protocolsSet.size == 0 ||
-        (protocolsSet.has(Protocol.V2) && protocolsSet.has(Protocol.V3))) &&
-      V2_SUPPORTED.includes(this.chainId)
-    ) {
-      log.info({ protocols, tradeType }, 'Routing across all protocols');
+    const noProtocolsSpecified = protocols.length == 0;
+    const v3ProtocolSpecified = protocols.includes(Protocol.V3);
+    const v2ProtocolSpecified = protocols.includes(Protocol.V2);
+    const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId);
+    const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain);
+    const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GÖRLI].includes(this.chainId) &&
+      tradeType === TradeType.EXACT_INPUT;
+
+    // Maybe Quote V3 - if V3 is specified, or no protocol is specified
+    if (v3ProtocolSpecified || noProtocolsSpecified) {
+      log.info({ protocols, tradeType }, 'Routing across V3');
       quotePromises.push(
         this.getV3Quotes(
           tokenIn,
@@ -918,6 +866,11 @@ export class AlphaRouter
           routingConfig
         )
       );
+    }
+
+    // Maybe Quote V2 - if V2 is specified, or no protocol is specified AND v2 is supported in this chain
+    if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
+      log.info({ protocols, tradeType }, 'Routing across V2');
       quotePromises.push(
         this.getV2Quotes(
           tokenIn,
@@ -930,92 +883,32 @@ export class AlphaRouter
           routingConfig
         )
       );
-      /// @dev only add mixedRoutes in the case where no protocols were specified, and if TradeType is correct
-      if (
-        tradeType === TradeType.EXACT_INPUT &&
-        (this.chainId === ChainId.MAINNET || this.chainId === ChainId.GÖRLI) &&
-        /// The cases where protocols = [] and protocols = [V2, V3, MIXED]
-        (protocolsSet.size == 0 || protocolsSet.has(Protocol.MIXED))
-      ) {
-        log.info(
-          { protocols, swapType: tradeType },
-          'Routing across MixedRoutes'
-        );
-        quotePromises.push(
-          this.getMixedRouteQuotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            mixedRouteGasModel,
-            tradeType,
-            routingConfig
-          )
-        );
-      }
-    } else {
-      if (
-        protocolsSet.has(Protocol.V3) ||
-        (protocolsSet.size == 0 && !V2_SUPPORTED.includes(this.chainId))
-      ) {
-        log.info({ protocols, swapType: tradeType }, 'Routing across V3');
-        quotePromises.push(
-          this.getV3Quotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            v3gasModel,
-            tradeType,
-            routingConfig
-          )
-        );
-      }
-      if (protocolsSet.has(Protocol.V2)) {
-        log.info({ protocols, swapType: tradeType }, 'Routing across V2');
-        quotePromises.push(
-          this.getV2Quotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            gasPriceWei,
-            tradeType,
-            routingConfig
-          )
-        );
-      }
-      /// If protocolsSet is not empty, and we specify mixedRoutes, consider them if the chain has v2 liq
-      /// and tradeType === EXACT_INPUT
-      if (
-        protocolsSet.has(Protocol.MIXED) &&
-        (this.chainId === ChainId.MAINNET || this.chainId === ChainId.GÖRLI) &&
-        tradeType == TradeType.EXACT_INPUT
-      ) {
-        log.info(
-          { protocols, swapType: tradeType },
-          'Routing across MixedRoutes'
-        );
-        quotePromises.push(
-          this.getMixedRouteQuotes(
-            tokenIn,
-            tokenOut,
-            amounts,
-            percents,
-            quoteToken,
-            mixedRouteGasModel,
-            tradeType,
-            routingConfig
-          )
-        );
-      }
+    }
+
+    // Maybe Quote mixed routes
+    // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
+    // AND is Mainnet or Gorli
+    if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
+      log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
+      quotePromises.push(
+        this.getMixedRouteQuotes(
+          tokenIn,
+          tokenOut,
+          amounts,
+          percents,
+          quoteToken,
+          mixedRouteGasModel,
+          tradeType,
+          routingConfig
+        )
+      );
     }
 
     const routesWithValidQuotesByProtocol = await Promise.all(quotePromises);
 
+    // The following block of code performs a manual reduce operation
+    // from the Array<RouteWithValidQuote[],CandidatePoolsBySelectionCriteria>
+    // to 2 arrays: RouteWithValidQuote[] AND CandidatePoolsBySelectionCriteria[]
     let allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
     let allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
     for (const {
@@ -1143,6 +1036,73 @@ export class AlphaRouter
     return swapRoute;
   }
 
+  private determineCurrencyInOutFromTradeType(tradeType: TradeType, amount: CurrencyAmount, quoteCurrency: Currency) {
+    if (tradeType == TradeType.EXACT_INPUT) {
+      return {
+        currencyIn: amount.currency,
+        currencyOut: quoteCurrency
+      };
+    } else {
+      return {
+        currencyIn: quoteCurrency,
+        currencyOut: amount.currency
+      };
+    }
+  }
+
+  private async getGasPriceWei(): Promise<BigNumber> {
+    // Track how long it takes to resolve this async call.
+    const beforeGasTimestamp = Date.now();
+
+    // Get an estimate of the gas price to use when estimating gas cost of different routes.
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+
+    metric.putMetric(
+      'GasPriceLoad',
+      Date.now() - beforeGasTimestamp,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    return gasPriceWei;
+  }
+
+  private async getGasModels(
+    gasPriceWei: BigNumber,
+    amountToken: Token,
+    quoteToken: Token
+  ): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
+    const beforeGasModel = Date.now();
+
+    const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
+      chainId: this.chainId,
+      gasPriceWei,
+      v3poolProvider: this.v3PoolProvider,
+      amountToken,
+      quoteToken,
+      v2poolProvider: this.v2PoolProvider,
+      l2GasDataProvider: this.l2GasDataProvider,
+    });
+
+    const mixedRouteGasModelPromise = this.mixedRouteGasModelFactory.buildGasModel({
+      chainId: this.chainId,
+      gasPriceWei,
+      v3poolProvider: this.v3PoolProvider,
+      amountToken,
+      quoteToken,
+      v2poolProvider: this.v2PoolProvider,
+    });
+
+    const [v3GasModel, mixedRouteGasModel] = await Promise.all([v3GasModelPromise, mixedRouteGasModelPromise]);
+
+    metric.putMetric(
+      'GasModelCreation',
+      Date.now() - beforeGasModel,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    return [v3GasModel, mixedRouteGasModel];
+  }
+
   private async applyTokenValidatorToPools<T extends Pool | Pair>(
     pools: T[],
     isInvalidFn: (
@@ -1174,8 +1134,7 @@ export class AlphaRouter
 
       if (token0Invalid || token1Invalid) {
         log.info(
-          `Dropping pool ${poolToString(pool)} because token is invalid. ${
-            pool.token0.symbol
+          `Dropping pool ${poolToString(pool)} because token is invalid. ${pool.token0.symbol
           }: ${token0Validation}, ${pool.token1.symbol}: ${token1Validation}`
         );
       }
@@ -1264,11 +1223,11 @@ export class AlphaRouter
     const quoteFn =
       swapType == TradeType.EXACT_INPUT
         ? this.onChainQuoteProvider.getQuotesManyExactIn.bind(
-            this.onChainQuoteProvider
-          )
+          this.onChainQuoteProvider
+        )
         : this.onChainQuoteProvider.getQuotesManyExactOut.bind(
-            this.onChainQuoteProvider
-          );
+          this.onChainQuoteProvider
+        );
 
     const beforeQuotes = Date.now();
     log.info(
