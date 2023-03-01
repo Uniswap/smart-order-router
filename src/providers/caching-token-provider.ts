@@ -143,7 +143,7 @@ export const CACHE_SEED_TOKENS: {
     ETH: ETH_BSC,
     DAI: DAI_BSC,
     BTC: BTC_BSC,
-    WGLMR: WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],
+    WBNB: WRAPPED_NATIVE_CURRENCY[ChainId.BSC],
   },
 
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
