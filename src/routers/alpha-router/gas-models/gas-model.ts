@@ -76,7 +76,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
-  [ChainId.BSC]: [USDC_BSC, USDT_BSC, DAI_BSC],
+  [ChainId.BSC]: [USDT_BSC, USDC_BSC, DAI_BSC],
 };
 
 export type L1ToL2GasCosts = {
