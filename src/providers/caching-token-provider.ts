@@ -5,6 +5,8 @@ import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { ICache } from './cache';
 import {
+  BTC_BSC,
+  BUSD_BSC,
   CELO,
   CELO_ALFAJORES,
   CEUR_CELO,
@@ -12,6 +14,7 @@ import {
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
+  DAI_BSC,
   DAI_CELO,
   DAI_CELO_ALFAJORES,
   DAI_MAINNET,
@@ -21,12 +24,14 @@ import {
   DAI_POLYGON_MUMBAI,
   DAI_RINKEBY_1,
   DAI_RINKEBY_2,
+  ETH_BSC,
   ITokenProvider,
   TokenAccessor,
   UNI_ARBITRUM_RINKEBY,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_RINKEBY,
+  USDC_BSC,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_MOONBEAM,
@@ -35,6 +40,7 @@ import {
   USDC_POLYGON,
   USDT_ARBITRUM,
   USDT_ARBITRUM_RINKEBY,
+  USDT_BSC,
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISTIC_KOVAN,
@@ -129,6 +135,15 @@ export const CACHE_SEED_TOKENS: {
     DAI: DAI_MOONBEAM,
     WBTC: WBTC_MOONBEAM,
     WGLMR: WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],
+  },
+  [ChainId.BSC]: {
+    USDC: USDC_BSC,
+    USDT: USDT_BSC,
+    BUSD: BUSD_BSC,
+    ETH: ETH_BSC,
+    DAI: DAI_BSC,
+    BTC: BTC_BSC,
+    WBNB: WRAPPED_NATIVE_CURRENCY[ChainId.BSC],
   },
 
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet

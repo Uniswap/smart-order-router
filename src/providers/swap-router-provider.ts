@@ -2,7 +2,7 @@ import { ApprovalTypes } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
 
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { log, SWAP_ROUTER_02_ADDRESS } from '../util';
+import { ChainId, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
 
 import { IMulticallProvider } from './multicall-provider';
 
@@ -32,7 +32,10 @@ export interface ISwapRouterProvider {
 }
 
 export class SwapRouterProvider implements ISwapRouterProvider {
-  constructor(protected multicall2Provider: IMulticallProvider) {}
+  constructor(
+    protected multicall2Provider: IMulticallProvider,
+    protected chainId: ChainId
+  ) {}
 
   public async getApprovalType(
     tokenInAmount: CurrencyAmount<Currency>,
@@ -54,7 +57,7 @@ export class SwapRouterProvider implements ISwapRouterProvider {
         [string, string],
         [ApprovalTypes]
       >({
-        address: SWAP_ROUTER_02_ADDRESS,
+        address: SWAP_ROUTER_02_ADDRESSES(this.chainId),
         contractInterface: SwapRouter02__factory.createInterface(),
         functionName: 'getApprovalType',
         functionParams,

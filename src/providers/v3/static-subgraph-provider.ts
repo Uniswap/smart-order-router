@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
@@ -7,6 +8,8 @@ import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
+  BTC_BSC,
+  BUSD_BSC,
   CELO,
   CELO_ALFAJORES,
   CEUR_CELO,
@@ -15,6 +18,7 @@ import {
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
   DAI_ARBITRUM_RINKEBY,
+  DAI_BSC,
   DAI_CELO,
   DAI_CELO_ALFAJORES,
   DAI_GÖRLI,
@@ -27,9 +31,11 @@ import {
   DAI_RINKEBY_1,
   DAI_RINKEBY_2,
   DAI_ROPSTEN,
+  ETH_BSC,
   UNI_ARBITRUM_RINKEBY,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
+  USDC_BSC,
   USDC_ETHEREUM_GNOSIS,
   USDC_GÖRLI,
   USDC_KOVAN,
@@ -42,6 +48,7 @@ import {
   USDC_ROPSTEN,
   USDT_ARBITRUM,
   USDT_ARBITRUM_RINKEBY,
+  USDT_BSC,
   USDT_GÖRLI,
   USDT_KOVAN,
   USDT_MAINNET,
@@ -154,6 +161,15 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WBTC_GNOSIS,
     WXDAI_GNOSIS,
     USDC_ETHEREUM_GNOSIS,
+  ],
+  [ChainId.BSC]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.BSC],
+    BUSD_BSC,
+    DAI_BSC,
+    USDC_BSC,
+    USDT_BSC,
+    BTC_BSC,
+    ETH_BSC,
   ],
   [ChainId.MOONBEAM]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],

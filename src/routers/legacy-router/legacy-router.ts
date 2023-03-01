@@ -13,7 +13,7 @@ import {
   USDC_MAINNET,
 } from '../../providers/token-provider';
 import { IV3PoolProvider } from '../../providers/v3/pool-provider';
-import { SWAP_ROUTER_02_ADDRESS } from '../../util';
+import { SWAP_ROUTER_02_ADDRESSES } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
@@ -141,7 +141,7 @@ export class LegacyRouter {
       methodParameters: swapConfig
         ? {
             ...this.buildMethodParameters(trade, swapConfig),
-            to: SWAP_ROUTER_02_ADDRESS,
+            to: SWAP_ROUTER_02_ADDRESSES(this.chainId),
           }
         : undefined,
       blockNumber: BigNumber.from(0),
@@ -196,7 +196,7 @@ export class LegacyRouter {
       methodParameters: swapConfig
         ? {
             ...this.buildMethodParameters(trade, swapConfig),
-            to: SWAP_ROUTER_02_ADDRESS,
+            to: SWAP_ROUTER_02_ADDRESSES(this.chainId),
           }
         : undefined,
       blockNumber: BigNumber.from(0),

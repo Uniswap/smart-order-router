@@ -404,6 +404,55 @@ export const WETH_POLYGON_MUMBAI = new Token(
   'Wrapped Ether'
 );
 
+// BNB chain Tokens
+export const BTC_BSC = new Token(
+  ChainId.BSC,
+  '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
+  18,
+  'BTCB',
+  'Binance BTC'
+);
+
+export const BUSD_BSC = new Token(
+  ChainId.BSC,
+  '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
+  18,
+  'BUSD',
+  'BUSD'
+);
+
+export const DAI_BSC = new Token(
+  ChainId.BSC,
+  '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3',
+  18,
+  'DAI',
+  'DAI'
+);
+
+export const ETH_BSC = new Token(
+  ChainId.BSC,
+  '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
+  18,
+  'ETH',
+  'ETH'
+);
+
+export const USDC_BSC = new Token(
+  ChainId.BSC,
+  '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+  18,
+  'USDC',
+  'USDC'
+);
+
+export const USDT_BSC = new Token(
+  ChainId.BSC,
+  '0x55d398326f99059fF775485246999027B3197955',
+  18,
+  'USDT',
+  'USDT'
+);
+
 // Celo Tokens
 export const CELO = new Token(
   ChainId.CELO,
@@ -655,6 +704,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_CELO_ALFAJORES;
     case ChainId.MOONBEAM:
       return DAI_MOONBEAM;
+    case ChainId.BSC:
+      return DAI_BSC;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -680,6 +731,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_ARBITRUM;
     case ChainId.ARBITRUM_RINKEBY:
       return USDT_ARBITRUM_RINKEBY;
+    case ChainId.BSC:
+      return USDT_BSC;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -715,6 +768,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ETHEREUM_GNOSIS;
     case ChainId.MOONBEAM:
       return USDC_MOONBEAM;
+    case ChainId.BSC:
+      return USDC_BSC;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

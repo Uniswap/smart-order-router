@@ -10,7 +10,7 @@ import { BigNumber } from 'ethers/lib/ethers';
 import { SwapOptions, SwapRoute, SwapType } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
-import { ChainId, log, MAX_UINT160, SWAP_ROUTER_02_ADDRESS } from '../util';
+import { ChainId, log, MAX_UINT160, SWAP_ROUTER_02_ADDRESSES } from '../util';
 import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
@@ -316,7 +316,7 @@ export class TenderlySimulator extends Simulator {
       const swap = {
         network_id: chainId,
         input: calldata,
-        to: SWAP_ROUTER_02_ADDRESS,
+        to: SWAP_ROUTER_02_ADDRESSES(chainId),
         gas_estimate: true,
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,

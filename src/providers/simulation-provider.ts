@@ -6,7 +6,12 @@ import { BigNumber } from 'ethers/lib/ethers';
 import { SwapOptions, SwapRoute, SwapType } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
-import { ChainId, CurrencyAmount, log, SWAP_ROUTER_02_ADDRESS } from '../util';
+import {
+  ChainId,
+  CurrencyAmount,
+  log,
+  SWAP_ROUTER_02_ADDRESSES,
+} from '../util';
 
 import { ProviderConfig } from './provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
@@ -174,7 +179,7 @@ export abstract class Simulator {
         await permit2Contract.allowance(
           fromAddress,
           inputAmount.currency.wrapped.address,
-          SWAP_ROUTER_02_ADDRESS
+          SWAP_ROUTER_02_ADDRESSES(this.chainId)
         );
 
       const nowTimestampS = Math.round(Date.now() / 1000);
@@ -211,7 +216,7 @@ export abstract class Simulator {
 
       const allowance = await tokenContract.allowance(
         fromAddress,
-        SWAP_ROUTER_02_ADDRESS
+        SWAP_ROUTER_02_ADDRESSES(this.chainId)
       );
       const hasAllowance = allowance.gte(
         BigNumber.from(inputAmount.quotient.toString())
