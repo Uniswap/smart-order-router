@@ -19,6 +19,7 @@ export * from './tenderly-simulation-provider';
 export * from './token-provider';
 export * from './token-validator-provider';
 export * from './uri-subgraph-provider';
+export * from './caching/route/index';
 export * from './v2/caching-pool-provider';
 export * from './v2/caching-subgraph-provider';
 export * from './v2/pool-provider';
