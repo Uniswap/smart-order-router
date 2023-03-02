@@ -2,7 +2,7 @@ import { Protocol } from '@uniswap/router-sdk';
 import { TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
-import { RouteWithValidQuote } from '../../../../routers';
+import { MixedRoute, RouteWithValidQuote, V2Route, V3Route } from '../../../../routers';
 
 import { CachedRoute } from './cached-route';
 
@@ -13,13 +13,13 @@ import { CachedRoute } from './cached-route';
  * @class CachedRoute
  */
 export class CachedRoutes {
-  public routes: CachedRoute[];
+  public routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
   public protocolsCovered: Protocol[];
   public blockNumber: number;
   public tradeType: TradeType;
 
   constructor(
-    routes: CachedRoute[],
+    routes: CachedRoute<V3Route | V2Route | MixedRoute>[],
     protocolsCovered: Protocol[],
     blockNumber: number,
     tradeType: TradeType

@@ -72,6 +72,8 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  V2Route,
+  V3Route,
 } from '../router';
 
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL } from './config';
@@ -838,8 +840,7 @@ export class AlphaRouter
 
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
-    const blockNumber =
-      await (partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise());
+    const blockNumber = await (partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise());
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {},
@@ -874,44 +875,64 @@ export class AlphaRouter
       this.chainId,
       amount,
       quoteToken,
-      tradeType
+      tradeType,
+      protocols,
+      blockNumber
     );
 
-    const reqProtocolsNotCoveredByCache = protocols.filter((protocol) =>
-      !cachedRoutes?.protocolsCovered.includes(protocol));
-    const reqProtocolsCoveredByCache = protocols.filter((protocol) => cachedRoutes?.protocolsCovered.includes(protocol));
-    const noProtocolsSpecified = protocols.length == 0;
-    const shouldUseCachedRoute = cachedRoutes && (reqProtocolsCoveredByCache.length > 0 || noProtocolsSpecified);
-    const noProtocolsSpecifiedAndNoCachedRoute = noProtocolsSpecified && !shouldUseCachedRoute;
-
-    if (shouldUseCachedRoute) {
-      const protocolsUsedInCachedRoutes = _.map(cachedRoutes.routes, (route) => route.protocol());
-      const protocolsNotRequested = protocolsUsedInCachedRoutes.filter((protocol) => !protocols.includes(protocol));
+    if (cachedRoutes) {
       log.info(
         {
-          protocols,
-          protocolsCoveredByCache: reqProtocolsCoveredByCache,
-          protocolsNotCoveredByCache: reqProtocolsNotCoveredByCache,
-          protocolsNotRequested
+          protocols: cachedRoutes.protocolsCovered,
+          tradeType: cachedRoutes.tradeType,
+          cachedBlockNumber: cachedRoutes.blockNumber,
+          quoteBlockNumber: blockNumber,
         },
-        'Routing using a CachedRoute.'
+        'Routing across CachedRoute'
       );
 
-      // const v3Routes = cachedRoutes.routes.filter((route) => route.protocol() === Protocol.V3);
-      // const v2Routes = cachedRoutes.routes.filter((route) => route.protocol() === Protocol.V2);
-      // const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol() === Protocol.MIXED);
-      //
-      // const v3RoutesFromCache = _.map(v3Routes, (cachedRoute) => cachedRoute.route);
-      // const v3PercentsFromCache = _.map(v3Routes, (cachedRoute) => cachedRoute.percent);
+      const v3Routes = cachedRoutes.routes.filter((route) => route instanceof V3Route);
+      const v2Routes = cachedRoutes.routes.filter((route) => route instanceof V2Route);
+      const mixedRoutes = cachedRoutes.routes.filter((route) => route instanceof MixedRoute);
 
-      // quotePromises.push(
-      //   this.getQuotesFromCachedRoutes(
-      //     tokenIn,
-      //     tokenOut,
-      //     amounts,
-      //     cachedRoutes,
-      //   )
-      // );
+      if (v3Routes) {
+        const v3RoutesFromCache: V3Route[] = _.map(v3Routes, (cachedRoute) => cachedRoute.route as V3Route);
+        const v3PercentsFromCache = _.map(v3Routes, (cachedRoute) => cachedRoute.percent);
+        const v3Amounts = _.map(v3PercentsFromCache, (percent) => amount.multiply(new Fraction(percent, 100)));
+
+        quotePromises.push(
+          this.v3Quoter.getQuotes(
+            v3RoutesFromCache,
+            v3Amounts,
+            v3PercentsFromCache,
+            quoteToken,
+            tradeType,
+            routingConfig,
+            undefined,
+            v3gasModel
+          )
+        );
+      }
+
+      if (v2Routes) {
+        const v2RoutesFromCache: V2Route[] = _.map(v3Routes, (cachedRoute) => cachedRoute.route as V2Route);
+        const v2PercentsFromCache = _.map(v2Routes, (cachedRoute) => cachedRoute.percent);
+        const v2Amounts = _.map(v2PercentsFromCache, (percent) => amount.multiply(new Fraction(percent, 100)));
+
+        quotePromises.push(
+          this.v2Quoter.getQuotes(
+            v2RoutesFromCache,
+            v2Amounts,
+            v2PercentsFromCache,
+            quoteToken,
+            tradeType,
+            routingConfig,
+            undefined,
+            undefined,
+            gasPriceWei
+          )
+        );
+      }
     }
 
     // Generate our distribution of amounts, i.e. fractions of the input amount.
@@ -1050,16 +1071,19 @@ export class AlphaRouter
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    // Generate the object to be cached
-    const routesToCache: CachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
-      routeAmounts,
-      protocols,
-      await blockNumber,
-      tradeType
-    );
+    if (this.routeCachingProvider) {
+      // Generate the object to be cached
+      const routesToCache: CachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
+        routeAmounts,
+        protocols.sort(), // sort it for consistency in the order of the protocols.
+        await blockNumber,
+        tradeType
+      );
 
-    // Attempt to insert the entry in cache. This is fire and forget promise.
-    this.routeCachingProvider?.setCachedRoute(routesToCache).catch(() => undefined);
+      // Attempt to insert the entry in cache. This is fire and forget promise.
+      // The catch method will prevent any exception from blocking the normal code execution.
+      this.routeCachingProvider.setCachedRoute(routesToCache).catch(() => undefined);
+    }
 
     // Build Trade object that represents the optimal swap.
     const trade = buildTrade<typeof tradeType>(
@@ -1216,7 +1240,7 @@ export class AlphaRouter
 
     return [v3GasModel, mixedRouteGasModel];
   }
-  
+
   // Note multiplications here can result in a loss of precision in the amounts (e.g. taking 50% of 101)
   // This is reconcilled at the end of the algorithm by adding any lost precision to one of
   // the splits in the route.

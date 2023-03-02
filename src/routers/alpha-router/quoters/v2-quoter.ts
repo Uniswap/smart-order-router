@@ -117,7 +117,7 @@ export class V2Quoter extends BaseQuoter<V2Route> {
     quoteToken: Token,
     tradeType: TradeType,
     _routingConfig: AlphaRouterConfig,
-    candidatePools: CandidatePoolsBySelectionCriteria,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
     _gasModel?: IGasModel<V2RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
