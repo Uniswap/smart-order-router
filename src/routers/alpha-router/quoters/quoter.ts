@@ -52,7 +52,7 @@ export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult>
 
-  public async getRoutesThenQuotes(
+  public getRoutesThenQuotes(
     tokenIn: Token,
     tokenOut: Token,
     amounts: CurrencyAmount[],
