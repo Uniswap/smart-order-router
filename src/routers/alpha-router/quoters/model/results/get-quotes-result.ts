@@ -3,5 +3,5 @@ import { CandidatePoolsBySelectionCriteria } from '../../../functions/get-candid
 
 export interface GetQuotesResult {
   routesWithValidQuotes: RouteWithValidQuote[];
-  candidatePools?: CandidatePoolsBySelectionCriteria;
+  candidatePools: CandidatePoolsBySelectionCriteria;
 }

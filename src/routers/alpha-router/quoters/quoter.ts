@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
@@ -44,10 +45,11 @@ export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasModel: IGasModel<RouteWithValidQuote>,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria
+    candidatePools: CandidatePoolsBySelectionCriteria,
+    gasModel?: IGasModel<RouteWithValidQuote>,
+    gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult>
 
   public async getRoutesThenQuotes(
@@ -56,9 +58,10 @@ export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasModel: IGasModel<RouteWithValidQuote>,
     tradeType: TradeType,
-    routingConfig: AlphaRouterConfig
+    routingConfig: AlphaRouterConfig,
+    gasModel?: IGasModel<RouteWithValidQuote>,
+    gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
     return this.getRoutes(tokenIn, tokenOut, tradeType, routingConfig)
       .then((routesResult) =>
@@ -67,10 +70,11 @@ export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
           amounts,
           percents,
           quoteToken,
-          gasModel,
           tradeType,
           routingConfig,
-          routesResult.candidatePools
+          routesResult.candidatePools,
+          gasModel,
+          gasPriceWei
         )
       );
   }

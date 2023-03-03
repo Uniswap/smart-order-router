@@ -135,13 +135,15 @@ export class MixedQuoter extends IQuoter<MixedRoute> {
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasModel: IGasModel<MixedRouteWithValidQuote>,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria
+    candidatePools: CandidatePoolsBySelectionCriteria,
+    gasModel?: IGasModel<MixedRouteWithValidQuote>
   ): Promise<GetQuotesResult> {
     log.info('Starting to get mixed quotes');
-
+    if (gasModel === undefined) {
+      throw new Error('GasModel for MixedRouteWithValidQuote is required to getQuotes');
+    }
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
     }

@@ -115,12 +115,16 @@ export class V3Quoter extends IQuoter<V3Route> {
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasModel: IGasModel<V3RouteWithValidQuote>,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria,
+    candidatePools: CandidatePoolsBySelectionCriteria,
+    gasModel?: IGasModel<V3RouteWithValidQuote>
   ): Promise<GetQuotesResult> {
     log.info('Starting to get V3 quotes');
+
+    if (gasModel === undefined) {
+      throw new Error('GasModel for V3RouteWithValidQuote is required to getQuotes');
+    }
 
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };

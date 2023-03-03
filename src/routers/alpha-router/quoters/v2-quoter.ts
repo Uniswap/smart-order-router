@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
@@ -16,7 +17,7 @@ import { AlphaRouterConfig } from '../alpha-router';
 import { V2RouteWithValidQuote } from '../entities';
 import { computeAllV2Routes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, getV2CandidatePools } from '../functions/get-candidate-pools';
-import { IGasModel } from '../gas-models';
+import { IGasModel, IV2GasModelFactory } from '../gas-models';
 
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
@@ -26,11 +27,13 @@ export class V2Quoter extends IQuoter<V2Route> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
+  protected v2GasModelFactory: IV2GasModelFactory;
 
   constructor(
     v2SubgraphProvider: IV2SubgraphProvider,
     v2PoolProvider: IV2PoolProvider,
     v2QuoteProvider: IV2QuoteProvider,
+    v2GasModelFactory: IV2GasModelFactory,
     tokenProvider: ITokenProvider,
     chainId: ChainId,
     blockedTokenListProvider?: ITokenListProvider,
@@ -40,6 +43,7 @@ export class V2Quoter extends IQuoter<V2Route> {
     this.v2SubgraphProvider = v2SubgraphProvider;
     this.v2PoolProvider = v2PoolProvider;
     this.v2QuoteProvider = v2QuoteProvider;
+    this.v2GasModelFactory = v2GasModelFactory;
   }
 
   protected async getRoutes(
@@ -111,13 +115,16 @@ export class V2Quoter extends IQuoter<V2Route> {
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    gasModel: IGasModel<V2RouteWithValidQuote>,
     tradeType: TradeType,
     _routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria
+    candidatePools: CandidatePoolsBySelectionCriteria,
+    _gasModel?: IGasModel<V2RouteWithValidQuote>,
+    gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
     log.info('Starting to get V2 quotes');
-
+    if (gasPriceWei === undefined) {
+      throw new Error('GasPriceWei for V2Routes is required to getQuotes');
+    }
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
     }
@@ -134,6 +141,13 @@ export class V2Quoter extends IQuoter<V2Route> {
       `Getting quotes for V2 for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
     const { routesWithQuotes } = await quoteFn(amounts, routes);
+
+    const v2GasModel = await this.v2GasModelFactory.buildGasModel({
+      chainId: this.chainId,
+      gasPriceWei,
+      poolProvider: this.v2PoolProvider,
+      token: quoteToken,
+    });
 
     metric.putMetric(
       'V2QuotesLoad',
@@ -175,7 +189,7 @@ export class V2Quoter extends IQuoter<V2Route> {
           rawQuote: quote,
           amount,
           percent,
-          gasModel: gasModel,
+          gasModel: v2GasModel,
           quoteToken,
           tradeType,
           v2PoolProvider: this.v2PoolProvider,
