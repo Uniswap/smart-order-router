@@ -20,10 +20,10 @@ import { computeAllMixedRoutes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, getMixedRouteCandidatePools } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
+import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
-import { IQuoter } from './quoter';
 
-export class MixedQuoter extends IQuoter<MixedRoute> {
+export class MixedQuoter extends BaseQuoter<MixedRoute> {
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
   protected v2SubgraphProvider: IV2SubgraphProvider;

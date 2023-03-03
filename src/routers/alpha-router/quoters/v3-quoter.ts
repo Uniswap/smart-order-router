@@ -18,11 +18,11 @@ import { computeAllV3Routes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, getV3CandidatePools } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
+import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
-import { IQuoter } from './quoter';
 
-export class V3Quoter extends IQuoter<V3Route> {
+export class V3Quoter extends BaseQuoter<V3Route> {
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
   protected onChainQuoteProvider: IOnChainQuoteProvider;

@@ -19,11 +19,11 @@ import { computeAllV2Routes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, getV2CandidatePools } from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
 
+import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
-import { IQuoter } from './quoter';
 
-export class V2Quoter extends IQuoter<V2Route> {
+export class V2Quoter extends BaseQuoter<V2Route> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;

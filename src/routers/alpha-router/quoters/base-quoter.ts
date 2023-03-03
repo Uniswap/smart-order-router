@@ -12,10 +12,16 @@ import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 import { CandidatePoolsBySelectionCriteria } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
-import { GetQuotesResult } from './model/results/get-quotes-result';
-import { GetRoutesResult } from './model/results/get-routes-result';
+import { GetQuotesResult, GetRoutesResult } from './model/results';
 
-export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
+/**
+ * Interface for a Quoter.
+ * Defines the base dependencies, helper methods and interface for how to fetch quotes.
+ *
+ * @abstract
+ * @template Route
+ */
+export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
   protected tokenProvider: ITokenProvider;
   protected chainId: ChainId;
   protected blockedTokenListProvider?: ITokenListProvider;
@@ -33,6 +39,17 @@ export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
     this.tokenValidatorProvider = tokenValidatorProvider;
   }
 
+  /**
+   * Protected method in charge of fetching the routes for the tokenIn/tokenOut pair.
+   *
+   * @protected
+   * @abstract
+   * @param tokenIn The token that the user wants to provide
+   * @param tokenOut The token that the usaw wants to receive
+   * @param tradeType The type of quote the user wants. He could want to provide exactly X tokenIn or receive exactly X tokenOut
+   * @param routingConfig
+   * @returns Promise<GetRoutesResult<Route>>
+   */
   protected abstract getRoutes(
     tokenIn: Token,
     tokenOut: Token,
@@ -40,6 +57,20 @@ export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<Route>>
 
+  /**
+   * Public method that will fetch quotes for the combination of every route and every amount.
+   *
+   * @param routes the list of route that can be used to fetch a quote.
+   * @param amounts the list of amounts to query for EACH route.
+   * @param percents the percentage of each amount.
+   * @param quoteToken
+   * @param tradeType
+   * @param routingConfig
+   * @param candidatePools the candidate pools that were used to generate the routes
+   * @param gasModel the gasModel to be used for estimating gas cost
+   * @param gasPriceWei instead of passing gasModel, gasPriceWei is used to generate a gasModel
+   * @returns Promise<GetQuotesResult<Route>>
+   */
   abstract getQuotes(
     routes: Route[],
     amounts: CurrencyAmount[],
@@ -52,6 +83,19 @@ export abstract class IQuoter<Route extends V2Route | V3Route | MixedRoute> {
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult>
 
+  /**
+   * Public method which would first get the routes and then get the quotes.
+   *
+   * @param tokenIn The token that the user wants to provide
+   * @param tokenOut The token that the usaw wants to receive
+   * @param amounts the list of amounts to query for EACH route.
+   * @param percents the percentage of each amount.
+   * @param quoteToken
+   * @param tradeType
+   * @param routingConfig
+   * @param gasModel the gasModel to be used for estimating gas cost
+   * @param gasPriceWei instead of passing gasModel, gasPriceWei is used to generate a gasModel
+   */
   public getRoutesThenQuotes(
     tokenIn: Token,
     tokenOut: Token,
