@@ -4,7 +4,6 @@ import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { Pair } from '@uniswap/v2-sdk';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
@@ -41,11 +40,7 @@ import {
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
-import {
-  ITokenValidatorProvider,
-  TokenValidationResult,
-  TokenValidatorProvider,
-} from '../../providers/token-validator-provider';
+import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
 import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
@@ -63,13 +58,11 @@ import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../..
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { poolToString, routeToString } from '../../util/routes';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
   MethodParameters,
-  MixedRoute,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapAndAddParameters,
@@ -77,30 +70,22 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
-  V3Route,
 } from '../router';
 
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
-  V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from './entities/route-with-valid-quote';
 import { getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
-import { computeAllMixedRoutes, computeAllV2Routes, computeAllV3Routes } from './functions/compute-all-routes';
-import {
-  CandidatePoolsBySelectionCriteria,
-  getMixedRouteCandidatePools,
-  getV2CandidatePools,
-  getV3CandidatePools,
-  PoolId,
-} from './functions/get-candidate-pools';
+import { CandidatePoolsBySelectionCriteria, PoolId, } from './functions/get-candidate-pools';
 import { IGasModel, IOnChainGasModelFactory, IV2GasModelFactory } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
+import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
 
 export type AlphaRouterParams = {
   /**
@@ -322,6 +307,9 @@ export class AlphaRouter
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
   protected simulator?: Simulator;
+  protected v2Quoter: V2Quoter;
+  protected v3Quoter: V3Quoter;
+  protected mixedQuoter: MixedQuoter;
 
   constructor({
     chainId,
@@ -597,6 +585,41 @@ export class AlphaRouter
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
       );
     }
+
+    // Initialize the Quoters.
+    // Quoters are an abstraction encapsulating the business logic of fetching routes and quotes.
+    this.v2Quoter = new V2Quoter(
+      this.v2SubgraphProvider,
+      this.v2PoolProvider,
+      this.v2QuoteProvider,
+      this.v2GasModelFactory,
+      this.tokenProvider,
+      this.chainId,
+      this.blockedTokenListProvider,
+      this.tokenValidatorProvider
+    );
+
+    this.v3Quoter = new V3Quoter(
+      this.v3SubgraphProvider,
+      this.v3PoolProvider,
+      this.onChainQuoteProvider,
+      this.tokenProvider,
+      this.chainId,
+      this.blockedTokenListProvider,
+      this.tokenValidatorProvider
+    );
+
+    this.mixedQuoter = new MixedQuoter(
+      this.v3SubgraphProvider,
+      this.v3PoolProvider,
+      this.v2SubgraphProvider,
+      this.v2PoolProvider,
+      this.onChainQuoteProvider,
+      this.tokenProvider,
+      this.chainId,
+      this.blockedTokenListProvider,
+      this.tokenValidatorProvider
+    );
   }
 
   public async routeToRatio(
@@ -832,12 +855,13 @@ export class AlphaRouter
 
     const quoteToken = quoteCurrency.wrapped;
 
-    const quotePromises: Promise<{
-      routesWithValidQuotes: RouteWithValidQuote[];
-      candidatePools: CandidatePoolsBySelectionCriteria;
-    }>[] = [];
+    const quotePromises: Promise<GetQuotesResult>[] = [];
 
-    const [v3gasModel, mixedRouteGasModel] = await this.getGasModels(gasPriceWei, amount.currency.wrapped, quoteToken);
+    const [v3gasModel, mixedRouteGasModel] = await this.getGasModels(
+      gasPriceWei,
+      amount.currency.wrapped,
+      quoteToken
+    );
 
     // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,
     // Then create an Array from the values of that Set.
@@ -855,15 +879,15 @@ export class AlphaRouter
     if (v3ProtocolSpecified || noProtocolsSpecified) {
       log.info({ protocols, tradeType }, 'Routing across V3');
       quotePromises.push(
-        this.getV3Quotes(
+        this.v3Quoter.getRoutesThenQuotes(
           tokenIn,
           tokenOut,
           amounts,
           percents,
           quoteToken,
-          v3gasModel,
           tradeType,
-          routingConfig
+          routingConfig,
+          v3gasModel
         )
       );
     }
@@ -872,15 +896,16 @@ export class AlphaRouter
     if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
       log.info({ protocols, tradeType }, 'Routing across V2');
       quotePromises.push(
-        this.getV2Quotes(
+        this.v2Quoter.getRoutesThenQuotes(
           tokenIn,
           tokenOut,
           amounts,
           percents,
           quoteToken,
-          gasPriceWei,
           tradeType,
-          routingConfig
+          routingConfig,
+          undefined,
+          gasPriceWei
         )
       );
     }
@@ -891,15 +916,15 @@ export class AlphaRouter
     if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
       log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
       quotePromises.push(
-        this.getMixedRouteQuotes(
+        this.mixedQuoter.getRoutesThenQuotes(
           tokenIn,
           tokenOut,
           amounts,
           percents,
           quoteToken,
-          mixedRouteGasModel,
           tradeType,
-          routingConfig
+          routingConfig,
+          mixedRouteGasModel
         )
       );
     }
@@ -919,7 +944,9 @@ export class AlphaRouter
         ...allRoutesWithValidQuotes,
         ...routesWithValidQuotes,
       ];
-      allCandidatePools = [...allCandidatePools, candidatePools];
+      if (candidatePools) {
+        allCandidatePools = [...allCandidatePools, candidatePools];
+      }
     }
 
     if (allRoutesWithValidQuotes.length == 0) {
@@ -1070,7 +1097,10 @@ export class AlphaRouter
     gasPriceWei: BigNumber,
     amountToken: Token,
     quoteToken: Token
-  ): Promise<[IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]> {
+  ): Promise<[
+    IGasModel<V3RouteWithValidQuote>,
+    IGasModel<MixedRouteWithValidQuote>
+  ]> {
     const beforeGasModel = Date.now();
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
@@ -1092,7 +1122,10 @@ export class AlphaRouter
       v2poolProvider: this.v2PoolProvider,
     });
 
-    const [v3GasModel, mixedRouteGasModel] = await Promise.all([v3GasModelPromise, mixedRouteGasModelPromise]);
+    const [v3GasModel, mixedRouteGasModel] = await Promise.all([
+      v3GasModelPromise,
+      mixedRouteGasModelPromise
+    ]);
 
     metric.putMetric(
       'GasModelCreation',
@@ -1101,521 +1134,6 @@ export class AlphaRouter
     );
 
     return [v3GasModel, mixedRouteGasModel];
-  }
-
-  private async applyTokenValidatorToPools<T extends Pool | Pair>(
-    pools: T[],
-    isInvalidFn: (
-      token: Currency,
-      tokenValidation: TokenValidationResult | undefined
-    ) => boolean
-  ): Promise<T[]> {
-    if (!this.tokenValidatorProvider) {
-      return pools;
-    }
-
-    log.info(`Running token validator on ${pools.length} pools`);
-
-    const tokens = _.flatMap(pools, (pool) => [pool.token0, pool.token1]);
-
-    const tokenValidationResults =
-      await this.tokenValidatorProvider.validateTokens(tokens);
-
-    const poolsFiltered = _.filter(pools, (pool: T) => {
-      const token0Validation = tokenValidationResults.getValidationByToken(
-        pool.token0
-      );
-      const token1Validation = tokenValidationResults.getValidationByToken(
-        pool.token1
-      );
-
-      const token0Invalid = isInvalidFn(pool.token0, token0Validation);
-      const token1Invalid = isInvalidFn(pool.token1, token1Validation);
-
-      if (token0Invalid || token1Invalid) {
-        log.info(
-          `Dropping pool ${poolToString(pool)} because token is invalid. ${pool.token0.symbol
-          }: ${token0Validation}, ${pool.token1.symbol}: ${token1Validation}`
-        );
-      }
-
-      return !token0Invalid && !token1Invalid;
-    });
-
-    return poolsFiltered;
-  }
-
-  private async getV3Quotes(
-    tokenIn: Token,
-    tokenOut: Token,
-    amounts: CurrencyAmount[],
-    percents: number[],
-    quoteToken: Token,
-    gasModel: IGasModel<V3RouteWithValidQuote>,
-    swapType: TradeType,
-    routingConfig: AlphaRouterConfig
-  ): Promise<{
-    routesWithValidQuotes: V3RouteWithValidQuote[];
-    candidatePools: CandidatePoolsBySelectionCriteria;
-  }> {
-    log.info('Starting to get V3 quotes');
-    // Fetch all the pools that we will consider routing via. There are thousands
-    // of pools, so we filter them to a set of candidate pools that we expect will
-    // result in good prices.
-    const { poolAccessor, candidatePools } = await getV3CandidatePools({
-      tokenIn,
-      tokenOut,
-      tokenProvider: this.tokenProvider,
-      blockedTokenListProvider: this.blockedTokenListProvider,
-      poolProvider: this.v3PoolProvider,
-      routeType: swapType,
-      subgraphProvider: this.v3SubgraphProvider,
-      routingConfig,
-      chainId: this.chainId,
-    });
-    const poolsRaw = poolAccessor.getAllPools();
-
-    // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
-    const pools = await this.applyTokenValidatorToPools(
-      poolsRaw,
-      (
-        token: Currency,
-        tokenValidation: TokenValidationResult | undefined
-      ): boolean => {
-        // If there is no available validation result we assume the token is fine.
-        if (!tokenValidation) {
-          return false;
-        }
-
-        // Only filters out *intermediate* pools that involve tokens that we detect
-        // cant be transferred. This prevents us trying to route through tokens that may
-        // not be transferrable, but allows users to still swap those tokens if they
-        // specify.
-        //
-        if (
-          tokenValidation == TokenValidationResult.STF &&
-          (token.equals(tokenIn) || token.equals(tokenOut))
-        ) {
-          return false;
-        }
-
-        return (
-          tokenValidation == TokenValidationResult.FOT ||
-          tokenValidation == TokenValidationResult.STF
-        );
-      }
-    );
-
-    // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
-    const { maxSwapsPerPath } = routingConfig;
-    const routes = computeAllV3Routes(
-      tokenIn,
-      tokenOut,
-      pools,
-      maxSwapsPerPath
-    );
-
-    if (routes.length == 0) {
-      return { routesWithValidQuotes: [], candidatePools };
-    }
-
-    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
-    const quoteFn =
-      swapType == TradeType.EXACT_INPUT
-        ? this.onChainQuoteProvider.getQuotesManyExactIn.bind(
-          this.onChainQuoteProvider
-        )
-        : this.onChainQuoteProvider.getQuotesManyExactOut.bind(
-          this.onChainQuoteProvider
-        );
-
-    const beforeQuotes = Date.now();
-    log.info(
-      `Getting quotes for V3 for ${routes.length} routes with ${amounts.length} amounts per route.`
-    );
-
-    const { routesWithQuotes } = await quoteFn<V3Route>(amounts, routes, {
-      blockNumber: routingConfig.blockNumber,
-    });
-
-    metric.putMetric(
-      'V3QuotesLoad',
-      Date.now() - beforeQuotes,
-      MetricLoggerUnit.Milliseconds
-    );
-
-    metric.putMetric(
-      'V3QuotesFetched',
-      _(routesWithQuotes)
-        .map(([, quotes]) => quotes.length)
-        .sum(),
-      MetricLoggerUnit.Count
-    );
-
-    const routesWithValidQuotes = [];
-
-    for (const routeWithQuote of routesWithQuotes) {
-      const [route, quotes] = routeWithQuote;
-
-      for (let i = 0; i < quotes.length; i++) {
-        const percent = percents[i]!;
-        const amountQuote = quotes[i]!;
-        const {
-          quote,
-          amount,
-          sqrtPriceX96AfterList,
-          initializedTicksCrossedList,
-          gasEstimate,
-        } = amountQuote;
-
-        if (
-          !quote ||
-          !sqrtPriceX96AfterList ||
-          !initializedTicksCrossedList ||
-          !gasEstimate
-        ) {
-          log.debug(
-            {
-              route: routeToString(route),
-              amountQuote,
-            },
-            'Dropping a null V3 quote for route.'
-          );
-          continue;
-        }
-
-        const routeWithValidQuote = new V3RouteWithValidQuote({
-          route,
-          rawQuote: quote,
-          amount,
-          percent,
-          sqrtPriceX96AfterList,
-          initializedTicksCrossedList,
-          quoterGasEstimate: gasEstimate,
-          gasModel,
-          quoteToken,
-          tradeType: swapType,
-          v3PoolProvider: this.v3PoolProvider,
-        });
-
-        routesWithValidQuotes.push(routeWithValidQuote);
-      }
-    }
-
-    return { routesWithValidQuotes, candidatePools };
-  }
-
-  private async getV2Quotes(
-    tokenIn: Token,
-    tokenOut: Token,
-    amounts: CurrencyAmount[],
-    percents: number[],
-    quoteToken: Token,
-    gasPriceWei: BigNumber,
-    swapType: TradeType,
-    routingConfig: AlphaRouterConfig
-  ): Promise<{
-    routesWithValidQuotes: V2RouteWithValidQuote[];
-    candidatePools: CandidatePoolsBySelectionCriteria;
-  }> {
-    log.info('Starting to get V2 quotes');
-    // Fetch all the pools that we will consider routing via. There are thousands
-    // of pools, so we filter them to a set of candidate pools that we expect will
-    // result in good prices.
-    const { poolAccessor, candidatePools } = await getV2CandidatePools({
-      tokenIn,
-      tokenOut,
-      tokenProvider: this.tokenProvider,
-      blockedTokenListProvider: this.blockedTokenListProvider,
-      poolProvider: this.v2PoolProvider,
-      routeType: swapType,
-      subgraphProvider: this.v2SubgraphProvider,
-      routingConfig,
-      chainId: this.chainId,
-    });
-    const poolsRaw = poolAccessor.getAllPools();
-
-    // Drop any pools that contain tokens that can not be transferred according to the token validator.
-    const pools = await this.applyTokenValidatorToPools(
-      poolsRaw,
-      (
-        token: Currency,
-        tokenValidation: TokenValidationResult | undefined
-      ): boolean => {
-        // If there is no available validation result we assume the token is fine.
-        if (!tokenValidation) {
-          return false;
-        }
-
-        // Only filters out *intermediate* pools that involve tokens that we detect
-        // cant be transferred. This prevents us trying to route through tokens that may
-        // not be transferrable, but allows users to still swap those tokens if they
-        // specify.
-        if (
-          tokenValidation == TokenValidationResult.STF &&
-          (token.equals(tokenIn) || token.equals(tokenOut))
-        ) {
-          return false;
-        }
-
-        return tokenValidation == TokenValidationResult.STF;
-      }
-    );
-
-    // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
-    const { maxSwapsPerPath } = routingConfig;
-    const routes = computeAllV2Routes(
-      tokenIn,
-      tokenOut,
-      pools,
-      maxSwapsPerPath
-    );
-
-    if (routes.length == 0) {
-      return { routesWithValidQuotes: [], candidatePools };
-    }
-
-    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
-    const quoteFn =
-      swapType == TradeType.EXACT_INPUT
-        ? this.v2QuoteProvider.getQuotesManyExactIn.bind(this.v2QuoteProvider)
-        : this.v2QuoteProvider.getQuotesManyExactOut.bind(this.v2QuoteProvider);
-
-    const beforeQuotes = Date.now();
-
-    log.info(
-      `Getting quotes for V2 for ${routes.length} routes with ${amounts.length} amounts per route.`
-    );
-    const { routesWithQuotes } = await quoteFn(amounts, routes);
-
-    const V2gasModel = await this.v2GasModelFactory.buildGasModel({
-      chainId: this.chainId,
-      gasPriceWei,
-      poolProvider: this.v2PoolProvider,
-      token: quoteToken,
-    });
-
-    metric.putMetric(
-      'V2QuotesLoad',
-      Date.now() - beforeQuotes,
-      MetricLoggerUnit.Milliseconds
-    );
-
-    metric.putMetric(
-      'V2QuotesFetched',
-      _(routesWithQuotes)
-        .map(([, quotes]) => quotes.length)
-        .sum(),
-      MetricLoggerUnit.Count
-    );
-
-    const routesWithValidQuotes = [];
-
-    for (const routeWithQuote of routesWithQuotes) {
-      const [route, quotes] = routeWithQuote;
-
-      for (let i = 0; i < quotes.length; i++) {
-        const percent = percents[i]!;
-        const amountQuote = quotes[i]!;
-        const { quote, amount } = amountQuote;
-
-        if (!quote) {
-          log.debug(
-            {
-              route: routeToString(route),
-              amountQuote,
-            },
-            'Dropping a null V2 quote for route.'
-          );
-          continue;
-        }
-
-        const routeWithValidQuote = new V2RouteWithValidQuote({
-          route,
-          rawQuote: quote,
-          amount,
-          percent,
-          gasModel: V2gasModel,
-          quoteToken,
-          tradeType: swapType,
-          v2PoolProvider: this.v2PoolProvider,
-        });
-
-        routesWithValidQuotes.push(routeWithValidQuote);
-      }
-    }
-
-    return { routesWithValidQuotes, candidatePools };
-  }
-
-  private async getMixedRouteQuotes(
-    tokenIn: Token,
-    tokenOut: Token,
-    amounts: CurrencyAmount[],
-    percents: number[],
-    quoteToken: Token,
-    mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
-    swapType: TradeType,
-    routingConfig: AlphaRouterConfig
-  ): Promise<{
-    routesWithValidQuotes: MixedRouteWithValidQuote[];
-    candidatePools: CandidatePoolsBySelectionCriteria;
-  }> {
-    log.info('Starting to get mixed quotes');
-
-    if (swapType != TradeType.EXACT_INPUT) {
-      throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
-    }
-
-    const {
-      V2poolAccessor,
-      V3poolAccessor,
-      candidatePools: mixedRouteCandidatePools,
-    } = await getMixedRouteCandidatePools({
-      tokenIn,
-      tokenOut,
-      tokenProvider: this.tokenProvider,
-      blockedTokenListProvider: this.blockedTokenListProvider,
-      v3poolProvider: this.v3PoolProvider,
-      v2poolProvider: this.v2PoolProvider,
-      routeType: swapType,
-      v3subgraphProvider: this.v3SubgraphProvider,
-      v2subgraphProvider: this.v2SubgraphProvider,
-      routingConfig,
-      chainId: this.chainId,
-    });
-
-    const V3poolsRaw = V3poolAccessor.getAllPools();
-    const V2poolsRaw = V2poolAccessor.getAllPools();
-
-    const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
-
-    const candidatePools = mixedRouteCandidatePools;
-
-    // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
-    const pools = await this.applyTokenValidatorToPools(
-      poolsRaw,
-      (
-        token: Currency,
-        tokenValidation: TokenValidationResult | undefined
-      ): boolean => {
-        // If there is no available validation result we assume the token is fine.
-        if (!tokenValidation) {
-          return false;
-        }
-
-        // Only filters out *intermediate* pools that involve tokens that we detect
-        // cant be transferred. This prevents us trying to route through tokens that may
-        // not be transferrable, but allows users to still swap those tokens if they
-        // specify.
-        //
-        if (
-          tokenValidation == TokenValidationResult.STF &&
-          (token.equals(tokenIn) || token.equals(tokenOut))
-        ) {
-          return false;
-        }
-
-        return (
-          tokenValidation == TokenValidationResult.FOT ||
-          tokenValidation == TokenValidationResult.STF
-        );
-      }
-    );
-
-    const { maxSwapsPerPath } = routingConfig;
-
-    const routes = computeAllMixedRoutes(
-      tokenIn,
-      tokenOut,
-      pools,
-      maxSwapsPerPath
-    );
-
-    if (routes.length == 0) {
-      return { routesWithValidQuotes: [], candidatePools };
-    }
-
-    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
-    const quoteFn = this.onChainQuoteProvider.getQuotesManyExactIn.bind(
-      this.onChainQuoteProvider
-    );
-
-    const beforeQuotes = Date.now();
-    log.info(
-      `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`
-    );
-
-    const { routesWithQuotes } = await quoteFn<MixedRoute>(amounts, routes, {
-      blockNumber: routingConfig.blockNumber,
-    });
-
-    metric.putMetric(
-      'MixedQuotesLoad',
-      Date.now() - beforeQuotes,
-      MetricLoggerUnit.Milliseconds
-    );
-
-    metric.putMetric(
-      'MixedQuotesFetched',
-      _(routesWithQuotes)
-        .map(([, quotes]) => quotes.length)
-        .sum(),
-      MetricLoggerUnit.Count
-    );
-
-    const routesWithValidQuotes = [];
-
-    for (const routeWithQuote of routesWithQuotes) {
-      const [route, quotes] = routeWithQuote;
-
-      for (let i = 0; i < quotes.length; i++) {
-        const percent = percents[i]!;
-        const amountQuote = quotes[i]!;
-        const {
-          quote,
-          amount,
-          sqrtPriceX96AfterList,
-          initializedTicksCrossedList,
-          gasEstimate,
-        } = amountQuote;
-
-        if (
-          !quote ||
-          !sqrtPriceX96AfterList ||
-          !initializedTicksCrossedList ||
-          !gasEstimate
-        ) {
-          log.debug(
-            {
-              route: routeToString(route),
-              amountQuote,
-            },
-            'Dropping a null mixed quote for route.'
-          );
-          continue;
-        }
-
-        const routeWithValidQuote = new MixedRouteWithValidQuote({
-          route,
-          rawQuote: quote,
-          amount,
-          percent,
-          sqrtPriceX96AfterList,
-          initializedTicksCrossedList,
-          quoterGasEstimate: gasEstimate,
-          mixedRouteGasModel,
-          quoteToken,
-          tradeType: swapType,
-          v3PoolProvider: this.v3PoolProvider,
-          v2PoolProvider: this.v2PoolProvider,
-        });
-
-        routesWithValidQuotes.push(routeWithValidQuote);
-      }
-    }
-
-    return { routesWithValidQuotes, candidatePools };
   }
 
   // Note multiplications here can result in a loss of precision in the amounts (e.g. taking 50% of 101)
