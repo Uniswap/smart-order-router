@@ -1,4 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
+import { Token } from '@uniswap/sdk-core';
 
 import { MixedRoute, V2Route, V3Route } from '../../../../routers';
 
@@ -9,30 +10,46 @@ import { MixedRoute, V2Route, V3Route } from '../../../../routers';
  * @class CachedRoute
  */
 export class CachedRoute<Route extends V3Route | V2Route | MixedRoute> {
-  public route: Route;
-  public percent: number;
+  private readonly _route: Route;
+  private readonly _percent: number;
 
   constructor(
     route: Route,
     percent: number,
   ) {
-    this.route = route;
-    this.percent = percent;
+    this._route = route;
+    this._percent = percent;
   }
 
-  public protocol(): Protocol {
+  public get route(): Route {
+    return this._route;
+  }
+
+  public get percent(): number {
+    return this._percent;
+  }
+
+  public get protocol(): Protocol {
     return this.route.protocol;
   }
 
-  public chainId(): number {
+  public get chainId(): number {
     return this.route.input.chainId;
   }
 
-  public tokenIn(): string {
-    return this.route.input.address;
+  public get tokenIn(): Token {
+    return this.route.input;
   }
 
-  public tokenOut(): string {
-    return this.route.output.address;
+  public get tokenOut(): Token {
+    return this.route.output;
+  }
+
+  public get tokenPairSymbol(): string {
+    return `${this.tokenIn.symbol}/${this.tokenOut.symbol}`;
+  }
+
+  public get tokenPairSymbolChainId(): string {
+    return `${this.tokenPairSymbol}/${this.chainId}`;
   }
 }

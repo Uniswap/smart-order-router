@@ -1,9 +1,11 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { TradeType } from '@uniswap/sdk-core';
+import { Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { MixedRoute, RouteWithValidQuote, V2Route, V3Route } from '../../../../routers';
+import { ChainId } from '../../../../util';
 
+import { CacheMode } from './cache-mode';
 import { CachedRoute } from './cached-route';
 
 /**
@@ -13,33 +15,95 @@ import { CachedRoute } from './cached-route';
  * @class CachedRoute
  */
 export class CachedRoutes {
-  public routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
-  public protocolsCovered: Protocol[];
-  public blockNumber: number;
-  public tradeType: TradeType;
+  private readonly _routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
+  private readonly _chainId: ChainId;
+  private readonly _tokenIn: Token;
+  private readonly _tokenOut: Token;
+  private readonly _protocolsCovered: Protocol[];
+  private readonly _blockNumber: number;
+  private _blocksToLive = 0;
+  private readonly _tradeType: TradeType;
+  private _cacheMode: CacheMode = CacheMode.Darkmode;
 
   constructor(
     routes: CachedRoute<V3Route | V2Route | MixedRoute>[],
+    chainId: ChainId,
+    tokenIn: Token,
+    tokenOut: Token,
     protocolsCovered: Protocol[],
     blockNumber: number,
-    tradeType: TradeType
+    tradeType: TradeType,
   ) {
-    this.routes = routes;
-    this.protocolsCovered = protocolsCovered;
-    this.blockNumber = blockNumber;
-    this.tradeType = tradeType;
+    this._routes = routes;
+    this._chainId = chainId;
+    this._tokenIn = tokenIn;
+    this._tokenOut = tokenOut;
+    this._protocolsCovered = protocolsCovered;
+    this._blockNumber = blockNumber;
+    this._tradeType = tradeType;
+  }
+
+  public get routes(): CachedRoute<V3Route | V2Route | MixedRoute>[] {
+    return this._routes;
+  }
+
+  public get chainId(): ChainId {
+    return this._chainId;
+  }
+
+  public get tokenIn(): Token {
+    return this._tokenIn;
+  }
+
+  public get tokenOut(): Token {
+    return this._tokenOut;
+  }
+
+  public get protocolsCovered(): Protocol[] {
+    return this._protocolsCovered;
+  }
+
+  public get blockNumber(): number {
+    return this._blockNumber;
+  }
+
+  public get tradeType(): TradeType {
+    return this._tradeType;
+  }
+
+  public get blocksToLive(): number {
+    return this._blocksToLive;
+  }
+
+  public set blocksToLive(blocksToLive: number) {
+    this._blocksToLive = blocksToLive;
+  }
+
+  public get cacheMode(): CacheMode {
+    return this._cacheMode;
+  }
+
+  public set cacheMode(cacheMode: CacheMode) {
+    this._cacheMode = cacheMode;
   }
 
   public static fromRoutesWithValidQuotes(
     routes: RouteWithValidQuote[],
+    chainId: ChainId,
+    tokenIn: Token,
+    tokenOut: Token,
     protocolsCovered: Protocol[],
     blockNumber: number,
-    tradeType: TradeType
+    tradeType: TradeType,
   ): CachedRoutes {
     const cachedRoutes = _.map(routes, (route: RouteWithValidQuote) =>
       new CachedRoute(route.route, route.percent)
     );
 
-    return new CachedRoutes(cachedRoutes, protocolsCovered, blockNumber, tradeType);
+    return new CachedRoutes(cachedRoutes, chainId, tokenIn, tokenOut, protocolsCovered, blockNumber, tradeType);
+  }
+
+  public notExpired(currentBlockNumber: number): boolean {
+    return (currentBlockNumber - this.blockNumber) < this.blocksToLive;
   }
 }
