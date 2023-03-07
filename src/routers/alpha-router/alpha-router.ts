@@ -842,7 +842,7 @@ export class AlphaRouter
 
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
-    const blockNumber = await (partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise());
+    const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {},
@@ -870,6 +870,13 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
+    const cacheMode = this.routeCachingProvider?.getCacheMode(
+      this.chainId,
+      tokenIn.address,
+      tokenOut.address,
+      tradeType
+    );
+
     // Fetch CachedRoutes
     const cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
       this.chainId,
@@ -877,12 +884,18 @@ export class AlphaRouter
       quoteToken,
       tradeType,
       protocols,
-      blockNumber
+      await blockNumber
     );
+
+    if (cacheMode != CacheMode.Darkmode && !cachedRoutes) {
+      // TODO: track Cache Miss metrics
+    } else if (cachedRoutes) {
+      // TODO: track Cache Hit metrics
+    }
 
     const swapRouteFromCachePromise = cachedRoutes ? this.getSwapRouteFromCache(
       cachedRoutes,
-      blockNumber,
+      await blockNumber,
       amount,
       quoteToken,
       tradeType,
@@ -891,13 +904,6 @@ export class AlphaRouter
       mixedRouteGasModel,
       gasPriceWei
     ) : Promise.resolve(null);
-
-    const cacheMode = this.routeCachingProvider?.getCacheMode(
-      this.chainId,
-      tokenIn.address,
-      tokenOut.address,
-      tradeType
-    );
 
     const shouldMaterializeRouteFromChain = !cachedRoutes || cacheMode != CacheMode.Livemode;
 
@@ -923,7 +929,7 @@ export class AlphaRouter
 
     switch (cacheMode) {
       case CacheMode.Tapcompare:
-        //compare
+        // TODO: Compare quote from both routes
         break;
       case CacheMode.Livemode:
         // If Cache is livemode, use the swapRouteFromCache
