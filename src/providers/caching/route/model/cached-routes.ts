@@ -5,7 +5,6 @@ import _ from 'lodash';
 import { MixedRoute, RouteWithValidQuote, V2Route, V3Route } from '../../../../routers';
 import { ChainId } from '../../../../util';
 
-import { CacheMode } from './cache-mode';
 import { CachedRoute } from './cached-route';
 
 /**
@@ -23,7 +22,6 @@ export class CachedRoutes {
   private readonly _blockNumber: number;
   private _blocksToLive = 0;
   private readonly _tradeType: TradeType;
-  private _cacheMode: CacheMode = CacheMode.Darkmode;
 
   constructor(
     routes: CachedRoute<V3Route | V2Route | MixedRoute>[],
@@ -77,14 +75,6 @@ export class CachedRoutes {
 
   public set blocksToLive(blocksToLive: number) {
     this._blocksToLive = blocksToLive;
-  }
-
-  public get cacheMode(): CacheMode {
-    return this._cacheMode;
-  }
-
-  public set cacheMode(cacheMode: CacheMode) {
-    this._cacheMode = cacheMode;
   }
 
   public static fromRoutesWithValidQuotes(

@@ -7,6 +7,8 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core';
 
+import { ChainId } from '../../../util';
+
 import { CacheMode } from './model';
 import { CachedRoutes } from './model/cached-routes';
 
@@ -32,7 +34,6 @@ export abstract class IRouteCachingProvider {
   }
 
   public readonly setCachedRoute = (cachedRoutes: CachedRoutes): Promise<boolean> => {
-    cachedRoutes.cacheMode = this._getCacheMode(cachedRoutes);
     cachedRoutes.blocksToLive = this._getBlocksToLive(cachedRoutes);
 
     return this._setCachedRoute(cachedRoutes);
@@ -41,6 +42,8 @@ export abstract class IRouteCachingProvider {
   /**
    * Abstract Methods
    */
+  public abstract getCacheMode(chainId: ChainId, tokenIn: string, tokenOut: string, tradeType: TradeType): CacheMode
+
   protected abstract _getCachedRoute(
     chainId: number,
     amount: CurrencyAmount<Currency>,
@@ -52,8 +55,6 @@ export abstract class IRouteCachingProvider {
 
 
   protected abstract _setCachedRoute(cachedRoutes: CachedRoutes): Promise<boolean>
-
-  protected abstract _getCacheMode(cachedRoutes: CachedRoutes): CacheMode
 
   protected abstract _getBlocksToLive(cachedRoutes: CachedRoutes): number
 
