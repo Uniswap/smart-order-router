@@ -925,16 +925,10 @@ export class AlphaRouter
       swapRouteFromChainPromise
     ]);
 
-    let swapRouteRaw = swapRouteFromChain;
+    const swapRouteRaw = (cacheMode == CacheMode.Livemode && swapRouteFromCache) ? swapRouteFromCache : swapRouteFromChain;
 
-    switch (cacheMode) {
-      case CacheMode.Tapcompare:
-        // TODO: Compare quote from both routes
-        break;
-      case CacheMode.Livemode:
-        // If Cache is livemode, use the swapRouteFromCache
-        swapRouteRaw = swapRouteFromCache;
-        break;
+    if (cacheMode == CacheMode.Tapcompare) {
+      // TODO: Compare quote from both routes
     }
 
     if (!swapRouteRaw) {
@@ -950,10 +944,10 @@ export class AlphaRouter
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    if (this.routeCachingProvider && (!swapRouteFromCache || cacheMode != CacheMode.Livemode)) {
+    if (this.routeCachingProvider && cacheMode != CacheMode.Darkmode && swapRouteFromChain) {
       // Generate the object to be cached
       const routesToCache: CachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
-        routeAmounts,
+        swapRouteFromChain.routes,
         this.chainId,
         tokenIn,
         tokenOut,
@@ -965,7 +959,7 @@ export class AlphaRouter
       // Attempt to insert the entry in cache. This is fire and forget promise.
       // The catch method will prevent any exception from blocking the normal code execution.
       this.routeCachingProvider.setCachedRoute(routesToCache).then(() => {
-        // add metrics
+        // TODO: add metrics of cache insertion
       }).catch(() => undefined);
     }
 
