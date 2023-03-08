@@ -888,9 +888,17 @@ export class AlphaRouter
     );
 
     if (cacheMode != CacheMode.Darkmode && !cachedRoutes) {
-      // TODO: track Cache Miss metrics
+      metric.putMetric(
+        `GetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_miss`,
+        1,
+        MetricLoggerUnit.Count
+      );
     } else if (cachedRoutes) {
-      // TODO: track Cache Hit metrics
+      metric.putMetric(
+        `GetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_hit`,
+        1,
+        MetricLoggerUnit.Count
+      );
     }
 
     const swapRouteFromCachePromise = cachedRoutes ? this.getSwapRouteFromCache(
@@ -927,8 +935,29 @@ export class AlphaRouter
 
     const swapRouteRaw = (cacheMode == CacheMode.Livemode && swapRouteFromCache) ? swapRouteFromCache : swapRouteFromChain;
 
-    if (cacheMode == CacheMode.Tapcompare) {
-      // TODO: Compare quote from both routes
+    if (cacheMode == CacheMode.Tapcompare && swapRouteFromCache && swapRouteFromChain) {
+      const quoteDiff = swapRouteFromChain.quote.subtract(swapRouteFromCache.quote);
+      const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
+
+      log.info(
+        {
+          quoteFromChain: swapRouteFromChain.quote.toExact(),
+          quoteFromCache: swapRouteFromCache.quote.toExact(),
+          quoteDiff: quoteDiff.toExact(),
+          gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
+          gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
+          gasUsedDiff: gasUsedDiff.toString(),
+          routesFromChain: swapRouteFromChain.routes.toString(),
+          routesFromCache: swapRouteFromCache.routes.toString(),
+          amount: amount.toExact(),
+          pair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)
+        },
+        `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
+          tokenIn,
+          tokenOut,
+          tradeType
+        )}`
+      );
     }
 
     if (!swapRouteRaw) {
@@ -958,8 +987,13 @@ export class AlphaRouter
 
       // Attempt to insert the entry in cache. This is fire and forget promise.
       // The catch method will prevent any exception from blocking the normal code execution.
-      this.routeCachingProvider.setCachedRoute(routesToCache).then(() => {
-        // TODO: add metrics of cache insertion
+      this.routeCachingProvider.setCachedRoute(routesToCache).then((success) => {
+        const status = success ? 'success' : 'failure';
+        metric.putMetric(
+          `SetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_${status}`,
+          1,
+          MetricLoggerUnit.Count
+        );
       }).catch(() => undefined);
     }
 
@@ -1264,6 +1298,11 @@ export class AlphaRouter
     });
 
     return swapRouteRawPromise;
+  }
+
+  private tokenPairSymbolTradeTypeChainId(tokenIn: Token, tokenOut: Token, tradeType: TradeType) {
+    const tradeTypeStr = tradeType == TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut';
+    return `${tokenIn.symbol}/${tokenOut.symbol}/${tradeTypeStr}/${this.chainId}`;
   }
 
   private determineCurrencyInOutFromTradeType(tradeType: TradeType, amount: CurrencyAmount, quoteCurrency: Currency) {
