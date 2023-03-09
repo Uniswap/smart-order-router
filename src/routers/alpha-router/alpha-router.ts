@@ -872,10 +872,10 @@ export class AlphaRouter
 
     const cacheMode = this.routeCachingProvider?.getCacheMode(
       this.chainId,
-      tokenIn.address,
-      tokenOut.address,
+      amount,
+      quoteToken,
       tradeType,
-      amount
+      protocols
     );
 
     // Fetch CachedRoutes

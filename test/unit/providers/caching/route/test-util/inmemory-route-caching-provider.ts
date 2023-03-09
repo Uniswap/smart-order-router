@@ -16,7 +16,7 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
   }
 
   protected _getCachedRoute(
-    chainId: number,
+    chainId: ChainId,
     amount: CurrencyAmount<Currency>,
     quoteToken: Token,
     tradeType: TradeType,
@@ -42,10 +42,10 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
 
   getCacheMode(
     _chainId: ChainId,
-    _tokenIn: string,
-    _tokenOut: string,
+    _amount: CurrencyAmount<Currency>,
+    _quoteToken: Token,
     _tradeType: TradeType,
-    _amount: CurrencyAmount<Currency>
+    _protocols: Protocol[]
   ): CacheMode {
     return this.cacheMode;
   }

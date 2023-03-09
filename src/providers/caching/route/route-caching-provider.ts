@@ -71,10 +71,10 @@ export abstract class IRouteCachingProvider {
    */
   public abstract getCacheMode(
     chainId: ChainId,
-    tokenIn: string,
-    tokenOut: string,
+    amount: CurrencyAmount<Currency>,
+    quoteToken: Token,
     tradeType: TradeType,
-    amount: CurrencyAmount<Currency>
+    protocols: Protocol[]
   ): CacheMode
 
   private filterExpiredCachedRoutes(
@@ -96,7 +96,7 @@ export abstract class IRouteCachingProvider {
    * @protected
    */
   protected abstract _getCachedRoute(
-    chainId: number,
+    chainId: ChainId,
     amount: CurrencyAmount<Currency>,
     quoteToken: Token,
     tradeType: TradeType,
