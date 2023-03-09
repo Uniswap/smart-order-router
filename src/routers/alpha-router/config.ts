@@ -8,6 +8,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
   switch (chainId) {
     // Optimism
     case ChainId.OPTIMISM:
+    case ChainId.OPTIMISM_GOERLI:
     case ChainId.OPTIMISTIC_KOVAN:
       return {
         v2PoolSelection: {

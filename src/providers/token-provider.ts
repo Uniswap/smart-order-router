@@ -222,6 +222,35 @@ export const DAI_OPTIMISM = new Token(
   'Dai Stablecoin'
 );
 
+export const USDC_OPTIMISM_GOERLI = new Token(
+  ChainId.OPTIMISM_GOERLI,
+  '0x7E07E15D2a87A24492740D16f5bdF58c16db0c4E',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_OPTIMISM_GOERLI = new Token(
+  ChainId.OPTIMISM_GOERLI,
+  '0x853eb4bA5D0Ba2B77a0A5329Fd2110d5CE149ECE',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_OPTIMISM_GOERLI = new Token(
+  ChainId.OPTIMISM_GOERLI,
+  '0xe0a592353e81a94Db6E3226fD4A99F881751776a',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_OPTIMISM_GOERLI = new Token(
+  ChainId.OPTIMISM_GOERLI,
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 export const USDC_OPTIMISTIC_KOVAN = new Token(
   ChainId.OPTIMISTIC_KOVAN,
   '0x3b8e53b3ab8e01fb57d0c9e893bc4d655aa67d84',
@@ -686,6 +715,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_KOVAN;
     case ChainId.OPTIMISM:
       return DAI_OPTIMISM;
+    case ChainId.OPTIMISM_GOERLI:
+      return DAI_OPTIMISM_GOERLI;
     case ChainId.OPTIMISTIC_KOVAN:
       return DAI_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
@@ -725,6 +756,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_KOVAN;
     case ChainId.OPTIMISM:
       return USDT_OPTIMISM;
+    case ChainId.OPTIMISM_GOERLI:
+      return USDT_OPTIMISM_GOERLI;
     case ChainId.OPTIMISTIC_KOVAN:
       return USDT_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
@@ -752,6 +785,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_KOVAN;
     case ChainId.OPTIMISM:
       return USDC_OPTIMISM;
+    case ChainId.OPTIMISM_GOERLI:
+      return USDC_OPTIMISM_GOERLI;
     case ChainId.OPTIMISTIC_KOVAN:
       return USDC_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
