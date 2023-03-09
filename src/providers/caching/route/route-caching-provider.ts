@@ -19,7 +19,6 @@ import { CachedRoutes } from './model/cached-routes';
 export abstract class IRouteCachingProvider {
   /**
    * Final implementation of the public `getCachedRoute` method, this is how code will interact with the implementation
-   * This function is defined as a readonly member instead of a traditional function to make sure that it is final.
    *
    * @public
    * @readonly
@@ -30,7 +29,7 @@ export abstract class IRouteCachingProvider {
    * @param protocols
    * @param blockNumber
    */
-  public readonly getCachedRoute = (
+  public readonly getCachedRoute = ( // Defined as a readonly member instead of a regular function to make it final.
     chainId: number,
     amount: CurrencyAmount<Currency>,
     quoteToken: Token,
@@ -53,6 +52,7 @@ export abstract class IRouteCachingProvider {
    * @returns Promise<boolean> Indicates if the route was inserted into cache.
    */
   public readonly setCachedRoute = (cachedRoutes: CachedRoutes): Promise<boolean> => {
+    // Defined as a readonly member instead of a regular function to make it final.
     cachedRoutes.blocksToLive = this._getBlocksToLive(cachedRoutes);
 
     return this._setCachedRoute(cachedRoutes);

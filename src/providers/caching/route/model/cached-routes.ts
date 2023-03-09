@@ -23,7 +23,7 @@ export class CachedRoutes {
   private _blocksToLive = 0;
   private readonly _tradeType: TradeType;
 
-  constructor(
+  private constructor(
     routes: CachedRoute<V3Route | V2Route | MixedRoute>[],
     chainId: ChainId,
     tokenIn: Token,
@@ -77,6 +77,19 @@ export class CachedRoutes {
     this._blocksToLive = blocksToLive;
   }
 
+  /**
+   * Factory method that creates a `CachedRoutes` object from an array of RouteWithValidQuote.
+   *
+   * @public
+   * @static
+   * @param routes
+   * @param chainId
+   * @param tokenIn
+   * @param tokenOut
+   * @param protocolsCovered
+   * @param blockNumber
+   * @param tradeType
+   */
   public static fromRoutesWithValidQuotes(
     routes: RouteWithValidQuote[],
     chainId: ChainId,
@@ -85,7 +98,9 @@ export class CachedRoutes {
     protocolsCovered: Protocol[],
     blockNumber: number,
     tradeType: TradeType,
-  ): CachedRoutes {
+  ): CachedRoutes | undefined {
+    if (routes.length == 0) return undefined;
+
     const cachedRoutes = _.map(routes, (route: RouteWithValidQuote) =>
       new CachedRoute(route.route, route.percent)
     );
@@ -93,7 +108,12 @@ export class CachedRoutes {
     return new CachedRoutes(cachedRoutes, chainId, tokenIn, tokenOut, protocolsCovered, blockNumber, tradeType);
   }
 
+  /**
+   * Function to determine if, given a block number, the CachedRoute is expired or not.
+   *
+   * @param currentBlockNumber
+   */
   public notExpired(currentBlockNumber: number): boolean {
-    return (currentBlockNumber - this.blockNumber) < this.blocksToLive;
+    return (currentBlockNumber - this.blockNumber) <= this.blocksToLive;
   }
 }
