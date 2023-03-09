@@ -1,56 +1,9 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core';
-import { ChainId, DAI_MAINNET as DAI, USDC_MAINNET as USDC, WBTC_MAINNET as WBTC } from '../../../../../build/main';
-import { CachedRoutes, CacheMode, IRouteCachingProvider } from '../../../../../src';
+import { CurrencyAmount, TradeType } from '@uniswap/sdk-core';
+import { DAI_MAINNET as DAI, USDC_MAINNET as USDC, WBTC_MAINNET as WBTC } from '../../../../../build/main';
+import { CachedRoutes } from '../../../../../src';
+import { InMemoryRouteCachingProvider } from './test-util/inmemory-route-caching-provider';
 import { getCachedRoutesStub } from './test-util/mocked-dependencies';
-
-class InMemoryRouteCachingProvider extends IRouteCachingProvider {
-  public routesCache: Map<string, CachedRoutes> = new Map();
-  public blocksToLive: number = 1;
-  public cacheMode: CacheMode = CacheMode.Darkmode;
-  public forceFail: boolean = false;
-  public internalGetCacheRouteCalls: number = 0;
-  public internalSetCacheRouteCalls: number = 0;
-
-  protected _getBlocksToLive(_cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): number {
-    return this.blocksToLive;
-  }
-
-  protected _getCachedRoute(
-    chainId: number,
-    amount: CurrencyAmount<Currency>,
-    quoteToken: Token,
-    tradeType: TradeType,
-    protocols: Protocol[]
-  ): Promise<CachedRoutes | undefined> {
-    this.internalGetCacheRouteCalls += 1;
-
-    const cacheKey = `${amount.currency.wrapped.symbol}/${quoteToken.symbol}/${chainId}/${tradeType}/${protocols.sort}`;
-
-    return Promise.resolve(this.routesCache.get(cacheKey));
-  }
-
-  protected _setCachedRoute(cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): Promise<boolean> {
-    this.internalSetCacheRouteCalls += 1;
-
-    if (this.forceFail) return Promise.resolve(false);
-
-    const cacheKey = `${cachedRoutes.tokenIn.symbol}/${cachedRoutes.tokenOut.symbol}/${cachedRoutes.chainId}/${cachedRoutes.tradeType}/${cachedRoutes.protocolsCovered.sort}`;
-    this.routesCache.set(cacheKey, cachedRoutes);
-
-    return Promise.resolve(true);
-  }
-
-  getCacheMode(
-    _chainId: ChainId,
-    _tokenIn: string,
-    _tokenOut: string,
-    _tradeType: TradeType,
-    _amount: CurrencyAmount<Currency>
-  ): CacheMode {
-    return this.cacheMode;
-  }
-}
 
 describe('RouteCachingProvider', () => {
   let routeCachingProvider: InMemoryRouteCachingProvider;
