@@ -9,23 +9,15 @@ import { MixedRoute, V2Route, V3Route } from '../../../../routers';
  * @class CachedRoute
  */
 export class CachedRoute<Route extends V3Route | V2Route | MixedRoute> {
-  private readonly _route: Route;
-  private readonly _percent: number;
+  public readonly route: Route;
+  public readonly percent: number;
 
   constructor(
     route: Route,
     percent: number,
   ) {
-    this._route = route;
-    this._percent = percent;
-  }
-
-  public get route(): Route {
-    return this._route;
-  }
-
-  public get percent(): number {
-    return this._percent;
+    this.route = route;
+    this.percent = percent;
   }
 
   public get protocol(): Protocol {
