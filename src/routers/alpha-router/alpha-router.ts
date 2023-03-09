@@ -874,7 +874,8 @@ export class AlphaRouter
       this.chainId,
       tokenIn.address,
       tokenOut.address,
-      tradeType
+      tradeType,
+      amount
     );
 
     // Fetch CachedRoutes
@@ -975,7 +976,7 @@ export class AlphaRouter
 
     if (this.routeCachingProvider && cacheMode != CacheMode.Darkmode && swapRouteFromChain) {
       // Generate the object to be cached
-      const routesToCache: CachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
+      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
         swapRouteFromChain.routes,
         this.chainId,
         tokenIn,
@@ -985,16 +986,18 @@ export class AlphaRouter
         tradeType
       );
 
-      // Attempt to insert the entry in cache. This is fire and forget promise.
-      // The catch method will prevent any exception from blocking the normal code execution.
-      this.routeCachingProvider.setCachedRoute(routesToCache).then((success) => {
-        const status = success ? 'success' : 'failure';
-        metric.putMetric(
-          `SetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_${status}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }).catch(() => undefined);
+      if (routesToCache) {
+        // Attempt to insert the entry in cache. This is fire and forget promise.
+        // The catch method will prevent any exception from blocking the normal code execution.
+        this.routeCachingProvider.setCachedRoute(routesToCache, amount).then((success) => {
+          const status = success ? 'success' : 'failure';
+          metric.putMetric(
+            `SetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_${status}`,
+            1,
+            MetricLoggerUnit.Count
+          );
+        }).catch(() => undefined);
+      }
     }
 
 
