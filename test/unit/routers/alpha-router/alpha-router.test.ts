@@ -381,7 +381,7 @@ describe('alpha router', () => {
     // mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_fromAddress, route)=>route)
 
     inMemoryRouteCachingProvider = new InMemoryRouteCachingProvider();
-    inMemoryRouteCachingProvider.cacheMode = CacheMode.Darkmode;
+    inMemoryRouteCachingProvider.cacheMode = CacheMode.Livemode; // Assume cache is livemode by default.
 
     alphaRouter = new AlphaRouter({
       chainId: 1,
@@ -1674,6 +1674,74 @@ describe('alpha router', () => {
       expect(swap!.methodParameters).toBeDefined();
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
+
+    describe('with routingCacheProvider', () => {
+      test('succeeds to fetch route from cache the second time it is fetched for the same block', async () => {
+        const swap = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(USDC, 10000),
+          MOCK_ZERO_DEC_TOKEN,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap).toBeDefined();
+
+        expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+
+        const swap2 = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(USDC, 100000),
+          MOCK_ZERO_DEC_TOKEN,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap2).toBeDefined();
+
+        expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+      });
+
+      test('fails to fetch from cache, so it inserts again, when blocknumber advances', async () => {
+        const swap = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(USDC, 10000),
+          MOCK_ZERO_DEC_TOKEN,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap).toBeDefined();
+
+        expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+
+        mockProvider.getBlockNumber.resolves(mockBlock + 5);
+
+        const swap2 = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(USDC, 100000),
+          MOCK_ZERO_DEC_TOKEN,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap2).toBeDefined();
+
+        expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
+
+        const swap3 = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(USDC, 100000),
+          MOCK_ZERO_DEC_TOKEN,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap3).toBeDefined();
+
+        expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(3);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
+      });
+    });
   });
 
   describe('exact out', () => {
@@ -2383,7 +2451,6 @@ describe('alpha router', () => {
       });
 
       test('it returns null when maxIterations has been exceeded', async () => {
-        inMemoryRouteCachingProvider.cacheMode = CacheMode.Livemode;
         // prompt bad quotes from V2
         mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
           async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
