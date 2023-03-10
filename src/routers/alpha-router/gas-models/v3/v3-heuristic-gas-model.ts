@@ -95,7 +95,11 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       };
       let l1Used = BigNumber.from(0);
       let l1FeeInWei = BigNumber.from(0);
-      if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
+      if (
+        chainId == ChainId.OPTIMISM ||
+        chainId == ChainId.OPTIMISTIC_KOVAN ||
+        chainId == ChainId.OPTIMISM_GOERLI
+      ) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
           route,
           swapOptions,

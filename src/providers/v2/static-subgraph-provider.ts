@@ -40,6 +40,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.ARBITRUM_ONE]: [],
   [ChainId.ARBITRUM_RINKEBY]: [],
   [ChainId.ARBITRUM_GOERLI]: [],
+  [ChainId.OPTIMISM_GOERLI]: [],
   [ChainId.OPTIMISTIC_KOVAN]: [],
   [ChainId.POLYGON]: [],
   [ChainId.POLYGON_MUMBAI]: [],

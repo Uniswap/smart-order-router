@@ -268,7 +268,13 @@ export async function calculateGasUsed(
       route.methodParameters!.calldata,
       l2GasData as ArbitrumGasData
     )[1];
-  } else if ([ChainId.OPTIMISM, ChainId.OPTIMISTIC_KOVAN].includes(chainId)) {
+  } else if (
+    [
+      ChainId.OPTIMISM,
+      ChainId.OPTIMISTIC_KOVAN,
+      ChainId.OPTIMISM_GOERLI,
+    ].includes(chainId)
+  ) {
     l2toL1FeeInWei = calculateOptimismToL1FeeFromCalldata(
       route.methodParameters!.calldata,
       l2GasData as OptimismGasData

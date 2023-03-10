@@ -61,6 +61,8 @@ export const WHALES = (token: Currency): string => {
       return '0x9b332466798a7e98bff1107d0846c195a99c1fc5';
     case USDC_ON(ChainId.OPTIMISM):
       return '0xad7b4c162707e0b2b5f6fddbd3f8538a5fba0d60';
+    case USDC_ON(ChainId.OPTIMISM_GOERLI):
+      return '0x4cb0645e92a3b5872ae54e5704e03c09ca0ea220';
     case USDC_ON(ChainId.OPTIMISTIC_KOVAN):
       return '0x81df215205befdad042b54d4c0dbe44e07748c1f';
     case USDC_ON(ChainId.ARBITRUM_ONE):
