@@ -37,6 +37,10 @@ export abstract class IRouteCachingProvider {
     protocols: Protocol[],
     blockNumber: number,
   ): Promise<CachedRoutes | undefined> => {
+    if (this.getCacheMode(chainId, amount, quoteToken, tradeType, protocols) == CacheMode.Darkmode) {
+      return Promise.resolve(undefined);
+    }
+
     return this._getCachedRoute(chainId, amount, quoteToken, tradeType, protocols).then((cachedRoute) =>
       Promise.resolve(this.filterExpiredCachedRoutes(cachedRoute, blockNumber))
     );
@@ -52,11 +56,32 @@ export abstract class IRouteCachingProvider {
    * @returns Promise<boolean> Indicates if the route was inserted into cache.
    */
   public readonly setCachedRoute = (cachedRoutes: CachedRoutes, amount: CurrencyAmount<Currency>): Promise<boolean> => {
+    if (this.getCacheModeFromCachedRoutes(cachedRoutes, amount) == CacheMode.Darkmode) {
+      return Promise.resolve(false);
+    }
     // Defined as a readonly member instead of a regular function to make it final.
     cachedRoutes.blocksToLive = this._getBlocksToLive(cachedRoutes, amount);
 
     return this._setCachedRoute(cachedRoutes, amount);
   };
+
+  /**
+   * Returns the CacheMode for the given cachedRoutes and amount
+   *
+   * @param cachedRoutes
+   * @param amount
+   */
+  public getCacheModeFromCachedRoutes(cachedRoutes: CachedRoutes, amount: CurrencyAmount<Currency>): CacheMode {
+    const quoteToken = cachedRoutes.tradeType == TradeType.EXACT_INPUT ? cachedRoutes.tokenOut : cachedRoutes.tokenIn;
+
+    return this.getCacheMode(
+      cachedRoutes.chainId,
+      amount,
+      quoteToken,
+      cachedRoutes.tradeType,
+      cachedRoutes.protocolsCovered
+    );
+  }
 
   /**
    * Returns the CacheMode for the given combination of chainId, tokenIn, tokenOut and tradetype

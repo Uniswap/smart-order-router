@@ -11,6 +11,7 @@ import {
   AlphaRouter,
   AlphaRouterConfig,
   AmountQuote,
+  CacheMode,
   CachingTokenListProvider,
   CurrencyAmount,
   DAI_MAINNET as DAI,
@@ -46,12 +47,11 @@ import {
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
-import {
-  TokenValidationResult,
-  TokenValidatorProvider,
-} from '../../../../src/providers/token-validator-provider';
+import { TokenValidationResult, TokenValidatorProvider, } from '../../../../src/providers/token-validator-provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
-import { MixedRouteHeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
+import {
+  MixedRouteHeuristicGasModelFactory
+} from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   buildMockTokenAccessor,
@@ -60,10 +60,10 @@ import {
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_USDT_MEDIUM,
+  MOCK_ZERO_DEC_TOKEN,
   mockBlock,
   mockBlockBN,
   mockGasPriceWeiBN,
-  MOCK_ZERO_DEC_TOKEN,
   pairToV2SubgraphPool,
   poolToV3SubgraphPool,
   USDC_DAI,
@@ -77,6 +77,7 @@ import {
   WETH9_USDT_LOW,
   WETH_USDT,
 } from '../../../test-util/mock-data';
+import { InMemoryRouteCachingProvider } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
@@ -102,6 +103,8 @@ describe('alpha router', () => {
   let mockTokenValidatorProvider: sinon.SinonStubbedInstance<TokenValidatorProvider>;
 
   let mockFallbackTenderlySimulator: sinon.SinonStubbedInstance<FallbackTenderlySimulator>;
+
+  let inMemoryRouteCachingProvider: InMemoryRouteCachingProvider;
 
   let alphaRouter: AlphaRouter;
 
@@ -377,6 +380,9 @@ describe('alpha router', () => {
     );
     // mockFallbackTenderlySimulator.simulateTransaction.callsFake(async (_fromAddress, route)=>route)
 
+    inMemoryRouteCachingProvider = new InMemoryRouteCachingProvider();
+    inMemoryRouteCachingProvider.cacheMode = CacheMode.Darkmode;
+
     alphaRouter = new AlphaRouter({
       chainId: 1,
       provider: mockProvider,
@@ -396,6 +402,7 @@ describe('alpha router', () => {
       swapRouterProvider: mockSwapRouterProvider,
       tokenValidatorProvider: mockTokenValidatorProvider,
       simulator: mockFallbackTenderlySimulator,
+      routeCachingProvider: inMemoryRouteCachingProvider
     });
   });
 
@@ -548,8 +555,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -758,8 +765,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -927,8 +934,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1035,8 +1042,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1100,8 +1107,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1113,7 +1120,7 @@ describe('alpha router', () => {
     });
 
     test('succeeds to route on mixed only', async () => {
-      const amount = CurrencyAmount.fromRawAmount(USDC, 10000)
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
       const swap = await alphaRouter.route(
         amount,
         WRAPPED_NATIVE_CURRENCY[1],
@@ -1173,8 +1180,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1431,8 +1438,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1503,8 +1510,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1576,8 +1583,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1656,8 +1663,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1810,8 +1817,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1839,7 +1846,7 @@ describe('alpha router', () => {
     });
 
     test('succeeds to route on v3 only', async () => {
-      const amount = CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000)
+      const amount = CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000);
       const swap = await alphaRouter.route(
         amount,
         USDC,
@@ -1890,8 +1897,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1948,8 +1955,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -2027,8 +2034,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -2103,8 +2110,8 @@ describe('alpha router', () => {
       ).toBeTruthy();
       expect(
         swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-          swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-          swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -2376,6 +2383,7 @@ describe('alpha router', () => {
       });
 
       test('it returns null when maxIterations has been exceeded', async () => {
+        inMemoryRouteCachingProvider.cacheMode = CacheMode.Livemode;
         // prompt bad quotes from V2
         mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
           async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
@@ -2518,133 +2526,139 @@ describe('alpha router', () => {
           expect(outputBalanceSecond).toEqual(token1Balance);
         });
 
-        test('when trade moves sqrtPrice in target pool within range it calls again with new optimalRatio', async () => {
-          const sqrtTwoX96 = BigNumber.from(
-            encodeSqrtRatioX96(2, 1).toString()
-          );
-          mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
-            getQuotesManyExactInFn({
-              sqrtPriceX96AfterList: [sqrtTwoX96, sqrtTwoX96, sqrtTwoX96],
-            })
-          );
+        test(
+          'when trade moves sqrtPrice in target pool within range it calls again with new optimalRatio',
+          async () => {
+            const sqrtTwoX96 = BigNumber.from(
+              encodeSqrtRatioX96(2, 1).toString()
+            );
+            mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
+              getQuotesManyExactInFn({
+                sqrtPriceX96AfterList: [sqrtTwoX96, sqrtTwoX96, sqrtTwoX96],
+              })
+            );
 
-          const token0Balance = parseAmount('20', USDC);
-          const token1Balance = parseAmount('5', USDT);
+            const token0Balance = parseAmount('20', USDC);
+            const token1Balance = parseAmount('5', USDT);
 
-          const position = new Position({
-            pool: USDC_USDT_MEDIUM,
-            tickLower: -10020,
-            tickUpper: 10020,
-            liquidity: 1,
-          });
+            const position = new Position({
+              pool: USDC_USDT_MEDIUM,
+              tickLower: -10020,
+              tickUpper: 10020,
+              liquidity: 1,
+            });
 
-          await alphaRouter.routeToRatio(
-            token0Balance,
-            token1Balance,
-            position,
-            SWAP_AND_ADD_CONFIG,
-            undefined,
-            ROUTING_CONFIG
-          );
+            await alphaRouter.routeToRatio(
+              token0Balance,
+              token1Balance,
+              position,
+              SWAP_AND_ADD_CONFIG,
+              undefined,
+              ROUTING_CONFIG
+            );
 
-          expect(spy.calledTwice).toEqual(true);
+            expect(spy.calledTwice).toEqual(true);
 
-          const [
-            optimalRatioFirst,
-            exchangeRateFirst,
-            inputBalanceFirst,
-            outputBalanceFirst,
-          ] = spy.firstCall.args;
-          expect(optimalRatioFirst.toFixed(6)).toEqual(
-            new Fraction(1, 1).toFixed(6)
-          );
-          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(
-            new Fraction(1, 1).toFixed(6)
-          );
-          expect(inputBalanceFirst).toEqual(token0Balance);
-          expect(outputBalanceFirst).toEqual(token1Balance);
+            const [
+              optimalRatioFirst,
+              exchangeRateFirst,
+              inputBalanceFirst,
+              outputBalanceFirst,
+            ] = spy.firstCall.args;
+            expect(optimalRatioFirst.toFixed(6)).toEqual(
+              new Fraction(1, 1).toFixed(6)
+            );
+            expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(
+              new Fraction(1, 1).toFixed(6)
+            );
+            expect(inputBalanceFirst).toEqual(token0Balance);
+            expect(outputBalanceFirst).toEqual(token1Balance);
 
-          const [
-            optimalRatioSecond,
-            exchangeRateSecond,
-            inputBalanceSecond,
-            outputBalanceSecond,
-          ] = spy.secondCall.args;
-          expect(optimalRatioSecond.toFixed(2)).toEqual(
-            new Fraction(1, 8).toFixed(2)
-          );
-          // all other params remain the same
-          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
-            new Fraction(1, 1).toFixed(6)
-          );
-          expect(inputBalanceSecond).toEqual(token0Balance);
-          expect(outputBalanceSecond).toEqual(token1Balance);
-        });
+            const [
+              optimalRatioSecond,
+              exchangeRateSecond,
+              inputBalanceSecond,
+              outputBalanceSecond,
+            ] = spy.secondCall.args;
+            expect(optimalRatioSecond.toFixed(2)).toEqual(
+              new Fraction(1, 8).toFixed(2)
+            );
+            // all other params remain the same
+            expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
+              new Fraction(1, 1).toFixed(6)
+            );
+            expect(inputBalanceSecond).toEqual(token0Balance);
+            expect(outputBalanceSecond).toEqual(token1Balance);
+          }
+        );
 
-        test('when trade moves sqrtPrice in target pool out of range it calls again with new optimalRatio', async () => {
-          const sqrtFourX96 = BigNumber.from(
-            encodeSqrtRatioX96(4, 1).toString()
-          );
-          mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
-            getQuotesManyExactInFn({
-              sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96],
-            })
-          );
-          mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(
-            getQuotesManyExactInFn({
-              sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96],
-            })
-          );
-          const token0Balance = parseAmount('20', USDC);
-          const token1Balance = parseAmount('5', USDT);
+        test(
+          'when trade moves sqrtPrice in target pool out of range it calls again with new optimalRatio',
+          async () => {
+            const sqrtFourX96 = BigNumber.from(
+              encodeSqrtRatioX96(4, 1).toString()
+            );
+            mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(0).callsFake(
+              getQuotesManyExactInFn({
+                sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96],
+              })
+            );
+            mockOnChainQuoteProvider.getQuotesManyExactIn.onCall(1).callsFake(
+              getQuotesManyExactInFn({
+                sqrtPriceX96AfterList: [sqrtFourX96, sqrtFourX96, sqrtFourX96],
+              })
+            );
+            const token0Balance = parseAmount('20', USDC);
+            const token1Balance = parseAmount('5', USDT);
 
-          const position = new Position({
-            pool: USDC_USDT_MEDIUM,
-            tickLower: -10020,
-            tickUpper: 10020,
-            liquidity: 1,
-          });
+            const position = new Position({
+              pool: USDC_USDT_MEDIUM,
+              tickLower: -10020,
+              tickUpper: 10020,
+              liquidity: 1,
+            });
 
-          await alphaRouter.routeToRatio(
-            token0Balance,
-            token1Balance,
-            position,
-            SWAP_AND_ADD_CONFIG,
-            undefined,
-            ROUTING_CONFIG
-          );
+            await alphaRouter.routeToRatio(
+              token0Balance,
+              token1Balance,
+              position,
+              SWAP_AND_ADD_CONFIG,
+              undefined,
+              ROUTING_CONFIG
+            );
 
-          expect(spy.calledTwice).toEqual(true);
+            expect(spy.calledTwice).toEqual(true);
 
-          const [
-            optimalRatioFirst,
-            exchangeRateFirst,
-            inputBalanceFirst,
-            outputBalanceFirst,
-          ] = spy.firstCall.args;
-          expect(optimalRatioFirst.toFixed(6)).toEqual(
-            new Fraction(1, 1).toFixed(6)
-          );
-          expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(
-            new Fraction(1, 1).toFixed(6)
-          );
-          expect(inputBalanceFirst).toEqual(token0Balance);
-          expect(outputBalanceFirst).toEqual(token1Balance);
+            const [
+              optimalRatioFirst,
+              exchangeRateFirst,
+              inputBalanceFirst,
+              outputBalanceFirst,
+            ] = spy.firstCall.args;
+            expect(optimalRatioFirst.toFixed(6)).toEqual(
+              new Fraction(1, 1).toFixed(6)
+            );
+            expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(
+              new Fraction(1, 1).toFixed(6)
+            );
+            expect(inputBalanceFirst).toEqual(token0Balance);
+            expect(outputBalanceFirst).toEqual(token1Balance);
 
-          const [
-            optimalRatioSecond,
-            exchangeRateSecond,
-            inputBalanceSecond,
-            outputBalanceSecond,
-          ] = spy.secondCall.args;
-          expect(optimalRatioSecond).toEqual(new Fraction(0, 1));
-          // all other params remain the same
-          expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
-            new Fraction(1, 1).toFixed(6)
-          );
-          expect(inputBalanceSecond).toEqual(token0Balance);
-          expect(outputBalanceSecond).toEqual(token1Balance);
-        });
+            const [
+              optimalRatioSecond,
+              exchangeRateSecond,
+              inputBalanceSecond,
+              outputBalanceSecond,
+            ] = spy.secondCall.args;
+            expect(optimalRatioSecond).toEqual(new Fraction(0, 1));
+            // all other params remain the same
+            expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
+              new Fraction(1, 1).toFixed(6)
+            );
+            expect(inputBalanceSecond).toEqual(token0Balance);
+            expect(outputBalanceSecond).toEqual(token1Balance);
+          }
+        );
       });
 
       describe('when there is excess of token1', () => {
@@ -2831,70 +2845,73 @@ describe('alpha router', () => {
             }
           });
 
-          test('when trade moves sqrtPrice in target pool out of range it calls again with new optimalRatio of 0', async () => {
-            const oneQuarterX96 = BigNumber.from(
-              encodeSqrtRatioX96(1, 2).toString()
-            );
-            mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
-              getQuotesManyExactInFn({
-                sqrtPriceX96AfterList: [
-                  oneQuarterX96,
-                  oneQuarterX96,
-                  oneQuarterX96,
-                ],
-              })
-            );
+          test(
+            'when trade moves sqrtPrice in target pool out of range it calls again with new optimalRatio of 0',
+            async () => {
+              const oneQuarterX96 = BigNumber.from(
+                encodeSqrtRatioX96(1, 2).toString()
+              );
+              mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
+                getQuotesManyExactInFn({
+                  sqrtPriceX96AfterList: [
+                    oneQuarterX96,
+                    oneQuarterX96,
+                    oneQuarterX96,
+                  ],
+                })
+              );
 
-            const token1Balance = parseAmount('20' + '0'.repeat(12), USDC);
-            const token0Balance = parseAmount('5', DAI);
+              const token1Balance = parseAmount('20' + '0'.repeat(12), USDC);
+              const token0Balance = parseAmount('5', DAI);
 
-            const position = new Position({
-              pool: USDC_DAI_LOW,
-              tickLower: -120,
-              tickUpper: 120,
-              liquidity: 1,
-            });
+              const position = new Position({
+                pool: USDC_DAI_LOW,
+                tickLower: -120,
+                tickUpper: 120,
+                liquidity: 1,
+              });
 
-            await alphaRouter.routeToRatio(
-              token0Balance,
-              token1Balance,
-              position,
-              SWAP_AND_ADD_CONFIG,
-              undefined,
-              ROUTING_CONFIG
-            );
+              await alphaRouter.routeToRatio(
+                token0Balance,
+                token1Balance,
+                position,
+                SWAP_AND_ADD_CONFIG,
+                undefined,
+                ROUTING_CONFIG
+              );
 
-            expect(spy.calledTwice).toEqual(true);
+              expect(spy.calledTwice).toEqual(true);
 
-            const [
-              optimalRatioFirst,
-              exchangeRateFirst,
-              inputBalanceFirst,
-              outputBalanceFirst,
-            ] = spy.firstCall.args;
-            expect(optimalRatioFirst.toFixed(6)).toEqual(
-              new Fraction(1, 1).toFixed(6)
-            );
-            expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(
-              new Fraction(1, 1).toFixed(6)
-            );
-            expect(inputBalanceFirst).toEqual(token1Balance);
-            expect(outputBalanceFirst).toEqual(token0Balance);
+              const [
+                optimalRatioFirst,
+                exchangeRateFirst,
+                inputBalanceFirst,
+                outputBalanceFirst,
+              ] = spy.firstCall.args;
+              expect(optimalRatioFirst.toFixed(6)).toEqual(
+                new Fraction(1, 1).toFixed(6)
+              );
+              expect(exchangeRateFirst.asFraction.toFixed(6)).toEqual(
+                new Fraction(1, 1).toFixed(6)
+              );
+              expect(inputBalanceFirst).toEqual(token1Balance);
+              expect(outputBalanceFirst).toEqual(token0Balance);
 
-            const [
-              optimalRatioSecond,
-              exchangeRateSecond,
-              inputBalanceSecond,
-              outputBalanceSecond,
-            ] = spy.secondCall.args;
-            expect(optimalRatioSecond).toEqual(new Fraction(0, 1));
-            // all other params remain the same
-            expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
-              new Fraction(1, 1).toFixed(6)
-            );
-            expect(inputBalanceSecond).toEqual(token1Balance);
-            expect(outputBalanceSecond).toEqual(token0Balance);
-          });
+              const [
+                optimalRatioSecond,
+                exchangeRateSecond,
+                inputBalanceSecond,
+                outputBalanceSecond,
+              ] = spy.secondCall.args;
+              expect(optimalRatioSecond).toEqual(new Fraction(0, 1));
+              // all other params remain the same
+              expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
+                new Fraction(1, 1).toFixed(6)
+              );
+              expect(inputBalanceSecond).toEqual(token1Balance);
+              expect(outputBalanceSecond).toEqual(token0Balance);
+            }
+          );
         });
       });
     });

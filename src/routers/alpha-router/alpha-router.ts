@@ -1098,9 +1098,9 @@ export class AlphaRouter
     );
     const quotePromises: Promise<GetQuotesResult>[] = [];
 
-    const v3Routes = cachedRoutes.routes.filter((route) => route instanceof V3Route);
-    const v2Routes = cachedRoutes.routes.filter((route) => route instanceof V2Route);
-    const mixedRoutes = cachedRoutes.routes.filter((route) => route instanceof MixedRoute);
+    const v3Routes = cachedRoutes.routes.filter((route) => route.protocol == Protocol.V3);
+    const v2Routes = cachedRoutes.routes.filter((route) => route.protocol == Protocol.V2);
+    const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol == Protocol.MIXED);
     const percents: number[] = [];
 
     if (v3Routes) {
