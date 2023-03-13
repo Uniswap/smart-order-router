@@ -17,8 +17,8 @@ import {
   CachingTokenListProvider,
   CachingTokenProviderWithFallback,
   CachingV3PoolProvider,
-  ChainId,
   CHAIN_IDS_LIST,
+  ChainId,
   EIP1559GasPriceProvider,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
@@ -61,7 +61,7 @@ export abstract class BaseCommand extends Command {
     }),
     topNSecondHop: flags.integer({
       required: false,
-      default: 0,
+      default: 2,
     }),
     topNWithEachBaseToken: flags.integer({
       required: false,
@@ -125,8 +125,8 @@ export abstract class BaseCommand extends Command {
     return this._log
       ? this._log
       : bunyan.createLogger({
-          name: 'Default Logger',
-        });
+        name: 'Default Logger',
+      });
   }
 
   get router() {
@@ -196,19 +196,19 @@ export abstract class BaseCommand extends Command {
       streams: debugJSON
         ? undefined
         : [
-            {
-              level: logLevel,
-              type: 'stream',
-              stream: bunyanDebugStream({
-                basepath: __dirname,
-                forceColor: false,
-                showDate: false,
-                showPid: false,
-                showLoggerName: false,
-                showLevel: !!debug,
-              }),
-            },
-          ],
+          {
+            level: logLevel,
+            type: 'stream',
+            stream: bunyanDebugStream({
+              basepath: __dirname,
+              forceColor: false,
+              showDate: false,
+              showPid: false,
+              showLoggerName: false,
+              showLevel: !!debug,
+            }),
+          },
+        ],
     });
 
     if (debug || debugJSON) {
