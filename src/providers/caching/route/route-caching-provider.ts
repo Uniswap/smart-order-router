@@ -29,7 +29,7 @@ export abstract class IRouteCachingProvider {
    * @param protocols
    * @param blockNumber
    */
-  public readonly getCachedRoute = ( // Defined as a readonly member instead of a regular function to make it final.
+  public readonly getCachedRoute = async ( // Defined as a readonly member instead of a regular function to make it final.
     chainId: number,
     amount: CurrencyAmount<Currency>,
     quoteToken: Token,
@@ -38,12 +38,12 @@ export abstract class IRouteCachingProvider {
     blockNumber: number,
   ): Promise<CachedRoutes | undefined> => {
     if (this.getCacheMode(chainId, amount, quoteToken, tradeType, protocols) == CacheMode.Darkmode) {
-      return Promise.resolve(undefined);
+      return undefined;
     }
 
-    return this._getCachedRoute(chainId, amount, quoteToken, tradeType, protocols).then((cachedRoute) =>
-      Promise.resolve(this.filterExpiredCachedRoutes(cachedRoute, blockNumber))
-    );
+    const cachedRoute = await this._getCachedRoute(chainId, amount, quoteToken, tradeType, protocols);
+
+    return this.filterExpiredCachedRoutes(cachedRoute, blockNumber);
   };
 
   /**
@@ -55,11 +55,14 @@ export abstract class IRouteCachingProvider {
    * @param cachedRoutes The route to cache.
    * @returns Promise<boolean> Indicates if the route was inserted into cache.
    */
-  public readonly setCachedRoute = (cachedRoutes: CachedRoutes, amount: CurrencyAmount<Currency>): Promise<boolean> => {
+  public readonly setCachedRoute = async ( // Defined as a readonly member instead of a regular function to make it final.
+    cachedRoutes: CachedRoutes,
+    amount: CurrencyAmount<Currency>
+  ): Promise<boolean> => {
     if (this.getCacheModeFromCachedRoutes(cachedRoutes, amount) == CacheMode.Darkmode) {
-      return Promise.resolve(false);
+      return false;
     }
-    // Defined as a readonly member instead of a regular function to make it final.
+
     cachedRoutes.blocksToLive = this._getBlocksToLive(cachedRoutes, amount);
 
     return this._setCachedRoute(cachedRoutes, amount);
@@ -140,7 +143,7 @@ export abstract class IRouteCachingProvider {
 
   /**
    * Internal function to getBlocksToLive for a given cachedRoute.
-   * This function is call before attempting to insert the route into cache.
+   * This function is called before attempting to insert the route into cache.
    * Must be implemented.
    *
    * @param cachedRoutes

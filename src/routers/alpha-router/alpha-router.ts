@@ -84,7 +84,7 @@ import {
   RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from './entities/route-with-valid-quote';
-import { getBestSwapRoute } from './functions/best-swap-route';
+import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import { CandidatePoolsBySelectionCriteria, PoolId, } from './functions/get-candidate-pools';
 import { IGasModel, IOnChainGasModelFactory, IV2GasModelFactory } from './gas-models/gas-model';
@@ -576,15 +576,15 @@ export class AlphaRouter
       swapRouterProvider ??
       new SwapRouterProvider(this.multicall2Provider, this.chainId);
 
-    if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISTIC_KOVAN) {
+    if (chainId === ChainId.OPTIMISM || chainId === ChainId.OPTIMISTIC_KOVAN) {
       this.l2GasDataProvider =
         optimismGasDataProvider ??
         new OptimismGasDataProvider(chainId, this.multicall2Provider);
     }
     if (
-      chainId == ChainId.ARBITRUM_ONE ||
-      chainId == ChainId.ARBITRUM_RINKEBY ||
-      chainId == ChainId.ARBITRUM_GOERLI
+      chainId === ChainId.ARBITRUM_ONE ||
+      chainId === ChainId.ARBITRUM_RINKEBY ||
+      chainId === ChainId.ARBITRUM_GOERLI
     ) {
       this.l2GasDataProvider =
         arbitrumGasDataProvider ??
@@ -592,7 +592,7 @@ export class AlphaRouter
     }
     if (tokenValidatorProvider) {
       this.tokenValidatorProvider = tokenValidatorProvider;
-    } else if (this.chainId == ChainId.MAINNET) {
+    } else if (this.chainId === ChainId.MAINNET) {
       this.tokenValidatorProvider = new TokenValidatorProvider(
         this.chainId,
         this.multicall2Provider,
@@ -735,13 +735,13 @@ export class AlphaRouter
 
       let targetPoolPriceUpdate;
       swap.route.forEach((route) => {
-        if (route.protocol == Protocol.V3) {
+        if (route.protocol === Protocol.V3) {
           const v3Route = route as V3RouteWithValidQuote;
           v3Route.route.pools.forEach((pool, i) => {
             if (
               pool.token0.equals(position.pool.token0) &&
               pool.token1.equals(position.pool.token1) &&
-              pool.fee == position.pool.fee
+              pool.fee === position.pool.fee
             ) {
               targetPoolPriceUpdate = JSBI.BigInt(
                 v3Route.sqrtPriceX96AfterList[i]!.toString()
@@ -879,65 +879,80 @@ export class AlphaRouter
     );
 
     // Fetch CachedRoutes
-    const cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
-      this.chainId,
-      amount,
-      quoteToken,
-      tradeType,
-      protocols,
-      await blockNumber
-    );
+    let cachedRoutes: CachedRoutes | undefined;
+    if (cacheMode !== CacheMode.Darkmode) {
+      cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
+        this.chainId,
+        amount,
+        quoteToken,
+        tradeType,
+        protocols,
+        await blockNumber
+      );
+    }
 
-    if (cacheMode != CacheMode.Darkmode && !cachedRoutes) {
+    if (cacheMode && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
       metric.putMetric(
-        `GetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_miss`,
+        `GetCachedRoute_${cacheMode}_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_miss`,
         1,
         MetricLoggerUnit.Count
       );
     } else if (cachedRoutes) {
       metric.putMetric(
-        `GetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_hit`,
+        `GetCachedRoute_${cacheMode}_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_hit`,
         1,
         MetricLoggerUnit.Count
       );
     }
 
-    const swapRouteFromCachePromise = cachedRoutes ? this.getSwapRouteFromCache(
-      cachedRoutes,
-      await blockNumber,
-      amount,
-      quoteToken,
-      tradeType,
-      routingConfig,
-      v3GasModel,
-      mixedRouteGasModel,
-      gasPriceWei
-    ) : Promise.resolve(null);
+    let swapRouteFromCachePromise: Promise<BestSwapRoute | null> = Promise.resolve(null);
+    if (cachedRoutes) {
+      swapRouteFromCachePromise = this.getSwapRouteFromCache(
+        cachedRoutes,
+        await blockNumber,
+        amount,
+        quoteToken,
+        tradeType,
+        routingConfig,
+        v3GasModel,
+        mixedRouteGasModel,
+        gasPriceWei
+      );
+    }
 
-    const shouldMaterializeRouteFromChain = !cachedRoutes || cacheMode != CacheMode.Livemode;
-
-    const swapRouteFromChainPromise = shouldMaterializeRouteFromChain ? this.getSwapRouteFromChain(
-      amount,
-      tokenIn,
-      tokenOut,
-      protocols,
-      quoteToken,
-      tradeType,
-      routingConfig,
-      v3GasModel,
-      mixedRouteGasModel,
-      gasPriceWei
-    ) : Promise.resolve(null);
+    let swapRouteFromChainPromise: Promise<BestSwapRoute | null> = Promise.resolve(null);
+    if (!cachedRoutes || cacheMode !== CacheMode.Livemode) {
+      swapRouteFromChainPromise = this.getSwapRouteFromChain(
+        amount,
+        tokenIn,
+        tokenOut,
+        protocols,
+        quoteToken,
+        tradeType,
+        routingConfig,
+        v3GasModel,
+        mixedRouteGasModel,
+        gasPriceWei
+      );
+    }
 
     const [swapRouteFromCache, swapRouteFromChain] = await Promise.all([
       swapRouteFromCachePromise,
       swapRouteFromChainPromise
     ]);
 
-    const swapRouteRaw = (cacheMode == CacheMode.Livemode && swapRouteFromCache) ? swapRouteFromCache : swapRouteFromChain;
+    let swapRouteRaw: BestSwapRoute | null;
+    if (cacheMode === CacheMode.Livemode && swapRouteFromCache) {
+      log.info(`CacheMode is ${cacheMode}, and we are using swapRoute from cache`);
+      swapRouteRaw = swapRouteFromCache;
+    } else {
+      log.info(`CacheMode is ${cacheMode}, and we are using materialized swapRoute`);
+      swapRouteRaw = swapRouteFromChain;
+    }
 
-    if (cacheMode == CacheMode.Tapcompare && swapRouteFromCache && swapRouteFromChain) {
+    if (cacheMode === CacheMode.Tapcompare && swapRouteFromCache && swapRouteFromChain) {
       const quoteDiff = swapRouteFromChain.quote.subtract(swapRouteFromCache.quote);
+      const quoteGasAdjustedDiff = swapRouteFromChain.quoteGasAdjusted.subtract(swapRouteFromCache.quoteGasAdjusted);
       const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
 
       log.info(
@@ -945,6 +960,9 @@ export class AlphaRouter
           quoteFromChain: swapRouteFromChain.quote.toExact(),
           quoteFromCache: swapRouteFromCache.quote.toExact(),
           quoteDiff: quoteDiff.toExact(),
+          quoteGasAdjustedFromChain: swapRouteFromChain.quoteGasAdjusted.toExact(),
+          quoteGasAdjustedFromCache: swapRouteFromCache.quoteGasAdjusted.toExact(),
+          quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
           gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
           gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
           gasUsedDiff: gasUsedDiff.toString(),
@@ -974,7 +992,7 @@ export class AlphaRouter
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    if (this.routeCachingProvider && cacheMode != CacheMode.Darkmode && swapRouteFromChain) {
+    if (this.routeCachingProvider && cacheMode !== CacheMode.Darkmode && swapRouteFromChain) {
       // Generate the object to be cached
       const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
         swapRouteFromChain.routes,
@@ -987,16 +1005,31 @@ export class AlphaRouter
       );
 
       if (routesToCache) {
+        const tokenPairSymbolTradeTypeChainId = this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType);
         // Attempt to insert the entry in cache. This is fire and forget promise.
         // The catch method will prevent any exception from blocking the normal code execution.
         this.routeCachingProvider.setCachedRoute(routesToCache, amount).then((success) => {
-          const status = success ? 'success' : 'failure';
+          const status = success ? 'success' : 'rejected';
           metric.putMetric(
-            `SetCachedRoute_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_${status}`,
+            `SetCachedRoute_${tokenPairSymbolTradeTypeChainId}_${status}`,
             1,
             MetricLoggerUnit.Count
           );
-        }).catch(() => undefined);
+        }).catch((reason) => {
+          log.info(
+            {
+              reason: reason,
+              tokenPair: tokenPairSymbolTradeTypeChainId
+            },
+            `SetCachedRoute failure`
+          );
+
+          metric.putMetric(
+            `SetCachedRoute_${tokenPairSymbolTradeTypeChainId}_failure`,
+            1,
+            MetricLoggerUnit.Count
+          );
+        });
       }
     }
 
@@ -1076,7 +1109,7 @@ export class AlphaRouter
     return swapRoute;
   }
 
-  private getSwapRouteFromCache(
+  private async getSwapRouteFromCache(
     cachedRoutes: CachedRoutes,
     blockNumber: number,
     amount: CurrencyAmount,
@@ -1086,7 +1119,7 @@ export class AlphaRouter
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber
-  ) {
+  ): Promise<BestSwapRoute | null> {
     log.info(
       {
         protocols: cachedRoutes.protocolsCovered,
@@ -1098,17 +1131,17 @@ export class AlphaRouter
     );
     const quotePromises: Promise<GetQuotesResult>[] = [];
 
-    const v3Routes = cachedRoutes.routes.filter((route) => route.protocol == Protocol.V3);
-    const v2Routes = cachedRoutes.routes.filter((route) => route.protocol == Protocol.V2);
-    const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol == Protocol.MIXED);
+    const v3Routes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.V3);
+    const v2Routes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.V2);
+    const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.MIXED);
     const percents: number[] = [];
 
     if (v3Routes) {
-      const v3RoutesFromCache: V3Route[] = _.map(v3Routes, (cachedRoute) => cachedRoute.route as V3Route);
-      const v3PercentsFromCache = _.map(v3Routes, (cachedRoute) => cachedRoute.percent);
+      const v3RoutesFromCache: V3Route[] = v3Routes.map((cachedRoute) => cachedRoute.route as V3Route);
+      const v3PercentsFromCache = v3Routes.map((cachedRoute) => cachedRoute.percent);
       percents.push(...v3PercentsFromCache);
 
-      const v3Amounts = _.map(v3PercentsFromCache, (percent) => amount.multiply(new Fraction(percent, 100)));
+      const v3Amounts = v3PercentsFromCache.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
       quotePromises.push(
         this.v3Quoter.getQuotes(
@@ -1125,11 +1158,11 @@ export class AlphaRouter
     }
 
     if (v2Routes) {
-      const v2RoutesFromCache: V2Route[] = _.map(v2Routes, (cachedRoute) => cachedRoute.route as V2Route);
-      const v2PercentsFromCache = _.map(v2Routes, (cachedRoute) => cachedRoute.percent);
+      const v2RoutesFromCache: V2Route[] = v2Routes.map((cachedRoute) => cachedRoute.route as V2Route);
+      const v2PercentsFromCache = v2Routes.map((cachedRoute) => cachedRoute.percent);
       percents.push(...v2PercentsFromCache);
 
-      const v2Amounts = _.map(v2PercentsFromCache, (percent) => amount.multiply(new Fraction(percent, 100)));
+      const v2Amounts = v2PercentsFromCache.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
       quotePromises.push(
         this.v2Quoter.getQuotes(
@@ -1147,11 +1180,11 @@ export class AlphaRouter
     }
 
     if (mixedRoutes) {
-      const mixedRoutesFromCache: MixedRoute[] = _.map(mixedRoutes, (cachedRoute) => cachedRoute.route as MixedRoute);
-      const mixedPercentsFromCache = _.map(mixedRoutes, (cachedRoute) => cachedRoute.percent);
+      const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map((cachedRoute) => cachedRoute.route as MixedRoute);
+      const mixedPercentsFromCache = mixedRoutes.map((cachedRoute) => cachedRoute.percent);
       percents.push(...mixedPercentsFromCache);
 
-      const mixedAmounts = _.map(mixedPercentsFromCache, (percent) => amount.multiply(new Fraction(percent, 100)));
+      const mixedAmounts = mixedPercentsFromCache.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
       quotePromises.push(
         this.mixedQuoter.getQuotes(
@@ -1167,21 +1200,21 @@ export class AlphaRouter
       );
     }
 
-    return Promise.all(quotePromises).then((getQuotesResults) => {
-      const allRoutesWithValidQuotes = _.flatMap(getQuotesResults, (quoteResult) => quoteResult.routesWithValidQuotes);
-      return getBestSwapRoute(
-        amount,
-        percents,
-        allRoutesWithValidQuotes,
-        tradeType,
-        this.chainId,
-        routingConfig,
-        v3GasModel
-      );
-    });
+    const getQuotesResults = await Promise.all(quotePromises);
+    const allRoutesWithValidQuotes = _.flatMap(getQuotesResults, (quoteResult) => quoteResult.routesWithValidQuotes);
+
+    return getBestSwapRoute(
+      amount,
+      percents,
+      allRoutesWithValidQuotes,
+      tradeType,
+      this.chainId,
+      routingConfig,
+      v3GasModel
+    );
   }
 
-  private getSwapRouteFromChain(
+  private async getSwapRouteFromChain(
     amount: CurrencyAmount,
     tokenIn: Token,
     tokenOut: Token,
@@ -1192,7 +1225,7 @@ export class AlphaRouter
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber
-  ) {
+  ): Promise<BestSwapRoute | null> {
     // Generate our distribution of amounts, i.e. fractions of the input amount.
     // We will get quotes for fractions of the input amount for different routes, then
     // combine to generate split routes.
@@ -1201,7 +1234,7 @@ export class AlphaRouter
       routingConfig
     );
 
-    const noProtocolsSpecified = protocols.length == 0;
+    const noProtocolsSpecified = protocols.length === 0;
     const v3ProtocolSpecified = protocols.includes(Protocol.V3);
     const v2ProtocolSpecified = protocols.includes(Protocol.V2);
     const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId);
@@ -1265,51 +1298,47 @@ export class AlphaRouter
       );
     }
 
-    const swapRouteRawPromise = Promise.all(quotePromises).then((getQuoteResults) => {
-      const allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
-      const allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
-      getQuoteResults.forEach((getQuoteResult) => {
-        allRoutesWithValidQuotes.push(...getQuoteResult.routesWithValidQuotes);
-        if (getQuoteResult.candidatePools) {
-          allCandidatePools.push(getQuoteResult.candidatePools);
-        }
-      });
+    const getQuotesResults = await Promise.all(quotePromises);
 
-      if (allRoutesWithValidQuotes.length == 0) {
-        log.info({ allRoutesWithValidQuotes }, 'Received no valid quotes');
-        return Promise.resolve(null);
+    const allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
+    const allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
+    getQuotesResults.forEach((getQuoteResult) => {
+      allRoutesWithValidQuotes.push(...getQuoteResult.routesWithValidQuotes);
+      if (getQuoteResult.candidatePools) {
+        allCandidatePools.push(getQuoteResult.candidatePools);
       }
-
-      // Given all the quotes for all the amounts for all the routes, find the best combination.
-      const bestSwapRoutePromise = getBestSwapRoute(
-        amount,
-        percents,
-        allRoutesWithValidQuotes,
-        tradeType,
-        this.chainId,
-        routingConfig,
-        v3GasModel
-      );
-
-      bestSwapRoutePromise.then((swapRouteRaw) => {
-        if (swapRouteRaw) {
-          this.emitPoolSelectionMetrics(swapRouteRaw, allCandidatePools);
-        }
-      });
-
-      return bestSwapRoutePromise;
     });
 
-    return swapRouteRawPromise;
+    if (allRoutesWithValidQuotes.length === 0) {
+      log.info({ allRoutesWithValidQuotes }, 'Received no valid quotes');
+      return null;
+    }
+
+    // Given all the quotes for all the amounts for all the routes, find the best combination.
+    const bestSwapRoute = await getBestSwapRoute(
+      amount,
+      percents,
+      allRoutesWithValidQuotes,
+      tradeType,
+      this.chainId,
+      routingConfig,
+      v3GasModel
+    );
+
+    if (bestSwapRoute) {
+      this.emitPoolSelectionMetrics(bestSwapRoute, allCandidatePools);
+    }
+
+    return bestSwapRoute;
   }
 
   private tokenPairSymbolTradeTypeChainId(tokenIn: Token, tokenOut: Token, tradeType: TradeType) {
-    const tradeTypeStr = tradeType == TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut';
+    const tradeTypeStr = tradeType === TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut';
     return `${tokenIn.symbol}/${tokenOut.symbol}/${tradeTypeStr}/${this.chainId}`;
   }
 
   private determineCurrencyInOutFromTradeType(tradeType: TradeType, amount: CurrencyAmount, quoteCurrency: Currency) {
-    if (tradeType == TradeType.EXACT_INPUT) {
+    if (tradeType === TradeType.EXACT_INPUT) {
       return {
         currencyIn: amount.currency,
         currencyOut: quoteCurrency
@@ -1493,13 +1522,13 @@ export class AlphaRouter
     let hasV2Route = false;
     let hasMixedRoute = false;
     for (const routeAmount of routeAmounts) {
-      if (routeAmount.protocol == Protocol.V3) {
+      if (routeAmount.protocol === Protocol.V3) {
         hasV3Route = true;
       }
-      if (routeAmount.protocol == Protocol.V2) {
+      if (routeAmount.protocol === Protocol.V2) {
         hasV2Route = true;
       }
-      if (routeAmount.protocol == Protocol.MIXED) {
+      if (routeAmount.protocol === Protocol.MIXED) {
         hasMixedRoute = true;
       }
     }
@@ -1632,7 +1661,7 @@ export class AlphaRouter
     quote: CurrencyAmount
   ): Promise<boolean> {
     try {
-      const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
+      const neededBalance = tradeType === TradeType.EXACT_INPUT ? amount : quote;
       let balance;
       if (neededBalance.currency.isNative) {
         balance = await this.provider.getBalance(fromAddress);
