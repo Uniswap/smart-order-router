@@ -834,6 +834,17 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
+    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
+
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
+
+    metric.setProperty('chainId', this.chainId);
+    metric.setProperty('pair', `${tokenIn.symbol}/${tokenOut.symbol}`);
+    metric.setProperty('tokenIn', tokenIn.address);
+    metric.setProperty('tokenOut', tokenOut.address);
+    metric.setProperty('tradeType', tradeType === TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut');
+
     metric.putMetric(
       `QuoteRequestedForChain${this.chainId}`,
       1,
@@ -850,11 +861,6 @@ export class AlphaRouter
       partialRoutingConfig,
       { blockNumber }
     );
-
-    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
-
-    const tokenIn = currencyIn.wrapped;
-    const tokenOut = currencyOut.wrapped;
 
     const gasPriceWei = await this.getGasPriceWei();
 
@@ -893,11 +899,16 @@ export class AlphaRouter
 
     if (cacheMode && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
       metric.putMetric(
-        `GetCachedRoute_${cacheMode}_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_miss`,
+        `GetCachedRoute_${cacheMode}_miss`,
         1,
         MetricLoggerUnit.Count
       );
     } else if (cachedRoutes) {
+      metric.putMetric(
+        `GetCachedRoute_${cacheMode}_hit`,
+        1,
+        MetricLoggerUnit.Count
+      );
       metric.putMetric(
         `GetCachedRoute_${cacheMode}_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_hit`,
         1,
