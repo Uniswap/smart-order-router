@@ -903,6 +903,11 @@ export class AlphaRouter
         1,
         MetricLoggerUnit.Count
       );
+      metric.putMetric(
+        `GetCachedRoute_${cacheMode}_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_miss`,
+        1,
+        MetricLoggerUnit.Count
+      );
     } else if (cachedRoutes) {
       metric.putMetric(
         `GetCachedRoute_${cacheMode}_hit`,
