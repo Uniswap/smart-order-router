@@ -37,7 +37,7 @@ export abstract class IRouteCachingProvider {
     protocols: Protocol[],
     blockNumber: number,
   ): Promise<CachedRoutes | undefined> => {
-    if (this.getCacheMode(chainId, amount, quoteToken, tradeType, protocols) == CacheMode.Darkmode) {
+    if (await this.getCacheMode(chainId, amount, quoteToken, tradeType, protocols) == CacheMode.Darkmode) {
       return undefined;
     }
 
@@ -59,11 +59,11 @@ export abstract class IRouteCachingProvider {
     cachedRoutes: CachedRoutes,
     amount: CurrencyAmount<Currency>
   ): Promise<boolean> => {
-    if (this.getCacheModeFromCachedRoutes(cachedRoutes, amount) == CacheMode.Darkmode) {
+    if (await this.getCacheModeFromCachedRoutes(cachedRoutes, amount) == CacheMode.Darkmode) {
       return false;
     }
 
-    cachedRoutes.blocksToLive = this._getBlocksToLive(cachedRoutes, amount);
+    cachedRoutes.blocksToLive = await this._getBlocksToLive(cachedRoutes, amount);
 
     return this._setCachedRoute(cachedRoutes, amount);
   };
@@ -74,7 +74,10 @@ export abstract class IRouteCachingProvider {
    * @param cachedRoutes
    * @param amount
    */
-  public getCacheModeFromCachedRoutes(cachedRoutes: CachedRoutes, amount: CurrencyAmount<Currency>): CacheMode {
+  public getCacheModeFromCachedRoutes(
+    cachedRoutes: CachedRoutes,
+    amount: CurrencyAmount<Currency>
+  ): Promise<CacheMode> {
     const quoteToken = cachedRoutes.tradeType == TradeType.EXACT_INPUT ? cachedRoutes.tokenOut : cachedRoutes.tokenIn;
 
     return this.getCacheMode(
@@ -103,7 +106,7 @@ export abstract class IRouteCachingProvider {
     quoteToken: Token,
     tradeType: TradeType,
     protocols: Protocol[]
-  ): CacheMode
+  ): Promise<CacheMode>
 
   private filterExpiredCachedRoutes(
     cachedRoutes: CachedRoutes | undefined,
@@ -150,5 +153,5 @@ export abstract class IRouteCachingProvider {
    * @param amount
    * @protected
    */
-  protected abstract _getBlocksToLive(cachedRoutes: CachedRoutes, amount: CurrencyAmount<Currency>): number
+  protected abstract _getBlocksToLive(cachedRoutes: CachedRoutes, amount: CurrencyAmount<Currency>): Promise<number>
 }

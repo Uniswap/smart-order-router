@@ -876,7 +876,7 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
-    const cacheMode = this.routeCachingProvider?.getCacheMode(
+    const cacheMode = await this.routeCachingProvider?.getCacheMode(
       this.chainId,
       amount,
       quoteToken,

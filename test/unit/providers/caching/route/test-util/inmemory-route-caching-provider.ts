@@ -12,11 +12,11 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
   public internalSetCacheRouteCalls: number = 0;
   public getCacheModeCalls: number = 0;
 
-  protected _getBlocksToLive(_cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): number {
+  protected async _getBlocksToLive(_cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): Promise<number> {
     return this.blocksToLive;
   }
 
-  protected _getCachedRoute(
+  protected async _getCachedRoute(
     chainId: ChainId,
     amount: CurrencyAmount<Currency>,
     quoteToken: Token,
@@ -27,27 +27,27 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
 
     const cacheKey = `${amount.currency.wrapped.symbol}/${quoteToken.symbol}/${chainId}/${tradeType}/${protocols.sort()}`;
 
-    return Promise.resolve(this.routesCache.get(cacheKey));
+    return this.routesCache.get(cacheKey);
   }
 
-  protected _setCachedRoute(cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): Promise<boolean> {
+  protected async _setCachedRoute(cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): Promise<boolean> {
     this.internalSetCacheRouteCalls += 1;
 
-    if (this.forceFail) return Promise.resolve(false);
+    if (this.forceFail) return false;
 
     const cacheKey = `${cachedRoutes.tokenIn.symbol}/${cachedRoutes.tokenOut.symbol}/${cachedRoutes.chainId}/${cachedRoutes.tradeType}/${cachedRoutes.protocolsCovered.sort()}`;
     this.routesCache.set(cacheKey, cachedRoutes);
 
-    return Promise.resolve(true);
+    return true;
   }
 
-  getCacheMode(
+  async getCacheMode(
     _chainId: ChainId,
     _amount: CurrencyAmount<Currency>,
     _quoteToken: Token,
     _tradeType: TradeType,
     _protocols: Protocol[]
-  ): CacheMode {
+  ): Promise<CacheMode> {
     this.getCacheModeCalls += 1;
     return this.cacheMode;
   }
