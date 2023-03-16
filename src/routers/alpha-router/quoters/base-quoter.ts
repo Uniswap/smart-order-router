@@ -78,7 +78,7 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools: CandidatePoolsBySelectionCriteria,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
     gasModel?: IGasModel<RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult>

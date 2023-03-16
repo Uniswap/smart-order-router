@@ -33,7 +33,10 @@ export enum MetricLoggerUnit {
 }
 
 export abstract class IMetric {
+  abstract setProperty(key: string, value: unknown): void;
+
   abstract putDimensions(dimensions: Record<string, string>): void;
+
   abstract putMetric(key: string, value: number, unit?: MetricLoggerUnit): void;
 }
 
@@ -48,6 +51,10 @@ export class MetricLogger extends IMetric {
   constructor(context?: MetricContext) {
     super();
     this.log = log.child(context || {});
+  }
+
+  public setProperty(key: string, value: unknown): void {
+    this.log = this.log.child({ [key]: value });
   }
 
   public putDimensions(dimensions: Record<string, string>): void {

@@ -117,7 +117,7 @@ export class V3Quoter extends BaseQuoter<V3Route> {
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools: CandidatePoolsBySelectionCriteria,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
     gasModel?: IGasModel<V3RouteWithValidQuote>
   ): Promise<GetQuotesResult> {
     log.info('Starting to get V3 quotes');
