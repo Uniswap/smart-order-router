@@ -899,25 +899,41 @@ export class AlphaRouter
 
     if (cacheMode && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
       metric.putMetric(
-        `GetCachedRoute_${cacheMode}_miss`,
+        `GetCachedRoute_miss_${cacheMode}`,
         1,
         MetricLoggerUnit.Count
       );
-      metric.putMetric(
-        `GetCachedRoute_${cacheMode}_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_miss`,
-        1,
-        MetricLoggerUnit.Count
+      log.info(
+        {
+          tokenIn: tokenIn.symbol,
+          tokenInAddress: tokenIn.address,
+          tokenOut: tokenOut.symbol,
+          tokenOutAddress: tokenOut.address,
+          cacheMode,
+          amount: amount.toExact(),
+          chainId: this.chainId,
+          tradeType: this.tradeTypeStr(tradeType)
+        },
+        `GetCachedRoute miss ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}`
       );
     } else if (cachedRoutes) {
       metric.putMetric(
-        `GetCachedRoute_${cacheMode}_hit`,
+        `GetCachedRoute_hit_${cacheMode}`,
         1,
         MetricLoggerUnit.Count
       );
-      metric.putMetric(
-        `GetCachedRoute_${cacheMode}_${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}_hit`,
-        1,
-        MetricLoggerUnit.Count
+      log.info(
+        {
+          tokenIn: tokenIn.symbol,
+          tokenInAddress: tokenIn.address,
+          tokenOut: tokenOut.symbol,
+          tokenOutAddress: tokenOut.address,
+          cacheMode,
+          amount: amount.toExact(),
+          chainId: this.chainId,
+          tradeType: this.tradeTypeStr(tradeType)
+        },
+        `GetCachedRoute hit ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}`
       );
     }
 
@@ -1348,9 +1364,12 @@ export class AlphaRouter
     return bestSwapRoute;
   }
 
+  private tradeTypeStr(tradeType: TradeType): string {
+    return tradeType === TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut';
+  }
+
   private tokenPairSymbolTradeTypeChainId(tokenIn: Token, tokenOut: Token, tradeType: TradeType) {
-    const tradeTypeStr = tradeType === TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut';
-    return `${tokenIn.symbol}/${tokenOut.symbol}/${tradeTypeStr}/${this.chainId}`;
+    return `${tokenIn.symbol}/${tokenOut.symbol}/${this.tradeTypeStr(tradeType)}/${this.chainId}`;
   }
 
   private determineCurrencyInOutFromTradeType(tradeType: TradeType, amount: CurrencyAmount, quoteCurrency: Currency) {
