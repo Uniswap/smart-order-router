@@ -65,12 +65,6 @@ export class Quote extends BaseCommand {
       simulate,
     } = flags;
 
-    const chainId = ID_TO_CHAIN_ID(chainIdNumb);
-
-    const log = this.logger;
-    const tokenProvider = this.tokenProvider;
-    const router = this.router;
-
     const topNSecondHopForTokenAddress = new Map();
     topNSecondHopForTokenAddressRaw.split(',').forEach((entry) => {
       if (entry != '') {
@@ -79,7 +73,7 @@ export class Quote extends BaseCommand {
           throw new Error(
             'flag --topNSecondHopForTokenAddressRaw must be in format tokenAddress|topN,...');
         }
-        const topNForTokenAddress: number = +entryParts[1]!;
+        const topNForTokenAddress: number = Number(entryParts[1]!);
         topNSecondHopForTokenAddress.set(entryParts[0], topNForTokenAddress);
       }
     });
@@ -100,6 +94,12 @@ export class Quote extends BaseCommand {
         );
       }
     }
+
+    const chainId = ID_TO_CHAIN_ID(chainIdNumb);
+
+    const log = this.logger;
+    const tokenProvider = this.tokenProvider;
+    const router = this.router;
 
     // if the tokenIn str is 'ETH' or 'MATIC' or in NATIVE_NAMES_BY_ID
     const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
