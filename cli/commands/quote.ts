@@ -74,9 +74,6 @@ export class Quote extends BaseCommand {
     const topNSecondHopForTokenAddress = new Map();
     topNSecondHopForTokenAddressRaw.split(',').forEach((entry) => {
       if (entry != '') {
-        log.error('parsed stuff');
-        log.error(topNSecondHopForTokenAddressRaw);
-        log.error(entry);
         const entryParts = entry.split('|');
         if (entryParts.length != 2) {
           throw new Error(
