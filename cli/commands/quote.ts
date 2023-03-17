@@ -5,7 +5,7 @@ import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import _ from 'lodash';
 
-import { ID_TO_CHAIN_ID, nativeOnChain, parseAmount, SwapRoute, SwapType, } from '../../src';
+import { ID_TO_CHAIN_ID, MapWithLowerCaseKey, nativeOnChain, parseAmount, SwapRoute, SwapType, } from '../../src';
 import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
 import { BaseCommand } from '../base-command';
 
@@ -65,7 +65,7 @@ export class Quote extends BaseCommand {
       simulate,
     } = flags;
 
-    const topNSecondHopForTokenAddress = new Map();
+    const topNSecondHopForTokenAddress = new MapWithLowerCaseKey();
     topNSecondHopForTokenAddressRaw.split(',').forEach((entry) => {
       if (entry != '') {
         const entryParts = entry.split('|');
@@ -74,7 +74,7 @@ export class Quote extends BaseCommand {
             'flag --topNSecondHopForTokenAddressRaw must be in format tokenAddress|topN,...');
         }
         const topNForTokenAddress: number = Number(entryParts[1]!);
-        topNSecondHopForTokenAddress.set(entryParts[0], topNForTokenAddress);
+        topNSecondHopForTokenAddress.set(entryParts[0]!, topNForTokenAddress);
       }
     });
 
