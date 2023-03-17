@@ -195,6 +195,12 @@ export type AlphaRouterParams = {
   routeCachingProvider?: IRouteCachingProvider;
 };
 
+export class MapWithLowerCaseKey<V> extends Map<string, V> {
+  override set(key: string, value: V): this {
+    return super.set(key.toLowerCase(), value);
+  }
+}
+
 /**
  * Determines the pools that the algorithm will consider when finding the optimal swap.
  *
@@ -220,9 +226,18 @@ export type ProtocolPoolSelection = {
   /**
    * Given the topNTokenInOut pools, gets the top N pools that involve the other token.
    * E.g. for a WETH -> USDC swap, if topNTokenInOut found WETH -> DAI and WETH -> USDT,
-   * a value of 2 would find the top 2 pools that involve DAI or USDT.
+   * a value of 2 would find the top 2 pools that involve DAI and top 2 pools that involve USDT.
    */
   topNSecondHop: number;
+  /**
+   * Given the topNTokenInOut pools and a token address,
+   * gets the top N pools that involve the other token.
+   * If token address is not on the list, we default to topNSecondHop.
+   * E.g. for a WETH -> USDC swap, if topNTokenInOut found WETH -> DAI and WETH -> USDT,
+   * and there's a mapping USDT => 4, but no mapping for DAI
+   * it would find the top 4 pools that involve USDT, and find the topNSecondHop pools that involve DAI
+   */
+  topNSecondHopForTokenAddress?: MapWithLowerCaseKey<number>;
   /**
    * The top N pools for token in and token out that involve a token from a list of
    * hardcoded 'base tokens'. These are standard tokens such as WETH, USDC, DAI, etc.
