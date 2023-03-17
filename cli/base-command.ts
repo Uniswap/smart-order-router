@@ -63,6 +63,10 @@ export abstract class BaseCommand extends Command {
       required: false,
       default: 2,
     }),
+    topNSecondHopForTokenAddressRaw: flags.string({
+      required: false,
+      default: '',
+    }),
     topNWithEachBaseToken: flags.integer({
       required: false,
       default: 2,

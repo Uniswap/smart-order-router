@@ -199,6 +199,7 @@ export async function getV3CandidatePools({
       topNDirectSwaps,
       topNTokenInOut,
       topNSecondHop,
+      topNSecondHopForTokenAddress,
       topNWithEachBaseToken,
       topNWithBaseToken,
     },
@@ -446,7 +447,7 @@ export async function getV3CandidatePools({
               subgraphPool.token1.id == secondHopId)
           );
         })
-        .slice(0, topNSecondHop)
+        .slice(0, topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop)
         .value();
     })
     .uniqBy((pool) => pool.id)
@@ -469,7 +470,7 @@ export async function getV3CandidatePools({
               subgraphPool.token1.id == secondHopId)
           );
         })
-        .slice(0, topNSecondHop)
+        .slice(0, topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop)
         .value();
     })
     .uniqBy((pool) => pool.id)
