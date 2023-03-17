@@ -65,15 +65,26 @@ export class Quote extends BaseCommand {
       simulate,
     } = flags;
 
+    const chainId = ID_TO_CHAIN_ID(chainIdNumb);
+
+    const log = this.logger;
+    const tokenProvider = this.tokenProvider;
+    const router = this.router;
+
     const topNSecondHopForTokenAddress = new Map();
     topNSecondHopForTokenAddressRaw.split(',').forEach((entry) => {
-      const entryParts = entry.split('|');
-      if (entryParts.length != 2) {
-        throw new Error(
-          'flag --topNSecondHopForTokenAddressRaw must be in format tokenAddress|topN,...');
+      if (entry != '') {
+        log.error('parsed stuff');
+        log.error(topNSecondHopForTokenAddressRaw);
+        log.error(entry);
+        const entryParts = entry.split('|');
+        if (entryParts.length != 2) {
+          throw new Error(
+            'flag --topNSecondHopForTokenAddressRaw must be in format tokenAddress|topN,...');
+        }
+        const topNForTokenAddress: number = +entryParts[1]!;
+        topNSecondHopForTokenAddress.set(entryParts[0], topNForTokenAddress);
       }
-      const topNForTokenAddress: number = +entryParts[1]!;
-      topNSecondHopForTokenAddress.set(entryParts[0], topNForTokenAddress);
     });
 
     if ((exactIn && exactOut) || (!exactIn && !exactOut)) {
@@ -92,12 +103,6 @@ export class Quote extends BaseCommand {
         );
       }
     }
-
-    const chainId = ID_TO_CHAIN_ID(chainIdNumb);
-
-    const log = this.logger;
-    const tokenProvider = this.tokenProvider;
-    const router = this.router;
 
     // if the tokenIn str is 'ETH' or 'MATIC' or in NATIVE_NAMES_BY_ID
     const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
