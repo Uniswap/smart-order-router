@@ -562,11 +562,11 @@ export class AlphaRouter
     }
 
     let gasPriceProviderInstance: IGasPriceProvider;
-    if (this.provider instanceof JsonRpcProvider) {
+    if (JsonRpcProvider.isProvider(this.provider)) {
       gasPriceProviderInstance = new OnChainGasPriceProvider(
         chainId,
-        new EIP1559GasPriceProvider(this.provider),
-        new LegacyGasPriceProvider(this.provider)
+        new EIP1559GasPriceProvider(this.provider as JsonRpcProvider),
+        new LegacyGasPriceProvider(this.provider as JsonRpcProvider)
       );
     } else {
       gasPriceProviderInstance = new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL);
