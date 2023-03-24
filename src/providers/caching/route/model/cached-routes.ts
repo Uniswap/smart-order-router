@@ -7,6 +7,17 @@ import { ChainId } from '../../../../util';
 
 import { CachedRoute } from './cached-route';
 
+interface CachedRoutesParams {
+  routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
+  chainId: ChainId;
+  tokenIn: Token;
+  tokenOut: Token;
+  protocolsCovered: Protocol[];
+  blockNumber: number;
+  tradeType: TradeType;
+  blocksToLive?: number;
+}
+
 /**
  * Class defining the route to cache
  *
@@ -22,16 +33,29 @@ export class CachedRoutes {
   public readonly blockNumber: number;
   public readonly tradeType: TradeType;
 
-  public blocksToLive = 0;
+  public blocksToLive: number;
 
-  private constructor(
-    routes: CachedRoute<V3Route | V2Route | MixedRoute>[],
-    chainId: ChainId,
-    tokenIn: Token,
-    tokenOut: Token,
-    protocolsCovered: Protocol[],
-    blockNumber: number,
-    tradeType: TradeType,
+  /**
+   * @param routes
+   * @param chainId
+   * @param tokenIn
+   * @param tokenOut
+   * @param protocolsCovered
+   * @param blockNumber
+   * @param tradeType
+   * @param blocksToLive
+   */
+  constructor(
+    {
+      routes,
+      chainId,
+      tokenIn,
+      tokenOut,
+      protocolsCovered,
+      blockNumber,
+      tradeType,
+      blocksToLive = 0
+    }: CachedRoutesParams
   ) {
     this.routes = routes;
     this.chainId = chainId;
@@ -40,6 +64,7 @@ export class CachedRoutes {
     this.protocolsCovered = protocolsCovered;
     this.blockNumber = blockNumber;
     this.tradeType = tradeType;
+    this.blocksToLive = blocksToLive;
   }
 
   /**
@@ -67,10 +92,18 @@ export class CachedRoutes {
     if (routes.length == 0) return undefined;
 
     const cachedRoutes = _.map(routes, (route: RouteWithValidQuote) =>
-      new CachedRoute(route.route, route.percent)
+      new CachedRoute({ route: route.route, percent: route.percent })
     );
 
-    return new CachedRoutes(cachedRoutes, chainId, tokenIn, tokenOut, protocolsCovered, blockNumber, tradeType);
+    return new CachedRoutes({
+      routes: cachedRoutes,
+      chainId: chainId,
+      tokenIn: tokenIn,
+      tokenOut: tokenOut,
+      protocolsCovered: protocolsCovered,
+      blockNumber: blockNumber,
+      tradeType: tradeType
+    });
   }
 
   /**
