@@ -212,15 +212,7 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
 
 describe('AlphaRouter', () => {
   const testRunner = new SmartOrderRouterIntegrationTestRunner();
-  it('passes all mainnet base tests', async () => {
-    await testRunner.run();
-  });
-
-  it('passes all mainnet external tests', async () => {
-    await testRunner.runExternalTests();
-  });
-
-  it('passes all base tests on all chains', async () => {
-    await testRunner.runTestsOnAllChains();
-  });
+  testRunner.run();
+  testRunner.runExternalTests();
+  testRunner.runTestsOnAllChains();
 });
