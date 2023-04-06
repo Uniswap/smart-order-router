@@ -28,7 +28,7 @@
     "fix:lint": "eslint src --ext .ts --fix",
     "prepare-release": "run-s cov:check doc:html version doc:publish",
     "test": "jest test/unit",
-    "integ-test": "TS_NODE=true jest test/integ"
+    "integ-test": "TS_NODE=true jest test/integ/alpha-router.integration.test.ts"
   },
   "engines": {
     "node": ">=10"

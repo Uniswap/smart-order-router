@@ -1,2 +1,2 @@
 
-export { RoutingIntegTest } from './integ/alpha-router.integration.test';
+export { BaseRoutingIntegTest } from './integ/base.test';
