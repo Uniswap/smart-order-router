@@ -1220,7 +1220,7 @@ export class AlphaRouter
           v2Routes[0]!.tokenIn,
           v2Routes[0]!.tokenOut,
           v2Amounts,
-          percents,
+          v2PercentsFromCache,
           quoteToken,
           tradeType,
           routingConfig,
