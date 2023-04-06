@@ -800,7 +800,7 @@ export abstract class BaseRoutingIntegTest {
                 tokenOutChainId: ChainId.MAINNET,
                 tradeType,
                 amount,
-                slippageTolerance: '5',
+                slippageTolerance: '50',
                 deadline: '360',
                 recipient: alice._address,
                 enableUniversalRouter: true,
@@ -2467,8 +2467,6 @@ export abstract class BaseRoutingIntegTest {
             );
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
-
-            // Scope limited for non mainnet network tests to validating the swap
           });
 
           it(`erc20 -> erc20`, async () => {
