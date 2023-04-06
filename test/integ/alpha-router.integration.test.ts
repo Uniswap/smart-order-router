@@ -5,6 +5,7 @@ import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol } from '@uniswap/router-sdk';
 import { Percent } from '@uniswap/sdk-core';
 import 'jest-environment-hardhat';
+import _ from 'lodash';
 import NodeCache from 'node-cache';
 import {
   AlphaRouter,
@@ -17,6 +18,7 @@ import {
   FallbackTenderlySimulator,
   ITokenProvider,
   NodeJSCache,
+  SUPPORTED_CHAINS,
   SwapOptions,
   SwapType,
   TenderlySimulator,
@@ -182,9 +184,43 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
   run = async () => {
     await super.run();
   };
+
+  runExternalTests = async () => {
+    await super.runExternalTests();
+  };
+
+  runTestsOnAllChains = async () => {
+    for (const chain of _.filter(
+      SUPPORTED_CHAINS,
+      (c) =>
+        c != ChainId.RINKEBY &&
+        c != ChainId.ROPSTEN &&
+        c != ChainId.KOVAN &&
+        c != ChainId.OPTIMISTIC_KOVAN &&
+        c != ChainId.OPTIMISM_GOERLI &&
+        c != ChainId.POLYGON_MUMBAI &&
+        c != ChainId.ARBITRUM_RINKEBY &&
+        c != ChainId.ARBITRUM_GOERLI &&
+        c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
+        // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
+        c != ChainId.CELO_ALFAJORES
+    )) {
+      await super.runTestOnChain(chain);
+    }
+  };
 }
 
 describe('AlphaRouter', () => {
   const testRunner = new SmartOrderRouterIntegrationTestRunner();
-  testRunner.run();
+  it('passes all mainnet base tests', async () => {
+    await testRunner.run();
+  });
+
+  it('passes all mainnet external tests', async () => {
+    await testRunner.runExternalTests();
+  });
+
+  it('passes all base tests on all chains', async () => {
+    await testRunner.runTestsOnAllChains();
+  });
 });
