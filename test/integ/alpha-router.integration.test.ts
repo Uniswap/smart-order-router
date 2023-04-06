@@ -17,6 +17,7 @@ import {
   FallbackTenderlySimulator,
   ITokenProvider,
   NodeJSCache,
+  SwapOptions,
   SwapType,
   TenderlySimulator,
   TokenProvider,
@@ -132,11 +133,31 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
     if (quoteConfig.tokenIn === quoteConfig.tokenOut)
       throw new Error('Token in and token out are the same');
 
-    const swapType =
-      quoteConfig.enableUniversalRouter ||
-      quoteConfig.enableUniversalRouter === undefined
-        ? SwapType.UNIVERSAL_ROUTER
-        : SwapType.SWAP_ROUTER_02;
+    const swapType = quoteConfig.enableUniversalRouter
+      ? SwapType.UNIVERSAL_ROUTER
+      : SwapType.SWAP_ROUTER_02;
+
+    const swapConfig = {
+      // Annoying because regular definedness check will fail if enableUniversalRouter is false
+      ...('enableUniversalRouter' in quoteConfig && {
+        type: swapType,
+      }),
+      ...(quoteConfig.recipient && {
+        recipient: quoteConfig.recipient,
+      }),
+      ...(quoteConfig.deadline && {
+        deadline: parseDeadline(Number(quoteConfig.deadline)),
+      }),
+      ...(quoteConfig.slippageTolerance && {
+        slippageTolerance: new Percent(quoteConfig.slippageTolerance, 100),
+      }),
+      ...(quoteConfig.simulate && { simulate: quoteConfig.simulate }),
+      ...(quoteConfig.permit && { permit: quoteConfig.permit }),
+    } as SwapOptions;
+
+    // if swapConfig is empty object, set to undefined
+    const swapConfigFinal =
+      Object.keys(swapConfig).length === 0 ? undefined : swapConfig;
 
     const swap = await this.alphaRouter.route(
       quoteConfig.amount,
@@ -146,21 +167,7 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
         quoteConfig.tradeType
       ),
       quoteConfig.tradeType,
-      {
-        // @ts-ignore[2322]
-        type: swapType,
-        ...(quoteConfig.recipient && {
-          recipient: quoteConfig.recipient,
-        }),
-        ...(quoteConfig.deadline && {
-          deadline: parseDeadline(Number(quoteConfig.deadline)),
-        }),
-        ...(quoteConfig.slippageTolerance && {
-          slippageTolerance: new Percent(quoteConfig.slippageTolerance, 100),
-        }),
-        ...(quoteConfig.simulate && { simulate: quoteConfig.simulate }),
-        ...(quoteConfig.permit && { permit: quoteConfig.permit }),
-      },
+      swapConfigFinal,
       {
         ...this.routingConfig,
         ...(quoteConfig.routingConfig && quoteConfig.routingConfig),
