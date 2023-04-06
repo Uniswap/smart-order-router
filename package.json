@@ -9,6 +9,9 @@
     "type": "git",
     "url": "https://github.com/Uniswap/smart-order-router.git"
   },
+  "exports": {
+    "./tests": "./test/index.js"
+  },
   "license": "GPL",
   "keywords": [],
   "scripts": {
