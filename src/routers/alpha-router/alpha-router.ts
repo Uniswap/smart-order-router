@@ -1002,28 +1002,31 @@ export class AlphaRouter
       const quoteGasAdjustedDiff = swapRouteFromChain.quoteGasAdjusted.subtract(swapRouteFromCache.quoteGasAdjusted);
       const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
 
-      log.info(
-        {
-          quoteFromChain: swapRouteFromChain.quote.toExact(),
-          quoteFromCache: swapRouteFromCache.quote.toExact(),
-          quoteDiff: quoteDiff.toExact(),
-          quoteGasAdjustedFromChain: swapRouteFromChain.quoteGasAdjusted.toExact(),
-          quoteGasAdjustedFromCache: swapRouteFromCache.quoteGasAdjusted.toExact(),
-          quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
-          gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
-          gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
-          gasUsedDiff: gasUsedDiff.toString(),
-          routesFromChain: swapRouteFromChain.routes.toString(),
-          routesFromCache: swapRouteFromCache.routes.toString(),
-          amount: amount.toExact(),
-          pair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)
-        },
-        `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
-          tokenIn,
-          tokenOut,
-          tradeType
-        )}`
-      );
+      // Only log if diff is not equal to 0
+      if (!quoteDiff.equalTo(0)) {
+        log.warn(
+          {
+            quoteFromChain: swapRouteFromChain.quote.toExact(),
+            quoteFromCache: swapRouteFromCache.quote.toExact(),
+            quoteDiff: quoteDiff.toExact(),
+            quoteGasAdjustedFromChain: swapRouteFromChain.quoteGasAdjusted.toExact(),
+            quoteGasAdjustedFromCache: swapRouteFromCache.quoteGasAdjusted.toExact(),
+            quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
+            gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
+            gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
+            gasUsedDiff: gasUsedDiff.toString(),
+            routesFromChain: swapRouteFromChain.routes.toString(),
+            routesFromCache: swapRouteFromCache.routes.toString(),
+            amount: amount.toExact(),
+            pair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)
+          },
+          `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
+            tokenIn,
+            tokenOut,
+            tradeType
+          )}`
+        );
+      }
     }
 
     if (!swapRouteRaw) {
