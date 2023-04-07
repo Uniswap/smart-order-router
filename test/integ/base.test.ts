@@ -82,13 +82,14 @@ import { Permit2__factory } from '../../src/types/other/factories/Permit2__facto
 import { getBalanceAndApprove } from '../test-util/getBalanceAndApprove';
 
 const FORK_BLOCK = 16075500;
-const SLIPPAGE = new Percent(5, 100);
+const DEFAULT_SLIPPAGE = new Percent(5, 100);
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 
 export const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
   after: CurrencyAmount<Currency>,
-  tokensQuoted: CurrencyAmount<Currency>
+  tokensQuoted: CurrencyAmount<Currency>,
+  slippage: Percent = DEFAULT_SLIPPAGE
 ) => {
   // Check which is bigger to support exactIn and exactOut
   const tokensSwapped = after.greaterThan(before)
@@ -99,7 +100,7 @@ export const checkQuoteToken = (
     : tokensSwapped.subtract(tokensQuoted);
 
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction);
-  expect(percentDiff.lessThan(SLIPPAGE.asFraction)).toBe(true);
+  expect(percentDiff.lessThan(slippage.asFraction)).toBe(true);
 };
 
 export const getQuoteToken = (
@@ -185,7 +186,7 @@ export abstract class BaseRoutingIntegTest {
    * @param targetQuoteDecimalsAmount?: number - if defined, checks that the quoteDecimals is within the range of this +/- acceptableDifference (non inclusive bounds)
    * @param acceptableDifference?: number - see above
    */
-  private validateSwapRoute = async (
+  public validateSwapRoute = async (
     quote: CurrencyAmount<Currency>,
     quoteGasAdjusted: CurrencyAmount<Currency>,
     tradeType: TradeType,
@@ -230,7 +231,8 @@ export abstract class BaseRoutingIntegTest {
     }
   };
 
-  async run() {
+  /// @dev Run the default test suite (all base tests, external tests, and tests on other chains)
+  public async run() {
     let alice: JsonRpcSigner;
     const executeSwap = async (
       swapType: SwapType,
@@ -354,7 +356,8 @@ export abstract class BaseRoutingIntegTest {
       checkTokenInAmount?: number,
       checkTokenOutAmount?: number,
       estimatedGasUsed?: BigNumber,
-      permit?: boolean
+      permit?: boolean,
+      slippageTolerance?: Percent
     ) => {
       expect(methodParameters).not.toBeUndefined();
       const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
@@ -384,7 +387,8 @@ export abstract class BaseRoutingIntegTest {
           tokenOutBefore,
           tokenOutAfter,
           /// @dev we need to recreate the CurrencyAmount object here because tokenOut can be different from quote.currency (in the case of ETH vs. WETH)
-          CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
+          CurrencyAmount.fromRawAmount(tokenOut, quote.quotient),
+          slippageTolerance
         );
       } else {
         if (checkTokenOutAmount) {
@@ -402,7 +406,8 @@ export abstract class BaseRoutingIntegTest {
         checkQuoteToken(
           tokenInBefore,
           tokenInAfter,
-          CurrencyAmount.fromRawAmount(tokenIn, quote.quotient)
+          CurrencyAmount.fromRawAmount(tokenIn, quote.quotient),
+          slippageTolerance
         );
       }
     };
@@ -876,7 +881,11 @@ export abstract class BaseRoutingIntegTest {
                 tokenOut,
                 methodParameters,
                 tradeType,
-                10000
+                10000,
+                undefined,
+                undefined,
+                undefined,
+                new Percent(quoteConfig.slippageTolerance!, 100)
               );
             });
 
@@ -955,7 +964,8 @@ export abstract class BaseRoutingIntegTest {
                 1000000,
                 undefined,
                 undefined,
-                true
+                true,
+                new Percent(50, 100)
               );
             });
 
@@ -1715,7 +1725,9 @@ export abstract class BaseRoutingIntegTest {
                   tradeType,
                   10,
                   10,
-                  estimatedGasUsed
+                  estimatedGasUsed,
+                  undefined,
+                  new Percent(quoteConfig.slippageTolerance!, 100)
                 );
               });
 
@@ -2335,7 +2347,11 @@ export abstract class BaseRoutingIntegTest {
                 tokenOut,
                 methodParameters,
                 tradeType,
-                10000
+                10000,
+                undefined,
+                undefined,
+                undefined,
+                new Percent(quoteConfig.slippageTolerance!, 100)
               );
             });
           });
@@ -2344,49 +2360,8 @@ export abstract class BaseRoutingIntegTest {
     });
   }
 
-  protected TEST_ERC20_1: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: USDC_ON(1),
-    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: UNI_GÖRLI,
-    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
-    [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
-    [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
-    [ChainId.ARBITRUM_GOERLI]: USDC_ON(ChainId.ARBITRUM_GOERLI),
-    [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
-    [ChainId.CELO]: CUSD_CELO,
-    [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
-    [ChainId.GNOSIS]: WBTC_GNOSIS,
-    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDC_BSC,
-  };
-
-  protected TEST_ERC20_2: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: DAI_ON(1),
-    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
-    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
-    [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
-    [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
-    [ChainId.ARBITRUM_GOERLI]: DAI_ON(ChainId.ARBITRUM_GOERLI),
-    [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
-    [ChainId.CELO]: CEUR_CELO,
-    [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
-    [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
-    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDT_BSC,
-  };
-
-  async runTestOnChain(chain: ChainId) {
+  /// @dev Run tests on a specific chain
+  public async runTestOnChain(chain: ChainId) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = this.TEST_ERC20_1[chain];
       const erc2 = this.TEST_ERC20_2[chain];
@@ -2626,14 +2601,14 @@ export abstract class BaseRoutingIntegTest {
                   ? {
                       type: SwapType.SWAP_ROUTER_02,
                       recipient: WHALES(tokenIn),
-                      slippageTolerance: SLIPPAGE,
+                      slippageTolerance: DEFAULT_SLIPPAGE,
                       deadline: parseDeadline(360),
                       simulate: { fromAddress: WHALES(tokenIn) },
                     }
                   : {
                       type: SwapType.UNIVERSAL_ROUTER,
                       recipient: WHALES(tokenIn),
-                      slippageTolerance: SLIPPAGE,
+                      slippageTolerance: DEFAULT_SLIPPAGE,
                       deadlineOrPreviousBlockhash: parseDeadline(360),
                       simulate: { fromAddress: WHALES(tokenIn) },
                     };
@@ -2681,14 +2656,14 @@ export abstract class BaseRoutingIntegTest {
                   ? {
                       type: SwapType.SWAP_ROUTER_02,
                       recipient: WHALES(tokenIn),
-                      slippageTolerance: SLIPPAGE,
+                      slippageTolerance: DEFAULT_SLIPPAGE,
                       deadline: parseDeadline(360),
                       simulate: { fromAddress: WHALES(tokenIn) },
                     }
                   : {
                       type: SwapType.UNIVERSAL_ROUTER,
                       recipient: WHALES(tokenIn),
-                      slippageTolerance: SLIPPAGE,
+                      slippageTolerance: DEFAULT_SLIPPAGE,
                       deadlineOrPreviousBlockhash: parseDeadline(360),
                       simulate: { fromAddress: WHALES(tokenIn) },
                     };
@@ -2736,14 +2711,14 @@ export abstract class BaseRoutingIntegTest {
                   ? {
                       type: SwapType.SWAP_ROUTER_02,
                       recipient: WHALES(tokenIn),
-                      slippageTolerance: SLIPPAGE,
+                      slippageTolerance: DEFAULT_SLIPPAGE,
                       deadline: parseDeadline(360),
                       simulate: { fromAddress: WHALES(tokenIn) },
                     }
                   : {
                       type: SwapType.UNIVERSAL_ROUTER,
                       recipient: WHALES(tokenIn),
-                      slippageTolerance: SLIPPAGE,
+                      slippageTolerance: DEFAULT_SLIPPAGE,
                       deadlineOrPreviousBlockhash: parseDeadline(360),
                       simulate: { fromAddress: WHALES(tokenIn) },
                     };
@@ -2780,7 +2755,8 @@ export abstract class BaseRoutingIntegTest {
     }
   }
 
-  async runExternalTests() {
+  /// @dev Run tests for external classes exported from this package
+  public async runExternalTests() {
     describe('external class tests', () => {
       const multicall2Provider = new UniswapMulticallProvider(
         ChainId.MAINNET,
@@ -2917,4 +2893,46 @@ export abstract class BaseRoutingIntegTest {
       });
     });
   }
+
+  protected TEST_ERC20_1: { [chainId in ChainId]: Token } = {
+    [ChainId.MAINNET]: USDC_ON(1),
+    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
+    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
+    [ChainId.GÖRLI]: UNI_GÖRLI,
+    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
+    [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
+    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
+    [ChainId.ARBITRUM_GOERLI]: USDC_ON(ChainId.ARBITRUM_GOERLI),
+    [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: CUSD_CELO,
+    [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: WBTC_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
+    [ChainId.BSC]: USDC_BSC,
+  };
+
+  protected TEST_ERC20_2: { [chainId in ChainId]: Token } = {
+    [ChainId.MAINNET]: DAI_ON(1),
+    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
+    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
+    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
+    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
+    [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
+    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
+    [ChainId.ARBITRUM_GOERLI]: DAI_ON(ChainId.ARBITRUM_GOERLI),
+    [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: CEUR_CELO,
+    [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
+    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
+    [ChainId.BSC]: USDT_BSC,
+  };
 }

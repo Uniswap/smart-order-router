@@ -1,7 +1,7 @@
 /**
  * @jest-environment hardhat
  */
-import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
 import { Percent } from '@uniswap/sdk-core';
 import 'jest-environment-hardhat';
@@ -9,20 +9,17 @@ import _ from 'lodash';
 import NodeCache from 'node-cache';
 import {
   AlphaRouter,
-  AlphaRouterConfig,
-  CachingTokenListProvider,
-  CachingTokenProviderWithFallback,
+  AlphaRouterParams,
   CachingV3PoolProvider,
   ChainId,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
-  ITokenProvider,
+  ID_TO_PROVIDER,
   NodeJSCache,
   SUPPORTED_CHAINS,
   SwapOptions,
   SwapType,
   TenderlySimulator,
-  TokenProvider,
   UniswapMulticallProvider,
   V2PoolProvider,
   V3PoolProvider,
@@ -45,95 +42,86 @@ const envVars = {
 };
 
 class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
-  alphaRouter: AlphaRouter;
-  customAlphaRouter: AlphaRouter;
-  tokenProvider: ITokenProvider;
-  routingConfig: AlphaRouterConfig;
-
   constructor() {
     super(envVars);
-    const multicall2Provider = new UniswapMulticallProvider(
-      ChainId.MAINNET,
-      hardhat.provider
-    );
+    // // this will be used to test gas limit simulation for web flow
+    // // in the web flow, we won't simulate on tenderly, only through eth estimate gas
+    // this.customAlphaRouter = new AlphaRouter({
+    //   chainId: chainId,
+    //   provider: hardhat.providers[0]!,
+    //   multicall2Provider,
+    //   v2PoolProvider,
+    //   v3PoolProvider,
+    //   simulator: ethEstimateGasSimulator,
+    // });
 
-    this.tokenProvider = new CachingTokenProviderWithFallback(
-      ChainId.MAINNET,
-      new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
-      new CachingTokenListProvider(
-        ChainId.MAINNET,
-        DEFAULT_TOKEN_LIST,
-        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
-      ),
-      new TokenProvider(ChainId.MAINNET, multicall2Provider)
-    );
+    describe('Smart Order Router Integration Tests', () => {
+      this.run();
+      this.runExternalTests();
+      this.runTestsOnAllChains();
+    });
+  }
 
-    this.routingConfig = {
-      // @ts-ignore
-      ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
-      protocols: [Protocol.V3, Protocol.V2],
-    };
+  getAlphaRouter = (
+    chainId: ChainId,
+    additionalAlphaRouterParams?: Partial<AlphaRouterParams>
+  ) => {
+    const chainProvider = ID_TO_PROVIDER(chainId);
+    const provider = new JsonRpcProvider(chainProvider, chainId);
+
+    const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
 
     const v3PoolProvider = new CachingV3PoolProvider(
-      ChainId.MAINNET,
-      new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
+      chainId,
+      new V3PoolProvider(chainId, multicall2Provider),
       new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
     );
-    const v2PoolProvider = new V2PoolProvider(
-      ChainId.MAINNET,
-      multicall2Provider
-    );
+    const v2PoolProvider = new V2PoolProvider(chainId, multicall2Provider);
 
     const ethEstimateGasSimulator = new EthEstimateGasSimulator(
-      ChainId.MAINNET,
-      hardhat.providers[0]!,
+      chainId,
+      provider,
       v2PoolProvider,
       v3PoolProvider
     );
 
     const tenderlySimulator = new TenderlySimulator(
-      ChainId.MAINNET,
+      chainId,
       envVars.TENDERLY_BASE_URL!,
       envVars.TENDERLY_USER!,
       envVars.TENDERLY_PROJECT!,
       envVars.TENDERLY_ACCESS_KEY!,
       v2PoolProvider,
       v3PoolProvider,
-      hardhat.providers[0]!
+      provider
     );
 
     const simulator = new FallbackTenderlySimulator(
-      ChainId.MAINNET,
-      hardhat.providers[0]!,
+      chainId,
+      provider,
       tenderlySimulator,
       ethEstimateGasSimulator
     );
 
-    this.alphaRouter = new AlphaRouter({
-      chainId: ChainId.MAINNET,
-      provider: hardhat.providers[0]!,
+    return new AlphaRouter({
+      chainId: chainId,
+      provider,
       multicall2Provider,
       v2PoolProvider,
       v3PoolProvider,
       simulator,
+      ...additionalAlphaRouterParams,
     });
-
-    // this will be used to test gas limit simulation for web flow
-    // in the web flow, we won't simulate on tenderly, only through eth estimate gas
-    this.customAlphaRouter = new AlphaRouter({
-      chainId: ChainId.MAINNET,
-      provider: hardhat.providers[0]!,
-      multicall2Provider,
-      v2PoolProvider,
-      v3PoolProvider,
-      simulator: ethEstimateGasSimulator,
-    });
-  }
+  };
 
   // Transform quoteConfig into inputs for AlphaRouter.route()
   quote = async (quoteConfig: QuoteConfig) => {
     if (quoteConfig.tokenIn === quoteConfig.tokenOut)
       throw new Error('Token in and token out are the same');
+    if (quoteConfig.tokenInChainId !== quoteConfig.tokenOutChainId)
+      throw new Error('Token in and token out are on different chains');
+
+    const chainId = quoteConfig.tokenInChainId;
 
     const swapType = quoteConfig.enableUniversalRouter
       ? SwapType.UNIVERSAL_ROUTER
@@ -161,7 +149,13 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
     const swapConfigFinal =
       Object.keys(swapConfig).length === 0 ? undefined : swapConfig;
 
-    const swap = await this.alphaRouter.route(
+    const defaultRoutingConfig = {
+      // @ts-ignore
+      ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chainId],
+      protocols: [Protocol.V3, Protocol.V2],
+    };
+
+    const swap = await this.getAlphaRouter(chainId).route(
       quoteConfig.amount,
       getQuoteToken(
         quoteConfig.tokenIn,
@@ -171,7 +165,7 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
       quoteConfig.tradeType,
       swapConfigFinal,
       {
-        ...this.routingConfig,
+        ...defaultRoutingConfig,
         ...(quoteConfig.routingConfig && quoteConfig.routingConfig),
       }
     );
@@ -179,14 +173,6 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
     expect(swap).not.toBeNull();
 
     return swap!;
-  };
-
-  run = async () => {
-    await super.run();
-  };
-
-  runExternalTests = async () => {
-    await super.runExternalTests();
   };
 
   runTestsOnAllChains = async () => {
@@ -205,14 +191,11 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
         // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
         c != ChainId.CELO_ALFAJORES
     )) {
-      await super.runTestOnChain(chain);
+      await this.runTestOnChain(chain);
     }
   };
 }
 
-describe('AlphaRouter', () => {
-  const testRunner = new SmartOrderRouterIntegrationTestRunner();
-  testRunner.run();
-  testRunner.runExternalTests();
-  testRunner.runTestsOnAllChains();
+describe('Smart Order Router base integration tests', () => {
+  new SmartOrderRouterIntegrationTestRunner();
 });
