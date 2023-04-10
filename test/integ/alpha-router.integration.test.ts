@@ -5,7 +5,6 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
 import { Percent } from '@uniswap/sdk-core';
 import 'jest-environment-hardhat';
-import _ from 'lodash';
 import NodeCache from 'node-cache';
 import {
   AlphaRouter,
@@ -14,7 +13,6 @@ import {
   ChainId,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
-  ID_TO_PROVIDER,
   NodeJSCache,
   SUPPORTED_CHAINS,
   SwapOptions,
@@ -58,7 +56,23 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
     describe('Smart Order Router Integration Tests', () => {
       this.run();
       this.runExternalTests();
-      this.runTestsOnAllChains();
+
+      for (const chain of SUPPORTED_CHAINS.filter(
+        (c) =>
+          c != ChainId.RINKEBY &&
+          c != ChainId.ROPSTEN &&
+          c != ChainId.KOVAN &&
+          c != ChainId.OPTIMISTIC_KOVAN &&
+          c != ChainId.OPTIMISM_GOERLI &&
+          c != ChainId.POLYGON_MUMBAI &&
+          c != ChainId.ARBITRUM_RINKEBY &&
+          c != ChainId.ARBITRUM_GOERLI &&
+          c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
+          // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
+          c != ChainId.CELO_ALFAJORES
+      )) {
+        this.runTestOnChain(chain);
+      }
     });
   }
 
@@ -66,8 +80,9 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
     chainId: ChainId,
     additionalAlphaRouterParams?: Partial<AlphaRouterParams>
   ) => {
-    const chainProvider = ID_TO_PROVIDER(chainId);
-    const provider = new JsonRpcProvider(chainProvider, chainId);
+    const provider =
+      (additionalAlphaRouterParams?.provider as JsonRpcProvider) ??
+      hardhat.providers[0]!;
 
     const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
 
@@ -115,7 +130,11 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
   };
 
   // Transform quoteConfig into inputs for AlphaRouter.route()
-  quote = async (quoteConfig: QuoteConfig) => {
+  quote = async (
+    quoteConfig: QuoteConfig,
+    additionalAlphaRouterParams?: Partial<AlphaRouterParams>,
+    allowNullSwap: boolean = false
+  ) => {
     if (quoteConfig.tokenIn === quoteConfig.tokenOut)
       throw new Error('Token in and token out are the same');
     if (quoteConfig.tokenInChainId !== quoteConfig.tokenOutChainId)
@@ -155,7 +174,10 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
       protocols: [Protocol.V3, Protocol.V2],
     };
 
-    const swap = await this.getAlphaRouter(chainId).route(
+    const swap = await this.getAlphaRouter(
+      chainId,
+      additionalAlphaRouterParams
+    ).route(
       quoteConfig.amount,
       getQuoteToken(
         quoteConfig.tokenIn,
@@ -169,30 +191,11 @@ class SmartOrderRouterIntegrationTestRunner extends BaseRoutingIntegTest {
         ...(quoteConfig.routingConfig && quoteConfig.routingConfig),
       }
     );
-    expect(swap).toBeDefined();
-    expect(swap).not.toBeNull();
-
-    return swap!;
-  };
-
-  runTestsOnAllChains = async () => {
-    for (const chain of _.filter(
-      SUPPORTED_CHAINS,
-      (c) =>
-        c != ChainId.RINKEBY &&
-        c != ChainId.ROPSTEN &&
-        c != ChainId.KOVAN &&
-        c != ChainId.OPTIMISTIC_KOVAN &&
-        c != ChainId.OPTIMISM_GOERLI &&
-        c != ChainId.POLYGON_MUMBAI &&
-        c != ChainId.ARBITRUM_RINKEBY &&
-        c != ChainId.ARBITRUM_GOERLI &&
-        c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
-        // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
-        c != ChainId.CELO_ALFAJORES
-    )) {
-      await this.runTestOnChain(chain);
+    if (!allowNullSwap) {
+      expect(swap).toBeDefined();
+      expect(swap).not.toBeNull();
     }
+    return swap!;
   };
 }
 

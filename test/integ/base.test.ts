@@ -11,9 +11,8 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import {
-  AlphaRouter,
   AlphaRouterConfig,
-  CachingV3PoolProvider,
+  AlphaRouterParams,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
   ChainId,
@@ -21,24 +20,19 @@ import {
   CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
   DAI_ON,
-  EthEstimateGasSimulator,
-  FallbackTenderlySimulator,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
   MethodParameters,
   MixedRoute,
   nativeOnChain,
   NATIVE_CURRENCY,
-  NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
   setGlobalLogger,
   SimulationStatus,
-  SwapOptions,
   SwapRoute,
   SwapType,
   SWAP_ROUTER_02_ADDRESSES,
-  TenderlySimulator,
   UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
@@ -48,10 +42,8 @@ import {
   USDC_ON,
   USDT_BSC,
   USDT_MAINNET,
-  V2PoolProvider,
   V2Route,
   V2_SUPPORTED,
-  V3PoolProvider,
   V3Route,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
@@ -76,7 +68,6 @@ import bunyan from 'bunyan';
 import { BigNumber, providers, Wallet } from 'ethers';
 import { parseEther } from 'ethers/lib/utils';
 import _ from 'lodash';
-import NodeCache from 'node-cache';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../test-util/getBalanceAndApprove';
@@ -154,7 +145,11 @@ export abstract class BaseRoutingIntegTest {
   // - SOR: call AlphaRouter.route()
   // - RoutingAPI: call url/quote
   // - URA: call url/quote
-  abstract quote(quoteConfig: QuoteConfig): Promise<SwapRoute>;
+  abstract quote(
+    quoteConfig: QuoteConfig,
+    additionalAlphaRouterParams?: Partial<AlphaRouterParams>,
+    allowNullSwap?: boolean
+  ): Promise<SwapRoute>;
 
   constructor(private envVars: EnvVars) {
     jest.retryTimes(0);
@@ -234,6 +229,7 @@ export abstract class BaseRoutingIntegTest {
   /// @dev Run the default test suite (all base tests, external tests, and tests on other chains)
   public async run() {
     let alice: JsonRpcSigner;
+
     const executeSwap = async (
       swapType: SwapType,
       methodParameters: MethodParameters,
@@ -2365,62 +2361,16 @@ export abstract class BaseRoutingIntegTest {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = this.TEST_ERC20_1[chain];
       const erc2 = this.TEST_ERC20_2[chain];
+      const wrappedNative = WNATIVE_ON(chain);
+      const chainProvider = ID_TO_PROVIDER(chain);
+      const provider = new JsonRpcProvider(chainProvider, chain);
+      const additionalAlphaRouterParams = {
+        provider,
+      };
+      const defaultRoutingConfig = DEFAULT_ROUTING_CONFIG_BY_CHAIN(chain);
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, () => {
-        const wrappedNative = WNATIVE_ON(chain);
-
-        let alphaRouter: AlphaRouter;
-
-        beforeAll(async () => {
-          const chainProvider = ID_TO_PROVIDER(chain);
-          const provider = new JsonRpcProvider(chainProvider, chain);
-
-          const multicall2Provider = new UniswapMulticallProvider(
-            chain,
-            provider
-          );
-
-          const v3PoolProvider = new CachingV3PoolProvider(
-            chain,
-            new V3PoolProvider(chain, multicall2Provider),
-            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-          );
-          const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider);
-
-          const ethEstimateGasSimulator = new EthEstimateGasSimulator(
-            chain,
-            provider,
-            v2PoolProvider,
-            v3PoolProvider
-          );
-
-          const tenderlySimulator = new TenderlySimulator(
-            chain,
-            this.envVars.TENDERLY_BASE_URL!,
-            this.envVars.TENDERLY_USER!,
-            this.envVars.TENDERLY_PROJECT!,
-            this.envVars.TENDERLY_ACCESS_KEY!,
-            v2PoolProvider,
-            v3PoolProvider,
-            provider
-          );
-
-          const simulator = new FallbackTenderlySimulator(
-            chain,
-            provider,
-            tenderlySimulator,
-            ethEstimateGasSimulator
-          );
-
-          alphaRouter = new AlphaRouter({
-            chainId: chain,
-            provider,
-            multicall2Provider,
-            simulator,
-          });
-        });
-
-        describe(`Swap`, function () {
+        describe(`Swap`, () => {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
@@ -2429,19 +2379,17 @@ export abstract class BaseRoutingIntegTest {
                 ? parseAmount('10', tokenIn)
                 : parseAmount('10', tokenOut);
 
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
+            const quoteConfig: QuoteConfig = {
+              tokenIn,
+              tokenInChainId: chain,
+              tokenOut,
+              tokenOutChainId: chain,
               tradeType,
-              undefined,
-              {
-                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
+              amount,
+              algorithm: 'alpha',
+              routingConfig: defaultRoutingConfig,
+            };
+            await this.quote(quoteConfig, additionalAlphaRouterParams);
           });
 
           it(`erc20 -> erc20`, async () => {
@@ -2452,19 +2400,17 @@ export abstract class BaseRoutingIntegTest {
                 ? parseAmount('1', tokenIn)
                 : parseAmount('1', tokenOut);
 
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
+            const quoteConfig: QuoteConfig = {
+              tokenIn,
+              tokenInChainId: chain,
+              tokenOut,
+              tokenOutChainId: chain,
               tradeType,
-              undefined,
-              {
-                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
+              amount,
+              algorithm: 'alpha',
+              routingConfig: defaultRoutingConfig,
+            };
+            await this.quote(quoteConfig, additionalAlphaRouterParams);
           });
 
           const native = NATIVE_CURRENCY[chain];
@@ -2472,32 +2418,22 @@ export abstract class BaseRoutingIntegTest {
           it(`${native} -> erc20`, async () => {
             const tokenIn = nativeOnChain(chain);
             const tokenOut = erc2;
-
-            // Celo currently has low liquidity and will not be able to find route for
-            // large input amounts
-            // TODO: Simplify this when Celo has more liquidity
             const amount =
-              chain == ChainId.CELO || chain == ChainId.CELO_ALFAJORES
-                ? tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('10', tokenIn)
-                  : parseAmount('10', tokenOut)
-                : tradeType == TradeType.EXACT_INPUT
+              tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount('1', tokenOut);
 
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
+            const quoteConfig: QuoteConfig = {
+              tokenIn,
+              tokenInChainId: chain,
+              tokenOut,
+              tokenOutChainId: chain,
               tradeType,
-              undefined,
-              {
-                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
+              amount,
+              algorithm: 'alpha',
+              routingConfig: defaultRoutingConfig,
+            };
+            await this.quote(quoteConfig);
           });
 
           it(`has quoteGasAdjusted values`, async () => {
@@ -2508,19 +2444,20 @@ export abstract class BaseRoutingIntegTest {
                 ? parseAmount('1', tokenIn)
                 : parseAmount('1', tokenOut);
 
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
+            const quoteConfig: QuoteConfig = {
+              tokenIn,
+              tokenInChainId: chain,
+              tokenOut,
+              tokenOutChainId: chain,
               tradeType,
-              undefined,
-              {
-                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
-              }
+              amount,
+              algorithm: 'alpha',
+              routingConfig: defaultRoutingConfig,
+            };
+            const swap = await this.quote(
+              quoteConfig,
+              additionalAlphaRouterParams
             );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
 
             const { quote, quoteGasAdjusted } = swap!;
 
@@ -2541,19 +2478,20 @@ export abstract class BaseRoutingIntegTest {
                 ? parseAmount('1', tokenIn)
                 : parseAmount('1', tokenOut);
 
-            const swap = await alphaRouter.route(
-              amount,
-              getQuoteToken(tokenIn, tokenOut, tradeType),
+            const quoteConfig: QuoteConfig = {
+              tokenIn,
+              tokenInChainId: chain,
+              tokenOut,
+              tokenOutChainId: chain,
               tradeType,
-              undefined,
-              {
-                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+              amount,
+              algorithm: 'alpha',
+              routingConfig: {
+                ...defaultRoutingConfig,
                 protocols: [],
-              }
-            );
-            expect(swap).toBeDefined();
-            expect(swap).not.toBeNull();
+              },
+            };
+            await this.quote(quoteConfig, additionalAlphaRouterParams);
           });
 
           if (!V2_SUPPORTED.includes(chain)) {
@@ -2565,16 +2503,23 @@ export abstract class BaseRoutingIntegTest {
                   ? parseAmount('1', tokenIn)
                   : parseAmount('1', tokenOut);
 
-              const swap = await alphaRouter.route(
-                amount,
-                getQuoteToken(tokenIn, tokenOut, tradeType),
+              const quoteConfig: QuoteConfig = {
+                tokenIn,
+                tokenInChainId: chain,
+                tokenOut,
+                tokenOutChainId: chain,
                 tradeType,
-                undefined,
-                {
-                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                amount,
+                algorithm: 'alpha',
+                routingConfig: {
+                  ...defaultRoutingConfig,
                   protocols: [Protocol.MIXED],
-                }
+                },
+              };
+              const swap = await this.quote(
+                quoteConfig,
+                additionalAlphaRouterParams,
+                true
               );
               expect(swap).toBeNull();
             });
@@ -2582,7 +2527,7 @@ export abstract class BaseRoutingIntegTest {
         });
 
         if (this.isTenderlyEnvironmentSet) {
-          describe(`Simulate + Swap`, function () {
+          describe(`Simulate + Swap`, () => {
             // Tenderly does not support Celo
             if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
               return;
@@ -2595,35 +2540,26 @@ export abstract class BaseRoutingIntegTest {
                   ? parseAmount('10', tokenIn)
                   : parseAmount('10', tokenOut);
 
-              // Universal Router is not deployed on Gorli.
-              const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
-                  ? {
-                      type: SwapType.SWAP_ROUTER_02,
-                      recipient: WHALES(tokenIn),
-                      slippageTolerance: DEFAULT_SLIPPAGE,
-                      deadline: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn) },
-                    }
-                  : {
-                      type: SwapType.UNIVERSAL_ROUTER,
-                      recipient: WHALES(tokenIn),
-                      slippageTolerance: DEFAULT_SLIPPAGE,
-                      deadlineOrPreviousBlockhash: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn) },
-                    };
-
-              const swap = await alphaRouter.route(
-                amount,
-                getQuoteToken(tokenIn, tokenOut, tradeType),
+              const quoteConfig: QuoteConfig = {
+                tokenIn,
+                tokenInChainId: chain,
+                tokenOut,
+                tokenOutChainId: chain,
                 tradeType,
-                swapOptions,
-                {
-                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
-                }
+                amount,
+                enableUniversalRouter: chain == ChainId.GÖRLI ? false : true,
+                recipient: WHALES(tokenIn),
+                slippageTolerance: '5',
+                deadline: '360',
+                simulate: { fromAddress: WHALES(tokenIn) },
+                algorithm: 'alpha',
+                routingConfig: defaultRoutingConfig,
+              };
+              const swap = await this.quote(
+                quoteConfig,
+                additionalAlphaRouterParams
               );
+
               expect(swap).toBeDefined();
               expect(swap).not.toBeNull();
               if (swap) {
@@ -2650,37 +2586,26 @@ export abstract class BaseRoutingIntegTest {
                   ? parseAmount('1', tokenIn)
                   : parseAmount('1', tokenOut);
 
-              // Universal Router is not deployed on Gorli.
-              const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
-                  ? {
-                      type: SwapType.SWAP_ROUTER_02,
-                      recipient: WHALES(tokenIn),
-                      slippageTolerance: DEFAULT_SLIPPAGE,
-                      deadline: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn) },
-                    }
-                  : {
-                      type: SwapType.UNIVERSAL_ROUTER,
-                      recipient: WHALES(tokenIn),
-                      slippageTolerance: DEFAULT_SLIPPAGE,
-                      deadlineOrPreviousBlockhash: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn) },
-                    };
-
-              const swap = await alphaRouter.route(
-                amount,
-                getQuoteToken(tokenIn, tokenOut, tradeType),
+              const quoteConfig: QuoteConfig = {
+                tokenIn,
+                tokenInChainId: chain,
+                tokenOut,
+                tokenOutChainId: chain,
                 tradeType,
-                swapOptions,
-                {
-                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
-                }
+                amount,
+                enableUniversalRouter: chain == ChainId.GÖRLI ? false : true,
+                recipient: WHALES(tokenIn),
+                slippageTolerance: '5',
+                deadline: '360',
+                simulate: { fromAddress: WHALES(tokenIn) },
+                algorithm: 'alpha',
+                routingConfig: defaultRoutingConfig,
+              };
+              const swap = await this.quote(
+                quoteConfig,
+                additionalAlphaRouterParams
               );
-              expect(swap).toBeDefined();
-              expect(swap).not.toBeNull();
+
               if (swap) {
                 expect(
                   swap.quoteGasAdjusted
@@ -2705,37 +2630,25 @@ export abstract class BaseRoutingIntegTest {
                   ? parseAmount('1', tokenIn)
                   : parseAmount('1', tokenOut);
 
-              // Universal Router is not deployed on Gorli.
-              const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
-                  ? {
-                      type: SwapType.SWAP_ROUTER_02,
-                      recipient: WHALES(tokenIn),
-                      slippageTolerance: DEFAULT_SLIPPAGE,
-                      deadline: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn) },
-                    }
-                  : {
-                      type: SwapType.UNIVERSAL_ROUTER,
-                      recipient: WHALES(tokenIn),
-                      slippageTolerance: DEFAULT_SLIPPAGE,
-                      deadlineOrPreviousBlockhash: parseDeadline(360),
-                      simulate: { fromAddress: WHALES(tokenIn) },
-                    };
-
-              const swap = await alphaRouter.route(
-                amount,
-                getQuoteToken(tokenIn, tokenOut, tradeType),
+              const quoteConfig: QuoteConfig = {
+                tokenIn,
+                tokenInChainId: chain,
+                tokenOut,
+                tokenOutChainId: chain,
                 tradeType,
-                swapOptions,
-                {
-                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
-                }
+                amount,
+                enableUniversalRouter: chain == ChainId.GÖRLI ? false : true,
+                recipient: WHALES(tokenIn),
+                slippageTolerance: '5',
+                deadline: '360',
+                simulate: { fromAddress: WHALES(tokenIn) },
+                algorithm: 'alpha',
+                routingConfig: defaultRoutingConfig,
+              };
+              const swap = await this.quote(
+                quoteConfig,
+                additionalAlphaRouterParams
               );
-              expect(swap).toBeDefined();
-              expect(swap).not.toBeNull();
               if (swap) {
                 expect(
                   swap.quoteGasAdjusted
