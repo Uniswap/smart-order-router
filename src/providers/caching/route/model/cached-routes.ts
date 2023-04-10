@@ -15,6 +15,7 @@ interface CachedRoutesParams {
   protocolsCovered: Protocol[];
   blockNumber: number;
   tradeType: TradeType;
+  originalAmount: string;
   blocksToLive?: number;
 }
 
@@ -32,6 +33,7 @@ export class CachedRoutes {
   public readonly protocolsCovered: Protocol[];
   public readonly blockNumber: number;
   public readonly tradeType: TradeType;
+  public readonly originalAmount: string;
 
   public blocksToLive: number;
 
@@ -43,6 +45,7 @@ export class CachedRoutes {
    * @param protocolsCovered
    * @param blockNumber
    * @param tradeType
+   * @param originalAmount
    * @param blocksToLive
    */
   constructor(
@@ -54,6 +57,7 @@ export class CachedRoutes {
       protocolsCovered,
       blockNumber,
       tradeType,
+      originalAmount,
       blocksToLive = 0
     }: CachedRoutesParams
   ) {
@@ -64,6 +68,7 @@ export class CachedRoutes {
     this.protocolsCovered = protocolsCovered;
     this.blockNumber = blockNumber;
     this.tradeType = tradeType;
+    this.originalAmount = originalAmount;
     this.blocksToLive = blocksToLive;
   }
 
@@ -79,6 +84,7 @@ export class CachedRoutes {
    * @param protocolsCovered
    * @param blockNumber
    * @param tradeType
+   * @param originalAmount
    */
   public static fromRoutesWithValidQuotes(
     routes: RouteWithValidQuote[],
@@ -88,6 +94,7 @@ export class CachedRoutes {
     protocolsCovered: Protocol[],
     blockNumber: number,
     tradeType: TradeType,
+    originalAmount: string,
   ): CachedRoutes | undefined {
     if (routes.length == 0) return undefined;
 
@@ -97,12 +104,13 @@ export class CachedRoutes {
 
     return new CachedRoutes({
       routes: cachedRoutes,
-      chainId: chainId,
-      tokenIn: tokenIn,
-      tokenOut: tokenOut,
-      protocolsCovered: protocolsCovered,
-      blockNumber: blockNumber,
-      tradeType: tradeType
+      chainId,
+      tokenIn,
+      tokenOut,
+      protocolsCovered,
+      blockNumber,
+      tradeType,
+      originalAmount
     });
   }
 
