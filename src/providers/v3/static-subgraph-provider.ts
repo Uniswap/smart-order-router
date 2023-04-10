@@ -8,6 +8,7 @@ import { unparseFeeAmount } from '../../util/amounts';
 import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
+  ARB_ARBITRUM,
   BTC_BSC,
   BUSD_BSC,
   CELO,
@@ -33,6 +34,7 @@ import {
   DAI_RINKEBY_2,
   DAI_ROPSTEN,
   ETH_BSC,
+  OP_OPTIMISM,
   UNI_ARBITRUM_RINKEBY,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
@@ -122,6 +124,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     DAI_OPTIMISM,
     USDT_OPTIMISM,
     WBTC_OPTIMISM,
+    OP_OPTIMISM,
   ],
   [ChainId.ARBITRUM_ONE]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_ONE]!,
@@ -129,6 +132,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     DAI_ARBITRUM,
     USDC_ARBITRUM,
     USDT_ARBITRUM,
+    ARB_ARBITRUM,
   ],
   [ChainId.ARBITRUM_RINKEBY]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_RINKEBY]!,
@@ -205,7 +209,8 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private poolProvider: IV3PoolProvider
-  ) {}
+  ) {
+  }
 
   public async getPools(
     tokenIn?: Token,
