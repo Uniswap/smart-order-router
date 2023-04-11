@@ -41,6 +41,12 @@ import {
   USDT_OPTIMISTIC_KOVAN,
   USDT_ROPSTEN,
   WBTC_GÖRLI,
+  USDC_CFX,
+  USDT_CFX,
+  DAI_CFX,
+  USDC_CFX_TEST,
+  USDT_CFX_TEST,
+  DAI_CFX_TEST,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import {
@@ -85,6 +91,8 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
   [ChainId.BSC]: [USDT_BSC, USDC_BSC, DAI_BSC],
+  [ChainId.CFX]: [USDT_CFX, USDC_CFX, DAI_CFX],
+  [ChainId.CFX_TEST]: [USDT_CFX_TEST, USDC_CFX_TEST, DAI_CFX_TEST],
 };
 
 export type L1ToL2GasCosts = {

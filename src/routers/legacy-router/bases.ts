@@ -14,7 +14,12 @@ import {
   WBTC_MAINNET,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-
+  USDC_CFX,
+  USDT_CFX,
+  DAI_CFX,
+  USDC_CFX_TEST,
+  USDT_CFX_TEST,
+  DAI_CFX_TEST,
 } from '../../providers/token-provider';
 import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
@@ -64,6 +69,18 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       USDC_BSC,
       USDT_BSC,
       BTC_BSC,
+    ],
+    [ChainId.CFX_TEST]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.CFX_TEST]!,
+      USDC_CFX_TEST,
+      USDT_CFX_TEST,
+      DAI_CFX_TEST,
+    ], // CFX-ESPACE
+    [ChainId.CFX]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.CFX]!,
+      USDC_CFX,
+      USDT_CFX,
+      DAI_CFX,
     ],
   };
 };

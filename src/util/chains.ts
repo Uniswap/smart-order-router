@@ -20,6 +20,8 @@ export enum ChainId {
   GNOSIS = 100,
   MOONBEAM = 1284,
   BSC = 56,
+  CFX = 1030,
+  CFX_TEST = 71,
 }
 
 // WIP: Gnosis, Moonbeam
@@ -40,6 +42,8 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.CELO_ALFAJORES,
   ChainId.CELO,
   ChainId.BSC,
+  ChainId.CFX,
+  ChainId.CFX_TEST,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -112,6 +116,10 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.GNOSIS;
     case 1284:
       return ChainId.MOONBEAM;
+    case 1030:
+      return ChainId.CFX;
+    case 71:
+      return ChainId.CFX_TEST;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -136,6 +144,8 @@ export enum ChainName {
   GNOSIS = 'gnosis-mainnet',
   MOONBEAM = 'moonbeam-mainnet',
   BSC = 'bsc-mainnet',
+  CFX = "conflux-espace-mainnet",
+  CFX_TEST = "conflux-espace-testnet",
 }
 
 
@@ -147,6 +157,7 @@ export enum NativeCurrencyName {
   GNOSIS = 'XDAI',
   MOONBEAM = 'GLMR',
   BNB = "BNB",
+  CFX = "CFX",
 }
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.MAINNET]: [
@@ -220,6 +231,12 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'BNB',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.CFX]: ["CFX", "CFX", "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],
+  [ChainId.CFX_TEST]: [
+    "CFX",
+    "CFX",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  ],
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -241,6 +258,8 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.GNOSIS]: NativeCurrencyName.GNOSIS,
   [ChainId.MOONBEAM]: NativeCurrencyName.MOONBEAM,
   [ChainId.BSC]: NativeCurrencyName.BNB,
+  [ChainId.CFX]: NativeCurrencyName.CFX,
+  [ChainId.CFX_TEST]: NativeCurrencyName.CFX,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -281,6 +300,10 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.GNOSIS;
     case 1284:
       return ChainName.MOONBEAM;
+    case 1030:
+      return ChainName.CFX;
+    case 71:
+      return ChainName.CFX_TEST;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -324,6 +347,10 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_CELO_ALFAJORES!;
     case ChainId.BSC:
       return process.env.JSON_RPC_PROVIDER_BSC!;
+    case ChainId.CFX:
+      return process.env.JSON_RPC_PROVIDER_CFX!;
+    case ChainId.CFX_TEST:
+      return process.env.JSON_RPC_PROVIDER_CFX_TEST!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -458,6 +485,20 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WGLMR',
     'Wrapped GLMR'
   ),
+  [ChainId.CFX]: new Token(
+    ChainId.CFX,
+    "0x14b2d3bc65e74dae1030eafd8ac30c533c976a9b",
+    18,
+    "WCFX",
+    "Wrapped CFX"
+    ),
+  [ChainId.CFX_TEST]: new Token(
+    ChainId.CFX_TEST,
+    "0x2ed3dddae5b2f321af0806181fbfa6d049be47d8",
+    18,
+    "WCFX",
+    "Wrapped CFX"
+  ),
 };
 
 function isMatic(
@@ -560,6 +601,54 @@ class BscNativeCurrency extends NativeCurrency {
   }
 }
 
+function isCfx(chainId: number): chainId is ChainId.CFX {
+  return chainId === ChainId.CFX;
+}
+
+class CfxNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isCfx(this.chainId)) throw new Error("Not cfx");
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isCfx(chainId)) throw new Error("Not cfx");
+    super(chainId, 18, "CFX", "CFX");
+  }
+}
+
+function isCfxTest(chainId: number): chainId is ChainId.CFX_TEST {
+  return chainId === ChainId.CFX_TEST;
+}
+
+class CfxTestNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isCfxTest(this.chainId)) throw new Error("Not cfx test");
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isCfxTest(chainId)) throw new Error("Not cfx test");
+    super(chainId, 18, "CFX", "CFX");
+  }
+}
+
 function isMoonbeam(chainId: number): chainId is ChainId.MOONBEAM {
   return chainId === ChainId.MOONBEAM;
 }
@@ -616,6 +705,10 @@ export function nativeOnChain(chainId: number): NativeCurrency {
     cachedNativeCurrency[chainId] = new MoonbeamNativeCurrency(chainId);
   else if (isBsc(chainId))
     cachedNativeCurrency[chainId] = new BscNativeCurrency(chainId);
+  else if (isCfx(chainId))
+    cachedNativeCurrency[chainId] = new CfxNativeCurrency(chainId);
+  else if (isCfxTest(chainId))
+    cachedNativeCurrency[chainId] = new CfxTestNativeCurrency(chainId);
   else cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
 
   return cachedNativeCurrency[chainId]!;

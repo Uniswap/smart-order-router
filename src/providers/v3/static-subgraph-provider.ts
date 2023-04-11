@@ -72,6 +72,12 @@ import {
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
   WXDAI_GNOSIS,
+  USDC_CFX,
+  USDT_CFX,
+  DAI_CFX,
+  USDC_CFX_TEST,
+  USDT_CFX_TEST,
+  DAI_CFX_TEST,
 } from '../token-provider';
 
 import { IV3PoolProvider } from './pool-provider';
@@ -187,6 +193,18 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     DAI_MOONBEAM,
     USDC_MOONBEAM,
     WBTC_MOONBEAM,
+  ],
+  [ChainId.CFX]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.CFX],
+    DAI_CFX,
+    USDC_CFX,
+    USDT_CFX,
+  ],
+  [ChainId.CFX_TEST]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.CFX_TEST],
+    DAI_CFX_TEST,
+    USDC_CFX_TEST,
+    USDT_CFX_TEST,
   ],
 };
 
