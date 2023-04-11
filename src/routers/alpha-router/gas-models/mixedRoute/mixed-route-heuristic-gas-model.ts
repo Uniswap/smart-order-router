@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
+import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
@@ -148,10 +149,13 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         };
       }
 
-      /// we will use nativeV2Pool for fallback if nativeV3 does not exist
+      /// we will use nativeV2Pool for fallback if nativeV3 does not exist or has 0 liquidity
       /// can use ! here because we return above if v3Pool and v2Pool are null
       const nativePool =
-        !nativeV3Pool && nativeV2Pool ? nativeV2Pool : nativeV3Pool!;
+        (!nativeV3Pool || JSBI.equal(nativeV3Pool.liquidity, JSBI.BigInt(0))) &&
+        nativeV2Pool
+          ? nativeV2Pool
+          : nativeV3Pool!;
 
       const token0 = nativePool.token0.address == nativeCurrency.address;
 

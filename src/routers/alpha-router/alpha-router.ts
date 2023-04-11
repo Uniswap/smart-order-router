@@ -74,7 +74,6 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
-  V2Route,
   V3Route,
 } from '../router';
 
@@ -1003,28 +1002,31 @@ export class AlphaRouter
       const quoteGasAdjustedDiff = swapRouteFromChain.quoteGasAdjusted.subtract(swapRouteFromCache.quoteGasAdjusted);
       const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
 
-      log.info(
-        {
-          quoteFromChain: swapRouteFromChain.quote.toExact(),
-          quoteFromCache: swapRouteFromCache.quote.toExact(),
-          quoteDiff: quoteDiff.toExact(),
-          quoteGasAdjustedFromChain: swapRouteFromChain.quoteGasAdjusted.toExact(),
-          quoteGasAdjustedFromCache: swapRouteFromCache.quoteGasAdjusted.toExact(),
-          quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
-          gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
-          gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
-          gasUsedDiff: gasUsedDiff.toString(),
-          routesFromChain: swapRouteFromChain.routes.toString(),
-          routesFromCache: swapRouteFromCache.routes.toString(),
-          amount: amount.toExact(),
-          pair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)
-        },
-        `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
-          tokenIn,
-          tokenOut,
-          tradeType
-        )}`
-      );
+      // Only log if diff is not equal to 0
+      if (!quoteDiff.equalTo(0)) {
+        log.warn(
+          {
+            quoteFromChain: swapRouteFromChain.quote.toExact(),
+            quoteFromCache: swapRouteFromCache.quote.toExact(),
+            quoteDiff: quoteDiff.toExact(),
+            quoteGasAdjustedFromChain: swapRouteFromChain.quoteGasAdjusted.toExact(),
+            quoteGasAdjustedFromCache: swapRouteFromCache.quoteGasAdjusted.toExact(),
+            quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
+            gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
+            gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
+            gasUsedDiff: gasUsedDiff.toString(),
+            routesFromChain: swapRouteFromChain.routes.toString(),
+            routesFromCache: swapRouteFromCache.routes.toString(),
+            amount: amount.toExact(),
+            pair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)
+          },
+          `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
+            tokenIn,
+            tokenOut,
+            tradeType
+          )}`
+        );
+      }
     }
 
     if (!swapRouteRaw) {
@@ -1184,7 +1186,7 @@ export class AlphaRouter
     const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.MIXED);
     const percents: number[] = [];
 
-    if (v3Routes) {
+    if (v3Routes.length > 0) {
       const v3RoutesFromCache: V3Route[] = v3Routes.map((cachedRoute) => cachedRoute.route as V3Route);
       const v3PercentsFromCache = v3Routes.map((cachedRoute) => cachedRoute.percent);
       percents.push(...v3PercentsFromCache);
@@ -1205,29 +1207,30 @@ export class AlphaRouter
       );
     }
 
-    if (v2Routes) {
-      const v2RoutesFromCache: V2Route[] = v2Routes.map((cachedRoute) => cachedRoute.route as V2Route);
+    if (v2Routes.length > 0) {
       const v2PercentsFromCache = v2Routes.map((cachedRoute) => cachedRoute.percent);
       percents.push(...v2PercentsFromCache);
 
       const v2Amounts = v2PercentsFromCache.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
       quotePromises.push(
-        this.v2Quoter.getQuotes(
-          v2RoutesFromCache,
+        // When we fetch the quotes in V2, we are not calling the `onChainProvider` like on v3Routes and mixedRoutes
+        // Instead we are using the reserves in the Pool object, so we need to re-load the current reserves.
+        this.v2Quoter.getRoutesThenQuotes(
+          v2Routes[0]!.tokenIn,
+          v2Routes[0]!.tokenOut,
           v2Amounts,
           v2PercentsFromCache,
           quoteToken,
           tradeType,
           routingConfig,
           undefined,
-          undefined,
           gasPriceWei
         )
       );
     }
 
-    if (mixedRoutes) {
+    if (mixedRoutes.length > 0) {
       const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map((cachedRoute) => cachedRoute.route as MixedRoute);
       const mixedPercentsFromCache = mixedRoutes.map((cachedRoute) => cachedRoute.percent);
       percents.push(...mixedPercentsFromCache);
