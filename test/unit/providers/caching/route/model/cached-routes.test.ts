@@ -21,7 +21,8 @@ describe('CachedRoutes', () => {
         DAI,
         [Protocol.V2, Protocol.V3, Protocol.MIXED],
         blockNumber,
-        TradeType.EXACT_INPUT
+        TradeType.EXACT_INPUT,
+        '1.1'
       );
 
       expect(cachedRoutes).toBeInstanceOf(CachedRoutes);
@@ -35,7 +36,8 @@ describe('CachedRoutes', () => {
         DAI,
         [Protocol.V2, Protocol.V3, Protocol.MIXED],
         blockNumber,
-        TradeType.EXACT_INPUT
+        TradeType.EXACT_INPUT,
+        '1.1'
       );
 
       expect(cachedRoutes).toBeUndefined();
@@ -53,7 +55,8 @@ describe('CachedRoutes', () => {
         DAI,
         [Protocol.V2, Protocol.V3, Protocol.MIXED],
         blockNumber,
-        TradeType.EXACT_INPUT
+        TradeType.EXACT_INPUT,
+        '1.1'
       )!;
     });
 

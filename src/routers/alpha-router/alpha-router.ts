@@ -1018,6 +1018,7 @@ export class AlphaRouter
             routesFromChain: swapRouteFromChain.routes.toString(),
             routesFromCache: swapRouteFromCache.routes.toString(),
             amount: amount.toExact(),
+            originalAmount: cachedRoutes?.originalAmount,
             pair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)
           },
           `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
@@ -1051,7 +1052,8 @@ export class AlphaRouter
         tokenOut,
         protocols.sort(), // sort it for consistency in the order of the protocols.
         await blockNumber,
-        tradeType
+        tradeType,
+        amount.toExact()
       );
 
       if (routesToCache) {

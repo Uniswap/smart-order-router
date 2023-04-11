@@ -84,6 +84,7 @@ export function getCachedRoutesStub(blockNumber: number): CachedRoutes | undefin
     DAI,
     [Protocol.V2, Protocol.V3, Protocol.MIXED],
     blockNumber,
-    TradeType.EXACT_INPUT
+    TradeType.EXACT_INPUT,
+    '1.1'
   );
 }
