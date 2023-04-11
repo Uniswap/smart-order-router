@@ -221,6 +221,13 @@ export const DAI_OPTIMISM = new Token(
   'DAI',
   'Dai Stablecoin'
 );
+export const OP_OPTIMISM = new Token(
+  ChainId.OPTIMISM,
+  '0x4200000000000000000000000000000000000042',
+  18,
+  'OP',
+  'Optimism'
+);
 
 export const USDC_OPTIMISM_GOERLI = new Token(
   ChainId.OPTIMISM_GOERLI,
@@ -307,6 +314,14 @@ export const DAI_ARBITRUM = new Token(
   18,
   'DAI',
   'Dai Stablecoin'
+);
+
+export const ARB_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0x912CE59144191C1204E64559FE8253a0e49E6548',
+  18,
+  'ARB',
+  'Arbitrum'
 );
 
 // export const DAI_ARBITRUM_RINKEBY = new Token(
@@ -609,7 +624,8 @@ export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) {}
+  ) {
+  }
 
   public async getTokens(
     _addresses: string[],
