@@ -1,9 +1,9 @@
-import { Token } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
-import _ from 'lodash';
+import { Token } from "@uniswap/sdk-core";
+import { Pair } from "@uniswap/v2-sdk";
+import _ from "lodash";
 
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
-import { log } from '../../util/log';
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from "../../util/chains";
+import { log } from "../../util/log";
 import {
   DAI_MAINNET,
   DAI_RINKEBY_1,
@@ -11,9 +11,9 @@ import {
   USDC_MAINNET,
   USDT_MAINNET,
   WBTC_MAINNET,
-} from '../token-provider';
+} from "../token-provider";
 
-import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
+import { IV2SubgraphProvider, V2SubgraphPool } from "./subgraph-provider";
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -49,6 +49,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.GNOSIS]: [],
   [ChainId.MOONBEAM]: [],
   [ChainId.BSC]: [],
+  [ChainId.CFX]: [],
+  [ChainId.CFX_TEST]: [],
 };
 
 /**
@@ -70,13 +72,13 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
     tokenIn?: Token,
     tokenOut?: Token
   ): Promise<V2SubgraphPool[]> {
-    log.info('In static subgraph provider for V2');
+    log.info("In static subgraph provider for V2");
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
-    const basePairs: [Token, Token][] = _.flatMap(
-      bases,
-      (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
-    );
+    const basePairs: [Token, Token][] = _.flatMap(bases, (base): [
+      Token,
+      Token
+    ][] => bases.map((otherBase) => [base, otherBase]));
 
     if (tokenIn && tokenOut) {
       basePairs.push(
@@ -113,7 +115,7 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
 
         return {
           id: poolAddress,
-          liquidity: '100',
+          liquidity: "100",
           token0: {
             id: token0.address,
           },

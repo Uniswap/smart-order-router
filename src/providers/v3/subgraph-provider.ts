@@ -1,12 +1,12 @@
-import { Token } from '@uniswap/sdk-core';
-import retry from 'async-retry';
-import Timeout from 'await-timeout';
-import { gql, GraphQLClient } from 'graphql-request';
-import _ from 'lodash';
+import { Token } from "@uniswap/sdk-core";
+import retry from "async-retry";
+import Timeout from "await-timeout";
+import { gql, GraphQLClient } from "graphql-request";
+import _ from "lodash";
 
-import { ChainId, log } from '../../util';
-import { ProviderConfig } from '../provider';
-import { V2SubgraphPool } from '../v2/subgraph-provider';
+import { ChainId, log } from "../../util";
+import { ProviderConfig } from "../provider";
+import { V2SubgraphPool } from "../v2/subgraph-provider";
 
 export interface V3SubgraphPool {
   id: string;
@@ -46,21 +46,24 @@ export const printV2SubgraphPool = (s: V2SubgraphPool) =>
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
+    "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
   [ChainId.RINKEBY]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby',
+    "https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-rinkeby",
   [ChainId.OPTIMISM]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/optimism-post-regenesis',
+    "https://api.thegraph.com/subgraphs/name/ianlapham/optimism-post-regenesis",
   [ChainId.ARBITRUM_ONE]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal',
+    "https://api.thegraph.com/subgraphs/name/ianlapham/arbitrum-minimal",
   [ChainId.POLYGON]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon',
+    "https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon",
   [ChainId.CELO]:
-    'https://api.thegraph.com/subgraphs/name/jesse-sawa/uniswap-celo',
+    "https://api.thegraph.com/subgraphs/name/jesse-sawa/uniswap-celo",
   [ChainId.GÖRLI]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-gorli',
+    "https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-gorli",
   [ChainId.BSC]:
-    'https://api.thegraph.com/subgraphs/name/ilyamk/uniswap-v3---bnb-chain',
+    "https://api.thegraph.com/subgraphs/name/ilyamk/uniswap-v3---bnb-chain",
+  [ChainId.CFX]: "", // TODO: Add mainnet subgraph
+  [ChainId.CFX_TEST]:
+    "https://thegraph-espace.conflux123.xyz/subgraphs/name/ianlapham/uniswap-v3",
 };
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
@@ -134,7 +137,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       `Getting V3 pools from the subgraph with page size ${PAGE_SIZE}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
-          : ''
+          : ""
       }.`
     );
 
@@ -143,7 +146,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
         const timeout = new Timeout();
 
         const getPools = async (): Promise<RawV3SubgraphPool[]> => {
-          let lastId = '';
+          let lastId = "";
           let pools: RawV3SubgraphPool[] = [];
           let poolsPage: RawV3SubgraphPool[] = [];
 
@@ -188,7 +191,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           if (
             this.rollback &&
             blockNumber &&
-            _.includes(err.message, 'indexed up to')
+            _.includes(err.message, "indexed up to")
           ) {
             blockNumber = blockNumber - 10;
             log.info(

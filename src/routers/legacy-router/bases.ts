@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Token } from '@uniswap/sdk-core';
+import { Token } from "@uniswap/sdk-core";
 
 import {
   BTC_BSC,
@@ -14,9 +14,14 @@ import {
   WBTC_MAINNET,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-
-} from '../../providers/token-provider';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
+  USDC_CFX,
+  USDT_CFX,
+  DAI_CFX,
+  USDC_CFX_TEST,
+  USDT_CFX_TEST,
+  DAI_CFX_TEST,
+} from "../../providers/token-provider";
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from "../../util/chains";
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -65,6 +70,18 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       USDT_BSC,
       BTC_BSC,
     ],
+    [ChainId.CFX_TEST]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.CFX_TEST]!,
+      USDC_CFX_TEST,
+      USDT_CFX_TEST,
+      DAI_CFX_TEST,
+    ], // CFX-ESPACE
+    [ChainId.CFX]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.CFX]!,
+      USDC_CFX,
+      USDT_CFX,
+      DAI_CFX,
+    ],
   };
 };
 
@@ -86,58 +103,60 @@ const getBasePairByAddress = async (
 
 export const ADDITIONAL_BASES = async (
   tokenProvider: ITokenProvider
-): Promise<{
-  [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
-}> => {
+): Promise<
+  {
+    [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
+  }
+> => {
   return {
     [ChainId.MAINNET]: {
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0xA948E86885e12Fb09AfEF8C52142EBDbDf73cD18',
-        '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984'
+        "0xA948E86885e12Fb09AfEF8C52142EBDbDf73cD18",
+        "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0x561a4717537ff4AF5c687328c0f7E90a319705C0',
-        '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984'
+        "0x561a4717537ff4AF5c687328c0f7E90a319705C0",
+        "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0x956F47F50A910163D8BF957Cf5846D573E7f87CA',
-        '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B'
+        "0x956F47F50A910163D8BF957Cf5846D573E7f87CA",
+        "0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B"
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B',
-        '0x956F47F50A910163D8BF957Cf5846D573E7f87CA'
+        "0xc7283b66Eb1EB5FB86327f08e1B5816b0720212B",
+        "0x956F47F50A910163D8BF957Cf5846D573E7f87CA"
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0x853d955acef822db058eb8505911ed77f175b99e',
-        '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0'
+        "0x853d955acef822db058eb8505911ed77f175b99e",
+        "0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0"
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0',
-        '0x853d955acef822db058eb8505911ed77f175b99e'
+        "0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0",
+        "0x853d955acef822db058eb8505911ed77f175b99e"
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
-        '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d'
+        "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "0xeb4c2781e4eba804ce9a9803c67d0893436bb27d"
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d',
-        '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'
+        "0xeb4c2781e4eba804ce9a9803c67d0893436bb27d",
+        "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
       )),
     },
   };
@@ -149,21 +168,23 @@ export const ADDITIONAL_BASES = async (
  */
 export const CUSTOM_BASES = async (
   tokenProvider: ITokenProvider
-): Promise<{
-  [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
-}> => {
+): Promise<
+  {
+    [chainId in ChainId]?: { [tokenAddress: string]: Token[] };
+  }
+> => {
   return {
     [ChainId.MAINNET]: {
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
+        "0xd46ba6d942050d489dbd938a2c909a5d5039a161",
         DAI_MAINNET.address
       )),
       ...(await getBasePairByAddress(
         tokenProvider,
         ChainId.MAINNET,
-        '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
+        "0xd46ba6d942050d489dbd938a2c909a5d5039a161",
         WRAPPED_NATIVE_CURRENCY[1]!.address
       )),
     },

@@ -1,5 +1,4 @@
-import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
-
+import { Currency, Ether, NativeCurrency, Token } from "@uniswap/sdk-core";
 
 export enum ChainId {
   MAINNET = 1,
@@ -20,6 +19,8 @@ export enum ChainId {
   GNOSIS = 100,
   MOONBEAM = 1284,
   BSC = 56,
+  CFX = 1030,
+  CFX_TEST = 71,
 }
 
 // WIP: Gnosis, Moonbeam
@@ -40,6 +41,8 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.CELO_ALFAJORES,
   ChainId.CELO,
   ChainId.BSC,
+  ChainId.CFX,
+  ChainId.CFX_TEST,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -112,113 +115,119 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.GNOSIS;
     case 1284:
       return ChainId.MOONBEAM;
+    case 1030:
+      return ChainId.CFX;
+    case 71:
+      return ChainId.CFX_TEST;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
 };
 
 export enum ChainName {
-  MAINNET = 'mainnet',
-  ROPSTEN = 'ropsten',
-  RINKEBY = 'rinkeby',
-  GÖRLI = 'goerli',
-  KOVAN = 'kovan',
-  OPTIMISM = 'optimism-mainnet',
-  OPTIMISM_GOERLI = 'optimism-goerli',
-  OPTIMISTIC_KOVAN = 'optimism-kovan',
-  ARBITRUM_ONE = 'arbitrum-mainnet',
-  ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
-  ARBITRUM_GOERLI = 'arbitrum-goerli',
-  POLYGON = 'polygon-mainnet',
-  POLYGON_MUMBAI = 'polygon-mumbai',
-  CELO = 'celo-mainnet',
-  CELO_ALFAJORES = 'celo-alfajores',
-  GNOSIS = 'gnosis-mainnet',
-  MOONBEAM = 'moonbeam-mainnet',
-  BSC = 'bsc-mainnet',
+  MAINNET = "mainnet",
+  ROPSTEN = "ropsten",
+  RINKEBY = "rinkeby",
+  GÖRLI = "goerli",
+  KOVAN = "kovan",
+  OPTIMISM = "optimism-mainnet",
+  OPTIMISM_GOERLI = "optimism-goerli",
+  OPTIMISTIC_KOVAN = "optimism-kovan",
+  ARBITRUM_ONE = "arbitrum-mainnet",
+  ARBITRUM_RINKEBY = "arbitrum-rinkeby",
+  ARBITRUM_GOERLI = "arbitrum-goerli",
+  POLYGON = "polygon-mainnet",
+  POLYGON_MUMBAI = "polygon-mumbai",
+  CELO = "celo-mainnet",
+  CELO_ALFAJORES = "celo-alfajores",
+  GNOSIS = "gnosis-mainnet",
+  MOONBEAM = "moonbeam-mainnet",
+  BSC = "bsc-mainnet",
+  CFX = "conflux-espace-mainnet",
+  CFX_TEST = "conflux-espace-testnet",
 }
-
 
 export enum NativeCurrencyName {
   // Strings match input for CLI
-  ETHER = 'ETH',
-  MATIC = 'MATIC',
-  CELO = 'CELO',
-  GNOSIS = 'XDAI',
-  MOONBEAM = 'GLMR',
+  ETHER = "ETH",
+  MATIC = "MATIC",
+  CELO = "CELO",
+  GNOSIS = "XDAI",
+  MOONBEAM = "GLMR",
   BNB = "BNB",
+  CFX = "CFX",
 }
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.MAINNET]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.RINKEBY]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.GÖRLI]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.KOVAN]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.ROPSTEN]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.OPTIMISM]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.OPTIMISM_GOERLI]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.OPTIMISTIC_KOVAN]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.ARBITRUM_ONE]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.ARBITRUM_RINKEBY]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
   [ChainId.ARBITRUM_GOERLI]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    "ETH",
+    "ETHER",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
-  [ChainId.POLYGON]: [
-    'MATIC', '0x0000000000000000000000000000000000001010'
-  ],
+  [ChainId.POLYGON]: ["MATIC", "0x0000000000000000000000000000000000001010"],
   [ChainId.POLYGON_MUMBAI]: [
-    'MATIC',
-    '0x0000000000000000000000000000000000001010',
+    "MATIC",
+    "0x0000000000000000000000000000000000001010",
   ],
-  [ChainId.CELO]: ['CELO'],
-  [ChainId.CELO_ALFAJORES]: ['CELO'],
-  [ChainId.GNOSIS]: ['XDAI'],
-  [ChainId.MOONBEAM]: ['GLMR'],
-  [ChainId.BSC]: [
-    'BNB',
-    'BNB',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  [ChainId.CELO]: ["CELO"],
+  [ChainId.CELO_ALFAJORES]: ["CELO"],
+  [ChainId.GNOSIS]: ["XDAI"],
+  [ChainId.MOONBEAM]: ["GLMR"],
+  [ChainId.BSC]: ["BNB", "BNB", "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],
+  [ChainId.CFX]: ["CFX", "CFX", "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],
+  [ChainId.CFX_TEST]: [
+    "CFX",
+    "CFX",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   ],
 };
 
@@ -241,6 +250,8 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.GNOSIS]: NativeCurrencyName.GNOSIS,
   [ChainId.MOONBEAM]: NativeCurrencyName.MOONBEAM,
   [ChainId.BSC]: NativeCurrencyName.BNB,
+  [ChainId.CFX]: NativeCurrencyName.CFX,
+  [ChainId.CFX_TEST]: NativeCurrencyName.CFX,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -281,6 +292,10 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.GNOSIS;
     case 1284:
       return ChainName.MOONBEAM;
+    case 1030:
+      return ChainName.CFX;
+    case 71:
+      return ChainName.CFX_TEST;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -324,6 +339,10 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_CELO_ALFAJORES!;
     case ChainId.BSC:
       return process.env.JSON_RPC_PROVIDER_BSC!;
+    case ChainId.CFX:
+      return process.env.JSON_RPC_PROVIDER_CFX!;
+    case ChainId.CFX_TEST:
+      return process.env.JSON_RPC_PROVIDER_CFX_TEST!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -332,131 +351,145 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
 export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   [ChainId.MAINNET]: new Token(
     1,
-    '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.ROPSTEN]: new Token(
     3,
-    '0xc778417E063141139Fce010982780140Aa0cD5Ab',
+    "0xc778417E063141139Fce010982780140Aa0cD5Ab",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.RINKEBY]: new Token(
     4,
-    '0xc778417E063141139Fce010982780140Aa0cD5Ab',
+    "0xc778417E063141139Fce010982780140Aa0cD5Ab",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.GÖRLI]: new Token(
     5,
-    '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
+    "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.KOVAN]: new Token(
     42,
-    '0xd0A1E359811322d97991E03f863a0C30C2cF029C',
+    "0xd0A1E359811322d97991E03f863a0C30C2cF029C",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.BSC]: new Token(
     56,
-    '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+    "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
     18,
-    'WBNB',
-    'Wrapped BNB'
+    "WBNB",
+    "Wrapped BNB"
   ),
   [ChainId.OPTIMISM]: new Token(
     ChainId.OPTIMISM,
-    '0x4200000000000000000000000000000000000006',
+    "0x4200000000000000000000000000000000000006",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.OPTIMISM_GOERLI]: new Token(
     ChainId.OPTIMISM_GOERLI,
-    '0x4200000000000000000000000000000000000006',
+    "0x4200000000000000000000000000000000000006",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.OPTIMISTIC_KOVAN]: new Token(
     ChainId.OPTIMISTIC_KOVAN,
-    '0x4200000000000000000000000000000000000006',
+    "0x4200000000000000000000000000000000000006",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.ARBITRUM_ONE]: new Token(
     ChainId.ARBITRUM_ONE,
-    '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.ARBITRUM_RINKEBY]: new Token(
     ChainId.ARBITRUM_RINKEBY,
-    '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681',
+    "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.ARBITRUM_GOERLI]: new Token(
     ChainId.ARBITRUM_GOERLI,
-    '0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3',
+    "0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3",
     18,
-    'WETH',
-    'Wrapped Ether'
+    "WETH",
+    "Wrapped Ether"
   ),
   [ChainId.POLYGON]: new Token(
     ChainId.POLYGON,
-    '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+    "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     18,
-    'WMATIC',
-    'Wrapped MATIC'
+    "WMATIC",
+    "Wrapped MATIC"
   ),
   [ChainId.POLYGON_MUMBAI]: new Token(
     ChainId.POLYGON_MUMBAI,
-    '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889',
+    "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889",
     18,
-    'WMATIC',
-    'Wrapped MATIC'
+    "WMATIC",
+    "Wrapped MATIC"
   ),
 
   // The Celo native currency 'CELO' implements the erc-20 token standard
   [ChainId.CELO]: new Token(
     ChainId.CELO,
-    '0x471EcE3750Da237f93B8E339c536989b8978a438',
+    "0x471EcE3750Da237f93B8E339c536989b8978a438",
     18,
-    'CELO',
-    'Celo native asset'
+    "CELO",
+    "Celo native asset"
   ),
   [ChainId.CELO_ALFAJORES]: new Token(
     ChainId.CELO_ALFAJORES,
-    '0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9',
+    "0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9",
     18,
-    'CELO',
-    'Celo native asset'
+    "CELO",
+    "Celo native asset"
   ),
   [ChainId.GNOSIS]: new Token(
     ChainId.GNOSIS,
-    '0xe91d153e0b41518a2ce8dd3d7944fa863463a97d',
+    "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d",
     18,
-    'WXDAI',
-    'Wrapped XDAI on Gnosis'
+    "WXDAI",
+    "Wrapped XDAI on Gnosis"
   ),
   [ChainId.MOONBEAM]: new Token(
     ChainId.MOONBEAM,
-    '0xAcc15dC74880C9944775448304B263D191c6077F',
+    "0xAcc15dC74880C9944775448304B263D191c6077F",
     18,
-    'WGLMR',
-    'Wrapped GLMR'
+    "WGLMR",
+    "Wrapped GLMR"
+  ),
+  [ChainId.CFX]: new Token(
+    ChainId.CFX,
+    "0x14b2d3bc65e74dae1030eafd8ac30c533c976a9b",
+    18,
+    "WCFX",
+    "Wrapped CFX"
+  ),
+  [ChainId.CFX_TEST]: new Token(
+    ChainId.CFX_TEST,
+    "0x2ed3dddae5b2f321af0806181fbfa6d049be47d8",
+    18,
+    "WCFX",
+    "Wrapped CFX"
   ),
 };
 
@@ -472,7 +505,7 @@ class MaticNativeCurrency extends NativeCurrency {
   }
 
   get wrapped(): Token {
-    if (!isMatic(this.chainId)) throw new Error('Not matic');
+    if (!isMatic(this.chainId)) throw new Error("Not matic");
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
     if (nativeCurrency) {
       return nativeCurrency;
@@ -481,8 +514,8 @@ class MaticNativeCurrency extends NativeCurrency {
   }
 
   public constructor(chainId: number) {
-    if (!isMatic(chainId)) throw new Error('Not matic');
-    super(chainId, 18, 'MATIC', 'Polygon Matic');
+    if (!isMatic(chainId)) throw new Error("Not matic");
+    super(chainId, 18, "MATIC", "Polygon Matic");
   }
 }
 
@@ -498,7 +531,7 @@ class CeloNativeCurrency extends NativeCurrency {
   }
 
   get wrapped(): Token {
-    if (!isCelo(this.chainId)) throw new Error('Not celo');
+    if (!isCelo(this.chainId)) throw new Error("Not celo");
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
     if (nativeCurrency) {
       return nativeCurrency;
@@ -507,8 +540,8 @@ class CeloNativeCurrency extends NativeCurrency {
   }
 
   public constructor(chainId: number) {
-    if (!isCelo(chainId)) throw new Error('Not celo');
-    super(chainId, 18, 'CELO', 'Celo');
+    if (!isCelo(chainId)) throw new Error("Not celo");
+    super(chainId, 18, "CELO", "Celo");
   }
 }
 
@@ -522,7 +555,7 @@ class GnosisNativeCurrency extends NativeCurrency {
   }
 
   get wrapped(): Token {
-    if (!isGnosis(this.chainId)) throw new Error('Not gnosis');
+    if (!isGnosis(this.chainId)) throw new Error("Not gnosis");
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
     if (nativeCurrency) {
       return nativeCurrency;
@@ -531,8 +564,8 @@ class GnosisNativeCurrency extends NativeCurrency {
   }
 
   public constructor(chainId: number) {
-    if (!isGnosis(chainId)) throw new Error('Not gnosis');
-    super(chainId, 18, 'XDAI', 'xDai');
+    if (!isGnosis(chainId)) throw new Error("Not gnosis");
+    super(chainId, 18, "XDAI", "xDai");
   }
 }
 
@@ -546,7 +579,7 @@ class BscNativeCurrency extends NativeCurrency {
   }
 
   get wrapped(): Token {
-    if (!isBsc(this.chainId)) throw new Error('Not bnb');
+    if (!isBsc(this.chainId)) throw new Error("Not bnb");
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
     if (nativeCurrency) {
       return nativeCurrency;
@@ -555,8 +588,56 @@ class BscNativeCurrency extends NativeCurrency {
   }
 
   public constructor(chainId: number) {
-    if (!isBsc(chainId)) throw new Error('Not bnb');
-    super(chainId, 18, 'BNB', 'BNB');
+    if (!isBsc(chainId)) throw new Error("Not bnb");
+    super(chainId, 18, "BNB", "BNB");
+  }
+}
+
+function isCfx(chainId: number): chainId is ChainId.CFX {
+  return chainId === ChainId.CFX;
+}
+
+class CfxNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isCfx(this.chainId)) throw new Error("Not cfx");
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isCfx(chainId)) throw new Error("Not cfx");
+    super(chainId, 18, "CFX", "CFX");
+  }
+}
+
+function isCfxTest(chainId: number): chainId is ChainId.CFX_TEST {
+  return chainId === ChainId.CFX_TEST;
+}
+
+class CfxTestNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isCfxTest(this.chainId)) throw new Error("Not cfx test");
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isCfxTest(chainId)) throw new Error("Not cfx test");
+    super(chainId, 18, "CFX", "CFX");
   }
 }
 
@@ -570,7 +651,7 @@ class MoonbeamNativeCurrency extends NativeCurrency {
   }
 
   get wrapped(): Token {
-    if (!isMoonbeam(this.chainId)) throw new Error('Not moonbeam');
+    if (!isMoonbeam(this.chainId)) throw new Error("Not moonbeam");
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
     if (nativeCurrency) {
       return nativeCurrency;
@@ -579,8 +660,8 @@ class MoonbeamNativeCurrency extends NativeCurrency {
   }
 
   public constructor(chainId: number) {
-    if (!isMoonbeam(chainId)) throw new Error('Not moonbeam');
-    super(chainId, 18, 'GLMR', 'Glimmer');
+    if (!isMoonbeam(chainId)) throw new Error("Not moonbeam");
+    super(chainId, 18, "GLMR", "Glimmer");
   }
 }
 
@@ -588,11 +669,12 @@ export class ExtendedEther extends Ether {
   public get wrapped(): Token {
     if (this.chainId in WRAPPED_NATIVE_CURRENCY)
       return WRAPPED_NATIVE_CURRENCY[this.chainId as ChainId];
-    throw new Error('Unsupported chain ID');
+    throw new Error("Unsupported chain ID");
   }
 
-  private static _cachedExtendedEther: { [chainId: number]: NativeCurrency } =
-    {};
+  private static _cachedExtendedEther: {
+    [chainId: number]: NativeCurrency;
+  } = {};
 
   public static onChain(chainId: number): ExtendedEther {
     return (
@@ -616,6 +698,10 @@ export function nativeOnChain(chainId: number): NativeCurrency {
     cachedNativeCurrency[chainId] = new MoonbeamNativeCurrency(chainId);
   else if (isBsc(chainId))
     cachedNativeCurrency[chainId] = new BscNativeCurrency(chainId);
+  else if (isCfx(chainId))
+    cachedNativeCurrency[chainId] = new CfxNativeCurrency(chainId);
+  else if (isCfxTest(chainId))
+    cachedNativeCurrency[chainId] = new CfxTestNativeCurrency(chainId);
   else cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
 
   return cachedNativeCurrency[chainId]!;

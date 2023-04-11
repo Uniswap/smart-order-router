@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Token } from '@uniswap/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
-import JSBI from 'jsbi';
-import _ from 'lodash';
+import { Token } from "@uniswap/sdk-core";
+import { FeeAmount, Pool } from "@uniswap/v3-sdk";
+import JSBI from "jsbi";
+import _ from "lodash";
 
-import { unparseFeeAmount } from '../../util/amounts';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
-import { log } from '../../util/log';
+import { unparseFeeAmount } from "../../util/amounts";
+import { ChainId, WRAPPED_NATIVE_CURRENCY } from "../../util/chains";
+import { log } from "../../util/log";
 import {
   BTC_BSC,
   BUSD_BSC,
@@ -72,10 +72,16 @@ import {
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
   WXDAI_GNOSIS,
-} from '../token-provider';
+  USDC_CFX,
+  USDT_CFX,
+  DAI_CFX,
+  USDC_CFX_TEST,
+  USDT_CFX_TEST,
+  DAI_CFX_TEST,
+} from "../token-provider";
 
-import { IV3PoolProvider } from './pool-provider';
-import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
+import { IV3PoolProvider } from "./pool-provider";
+import { IV3SubgraphProvider, V3SubgraphPool } from "./subgraph-provider";
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -188,6 +194,18 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDC_MOONBEAM,
     WBTC_MOONBEAM,
   ],
+  [ChainId.CFX]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.CFX],
+    DAI_CFX,
+    USDC_CFX,
+    USDT_CFX,
+  ],
+  [ChainId.CFX_TEST]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.CFX_TEST],
+    DAI_CFX_TEST,
+    USDC_CFX_TEST,
+    USDT_CFX_TEST,
+  ],
 };
 
 /**
@@ -211,13 +229,13 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     tokenIn?: Token,
     tokenOut?: Token
   ): Promise<V3SubgraphPool[]> {
-    log.info('In static subgraph provider for V3');
+    log.info("In static subgraph provider for V3");
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
-    const basePairs: [Token, Token][] = _.flatMap(
-      bases,
-      (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
-    );
+    const basePairs: [Token, Token][] = _.flatMap(bases, (base): [
+      Token,
+      Token
+    ][] => bases.map((otherBase) => [base, otherBase]));
 
     if (tokenIn && tokenOut) {
       basePairs.push(

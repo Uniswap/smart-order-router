@@ -1,5 +1,5 @@
-import { BigNumber } from '@ethersproject/bignumber';
-import { Token } from '@uniswap/sdk-core';
+import { BigNumber } from "@ethersproject/bignumber";
+import { Token } from "@uniswap/sdk-core";
 
 import {
   CUSD_CELO,
@@ -41,22 +41,28 @@ import {
   USDT_OPTIMISTIC_KOVAN,
   USDT_ROPSTEN,
   WBTC_GÖRLI,
-} from '../../../providers/token-provider';
-import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
+  USDC_CFX,
+  USDT_CFX,
+  DAI_CFX,
+  USDC_CFX_TEST,
+  USDT_CFX_TEST,
+  DAI_CFX_TEST,
+} from "../../../providers/token-provider";
+import { IV2PoolProvider } from "../../../providers/v2/pool-provider";
 import {
   ArbitrumGasData,
   IL2GasDataProvider,
   OptimismGasData,
-} from '../../../providers/v3/gas-data-provider';
-import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
-import { CurrencyAmount } from '../../../util/amounts';
-import { ChainId } from '../../../util/chains';
+} from "../../../providers/v3/gas-data-provider";
+import { IV3PoolProvider } from "../../../providers/v3/pool-provider";
+import { CurrencyAmount } from "../../../util/amounts";
+import { ChainId } from "../../../util/chains";
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
-} from '../entities/route-with-valid-quote';
+} from "../entities/route-with-valid-quote";
 
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
@@ -85,6 +91,8 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
   [ChainId.BSC]: [USDT_BSC, USDC_BSC, DAI_BSC],
+  [ChainId.CFX]: [USDT_CFX, USDC_CFX, DAI_CFX],
+  [ChainId.CFX_TEST]: [USDT_CFX_TEST, USDC_CFX_TEST, DAI_CFX_TEST],
 };
 
 export type L1ToL2GasCosts = {
@@ -129,7 +137,9 @@ export type BuildV2GasModelFactoryType = {
  * long running operations.
  */
 export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
-  estimateGasCost(routeWithValidQuote: TRouteWithValidQuote): {
+  estimateGasCost(
+    routeWithValidQuote: TRouteWithValidQuote
+  ): {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;

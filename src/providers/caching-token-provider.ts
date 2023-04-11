@@ -1,9 +1,9 @@
-import { Token } from '@uniswap/sdk-core';
-import _ from 'lodash';
+import { Token } from "@uniswap/sdk-core";
+import _ from "lodash";
 
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from "../util";
 
-import { ICache } from './cache';
+import { ICache } from "./cache";
 import {
   BTC_BSC,
   BUSD_BSC,
@@ -55,7 +55,13 @@ import {
   WBTC_OPTIMISTIC_KOVAN,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-} from './token-provider';
+  USDC_CFX,
+  USDT_CFX,
+  DAI_CFX,
+  USDC_CFX_TEST,
+  USDT_CFX_TEST,
+  DAI_CFX_TEST,
+} from "./token-provider";
 
 // These tokens will added to the Token cache on initialization.
 export const CACHE_SEED_TOKENS: {
@@ -72,10 +78,10 @@ export const CACHE_SEED_TOKENS: {
     // This workaround adds it to the cache, so we won't try to fetch it on-chain.
     RING: new Token(
       ChainId.MAINNET,
-      '0x9469D013805bFfB7D3DEBe5E7839237e535ec483',
+      "0x9469D013805bFfB7D3DEBe5E7839237e535ec483",
       18,
-      'RING',
-      'RING'
+      "RING",
+      "RING"
     ),
   },
   [ChainId.RINKEBY]: {
@@ -155,6 +161,16 @@ export const CACHE_SEED_TOKENS: {
     BTC: BTC_BSC,
     WBNB: WRAPPED_NATIVE_CURRENCY[ChainId.BSC],
   },
+  [ChainId.CFX]: {
+    USDC: USDC_CFX,
+    USDT: USDT_CFX,
+    DAI: DAI_CFX,
+  },
+  [ChainId.CFX_TEST]: {
+    USDC: USDC_CFX_TEST,
+    USDT: USDT_CFX_TEST,
+    DAI: DAI_CFX_TEST,
+  },
 
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };
@@ -207,8 +223,9 @@ export class CachingTokenProviderWithFallback implements ITokenProvider {
         addressToToken[address.toLowerCase()] = (await this.tokenCache.get(
           this.CACHE_KEY(this.chainId, address)
         ))!;
-        symbolToToken[addressToToken[address]!.symbol!] =
-          (await this.tokenCache.get(this.CACHE_KEY(this.chainId, address)))!;
+        symbolToToken[
+          addressToToken[address]!.symbol!
+        ] = (await this.tokenCache.get(this.CACHE_KEY(this.chainId, address)))!;
       } else {
         addressesToFindInPrimary.push(address);
       }
