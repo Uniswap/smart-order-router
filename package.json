@@ -1,5 +1,5 @@
 {
-  "name": "@uniswap/smart-order-router",
+  "name": "swampy-smart-order-router",
   "version": "3.10.2",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
