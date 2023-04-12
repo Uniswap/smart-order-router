@@ -643,7 +643,7 @@ export const USDT_CFX_TEST = new Token(
 );
 export const DAI_CFX_TEST = new Token(
   ChainId.CFX_TEST,
-  "0x349298b0e20df67defd6efb8f3170cf4a32722ef", // TODO: change to right address
+  "0x7d682e65efc5c13bf4e394b8f376c48e6bae0355", // TODO: change to right address
   18,
   "DAI",
   "Dai Stablecoin"
