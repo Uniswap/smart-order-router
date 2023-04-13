@@ -176,11 +176,13 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       { calls },
       `About to multicall for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
     );
+    console.log("callSameFunctionOnContractWithMultipleParams", calls);
 
     const { blockNumber, returnData: aggregateResults } =
       await this.multicallContract.callStatic.multicall(calls, {
         blockTag: blockNumberOverride,
       });
+    console.log("callSameFunctionOnContractWithMultipleParams result", blockNumber, aggregateResults);
 
     const results: Result<TReturn>[] = [];
 
