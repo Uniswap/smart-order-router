@@ -195,6 +195,7 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
 
       // Return data "0x" is sometimes returned for invalid pools.
       if (!success || returnData.length <= 2) {
+        console.log('callSameFunctionOnContractWithMultipleParams -> step', 3, i, 1);
         log.debug(
           { result: aggregateResults[i] },
           `Invalid result calling ${functionName} with params ${functionParams[i]}`
@@ -205,8 +206,10 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
         });
         continue;
       }
+      console.log('callSameFunctionOnContractWithMultipleParams -> step', 3, i, 2);
 
       gasUsedForSuccess.push(gasUsed.toNumber());
+      console.log('callSameFunctionOnContractWithMultipleParams -> step', 3, i, 3);
 
       results.push({
         success: true,
@@ -215,6 +218,7 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
           returnData
         ) as unknown as TReturn,
       });
+      console.log('callSameFunctionOnContractWithMultipleParams -> step', 3, i, 4);
     }
 
       console.log('callSameFunctionOnContractWithMultipleParams -> step', 4);
