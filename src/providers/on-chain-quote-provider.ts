@@ -462,7 +462,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               try {
                 totalCallsMade = totalCallsMade + 1;
 
-                console.log('on-chain-quote-provider before multicall', this.getQuoterAddress(useMixedRouteQuoter), functionName, inputs);
+//                console.log('on-chain-quote-provider before multicall', this.getQuoterAddress(useMixedRouteQuoter), functionName, inputs);
                 const results =
                   await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
                     [string, string],
