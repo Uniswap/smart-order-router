@@ -55,9 +55,9 @@ import {
   USDC_CFX,
   USDT_CFX,
   DAI_CFX,
-  USDC_CFX_TEST,
+//  USDC_CFX_TEST,
   USDT_CFX_TEST,
-  DAI_CFX_TEST,
+//  DAI_CFX_TEST,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider, V2PoolAccessor, } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider, V3PoolAccessor, } from '../../../providers/v3/pool-provider';
@@ -182,7 +182,11 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_BSC,
   ],
   [ChainId.CFX]: [DAI_CFX, USDC_CFX, USDT_CFX],
-  [ChainId.CFX_TEST]: [DAI_CFX_TEST, USDC_CFX_TEST, USDT_CFX_TEST],
+  [ChainId.CFX_TEST]: [
+//    DAI_CFX_TEST,
+//    USDC_CFX_TEST,
+    USDT_CFX_TEST
+  ],
 };
 
 export async function getV3CandidatePools({

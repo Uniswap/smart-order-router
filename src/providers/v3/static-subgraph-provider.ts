@@ -75,9 +75,9 @@ import {
   USDC_CFX,
   USDT_CFX,
   DAI_CFX,
-  USDC_CFX_TEST,
+//  USDC_CFX_TEST,
   USDT_CFX_TEST,
-  DAI_CFX_TEST,
+//  DAI_CFX_TEST,
 } from '../token-provider';
 
 import { IV3PoolProvider } from './pool-provider';
@@ -202,8 +202,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   [ChainId.CFX_TEST]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.CFX_TEST],
-    DAI_CFX_TEST,
-    USDC_CFX_TEST,
+//    DAI_CFX_TEST,
+//    USDC_CFX_TEST,
     USDT_CFX_TEST,
   ],
 };
