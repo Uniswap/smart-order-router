@@ -1188,9 +1188,12 @@ export class AlphaRouter
     const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.MIXED);
 
     // Calculate percents from all routes, we will fetch quotes for each percent in case we had stale data when the route was cached
-    const percents: number[] = cachedRoutes.routes.map((route) => route.percent);
-    // If the 100 percent is not included (it was a split route), we will add it back, in case some other route performs better
-    if (!percents.includes(100)) percents.push(100);
+    const percentsSet: Set<number> = new Set(cachedRoutes.routes.map((route) => route.percent));
+    // Add some percents that could be helpful
+    percentsSet.add(100);
+    percentsSet.add(50);
+    // Convert set to array
+    const percents = Array.from(percentsSet.values());
     // calculate amounts based on the percents
     const amounts = percents.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
