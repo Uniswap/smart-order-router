@@ -183,8 +183,8 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       await this.multicallContract.callStatic.multicall(calls, {
         blockTag: blockNumberOverride,
       });
-    console.log('callSameFunctionOnContractWithMultipleParams -> results', blockNumber, aggregateResults);
-
+//    console.log('callSameFunctionOnContractWithMultipleParams -> results', blockNumber, aggregateResults);
+    
     const results: Result<TReturn>[] = [];
 
     const gasUsedForSuccess: number[] = [];
