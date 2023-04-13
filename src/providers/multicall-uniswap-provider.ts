@@ -215,6 +215,8 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       });
     }
 
+    console.log('callSameFunctionOnContractWithMultipleParams -> results', results);
+
     log.debug(
       { results, functionName, address },
       `Results for multicall for ${functionName} at address ${address} with ${functionParams.length} different sets of params. Results as of block ${blockNumber}`
