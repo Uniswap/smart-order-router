@@ -72,8 +72,6 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     } = params;
 
     const blockNumberOverride = providerConfig?.blockNumber ?? undefined;
-    console.log("callSameFunctionOnMultipleContracts->blockNumberOverride", blockNumberOverride);
-    console.log("callSameFunctionOnMultipleContracts->info", addresses, functionName, functionParams);
 
     const fragment = contractInterface.getFunction(functionName);
     const callData = contractInterface.encodeFunctionData(
@@ -160,9 +158,6 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     const gasLimitPerCall =
       additionalConfig?.gasLimitPerCallOverride ?? this.gasLimitPerCall;
     const blockNumberOverride = providerConfig?.blockNumber ?? undefined;
-
-    console.log("CallSameFunctionOnContractWithMultipleParams->blockNumberOverride", blockNumberOverride);
-    console.log("CallSameFunctionOnContractWithMultipleParams->info", address, functionName, functionParams);
 
     const calls = _.map(functionParams, (functionParam) => {
       const callData = contractInterface.encodeFunctionData(
@@ -253,9 +248,6 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
     const gasLimitPerCall =
       additionalConfig?.gasLimitPerCallOverride ?? this.gasLimitPerCall;
     const blockNumberOverride = providerConfig?.blockNumber ?? undefined;
-    console.log("callMultipleFunctionsOnSameContract->blockNumberOverride", blockNumberOverride);
-    console.log("callMultipleFunctionsOnSameContract->info", address, functionNames, functionParams);
-
 
     const calls = _.map(functionNames, (functionName, i) => {
       const fragment = contractInterface.getFunction(functionName);
