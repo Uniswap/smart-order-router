@@ -172,23 +172,25 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       };
     });
 
-    console.log('callSameFunctionOnContractWithMultipleParams -> calls', calls);
+//    console.log('callSameFunctionOnContractWithMultipleParams -> calls', calls);
 
     log.debug(
       { calls },
       `About to multicall for ${functionName} at address ${address} with ${functionParams.length} different sets of params`
     );
-
+    try {
+      console.log('callSameFunctionOnContractWithMultipleParams -> step', 1);
     const { blockNumber, returnData: aggregateResults } =
       await this.multicallContract.callStatic.multicall(calls, {
         blockTag: blockNumberOverride,
       });
 //    console.log('callSameFunctionOnContractWithMultipleParams -> results', blockNumber, aggregateResults);
-    
+      console.log('callSameFunctionOnContractWithMultipleParams -> step', 2);
     const results: Result<TReturn>[] = [];
 
     const gasUsedForSuccess: number[] = [];
     for (let i = 0; i < aggregateResults.length; i++) {
+      console.log('callSameFunctionOnContractWithMultipleParams -> step', 3, i);
       const { success, returnData, gasUsed } = aggregateResults[i]!;
 
       // Return data "0x" is sometimes returned for invalid pools.
@@ -215,7 +217,8 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       });
     }
 
-    console.log('callSameFunctionOnContractWithMultipleParams -> results', results);
+      console.log('callSameFunctionOnContractWithMultipleParams -> step', 4);
+//    console.log('callSameFunctionOnContractWithMultipleParams -> results', results);
 
     log.debug(
       { results, functionName, address },
@@ -226,6 +229,10 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       results,
       approxGasUsedPerSuccessCall: stats.percentile(gasUsedForSuccess, 99),
     };
+    }catch(e) {
+      console.log('callSameFunctionOnContractWithMultipleParams -> error', e);
+      throw e;
+    }
   }
 
   public async callMultipleFunctionsOnSameContract<
