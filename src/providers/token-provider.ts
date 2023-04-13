@@ -608,14 +608,14 @@ export const WBTC_MOONBEAM = new Token(
 export const USDC_CFX = new Token(
   ChainId.CFX,
   "0x6963efed0ab40f6c3d7bda44a05dcf1437c44372",
-  6,
+  18,
   "USDC",
   "USD//C"
 );
 export const USDT_CFX = new Token(
   ChainId.CFX,
   "0xfe97e85d13abd9c1c33384e796f10b73905637ce",
-  6,
+  18,
   "USDT",
   "Tether USD"
 );
@@ -630,14 +630,14 @@ export const DAI_CFX = new Token(
 export const USDC_CFX_TEST = new Token(
   ChainId.CFX_TEST,
   "0x349298b0e20df67defd6efb8f3170cf4a32722ef",
-  6,
+  18,
   "USDC",
   "USD//C"
 );
 export const USDT_CFX_TEST = new Token(
   ChainId.CFX_TEST,
   "0x7d682e65efc5c13bf4e394b8f376c48e6bae0355",
-  6,
+  18,
   "USDT",
   "Tether USD"
 );
