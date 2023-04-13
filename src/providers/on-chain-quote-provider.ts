@@ -480,13 +480,13 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     },
                   });
 
-                console.log('on-chain-quote-provider multicall results', results);
+//                console.log('on-chain-quote-provider multicall results', results);
 
                 const successRateError = this.validateSuccessRate(
                   results.results,
                   haveRetriedForSuccessRate
                 );
-                console.log('on-chain-quote-provider below successRateError', successRateError);
+//                console.log('on-chain-quote-provider below successRateError', successRateError);
 
                 if (successRateError) {
                   return {
