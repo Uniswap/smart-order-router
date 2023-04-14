@@ -1186,20 +1186,25 @@ export class AlphaRouter
     const v3Routes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.V3);
     const v2Routes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.V2);
     const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.MIXED);
-    const percents: number[] = [];
+
+    // Calculate percents from all routes, we will fetch quotes for each percent in case we had stale data when the route was cached
+    const percentsSet: Set<number> = new Set(cachedRoutes.routes.map((route) => route.percent));
+    // Add some percents that could be helpful
+    percentsSet.add(100);
+    percentsSet.add(50);
+    // Convert set to array
+    const percents = Array.from(percentsSet.values());
+    // calculate amounts based on the percents
+    const amounts = percents.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
     if (v3Routes.length > 0) {
       const v3RoutesFromCache: V3Route[] = v3Routes.map((cachedRoute) => cachedRoute.route as V3Route);
-      const v3PercentsFromCache = v3Routes.map((cachedRoute) => cachedRoute.percent);
-      percents.push(...v3PercentsFromCache);
-
-      const v3Amounts = v3PercentsFromCache.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
       quotePromises.push(
         this.v3Quoter.getQuotes(
           v3RoutesFromCache,
-          v3Amounts,
-          v3PercentsFromCache,
+          amounts,
+          percents,
           quoteToken,
           tradeType,
           routingConfig,
@@ -1210,19 +1215,14 @@ export class AlphaRouter
     }
 
     if (v2Routes.length > 0) {
-      const v2PercentsFromCache = v2Routes.map((cachedRoute) => cachedRoute.percent);
-      percents.push(...v2PercentsFromCache);
-
-      const v2Amounts = v2PercentsFromCache.map((percent) => amount.multiply(new Fraction(percent, 100)));
-
       quotePromises.push(
         // When we fetch the quotes in V2, we are not calling the `onChainProvider` like on v3Routes and mixedRoutes
         // Instead we are using the reserves in the Pool object, so we need to re-load the current reserves.
         this.v2Quoter.getRoutesThenQuotes(
           v2Routes[0]!.tokenIn,
           v2Routes[0]!.tokenOut,
-          v2Amounts,
-          v2PercentsFromCache,
+          amounts,
+          percents,
           quoteToken,
           tradeType,
           routingConfig,
@@ -1234,16 +1234,12 @@ export class AlphaRouter
 
     if (mixedRoutes.length > 0) {
       const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map((cachedRoute) => cachedRoute.route as MixedRoute);
-      const mixedPercentsFromCache = mixedRoutes.map((cachedRoute) => cachedRoute.percent);
-      percents.push(...mixedPercentsFromCache);
-
-      const mixedAmounts = mixedPercentsFromCache.map((percent) => amount.multiply(new Fraction(percent, 100)));
 
       quotePromises.push(
         this.mixedQuoter.getQuotes(
           mixedRoutesFromCache,
-          mixedAmounts,
-          mixedPercentsFromCache,
+          amounts,
+          percents,
           quoteToken,
           tradeType,
           routingConfig,
