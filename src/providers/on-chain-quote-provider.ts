@@ -462,7 +462,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               try {
                 totalCallsMade = totalCallsMade + 1;
 
-//                console.log('on-chain-quote-provider before multicall', this.getQuoterAddress(useMixedRouteQuoter), functionName, inputs);
                 const results =
                   await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
                     [string, string],
@@ -480,13 +479,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     },
                   });
 
-//                console.log('on-chain-quote-provider multicall results', results);
-
                 const successRateError = this.validateSuccessRate(
                   results.results,
                   haveRetriedForSuccessRate
                 );
-//                console.log('on-chain-quote-provider below successRateError', successRateError);
 
                 if (successRateError) {
                   return {
@@ -503,7 +499,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   results,
                 } as QuoteBatchSuccess;
               } catch (err: any) {
-                console.log('on-chain-quote-provider error', err);
                 // Error from providers have huge messages that include all the calldata and fill the logs.
                 // Catch them and rethrow with shorter message.
                 if (err.message.includes('header not found')) {
