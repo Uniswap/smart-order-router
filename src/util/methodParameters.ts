@@ -234,6 +234,7 @@ export function buildSwapMethodParameters(
   swapConfig: SwapOptions,
   chainId: ChainId
 ): MethodParameters {
+  // NOTE: UNIVERSAL_ROUTER_ADDRESS(chainId) can not used in Conflux eSpace, eSpace testnet 
   if (swapConfig.type == SwapType.UNIVERSAL_ROUTER) {
     return {
       ...UniveralRouter.swapERC20CallParameters(trade, swapConfig),
