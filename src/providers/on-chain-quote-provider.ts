@@ -499,6 +499,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   results,
                 } as QuoteBatchSuccess;
               } catch (err: any) {
+                log.error(
+                  `Failed to call callSameFunctionOnContractWithMultipleParams`, functionName, err.error.body
+                );
                 // Error from providers have huge messages that include all the calldata and fill the logs.
                 // Catch them and rethrow with shorter message.
                 if (err.message.includes('header not found')) {
