@@ -60,7 +60,7 @@ import {
   DAI_CFX,
   USDC_CFX_TEST,
   USDT_CFX_TEST,
-  DAI_CFX_TEST,
+//  DAI_CFX_TEST,
 } from './token-provider';
 
 // These tokens will added to the Token cache on initialization.
@@ -169,7 +169,7 @@ export const CACHE_SEED_TOKENS: {
   [ChainId.CFX_TEST]: {
     USDC: USDC_CFX_TEST,
     USDT: USDT_CFX_TEST,
-    DAI: DAI_CFX_TEST,
+//    DAI: DAI_CFX_TEST,
   },
 
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet

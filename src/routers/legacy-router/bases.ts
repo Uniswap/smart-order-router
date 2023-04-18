@@ -19,7 +19,7 @@ import {
   DAI_CFX,
   USDC_CFX_TEST,
   USDT_CFX_TEST,
-  DAI_CFX_TEST,
+//  DAI_CFX_TEST,
 } from '../../providers/token-provider';
 import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
@@ -74,7 +74,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       WRAPPED_NATIVE_CURRENCY[ChainId.CFX_TEST]!,
       USDC_CFX_TEST,
       USDT_CFX_TEST,
-      DAI_CFX_TEST,
+//      DAI_CFX_TEST,
     ], // CFX-ESPACE
     [ChainId.CFX]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.CFX]!,
