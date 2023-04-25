@@ -479,7 +479,7 @@ export class AlphaRouter
               maxTimeout: 1000,
             },
             {
-              multicallChunk: 10,
+              multicallChunk: 15,
               gasLimitPerCall: 705_000,
               quoteMinSuccessRate: 0.15,
             },
