@@ -1001,11 +1001,11 @@ export class AlphaRouter
       const quoteDiff = swapRouteFromChain.quote.subtract(swapRouteFromCache.quote);
       const quoteGasAdjustedDiff = swapRouteFromChain.quoteGasAdjusted.subtract(swapRouteFromCache.quoteGasAdjusted);
       const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
-      const gasAdjustedDiffInAmountTokenTerms = quoteGasAdjustedDiff.multiply(amount.divide(swapRouteFromChain.quoteGasAdjusted));
-      const misquotePercent = gasAdjustedDiffInAmountTokenTerms.divide(amount).multiply(100);
+      // Calculates the percentage of the difference with respect to the quoteFromChain (not from cache)
+      const misquotePercent = quoteGasAdjustedDiff.multiply(100).divide(swapRouteFromChain.quoteGasAdjusted);
 
       // Only log if diff is not equal to 0
-      if (!quoteDiff.equalTo(0)) {
+      if (!quoteGasAdjustedDiff.equalTo(0)) {
         metric.putMetric(
           `TapcompareCachedRoute_quoteGasAdjustedDiffPercent`,
           Number(misquotePercent.toExact()),
