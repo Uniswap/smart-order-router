@@ -1003,7 +1003,7 @@ export class AlphaRouter
       const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
 
       // Only log if quoteDiff is different from 0, or if quoteGasAdjustedDiff and gasUsedDiff are both different from 0
-      if (!quoteDiff.equalTo(0) || (!quoteGasAdjustedDiff.equalTo(0) && !gasUsedDiff.eq(0))) {
+      if (!quoteDiff.equalTo(0) || !(quoteGasAdjustedDiff.equalTo(0) || gasUsedDiff.eq(0))) {
         // Calculates the percentage of the difference with respect to the quoteFromChain (not from cache)
         const misquotePercent = quoteGasAdjustedDiff.divide(swapRouteFromChain.quoteGasAdjusted).multiply(100);
 
