@@ -1001,11 +1001,12 @@ export class AlphaRouter
       const quoteDiff = swapRouteFromChain.quote.subtract(swapRouteFromCache.quote);
       const quoteGasAdjustedDiff = swapRouteFromChain.quoteGasAdjusted.subtract(swapRouteFromCache.quoteGasAdjusted);
       const gasUsedDiff = swapRouteFromChain.estimatedGasUsed.sub(swapRouteFromCache.estimatedGasUsed);
-      // Calculates the percentage of the difference with respect to the quoteFromChain (not from cache)
-      const misquotePercent = quoteGasAdjustedDiff.multiply(100).divide(swapRouteFromChain.quoteGasAdjusted);
 
-      // Only log if diff is not equal to 0
-      if (!quoteGasAdjustedDiff.equalTo(0)) {
+      // Only log if quoteDiff is different from 0, or if quoteGasAdjustedDiff and gasUsedDiff are both different from 0
+      if (!quoteDiff.equalTo(0) || !(quoteGasAdjustedDiff.equalTo(0) || gasUsedDiff.eq(0))) {
+        // Calculates the percentage of the difference with respect to the quoteFromChain (not from cache)
+        const misquotePercent = quoteGasAdjustedDiff.divide(swapRouteFromChain.quoteGasAdjusted).multiply(100);
+
         metric.putMetric(
           `TapcompareCachedRoute_quoteGasAdjustedDiffPercent`,
           Number(misquotePercent.toExact()),
@@ -1066,27 +1067,26 @@ export class AlphaRouter
       );
 
       if (routesToCache) {
-        const tokenPairSymbolTradeTypeChainId = this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType);
         // Attempt to insert the entry in cache. This is fire and forget promise.
         // The catch method will prevent any exception from blocking the normal code execution.
         this.routeCachingProvider.setCachedRoute(routesToCache, amount).then((success) => {
           const status = success ? 'success' : 'rejected';
           metric.putMetric(
-            `SetCachedRoute_${tokenPairSymbolTradeTypeChainId}_${status}`,
+            `SetCachedRoute_${status}`,
             1,
             MetricLoggerUnit.Count
           );
         }).catch((reason) => {
-          log.info(
+          log.error(
             {
               reason: reason,
-              tokenPair: tokenPairSymbolTradeTypeChainId
+              tokenPair: this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType),
             },
             `SetCachedRoute failure`
           );
 
           metric.putMetric(
-            `SetCachedRoute_${tokenPairSymbolTradeTypeChainId}_failure`,
+            `SetCachedRoute_failure`,
             1,
             MetricLoggerUnit.Count
           );
