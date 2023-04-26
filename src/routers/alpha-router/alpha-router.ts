@@ -312,20 +312,13 @@ export class AlphaRouter
     ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: BaseProvider;
-  protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
-  protected onChainQuoteProvider: IOnChainQuoteProvider;
-  protected v2SubgraphProvider: IV2SubgraphProvider;
-  protected v2QuoteProvider: IV2QuoteProvider;
   protected v2PoolProvider: IV2PoolProvider;
-  protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected swapRouterProvider: ISwapRouterProvider;
   protected v3GasModelFactory: IOnChainGasModelFactory;
   protected v2GasModelFactory: IV2GasModelFactory;
   protected mixedRouteGasModelFactory: IOnChainGasModelFactory;
-  protected tokenValidatorProvider?: ITokenValidatorProvider;
-  protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
@@ -371,14 +364,12 @@ export class AlphaRouter
     this.simulator = simulator;
     this.routeCachingProvider = routeCachingProvider;
 
-    if (onChainQuoteProvider) {
-      this.onChainQuoteProvider = onChainQuoteProvider;
-    } else {
+    if (!onChainQuoteProvider) {
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISM_GOERLI:
         case ChainId.OPTIMISTIC_KOVAN:
-          this.onChainQuoteProvider = new OnChainQuoteProvider(
+          onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             multicall2Provider,
@@ -413,7 +404,7 @@ export class AlphaRouter
         case ChainId.ARBITRUM_ONE:
         case ChainId.ARBITRUM_RINKEBY:
         case ChainId.ARBITRUM_GOERLI:
-          this.onChainQuoteProvider = new OnChainQuoteProvider(
+          onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             multicall2Provider,
@@ -439,7 +430,7 @@ export class AlphaRouter
           break;
         case ChainId.CELO:
         case ChainId.CELO_ALFAJORES:
-          this.onChainQuoteProvider = new OnChainQuoteProvider(
+          onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             multicall2Provider,
@@ -464,7 +455,7 @@ export class AlphaRouter
           );
           break;
         default:
-          this.onChainQuoteProvider = new OnChainQuoteProvider(
+          onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             multicall2Provider,
@@ -495,66 +486,55 @@ export class AlphaRouter
         new NodeJSCache(new NodeCache({ stdTTL: 60, useClones: false }))
       );
 
-    this.v2QuoteProvider = v2QuoteProvider ?? new V2QuoteProvider();
+    v2QuoteProvider ??= new V2QuoteProvider();
 
-    this.blockedTokenListProvider =
-      blockedTokenListProvider ??
+    blockedTokenListProvider ??= new CachingTokenListProvider(
+      chainId,
+      UNSUPPORTED_TOKENS as TokenList,
+      new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
+    );
+
+    tokenProvider ??= new CachingTokenProviderWithFallback(
+      chainId,
+      new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
       new CachingTokenListProvider(
         chainId,
-        UNSUPPORTED_TOKENS as TokenList,
+        DEFAULT_TOKEN_LIST,
         new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
-      );
-    this.tokenProvider =
-      tokenProvider ??
-      new CachingTokenProviderWithFallback(
-        chainId,
-        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
-        new CachingTokenListProvider(
-          chainId,
-          DEFAULT_TOKEN_LIST,
-          new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
-        ),
-        new TokenProvider(chainId, multicall2Provider)
-      );
+      ),
+      new TokenProvider(chainId, multicall2Provider)
+    );
 
     const chainName = ID_TO_NETWORK_NAME(chainId);
 
-    // ipfs urls in the following format: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/${protocol}/${chainName}.json`;
-    if (v2SubgraphProvider) {
-      this.v2SubgraphProvider = v2SubgraphProvider;
-    } else {
-      this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
-        new CachingV2SubgraphProvider(
-          chainId,
-          new URISubgraphProvider(
-            chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
-            undefined,
-            0
-          ),
-          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-        ),
-        new StaticV2SubgraphProvider(chainId),
-      ]);
-    }
 
-    if (v3SubgraphProvider) {
-      this.v3SubgraphProvider = v3SubgraphProvider;
-    } else {
-      this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
-        new CachingV3SubgraphProvider(
+    v2SubgraphProvider ??= new V2SubgraphProviderWithFallBacks([
+      new CachingV2SubgraphProvider(
+        chainId,
+        new URISubgraphProvider(
           chainId,
-          new URISubgraphProvider(
-            chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
-            undefined,
-            0
-          ),
-          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+          `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
+          undefined,
+          0
         ),
-        new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
-      ]);
-    }
+        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+      ),
+      new StaticV2SubgraphProvider(chainId),
+    ]);
+
+    v3SubgraphProvider ??= new V3SubgraphProviderWithFallBacks([
+      new CachingV3SubgraphProvider(
+        chainId,
+        new URISubgraphProvider(
+          chainId,
+          `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
+          undefined,
+          0
+        ),
+        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+      ),
+      new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
+    ]);
 
     let gasPriceProviderInstance: IGasPriceProvider;
     if (JsonRpcProvider.isProvider(this.provider)) {
@@ -601,10 +581,9 @@ export class AlphaRouter
         arbitrumGasDataProvider ??
         new ArbitrumGasDataProvider(chainId, this.provider);
     }
-    if (tokenValidatorProvider) {
-      this.tokenValidatorProvider = tokenValidatorProvider;
-    } else if (this.chainId === ChainId.MAINNET) {
-      this.tokenValidatorProvider = new TokenValidatorProvider(
+
+    if (this.chainId === ChainId.MAINNET) {
+      tokenValidatorProvider = new TokenValidatorProvider(
         this.chainId,
         multicall2Provider,
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
@@ -614,36 +593,36 @@ export class AlphaRouter
     // Initialize the Quoters.
     // Quoters are an abstraction encapsulating the business logic of fetching routes and quotes.
     this.v2Quoter = new V2Quoter(
-      this.v2SubgraphProvider,
+      v2SubgraphProvider,
       this.v2PoolProvider,
-      this.v2QuoteProvider,
+      v2QuoteProvider,
       this.v2GasModelFactory,
-      this.tokenProvider,
+      tokenProvider,
       this.chainId,
-      this.blockedTokenListProvider,
-      this.tokenValidatorProvider
+      blockedTokenListProvider,
+      tokenValidatorProvider
     );
 
     this.v3Quoter = new V3Quoter(
-      this.v3SubgraphProvider,
+      v3SubgraphProvider,
       this.v3PoolProvider,
-      this.onChainQuoteProvider,
-      this.tokenProvider,
+      onChainQuoteProvider,
+      tokenProvider,
       this.chainId,
-      this.blockedTokenListProvider,
-      this.tokenValidatorProvider
+      blockedTokenListProvider,
+      tokenValidatorProvider
     );
 
     this.mixedQuoter = new MixedQuoter(
-      this.v3SubgraphProvider,
+      v3SubgraphProvider,
       this.v3PoolProvider,
-      this.v2SubgraphProvider,
+      v2SubgraphProvider,
       this.v2PoolProvider,
-      this.onChainQuoteProvider,
-      this.tokenProvider,
+      onChainQuoteProvider,
+      tokenProvider,
       this.chainId,
-      this.blockedTokenListProvider,
-      this.tokenValidatorProvider
+      blockedTokenListProvider,
+      tokenValidatorProvider
     );
   }
 
