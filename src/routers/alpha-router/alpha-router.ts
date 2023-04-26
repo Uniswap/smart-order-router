@@ -354,6 +354,7 @@ export class AlphaRouter
     this.chainId = chainId;
     this.provider = provider;
     multicall2Provider ??= new UniswapMulticallProvider(chainId, provider, 375_000);
+
     this.v3PoolProvider =
       v3PoolProvider ??
       new CachingV3PoolProvider(

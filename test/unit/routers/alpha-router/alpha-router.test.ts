@@ -386,7 +386,7 @@ describe('alpha router', () => {
     alphaRouter = new AlphaRouter({
       chainId: 1,
       provider: mockProvider,
-      multicall2Provider: mockMulticallProvider as any,
+      multicall2Provider: mockMulticallProvider,
       v3SubgraphProvider: mockV3SubgraphProvider,
       v3PoolProvider: mockV3PoolProvider,
       onChainQuoteProvider: mockOnChainQuoteProvider,
