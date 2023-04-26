@@ -584,7 +584,7 @@ export class AlphaRouter
     }
 
     if (this.chainId === ChainId.MAINNET) {
-      tokenValidatorProvider = new TokenValidatorProvider(
+      tokenValidatorProvider ??= new TokenValidatorProvider(
         this.chainId,
         multicall2Provider,
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
