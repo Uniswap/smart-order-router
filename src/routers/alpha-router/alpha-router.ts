@@ -54,7 +54,6 @@ import {
 } from '../../providers/v3/gas-data-provider';
 import { IV3PoolProvider, V3PoolProvider } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
-import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESSES } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
@@ -313,7 +312,6 @@ export class AlphaRouter
     ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: BaseProvider;
-  protected multicall2Provider: UniswapMulticallProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
   protected onChainQuoteProvider: IOnChainQuoteProvider;
@@ -362,14 +360,12 @@ export class AlphaRouter
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
-    this.multicall2Provider =
-      multicall2Provider ??
-      new UniswapMulticallProvider(chainId, provider, 375_000);
+    multicall2Provider ??= new UniswapMulticallProvider(chainId, provider, 375_000);
     this.v3PoolProvider =
       v3PoolProvider ??
       new CachingV3PoolProvider(
         this.chainId,
-        new V3PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
+        new V3PoolProvider(ID_TO_CHAIN_ID(chainId), multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
     this.simulator = simulator;
@@ -385,7 +381,7 @@ export class AlphaRouter
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
-            this.multicall2Provider,
+            multicall2Provider,
             {
               retries: 2,
               minTimeout: 100,
@@ -420,7 +416,7 @@ export class AlphaRouter
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
-            this.multicall2Provider,
+            multicall2Provider,
             {
               retries: 2,
               minTimeout: 100,
@@ -446,7 +442,7 @@ export class AlphaRouter
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
-            this.multicall2Provider,
+            multicall2Provider,
             {
               retries: 2,
               minTimeout: 100,
@@ -471,7 +467,7 @@ export class AlphaRouter
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
-            this.multicall2Provider,
+            multicall2Provider,
             {
               retries: 2,
               minTimeout: 100,
@@ -495,7 +491,7 @@ export class AlphaRouter
       v2PoolProvider ??
       new CachingV2PoolProvider(
         chainId,
-        new V2PoolProvider(chainId, this.multicall2Provider),
+        new V2PoolProvider(chainId, multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 60, useClones: false }))
       );
 
@@ -518,7 +514,7 @@ export class AlphaRouter
           DEFAULT_TOKEN_LIST,
           new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
         ),
-        new TokenProvider(chainId, this.multicall2Provider)
+        new TokenProvider(chainId, multicall2Provider)
       );
 
     const chainName = ID_TO_NETWORK_NAME(chainId);
@@ -589,12 +585,12 @@ export class AlphaRouter
 
     this.swapRouterProvider =
       swapRouterProvider ??
-      new SwapRouterProvider(this.multicall2Provider, this.chainId);
+      new SwapRouterProvider(multicall2Provider, this.chainId);
 
     if (chainId === ChainId.OPTIMISM || chainId === ChainId.OPTIMISTIC_KOVAN) {
       this.l2GasDataProvider =
         optimismGasDataProvider ??
-        new OptimismGasDataProvider(chainId, this.multicall2Provider);
+        new OptimismGasDataProvider(chainId, multicall2Provider);
     }
     if (
       chainId === ChainId.ARBITRUM_ONE ||
@@ -610,7 +606,7 @@ export class AlphaRouter
     } else if (this.chainId === ChainId.MAINNET) {
       this.tokenValidatorProvider = new TokenValidatorProvider(
         this.chainId,
-        this.multicall2Provider,
+        multicall2Provider,
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
       );
     }
@@ -853,6 +849,7 @@ export class AlphaRouter
 
     const tokenIn = currencyIn.wrapped;
     const tokenOut = currencyOut.wrapped;
+    const quoteToken = quoteCurrency.wrapped;
 
     metric.setProperty('chainId', this.chainId);
     metric.setProperty('pair', `${tokenIn.symbol}/${tokenOut.symbol}`);
@@ -879,8 +876,6 @@ export class AlphaRouter
 
     const gasPriceWei = await this.getGasPriceWei();
 
-    const quoteToken = quoteCurrency.wrapped;
-
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
@@ -901,7 +896,7 @@ export class AlphaRouter
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
-    if (cacheMode !== CacheMode.Darkmode) {
+    if (cacheMode && cacheMode !== CacheMode.Darkmode) {
       cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
         this.chainId,
         amount,
@@ -910,46 +905,20 @@ export class AlphaRouter
         protocols,
         await blockNumber
       );
-    }
 
-    if (cacheMode && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
-      metric.putMetric(
-        `GetCachedRoute_miss_${cacheMode}`,
-        1,
-        MetricLoggerUnit.Count
-      );
-      log.info(
-        {
-          tokenIn: tokenIn.symbol,
-          tokenInAddress: tokenIn.address,
-          tokenOut: tokenOut.symbol,
-          tokenOutAddress: tokenOut.address,
-          cacheMode,
-          amount: amount.toExact(),
-          chainId: this.chainId,
-          tradeType: this.tradeTypeStr(tradeType)
-        },
-        `GetCachedRoute miss ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}`
-      );
-    } else if (cachedRoutes) {
-      metric.putMetric(
-        `GetCachedRoute_hit_${cacheMode}`,
-        1,
-        MetricLoggerUnit.Count
-      );
-      log.info(
-        {
-          tokenIn: tokenIn.symbol,
-          tokenInAddress: tokenIn.address,
-          tokenOut: tokenOut.symbol,
-          tokenOutAddress: tokenOut.address,
-          cacheMode,
-          amount: amount.toExact(),
-          chainId: this.chainId,
-          tradeType: this.tradeTypeStr(tradeType)
-        },
-        `GetCachedRoute hit ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}`
-      );
+      if (cachedRoutes) {
+        metric.putMetric(
+          `GetCachedRoute_hit_${cacheMode}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else {
+        metric.putMetric(
+          `GetCachedRoute_miss_${cacheMode}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
     }
 
     let swapRouteFromCachePromise: Promise<BestSwapRoute | null> = Promise.resolve(null);
@@ -1713,31 +1682,6 @@ export class AlphaRouter
     );
     if (!zeroForOne) optimalRatio = optimalRatio.invert();
     return optimalRatio;
-  }
-
-  public async userHasSufficientBalance(
-    fromAddress: string,
-    tradeType: TradeType,
-    amount: CurrencyAmount,
-    quote: CurrencyAmount
-  ): Promise<boolean> {
-    try {
-      const neededBalance = tradeType === TradeType.EXACT_INPUT ? amount : quote;
-      let balance;
-      if (neededBalance.currency.isNative) {
-        balance = await this.provider.getBalance(fromAddress);
-      } else {
-        const tokenContract = Erc20__factory.connect(
-          neededBalance.currency.address,
-          this.provider
-        );
-        balance = await tokenContract.balanceOf(fromAddress);
-      }
-      return balance.gte(BigNumber.from(neededBalance.quotient.toString()));
-    } catch (e) {
-      log.error(e, 'Error while checking user balance');
-      return false;
-    }
   }
 
   private absoluteValue(fraction: Fraction): Fraction {
