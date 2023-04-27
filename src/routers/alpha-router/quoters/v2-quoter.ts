@@ -13,7 +13,7 @@ import {
 } from '../../../providers';
 import { ChainId, CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { V2Route } from '../../router';
-import { AlphaRouterConfig } from '../alpha-router';
+import { AlphaRouterConfig } from '../base-alpha-router';
 import { V2RouteWithValidQuote } from '../entities';
 import { computeAllV2Routes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, getV2CandidatePools } from '../functions/get-candidate-pools';

@@ -60,7 +60,7 @@ import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
-import { AlphaRouterConfig } from '../alpha-router';
+import { AlphaRouterConfig } from '../base-alpha-router';
 
 export type PoolId = { id: string };
 export type CandidatePoolsBySelectionCriteria = {

@@ -12,7 +12,7 @@ import {
 } from '../../../providers';
 import { ChainId, CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { V3Route } from '../../router';
-import { AlphaRouterConfig } from '../alpha-router';
+import { AlphaRouterConfig } from '../base-alpha-router';
 import { V3RouteWithValidQuote } from '../entities';
 import { computeAllV3Routes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, getV3CandidatePools } from '../functions/get-candidate-pools';
