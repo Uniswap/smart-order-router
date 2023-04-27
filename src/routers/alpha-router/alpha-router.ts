@@ -1,66 +1,23 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
-import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
+import { BaseProvider } from '@ethersproject/providers';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
 import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
-import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
-import NodeCache from 'node-cache';
 
-import {
-  CachedRoutes,
-  CacheMode,
-  CachingGasStationProvider,
-  CachingTokenProviderWithFallback,
-  CachingV2PoolProvider,
-  CachingV2SubgraphProvider,
-  CachingV3PoolProvider,
-  CachingV3SubgraphProvider,
-  EIP1559GasPriceProvider,
-  ETHGasStationInfoProvider,
-  IOnChainQuoteProvider,
-  IRouteCachingProvider,
-  ISwapRouterProvider,
-  IV2QuoteProvider,
-  IV2SubgraphProvider,
-  LegacyGasPriceProvider,
-  NodeJSCache,
-  OnChainGasPriceProvider,
-  OnChainQuoteProvider,
-  Simulator,
-  StaticV2SubgraphProvider,
-  StaticV3SubgraphProvider,
-  SwapRouterProvider,
-  UniswapMulticallProvider,
-  URISubgraphProvider,
-  V2QuoteProvider,
-  V2SubgraphProviderWithFallBacks,
-  V3SubgraphProviderWithFallBacks,
-} from '../../providers';
-import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
-import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
-import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
-import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
-import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
-import {
-  ArbitrumGasData,
-  ArbitrumGasDataProvider,
-  IL2GasDataProvider,
-  OptimismGasData,
-  OptimismGasDataProvider,
-} from '../../providers/v3/gas-data-provider';
-import { IV3PoolProvider, V3PoolProvider } from '../../providers/v3/pool-provider';
-import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
+import { CachedRoutes, CacheMode, IRouteCachingProvider, ISwapRouterProvider, Simulator, } from '../../providers';
+import { IGasPriceProvider } from '../../providers/gas-price-provider';
+import { IV2PoolProvider } from '../../providers/v2/pool-provider';
+import { ArbitrumGasData, IL2GasDataProvider, OptimismGasData, } from '../../providers/v3/gas-data-provider';
+import { IV3PoolProvider } from '../../providers/v3/pool-provider';
 import { SWAP_ROUTER_02_ADDRESSES } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
-import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
+import { ChainId, V2_SUPPORTED } from '../../util/chains';
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
   ISwapToRatio,
@@ -76,7 +33,7 @@ import {
   V3Route,
 } from '../router';
 
-import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL } from './config';
+import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
@@ -86,9 +43,6 @@ import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import { CandidatePoolsBySelectionCriteria, PoolId, } from './functions/get-candidate-pools';
 import { IGasModel, IOnChainGasModelFactory, IV2GasModelFactory } from './gas-models/gas-model';
-import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
-import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
-import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
 
 export type AlphaRouterParams = {
@@ -101,91 +55,48 @@ export type AlphaRouterParams = {
    */
   provider: BaseProvider;
   /**
-   * The provider to use for making multicalls. Used for getting on-chain data
-   * like pools, tokens, quotes in batch.
-   */
-  multicall2Provider?: UniswapMulticallProvider;
-  /**
-   * The provider for getting all pools that exist on V3 from the Subgraph. The pools
-   * from this provider are filtered during the algorithm to a set of candidate pools.
-   */
-  v3SubgraphProvider?: IV3SubgraphProvider;
-  /**
    * The provider for getting data about V3 pools.
    */
-  v3PoolProvider?: IV3PoolProvider;
-  /**
-   * The provider for getting V3 quotes.
-   */
-  onChainQuoteProvider?: IOnChainQuoteProvider;
-  /**
-   * The provider for getting all pools that exist on V2 from the Subgraph. The pools
-   * from this provider are filtered during the algorithm to a set of candidate pools.
-   */
-  v2SubgraphProvider?: IV2SubgraphProvider;
+  v3PoolProvider: IV3PoolProvider;
   /**
    * The provider for getting data about V2 pools.
    */
-  v2PoolProvider?: IV2PoolProvider;
-  /**
-   * The provider for getting V3 quotes.
-   */
-  v2QuoteProvider?: IV2QuoteProvider;
-  /**
-   * The provider for getting data about Tokens.
-   */
-  tokenProvider?: ITokenProvider;
+  v2PoolProvider: IV2PoolProvider;
   /**
    * The provider for getting the current gas price to use when account for gas in the
    * algorithm.
    */
-  gasPriceProvider?: IGasPriceProvider;
-  /**
-   * A factory for generating a gas model that is used when estimating the gas used by
-   * V3 routes.
-   */
-  v3GasModelFactory?: IOnChainGasModelFactory;
-  /**
-   * A factory for generating a gas model that is used when estimating the gas used by
-   * V2 routes.
-   */
-  v2GasModelFactory?: IV2GasModelFactory;
-  /**
-   * A factory for generating a gas model that is used when estimating the gas used by
-   * V3 routes.
-   */
-  mixedRouteGasModelFactory?: IOnChainGasModelFactory;
-  /**
-   * A token list that specifies Token that should be blocked from routing through.
-   * Defaults to Uniswap's unsupported token list.
-   */
-  blockedTokenListProvider?: ITokenListProvider;
-
+  gasPriceProvider: IGasPriceProvider;
   /**
    * Calls lens function on SwapRouter02 to determine ERC20 approval types for
    * LP position tokens.
    */
-  swapRouterProvider?: ISwapRouterProvider;
-
+  swapRouterProvider: ISwapRouterProvider;
   /**
-   * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V3 routes.
    */
-  optimismGasDataProvider?: IL2GasDataProvider<OptimismGasData>;
-
+  v3GasModelFactory: IOnChainGasModelFactory;
   /**
-   * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V2 routes.
    */
-  tokenValidatorProvider?: ITokenValidatorProvider;
-
+  v2GasModelFactory: IV2GasModelFactory;
   /**
-   * Calls the arbitrum gas data contract to fetch constants for calculating the l1 fee.
+   * A factory for generating a gas model that is used when estimating the gas used by
+   * V3 routes.
    */
-  arbitrumGasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
+  mixedRouteGasModelFactory: IOnChainGasModelFactory;
+
+  l2GasDataProvider: IL2GasDataProvider<OptimismGasData> | IL2GasDataProvider<ArbitrumGasData>;
 
   /**
    * Simulates swaps and returns new SwapRoute with updated gas estimates.
    */
   simulator?: Simulator;
+  v2Quoter: V2Quoter;
+  v3Quoter: V3Quoter;
+  mixedQuoter: MixedQuoter;
 
   /**
    * A provider for caching the best route given an amount, quoteToken, tradeType
@@ -331,300 +242,35 @@ export class AlphaRouter
   constructor({
     chainId,
     provider,
-    multicall2Provider,
     v3PoolProvider,
-    onChainQuoteProvider,
     v2PoolProvider,
-    v2QuoteProvider,
-    v2SubgraphProvider,
-    tokenProvider,
-    blockedTokenListProvider,
-    v3SubgraphProvider,
     gasPriceProvider,
     v3GasModelFactory,
     v2GasModelFactory,
     mixedRouteGasModelFactory,
+    l2GasDataProvider,
     swapRouterProvider,
-    optimismGasDataProvider,
-    tokenValidatorProvider,
-    arbitrumGasDataProvider,
     simulator,
+    v2Quoter,
+    v3Quoter,
+    mixedQuoter,
     routeCachingProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
-    multicall2Provider ??= new UniswapMulticallProvider(chainId, provider, 375_000);
-
-    this.v3PoolProvider =
-      v3PoolProvider ??
-      new CachingV3PoolProvider(
-        this.chainId,
-        new V3PoolProvider(ID_TO_CHAIN_ID(chainId), multicall2Provider),
-        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-      );
+    this.v3PoolProvider = v3PoolProvider;
+    this.v2PoolProvider = v2PoolProvider;
+    this.gasPriceProvider = gasPriceProvider;
+    this.swapRouterProvider = swapRouterProvider;
+    this.v3GasModelFactory = v3GasModelFactory;
+    this.v2GasModelFactory = v2GasModelFactory;
+    this.mixedRouteGasModelFactory = mixedRouteGasModelFactory;
+    this.l2GasDataProvider = l2GasDataProvider;
     this.simulator = simulator;
+    this.v2Quoter = v2Quoter;
+    this.v3Quoter = v3Quoter;
+    this.mixedQuoter = mixedQuoter;
     this.routeCachingProvider = routeCachingProvider;
-
-    if (!onChainQuoteProvider) {
-      switch (chainId) {
-        case ChainId.OPTIMISM:
-        case ChainId.OPTIMISM_GOERLI:
-        case ChainId.OPTIMISTIC_KOVAN:
-          onChainQuoteProvider = new OnChainQuoteProvider(
-            chainId,
-            provider,
-            multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 110,
-              gasLimitPerCall: 1_200_000,
-              quoteMinSuccessRate: 0.1,
-            },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
-            },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
-            },
-            {
-              baseBlockOffset: -10,
-              rollback: {
-                enabled: true,
-                attemptsBeforeRollback: 1,
-                rollbackBlockOffset: -10,
-              },
-            }
-          );
-          break;
-        case ChainId.ARBITRUM_ONE:
-        case ChainId.ARBITRUM_RINKEBY:
-        case ChainId.ARBITRUM_GOERLI:
-          onChainQuoteProvider = new OnChainQuoteProvider(
-            chainId,
-            provider,
-            multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 10,
-              gasLimitPerCall: 12_000_000,
-              quoteMinSuccessRate: 0.1,
-            },
-            {
-              gasLimitOverride: 30_000_000,
-              multicallChunk: 6,
-            },
-            {
-              gasLimitOverride: 30_000_000,
-              multicallChunk: 6,
-            }
-          );
-          break;
-        case ChainId.CELO:
-        case ChainId.CELO_ALFAJORES:
-          onChainQuoteProvider = new OnChainQuoteProvider(
-            chainId,
-            provider,
-            multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 10,
-              gasLimitPerCall: 5_000_000,
-              quoteMinSuccessRate: 0.1,
-            },
-            {
-              gasLimitOverride: 5_000_000,
-              multicallChunk: 5,
-            },
-            {
-              gasLimitOverride: 6_250_000,
-              multicallChunk: 4,
-            }
-          );
-          break;
-        default:
-          onChainQuoteProvider = new OnChainQuoteProvider(
-            chainId,
-            provider,
-            multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 210,
-              gasLimitPerCall: 705_000,
-              quoteMinSuccessRate: 0.15,
-            },
-            {
-              gasLimitOverride: 2_000_000,
-              multicallChunk: 70,
-            }
-          );
-          break;
-      }
-    }
-
-    this.v2PoolProvider =
-      v2PoolProvider ??
-      new CachingV2PoolProvider(
-        chainId,
-        new V2PoolProvider(chainId, multicall2Provider),
-        new NodeJSCache(new NodeCache({ stdTTL: 60, useClones: false }))
-      );
-
-    v2QuoteProvider ??= new V2QuoteProvider();
-
-    blockedTokenListProvider ??= new CachingTokenListProvider(
-      chainId,
-      UNSUPPORTED_TOKENS as TokenList,
-      new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
-    );
-
-    tokenProvider ??= new CachingTokenProviderWithFallback(
-      chainId,
-      new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false })),
-      new CachingTokenListProvider(
-        chainId,
-        DEFAULT_TOKEN_LIST,
-        new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }))
-      ),
-      new TokenProvider(chainId, multicall2Provider)
-    );
-
-    const chainName = ID_TO_NETWORK_NAME(chainId);
-
-
-    v2SubgraphProvider ??= new V2SubgraphProviderWithFallBacks([
-      new CachingV2SubgraphProvider(
-        chainId,
-        new URISubgraphProvider(
-          chainId,
-          `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
-          undefined,
-          0
-        ),
-        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-      ),
-      new StaticV2SubgraphProvider(chainId),
-    ]);
-
-    v3SubgraphProvider ??= new V3SubgraphProviderWithFallBacks([
-      new CachingV3SubgraphProvider(
-        chainId,
-        new URISubgraphProvider(
-          chainId,
-          `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
-          undefined,
-          0
-        ),
-        new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
-      ),
-      new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
-    ]);
-
-    let gasPriceProviderInstance: IGasPriceProvider;
-    if (JsonRpcProvider.isProvider(this.provider)) {
-      gasPriceProviderInstance = new OnChainGasPriceProvider(
-        chainId,
-        new EIP1559GasPriceProvider(this.provider as JsonRpcProvider),
-        new LegacyGasPriceProvider(this.provider as JsonRpcProvider)
-      );
-    } else {
-      gasPriceProviderInstance = new ETHGasStationInfoProvider(ETH_GAS_STATION_API_URL);
-    }
-
-    this.gasPriceProvider =
-      gasPriceProvider ??
-      new CachingGasStationProvider(
-        chainId,
-        gasPriceProviderInstance,
-        new NodeJSCache<GasPrice>(
-          new NodeCache({ stdTTL: 15, useClones: false })
-        )
-      );
-    this.v3GasModelFactory =
-      v3GasModelFactory ?? new V3HeuristicGasModelFactory();
-    this.v2GasModelFactory =
-      v2GasModelFactory ?? new V2HeuristicGasModelFactory();
-    this.mixedRouteGasModelFactory =
-      mixedRouteGasModelFactory ?? new MixedRouteHeuristicGasModelFactory();
-
-    this.swapRouterProvider =
-      swapRouterProvider ??
-      new SwapRouterProvider(multicall2Provider, this.chainId);
-
-    if (chainId === ChainId.OPTIMISM || chainId === ChainId.OPTIMISTIC_KOVAN) {
-      this.l2GasDataProvider =
-        optimismGasDataProvider ??
-        new OptimismGasDataProvider(chainId, multicall2Provider);
-    }
-    if (
-      chainId === ChainId.ARBITRUM_ONE ||
-      chainId === ChainId.ARBITRUM_RINKEBY ||
-      chainId === ChainId.ARBITRUM_GOERLI
-    ) {
-      this.l2GasDataProvider =
-        arbitrumGasDataProvider ??
-        new ArbitrumGasDataProvider(chainId, this.provider);
-    }
-
-    if (this.chainId === ChainId.MAINNET) {
-      tokenValidatorProvider ??= new TokenValidatorProvider(
-        this.chainId,
-        multicall2Provider,
-        new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
-      );
-    }
-
-    // Initialize the Quoters.
-    // Quoters are an abstraction encapsulating the business logic of fetching routes and quotes.
-    this.v2Quoter = new V2Quoter(
-      v2SubgraphProvider,
-      this.v2PoolProvider,
-      v2QuoteProvider,
-      this.v2GasModelFactory,
-      tokenProvider,
-      this.chainId,
-      blockedTokenListProvider,
-      tokenValidatorProvider
-    );
-
-    this.v3Quoter = new V3Quoter(
-      v3SubgraphProvider,
-      this.v3PoolProvider,
-      onChainQuoteProvider,
-      tokenProvider,
-      this.chainId,
-      blockedTokenListProvider,
-      tokenValidatorProvider
-    );
-
-    this.mixedQuoter = new MixedQuoter(
-      v3SubgraphProvider,
-      this.v3PoolProvider,
-      v2SubgraphProvider,
-      this.v2PoolProvider,
-      onChainQuoteProvider,
-      tokenProvider,
-      this.chainId,
-      blockedTokenListProvider,
-      tokenValidatorProvider
-    );
   }
 
   public async routeToRatio(
