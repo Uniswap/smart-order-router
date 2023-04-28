@@ -1,6 +1,6 @@
 import { ChainId } from '../../util/chains';
 
-import { AlphaRouterConfig } from './alpha-router';
+import { AlphaRouterConfig } from './base-alpha-router';
 
 export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
   chainId: ChainId

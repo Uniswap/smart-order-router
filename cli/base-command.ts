@@ -319,7 +319,7 @@ export abstract class BaseCommand extends Command {
       const router = new AlphaRouter({
         provider,
         chainId,
-        multicall2Provider: multicall2Provider,
+        multicall2Provider,
         gasPriceProvider: new CachingGasStationProvider(
           chainId,
           new OnChainGasPriceProvider(

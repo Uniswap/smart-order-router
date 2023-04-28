@@ -14,7 +14,7 @@ import {
 } from '../../../providers';
 import { ChainId, CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { MixedRoute } from '../../router';
-import { AlphaRouterConfig } from '../alpha-router';
+import { AlphaRouterConfig } from '../base-alpha-router';
 import { MixedRouteWithValidQuote } from '../entities';
 import { computeAllMixedRoutes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, getMixedRouteCandidatePools } from '../functions/get-candidate-pools';
