@@ -54,7 +54,7 @@ const TENDERLY_BATCH_SIMULATE_API = (
   `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`;
 
 // We multiply tenderly gas limit by this to overestimate gas limit
-const DEFAULT_ESTIMATE_MULTIPLIER = 1.25;
+const DEFAULT_ESTIMATE_MULTIPLIER = 1.3;
 
 export class FallbackTenderlySimulator extends Simulator {
   private tenderlySimulator: TenderlySimulator;
@@ -215,7 +215,7 @@ export class TenderlySimulator extends Simulator {
 
       const approvePermit2 = {
         network_id: chainId,
-        gas_estimate: true,
+        estimate_gas: true,
         input: approvePermit2Calldata,
         to: tokenIn.address,
         value: '0',
@@ -224,7 +224,7 @@ export class TenderlySimulator extends Simulator {
 
       const approveUniversalRouter = {
         network_id: chainId,
-        gas_estimate: true,
+        estimate_gas: true,
         input: approveUniversalRouterCallData,
         to: PERMIT2_ADDRESS,
         value: '0',
@@ -234,7 +234,7 @@ export class TenderlySimulator extends Simulator {
       const swap = {
         network_id: chainId,
         input: calldata,
-        gas_estimate: true,
+        estimate_gas: true,
         to: UNIVERSAL_ROUTER_ADDRESS(this.chainId),
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
@@ -247,7 +247,7 @@ export class TenderlySimulator extends Simulator {
 
       const body = {
         simulations: [approvePermit2, approveUniversalRouter, swap],
-        gas_estimate: true,
+        estimate_gas: true,
       };
       const opts = {
         headers: {
@@ -277,7 +277,7 @@ export class TenderlySimulator extends Simulator {
       // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
       estimatedGasUsed = BigNumber.from(
         (
-          resp.simulation_results[2].transaction.gas_used * estimateMultiplier
+          resp.simulation_results[2].transaction.gas * estimateMultiplier
         ).toFixed(0)
       );
 
@@ -289,25 +289,27 @@ export class TenderlySimulator extends Simulator {
           approveUniversalRouterGasUsed:
             resp.simulation_results[1].transaction.gas_used,
           swapGasUsed: resp.simulation_results[2].transaction.gas_used,
+          approvePermit2Gas: resp.simulation_results[0].transaction.gas,
+          approveUniversalRouterGas: resp.simulation_results[1].transaction.gas,
+          swapGas: resp.simulation_results[2].transaction.gas,
           swapWithMultiplier: estimatedGasUsed.toString(),
         },
         'Successfully Simulated Approvals + Swap via Tenderly for Universal Router. Gas used.'
       );
 
       log.info(
-        { swapTransaction: resp.simulation_results[2].transaction },
-        'Successful Tenderly Swap Transaction for Universal Router'
-      );
-
-      log.info(
-        { swapSimulation: resp.simulation_results[2].simulation },
+        {
+          body,
+          swapSimulation: resp.simulation_results[2].simulation,
+          swapTransaction: resp.simulation_results[2].transaction,
+        },
         'Successful Tenderly Swap Simulation for Universal Router'
       );
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
       const approve = {
         network_id: chainId,
         input: APPROVE_TOKEN_FOR_TRANSFER,
-        gas_estimate: true,
+        estimate_gas: true,
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
@@ -317,7 +319,7 @@ export class TenderlySimulator extends Simulator {
         network_id: chainId,
         input: calldata,
         to: SWAP_ROUTER_02_ADDRESSES(chainId),
-        gas_estimate: true,
+        estimate_gas: true,
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
         // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
@@ -362,7 +364,7 @@ export class TenderlySimulator extends Simulator {
       // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
       estimatedGasUsed = BigNumber.from(
         (
-          resp.simulation_results[1].transaction.gas_used * estimateMultiplier
+          resp.simulation_results[1].transaction.gas * estimateMultiplier
         ).toFixed(0)
       );
 
@@ -371,16 +373,19 @@ export class TenderlySimulator extends Simulator {
           body,
           approveGasUsed: resp.simulation_results[0].transaction.gas_used,
           swapGasUsed: resp.simulation_results[1].transaction.gas_used,
+          approveGas: resp.simulation_results[0].transaction.gas,
+          swapGas: resp.simulation_results[1].transaction.gas,
           swapWithMultiplier: estimatedGasUsed.toString(),
         },
         'Successfully Simulated Approval + Swap via Tenderly for SwapRouter02. Gas used.'
       );
+
       log.info(
-        { swapTransaction: resp.simulation_results[1].transaction },
-        'Successful Tenderly Swap Transaction for SwapRouter02'
-      );
-      log.info(
-        { swapSimulation: resp.simulation_results[1].simulation },
+        {
+          body,
+          swapTransaction: resp.simulation_results[1].transaction,
+          swapSimulation: resp.simulation_results[1].simulation,
+        },
         'Successful Tenderly Swap Simulation for SwapRouter02'
       );
     } else {
