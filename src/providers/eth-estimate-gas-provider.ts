@@ -14,19 +14,27 @@ import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
 
+// We multiply eth estimate gas by this to add a buffer for gas limits
+const DEFAULT_ESTIMATE_MULTIPLIER = 1.2;
+
 export class EthEstimateGasSimulator extends Simulator {
   v2PoolProvider: IV2PoolProvider;
   v3PoolProvider: IV3PoolProvider;
+  private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
+
   constructor(
     chainId: ChainId,
     provider: JsonRpcProvider,
     v2PoolProvider: IV2PoolProvider,
-    v3PoolProvider: IV3PoolProvider
+    v3PoolProvider: IV3PoolProvider,
+    overrideEstimateMultiplier?: { [chainId in ChainId]?: number }
   ) {
     super(provider, chainId);
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+    this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
   }
+
   async ethEstimateGas(
     fromAddress: string,
     swapOptions: SwapOptions,
@@ -57,11 +65,6 @@ export class EthEstimateGasSimulator extends Simulator {
         };
       }
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
-      log.info(
-        { methodParameters: route.methodParameters },
-        'Simulating using eth_estimateGas on SwapRouter02'
-      );
-
       try {
         estimatedGasUsed = await this.provider.estimateGas({
           data: route.methodParameters!.calldata,
@@ -82,7 +85,11 @@ export class EthEstimateGasSimulator extends Simulator {
       throw new Error(`Unsupported swap type ${swapOptions}`);
     }
 
-    estimatedGasUsed = this.inflateGasLimit(estimatedGasUsed);
+    estimatedGasUsed = this.adjustGasEstimate(estimatedGasUsed);
+    log.info(
+      { methodParameters: route.methodParameters },
+      'Simulated using eth_estimateGas on SwapRouter02'
+    );
 
     const {
       estimatedGasUsedUSD,
@@ -110,13 +117,22 @@ export class EthEstimateGasSimulator extends Simulator {
       simulationStatus: SimulationStatus.Succeeded,
     };
   }
-  private inflateGasLimit(gasLimit: BigNumber): BigNumber {
-    // multiply by 1.2
-    return gasLimit.add(gasLimit.div(5));
+
+  private adjustGasEstimate(gasLimit: BigNumber): BigNumber {
+    const estimateMultiplier =
+      this.overrideEstimateMultiplier[this.chainId] ??
+      DEFAULT_ESTIMATE_MULTIPLIER;
+
+    const adjustedGasEstimate = BigNumber.from(
+      (gasLimit.toNumber() * estimateMultiplier).toFixed(0)
+    );
+
+    return adjustedGasEstimate;
   }
+
   protected async simulateTransaction(
     fromAddress: string,
-    swapOptions: any,
+    swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData | undefined,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

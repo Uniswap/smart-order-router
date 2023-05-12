@@ -17,7 +17,7 @@ import { ProviderConfig } from './provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 
 export type SimulationResult = {
-  transaction: { hash: string; gas_used: number; error_message: string };
+  transaction: { hash: string; gas_used: number; gas: number; error_message: string };
   simulation: { state_overrides: Record<string, unknown> };
 };
 
