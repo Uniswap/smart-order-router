@@ -87,7 +87,10 @@ export class EthEstimateGasSimulator extends Simulator {
 
     estimatedGasUsed = this.adjustGasEstimate(estimatedGasUsed);
     log.info(
-      { methodParameters: route.methodParameters },
+      {
+        methodParameters: route.methodParameters,
+        estimatedGasUsed: estimatedGasUsed.toString(),
+      },
       'Simulated using eth_estimateGas on SwapRouter02'
     );
 
