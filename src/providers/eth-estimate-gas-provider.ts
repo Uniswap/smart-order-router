@@ -126,7 +126,9 @@ export class EthEstimateGasSimulator extends Simulator {
       this.overrideEstimateMultiplier[this.chainId] ??
       DEFAULT_ESTIMATE_MULTIPLIER;
 
-    const adjustedGasEstimate = gasLimit.mul(estimateMultiplier);
+    const adjustedGasEstimate = BigNumber.from(gasLimit)
+      .mul(estimateMultiplier * 100)
+      .div(100);
 
     return adjustedGasEstimate;
   }
