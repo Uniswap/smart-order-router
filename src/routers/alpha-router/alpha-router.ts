@@ -1196,15 +1196,20 @@ export class AlphaRouter
     const v2Routes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.V2);
     const mixedRoutes = cachedRoutes.routes.filter((route) => route.protocol === Protocol.MIXED);
 
-    // Calculate percents from all routes, we will fetch quotes for each percent in case we had stale data when the route was cached
-    const percentsSet: Set<number> = new Set(cachedRoutes.routes.map((route) => route.percent));
-    // Add some percents that could be helpful
-    percentsSet.add(100);
-    percentsSet.add(50);
-    // Convert set to array
-    const percents = Array.from(percentsSet.values());
-    // calculate amounts based on the percents
-    const amounts = percents.map((percent) => amount.multiply(new Fraction(percent, 100)));
+    let percents: number[];
+    let amounts: CurrencyAmount[];
+    if (cachedRoutes.routes.length > 1) {
+      // If we have more than 1 route, we will quote the different percents for it, following the regular process
+      [percents, amounts] = this.getAmountDistribution(
+        amount,
+        routingConfig
+      );
+    } else if (cachedRoutes.routes.length == 1) {
+      [percents, amounts] = [[100], [amount]];
+    } else {
+      // In this case this means that there's no route, so we return null
+      return Promise.resolve(null);
+    }
 
     if (v3Routes.length > 0) {
       const v3RoutesFromCache: V3Route[] = v3Routes.map((cachedRoute) => cachedRoute.route as V3Route);
