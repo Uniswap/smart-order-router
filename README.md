@@ -4,6 +4,34 @@ This repository contains routing logic for the Uniswap V3 protocol.
 
 It searches for the most efficient way to swap token A for token B, considering splitting swaps across multiple routes and gas costs.
 
+## Run Locally on Docker
+With docker installed on the machine, follow the steps below:
+- Generate the image:
+`docker build -t uniswap-smart-router:latest . -f Dockerfile.local`
+- Run the image adding the envs:
+```sh
+docker run --rm \
+    -it \
+    --name smart-router \
+    -e JSON_RPC_PROVIDER_ROPSTEN='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_RINKEBY='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_GORLI='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_KOVAN='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_OPTIMISM='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_OPTIMISM_GOERLI='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_OPTIMISTIC_KOVAN='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_ARBITRUM_ONE='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_ARBITRUM_RINKEBY='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_ARBITRUM_GOERLI='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_POLYGON='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_POLYGON_MUMBAI='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_CELO='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_CELO_ALFAJORES='<JSON_RPC_PROVIDER>' \
+    -e JSON_RPC_PROVIDER_BSC='<JSON_RPC_PROVIDER>' \
+    uniswap-smart-router:latest \
+    sh
+```
+
 ## Testing
 
 ### Unit Tests
