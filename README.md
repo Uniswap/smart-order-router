@@ -228,7 +228,7 @@ The main components to complete are:
 
 ## ProviderGasLimit errors
 
-The package sends many large multicall requests to nodes. You must ensure that your node provider's `eth_call` gas limit is high enough to succesfully process the RPC calls.
+The package sends many large multicall requests to nodes. You must ensure that your node provider's `eth_call` gas limit is high enough to successfully process the RPC calls.
 
 By default each `eth_call` will consume up to:
 
