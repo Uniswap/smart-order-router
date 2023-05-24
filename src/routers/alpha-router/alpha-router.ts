@@ -1205,8 +1205,7 @@ export class AlphaRouter
         routingConfig
       );
     } else if (cachedRoutes.routes.length == 1) {
-      percents = [100];
-      amounts = [amount];
+      [percents, amounts] = [[100], [amount]];
     } else {
       // In this case this means that there's no route, so we return null
       return Promise.resolve(null);
