@@ -1,0 +1,13 @@
+FROM node:16-slim AS dependencies
+WORKDIR /usr/app
+COPY package*.json ./
+RUN npm install
+
+
+FROM node:16-slim AS build
+WORKDIR /usr/app
+COPY . /usr/app/
+RUN mkdir -p /usr/app/node_modules && chown node:node /usr/app/node_modules
+COPY --from=dependencies /usr/app/node_modules ./node_modules
+RUN npm run build
+CMD ["tail", "-f", "/dev/null"]
