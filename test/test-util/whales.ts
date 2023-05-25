@@ -71,6 +71,8 @@ export const WHALES = (token: Currency): string => {
       return '0xa2aad83466241232290bebcd43dcbff6a7f8d23a';
     case USDC_ON(ChainId.ARBITRUM_GOERLI):
       return '0x7e3114fcbc1d529fd96de61d65d4a03071609c56';
+    case USDC_ON(ChainId.SEPOLIA):
+      return '0xe2a3422f3168149AD2d11b4dE2B97b05f1ebF76e';
     case USDC_ON(ChainId.POLYGON):
       return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245';
     case USDC_ON(ChainId.POLYGON_MUMBAI):
@@ -81,6 +83,8 @@ export const WHALES = (token: Currency): string => {
       return '0xcea4e535d03086dbaa04c71675129654e92cc055';
     case DAI_ON(ChainId.GÖRLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
+    case DAI_ON(ChainId.SEPOLIA):
+      return '0x67550Df3290415611F6C140c81Cd770Ff1742cb9';
     case DAI_ON(ChainId.KOVAN):
       return '0x9b332466798a7e98bff1107d0846c195a99c1fc5';
     case DAI_ON(ChainId.OPTIMISM):
