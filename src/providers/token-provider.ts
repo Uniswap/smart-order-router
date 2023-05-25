@@ -1,5 +1,5 @@
+import { Interface } from '@ethersproject/abi';
 import { Token } from '@uniswap/sdk-core';
-import { utils } from 'ethers';
 import _ from 'lodash';
 
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
@@ -644,7 +644,7 @@ export class TokenProvider implements ITokenProvider {
     } catch (error) {
       log.error(`TokenProvider.getTokenSymbol failed with error ${error}. Trying with bytes32.`);
 
-      const bytes32Interface = new utils.Interface([
+      const bytes32Interface = new Interface([
         {
           inputs: [],
           name: 'symbol',
