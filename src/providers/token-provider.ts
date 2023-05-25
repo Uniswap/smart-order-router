@@ -127,7 +127,20 @@ export const USDT_RINKEBY = new Token(
   'USDT',
   'Tether USD'
 );
-
+export const USDC_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5',
+  18,
+  'USDC',
+  'USDC Token'
+);
+export const DAI_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x68194a729C2450ad26072b3D33ADaCbcef39D574',
+  18,
+  'DAI',
+  'DAI'
+);
 export const USDC_GÖRLI = new Token(
   ChainId.GÖRLI,
   '0x07865c6e87b9f70255377e024ace6630c1eaa37f',
@@ -727,6 +740,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_RINKEBY_1;
     case ChainId.GÖRLI:
       return DAI_GÖRLI;
+    case ChainId.SEPOLIA:
+      return DAI_SEPOLIA;
     case ChainId.KOVAN:
       return DAI_KOVAN;
     case ChainId.OPTIMISM:
@@ -797,6 +812,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_RINKEBY;
     case ChainId.GÖRLI:
       return USDC_GÖRLI;
+    case ChainId.SEPOLIA:
+      return USDC_SEPOLIA;
     case ChainId.KOVAN:
       return USDC_KOVAN;
     case ChainId.OPTIMISM:
