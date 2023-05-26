@@ -673,7 +673,7 @@ export class TokenProvider implements ITokenProvider {
       } catch (error) {
         log.fatal({ addresses }, `TokenProvider.getTokenSymbol[bytes32] failed with error ${error}.`);
 
-        return Promise.reject(new Error('[TokenProvider.getTokenSymbol] Impossible to fetch token symbol.'));
+        throw new Error('[TokenProvider.getTokenSymbol] Impossible to fetch token symbol.');
       }
     }
 
