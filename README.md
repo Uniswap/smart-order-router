@@ -136,6 +136,12 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea --tokenOut 0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b --amount 200000 --exactIn --minSplits 1 --router alpha --chainId 4
 ```
 
+## Sepolia
+
+```
+./bin/cli quote --tokenIn 0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5 --tokenOut 0x68194a729C2450ad26072b3D33ADaCbcef39D574 --amount 200000 --exactIn --minSplits 1 --router alpha --chainId 11155111
+```
+
 ## Kovan
 
 ```
