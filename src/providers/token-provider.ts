@@ -1,3 +1,4 @@
+import { Interface } from '@ethersproject/abi';
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
@@ -627,6 +628,70 @@ export class TokenProvider implements ITokenProvider {
   ) {
   }
 
+  private async getTokenSymbol(addresses: string[], providerConfig?: ProviderConfig) {
+    let result;
+
+    try {
+      result = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
+        undefined,
+        [string]
+      >({
+        addresses,
+        contractInterface: IERC20Metadata__factory.createInterface(),
+        functionName: 'symbol',
+        providerConfig,
+      });
+    } catch (error) {
+      log.error({ addresses }, `TokenProvider.getTokenSymbol[string] failed with error ${error}. Trying with bytes32.`);
+
+      const bytes32Interface = new Interface([
+        {
+          inputs: [],
+          name: 'symbol',
+          outputs: [
+            {
+              internalType: 'bytes32',
+              name: '',
+              type: 'bytes32',
+            },
+          ],
+          stateMutability: 'view',
+          type: 'function',
+        }
+      ]);
+
+      try {
+        result = this.multicall2Provider.callSameFunctionOnMultipleContracts<
+          undefined,
+          [string]
+        >({
+          addresses,
+          contractInterface: bytes32Interface,
+          functionName: 'symbol',
+          providerConfig,
+        });
+      } catch (error) {
+        log.fatal({ addresses }, `TokenProvider.getTokenSymbol[bytes32] failed with error ${error}.`);
+
+        throw new Error('[TokenProvider.getTokenSymbol] Impossible to fetch token symbol.');
+      }
+    }
+
+    return result;
+  }
+
+  private async getTokenDecimals(addresses: string[], providerConfig?: ProviderConfig) {
+    return this.multicall2Provider.callSameFunctionOnMultipleContracts<
+      undefined,
+      [number]
+    >({
+      addresses,
+      contractInterface: IERC20Metadata__factory.createInterface(),
+      functionName: 'decimals',
+      providerConfig,
+    });
+  }
+
   public async getTokens(
     _addresses: string[],
     providerConfig?: ProviderConfig
@@ -641,24 +706,8 @@ export class TokenProvider implements ITokenProvider {
 
     if (addresses.length > 0) {
       const [symbolsResult, decimalsResult] = await Promise.all([
-        this.multicall2Provider.callSameFunctionOnMultipleContracts<
-          undefined,
-          [string]
-        >({
-          addresses,
-          contractInterface: IERC20Metadata__factory.createInterface(),
-          functionName: 'symbol',
-          providerConfig,
-        }),
-        this.multicall2Provider.callSameFunctionOnMultipleContracts<
-          undefined,
-          [number]
-        >({
-          addresses,
-          contractInterface: IERC20Metadata__factory.createInterface(),
-          functionName: 'decimals',
-          providerConfig,
-        }),
+        this.getTokenSymbol(addresses, providerConfig),
+        this.getTokenDecimals(addresses, providerConfig)
       ]);
 
       const { results: symbols } = symbolsResult;
