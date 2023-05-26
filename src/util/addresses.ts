@@ -154,10 +154,10 @@ export const WETH9: {
   ),
   [ChainId.SEPOLIA]: new Token(
     ChainId.SEPOLIA,
-    '0xD0dF82dE051244f04BfF3A8bB1f62E1cD39eED92',
+    '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
     18,
     'WETH',
-    'WETH'
+    'Wrapped Ether'
   ),
   [ChainId.KOVAN]: new Token(
     ChainId.KOVAN,
