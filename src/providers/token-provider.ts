@@ -642,7 +642,7 @@ export class TokenProvider implements ITokenProvider {
         providerConfig,
       });
     } catch (error) {
-      log.error(`TokenProvider.getTokenSymbol failed with error ${error}. Trying with bytes32.`);
+      log.error({ addresses }, `TokenProvider.getTokenSymbol[string] failed with error ${error}. Trying with bytes32.`);
 
       const bytes32Interface = new Interface([
         {
@@ -660,15 +660,21 @@ export class TokenProvider implements ITokenProvider {
         }
       ]);
 
-      result = this.multicall2Provider.callSameFunctionOnMultipleContracts<
-        undefined,
-        [string]
-      >({
-        addresses,
-        contractInterface: bytes32Interface,
-        functionName: 'symbol',
-        providerConfig,
-      });
+      try {
+        result = this.multicall2Provider.callSameFunctionOnMultipleContracts<
+          undefined,
+          [string]
+        >({
+          addresses,
+          contractInterface: bytes32Interface,
+          functionName: 'symbol',
+          providerConfig,
+        });
+      } catch (error) {
+        log.fatal({ addresses }, `TokenProvider.getTokenSymbol[bytes32] failed with error ${error}.`);
+
+        return Promise.reject(new Error('[TokenProvider.getTokenSymbol] Impossible to fetch token symbol.'));
+      }
     }
 
     return result;

@@ -581,7 +581,7 @@ describe('alpha router integration', () => {
           );
         });
 
-        it.only('erc20 -> erc20 works when symbol is returning bytes32', async () => {
+        it('erc20 -> erc20 works when symbol is returning bytes32', async () => {
           // This token has a bytes32 symbol type
           const tokenIn = new Token(
             ChainId.MAINNET,
