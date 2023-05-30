@@ -1,4 +1,5 @@
 import { Interface } from '@ethersproject/abi';
+import { parseBytes32String } from '@ethersproject/strings';
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
@@ -630,6 +631,7 @@ export class TokenProvider implements ITokenProvider {
 
   private async getTokenSymbol(addresses: string[], providerConfig?: ProviderConfig) {
     let result;
+    let isBytes32 = false;
 
     try {
       result = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
@@ -661,7 +663,7 @@ export class TokenProvider implements ITokenProvider {
       ]);
 
       try {
-        result = this.multicall2Provider.callSameFunctionOnMultipleContracts<
+        result = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
           undefined,
           [string]
         >({
@@ -670,6 +672,7 @@ export class TokenProvider implements ITokenProvider {
           functionName: 'symbol',
           providerConfig,
         });
+        isBytes32 = true;
       } catch (error) {
         log.fatal({ addresses }, `TokenProvider.getTokenSymbol[bytes32] failed with error ${error}.`);
 
@@ -677,7 +680,7 @@ export class TokenProvider implements ITokenProvider {
       }
     }
 
-    return result;
+    return { result, isBytes32 };
   }
 
   private async getTokenDecimals(addresses: string[], providerConfig?: ProviderConfig) {
@@ -710,7 +713,8 @@ export class TokenProvider implements ITokenProvider {
         this.getTokenDecimals(addresses, providerConfig)
       ]);
 
-      const { results: symbols } = symbolsResult;
+      const isBytes32 = symbolsResult.isBytes32;
+      const { results: symbols } = symbolsResult.result;
       const { results: decimals } = decimalsResult;
 
       for (let i = 0; i < addresses.length; i++) {
@@ -730,7 +734,11 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
-        const symbol = symbolResult.result[0]!;
+        let symbol = symbolResult.result[0]!;
+        if (isBytes32) {
+          symbol = parseBytes32String(symbol);
+        }
+
         const decimal = decimalResult.result[0]!;
 
         addressToToken[address.toLowerCase()] = new Token(
