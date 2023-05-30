@@ -1,11 +1,13 @@
 import { Interface } from '@ethersproject/abi';
+import { BigNumber } from '@ethersproject/bignumber';
+import { parseBytes32String } from '@ethersproject/strings';
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
 import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
-import { IMulticallProvider } from './multicall-provider';
+import { IMulticallProvider, Result } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
 /**
@@ -628,8 +630,18 @@ export class TokenProvider implements ITokenProvider {
   ) {
   }
 
-  private async getTokenSymbol(addresses: string[], providerConfig?: ProviderConfig) {
+  private async getTokenSymbol(
+    addresses: string[],
+    providerConfig?: ProviderConfig
+  ): Promise<{
+    result: {
+      blockNumber: BigNumber;
+      results: Result<[string]>[];
+    };
+    isBytes32: boolean
+  }> {
     let result;
+    let isBytes32 = false;
 
     try {
       result = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
@@ -661,7 +673,7 @@ export class TokenProvider implements ITokenProvider {
       ]);
 
       try {
-        result = this.multicall2Provider.callSameFunctionOnMultipleContracts<
+        result = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
           undefined,
           [string]
         >({
@@ -670,6 +682,7 @@ export class TokenProvider implements ITokenProvider {
           functionName: 'symbol',
           providerConfig,
         });
+        isBytes32 = true;
       } catch (error) {
         log.fatal({ addresses }, `TokenProvider.getTokenSymbol[bytes32] failed with error ${error}.`);
 
@@ -677,7 +690,7 @@ export class TokenProvider implements ITokenProvider {
       }
     }
 
-    return result;
+    return { result, isBytes32 };
   }
 
   private async getTokenDecimals(addresses: string[], providerConfig?: ProviderConfig) {
@@ -710,7 +723,8 @@ export class TokenProvider implements ITokenProvider {
         this.getTokenDecimals(addresses, providerConfig)
       ]);
 
-      const { results: symbols } = symbolsResult;
+      const isBytes32 = symbolsResult.isBytes32;
+      const { results: symbols } = symbolsResult.result;
       const { results: decimals } = decimalsResult;
 
       for (let i = 0; i < addresses.length; i++) {
@@ -730,7 +744,7 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
-        const symbol = symbolResult.result[0]!;
+        const symbol = isBytes32 ? parseBytes32String(symbolResult.result[0]!) : symbolResult.result[0]!;
         const decimal = decimalResult.result[0]!;
 
         addressToToken[address.toLowerCase()] = new Token(
