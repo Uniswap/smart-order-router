@@ -1,4 +1,5 @@
 import { Interface } from '@ethersproject/abi';
+import { BigNumber } from '@ethersproject/bignumber';
 import { parseBytes32String } from '@ethersproject/strings';
 import { Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
@@ -6,7 +7,7 @@ import _ from 'lodash';
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
 import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
-import { IMulticallProvider } from './multicall-provider';
+import { IMulticallProvider, Result } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
 /**
@@ -629,7 +630,16 @@ export class TokenProvider implements ITokenProvider {
   ) {
   }
 
-  private async getTokenSymbol(addresses: string[], providerConfig?: ProviderConfig) {
+  private async getTokenSymbol(
+    addresses: string[],
+    providerConfig?: ProviderConfig
+  ): Promise<{
+    result: {
+      blockNumber: BigNumber;
+      results: Result<[string]>[];
+    };
+    isBytes32: boolean
+  }> {
     let result;
     let isBytes32 = false;
 
@@ -734,11 +744,7 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
-        let symbol = symbolResult.result[0]!;
-        if (isBytes32) {
-          symbol = parseBytes32String(symbol);
-        }
-
+        const symbol = isBytes32 ? parseBytes32String(symbolResult.result[0]!) : symbolResult.result[0]!;
         const decimal = decimalResult.result[0]!;
 
         addressToToken[address.toLowerCase()] = new Token(
