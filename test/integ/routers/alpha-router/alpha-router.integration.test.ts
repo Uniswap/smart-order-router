@@ -2549,6 +2549,7 @@ describe('quote for other networks', () => {
     [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
     [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
     [ChainId.GÖRLI]: UNI_GÖRLI,
+    [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
     [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
     [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
@@ -2569,6 +2570,7 @@ describe('quote for other networks', () => {
     [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
     [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
     [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
+    [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
     [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
     [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
@@ -2599,7 +2601,8 @@ describe('quote for other networks', () => {
       c != ChainId.ARBITRUM_GOERLI &&
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
-      c != ChainId.CELO_ALFAJORES
+      c != ChainId.CELO_ALFAJORES &&
+      c != ChainId.SEPOLIA
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];

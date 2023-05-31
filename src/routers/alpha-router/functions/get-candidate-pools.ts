@@ -22,6 +22,7 @@ import {
   DAI_POLYGON_MUMBAI,
   DAI_RINKEBY_1,
   DAI_RINKEBY_2,
+  DAI_SEPOLIA,
   FEI_MAINNET,
   ITokenProvider,
   USDC_ARBITRUM,
@@ -34,6 +35,7 @@ import {
   USDC_OPTIMISM_GOERLI,
   USDC_OPTIMISTIC_KOVAN,
   USDC_POLYGON,
+  USDC_SEPOLIA,
   USDT_ARBITRUM,
   USDT_ARBITRUM_RINKEBY,
   USDT_BSC,
@@ -134,6 +136,10 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDC_OPTIMISM,
     USDT_OPTIMISM,
     WBTC_OPTIMISM,
+  ],
+  [ChainId.SEPOLIA]: [
+    DAI_SEPOLIA,
+    USDC_SEPOLIA,
   ],
   [ChainId.OPTIMISM_GOERLI]: [
     DAI_OPTIMISM_GOERLI,
