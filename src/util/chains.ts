@@ -68,8 +68,6 @@ export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
   ChainId.ROPSTEN,
   ChainId.RINKEBY,
   ChainId.GÖRLI,
-  // not sure if this is correct?
-  ChainId.SEPOLIA,
   ChainId.KOVAN,
   ChainId.OPTIMISM,
   ChainId.OPTIMISTIC_KOVAN,
