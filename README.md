@@ -228,6 +228,8 @@ The main components to complete are:
 - Populate `test/integ/routers/alpha-router/alpha-router.integration.test.ts` and `src/providers/v2/static-subgraph-provider.ts`
 - Populate `src/routers/alpha-router/*`
 - Add a log to `/CHANGELOG.md`
+- Add a test command for the new chain to this README above, and ensure that it runs successfully. You may need to add some liquidity
+first, which can be done via Interface's LP page through a vercel link or local build. 
 - Run `npm run integ-test` successfully
 
 # Troubleshooting
