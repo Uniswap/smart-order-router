@@ -79,6 +79,7 @@ import {
 
 import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
+import { ProviderConfig } from '../provider';
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -219,7 +220,8 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
 
   public async getPools(
     tokenIn?: Token,
-    tokenOut?: Token
+    tokenOut?: Token,
+    providerConfig?: ProviderConfig
   ): Promise<V3SubgraphPool[]> {
     log.info('In static subgraph provider for V3');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
@@ -258,7 +260,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     log.info(
       `V3 Static subgraph provider about to get ${pairs.length} pools on-chain`
     );
-    const poolAccessor = await this.poolProvider.getPools(pairs);
+    const poolAccessor = await this.poolProvider.getPools(pairs, providerConfig);
     const pools = poolAccessor.getAllPools();
 
     const poolAddressSet = new Set<string>();
