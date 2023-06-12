@@ -113,7 +113,8 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
     const nativeV3Pool: Pool | null = await getHighestLiquidityV3NativePool(
       quoteToken,
-      V3poolProvider
+      V3poolProvider,
+      providerConfig
     );
 
     let nativeV2Pool: Pair | null;

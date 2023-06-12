@@ -53,7 +53,8 @@ export async function getV2NativePool(
 
 export async function getHighestLiquidityV3NativePool(
   token: Token,
-  poolProvider: IV3PoolProvider
+  poolProvider: IV3PoolProvider,
+  providerConfig?: ProviderConfig
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
@@ -68,7 +69,7 @@ export async function getHighestLiquidityV3NativePool(
     })
     .value();
 
-  const poolAccessor = await poolProvider.getPools(nativePools);
+  const poolAccessor = await poolProvider.getPools(nativePools, providerConfig);
 
   const pools = _([
     FeeAmount.HIGH,
@@ -304,7 +305,7 @@ export async function calculateGasUsed(
   // get fee in terms of quote token
   if (!quoteToken.equals(nativeCurrency)) {
     const nativePools = await Promise.all([
-      getHighestLiquidityV3NativePool(quoteToken, v3PoolProvider),
+      getHighestLiquidityV3NativePool(quoteToken, v3PoolProvider, providerConfig),
       getV2NativePool(quoteToken, v2PoolProvider),
     ]);
     const nativePool = nativePools.find((pool) => pool !== null);

@@ -75,7 +75,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     const l2GasData = l2GasDataProvider
       ? await l2GasDataProvider.getGasData()
       : undefined;
-    
+
     const usdPool: Pool = await getHighestLiquidityV3USDPool(
       chainId,
       poolProvider,
@@ -140,7 +140,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       if (!quoteToken.equals(nativeCurrency)) {
         const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
           quoteToken,
-          poolProvider
+          poolProvider,
+          providerConfig
         );
         if (!nativePool) {
           log.info(
@@ -209,14 +210,16 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
     const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
       quoteToken,
-      poolProvider
+      poolProvider,
+      providerConfig
     );
 
     let nativeAmountPool: Pool | null = null;
     if (!amountToken.equals(nativeCurrency)) {
       nativeAmountPool = await getHighestLiquidityV3NativePool(
         amountToken,
-        poolProvider
+        poolProvider,
+        providerConfig
       );
     }
 
