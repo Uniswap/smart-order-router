@@ -6,6 +6,7 @@ import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
+import { ProviderConfig } from '../providers/provider';
 import {
   ArbitrumGasData,
   OptimismGasData,
@@ -52,7 +53,8 @@ export async function getV2NativePool(
 
 export async function getHighestLiquidityV3NativePool(
   token: Token,
-  poolProvider: IV3PoolProvider
+  poolProvider: IV3PoolProvider,
+  providerConfig?: ProviderConfig
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
@@ -67,7 +69,7 @@ export async function getHighestLiquidityV3NativePool(
     })
     .value();
 
-  const poolAccessor = await poolProvider.getPools(nativePools);
+  const poolAccessor = await poolProvider.getPools(nativePools, providerConfig);
 
   const pools = _([
     FeeAmount.HIGH,
@@ -97,7 +99,8 @@ export async function getHighestLiquidityV3NativePool(
 
 export async function getHighestLiquidityV3USDPool(
   chainId: ChainId,
-  poolProvider: IV3PoolProvider
+  poolProvider: IV3PoolProvider,
+  providerConfig?: ProviderConfig
 ): Promise<Pool> {
   const usdTokens = usdGasTokensByChain[chainId];
   const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -123,7 +126,7 @@ export async function getHighestLiquidityV3USDPool(
     })
     .value();
 
-  const poolAccessor = await poolProvider.getPools(usdPools);
+  const poolAccessor = await poolProvider.getPools(usdPools, providerConfig);
 
   const pools = _([
     FeeAmount.HIGH,
@@ -251,7 +254,8 @@ export async function calculateGasUsed(
   simulatedGasUsed: BigNumber,
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
-  l2GasData?: ArbitrumGasData | OptimismGasData
+  l2GasData?: ArbitrumGasData | OptimismGasData,
+  providerConfig?: ProviderConfig
 ) {
   const quoteToken = route.quote.currency.wrapped;
   const gasPriceWei = route.gasPriceWei;
@@ -291,7 +295,8 @@ export async function calculateGasUsed(
 
   const usdPool: Pool = await getHighestLiquidityV3USDPool(
     chainId,
-    v3PoolProvider
+    v3PoolProvider,
+    providerConfig
   );
 
   const gasCostUSD = await getGasCostInUSD(usdPool, costNativeCurrency);
@@ -300,7 +305,7 @@ export async function calculateGasUsed(
   // get fee in terms of quote token
   if (!quoteToken.equals(nativeCurrency)) {
     const nativePools = await Promise.all([
-      getHighestLiquidityV3NativePool(quoteToken, v3PoolProvider),
+      getHighestLiquidityV3NativePool(quoteToken, v3PoolProvider, providerConfig),
       getV2NativePool(quoteToken, v2PoolProvider),
     ]);
     const nativePool = nativePools.find((pool) => pool !== null);

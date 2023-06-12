@@ -68,6 +68,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     amountToken,
     quoteToken,
     l2GasDataProvider,
+    providerConfig
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote>
   > {
@@ -77,7 +78,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
     const usdPool: Pool = await getHighestLiquidityV3USDPool(
       chainId,
-      poolProvider
+      poolProvider,
+      providerConfig
     );
 
     const calculateL1GasFees = async (
@@ -138,7 +140,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       if (!quoteToken.equals(nativeCurrency)) {
         const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
           quoteToken,
-          poolProvider
+          poolProvider,
+          providerConfig
         );
         if (!nativePool) {
           log.info(
@@ -207,14 +210,16 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
     const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
       quoteToken,
-      poolProvider
+      poolProvider,
+      providerConfig
     );
 
     let nativeAmountPool: Pool | null = null;
     if (!amountToken.equals(nativeCurrency)) {
       nativeAmountPool = await getHighestLiquidityV3NativePool(
         amountToken,
-        poolProvider
+        poolProvider,
+        providerConfig
       );
     }
 
@@ -268,7 +273,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${quoteToken.symbol} to produce gas adjusted costs. Using amountToken to calculate gas costs.`
         );
       }
-      
+
       // Highest liquidity pool for the non quote token / ETH
       // A pool with the non quote token / ETH should not be required and errors should be handled separately
       if (nativeAmountPool) {
@@ -279,7 +284,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           routeWithValidQuote.amount.quotient,
           routeWithValidQuote.quote.quotient
         );
-        
+
         const inputIsToken0 =
           nativeAmountPool.token0.address == nativeCurrency.address;
         // ratio of input / native
