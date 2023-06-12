@@ -8,6 +8,7 @@ import { log } from '../../util/log';
 import { ICache } from './../cache';
 import { ProviderConfig } from './../provider';
 import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
+import { metric, MetricLoggerUnit } from '../../util';
 
 /**
  * Provider for getting V3 pools, with functionality for caching the results.
@@ -59,10 +60,12 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
         this.POOL_KEY(this.chainId, poolAddress)
       );
       if (cachedPool) {
+        metric.putMetric('V3_INMEMORY_CACHING_POOL_HIT_IN_MEMORY', 1, MetricLoggerUnit.None)
         poolAddressToPool[poolAddress] = cachedPool;
         continue;
       }
 
+      metric.putMetric('V3_INMEMORY_CACHING_POOL_MISS_NOT_IN_MEMORY', 1, MetricLoggerUnit.None)
       poolsToGetTokenPairs.push([token0, token1, feeAmount]);
       poolsToGetAddresses.push(poolAddress);
     }
