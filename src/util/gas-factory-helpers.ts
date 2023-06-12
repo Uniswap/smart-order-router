@@ -6,6 +6,7 @@ import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
+import { ProviderConfig } from '../providers/provider';
 import {
   ArbitrumGasData,
   OptimismGasData,
@@ -97,7 +98,8 @@ export async function getHighestLiquidityV3NativePool(
 
 export async function getHighestLiquidityV3USDPool(
   chainId: ChainId,
-  poolProvider: IV3PoolProvider
+  poolProvider: IV3PoolProvider,
+  providerConfig?: ProviderConfig
 ): Promise<Pool> {
   const usdTokens = usdGasTokensByChain[chainId];
   const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -123,7 +125,7 @@ export async function getHighestLiquidityV3USDPool(
     })
     .value();
 
-  const poolAccessor = await poolProvider.getPools(usdPools);
+  const poolAccessor = await poolProvider.getPools(usdPools, providerConfig);
 
   const pools = _([
     FeeAmount.HIGH,
@@ -251,7 +253,8 @@ export async function calculateGasUsed(
   simulatedGasUsed: BigNumber,
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
-  l2GasData?: ArbitrumGasData | OptimismGasData
+  l2GasData?: ArbitrumGasData | OptimismGasData,
+  providerConfig?: ProviderConfig
 ) {
   const quoteToken = route.quote.currency.wrapped;
   const gasPriceWei = route.gasPriceWei;
@@ -291,7 +294,8 @@ export async function calculateGasUsed(
 
   const usdPool: Pool = await getHighestLiquidityV3USDPool(
     chainId,
-    v3PoolProvider
+    v3PoolProvider,
+    providerConfig
   );
 
   const gasCostUSD = await getGasCostInUSD(usdPool, costNativeCurrency);

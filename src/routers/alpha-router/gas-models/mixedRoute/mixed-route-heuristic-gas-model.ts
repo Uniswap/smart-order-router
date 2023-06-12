@@ -59,12 +59,14 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     v3poolProvider: V3poolProvider,
     quoteToken,
     v2poolProvider: V2poolProvider,
+    providerConfig
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
     const usdPool: Pool = await getHighestLiquidityV3USDPool(
       chainId,
-      V3poolProvider
+      V3poolProvider,
+      providerConfig
     );
 
     // If our quote token is WETH, we don't need to convert our gas use to be in terms

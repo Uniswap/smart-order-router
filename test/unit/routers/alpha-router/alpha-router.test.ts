@@ -493,6 +493,9 @@ describe('alpha router', () => {
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -511,6 +514,7 @@ describe('alpha router', () => {
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match.any
         })
       ).toBeTruthy();
 
@@ -711,6 +715,9 @@ describe('alpha router', () => {
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -721,6 +728,9 @@ describe('alpha router', () => {
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -883,6 +893,9 @@ describe('alpha router', () => {
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -1005,6 +1018,9 @@ describe('alpha router', () => {
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1141,6 +1157,9 @@ describe('alpha router', () => {
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1403,6 +1422,9 @@ describe('alpha router', () => {
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1552,6 +1574,9 @@ describe('alpha router', () => {
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1628,6 +1653,9 @@ describe('alpha router', () => {
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1831,6 +1859,9 @@ describe('alpha router', () => {
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -1849,6 +1880,9 @@ describe('alpha router', () => {
           v2poolProvider: sinon.match.any,
           amountToken: WRAPPED_NATIVE_CURRENCY[1],
           quoteToken: USDC,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1936,6 +1970,9 @@ describe('alpha router', () => {
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -2149,6 +2186,9 @@ describe('alpha router', () => {
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(

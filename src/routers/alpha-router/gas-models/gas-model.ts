@@ -1,6 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Token } from '@uniswap/sdk-core';
 
+import { ProviderConfig } from '../../../providers/provider';
 import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
@@ -102,6 +103,7 @@ export type BuildOnChainGasModelFactoryType = {
   l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
+  providerConfig?: ProviderConfig;
 };
 
 export type BuildV2GasModelFactoryType = {

@@ -91,6 +91,7 @@ import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixe
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+import { ProviderConfig } from '../../providers/provider';
 
 export type AlphaRouterParams = {
   /**
@@ -884,7 +885,8 @@ export class AlphaRouter
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
-      quoteToken
+      quoteToken,
+      { blockNumber }
     );
 
     // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,
@@ -1436,7 +1438,8 @@ export class AlphaRouter
   private async getGasModels(
     gasPriceWei: BigNumber,
     amountToken: Token,
-    quoteToken: Token
+    quoteToken: Token,
+    providerConfig?: ProviderConfig
   ): Promise<[
     IGasModel<V3RouteWithValidQuote>,
     IGasModel<MixedRouteWithValidQuote>
@@ -1451,6 +1454,7 @@ export class AlphaRouter
       quoteToken,
       v2poolProvider: this.v2PoolProvider,
       l2GasDataProvider: this.l2GasDataProvider,
+      providerConfig: providerConfig
     });
 
     const mixedRouteGasModelPromise = this.mixedRouteGasModelFactory.buildGasModel({
@@ -1460,6 +1464,7 @@ export class AlphaRouter
       amountToken,
       quoteToken,
       v2poolProvider: this.v2PoolProvider,
+      providerConfig: providerConfig
     });
 
     const [v3GasModel, mixedRouteGasModel] = await Promise.all([

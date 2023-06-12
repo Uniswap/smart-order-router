@@ -39,7 +39,8 @@ export class EthEstimateGasSimulator extends Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     route: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData
+    l2GasData?: ArbitrumGasData | OptimismGasData,
+    providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
     let estimatedGasUsed: BigNumber;
@@ -104,7 +105,8 @@ export class EthEstimateGasSimulator extends Simulator {
       estimatedGasUsed,
       this.v2PoolProvider,
       this.v3PoolProvider,
-      l2GasData
+      l2GasData,
+      providerConfig
     );
 
     return {

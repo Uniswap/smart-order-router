@@ -100,7 +100,8 @@ export class FallbackTenderlySimulator extends Simulator {
             fromAddress,
             swapOptions,
             swapRoute,
-            l2GasData
+            l2GasData,
+            providerConfig
           );
         return swapRouteWithGasEstimate;
       } catch (err) {
@@ -402,7 +403,8 @@ export class TenderlySimulator extends Simulator {
       estimatedGasUsed,
       this.v2PoolProvider,
       this.v3PoolProvider,
-      l2GasData
+      l2GasData,
+      providerConfig
     );
     return {
       ...initSwapRouteFromExisting(
