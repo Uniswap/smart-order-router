@@ -5,7 +5,7 @@
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Ether, Percent, Token, TradeType, } from '@uniswap/sdk-core';
+import { ChainId, Currency, CurrencyAmount, Ether, Percent, Token, TradeType, } from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
@@ -26,7 +26,6 @@ import {
   CachingV3PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
-  ChainId,
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
@@ -50,14 +49,14 @@ import {
   SwapOptions,
   SwapType,
   TenderlySimulator,
-  UNI_GÖRLI,
+  UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
-  USDC_BSC,
+  USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_ON,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   V2_SUPPORTED,
   V2PoolProvider,
@@ -2546,16 +2545,11 @@ describe('external class tests', () => {
 describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
-    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: UNI_GÖRLI,
+    [ChainId.GOERLI]: UNI_GOERLI,
     [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
-    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
     [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
     [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.ARBITRUM_GOERLI]: USDC_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
@@ -2563,20 +2557,15 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
     [ChainId.GNOSIS]: WBTC_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDC_BSC,
+    [ChainId.BNB]: USDC_BNB,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
-    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
+    [ChainId.GOERLI]: DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
-    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
     [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
     [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.ARBITRUM_GOERLI]: DAI_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
@@ -2584,20 +2573,15 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
     [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDT_BSC,
+    [ChainId.BNB]: USDT_BNB,
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
   for (const chain of _.filter(
     SUPPORTED_CHAINS,
     (c) =>
-      c != ChainId.RINKEBY &&
-      c != ChainId.ROPSTEN &&
-      c != ChainId.KOVAN &&
-      c != ChainId.OPTIMISTIC_KOVAN &&
       c != ChainId.OPTIMISM_GOERLI &&
       c != ChainId.POLYGON_MUMBAI &&
-      c != ChainId.ARBITRUM_RINKEBY &&
       c != ChainId.ARBITRUM_GOERLI &&
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
@@ -2841,7 +2825,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),
@@ -2896,7 +2880,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),
@@ -2951,7 +2935,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),

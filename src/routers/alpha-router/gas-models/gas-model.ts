@@ -1,55 +1,41 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 
 import { ProviderConfig } from '../../../providers/provider';
 import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
-  DAI_ARBITRUM_RINKEBY,
-  DAI_BSC,
-  DAI_GÖRLI,
-  DAI_KOVAN,
+  DAI_BNB,
+  DAI_GOERLI,
   DAI_MAINNET,
   DAI_OPTIMISM,
   DAI_OPTIMISM_GOERLI,
-  DAI_OPTIMISTIC_KOVAN,
   DAI_POLYGON_MUMBAI,
-  DAI_RINKEBY_1,
-  DAI_RINKEBY_2,
-  DAI_ROPSTEN,
   DAI_SEPOLIA,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
-  USDC_BSC,
+  USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
-  USDC_GÖRLI,
-  USDC_KOVAN,
+  USDC_GOERLI,
   USDC_MAINNET,
   USDC_MOONBEAM,
   USDC_OPTIMISM,
   USDC_OPTIMISM_GOERLI,
-  USDC_OPTIMISTIC_KOVAN,
   USDC_POLYGON,
-  USDC_ROPSTEN,
   USDC_SEPOLIA,
   USDT_ARBITRUM,
-  USDT_ARBITRUM_RINKEBY,
-  USDT_BSC,
-  USDT_GÖRLI,
-  USDT_KOVAN,
+  USDT_BNB,
+  USDT_GOERLI,
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
-  USDT_OPTIMISTIC_KOVAN,
-  USDT_ROPSTEN,
-  WBTC_GÖRLI,
+  WBTC_GOERLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { ArbitrumGasData, IL2GasDataProvider, OptimismGasData, } from '../../../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { ChainId } from '../../../util/chains';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
@@ -59,7 +45,6 @@ import {
 
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
-  [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
   [ChainId.ARBITRUM_ONE]: [DAI_ARBITRUM, USDC_ARBITRUM, USDT_ARBITRUM],
   [ChainId.OPTIMISM]: [DAI_OPTIMISM, USDC_OPTIMISM, USDT_OPTIMISM],
   [ChainId.OPTIMISM_GOERLI]: [
@@ -67,24 +52,16 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDC_OPTIMISM_GOERLI,
     USDT_OPTIMISM_GOERLI,
   ],
-  [ChainId.OPTIMISTIC_KOVAN]: [
-    DAI_OPTIMISTIC_KOVAN,
-    USDC_OPTIMISTIC_KOVAN,
-    USDT_OPTIMISTIC_KOVAN,
-  ],
-  [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDT_ARBITRUM_RINKEBY],
   [ChainId.ARBITRUM_GOERLI]: [USDC_ARBITRUM_GOERLI],
-  [ChainId.KOVAN]: [DAI_KOVAN, USDC_KOVAN, USDT_KOVAN],
-  [ChainId.GÖRLI]: [DAI_GÖRLI, USDC_GÖRLI, USDT_GÖRLI, WBTC_GÖRLI],
+  [ChainId.GOERLI]: [DAI_GOERLI, USDC_GOERLI, USDT_GOERLI, WBTC_GOERLI],
   [ChainId.SEPOLIA]: [USDC_SEPOLIA, DAI_SEPOLIA],
-  [ChainId.ROPSTEN]: [DAI_ROPSTEN, USDC_ROPSTEN, USDT_ROPSTEN],
   [ChainId.POLYGON]: [USDC_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
   [ChainId.CELO]: [CUSD_CELO],
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
-  [ChainId.BSC]: [USDT_BSC, USDC_BSC, DAI_BSC],
+  [ChainId.BNB]: [USDT_BNB, USDC_BNB, DAI_BNB],
 };
 
 export type L1ToL2GasCosts = {
