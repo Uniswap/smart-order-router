@@ -570,7 +570,9 @@ export async function getV3CandidatePools({
 
   const beforePoolsLoad = Date.now();
 
-  const poolAccessor = await poolProvider.getPools(tokenPairs);
+  const poolAccessor = await poolProvider.getPools(tokenPairs, {
+    blockNumber,
+  });
 
   metric.putMetric(
     'V3PoolsLoad',
