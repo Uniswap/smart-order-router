@@ -1,78 +1,48 @@
-import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
 
-
-export enum ChainId {
-  MAINNET = 1,
-  ROPSTEN = 3,
-  RINKEBY = 4,
-  GÖRLI = 5,
-  SEPOLIA = 11155111,
-  KOVAN = 42,
-  OPTIMISM = 10,
-  OPTIMISM_GOERLI = 420,
-  OPTIMISTIC_KOVAN = 69,
-  ARBITRUM_ONE = 42161,
-  ARBITRUM_RINKEBY = 421611,
-  ARBITRUM_GOERLI = 421613,
-  POLYGON = 137,
-  POLYGON_MUMBAI = 80001,
-  CELO = 42220,
-  CELO_ALFAJORES = 44787,
-  GNOSIS = 100,
-  MOONBEAM = 1284,
-  BSC = 56,
-}
+// TO REMOVE: 
+// export enum ChainId {
+//   ROPSTEN = 3,
+//   RINKEBY = 4,
+//   KOVAN = 42,
+//   OPTIMISTIC_KOVAN = 69,
+//   ARBITRUM_RINKEBY = 421611,
 
 // WIP: Gnosis, Moonbeam
 export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.MAINNET,
-  ChainId.RINKEBY,
-  ChainId.ROPSTEN,
-  ChainId.KOVAN,
+  ChainId.GOERLI,
+  ChainId.SEPOLIA,
   ChainId.OPTIMISM,
   ChainId.OPTIMISM_GOERLI,
-  ChainId.OPTIMISTIC_KOVAN,
   ChainId.ARBITRUM_ONE,
-  ChainId.ARBITRUM_RINKEBY,
   ChainId.ARBITRUM_GOERLI,
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
-  ChainId.GÖRLI,
-  ChainId.SEPOLIA,
   ChainId.CELO_ALFAJORES,
   ChainId.CELO,
-  ChainId.BSC,
+  ChainId.BNB,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
 export const V2_SUPPORTED = [
   ChainId.MAINNET,
-  ChainId.KOVAN,
-  ChainId.GÖRLI,
+  ChainId.GOERLI,
   ChainId.SEPOLIA,
-  ChainId.RINKEBY,
-  ChainId.ROPSTEN,
 ];
 
 export const HAS_L1_FEE = [
   ChainId.OPTIMISM,
   ChainId.OPTIMISM_GOERLI,
-  ChainId.OPTIMISTIC_KOVAN,
   ChainId.ARBITRUM_ONE,
-  ChainId.ARBITRUM_RINKEBY,
   ChainId.ARBITRUM_GOERLI,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
   ChainId.MAINNET,
-  ChainId.ROPSTEN,
-  ChainId.RINKEBY,
-  ChainId.GÖRLI,
-  ChainId.KOVAN,
+  ChainId.GOERLI,
   ChainId.OPTIMISM,
-  ChainId.OPTIMISTIC_KOVAN,
   ChainId.ARBITRUM_ONE,
-  ChainId.ARBITRUM_RINKEBY,
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
 ];
@@ -81,28 +51,18 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
   switch (id) {
     case 1:
       return ChainId.MAINNET;
-    case 3:
-      return ChainId.ROPSTEN;
-    case 4:
-      return ChainId.RINKEBY;
     case 5:
-      return ChainId.GÖRLI;
+      return ChainId.GOERLI;
     case 11155111:
       return ChainId.SEPOLIA;
-    case 42:
-      return ChainId.KOVAN;
     case 56:
-      return ChainId.BSC;
+      return ChainId.BNB;
     case 10:
       return ChainId.OPTIMISM;
     case 420:
       return ChainId.OPTIMISM_GOERLI;
-    case 69:
-      return ChainId.OPTIMISTIC_KOVAN;
     case 42161:
       return ChainId.ARBITRUM_ONE;
-    case 421611:
-      return ChainId.ARBITRUM_RINKEBY;
     case 421613:
       return ChainId.ARBITRUM_GOERLI;
     case 137:
@@ -126,7 +86,7 @@ export enum ChainName {
   MAINNET = 'mainnet',
   ROPSTEN = 'ropsten',
   RINKEBY = 'rinkeby',
-  GÖRLI = 'goerli',
+  GOERLI = 'goerli',
   SEPOLIA = 'sepolia',
   KOVAN = 'kovan',
   OPTIMISM = 'optimism-mainnet',
@@ -160,27 +120,12 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
-  [ChainId.RINKEBY]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  ],
-  [ChainId.GÖRLI]: [
+  [ChainId.GOERLI]: [
     'ETH',
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
   [ChainId.SEPOLIA]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  ],
-  [ChainId.KOVAN]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  ],
-  [ChainId.ROPSTEN]: [
     'ETH',
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -195,17 +140,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
-  [ChainId.OPTIMISTIC_KOVAN]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  ],
   [ChainId.ARBITRUM_ONE]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  ],
-  [ChainId.ARBITRUM_RINKEBY]: [
     'ETH',
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -226,7 +161,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.CELO_ALFAJORES]: ['CELO'],
   [ChainId.GNOSIS]: ['XDAI'],
   [ChainId.MOONBEAM]: ['GLMR'],
-  [ChainId.BSC]: [
+  [ChainId.BNB]: [
     'BNB',
     'BNB',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -235,16 +170,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.MAINNET]: NativeCurrencyName.ETHER,
-  [ChainId.ROPSTEN]: NativeCurrencyName.ETHER,
-  [ChainId.RINKEBY]: NativeCurrencyName.ETHER,
-  [ChainId.GÖRLI]: NativeCurrencyName.ETHER,
+  [ChainId.GOERLI]: NativeCurrencyName.ETHER,
   [ChainId.SEPOLIA]: NativeCurrencyName.ETHER,
-  [ChainId.KOVAN]: NativeCurrencyName.ETHER,
   [ChainId.OPTIMISM]: NativeCurrencyName.ETHER,
   [ChainId.OPTIMISM_GOERLI]: NativeCurrencyName.ETHER,
-  [ChainId.OPTIMISTIC_KOVAN]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_ONE]: NativeCurrencyName.ETHER,
-  [ChainId.ARBITRUM_RINKEBY]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_GOERLI]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
@@ -252,7 +182,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.CELO_ALFAJORES]: NativeCurrencyName.CELO,
   [ChainId.GNOSIS]: NativeCurrencyName.GNOSIS,
   [ChainId.MOONBEAM]: NativeCurrencyName.MOONBEAM,
-  [ChainId.BSC]: NativeCurrencyName.BNB,
+  [ChainId.BNB]: NativeCurrencyName.BNB,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -264,7 +194,7 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
     case 4:
       return ChainName.RINKEBY;
     case 5:
-      return ChainName.GÖRLI;
+      return ChainName.GOERLI;
     case 11155111:
       return ChainName.SEPOLIA;
     case 42:
@@ -308,26 +238,16 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
   switch (id) {
     case ChainId.MAINNET:
       return process.env.JSON_RPC_PROVIDER!;
-    case ChainId.ROPSTEN:
-      return process.env.JSON_RPC_PROVIDER_ROPSTEN!;
-    case ChainId.RINKEBY:
-      return process.env.JSON_RPC_PROVIDER_RINKEBY!;
-    case ChainId.GÖRLI:
+    case ChainId.GOERLI:
       return process.env.JSON_RPC_PROVIDER_GORLI!;
     case ChainId.SEPOLIA:
       return process.env.JSON_RPC_PROVIDER_SEPOLIA!;
-    case ChainId.KOVAN:
-      return process.env.JSON_RPC_PROVIDER_KOVAN!;
     case ChainId.OPTIMISM:
       return process.env.JSON_RPC_PROVIDER_OPTIMISM!;
     case ChainId.OPTIMISM_GOERLI:
       return process.env.JSON_RPC_PROVIDER_OPTIMISM_GOERLI!;
-    case ChainId.OPTIMISTIC_KOVAN:
-      return process.env.JSON_RPC_PROVIDER_OPTIMISTIC_KOVAN!;
     case ChainId.ARBITRUM_ONE:
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE!;
-    case ChainId.ARBITRUM_RINKEBY:
-      return process.env.JSON_RPC_PROVIDER_ARBITRUM_RINKEBY!;
     case ChainId.ARBITRUM_GOERLI:
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_GOERLI!;
     case ChainId.POLYGON:
@@ -338,8 +258,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_CELO!;
     case ChainId.CELO_ALFAJORES:
       return process.env.JSON_RPC_PROVIDER_CELO_ALFAJORES!;
-    case ChainId.BSC:
-      return process.env.JSON_RPC_PROVIDER_BSC!;
+    case ChainId.BNB:
+      return process.env.JSON_RPC_PROVIDER_BNB!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -353,21 +273,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.ROPSTEN]: new Token(
-    3,
-    '0xc778417E063141139Fce010982780140Aa0cD5Ab',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.RINKEBY]: new Token(
-    4,
-    '0xc778417E063141139Fce010982780140Aa0cD5Ab',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.GÖRLI]: new Token(
+  [ChainId.GOERLI]: new Token(
     5,
     '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
     18,
@@ -381,14 +287,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.KOVAN]: new Token(
-    42,
-    '0xd0A1E359811322d97991E03f863a0C30C2cF029C',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.BSC]: new Token(
+  [ChainId.BNB]: new Token(
     56,
     '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
     18,
@@ -409,23 +308,9 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.OPTIMISTIC_KOVAN]: new Token(
-    ChainId.OPTIMISTIC_KOVAN,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
   [ChainId.ARBITRUM_ONE]: new Token(
     ChainId.ARBITRUM_ONE,
     '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ARBITRUM_RINKEBY]: new Token(
-    ChainId.ARBITRUM_RINKEBY,
-    '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681',
     18,
     'WETH',
     'Wrapped Ether'
@@ -560,7 +445,7 @@ class GnosisNativeCurrency extends NativeCurrency {
 }
 
 function isBsc(chainId: number): chainId is ChainId.BSC {
-  return chainId === ChainId.BSC;
+  return chainId === ChainId.BNB;
 }
 
 class BscNativeCurrency extends NativeCurrency {
