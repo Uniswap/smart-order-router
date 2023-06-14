@@ -382,7 +382,6 @@ export class AlphaRouter
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISM_GOERLI:
-        case ChainId.OPTIMISTIC_KOVAN:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
@@ -416,7 +415,6 @@ export class AlphaRouter
           );
           break;
         case ChainId.ARBITRUM_ONE:
-        case ChainId.ARBITRUM_RINKEBY:
         case ChainId.ARBITRUM_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
@@ -592,14 +590,13 @@ export class AlphaRouter
       swapRouterProvider ??
       new SwapRouterProvider(this.multicall2Provider, this.chainId);
 
-    if (chainId === ChainId.OPTIMISM || chainId === ChainId.OPTIMISTIC_KOVAN) {
+    if (chainId === ChainId.OPTIMISM) {
       this.l2GasDataProvider =
         optimismGasDataProvider ??
         new OptimismGasDataProvider(chainId, this.multicall2Provider);
     }
     if (
       chainId === ChainId.ARBITRUM_ONE ||
-      chainId === ChainId.ARBITRUM_RINKEBY ||
       chainId === ChainId.ARBITRUM_GOERLI
     ) {
       this.l2GasDataProvider =

@@ -9,18 +9,13 @@ export const COST_PER_UNINIT_TICK = BigNumber.from(0);
 export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
   switch (id) {
     case ChainId.MAINNET:
-    case ChainId.ROPSTEN:
-    case ChainId.RINKEBY:
     case ChainId.GÖRLI:
     case ChainId.SEPOLIA:
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
-    case ChainId.OPTIMISTIC_KOVAN:
     case ChainId.BSC:
-    case ChainId.KOVAN:
       return BigNumber.from(2000);
     case ChainId.ARBITRUM_ONE:
-    case ChainId.ARBITRUM_RINKEBY:
     case ChainId.ARBITRUM_GOERLI:
       return BigNumber.from(5000);
     case ChainId.POLYGON:
@@ -41,19 +36,14 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
 export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
   switch (id) {
     case ChainId.MAINNET:
-    case ChainId.ROPSTEN:
-    case ChainId.RINKEBY:
     case ChainId.GÖRLI:
     case ChainId.SEPOLIA:
     case ChainId.BSC:
-    case ChainId.KOVAN:
       return BigNumber.from(31000);
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
-    case ChainId.OPTIMISTIC_KOVAN:
       return BigNumber.from(31000);
     case ChainId.ARBITRUM_ONE:
-    case ChainId.ARBITRUM_RINKEBY:
     case ChainId.ARBITRUM_GOERLI:
       return BigNumber.from(31000);
     case ChainId.POLYGON:
@@ -72,18 +62,13 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
 export const COST_PER_HOP = (id: ChainId): BigNumber => {
   switch (id) {
     case ChainId.MAINNET:
-    case ChainId.ROPSTEN:
-    case ChainId.RINKEBY:
     case ChainId.GÖRLI:
     case ChainId.SEPOLIA:
-    case ChainId.KOVAN:
     case ChainId.BSC:
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
-    case ChainId.OPTIMISTIC_KOVAN:
       return BigNumber.from(80000);
     case ChainId.ARBITRUM_ONE:
-    case ChainId.ARBITRUM_RINKEBY:
     case ChainId.ARBITRUM_GOERLI:
       return BigNumber.from(80000);
     case ChainId.POLYGON:

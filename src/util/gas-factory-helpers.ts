@@ -264,7 +264,6 @@ export async function calculateGasUsed(
   if (
     [
       ChainId.ARBITRUM_ONE,
-      ChainId.ARBITRUM_RINKEBY,
       ChainId.ARBITRUM_GOERLI,
     ].includes(chainId)
   ) {
@@ -275,7 +274,6 @@ export async function calculateGasUsed(
   } else if (
     [
       ChainId.OPTIMISM,
-      ChainId.OPTIMISTIC_KOVAN,
       ChainId.OPTIMISM_GOERLI,
     ].includes(chainId)
   ) {
