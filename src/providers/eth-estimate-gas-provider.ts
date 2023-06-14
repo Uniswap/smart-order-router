@@ -1,8 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { ChainId } from '@uniswap/sdk-core';
 
 import { SwapOptions, SwapRoute, SwapType } from '../routers';
-import { ChainId, log } from '../util';
+import { log } from '../util';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,

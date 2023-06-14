@@ -1,7 +1,7 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { ICache } from './cache';
 import {
@@ -123,14 +123,14 @@ export const CACHE_SEED_TOKENS: {
     WBTC: WBTC_MOONBEAM,
     WGLMR: WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],
   },
-  [ChainId.BSC]: {
+  [ChainId.BNB]: {
     USDC: USDC_BSC,
     USDT: USDT_BSC,
     BUSD: BUSD_BSC,
     ETH: ETH_BSC,
     DAI: DAI_BSC,
     BTC: BTC_BSC,
-    WBNB: WRAPPED_NATIVE_CURRENCY[ChainId.BSC],
+    WBNB: WRAPPED_NATIVE_CURRENCY[ChainId.BNB],
   },
 
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet

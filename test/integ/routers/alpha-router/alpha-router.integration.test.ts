@@ -2546,7 +2546,7 @@ describe('external class tests', () => {
 describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
-    [ChainId.GÖRLI]: UNI_GÖRLI,
+    [ChainId.GOERLI]: UNI_GÖRLI,
     [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
@@ -2558,11 +2558,11 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
     [ChainId.GNOSIS]: WBTC_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDC_BSC,
+    [ChainId.BNB]: USDC_BSC,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
-    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
+    [ChainId.GOERLI]: DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
@@ -2574,7 +2574,7 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
     [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDT_BSC,
+    [ChainId.BNB]: USDT_BSC,
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -2826,7 +2826,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),
@@ -2881,7 +2881,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),
@@ -2936,7 +2936,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),

@@ -47,7 +47,7 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.OPTIMISM_GOERLI]: OPTIMISM_GOERLI_V3_CORE_FACTORY_ADDRESSES,
   [ChainId.SEPOLIA]: SEPOLIA_V3_CORE_FACTORY_ADDRESSES,
   [ChainId.ARBITRUM_GOERLI]: ARBITRUM_GOERLI_V3_CORE_FACTORY_ADDRESSES,
-  [ChainId.BSC]: BSC_V3_CORE_FACTORY_ADDRESSES,
+  [ChainId.BNB]: BSC_V3_CORE_FACTORY_ADDRESSES,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -58,13 +58,13 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.OPTIMISM_GOERLI]: OPTIMISM_GOERLI_QUOTER_ADDRESSES,
   [ChainId.SEPOLIA]: SEPOLIA_QUOTER_ADDRESSES,
   [ChainId.ARBITRUM_GOERLI]: ARBITRUM_GOERLI_QUOTER_ADDRESSES,
-  [ChainId.BSC]: BSC_QUOTER_ADDRESSES,
+  [ChainId.BNB]: BSC_QUOTER_ADDRESSES,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
   [ChainId.MAINNET]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
-  [ChainId.GÖRLI]: '0xBa60b6e6fF25488308789E6e0A65D838be34194e',
+  [ChainId.GOERLI]: '0xBa60b6e6fF25488308789E6e0A65D838be34194e',
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
@@ -74,12 +74,12 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.OPTIMISM_GOERLI]: OPTIMISM_GOERLI_MULTICALL_ADDRESS,
   [ChainId.SEPOLIA]: SEPOLIA_MULTICALL_ADDRESS,
   [ChainId.ARBITRUM_GOERLI]: ARBITRUM_GOERLI_MULTICALL_ADDRESS,
-  [ChainId.BSC]: BSC_MULTICALL_ADDRESS,
+  [ChainId.BNB]: BSC_MULTICALL_ADDRESS,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
 export const SWAP_ROUTER_02_ADDRESSES = (chainId: number) => {
-  if (chainId == ChainId.BSC) {
+  if (chainId == ChainId.BNB) {
     return BSC_SWAP_ROUTER_02_ADDRESS;
   }
   return '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
@@ -119,7 +119,7 @@ export const WETH9: {
     | ChainId.CELO_ALFAJORES
     | ChainId.GNOSIS
     | ChainId.MOONBEAM
-    | ChainId.BSC
+    | ChainId.BNB
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(
@@ -129,8 +129,8 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.GÖRLI]: new Token(
-    ChainId.GÖRLI,
+  [ChainId.GOERLI]: new Token(
+    ChainId.GOERLI,
     '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
     18,
     'WETH',

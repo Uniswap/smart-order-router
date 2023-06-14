@@ -1,12 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
+import { ChainId } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
-import { ChainId, log } from '../../../../util';
+import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
   getHighestLiquidityV3NativePool,

@@ -76,8 +76,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDT_MAINNET,
     WBTC_MAINNET,
   ],
-  [ChainId.GÖRLI]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!,
+  [ChainId.GOERLI]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!,
     USDT_GÖRLI,
     USDC_GÖRLI,
     WBTC_GÖRLI,
@@ -133,8 +133,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WXDAI_GNOSIS,
     USDC_ETHEREUM_GNOSIS,
   ],
-  [ChainId.BSC]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.BSC],
+  [ChainId.BNB]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.BNB],
     BUSD_BSC,
     DAI_BSC,
     USDC_BSC,

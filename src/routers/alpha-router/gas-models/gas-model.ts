@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 
 import { ProviderConfig } from '../../../providers/provider';
 import {
@@ -36,7 +36,6 @@ import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { ArbitrumGasData, IL2GasDataProvider, OptimismGasData, } from '../../../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { ChainId } from '../../../util/chains';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
@@ -54,7 +53,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_OPTIMISM_GOERLI,
   ],
   [ChainId.ARBITRUM_GOERLI]: [USDC_ARBITRUM_GOERLI],
-  [ChainId.GÖRLI]: [DAI_GÖRLI, USDC_GÖRLI, USDT_GÖRLI, WBTC_GÖRLI],
+  [ChainId.GOERLI]: [DAI_GÖRLI, USDC_GÖRLI, USDT_GÖRLI, WBTC_GÖRLI],
   [ChainId.SEPOLIA]: [USDC_SEPOLIA, DAI_SEPOLIA],
   [ChainId.POLYGON]: [USDC_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
@@ -62,7 +61,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
-  [ChainId.BSC]: [USDT_BSC, USDC_BSC, DAI_BSC],
+  [ChainId.BNB]: [USDT_BSC, USDC_BSC, DAI_BSC],
 };
 
 export type L1ToL2GasCosts = {

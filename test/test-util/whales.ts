@@ -27,7 +27,7 @@ export const WHALES = (token: Currency): string => {
       return '0xf977814e90da44bfa03b6295a0616a897441acec';
     case nativeOnChain(ChainId.POLYGON):
       return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245';
-    case nativeOnChain(ChainId.GÖRLI):
+    case nativeOnChain(ChainId.GOERLI):
       return '0x08505F42D5666225d5d73B842dAdB87CCA44d1AE';
     case WETH9[1]:
       return '0x06920c9fc643de77b99cb7670a944ad31eaaa260';
@@ -35,7 +35,7 @@ export const WHALES = (token: Currency): string => {
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
     case WNATIVE_ON(ChainId.ARBITRUM_ONE):
       return '0x80a9ae39310abf666a87c743d6ebbd0e8c42158e';
-    case WNATIVE_ON(ChainId.GÖRLI):
+    case WNATIVE_ON(ChainId.GOERLI):
       return '0x2372031bb0fc735722aa4009aebf66e8beaf4ba1';
     case WNATIVE_ON(ChainId.POLYGON):
       return '0x369582d2010b6ed950b571f4101e3bb9b554876f';
@@ -61,7 +61,7 @@ export const WHALES = (token: Currency): string => {
       return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245';
     case USDC_ON(ChainId.POLYGON_MUMBAI):
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
-    case DAI_ON(ChainId.GÖRLI):
+    case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):
       return '0x67550Df3290415611F6C140c81Cd770Ff1742cb9';
