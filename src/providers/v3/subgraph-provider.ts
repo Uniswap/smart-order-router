@@ -4,6 +4,7 @@ import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
+import { log } from '../../util';
 import { ProviderConfig } from '../provider';
 import { V2SubgraphPool } from '../v2/subgraph-provider';
 

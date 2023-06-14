@@ -57,6 +57,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       USDT_BSC,
       BTC_BSC,
     ],
+    [ChainId.AVALANCHE]: [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!],
   };
 };
 

@@ -1,8 +1,8 @@
 import { ApprovalTypes } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
+import { ChainId, Currency, CurrencyAmount } from '@uniswap/sdk-core';
 
 import { SwapRouter02__factory } from '../types/other/factories/SwapRouter02__factory';
-import { ChainId, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
+import { log, SWAP_ROUTER_02_ADDRESSES } from '../util';
 
 import { IMulticallProvider } from './multicall-provider';
 
