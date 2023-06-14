@@ -1,11 +1,11 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber } from '@ethersproject/bignumber';
 import { parseBytes32String } from '@ethersproject/strings';
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { IMulticallProvider, Result } from './multicall-provider';
 import { ProviderConfig } from './provider';
@@ -649,11 +649,7 @@ export const DAI_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return DAI_MAINNET;
-<<<<<<< HEAD
     case ChainId.GOERLI:
-=======
-    case ChainId.GOERLI:
->>>>>>> main
       return DAI_GOERLI;
     case ChainId.SEPOLIA:
       return DAI_SEPOLIA;
@@ -686,11 +682,7 @@ export const USDT_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return USDT_MAINNET;
-<<<<<<< HEAD
     case ChainId.GOERLI:
-=======
-    case ChainId.GOERLI:
->>>>>>> main
       return USDT_GOERLI;
     case ChainId.OPTIMISM:
       return USDT_OPTIMISM;
@@ -698,11 +690,7 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_OPTIMISM_GOERLI;
     case ChainId.ARBITRUM_ONE:
       return USDT_ARBITRUM;
-<<<<<<< HEAD
     case ChainId.BNB:
-=======
-    case ChainId.BSC:
->>>>>>> main
       return USDT_BSC;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
@@ -713,11 +701,7 @@ export const USDC_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return USDC_MAINNET;
-<<<<<<< HEAD
     case ChainId.GOERLI:
-=======
-    case ChainId.GOERLI:
->>>>>>> main
       return USDC_GOERLI;
     case ChainId.SEPOLIA:
       return USDC_SEPOLIA;
