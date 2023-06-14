@@ -64,8 +64,6 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
   [ChainId.MAINNET]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
-  [ChainId.RINKEBY]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
-  [ChainId.ROPSTEN]: '0x84E44095eeBfEC7793Cd7d5b57B7e401D7f1cA2E',
   [ChainId.GÖRLI]: '0xBa60b6e6fF25488308789E6e0A65D838be34194e',
 };
 
@@ -131,20 +129,6 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.ROPSTEN]: new Token(
-    ChainId.ROPSTEN,
-    '0xc778417E063141139Fce010982780140Aa0cD5Ab',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.RINKEBY]: new Token(
-    ChainId.RINKEBY,
-    '0xc778417E063141139Fce010982780140Aa0cD5Ab',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
   [ChainId.GÖRLI]: new Token(
     ChainId.GÖRLI,
     '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
@@ -155,13 +139,6 @@ export const WETH9: {
   [ChainId.SEPOLIA]: new Token(
     ChainId.SEPOLIA,
     '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.KOVAN]: new Token(
-    ChainId.KOVAN,
-    '0xd0A1E359811322d97991E03f863a0C30C2cF029C',
     18,
     'WETH',
     'Wrapped Ether'
@@ -180,23 +157,9 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.OPTIMISTIC_KOVAN]: new Token(
-    ChainId.OPTIMISTIC_KOVAN,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
   [ChainId.ARBITRUM_ONE]: new Token(
     ChainId.ARBITRUM_ONE,
     '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ARBITRUM_RINKEBY]: new Token(
-    ChainId.ARBITRUM_RINKEBY,
-    '0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681',
     18,
     'WETH',
     'Wrapped Ether'

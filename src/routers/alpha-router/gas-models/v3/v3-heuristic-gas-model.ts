@@ -99,7 +99,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       let l1FeeInWei = BigNumber.from(0);
       if (
         chainId == ChainId.OPTIMISM ||
-        chainId == ChainId.OPTIMISTIC_KOVAN ||
         chainId == ChainId.OPTIMISM_GOERLI
       ) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
@@ -109,7 +108,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         );
       } else if (
         chainId == ChainId.ARBITRUM_ONE ||
-        chainId == ChainId.ARBITRUM_RINKEBY ||
         chainId == ChainId.ARBITRUM_GOERLI
       ) {
         [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(

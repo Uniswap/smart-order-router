@@ -36,9 +36,6 @@ jobs:
         run: npm run test
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
-          JSON_RPC_PROVIDER_RINKEBY: ${{ secrets.JSON_RPC_PROVIDER_RINKEBY }}
-          JSON_RPC_PROVIDER_ROPSTEN: ${{ secrets.JSON_RPC_PROVIDER_ROPSTEN }}
-          JSON_RPC_PROVIDER_KOVAN: ${{ secrets.JSON_RPC_PROVIDER_KOVAN }}
           JSON_RPC_PROVIDER_GORLI: ${{ secrets.JSON_RPC_PROVIDER_GORLI }}
           JSON_RPC_PROVIDER_OPTIMISM: ${{ secrets.JSON_RPC_PROVIDER_OPTIMISM }}
           JSON_RPC_PROVIDER_ARBITRUM_ONE: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_ONE }}

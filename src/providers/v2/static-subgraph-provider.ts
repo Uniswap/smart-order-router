@@ -6,8 +6,6 @@ import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
   DAI_MAINNET,
-  DAI_RINKEBY_1,
-  DAI_RINKEBY_2,
   USDC_MAINNET,
   USDT_MAINNET,
   WBTC_MAINNET,
@@ -27,22 +25,13 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDT_MAINNET,
     WBTC_MAINNET,
   ],
-  [ChainId.ROPSTEN]: [WRAPPED_NATIVE_CURRENCY[ChainId.ROPSTEN]!],
-  [ChainId.RINKEBY]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
-    DAI_RINKEBY_1,
-    DAI_RINKEBY_2,
-  ],
   [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
   [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
-  [ChainId.KOVAN]: [WRAPPED_NATIVE_CURRENCY[ChainId.KOVAN]!],
   //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam] and their testnets
   [ChainId.OPTIMISM]: [],
   [ChainId.ARBITRUM_ONE]: [],
-  [ChainId.ARBITRUM_RINKEBY]: [],
   [ChainId.ARBITRUM_GOERLI]: [],
   [ChainId.OPTIMISM_GOERLI]: [],
-  [ChainId.OPTIMISTIC_KOVAN]: [],
   [ChainId.POLYGON]: [],
   [ChainId.POLYGON_MUMBAI]: [],
   [ChainId.CELO]: [],

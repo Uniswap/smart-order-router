@@ -6,12 +6,8 @@ import { LegacyGasPriceProvider } from './legacy-gas-price-provider';
 
 const DEFAULT_EIP_1559_SUPPORTED_CHAINS = [
   ChainId.MAINNET,
-  ChainId.RINKEBY,
-  ChainId.ROPSTEN,
   ChainId.GÖRLI,
   ChainId.POLYGON_MUMBAI,
-  // infura endpoint having difficulty w/ eip-1559 on kovan
-  // ChainId.KOVAN,
 ];
 
 /**
