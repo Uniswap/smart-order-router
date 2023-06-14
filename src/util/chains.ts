@@ -84,16 +84,11 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
 
 export enum ChainName {
   MAINNET = 'mainnet',
-  ROPSTEN = 'ropsten',
-  RINKEBY = 'rinkeby',
   GOERLI = 'goerli',
   SEPOLIA = 'sepolia',
-  KOVAN = 'kovan',
   OPTIMISM = 'optimism-mainnet',
   OPTIMISM_GOERLI = 'optimism-goerli',
-  OPTIMISTIC_KOVAN = 'optimism-kovan',
   ARBITRUM_ONE = 'arbitrum-mainnet',
-  ARBITRUM_RINKEBY = 'arbitrum-rinkeby',
   ARBITRUM_GOERLI = 'arbitrum-goerli',
   POLYGON = 'polygon-mainnet',
   POLYGON_MUMBAI = 'polygon-mumbai',
@@ -101,7 +96,7 @@ export enum ChainName {
   CELO_ALFAJORES = 'celo-alfajores',
   GNOSIS = 'gnosis-mainnet',
   MOONBEAM = 'moonbeam-mainnet',
-  BSC = 'bsc-mainnet',
+  BNB = 'bnb-mainnet',
 }
 
 
@@ -189,28 +184,18 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
   switch (id) {
     case 1:
       return ChainName.MAINNET;
-    case 3:
-      return ChainName.ROPSTEN;
-    case 4:
-      return ChainName.RINKEBY;
     case 5:
       return ChainName.GOERLI;
     case 11155111:
       return ChainName.SEPOLIA;
-    case 42:
-      return ChainName.KOVAN;
     case 56:
-      return ChainName.BSC;
+      return ChainName.BNB;
     case 10:
       return ChainName.OPTIMISM;
     case 420:
       return ChainName.OPTIMISM_GOERLI;
-    case 69:
-      return ChainName.OPTIMISTIC_KOVAN;
     case 42161:
       return ChainName.ARBITRUM_ONE;
-    case 421611:
-      return ChainName.ARBITRUM_RINKEBY;
     case 421613:
       return ChainName.ARBITRUM_GOERLI;
     case 137:
@@ -444,7 +429,7 @@ class GnosisNativeCurrency extends NativeCurrency {
   }
 }
 
-function isBsc(chainId: number): chainId is ChainId.BSC {
+function isBsc(chainId: number): chainId is ChainId.BNB {
   return chainId === ChainId.BNB;
 }
 

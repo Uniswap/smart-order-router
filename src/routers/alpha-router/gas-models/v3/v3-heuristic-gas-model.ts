@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Percent, Price, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Percent, Price, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
@@ -12,7 +12,6 @@ import {
   ArbitrumGasData,
   OptimismGasData,
 } from '../../../../providers/v3/gas-data-provider';
-import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
   getHighestLiquidityV3NativePool,
@@ -99,7 +98,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       let l1FeeInWei = BigNumber.from(0);
       if (
         chainId == ChainId.OPTIMISM ||
-        chainId == ChainId.OPTIMISTIC_KOVAN ||
         chainId == ChainId.OPTIMISM_GOERLI
       ) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
@@ -109,7 +107,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         );
       } else if (
         chainId == ChainId.ARBITRUM_ONE ||
-        chainId == ChainId.ARBITRUM_RINKEBY ||
         chainId == ChainId.ARBITRUM_GOERLI
       ) {
         [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(

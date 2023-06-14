@@ -1,4 +1,4 @@
-import { Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import {
@@ -12,7 +12,7 @@ import {
   IV3SubgraphProvider,
   TokenValidationResult
 } from '../../../providers';
-import { ChainId, CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { MixedRouteWithValidQuote } from '../entities';

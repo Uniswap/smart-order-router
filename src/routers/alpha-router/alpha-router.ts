@@ -42,6 +42,7 @@ import {
 } from '../../providers';
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
+import { ProviderConfig } from '../../providers/provider';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
 import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
@@ -91,7 +92,6 @@ import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixe
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
-import { ProviderConfig } from '../../providers/provider';
 
 export type AlphaRouterParams = {
   /**
@@ -382,7 +382,6 @@ export class AlphaRouter
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISM_GOERLI:
-        case ChainId.OPTIMISTIC_KOVAN:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
@@ -416,7 +415,6 @@ export class AlphaRouter
           );
           break;
         case ChainId.ARBITRUM_ONE:
-        case ChainId.ARBITRUM_RINKEBY:
         case ChainId.ARBITRUM_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,

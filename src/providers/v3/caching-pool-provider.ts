@@ -1,8 +1,7 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import { ChainId } from '../../util/chains';
 import { log } from '../../util/log';
 
 import { ICache } from './../cache';

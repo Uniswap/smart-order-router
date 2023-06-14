@@ -1,5 +1,6 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
@@ -12,44 +13,36 @@ import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
-  DAI_ARBITRUM_RINKEBY,
-  DAI_BSC,
+  DAI_BNB,
   DAI_MAINNET,
   DAI_MOONBEAM,
   DAI_OPTIMISM,
   DAI_OPTIMISM_GOERLI,
-  DAI_OPTIMISTIC_KOVAN,
   DAI_POLYGON_MUMBAI,
-  DAI_RINKEBY_1,
-  DAI_RINKEBY_2,
   DAI_SEPOLIA,
   FEI_MAINNET,
   ITokenProvider,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
-  USDC_BSC,
+  USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_MOONBEAM,
   USDC_OPTIMISM,
   USDC_OPTIMISM_GOERLI,
-  USDC_OPTIMISTIC_KOVAN,
   USDC_POLYGON,
   USDC_SEPOLIA,
   USDT_ARBITRUM,
-  USDT_ARBITRUM_RINKEBY,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
-  USDT_OPTIMISTIC_KOVAN,
   WBTC_ARBITRUM,
   WBTC_GNOSIS,
   WBTC_MAINNET,
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WBTC_OPTIMISM_GOERLI,
-  WBTC_OPTIMISTIC_KOVAN,
   WGLMR_MOONBEAM,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
@@ -58,7 +51,7 @@ import {
 import { IV2PoolProvider, V2PoolAccessor, } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider, V3PoolAccessor, } from '../../../providers/v3/pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool, } from '../../../providers/v3/subgraph-provider';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -130,7 +123,6 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WRAPPED_NATIVE_CURRENCY[1]!,
     FEI_MAINNET,
   ],
-  [ChainId.RINKEBY]: [DAI_RINKEBY_1, DAI_RINKEBY_2],
   [ChainId.OPTIMISM]: [
     DAI_OPTIMISM,
     USDC_OPTIMISM,
@@ -147,19 +139,12 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_OPTIMISM_GOERLI,
     WBTC_OPTIMISM_GOERLI,
   ],
-  [ChainId.OPTIMISTIC_KOVAN]: [
-    DAI_OPTIMISTIC_KOVAN,
-    USDC_OPTIMISTIC_KOVAN,
-    WBTC_OPTIMISTIC_KOVAN,
-    USDT_OPTIMISTIC_KOVAN,
-  ],
   [ChainId.ARBITRUM_ONE]: [
     DAI_ARBITRUM,
     USDC_ARBITRUM,
     WBTC_ARBITRUM,
     USDT_ARBITRUM,
   ],
-  [ChainId.ARBITRUM_RINKEBY]: [DAI_ARBITRUM_RINKEBY, USDT_ARBITRUM_RINKEBY],
   [ChainId.ARBITRUM_GOERLI]: [USDC_ARBITRUM_GOERLI],
   [ChainId.POLYGON]: [USDC_POLYGON, WMATIC_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI, WMATIC_POLYGON_MUMBAI],
@@ -176,10 +161,10 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WBTC_MOONBEAM,
     WGLMR_MOONBEAM,
   ],
-  [ChainId.BSC]: [
-    DAI_BSC,
-    USDC_BSC,
-    USDT_BSC,
+  [ChainId.BNB]: [
+    DAI_BNB,
+    USDC_BNB,
+    USDT_BNB,
   ],
 };
 

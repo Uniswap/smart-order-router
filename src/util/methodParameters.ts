@@ -4,7 +4,7 @@ import {
   SwapRouter as SwapRouter02,
   Trade,
 } from '@uniswap/router-sdk';
-import { Currency, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import {
   SwapRouter as UniveralRouter,
   UNIVERSAL_ROUTER_ADDRESS,
@@ -14,14 +14,13 @@ import { Route as V3RouteRaw } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import {
-  ChainId,
   CurrencyAmount,
   MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
+  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
-  SWAP_ROUTER_02_ADDRESSES,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';

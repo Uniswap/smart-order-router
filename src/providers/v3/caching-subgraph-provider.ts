@@ -1,4 +1,4 @@
-import { ChainId } from '../../util/chains';
+import { ChainId } from '@uniswap/sdk-core'
 
 import { ICache } from './../cache';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';

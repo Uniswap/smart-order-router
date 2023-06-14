@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Token } from '@uniswap/sdk-core';
+import {ChainId, Token } from '@uniswap/sdk-core';
 import { TokenInfo, TokenList } from '@uniswap/token-lists';
 import axios from 'axios';
 import _ from 'lodash';
 
-import { ChainId } from '../util/chains';
 import { log } from '../util/log';
 import { metric, MetricLoggerUnit } from '../util/metric';
 
