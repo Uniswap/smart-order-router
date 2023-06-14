@@ -50,7 +50,7 @@ import {
   SwapOptions,
   SwapType,
   TenderlySimulator,
-  UNI_GÖRLI,
+  UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
   USDC_BSC,
@@ -2546,7 +2546,11 @@ describe('external class tests', () => {
 describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
-    [ChainId.GOERLI]: UNI_GÖRLI,
+<<<<<<< HEAD
+    [ChainId.GOERLI]: UNI_GOERLI,
+=======
+    [ChainId.GOERLI]: UNI_GOERLI,
+>>>>>>> main
     [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
@@ -2562,7 +2566,11 @@ describe('quote for other networks', () => {
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
+<<<<<<< HEAD
     [ChainId.GOERLI]: DAI_ON(ChainId.GOERLI),
+=======
+    [ChainId.GOERLI]: DAI_ON(ChainId.GOERLI),
+>>>>>>> main
     [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),

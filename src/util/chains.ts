@@ -76,7 +76,7 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
 
 export enum ChainName {
   MAINNET = 'mainnet',
-  GÖRLI = 'goerli',
+  GOERLI = 'goerli',
   SEPOLIA = 'sepolia',
   OPTIMISM = 'optimism-mainnet',
   OPTIMISM_GOERLI = 'optimism-goerli',
@@ -177,7 +177,7 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
     case 1:
       return ChainName.MAINNET;
     case 5:
-      return ChainName.GÖRLI;
+      return ChainName.GOERLI;
     case 11155111:
       return ChainName.SEPOLIA;
     case 56:

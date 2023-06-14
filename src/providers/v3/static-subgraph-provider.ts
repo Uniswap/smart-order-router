@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { unparseFeeAmount } from '../../util/amounts';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
 import {
@@ -22,7 +22,7 @@ import {
   DAI_BSC,
   DAI_CELO,
   DAI_CELO_ALFAJORES,
-  DAI_GÖRLI,
+  DAI_GOERLI,
   DAI_MAINNET,
   DAI_MOONBEAM,
   DAI_OPTIMISM,
@@ -34,7 +34,7 @@ import {
   USDC_ARBITRUM_GOERLI,
   USDC_BSC,
   USDC_ETHEREUM_GNOSIS,
-  USDC_GÖRLI,
+  USDC_GOERLI,
   USDC_MAINNET,
   USDC_MOONBEAM,
   USDC_OPTIMISM,
@@ -43,13 +43,13 @@ import {
   USDC_SEPOLIA,
   USDT_ARBITRUM,
   USDT_BSC,
-  USDT_GÖRLI,
+  USDT_GOERLI,
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
   WBTC_ARBITRUM,
   WBTC_GNOSIS,
-  WBTC_GÖRLI,
+  WBTC_GOERLI,
   WBTC_MAINNET,
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
@@ -78,10 +78,10 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   [ChainId.GOERLI]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!,
-    USDT_GÖRLI,
-    USDC_GÖRLI,
-    WBTC_GÖRLI,
-    DAI_GÖRLI,
+    USDT_GOERLI,
+    USDC_GOERLI,
+    WBTC_GOERLI,
+    DAI_GOERLI,
   ],
   [ChainId.SEPOLIA]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!,

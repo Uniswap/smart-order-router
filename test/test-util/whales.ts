@@ -1,14 +1,13 @@
-import { Currency, Ether } from '@uniswap/sdk-core';
+import { ChainId, Currency, Ether } from '@uniswap/sdk-core';
 import {
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
-  ChainId,
   CUSD_CELO,
   DAI_MAINNET,
   DAI_ON,
   ExtendedEther,
   nativeOnChain,
-  UNI_GÖRLI,
+  UNI_GOERLI,
   UNI_MAINNET,
   USDC_MAINNET,
   USDC_ON,
@@ -45,7 +44,7 @@ export const WHALES = (token: Currency): string => {
     case DAI_MAINNET:
     case USDT_MAINNET:
       return '0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503';
-    case UNI_GÖRLI:
+    case UNI_GOERLI:
       return '0x41653c7d61609d856f29355e404f310ec4142cfb';
     case USDC_ON(ChainId.OPTIMISM):
       return '0xad7b4c162707e0b2b5f6fddbd3f8538a5fba0d60';

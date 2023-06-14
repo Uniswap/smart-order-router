@@ -1,7 +1,7 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
-import { ChainId, NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
+import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
 const CELO_V3_CORE_FACTORY_ADDRESSES =
   '0xAfE208a311B21f13EF87E33A90049fC17A7acDEc';
