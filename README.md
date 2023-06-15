@@ -210,6 +210,13 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x55d398326f99059fF775485246999027B3197955 --tokenOut 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d --amount 1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 56
 ```
 
+## AVAX Mainnet
+
+```
+./bin/cli quote --tokenIn 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E --tokenOut 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7 --amount 1000 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 43114
+```
+
+
 ## Adding a new Chain
 
 The main components to complete are:

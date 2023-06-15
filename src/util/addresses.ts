@@ -1,4 +1,4 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Token, CHAIN_TO_ADDRESSES_MAP } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
@@ -48,6 +48,7 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.SEPOLIA]: SEPOLIA_V3_CORE_FACTORY_ADDRESSES,
   [ChainId.ARBITRUM_GOERLI]: ARBITRUM_GOERLI_V3_CORE_FACTORY_ADDRESSES,
   [ChainId.BNB]: BSC_V3_CORE_FACTORY_ADDRESSES,
+  [ChainId.AVALANCHE]: CHAIN_TO_ADDRESSES_MAP[ChainId.AVALANCHE].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -59,6 +60,7 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.SEPOLIA]: SEPOLIA_QUOTER_ADDRESSES,
   [ChainId.ARBITRUM_GOERLI]: ARBITRUM_GOERLI_QUOTER_ADDRESSES,
   [ChainId.BNB]: BSC_QUOTER_ADDRESSES,
+  [ChainId.AVALANCHE]: CHAIN_TO_ADDRESSES_MAP[ChainId.AVALANCHE].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -75,6 +77,7 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.SEPOLIA]: SEPOLIA_MULTICALL_ADDRESS,
   [ChainId.ARBITRUM_GOERLI]: ARBITRUM_GOERLI_MULTICALL_ADDRESS,
   [ChainId.BNB]: BSC_MULTICALL_ADDRESS,
+  [ChainId.AVALANCHE]: CHAIN_TO_ADDRESSES_MAP[ChainId.AVALANCHE].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
