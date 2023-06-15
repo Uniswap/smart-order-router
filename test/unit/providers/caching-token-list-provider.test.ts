@@ -1,9 +1,8 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 import sinon from 'sinon';
 import {
   CachingTokenListProvider,
-  ChainId,
   NodeJSCache,
   USDC_MAINNET as USDC,
 } from '../../../src';
