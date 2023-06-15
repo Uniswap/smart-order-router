@@ -488,7 +488,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
@@ -510,7 +510,7 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any, /// v3 pool provider
+          pools: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
@@ -710,7 +710,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
@@ -724,7 +724,7 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any, /// v3 pool provider
+          pools: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
@@ -888,7 +888,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
@@ -1013,7 +1013,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
@@ -1153,7 +1153,7 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
@@ -1417,7 +1417,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
@@ -1570,7 +1570,7 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
@@ -1648,7 +1648,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
@@ -1854,7 +1854,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: WRAPPED_NATIVE_CURRENCY[1],
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
@@ -1876,7 +1876,7 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           v2poolProvider: sinon.match.any,
           amountToken: WRAPPED_NATIVE_CURRENCY[1],
           quoteToken: USDC,
@@ -1965,7 +1965,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
@@ -2181,7 +2181,7 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
