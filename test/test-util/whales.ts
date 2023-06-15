@@ -60,6 +60,8 @@ export const WHALES = (token: Currency): string => {
       return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245';
     case USDC_ON(ChainId.POLYGON_MUMBAI):
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
+    case USDC_ON(ChainId.AVALANCHE):
+      return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):
@@ -72,6 +74,8 @@ export const WHALES = (token: Currency): string => {
       return '0xf04adbf75cdfc5ed26eea4bbbb991db002036bdd';
     case DAI_ON(ChainId.POLYGON_MUMBAI):
       return '0xda8ab4137fe28f969b27c780d313d1bb62c8341e';
+    case DAI_ON(ChainId.AVALANCHE):
+      return '0x835866d37AFB8CB8F8334dCCdaf66cf01832Ff5D';
     case CEUR_CELO:
       return '0x612A7c4E40EAcb63dADaD4939dFedb9d3397E6fd';
     case CEUR_CELO_ALFAJORES:

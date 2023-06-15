@@ -12,6 +12,7 @@ import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
+  DAI_AVAX,
   DAI_BSC,
   DAI_MAINNET,
   DAI_MOONBEAM,
@@ -23,6 +24,7 @@ import {
   ITokenProvider,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
+  USDC_AVAX,
   USDC_BSC,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
@@ -164,6 +166,10 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     DAI_BSC,
     USDC_BSC,
     USDT_BSC,
+  ],
+  [ChainId.AVALANCHE]: [
+    DAI_AVAX,
+    USDC_AVAX,
   ],
 };
 
