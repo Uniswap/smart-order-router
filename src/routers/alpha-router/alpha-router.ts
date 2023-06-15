@@ -1452,7 +1452,7 @@ export class AlphaRouter
   ]> {
     const beforeGasModel = Date.now();
 
-    const usdPool = await getHighestLiquidityV3USDPool(
+    const usdPoolPromise = await getHighestLiquidityV3USDPool(
       this.chainId,
       this.v3PoolProvider,
       providerConfig
@@ -1469,7 +1469,8 @@ export class AlphaRouter
       providerConfig
     );
 
-    const [nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool] = await Promise.all([
+    const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool] = await Promise.all([
+      usdPoolPromise,
       !quoteToken.equals(nativeCurrency) ? nativeQuoteTokenV3PoolPromise : Promise.resolve(null),
       !amountToken.equals(nativeCurrency) ? nativeAmountTokenV3PoolPromise : Promise.resolve(null)
     ])
