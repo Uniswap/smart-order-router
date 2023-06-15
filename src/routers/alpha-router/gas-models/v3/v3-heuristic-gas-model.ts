@@ -15,8 +15,6 @@ import {
 import { ChainId } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
   getL2ToL1GasUsed,
 } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
@@ -64,11 +62,10 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
   public async buildGasModel({
     chainId,
     gasPriceWei,
-    v3poolProvider: poolProvider,
+    pools,
     amountToken,
     quoteToken,
-    l2GasDataProvider,
-    providerConfig
+    l2GasDataProvider
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote>
   > {
@@ -76,11 +73,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       ? await l2GasDataProvider.getGasData()
       : undefined;
 
-    const usdPool: Pool = await getHighestLiquidityV3USDPool(
-      chainId,
-      poolProvider,
-      providerConfig
-    );
+    const usdPool: Pool = pools.usdPool;
 
     const calculateL1GasFees = async (
       route: V3RouteWithValidQuote[]
@@ -136,11 +129,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       let gasCostL1QuoteToken = costNativeCurrency;
       // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
       if (!quoteToken.equals(nativeCurrency)) {
-        const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
-          quoteToken,
-          poolProvider,
-          providerConfig
-        );
+        const nativePool: Pool | null = pools.nativeQuoteTokenV3Pool;
         if (!nativePool) {
           log.info(
             'Could not find a pool to convert the cost into the quote token'
@@ -206,19 +195,11 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
-      quoteToken,
-      poolProvider,
-      providerConfig
-    );
+    const nativePool: Pool | null = pools.nativeQuoteTokenV3Pool;
 
     let nativeAmountPool: Pool | null = null;
     if (!amountToken.equals(nativeCurrency)) {
-      nativeAmountPool = await getHighestLiquidityV3NativePool(
-        amountToken,
-        poolProvider,
-        providerConfig
-      );
+      nativeAmountPool = pools.nativeAmountTokenV3Pool;
     }
 
     const usdToken =

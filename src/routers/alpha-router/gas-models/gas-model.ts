@@ -34,7 +34,6 @@ import {
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { ArbitrumGasData, IL2GasDataProvider, OptimismGasData, } from '../../../providers/v3/gas-data-provider';
-import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { ChainId } from '../../../util/chains';
 import {
@@ -43,6 +42,7 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
+import { Pool } from '@uniswap/v3-sdk';
 
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
@@ -74,7 +74,7 @@ export type L1ToL2GasCosts = {
 export type BuildOnChainGasModelFactoryType = {
   chainId: ChainId;
   gasPriceWei: BigNumber;
-  v3poolProvider: IV3PoolProvider;
+  pools: LiquidityCalculationPools;
   amountToken: Token;
   quoteToken: Token;
   v2poolProvider: IV2PoolProvider;
@@ -90,6 +90,12 @@ export type BuildV2GasModelFactoryType = {
   poolProvider: IV2PoolProvider;
   token: Token;
 };
+
+export type LiquidityCalculationPools = {
+  usdPool: Pool
+  nativeQuoteTokenV3Pool: Pool | null
+  nativeAmountTokenV3Pool: Pool | null
+}
 
 /**
  * Contains functions for generating gas estimates for given routes.
@@ -151,7 +157,7 @@ export abstract class IOnChainGasModelFactory {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,
-    v3poolProvider: V3poolProvider,
+    pools: LiquidityCalculationPools,
     amountToken,
     quoteToken,
     v2poolProvider: V2poolProvider,

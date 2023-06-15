@@ -55,7 +55,7 @@ import {
 import { IV3PoolProvider, V3PoolProvider } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
-import { SWAP_ROUTER_02_ADDRESSES } from '../../util';
+import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
 import { log } from '../../util/log';
@@ -86,12 +86,21 @@ import {
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import { CandidatePoolsBySelectionCriteria, PoolId, } from './functions/get-candidate-pools';
-import { IGasModel, IOnChainGasModelFactory, IV2GasModelFactory } from './gas-models/gas-model';
+import {
+  IGasModel,
+  IOnChainGasModelFactory,
+  IV2GasModelFactory,
+  LiquidityCalculationPools
+} from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
 import { ProviderConfig } from '../../providers/provider';
+import {
+  getHighestLiquidityV3NativePool,
+  getHighestLiquidityV3USDPool
+} from '../../util/gas-factory-helpers';
 
 export type AlphaRouterParams = {
   /**
@@ -1443,10 +1452,38 @@ export class AlphaRouter
   ]> {
     const beforeGasModel = Date.now();
 
+    const usdPool = await getHighestLiquidityV3USDPool(
+      this.chainId,
+      this.v3PoolProvider,
+      providerConfig
+    );
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeQuoteTokenV3PoolPromise = getHighestLiquidityV3NativePool(
+      quoteToken,
+      this.v3PoolProvider,
+      providerConfig
+    );
+    const nativeAmountTokenV3PoolPromise = getHighestLiquidityV3NativePool(
+      amountToken,
+      this.v3PoolProvider,
+      providerConfig
+    );
+
+    const [nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool] = await Promise.all([
+      !quoteToken.equals(nativeCurrency) ? nativeQuoteTokenV3PoolPromise : Promise.resolve(null),
+      !amountToken.equals(nativeCurrency) ? nativeAmountTokenV3PoolPromise : Promise.resolve(null)
+    ])
+
+    const pools: LiquidityCalculationPools = {
+      usdPool: usdPool,
+      nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
+      nativeAmountTokenV3Pool: nativeAmountTokenV3Pool
+    };
+
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
       chainId: this.chainId,
       gasPriceWei,
-      v3poolProvider: this.v3PoolProvider,
+      pools,
       amountToken,
       quoteToken,
       v2poolProvider: this.v2PoolProvider,
@@ -1457,7 +1494,7 @@ export class AlphaRouter
     const mixedRouteGasModelPromise = this.mixedRouteGasModelFactory.buildGasModel({
       chainId: this.chainId,
       gasPriceWei,
-      v3poolProvider: this.v3PoolProvider,
+      pools,
       amountToken,
       quoteToken,
       v2poolProvider: this.v2PoolProvider,
