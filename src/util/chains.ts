@@ -91,7 +91,7 @@ export enum ChainName {
   CELO_ALFAJORES = 'celo-alfajores',
   GNOSIS = 'gnosis-mainnet',
   MOONBEAM = 'moonbeam-mainnet',
-  BNB = 'bsc-mainnet',
+  BNB = 'bnb-mainnet',
   AVALANCHE = 'avalanche-mainnet',
 }
 
