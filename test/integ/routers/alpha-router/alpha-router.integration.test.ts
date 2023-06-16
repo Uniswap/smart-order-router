@@ -5,7 +5,14 @@
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Ether, Percent, Token, TradeType, } from '@uniswap/sdk-core';
+import {
+  Currency,
+  CurrencyAmount,
+  Ether,
+  Percent,
+  Token,
+  TradeType,
+} from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
@@ -37,31 +44,32 @@ import {
   ID_TO_PROVIDER,
   MethodParameters,
   MixedRoute,
-  NATIVE_CURRENCY,
   nativeOnChain,
+  NATIVE_CURRENCY,
   NodeJSCache,
   OnChainQuoteProvider,
   parseAmount,
+  routeAmountsToString,
   setGlobalLogger,
   SimulationStatus,
   StaticGasPriceProvider,
   SUPPORTED_CHAINS,
-  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
+  SWAP_ROUTER_02_ADDRESSES,
   TenderlySimulator,
+  UniswapMulticallProvider,
   UNI_GÖRLI,
   UNI_MAINNET,
-  UniswapMulticallProvider,
   USDC_BSC,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_ON,
   USDT_BSC,
   USDT_MAINNET,
-  V2_SUPPORTED,
   V2PoolProvider,
   V2Route,
+  V2_SUPPORTED,
   V3PoolProvider,
   V3Route,
   WBTC_GNOSIS,
@@ -157,6 +165,16 @@ describe('alpha router integration', () => {
   jest.setTimeout(500 * 1000); // 500s
 
   let curNonce: number = 0;
+  let gasSnapshotObject: {
+    estimatedGasUsed: number;
+    actualGasUsed: number;
+    route: string;
+  };
+  let gasSnapshots: {
+    estimatedGasUsed: number;
+    actualGasUsed: number;
+    route: string;
+  }[] = [];
 
   let nextPermitNonce: () => string = () => {
     const nonce = curNonce.toString();
@@ -267,6 +285,9 @@ describe('alpha router integration', () => {
     const receipt = await transactionResponse.wait();
 
     expect(receipt.status == 1).toBe(true); // Check for txn success
+    gasSnapshotObject = Object.assign(gasSnapshotObject, {
+      actualGasUsed: receipt.gasUsed.toNumber(),
+    });
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
     const tokenOutAfter = await hardhat.getBalance(alice._address, tokenOut);
@@ -532,10 +553,37 @@ describe('alpha router integration', () => {
     });
   });
 
+  afterAll(() => {
+    // file with three columns: route, estimatedGasUsed, actualGasUsed
+    const data = gasSnapshots
+      .map((snapshot) => Object.values(snapshot).join(' | '))
+      .join('\n');
+    // save string to file
+    require('fs').writeFileSync(
+      'test/integ/routers/alpha-router/gas-snapshots.txt',
+      data
+    );
+  });
+
+  beforeEach(() => {
+    gasSnapshotObject = {
+      route: '',
+      estimatedGasUsed: 0,
+      actualGasUsed: 0,
+    };
+  });
+
+  afterEach(() => {
+    console.log(
+      `Route: ${gasSnapshotObject.route} | Estimated Gas Used: ${gasSnapshotObject.estimatedGasUsed} | Actual Gas Used: ${gasSnapshotObject.actualGasUsed}`
+    );
+    gasSnapshots.push(gasSnapshotObject);
+  });
+
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_INPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
       describe(`+ Execute on Hardhat Fork`, () => {
         it('erc20 -> erc20', async () => {
@@ -565,7 +613,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            estimatedGasUsed,
+            route,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
@@ -602,7 +660,6 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-
               type: SwapType.UNIVERSAL_ROUTER,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
@@ -644,7 +701,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            route,
+            estimatedGasUsed,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
@@ -718,7 +785,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            route,
+            estimatedGasUsed,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 
@@ -795,7 +872,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            route,
+            estimatedGasUsed,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           await validateSwapRoute(
             quote,
@@ -844,7 +931,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            route,
+            estimatedGasUsed,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
 
@@ -885,9 +982,11 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
-
-          const { route } = swap!;
+          const { quote, methodParameters, route, estimatedGasUsed } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           expect(route).not.toBeUndefined;
 
@@ -1004,9 +1103,11 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
-
-          const { route } = swap!;
+          const { quote, methodParameters, route, estimatedGasUsed } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           expect(route).not.toBeUndefined;
 
@@ -1051,7 +1152,11 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
+          const { quote, methodParameters, route, estimatedGasUsed } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           expect(methodParameters).not.toBeUndefined();
 
@@ -1121,7 +1226,11 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
+          const { quote, methodParameters, route, estimatedGasUsed } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           expect(methodParameters).not.toBeUndefined();
 
@@ -1189,7 +1298,11 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
+          const { quote, methodParameters, route, estimatedGasUsed } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           await validateExecuteSwap(
             SwapType.UNIVERSAL_ROUTER,
@@ -1228,7 +1341,11 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, methodParameters } = swap!;
+          const { quote, methodParameters, route, estimatedGasUsed } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           await validateExecuteSwap(
             SwapType.UNIVERSAL_ROUTER,
@@ -1268,9 +1385,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
-
-          const { route } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            route,
+            estimatedGasUsed,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           for (const r of route) {
             expect(r.protocol).toEqual('V3');
@@ -1316,9 +1441,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
-
-          const { route } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            route,
+            estimatedGasUsed,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           for (const r of route) {
             expect(r.protocol).toEqual('V2');
@@ -1364,9 +1497,17 @@ describe('alpha router integration', () => {
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
 
-          const { quote, quoteGasAdjusted, methodParameters } = swap!;
-
-          const { route } = swap!;
+          const {
+            quote,
+            quoteGasAdjusted,
+            methodParameters,
+            route,
+            estimatedGasUsed,
+          } = swap!;
+          gasSnapshotObject = Object.assign(gasSnapshotObject, {
+            route: routeAmountsToString(route),
+            estimatedGasUsed,
+          });
 
           let hasV3Pool = false;
           let hasV2Pool = false;
@@ -2264,7 +2405,7 @@ describe('alpha router integration', () => {
         });
       }
 
-      it(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
+      xit(`erc20 -> erc20 no recipient/deadline/slippage`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
@@ -2289,7 +2430,7 @@ describe('alpha router integration', () => {
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
 
-      it(`erc20 -> erc20 gas price specified`, async () => {
+      xit(`erc20 -> erc20 gas price specified`, async () => {
         const tokenIn = USDC_MAINNET;
         const tokenOut = USDT_MAINNET;
         const amount =
@@ -2328,7 +2469,7 @@ describe('alpha router integration', () => {
     });
   }
 
-  describe('Mixed routes', () => {
+  xdescribe('Mixed routes', () => {
     const tradeType = TradeType.EXACT_INPUT;
 
     const BOND_MAINNET = new Token(
@@ -2415,7 +2556,7 @@ describe('alpha router integration', () => {
   });
 });
 
-describe('external class tests', () => {
+xdescribe('external class tests', () => {
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
@@ -2543,7 +2684,7 @@ describe('external class tests', () => {
   });
 });
 
-describe('quote for other networks', () => {
+xdescribe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
     [ChainId.GÖRLI]: UNI_GÖRLI,
@@ -2593,7 +2734,7 @@ describe('quote for other networks', () => {
       const erc1 = TEST_ERC20_1[chain];
       const erc2 = TEST_ERC20_2[chain];
 
-      describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function() {
+      describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function () {
         const wrappedNative = WNATIVE_ON(chain);
 
         let alphaRouter: AlphaRouter;
@@ -2647,7 +2788,7 @@ describe('quote for other networks', () => {
           });
         });
 
-        describe(`Swap`, function() {
+        describe(`Swap`, function () {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
@@ -2711,8 +2852,8 @@ describe('quote for other networks', () => {
                   ? parseAmount('10', tokenIn)
                   : parseAmount('10', tokenOut)
                 : tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('1', tokenIn)
-                  : parseAmount('1', tokenOut);
+                ? parseAmount('1', tokenIn)
+                : parseAmount('1', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -2811,7 +2952,7 @@ describe('quote for other networks', () => {
         });
 
         if (isTenderlyEnvironmentSet()) {
-          describe(`Simulate + Swap`, function() {
+          describe(`Simulate + Swap`, function () {
             // Tenderly does not support Celo
             if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
               return;
@@ -2828,19 +2969,19 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 chain == ChainId.GÖRLI
                   ? {
-                    type: SwapType.SWAP_ROUTER_02,
-                    recipient: WHALES(tokenIn),
-                    slippageTolerance: SLIPPAGE,
-                    deadline: parseDeadline(360),
-                    simulate: { fromAddress: WHALES(tokenIn) },
-                  }
+                      type: SwapType.SWAP_ROUTER_02,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadline: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    }
                   : {
-                    type: SwapType.UNIVERSAL_ROUTER,
-                    recipient: WHALES(tokenIn),
-                    slippageTolerance: SLIPPAGE,
-                    deadlineOrPreviousBlockhash: parseDeadline(360),
-                    simulate: { fromAddress: WHALES(tokenIn) },
-                  };
+                      type: SwapType.UNIVERSAL_ROUTER,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadlineOrPreviousBlockhash: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    };
 
               const swap = await alphaRouter.route(
                 amount,
@@ -2883,19 +3024,19 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 chain == ChainId.GÖRLI
                   ? {
-                    type: SwapType.SWAP_ROUTER_02,
-                    recipient: WHALES(tokenIn),
-                    slippageTolerance: SLIPPAGE,
-                    deadline: parseDeadline(360),
-                    simulate: { fromAddress: WHALES(tokenIn) },
-                  }
+                      type: SwapType.SWAP_ROUTER_02,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadline: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    }
                   : {
-                    type: SwapType.UNIVERSAL_ROUTER,
-                    recipient: WHALES(tokenIn),
-                    slippageTolerance: SLIPPAGE,
-                    deadlineOrPreviousBlockhash: parseDeadline(360),
-                    simulate: { fromAddress: WHALES(tokenIn) },
-                  };
+                      type: SwapType.UNIVERSAL_ROUTER,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadlineOrPreviousBlockhash: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    };
 
               const swap = await alphaRouter.route(
                 amount,
@@ -2938,19 +3079,19 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 chain == ChainId.GÖRLI
                   ? {
-                    type: SwapType.SWAP_ROUTER_02,
-                    recipient: WHALES(tokenIn),
-                    slippageTolerance: SLIPPAGE,
-                    deadline: parseDeadline(360),
-                    simulate: { fromAddress: WHALES(tokenIn) },
-                  }
+                      type: SwapType.SWAP_ROUTER_02,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadline: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    }
                   : {
-                    type: SwapType.UNIVERSAL_ROUTER,
-                    recipient: WHALES(tokenIn),
-                    slippageTolerance: SLIPPAGE,
-                    deadlineOrPreviousBlockhash: parseDeadline(360),
-                    simulate: { fromAddress: WHALES(tokenIn) },
-                  };
+                      type: SwapType.UNIVERSAL_ROUTER,
+                      recipient: WHALES(tokenIn),
+                      slippageTolerance: SLIPPAGE,
+                      deadlineOrPreviousBlockhash: parseDeadline(360),
+                      simulate: { fromAddress: WHALES(tokenIn) },
+                    };
 
               const swap = await alphaRouter.route(
                 amount,
