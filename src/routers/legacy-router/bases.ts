@@ -2,16 +2,16 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
 
 import {
-  BTC_BSC,
-  BUSD_BSC,
+  BTC_BNB,
+  BUSD_BNB,
   DAI_AVAX,
-  DAI_BSC,
+  DAI_BNB,
   DAI_MAINNET,
   ITokenProvider,
   USDC_AVAX,
-  USDC_BSC,
+  USDC_BNB,
   USDC_MAINNET,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   WBTC_MAINNET,
   WMATIC_POLYGON,
@@ -53,11 +53,11 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     [ChainId.MOONBEAM]: [WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM]],
     [ChainId.BNB]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.BNB]!,
-      BUSD_BSC,
-      DAI_BSC,
-      USDC_BSC,
-      USDT_BSC,
-      BTC_BSC,
+      BUSD_BNB,
+      DAI_BNB,
+      USDC_BNB,
+      USDT_BNB,
+      BTC_BNB,
     ],
     [ChainId.AVALANCHE]: [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!, USDC_AVAX, DAI_AVAX],
   };

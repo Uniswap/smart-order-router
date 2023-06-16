@@ -52,11 +52,11 @@ import {
   UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
-  USDC_BSC,
+  USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_ON,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   V2_SUPPORTED,
   V2PoolProvider,
@@ -2557,7 +2557,7 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
     [ChainId.GNOSIS]: WBTC_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BNB]: USDC_BSC,
+    [ChainId.BNB]: USDC_BNB,
     [ChainId.AVALANCHE]: USDC_ON(ChainId.AVALANCHE),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
@@ -2574,7 +2574,7 @@ describe('quote for other networks', () => {
     [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
     [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BNB]: USDT_BSC,
+    [ChainId.BNB]: USDT_BNB,
     [ChainId.AVALANCHE]: DAI_ON(ChainId.AVALANCHE),
   };
 
@@ -2588,7 +2588,9 @@ describe('quote for other networks', () => {
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.SEPOLIA
+      c != ChainId.SEPOLIA && 
+      // skip avalanche for now, need to add liquidity pools.
+      c != ChainId.AVALANCHE
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain];

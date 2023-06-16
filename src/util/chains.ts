@@ -249,7 +249,7 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
     case ChainId.CELO_ALFAJORES:
       return process.env.JSON_RPC_PROVIDER_CELO_ALFAJORES!;
     case ChainId.BNB:
-      return process.env.JSON_RPC_PROVIDER_BSC!;
+      return process.env.JSON_RPC_PROVIDER_BNB!;
     case ChainId.AVALANCHE:
       return process.env.JSON_RPC_PROVIDER_AVALANCHE!;
     default:
