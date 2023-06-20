@@ -25,7 +25,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDT_MAINNET,
     WBTC_MAINNET,
   ],
-  [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
+  [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
   [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
   //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam] and their testnets
   [ChainId.OPTIMISM]: [],
@@ -38,7 +38,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.CELO_ALFAJORES]: [],
   [ChainId.GNOSIS]: [],
   [ChainId.MOONBEAM]: [],
-  [ChainId.BSC]: [],
+  [ChainId.BNB]: [],
 };
 
 /**

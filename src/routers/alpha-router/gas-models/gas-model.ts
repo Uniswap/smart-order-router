@@ -6,8 +6,8 @@ import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
-  DAI_BSC,
-  DAI_GÖRLI,
+  DAI_BNB,
+  DAI_GOERLI,
   DAI_MAINNET,
   DAI_OPTIMISM,
   DAI_OPTIMISM_GOERLI,
@@ -15,9 +15,9 @@ import {
   DAI_SEPOLIA,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
-  USDC_BSC,
+  USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
-  USDC_GÖRLI,
+  USDC_GOERLI,
   USDC_MAINNET,
   USDC_MOONBEAM,
   USDC_OPTIMISM,
@@ -25,12 +25,12 @@ import {
   USDC_POLYGON,
   USDC_SEPOLIA,
   USDT_ARBITRUM,
-  USDT_BSC,
-  USDT_GÖRLI,
+  USDT_BNB,
+  USDT_GOERLI,
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
-  WBTC_GÖRLI,
+  WBTC_GOERLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { ArbitrumGasData, IL2GasDataProvider, OptimismGasData, } from '../../../providers/v3/gas-data-provider';
@@ -54,7 +54,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_OPTIMISM_GOERLI,
   ],
   [ChainId.ARBITRUM_GOERLI]: [USDC_ARBITRUM_GOERLI],
-  [ChainId.GÖRLI]: [DAI_GÖRLI, USDC_GÖRLI, USDT_GÖRLI, WBTC_GÖRLI],
+  [ChainId.GOERLI]: [DAI_GOERLI, USDC_GOERLI, USDT_GOERLI, WBTC_GOERLI],
   [ChainId.SEPOLIA]: [USDC_SEPOLIA, DAI_SEPOLIA],
   [ChainId.POLYGON]: [USDC_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
@@ -62,7 +62,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
-  [ChainId.BSC]: [USDT_BSC, USDC_BSC, DAI_BSC],
+  [ChainId.BNB]: [USDT_BNB, USDC_BNB, DAI_BNB],
 };
 
 export type L1ToL2GasCosts = {

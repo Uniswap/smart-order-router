@@ -12,7 +12,7 @@ import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
-  DAI_BSC,
+  DAI_BNB,
   DAI_MAINNET,
   DAI_MOONBEAM,
   DAI_OPTIMISM,
@@ -23,7 +23,7 @@ import {
   ITokenProvider,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
-  USDC_BSC,
+  USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_MOONBEAM,
@@ -32,7 +32,7 @@ import {
   USDC_POLYGON,
   USDC_SEPOLIA,
   USDT_ARBITRUM,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
@@ -160,10 +160,10 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WBTC_MOONBEAM,
     WGLMR_MOONBEAM,
   ],
-  [ChainId.BSC]: [
-    DAI_BSC,
-    USDC_BSC,
-    USDT_BSC,
+  [ChainId.BNB]: [
+    DAI_BNB,
+    USDC_BNB,
+    USDT_BNB,
   ],
 };
 

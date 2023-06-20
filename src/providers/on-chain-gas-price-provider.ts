@@ -6,7 +6,7 @@ import { LegacyGasPriceProvider } from './legacy-gas-price-provider';
 
 const DEFAULT_EIP_1559_SUPPORTED_CHAINS = [
   ChainId.MAINNET,
-  ChainId.GÖRLI,
+  ChainId.GOERLI,
   ChainId.POLYGON_MUMBAI,
 ];
 

@@ -3,7 +3,7 @@ import { Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
 
 export enum ChainId {
   MAINNET = 1,
-  GÖRLI = 5,
+  GOERLI = 5,
   SEPOLIA = 11155111,
   OPTIMISM = 10,
   OPTIMISM_GOERLI = 420,
@@ -15,7 +15,7 @@ export enum ChainId {
   CELO_ALFAJORES = 44787,
   GNOSIS = 100,
   MOONBEAM = 1284,
-  BSC = 56,
+  BNB = 56,
 }
 
 // WIP: Gnosis, Moonbeam
@@ -27,17 +27,17 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.ARBITRUM_GOERLI,
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
-  ChainId.GÖRLI,
+  ChainId.GOERLI,
   ChainId.SEPOLIA,
   ChainId.CELO_ALFAJORES,
   ChainId.CELO,
-  ChainId.BSC,
+  ChainId.BNB,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
 export const V2_SUPPORTED = [
   ChainId.MAINNET,
-  ChainId.GÖRLI,
+  ChainId.GOERLI,
   ChainId.SEPOLIA,
 ];
 
@@ -50,7 +50,7 @@ export const HAS_L1_FEE = [
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
   ChainId.MAINNET,
-  ChainId.GÖRLI,
+  ChainId.GOERLI,
   ChainId.OPTIMISM,
   ChainId.ARBITRUM_ONE,
   ChainId.POLYGON,
@@ -62,11 +62,11 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
     case 1:
       return ChainId.MAINNET;
     case 5:
-      return ChainId.GÖRLI;
+      return ChainId.GOERLI;
     case 11155111:
       return ChainId.SEPOLIA;
     case 56:
-      return ChainId.BSC;
+      return ChainId.BNB;
     case 10:
       return ChainId.OPTIMISM;
     case 420:
@@ -94,7 +94,7 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
 
 export enum ChainName {
   MAINNET = 'mainnet',
-  GÖRLI = 'goerli',
+  GOERLI = 'goerli',
   SEPOLIA = 'sepolia',
   OPTIMISM = 'optimism-mainnet',
   OPTIMISM_GOERLI = 'optimism-goerli',
@@ -106,7 +106,7 @@ export enum ChainName {
   CELO_ALFAJORES = 'celo-alfajores',
   GNOSIS = 'gnosis-mainnet',
   MOONBEAM = 'moonbeam-mainnet',
-  BSC = 'bsc-mainnet',
+  BNB = 'bnb-mainnet',
 }
 
 
@@ -125,7 +125,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
-  [ChainId.GÖRLI]: [
+  [ChainId.GOERLI]: [
     'ETH',
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -166,7 +166,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.CELO_ALFAJORES]: ['CELO'],
   [ChainId.GNOSIS]: ['XDAI'],
   [ChainId.MOONBEAM]: ['GLMR'],
-  [ChainId.BSC]: [
+  [ChainId.BNB]: [
     'BNB',
     'BNB',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -175,7 +175,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.MAINNET]: NativeCurrencyName.ETHER,
-  [ChainId.GÖRLI]: NativeCurrencyName.ETHER,
+  [ChainId.GOERLI]: NativeCurrencyName.ETHER,
   [ChainId.SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.OPTIMISM]: NativeCurrencyName.ETHER,
   [ChainId.OPTIMISM_GOERLI]: NativeCurrencyName.ETHER,
@@ -187,7 +187,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.CELO_ALFAJORES]: NativeCurrencyName.CELO,
   [ChainId.GNOSIS]: NativeCurrencyName.GNOSIS,
   [ChainId.MOONBEAM]: NativeCurrencyName.MOONBEAM,
-  [ChainId.BSC]: NativeCurrencyName.BNB,
+  [ChainId.BNB]: NativeCurrencyName.BNB,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -195,11 +195,11 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
     case 1:
       return ChainName.MAINNET;
     case 5:
-      return ChainName.GÖRLI;
+      return ChainName.GOERLI;
     case 11155111:
       return ChainName.SEPOLIA;
     case 56:
-      return ChainName.BSC;
+      return ChainName.BNB;
     case 10:
       return ChainName.OPTIMISM;
     case 420:
@@ -233,7 +233,7 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
   switch (id) {
     case ChainId.MAINNET:
       return process.env.JSON_RPC_PROVIDER!;
-    case ChainId.GÖRLI:
+    case ChainId.GOERLI:
       return process.env.JSON_RPC_PROVIDER_GORLI!;
     case ChainId.SEPOLIA:
       return process.env.JSON_RPC_PROVIDER_SEPOLIA!;
@@ -253,8 +253,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_CELO!;
     case ChainId.CELO_ALFAJORES:
       return process.env.JSON_RPC_PROVIDER_CELO_ALFAJORES!;
-    case ChainId.BSC:
-      return process.env.JSON_RPC_PROVIDER_BSC!;
+    case ChainId.BNB:
+      return process.env.JSON_RPC_PROVIDER_BNB!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -268,7 +268,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.GÖRLI]: new Token(
+  [ChainId.GOERLI]: new Token(
     5,
     '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
     18,
@@ -282,7 +282,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.BSC]: new Token(
+  [ChainId.BNB]: new Token(
     56,
     '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
     18,
@@ -439,8 +439,8 @@ class GnosisNativeCurrency extends NativeCurrency {
   }
 }
 
-function isBsc(chainId: number): chainId is ChainId.BSC {
-  return chainId === ChainId.BSC;
+function isBsc(chainId: number): chainId is ChainId.BNB {
+  return chainId === ChainId.BNB;
 }
 
 class BscNativeCurrency extends NativeCurrency {
