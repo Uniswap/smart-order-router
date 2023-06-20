@@ -5,7 +5,8 @@ import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
 export const BNB_TICK_LENS_ADDRESS = CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].tickLensAddress;
 export const BNB_NONFUNGIBLE_POSITION_MANAGER_ADDRESS = CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].nonfungiblePositionManagerAddress;
-export const BNB_SWAP_ROUTER_02_ADDRESS = CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].swapRouter02Address;
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+export const BNB_SWAP_ROUTER_02_ADDRESS = CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].swapRouter02Address!;
 export const BNB_V3_MIGRATOR_ADDRESS = CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].v3MigratorAddress;
 
 export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
@@ -49,7 +50,7 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
-export const SWAP_ROUTER_02_ADDRESSES = (chainId: number) => {
+export const SWAP_ROUTER_02_ADDRESSES = (chainId: number) : string => {
   if (chainId == ChainId.BNB) {
     return BNB_SWAP_ROUTER_02_ADDRESS;
   }
