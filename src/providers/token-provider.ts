@@ -94,36 +94,36 @@ export const DAI_SEPOLIA = new Token(
   'DAI',
   'DAI Token'
 );
-export const USDC_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const USDC_GOERLI = new Token(
+  ChainId.GOERLI,
   '0x07865c6e87b9f70255377e024ace6630c1eaa37f',
   6,
   'USDC',
   'USD//C'
 );
-export const USDT_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const USDT_GOERLI = new Token(
+  ChainId.GOERLI,
   '0xe583769738b6dd4e7caf8451050d1948be717679',
   18,
   'USDT',
   'Tether USD'
 );
-export const WBTC_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const WBTC_GOERLI = new Token(
+  ChainId.GOERLI,
   '0xa0a5ad2296b38bd3e3eb59aaeaf1589e8d9a29a9',
   8,
   'WBTC',
   'Wrapped BTC'
 );
-export const DAI_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const DAI_GOERLI = new Token(
+  ChainId.GOERLI,
   '0x11fe4b6ae13d2a6055c8d9cf65c55bac32b5d844',
   18,
   'DAI',
   'Dai Stablecoin'
 );
-export const UNI_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const UNI_GOERLI = new Token(
+  ChainId.GOERLI,
   '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
   18,
   'UNI',
@@ -317,48 +317,48 @@ export const WETH_POLYGON_MUMBAI = new Token(
 );
 
 // BNB chain Tokens
-export const BTC_BSC = new Token(
-  ChainId.BSC,
+export const BTC_BNB = new Token(
+  ChainId.BNB,
   '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
   18,
   'BTCB',
   'Binance BTC'
 );
 
-export const BUSD_BSC = new Token(
-  ChainId.BSC,
+export const BUSD_BNB = new Token(
+  ChainId.BNB,
   '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
   18,
   'BUSD',
   'BUSD'
 );
 
-export const DAI_BSC = new Token(
-  ChainId.BSC,
+export const DAI_BNB = new Token(
+  ChainId.BNB,
   '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3',
   18,
   'DAI',
   'DAI'
 );
 
-export const ETH_BSC = new Token(
-  ChainId.BSC,
+export const ETH_BNB = new Token(
+  ChainId.BNB,
   '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
   18,
   'ETH',
   'ETH'
 );
 
-export const USDC_BSC = new Token(
-  ChainId.BSC,
+export const USDC_BNB = new Token(
+  ChainId.BNB,
   '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
   18,
   'USDC',
   'USDC'
 );
 
-export const USDT_BSC = new Token(
-  ChainId.BSC,
+export const USDT_BNB = new Token(
+  ChainId.BNB,
   '0x55d398326f99059fF775485246999027B3197955',
   18,
   'USDT',
@@ -649,8 +649,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return DAI_MAINNET;
-    case ChainId.GÖRLI:
-      return DAI_GÖRLI;
+    case ChainId.GOERLI:
+      return DAI_GOERLI;
     case ChainId.SEPOLIA:
       return DAI_SEPOLIA;
     case ChainId.OPTIMISM:
@@ -671,8 +671,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_CELO_ALFAJORES;
     case ChainId.MOONBEAM:
       return DAI_MOONBEAM;
-    case ChainId.BSC:
-      return DAI_BSC;
+    case ChainId.BNB:
+      return DAI_BNB;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -682,16 +682,16 @@ export const USDT_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return USDT_MAINNET;
-    case ChainId.GÖRLI:
-      return USDT_GÖRLI;
+    case ChainId.GOERLI:
+      return USDT_GOERLI;
     case ChainId.OPTIMISM:
       return USDT_OPTIMISM;
     case ChainId.OPTIMISM_GOERLI:
       return USDT_OPTIMISM_GOERLI;
     case ChainId.ARBITRUM_ONE:
       return USDT_ARBITRUM;
-    case ChainId.BSC:
-      return USDT_BSC;
+    case ChainId.BNB:
+      return USDT_BNB;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -701,8 +701,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return USDC_MAINNET;
-    case ChainId.GÖRLI:
-      return USDC_GÖRLI;
+    case ChainId.GOERLI:
+      return USDC_GOERLI;
     case ChainId.SEPOLIA:
       return USDC_SEPOLIA;
     case ChainId.OPTIMISM:
@@ -721,8 +721,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ETHEREUM_GNOSIS;
     case ChainId.MOONBEAM:
       return USDC_MOONBEAM;
-    case ChainId.BSC:
-      return USDC_BSC;
+    case ChainId.BNB:
+      return USDC_BNB;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

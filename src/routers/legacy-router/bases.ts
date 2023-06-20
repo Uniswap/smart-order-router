@@ -2,14 +2,14 @@
 import { Token } from '@uniswap/sdk-core';
 
 import {
-  BTC_BSC,
-  BUSD_BSC,
-  DAI_BSC,
+  BTC_BNB,
+  BUSD_BNB,
+  DAI_BNB,
   DAI_MAINNET,
   ITokenProvider,
-  USDC_BSC,
+  USDC_BNB,
   USDC_MAINNET,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   WBTC_MAINNET,
   WMATIC_POLYGON,
@@ -33,7 +33,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       USDT_MAINNET,
       WBTC_MAINNET,
     ],
-    [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
+    [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
     [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
     [ChainId.OPTIMISM]: [WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!],
     [ChainId.OPTIMISM_GOERLI]: [
@@ -49,13 +49,13 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     [ChainId.CELO_ALFAJORES]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO_ALFAJORES]],
     [ChainId.GNOSIS]: [WRAPPED_NATIVE_CURRENCY[ChainId.GNOSIS]],
     [ChainId.MOONBEAM]: [WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM]],
-    [ChainId.BSC]: [
-      WRAPPED_NATIVE_CURRENCY[ChainId.BSC]!,
-      BUSD_BSC,
-      DAI_BSC,
-      USDC_BSC,
-      USDT_BSC,
-      BTC_BSC,
+    [ChainId.BNB]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.BNB]!,
+      BUSD_BNB,
+      DAI_BNB,
+      USDC_BNB,
+      USDT_BNB,
+      BTC_BNB,
     ],
   };
 };
