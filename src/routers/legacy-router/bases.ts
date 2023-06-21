@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 
 import {
   BTC_BNB,
   BUSD_BNB,
+  DAI_AVAX,
   DAI_BNB,
   DAI_MAINNET,
   ITokenProvider,
+  USDC_AVAX,
   USDC_BNB,
   USDC_MAINNET,
   USDT_BNB,
@@ -16,7 +18,7 @@ import {
   WMATIC_POLYGON_MUMBAI,
 
 } from '../../providers/token-provider';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -57,6 +59,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       USDT_BNB,
       BTC_BNB,
     ],
+    [ChainId.AVALANCHE]: [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!, USDC_AVAX, DAI_AVAX],
   };
 };
 

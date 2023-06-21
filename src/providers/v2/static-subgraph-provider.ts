@@ -1,8 +1,8 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
   DAI_MAINNET,
@@ -27,7 +27,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
   [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
-  //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam] and their testnets
+  //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
   [ChainId.OPTIMISM]: [],
   [ChainId.ARBITRUM_ONE]: [],
   [ChainId.ARBITRUM_GOERLI]: [],
@@ -39,6 +39,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.GNOSIS]: [],
   [ChainId.MOONBEAM]: [],
   [ChainId.BNB]: [],
+  [ChainId.AVALANCHE]: [],
 };
 
 /**

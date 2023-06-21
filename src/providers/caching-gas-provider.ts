@@ -1,4 +1,5 @@
-import { ChainId } from '../util/chains';
+import { ChainId } from '@uniswap/sdk-core';
+
 import { log } from '../util/log';
 
 import { ICache } from './cache';

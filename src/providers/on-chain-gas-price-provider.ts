@@ -1,4 +1,4 @@
-import { ChainId } from '../util/chains';
+import { ChainId } from '@uniswap/sdk-core';
 
 import { EIP1559GasPriceProvider } from './eip-1559-gas-price-provider';
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';

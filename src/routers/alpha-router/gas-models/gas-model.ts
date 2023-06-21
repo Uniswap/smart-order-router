@@ -1,11 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 
+import { Pool } from '@uniswap/v3-sdk';
 import { ProviderConfig } from '../../../providers/provider';
 import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
+  DAI_AVAX,
   DAI_BNB,
   DAI_GOERLI,
   DAI_MAINNET,
@@ -15,6 +17,7 @@ import {
   DAI_SEPOLIA,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
+  USDC_AVAX,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
@@ -35,14 +38,13 @@ import {
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { ArbitrumGasData, IL2GasDataProvider, OptimismGasData, } from '../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { ChainId } from '../../../util/chains';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
-import { Pool } from '@uniswap/v3-sdk';
+
 
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
@@ -63,6 +65,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
   [ChainId.BNB]: [USDT_BNB, USDC_BNB, DAI_BNB],
+  [ChainId.AVALANCHE]: [USDC_AVAX, DAI_AVAX],
 };
 
 export type L1ToL2GasCosts = {

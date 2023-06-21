@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { unparseFeeAmount } from '../../util/amounts';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
 import {
@@ -19,6 +19,7 @@ import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
+  DAI_AVAX,
   DAI_BNB,
   DAI_CELO,
   DAI_CELO_ALFAJORES,
@@ -32,6 +33,7 @@ import {
   OP_OPTIMISM,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
+  USDC_AVAX,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
@@ -141,6 +143,11 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDT_BNB,
     BTC_BNB,
     ETH_BNB,
+  ],
+  [ChainId.AVALANCHE]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE],
+    USDC_AVAX,
+    DAI_AVAX,
   ],
   [ChainId.MOONBEAM]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],

@@ -1,14 +1,14 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import { ChainId } from '../../util/chains';
+import { metric, MetricLoggerUnit } from '../../util';
 import { log } from '../../util/log';
 
 import { ICache } from './../cache';
 import { ProviderConfig } from './../provider';
 import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
-import { metric, MetricLoggerUnit } from '../../util';
+
 
 /**
  * Provider for getting V3 pools, with functionality for caching the results.

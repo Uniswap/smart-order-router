@@ -1,8 +1,8 @@
+import { ChainId } from '@uniswap/sdk-core';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import axios from 'axios';
 
-import { ChainId } from '../util/chains';
 import { log } from '../util/log';
 
 import { V2SubgraphPool } from './v2/subgraph-provider';

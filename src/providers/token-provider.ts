@@ -1,11 +1,11 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber } from '@ethersproject/bignumber';
 import { parseBytes32String } from '@ethersproject/strings';
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { IMulticallProvider, Result } from './multicall-provider';
 import { ProviderConfig } from './provider';
@@ -430,6 +430,23 @@ export const CEUR_CELO_ALFAJORES = new Token(
   'Celo Euro Stablecoin'
 );
 
+// Avalanche Tokens
+export const DAI_AVAX = new Token(
+  ChainId.AVALANCHE,
+  '0xd586E7F844cEa2F87f50152665BCbc2C279D8d70',
+  18,
+  'DAI.e',
+  'DAI.e Token'
+);
+
+export const USDC_AVAX = new Token(
+  ChainId.AVALANCHE,
+  '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
 // Gnosis Tokens
 export const USDC_ETHEREUM_GNOSIS = new Token(
   ChainId.GNOSIS,
@@ -673,6 +690,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_MOONBEAM;
     case ChainId.BNB:
       return DAI_BNB;
+    case ChainId.AVALANCHE:
+      return DAI_AVAX;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -723,6 +742,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_MOONBEAM;
     case ChainId.BNB:
       return USDC_BNB;
+    case ChainId.AVALANCHE:
+      return USDC_AVAX;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

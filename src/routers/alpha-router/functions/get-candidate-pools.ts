@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { Token, TradeType } from '@uniswap/sdk-core';
+import {ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
@@ -12,6 +12,7 @@ import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
+  DAI_AVAX,
   DAI_BNB,
   DAI_MAINNET,
   DAI_MOONBEAM,
@@ -23,6 +24,7 @@ import {
   ITokenProvider,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
+  USDC_AVAX,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
@@ -50,7 +52,7 @@ import {
 import { IV2PoolProvider, V2PoolAccessor, } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider, V3PoolAccessor, } from '../../../providers/v3/pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool, } from '../../../providers/v3/subgraph-provider';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -164,6 +166,10 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     DAI_BNB,
     USDC_BNB,
     USDT_BNB,
+  ],
+  [ChainId.AVALANCHE]: [
+    DAI_AVAX,
+    USDC_AVAX,
   ],
 };
 

@@ -1,10 +1,10 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-import { ChainId, log } from '../../util';
+import { log } from '../../util';
 import { ProviderConfig } from '../provider';
 import { V2SubgraphPool } from '../v2/subgraph-provider';
 

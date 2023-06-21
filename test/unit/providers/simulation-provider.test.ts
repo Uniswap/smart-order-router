@@ -1,10 +1,9 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Trade } from '@uniswap/router-sdk';
-import { Percent, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Percent, TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
 import sinon from 'sinon';
 import {
-  ChainId,
   CurrencyAmount,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,

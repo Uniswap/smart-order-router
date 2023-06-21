@@ -1,7 +1,7 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { ICache } from './cache';
 import {
@@ -13,6 +13,7 @@ import {
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_ARBITRUM,
+  DAI_AVAX,
   DAI_BNB,
   DAI_CELO,
   DAI_CELO_ALFAJORES,
@@ -26,6 +27,7 @@ import {
   TokenAccessor,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
+  USDC_AVAX,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
@@ -132,7 +134,11 @@ export const CACHE_SEED_TOKENS: {
     BTC: BTC_BNB,
     WBNB: WRAPPED_NATIVE_CURRENCY[ChainId.BNB],
   },
-
+  [ChainId.AVALANCHE]: {
+    USDC: USDC_AVAX,
+    DAI: DAI_AVAX,
+    WAVAX: WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE],
+  },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };
 

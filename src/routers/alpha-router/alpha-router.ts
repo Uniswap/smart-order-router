@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
-import { Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
@@ -42,6 +42,7 @@ import {
 } from '../../providers';
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
+import { ProviderConfig } from '../../providers/provider';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
 import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
@@ -57,7 +58,11 @@ import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
-import { ChainId, ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
+import { ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
+import {
+  getHighestLiquidityV3NativePool,
+  getHighestLiquidityV3USDPool
+} from '../../util/gas-factory-helpers';
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
@@ -96,11 +101,6 @@ import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixe
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
-import { ProviderConfig } from '../../providers/provider';
-import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool
-} from '../../util/gas-factory-helpers';
 
 export type AlphaRouterParams = {
   /**

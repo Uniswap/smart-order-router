@@ -1,6 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-
-import { ChainId } from '../../../..';
+import { ChainId } from '@uniswap/sdk-core';
 
 // Cost for crossing an uninitialized tick.
 export const COST_PER_UNINIT_TICK = BigNumber.from(0);
@@ -14,6 +13,7 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
     case ChainId.BNB:
+    case ChainId.AVALANCHE:
       return BigNumber.from(2000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
@@ -39,6 +39,7 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
     case ChainId.GOERLI:
     case ChainId.SEPOLIA:
     case ChainId.BNB:
+    case ChainId.AVALANCHE:
       return BigNumber.from(31000);
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
@@ -67,6 +68,7 @@ export const COST_PER_HOP = (id: ChainId): BigNumber => {
     case ChainId.BNB:
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
+    case ChainId.AVALANCHE:
       return BigNumber.from(80000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
