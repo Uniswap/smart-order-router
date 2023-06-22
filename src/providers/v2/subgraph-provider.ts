@@ -147,6 +147,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                 },
               }
             );
+            log.info(`Completed page. Total pools so far ${pairs.length}, pools this page ${pairsPage.length}`);
           } while (pairsPage.length > 0);
 
           return pairs;
@@ -156,6 +157,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         try {
           const getPoolsPromise = getPools();
           const timerPromise = timeout.set(this.timeout).then(() => {
+            log.error('Process timed out.');
             throw new Error(
               `Timed out getting pools from subgraph: ${this.timeout}`
             );
