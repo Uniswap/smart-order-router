@@ -505,7 +505,7 @@ describe('alpha router', () => {
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
         })
-      ).toBeTruthy();
+      ).toBeFalsy();
       expect(
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
@@ -527,13 +527,13 @@ describe('alpha router', () => {
         sinon.match({ blockNumber: sinon.match.defined })
       );
       /// V3, then mixedRoutes
-      sinon.assert.callCount(mockOnChainQuoteProvider.getQuotesManyExactIn, 2);
-      sinon.assert.calledWith(
+      sinon.assert.callCount(mockOnChainQuoteProvider.getQuotesManyExactIn, 1);
+      sinon.assert.notCalled(
         mockV2QuoteProvider.getQuotesManyExactIn,
-        sinon.match((value) => {
-          return value instanceof Array && value.length == 4;
-        }),
-        sinon.match.array
+        // sinon.match((value) => {
+        //   return value instanceof Array && value.length == 4;
+        // }),
+        // sinon.match.array
       );
       sinon.assert.notCalled(mockOnChainQuoteProvider.getQuotesManyExactOut);
 
@@ -569,10 +569,10 @@ describe('alpha router', () => {
 
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V3)
-      ).toHaveLength(1);
+      ).toHaveLength(2);
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
-      ).toHaveLength(1);
+      ).toHaveLength(0);
 
       expect(
         _(swap!.route)
@@ -587,7 +587,7 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
 
-    test('find a favorable mixedRoute while routing across V2,V3,Mixed protocols', async () => {
+    test('find a favorable while routing across V3', async () => {
       mockV2QuoteProvider.getQuotesManyExactIn.callsFake(
         async (amountIns: CurrencyAmount[], routes: V2Route[]) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -734,12 +734,12 @@ describe('alpha router', () => {
         })
       ).toBeTruthy();
 
-      sinon.assert.calledWith(
+      sinon.assert.notCalled(
         mockV2QuoteProvider.getQuotesManyExactIn,
-        sinon.match((value) => {
-          return value instanceof Array && value.length == 4;
-        }),
-        sinon.match.array
+        // sinon.match((value) => {
+        //   return value instanceof Array && value.length == 4;
+        // }),
+        // sinon.match.array
       );
 
       sinon.assert.calledWith(
@@ -804,7 +804,7 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
 
-    test('succeeds to route across V2,V3 when V2,V3 are specified', async () => {
+    test('succeeds to route across V3 when V2,V3 are specified', async () => {
       // Mock the quote providers so that for each protocol, one route and one
       // amount less than 100% of the input gives a huge quote.
       // Ensures a split route.
@@ -905,7 +905,7 @@ describe('alpha router', () => {
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
         })
-      ).toBeTruthy();
+      ).toBeFalsy();
 
       sinon.assert.calledWith(
         mockOnChainQuoteProvider.getQuotesManyExactIn,
@@ -917,12 +917,12 @@ describe('alpha router', () => {
       );
       /// Should not be calling onChainQuoteProvider for mixedRoutes
       sinon.assert.callCount(mockOnChainQuoteProvider.getQuotesManyExactIn, 1);
-      sinon.assert.calledWith(
+      sinon.assert.notCalled(
         mockV2QuoteProvider.getQuotesManyExactIn,
-        sinon.match((value) => {
-          return value instanceof Array && value.length == 4;
-        }),
-        sinon.match.array
+        // sinon.match((value) => {
+        //   return value instanceof Array && value.length == 4;
+        // }),
+        // sinon.match.array
       );
 
       for (const r of swap!.route) {
@@ -957,10 +957,10 @@ describe('alpha router', () => {
 
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V3)
-      ).toHaveLength(1);
+      ).toHaveLength(2);
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
-      ).toHaveLength(1);
+      ).toHaveLength(0);
 
       expect(
         _(swap!.route)
@@ -1070,7 +1070,7 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
 
-    test('succeeds to route on v2 only', async () => {
+    test('fails to route on v2 only', async () => {
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(USDC, 10000),
         WRAPPED_NATIVE_CURRENCY[1],
@@ -1090,49 +1090,52 @@ describe('alpha router', () => {
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
         })
-      ).toBeTruthy();
+      ).toBeFalsy();
 
-      sinon.assert.calledWith(
+      sinon.assert.notCalled(
         mockV2QuoteProvider.getQuotesManyExactIn,
-        sinon.match((value) => {
-          return value instanceof Array && value.length == 4;
-        }),
-        sinon.match.array
+        // sinon.match((value) => {
+        //   return value instanceof Array && value.length == 4;
+        // }),
+        // sinon.match.array
       );
 
-      expect(
-        swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
-      ).toBeTruthy();
-      expect(
-        swap!.quoteGasAdjusted.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
-      ).toBeTruthy();
+      expect(swap).toBeNull();
 
-      for (const r of swap!.route) {
-        expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(
-          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
-        ).toBeTruthy();
-      }
+      // Commented out because we disabled support for v2
+      // expect(
+      //   swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      // ).toBeTruthy();
+      // expect(
+      //   swap!.quoteGasAdjusted.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      // ).toBeTruthy();
 
-      expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
-      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
-      expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
-      ).toBeTruthy();
-      expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
-      ).toBeTruthy();
-      expect(swap!.gasPriceWei.toString()).toEqual(
-        mockGasPriceWeiBN.toString()
-      );
-      expect(swap!.route).toHaveLength(1);
-      expect(swap!.trade).toBeDefined();
-      expect(swap!.methodParameters).not.toBeDefined();
-      expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
+      // for (const r of swap!.route) {
+      //   expect(r.route.input.equals(USDC)).toBeTruthy();
+      //   expect(
+      //     r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+      //   ).toBeTruthy();
+      // }
+
+      // expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
+      // expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      // expect(
+      //   swap!.estimatedGasUsedQuoteToken.currency.equals(
+      //     WRAPPED_NATIVE_CURRENCY[1]
+      //   )
+      // ).toBeTruthy();
+      // expect(
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      // ).toBeTruthy();
+      // expect(swap!.gasPriceWei.toString()).toEqual(
+      //   mockGasPriceWeiBN.toString()
+      // );
+      // expect(swap!.route).toHaveLength(1);
+      // expect(swap!.trade).toBeDefined();
+      // expect(swap!.methodParameters).not.toBeDefined();
+      // expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
 
     test('succeeds to route on mixed only', async () => {
@@ -1211,7 +1214,7 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
 
-    test('finds a route with no protocols specified and forceMixedRoutes is true', async () => {
+    test('does not find a route when no protocols specified and forceMixedRoutes is true', async () => {
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(USDC, 10000),
         WRAPPED_NATIVE_CURRENCY[1],
@@ -1224,9 +1227,7 @@ describe('alpha router', () => {
       );
       expect(swap).toBeDefined();
       expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
-      expect(
-        swap!.route.every((route) => route.protocol === Protocol.MIXED)
-      ).toBeTruthy();
+      expect(swap).toBeNull();
     });
 
     test('finds a route with V2,V3,Mixed protocols specified and forceMixedRoutes is true', async () => {
@@ -1472,7 +1473,7 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
-    test('succeeds to route and generates calldata on v2 only', async () => {
+    test('fails to route and generate calldata on v2', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
@@ -1499,49 +1500,52 @@ describe('alpha router', () => {
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
         })
-      ).toBeTruthy();
+      ).toBeFalsy();
 
-      sinon.assert.calledWith(
+      sinon.assert.notCalled(
         mockV2QuoteProvider.getQuotesManyExactIn,
-        sinon.match((value) => {
-          return value instanceof Array && value.length == 4;
-        }),
-        sinon.match.array
+        // sinon.match((value) => {
+        //   return value instanceof Array && value.length == 4;
+        // }),
+        // sinon.match.array
       );
 
-      expect(
-        swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
-      ).toBeTruthy();
-      expect(
-        swap!.quoteGasAdjusted.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
-      ).toBeTruthy();
+      expect(swap).toBeNull();
 
-      for (const r of swap!.route) {
-        expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(
-          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
-        ).toBeTruthy();
-      }
+      // Commented out because we disabled support for v2
+      // expect(
+      //   swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      // ).toBeTruthy();
+      // expect(
+      //   swap!.quoteGasAdjusted.currency.equals(WRAPPED_NATIVE_CURRENCY[1])
+      // ).toBeTruthy();
 
-      expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
-      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
-      expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(
-          WRAPPED_NATIVE_CURRENCY[1]
-        )
-      ).toBeTruthy();
-      expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
-      ).toBeTruthy();
-      expect(swap!.gasPriceWei.toString()).toEqual(
-        mockGasPriceWeiBN.toString()
-      );
-      expect(swap!.route).toHaveLength(1);
-      expect(swap!.trade).toBeDefined();
-      expect(swap!.methodParameters).toBeDefined();
-      expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
+      // for (const r of swap!.route) {
+      //   expect(r.route.input.equals(USDC)).toBeTruthy();
+      //   expect(
+      //     r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+      //   ).toBeTruthy();
+      // }
+
+      // expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
+      // expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      // expect(
+      //   swap!.estimatedGasUsedQuoteToken.currency.equals(
+      //     WRAPPED_NATIVE_CURRENCY[1]
+      //   )
+      // ).toBeTruthy();
+      // expect(
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      // ).toBeTruthy();
+      // expect(swap!.gasPriceWei.toString()).toEqual(
+      //   mockGasPriceWeiBN.toString()
+      // );
+      // expect(swap!.route).toHaveLength(1);
+      // expect(swap!.trade).toBeDefined();
+      // expect(swap!.methodParameters).toBeDefined();
+      // expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
     test('succeeds to route and generates calldata on mixed only', async () => {
@@ -1773,7 +1777,7 @@ describe('alpha router', () => {
   });
 
   describe('exact out', () => {
-    test('succeeds to route across all protocols', async () => {
+    test('succeeds to route across only supported protocols', async () => {
       // Mock the quote providers so that for each protocol, one route and one
       // amount less than 100% of the input gives a huge quote.
       // Ensures a split route.
@@ -1871,7 +1875,7 @@ describe('alpha router', () => {
           poolProvider: sinon.match.any,
           token: USDC,
         })
-      ).toBeTruthy();
+      ).toBeFalsy();
       expect(
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
@@ -1894,12 +1898,12 @@ describe('alpha router', () => {
         sinon.match.array,
         sinon.match({ blockNumber: sinon.match.defined })
       );
-      sinon.assert.calledWith(
+      sinon.assert.notCalled(
         mockV2QuoteProvider.getQuotesManyExactOut,
-        sinon.match((value) => {
-          return value instanceof Array && value.length == 4;
-        }),
-        sinon.match.array
+        // sinon.match((value) => {
+        //   return value instanceof Array && value.length == 4;
+        // }),
+        // sinon.match.array
       );
 
       expect(swap!.quote.currency.equals(USDC)).toBeTruthy();
@@ -1929,10 +1933,10 @@ describe('alpha router', () => {
 
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V3)
-      ).toHaveLength(1);
+      ).toHaveLength(2);
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
-      ).toHaveLength(1);
+      ).toHaveLength(0);
 
       expect(
         _(swap!.route)
@@ -2014,7 +2018,7 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
-    test('succeeds to route on v2 only', async () => {
+    test('fails to route on v2 only', async () => {
       const swap = await alphaRouter.route(
         CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000),
         USDC,
@@ -2033,7 +2037,7 @@ describe('alpha router', () => {
           poolProvider: sinon.match.any,
           token: USDC,
         })
-      ).toBeTruthy();
+      ).toBeFalsy();
       expect(
         mockV2QuoteProvider.getQuotesManyExactOut.calledWith(
           sinon.match((value) => {
@@ -2041,35 +2045,38 @@ describe('alpha router', () => {
           }),
           sinon.match.array
         )
-      ).toBeTruthy();
+      ).toBeFalsy();
 
-      expect(swap!.quote.currency.equals(USDC)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(USDC)).toBeTruthy();
+      expect(swap).toBeNull();
+      
+      // Commented out because we disabled support for v2
+      // expect(swap!.quote.currency.equals(USDC)).toBeFalsy();
+      // expect(swap!.quoteGasAdjusted.currency.equals(USDC)).toBeFalsy();
 
-      for (const r of swap!.route) {
-        expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(
-          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
-        ).toBeTruthy();
-      }
+      // for (const r of swap!.route) {
+      //   expect(r.route.input.equals(USDC)).toBeFalsy();
+      //   expect(
+      //     r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+      //   ).toBeFalsy();
+      // }
 
-      expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeTruthy();
-      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
-      expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
-      ).toBeTruthy();
-      expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
-      ).toBeTruthy();
-      expect(swap!.gasPriceWei.toString()).toEqual(
-        mockGasPriceWeiBN.toString()
-      );
-      expect(swap!.route).toHaveLength(1);
-      expect(swap!.trade).toBeDefined();
-      expect(swap!.methodParameters).not.toBeDefined();
-      expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
+      // expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeFalsy();
+      // expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      // expect(
+      //   swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
+      // ).toBeFalsy();
+      // expect(
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      // ).toBeFalsy();
+      // expect(swap!.gasPriceWei.toString()).toEqual(
+      //   mockGasPriceWeiBN.toString()
+      // );
+      // expect(swap!.route).toHaveLength(0);
+      // expect(swap!.trade).toBeUndefined();
+      // expect(swap!.methodParameters).not.toBeUndefined();
+      // expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
     test('is null with mixed only', async () => {
@@ -2085,7 +2092,7 @@ describe('alpha router', () => {
       sinon.assert.notCalled(mockOnChainQuoteProvider.getQuotesManyExactOut);
     });
 
-    test('succeeds to route and generates calldata on v2 only', async () => {
+    test('fails to route and generate calldata on v2 only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
@@ -2112,7 +2119,7 @@ describe('alpha router', () => {
           poolProvider: sinon.match.any,
           token: USDC,
         })
-      ).toBeTruthy();
+      ).toBeFalsy();
       expect(
         mockV2QuoteProvider.getQuotesManyExactOut.calledWith(
           sinon.match((value) => {
@@ -2120,36 +2127,39 @@ describe('alpha router', () => {
           }),
           sinon.match.array
         )
-      ).toBeTruthy();
+      ).toBeFalsy();
 
-      expect(swap!.quote.currency.equals(USDC)).toBeTruthy();
-      expect(swap!.quoteGasAdjusted.currency.equals(USDC)).toBeTruthy();
+      expect(swap).toBeNull();
 
-      for (const r of swap!.route) {
-        expect(r.route.input.equals(USDC)).toBeTruthy();
-        expect(
-          r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
-        ).toBeTruthy();
-      }
+      // Commented out because we disabled support for v2
+      // expect(swap!.quote.currency.equals(USDC)).toBeFalsy();
+      // expect(swap!.quoteGasAdjusted.currency.equals(USDC)).toBeFalsy();
 
-      expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeTruthy();
-      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
-      expect(
-        swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
-      ).toBeTruthy();
-      expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
-      ).toBeTruthy();
-      expect(swap!.gasPriceWei.toString()).toEqual(
-        mockGasPriceWeiBN.toString()
-      );
-      expect(swap!.route).toHaveLength(1);
-      expect(swap!.trade).toBeDefined();
-      expect(swap!.methodParameters).toBeDefined();
-      expect(swap!.methodParameters?.to).toBeDefined();
-      expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
+      // for (const r of swap!.route) {
+      //   expect(r.route.input.equals(USDC)).toBeFalsy();
+      //   expect(
+      //     r.route.output.equals(WRAPPED_NATIVE_CURRENCY[1].wrapped)
+      //   ).toBeFalsy();
+      // }
+
+      // expect(swap!.quote.lessThan(swap!.quoteGasAdjusted)).toBeFalsy();
+      // expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      // expect(
+      //   swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
+      // ).toBeFalsy();
+      // expect(
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+      //   swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      // ).toBeFalsy();
+      // expect(swap!.gasPriceWei.toString()).toEqual(
+      //   mockGasPriceWeiBN.toString()
+      // );
+      // expect(swap!.route).toHaveLength(0);
+      // expect(swap!.trade).toBeUndefined();
+      // expect(swap!.methodParameters).toBeUndefined();
+      // expect(swap!.methodParameters?.to).toBeUndefined();
+      // expect(swap!.blockNumber.eq(mockBlockBN)).toBeTruthy();
     });
 
     test('succeeds to route and generate calldata and simulates', async () => {
