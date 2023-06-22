@@ -38,7 +38,7 @@ type RawV2SubgraphPool = {
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswapv2',
+    'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-dev',
 };
 
 const threshold = 0.025;
@@ -86,20 +86,20 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       : undefined;
     // Due to limitations with the Subgraph API this is the only way to parameterize the query.
     const query2 = gql`
-      query getPools($pageSize: Int!, $id: String) {
-        pairs(
-          first: $pageSize
-          ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
-        ) {
-          id
-          token0 { id, symbol }
-          token1 { id, symbol }
-          totalSupply
-          trackedReserveETH
-          reserveUSD
+        query getPools($pageSize: Int!, $id: String) {
+            pairs(
+                first: $pageSize
+                ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+                where: { id_gt: $id }
+            ) {
+                id
+                token0 { id, symbol }
+                token1 { id, symbol }
+                totalSupply
+                trackedReserveETH
+                reserveUSD
+            }
         }
-      }
     `;
 
     let pools: RawV2SubgraphPool[] = [];
