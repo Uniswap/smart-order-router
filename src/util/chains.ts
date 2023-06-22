@@ -1,27 +1,28 @@
 import { ChainId, Currency, Ether, NativeCurrency, Token } from '@uniswap/sdk-core';
 
-// WIP: Gnosis, Moonbeam
+// Only support POLYGON and POLYGON_MUMBAI for now and disable the rest
 export const SUPPORTED_CHAINS: ChainId[] = [
-  ChainId.MAINNET,
-  ChainId.OPTIMISM,
-  ChainId.OPTIMISM_GOERLI,
-  ChainId.ARBITRUM_ONE,
-  ChainId.ARBITRUM_GOERLI,
+  // ChainId.MAINNET,
+  // ChainId.OPTIMISM,
+  // ChainId.OPTIMISM_GOERLI,
+  // ChainId.ARBITRUM_ONE,
+  // ChainId.ARBITRUM_GOERLI,
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
-  ChainId.GOERLI,
-  ChainId.SEPOLIA,
-  ChainId.CELO_ALFAJORES,
-  ChainId.CELO,
-  ChainId.BNB,
-  ChainId.AVALANCHE,
+  // ChainId.GOERLI,
+  // ChainId.SEPOLIA,
+  // ChainId.CELO_ALFAJORES,
+  // ChainId.CELO,
+  // ChainId.BNB,
+  // ChainId.AVALANCHE,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
-export const V2_SUPPORTED = [
-  ChainId.MAINNET,
-  ChainId.GOERLI,
-  ChainId.SEPOLIA,
+// Remove v2 support
+export const V2_SUPPORTED: ChainId[] = [
+  // ChainId.MAINNET,
+  // ChainId.GOERLI,
+  // ChainId.SEPOLIA,
 ];
 
 export const HAS_L1_FEE = [
@@ -31,11 +32,12 @@ export const HAS_L1_FEE = [
   ChainId.ARBITRUM_GOERLI,
 ];
 
+// Only support POLYGON and POLYGON_MUMBAI for now and disable the rest
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
-  ChainId.MAINNET,
-  ChainId.GOERLI,
-  ChainId.OPTIMISM,
-  ChainId.ARBITRUM_ONE,
+  // ChainId.MAINNET,
+  // ChainId.GOERLI,
+  // ChainId.OPTIMISM,
+  // ChainId.ARBITRUM_ONE,
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
 ];
