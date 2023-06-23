@@ -28,7 +28,7 @@ import { routeAmountsToString } from "../util";
 import { Pool } from '@uniswap/v3-sdk'
 
 /*
-  The return codes where modelled after the GRPC return codes
+  The return codes are similar to the GRPC return codes
   which can be found here https://grpc.github.io/grpc/core/md_doc_statuscodes.html
 */
 export enum ReturnCode {
@@ -127,27 +127,16 @@ export class QuoteService {
     })
   }
 
-  static async getQuote(
-    {
+  static async getQuote(request: Models.GetQuoteRequest, quoteId: string): Promise<Response> {
+    const {
       tokenInAddress,
       tokenOutAddress,
       amount: amountRaw,
       chain,
       type,
-      recipient,
-      slippageTolerance,
-      deadline,
       minSplits,
-      simulateFromAddress,
-      permitSignature,
-      permitNonce,
-      permitExpiration,
-      permitAmount,
-      permitSigDeadline,
-      enableUniversalRouter,
-    }: Models.GetQuoteRequest,
-    quoteId: string
-  ): Promise<Response> {
+    } = request;
+
     const chainId = QuoteService.chainToChainId(chain);
     const {router, tokenProvider, provider, v3PoolProvider } = this.routerByChain[chainId] || {};
     if (!router || !tokenProvider || !provider || !v3PoolProvider) {
@@ -191,75 +180,8 @@ export class QuoteService {
         ...(minSplits ? { minSplits } : {}),
         protocols: [Protocol.V3],
       }
-  
-      let swapParams: SwapOptions | undefined = undefined
-  
-      // e.g. Inputs of form "1.25%" with 2dp max. Convert to fractional representation => 1.25 => 125 / 10000
-      if (slippageTolerance && deadline && recipient) {
-        const slippageTolerancePercent = this.parseSlippageTolerance(slippageTolerance)
-  
-        // TODO: Remove once universal router is no longer behind a feature flag.
-        if (enableUniversalRouter) {
-          swapParams = {
-            type: SwapType.UNIVERSAL_ROUTER,
-            deadlineOrPreviousBlockhash: this.parseDeadline(deadline),
-            recipient: recipient,
-            slippageTolerance: slippageTolerancePercent,
-          }
-        } else {
-          swapParams = {
-            type: SwapType.SWAP_ROUTER_02,
-            deadline: this.parseDeadline(deadline),
-            recipient: recipient,
-            slippageTolerance: slippageTolerancePercent,
-          }
-        }
-  
-        if (
-          enableUniversalRouter &&
-          permitSignature &&
-          permitNonce &&
-          permitExpiration &&
-          permitAmount &&
-          permitSigDeadline
-        ) {
-          const permit: PermitSingle = {
-            details: {
-              token: currencyIn.wrapped.address,
-              amount: permitAmount,
-              expiration: permitExpiration,
-              nonce: permitNonce,
-            },
-            // TODO(felix): remove this when we start using our own contracts
-            spender: UNIVERSAL_ROUTER_ADDRESS(chainId),
-            sigDeadline: permitSigDeadline,
-          }
-  
-          swapParams.inputTokenPermit = {
-            ...permit,
-            signature: permitSignature,
-          }
-        } else if (
-          !enableUniversalRouter &&
-          permitSignature &&
-          ((permitNonce && permitExpiration) || (permitAmount && permitSigDeadline))
-        ) {
-          const { v, r, s } = utils.splitSignature(permitSignature)
-  
-          swapParams.inputTokenPermit = {
-            v: v as 0 | 1 | 27 | 28,
-            r,
-            s,
-            ...(permitNonce && permitExpiration
-              ? { nonce: permitNonce!, expiry: permitExpiration! }
-              : { amount: permitAmount!, deadline: permitSigDeadline! }),
-          }
-        }
-  
-        if (simulateFromAddress) {
-          swapParams.simulate = { fromAddress: simulateFromAddress }
-        }
-      }
+
+      const swapParams = this.createSwapParams(request, currencyIn, chainId)
 
       let swapRoute: SwapRoute | null
       let amount: CurrencyAmount<Currency>
@@ -273,87 +195,185 @@ export class QuoteService {
         swapRoute = await router.route(amount, currencyIn, TradeType.EXACT_OUTPUT, swapParams, routingConfig)
       }
 
-      if (!swapRoute) {  
-        return {
-          statusCode: ReturnCode.NOT_FOUND,
-          detail: 'No route found',
+      return this.createQuoteResponse(quoteId, swapRoute, amount, exactIn, v3PoolProvider)
+  }
+
+  static createSwapParams(
+    {
+      recipient,
+      slippageTolerance,
+      deadline,
+      simulateFromAddress,
+      permitSignature,
+      permitNonce,
+      permitExpiration,
+      permitAmount,
+      permitSigDeadline,
+      enableUniversalRouter,
+    }: Models.GetQuoteRequest,
+    currencyIn: Currency,
+    chainId: ChainId
+  ): SwapOptions | undefined {
+
+    let swapParams: SwapOptions | undefined = undefined
+  
+    // e.g. Inputs of form "1.25%" with 2dp max. Convert to fractional representation => 1.25 => 125 / 10000
+    if (slippageTolerance && deadline && recipient) {
+      const slippageTolerancePercent = this.parseSlippageTolerance(slippageTolerance)
+      // TODO(felix): remove this guard
+      if (enableUniversalRouter) {
+        swapParams = {
+          type: SwapType.UNIVERSAL_ROUTER,
+          deadlineOrPreviousBlockhash: this.parseDeadline(deadline),
+          recipient: recipient,
+          slippageTolerance: slippageTolerancePercent,
+        }
+      } else {
+        swapParams = {
+          type: SwapType.SWAP_ROUTER_02,
+          deadline: this.parseDeadline(deadline),
+          recipient: recipient,
+          slippageTolerance: slippageTolerancePercent,
         }
       }
 
-      const {
-        quote,
-        quoteGasAdjusted,
-        route,
-        estimatedGasUsed,
-        estimatedGasUsedQuoteToken,
-        estimatedGasUsedUSD,
-        gasPriceWei,
-        methodParameters,
-        blockNumber,
-        simulationStatus,
-      } = swapRoute
-  
-      const routeResponse: Array<Models.V3PoolInRoute[]> = []
+      if (
+        enableUniversalRouter &&
+        permitSignature &&
+        permitNonce &&
+        permitExpiration &&
+        permitAmount &&
+        permitSigDeadline
+      ) {
+        const permit: PermitSingle = {
+          details: {
+            token: currencyIn.wrapped.address,
+            amount: permitAmount,
+            expiration: permitExpiration,
+            nonce: permitNonce,
+          },
+          // TODO(felix): remove this after deploying new contracts
+          spender: UNIVERSAL_ROUTER_ADDRESS(chainId),
+          sigDeadline: permitSigDeadline,
+        }
 
-      for (const subRoute of route) {
-        const { amount, quote, tokenPath } = subRoute
-  
-        const pools = subRoute.protocol == Protocol.V2 ? subRoute.route.pairs : subRoute.route.pools
-        const curRoute: Models.V3PoolInRoute[] = []
-        for (let i = 0; i < pools.length; i++) {
-          const nextPool = pools[i]
-          const tokenIn = tokenPath[i]
-          const tokenOut = tokenPath[i + 1]
+        swapParams.inputTokenPermit = {
+          ...permit,
+          signature: permitSignature,
+        }
+      } else if (
+        !enableUniversalRouter &&
+        permitSignature &&
+        ((permitNonce && permitExpiration) || (permitAmount && permitSigDeadline))
+      ) {
+        const { v, r, s } = utils.splitSignature(permitSignature)
 
-          if (!tokenIn || !tokenOut) {
-            return {
-              statusCode: ReturnCode.INTERNAL,
-              detail: 'Found invalid token in route',
-            }
-          }
-  
-          let edgeAmountIn: string | undefined = undefined
-          if (i == 0) {
-            edgeAmountIn = exactIn ? amount.quotient.toString() : quote.quotient.toString()
-          }
-  
-          let edgeAmountOut: string | undefined = undefined
-          if (i == pools.length - 1) {
-            edgeAmountOut = exactIn ? quote.quotient.toString() : amount.quotient.toString()
-          }
-  
-          if (nextPool instanceof Pool) {
-            curRoute.push({
-              address: v3PoolProvider.getPoolAddress(nextPool.token0, nextPool.token1, nextPool.fee).poolAddress,
-              tokenIn: {
-                chainId: tokenIn.chainId,
-                decimals: tokenIn.decimals.toString(),
-                address: tokenIn.address,
-                symbol: tokenIn.symbol!,
-              },
-              tokenOut: {
-                chainId: tokenOut.chainId,
-                decimals: tokenOut.decimals.toString(),
-                address: tokenOut.address,
-                symbol: tokenOut.symbol!,
-              },
-              fee: nextPool.fee.toString(),
-              liquidity: nextPool.liquidity.toString(),
-              sqrtRatioX96: nextPool.sqrtRatioX96.toString(),
-              tickCurrent: nextPool.tickCurrent.toString(),
-              amountIn: edgeAmountIn,
-              amountOut: edgeAmountOut,
-            })
-          } else {
-            return {
-              statusCode: ReturnCode.INTERNAL,
-              detail: 'Found a non-V3 pool in the route',
-            }
+        swapParams.inputTokenPermit = {
+          v: v as 0 | 1 | 27 | 28,
+          r,
+          s,
+          ...(permitNonce && permitExpiration
+            ? { nonce: permitNonce!, expiry: permitExpiration! }
+            : { amount: permitAmount!, deadline: permitSigDeadline! }),
+        }
+      }
+
+      if (simulateFromAddress) {
+        swapParams.simulate = { fromAddress: simulateFromAddress }
+      }
+    }
+
+    return swapParams
+  }
+
+  static createQuoteResponse(
+    quoteId: string,
+    swapRoute: SwapRoute | null, 
+    amount: CurrencyAmount<Currency>,
+    exactIn: boolean,
+    v3PoolProvider: IV3PoolProvider
+  ): Response {
+    if (!swapRoute) {  
+      return {
+        statusCode: ReturnCode.NOT_FOUND,
+        detail: 'No route found',
+      }
+    }
+
+    const {
+      quote,
+      quoteGasAdjusted,
+      route,
+      estimatedGasUsed,
+      estimatedGasUsedQuoteToken,
+      estimatedGasUsedUSD,
+      gasPriceWei,
+      methodParameters,
+      blockNumber,
+      simulationStatus,
+    } = swapRoute
+
+    const routeResponse: Array<Models.V3PoolInRoute[]> = []
+
+    for (const subRoute of route) {
+      const { amount, quote, tokenPath } = subRoute
+
+      const pools = subRoute.protocol == Protocol.V2 ? subRoute.route.pairs : subRoute.route.pools
+      const curRoute: Models.V3PoolInRoute[] = []
+      for (let i = 0; i < pools.length; i++) {
+        const nextPool = pools[i]
+        const tokenIn = tokenPath[i]
+        const tokenOut = tokenPath[i + 1]
+
+        if (!tokenIn || !tokenOut) {
+          return {
+            statusCode: ReturnCode.INTERNAL,
+            detail: 'Found invalid token in route',
           }
         }
-  
-        routeResponse.push(curRoute)
+
+        let edgeAmountIn: string | undefined = undefined
+        if (i == 0) {
+          edgeAmountIn = exactIn ? amount.quotient.toString() : quote.quotient.toString()
+        }
+
+        let edgeAmountOut: string | undefined = undefined
+        if (i == pools.length - 1) {
+          edgeAmountOut = exactIn ? quote.quotient.toString() : amount.quotient.toString()
+        }
+
+        if (nextPool instanceof Pool) {
+          curRoute.push({
+            address: v3PoolProvider.getPoolAddress(nextPool.token0, nextPool.token1, nextPool.fee).poolAddress,
+            tokenIn: {
+              chainId: tokenIn.chainId,
+              decimals: tokenIn.decimals.toString(),
+              address: tokenIn.address,
+              symbol: tokenIn.symbol!,
+            },
+            tokenOut: {
+              chainId: tokenOut.chainId,
+              decimals: tokenOut.decimals.toString(),
+              address: tokenOut.address,
+              symbol: tokenOut.symbol!,
+            },
+            fee: nextPool.fee.toString(),
+            liquidity: nextPool.liquidity.toString(),
+            sqrtRatioX96: nextPool.sqrtRatioX96.toString(),
+            tickCurrent: nextPool.tickCurrent.toString(),
+            amountIn: edgeAmountIn,
+            amountOut: edgeAmountOut,
+          })
+        } else {
+          return {
+            statusCode: ReturnCode.INTERNAL,
+            detail: 'Found a non-V3 pool in the route',
+          }
+        }
       }
+
+      routeResponse.push(curRoute)
+    }
 
     const routeString = routeAmountsToString(route)
 
@@ -382,7 +402,7 @@ export class QuoteService {
       statusCode: ReturnCode.OK,
       detail: result
     }
-  }
+  };
 
   static chainToChainId = (chain: Models.Blockchain): ChainId => {
     switch (chain) {
