@@ -1,0 +1,8 @@
+overwrite: true
+schema: ['src/api/schemas/**/*.ts']
+documents: null
+generates:
+  src/api/generated.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-resolvers'
