@@ -2,7 +2,8 @@
   "compilerOptions": {
     "incremental": true,
     "target": "es2017",
-    "outDir": "build/main",
+    "rootDir": "./",
+    "outDir": "dist",
     "moduleResolution": "node",
     "module": "commonjs",
     "declaration": true,
@@ -34,6 +35,7 @@
     "lib": ["es2017", "dom"],
     "types": ["node", "jest"]
   },
-  "include": ["src/index.ts"],
+  "include": ["src/index.ts", "src/server.ts", "cli/**/*.ts", "bin/**/*.ts"],
+  "exclude": ["node_modules", "test/**/*"],
   "compileOnSave": false
 }

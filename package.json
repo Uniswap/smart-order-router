@@ -65,6 +65,9 @@
   },
   "devDependencies": {
     "@ethersproject/providers": "^5.4.0",
+    "@graphql-codegen/cli": "^4.0.1",
+    "@graphql-codegen/typescript": "^4.0.1",
+    "@graphql-codegen/typescript-resolvers": "^4.0.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@oclif/command": "^1.8.0",

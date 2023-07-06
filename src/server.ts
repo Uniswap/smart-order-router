@@ -15,7 +15,7 @@ import { QuoteService } from "./services/quote_service";
   await QuoteService.init();
   
   await apollo.start();
-  apollo.applyMiddleware({ app, path: "/api" });
+  apollo.applyMiddleware({ app, path: "/" });
   app.listen(port, () => {
     console.log(`Server running at port ${port}`);
   });

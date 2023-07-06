@@ -12,4 +12,4 @@ types
 types/*
 .env
 cache/
-generated.ts
+dist/
