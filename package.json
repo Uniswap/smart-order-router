@@ -28,7 +28,7 @@
     "integ-test": "TS_NODE=true jest test/integ",
     "codegen": "graphql-codegen --config codegen.yml",
     "buidl": "npm run build && tsc",
-    "start": "node dist/src/server.js",
+    "start": "node build/main/src/server.js",
     "start:dev": "ts-node src/server.ts"
   },
   "engines": {

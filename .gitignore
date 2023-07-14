@@ -12,4 +12,3 @@ types
 types/*
 .env
 cache/
-dist/
