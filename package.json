@@ -101,9 +101,6 @@
   "peerDependencies": {
     "jsbi": "^3.2.0"
   },
-  "overrides": {
-    "@uniswap/sdk-core": "3.2.6"
-  },
   "files": [
     "build/main",
     "build/module",
