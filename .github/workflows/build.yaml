@@ -1,0 +1,67 @@
+name: build
+
+permissions:
+  contents: "read"
+  id-token: "write"
+
+on:
+  workflow_call:
+    inputs:
+      GAR_LOCATION:
+        description: region for Google Artifact Repository
+        default: us-east1
+        type: string
+      GAR_REPOSITORY:
+        default: orblabs-public
+        type: string
+      IMAGE:
+        default: smart-order-router
+        type: string
+      TAG:
+        default: "false"
+        type: string
+      GCP_PROJECT:
+        default: orblabs-public-resources
+        type: string
+      DOCKERFILE_DIRECTORY:
+        default: .
+        type: string
+
+jobs:
+  publish:
+    name: Publish App to Google Artifact Repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # Setup and authenticate with gcloud
+      - id: "auth"
+        uses: "google-github-actions/auth@v1"
+        with:
+          workload_identity_provider: "projects/845904245177/locations/global/workloadIdentityPools/github/providers/github"
+          service_account: "github-actions@${{ inputs.GCP_PROJECT }}.iam.gserviceaccount.com"
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+
+      - name: login to artifact registry
+        run: |
+          gcloud auth configure-docker "${{ inputs.GAR_LOCATION }}-docker.pkg.dev" --quiet
+
+      # Build the Docker image
+      - name: Build
+        run: |-
+          docker build \
+            --tag "${{ inputs.GAR_LOCATION }}-docker.pkg.dev/${{ inputs.GCP_PROJECT }}/${{ inputs.GAR_REPOSITORY }}/${{ inputs.IMAGE }}:${{ github.sha }}" \
+            ${{ inputs.DOCKERFILE_DIRECTORY }}
+
+      # Push the Docker image to Google Artifact Registry
+      - name: Publish
+        run: |-
+          docker push "${{ inputs.GAR_LOCATION }}-docker.pkg.dev/${{ inputs.GCP_PROJECT }}/${{ inputs.GAR_REPOSITORY }}/${{ inputs.IMAGE }}:${{ github.sha }}"
+      - name: Retag
+        if: ${{ inputs.TAG != 'false' }}
+        run: |-
+          # Tag and push ${{ inputs.TAG }}
+          docker tag "${{ inputs.GAR_LOCATION }}-docker.pkg.dev/${{ inputs.GCP_PROJECT }}/${{ inputs.GAR_REPOSITORY }}/${{ inputs.IMAGE }}:${{ github.sha }}" "${{ inputs.GAR_LOCATION }}-docker.pkg.dev/${{ inputs.GCP_PROJECT }}/${{ inputs.GAR_REPOSITORY }}/${{ inputs.IMAGE }}:${{ inputs.TAG }}"
+          docker push "${{ inputs.GAR_LOCATION }}-docker.pkg.dev/${{ inputs.GCP_PROJECT }}/${{ inputs.GAR_REPOSITORY }}/${{ inputs.IMAGE }}:${{ inputs.TAG }}"

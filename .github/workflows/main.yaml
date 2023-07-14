@@ -1,0 +1,14 @@
+name: main
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  build:
+    uses: orb-labs/smart-order-router/.github/workflows/build.yaml@main
+    with:
+      TAG: "latest"
