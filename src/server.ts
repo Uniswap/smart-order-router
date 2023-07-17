@@ -5,7 +5,7 @@ import apollo from "./apollo";
 import { QuoteService } from "./services/quote_service";
 
 (async () => {
-  const port = process.env.SMART_ORDER_ROUTER_PORT || 3000;
+  const port = Number(process.env.SMART_ORDER_ROUTER_PORT) || 3000;
 
   const app = express();
   app.use(cors());
