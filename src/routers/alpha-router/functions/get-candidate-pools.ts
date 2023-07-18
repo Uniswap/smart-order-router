@@ -24,7 +24,6 @@ import {
   ITokenProvider,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
-  USDC_AVAX,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
@@ -169,7 +168,6 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   ],
   [ChainId.AVALANCHE]: [
     DAI_AVAX,
-    USDC_AVAX,
   ],
 };
 
