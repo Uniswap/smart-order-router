@@ -10,7 +10,7 @@ import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
 } from '@uniswap/universal-router-sdk';
-import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/permit2';
+import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
@@ -2544,7 +2544,7 @@ describe('external class tests', () => {
 
 describe('quote for other networks', () => {
   const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: USDC_ON(1),
+    [ChainId.MAINNET]: USDC_ON(ChainId.MAINNET),
     [ChainId.GOERLI]: UNI_GOERLI,
     [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
@@ -2559,6 +2559,8 @@ describe('quote for other networks', () => {
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
     [ChainId.BNB]: USDC_BNB,
     [ChainId.AVALANCHE]: USDC_ON(ChainId.AVALANCHE),
+    [ChainId.BASE]: USDC_ON(ChainId.BASE),
+    [ChainId.BASE_GOERLI]: USDC_ON(ChainId.BASE_GOERLI),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
     [ChainId.MAINNET]: DAI_ON(1),
@@ -2576,6 +2578,8 @@ describe('quote for other networks', () => {
     [ChainId.MOONBEAM]: WBTC_MOONBEAM,
     [ChainId.BNB]: USDT_BNB,
     [ChainId.AVALANCHE]: DAI_ON(ChainId.AVALANCHE),
+    [ChainId.BASE]: USDC_ON(ChainId.BASE),
+    [ChainId.BASE_GOERLI]: USDC_ON(ChainId.BASE_GOERLI),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -2588,7 +2592,7 @@ describe('quote for other networks', () => {
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.SEPOLIA && 
+      c != ChainId.SEPOLIA &&
       // skip avalanche for now, need to add liquidity pools.
       c != ChainId.AVALANCHE
   )) {

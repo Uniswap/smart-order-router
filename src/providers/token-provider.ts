@@ -744,6 +744,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_BNB;
     case ChainId.AVALANCHE:
       return USDC_AVAX;
+    // TODO ROUTE-41: Add BASE and BASE_GOERLI support once the stablecoin is minted:
+    // https://uniswapteam.slack.com/archives/C054S2HKD44/p1689699537928619
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
