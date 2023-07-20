@@ -72,7 +72,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       ? await l2GasDataProvider.getGasData()
       : undefined;
 
-    const usdPool: Pool = pools.usdPool;
+    const usdPool: Pool | undefined = pools.usdPool;
 
     const calculateL1GasFees = async (
       route: V3RouteWithValidQuote[]
@@ -116,14 +116,18 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         l1FeeInWei.toString()
       );
 
-      // convert fee into usd
-      const nativeTokenPrice =
+      let gasCostL1USD: CurrencyAmount;
+      if (usdPool) {
+        // convert fee into usd
+        const nativeTokenPrice =
         usdPool.token0.address == nativeCurrency.address
           ? usdPool.token0Price
           : usdPool.token1Price;
 
-      const gasCostL1USD: CurrencyAmount =
-        nativeTokenPrice.quote(costNativeCurrency);
+        gasCostL1USD = nativeTokenPrice.quote(costNativeCurrency);
+      } else {
+        gasCostL1USD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
+      }
 
       let gasCostL1QuoteToken = costNativeCurrency;
       // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
@@ -169,15 +173,20 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           chainId
         );
 
-        const token0 = usdPool.token0.address == nativeCurrency.address;
+        let gasCostInTermsOfUSD: CurrencyAmount;
+        if (usdPool) {
+          const token0 = usdPool.token0.address == nativeCurrency.address;
 
-        const nativeTokenPrice = token0
-          ? usdPool.token0Price
-          : usdPool.token1Price;
-
-        const gasCostInTermsOfUSD: CurrencyAmount = nativeTokenPrice.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
+          const nativeTokenPrice = token0
+            ? usdPool.token0Price
+            : usdPool.token1Price;
+  
+          gasCostInTermsOfUSD = nativeTokenPrice.quote(
+            totalGasCostNativeCurrency
+          ) as CurrencyAmount;
+        } else {
+          gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0)
+        }
 
         return {
           gasEstimate: baseGasUse,
@@ -202,9 +211,9 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     }
 
     const usdToken =
-      usdPool.token0.address == nativeCurrency.address
-        ? usdPool.token1
-        : usdPool.token0;
+      usdPool?.token0.address == nativeCurrency.address
+        ? usdPool?.token1
+        : usdPool?.token0;
 
     const estimateGasCost = (
       routeWithValidQuote: V3RouteWithValidQuote
@@ -307,29 +316,31 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         }
       }
 
-      // true if token0 is the native currency
-      const token0USDPool = usdPool.token0.address == nativeCurrency.address;
-
-      // gets the mid price of the pool in terms of the native token
-      const nativeTokenPriceUSDPool = token0USDPool
-        ? usdPool.token0Price
-        : usdPool.token1Price;
-
       let gasCostInTermsOfUSD: CurrencyAmount;
-      try {
-        gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
-      } catch (err) {
-        log.info(
-          {
-            usdT1: usdPool.token0.symbol,
-            usdT2: usdPool.token1.symbol,
-            gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
-          },
-          'Failed to compute USD gas price'
-        );
-        throw err;
+      if (usdPool) {
+        // true if token0 is the native currency
+        const token0USDPool = usdPool.token0.address == nativeCurrency.address;
+        // gets the mid price of the pool in terms of the native token
+        const nativeTokenPriceUSDPool = token0USDPool
+          ? usdPool.token0Price
+          : usdPool.token1Price;
+        try {
+          gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
+            totalGasCostNativeCurrency
+          ) as CurrencyAmount;
+        } catch (err) {
+          log.info(
+            {
+              usdT1: usdPool.token0.symbol,
+              usdT2: usdPool.token1.symbol,
+              gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
+            },
+            'Failed to compute USD gas price'
+          );
+          throw err;
+        }
+      } else {
+        gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
       }
 
       // If gasCostInTermsOfQuoteToken is null, both attempts to calculate gasCostInTermsOfQuoteToken failed (nativePool and amountNativePool)
@@ -340,14 +351,14 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         return {
           gasEstimate: baseGasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
-          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken ?? nativeCurrency, 0),
         };
       }
 
       return {
         gasEstimate: baseGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
-        gasCostInUSD: gasCostInTermsOfUSD!,
+        gasCostInUSD: gasCostInTermsOfUSD,
       };
     };
 

@@ -6,6 +6,7 @@ import _ from 'lodash';
 
 import { RouteWithValidQuote } from '../routers/alpha-router';
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
+
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';

@@ -101,14 +101,12 @@ export async function getHighestLiquidityV3USDPool(
   chainId: ChainId,
   poolProvider: IV3PoolProvider,
   providerConfig?: ProviderConfig
-): Promise<Pool> {
+): Promise<Pool | undefined> {
   const usdTokens = usdGasTokensByChain[chainId];
   const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
   if (!usdTokens) {
-    throw new Error(
-      `Could not find a USD token for computing gas costs on ${chainId}`
-    );
+    return undefined
   }
 
   const usdPools = _([
@@ -291,13 +289,15 @@ export async function calculateGasUsed(
     gasCostInWei
   );
 
-  const usdPool: Pool = await getHighestLiquidityV3USDPool(
+  const usdPool: Pool | undefined = await getHighestLiquidityV3USDPool(
     chainId,
     v3PoolProvider,
     providerConfig
   );
 
-  const gasCostUSD = await getGasCostInUSD(usdPool, costNativeCurrency);
+  const gasCostUSD = usdPool ? 
+    getGasCostInUSD(usdPool, costNativeCurrency) : 
+    CurrencyAmount.fromRawAmount(nativeCurrency, 0)
 
   let gasCostQuoteToken = costNativeCurrency;
   // get fee in terms of quote token

@@ -61,7 +61,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
-    const usdPool: Pool = pools.usdPool
+    const usdPool = pools.usdPool
 
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
@@ -81,15 +81,19 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           chainId
         );
 
-        const token0 = usdPool.token0.address == nativeCurrency.address;
+        let gasCostInTermsOfUSD: CurrencyAmount;
 
-        const nativeTokenPrice = token0
-          ? usdPool.token0Price
-          : usdPool.token1Price;
-
-        const gasCostInTermsOfUSD: CurrencyAmount = nativeTokenPrice.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
+        if (usdPool) {
+          const token0 = usdPool.token0.address == nativeCurrency.address;
+          const nativeTokenPrice = token0
+            ? usdPool.token0Price
+            : usdPool.token1Price;
+          gasCostInTermsOfUSD = nativeTokenPrice.quote(
+            totalGasCostNativeCurrency
+          ) as CurrencyAmount;
+        } else {
+          gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
+        }
 
         return {
           gasEstimate: baseGasUse,
@@ -114,9 +118,9 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     }
 
     const usdToken =
-      usdPool.token0.address == nativeCurrency.address
-        ? usdPool.token1
-        : usdPool.token0;
+      usdPool?.token0.address == nativeCurrency.address
+        ? usdPool?.token1
+        : usdPool?.token0;
 
     const estimateGasCost = (
       routeWithValidQuote: MixedRouteWithValidQuote
@@ -138,7 +142,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         return {
           gasEstimate: baseGasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
-          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken ?? nativeCurrency, 0),
         };
       }
 
@@ -175,29 +179,31 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         throw err;
       }
 
-      // true if token0 is the native currency
-      const token0USDPool = usdPool.token0.address == nativeCurrency.address;
-
-      // gets the mid price of the pool in terms of the native token
-      const nativeTokenPriceUSDPool = token0USDPool
-        ? usdPool.token0Price
-        : usdPool.token1Price;
-
       let gasCostInTermsOfUSD: CurrencyAmount;
-      try {
-        gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
-      } catch (err) {
-        log.info(
-          {
-            usdT1: usdPool.token0.symbol,
-            usdT2: usdPool.token1.symbol,
-            gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
-          },
-          'Failed to compute USD gas price'
-        );
-        throw err;
+      if (usdPool) {
+        // true if token0 is the native currency
+        const token0USDPool = usdPool.token0.address == nativeCurrency.address;
+        // gets the mid price of the pool in terms of the native token
+        const nativeTokenPriceUSDPool = token0USDPool
+          ? usdPool.token0Price
+          : usdPool.token1Price;
+        try {
+          gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
+            totalGasCostNativeCurrency
+          ) as CurrencyAmount;
+        } catch (err) {
+          log.info(
+            {
+              usdT1: usdPool.token0.symbol,
+              usdT2: usdPool.token1.symbol,
+              gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
+            },
+            'Failed to compute USD gas price'
+          );
+          throw err;
+        }
+      } else {
+        gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
       }
 
       return {

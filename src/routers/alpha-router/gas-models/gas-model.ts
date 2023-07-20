@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Token } from '@uniswap/sdk-core';
-
 import { Pool } from '@uniswap/v3-sdk';
+
 import { ProviderConfig } from '../../../providers/provider';
 import {
   CUSD_CELO,
@@ -95,7 +95,7 @@ export type BuildV2GasModelFactoryType = {
 };
 
 export type LiquidityCalculationPools = {
-  usdPool: Pool
+  usdPool: Pool | undefined
   nativeQuoteTokenV3Pool: Pool | null
   nativeAmountTokenV3Pool: Pool | null
 }
@@ -160,10 +160,10 @@ export abstract class IOnChainGasModelFactory {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,
-    pools: LiquidityCalculationPools,
+    pools,
     amountToken,
     quoteToken,
-    v2poolProvider: V2poolProvider,
+    v2poolProvider,
     l2GasDataProvider,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>

@@ -1476,7 +1476,7 @@ export class AlphaRouter
     ])
 
     const pools: LiquidityCalculationPools = {
-      usdPool: usdPool,
+      usdPool,
       nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
       nativeAmountTokenV3Pool: nativeAmountTokenV3Pool
     };
