@@ -558,9 +558,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -774,9 +774,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -946,9 +946,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1057,9 +1057,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1122,9 +1122,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1198,9 +1198,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1459,9 +1459,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1531,9 +1531,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1607,9 +1607,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1690,9 +1690,9 @@ describe('alpha router', () => {
         )
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -1918,9 +1918,9 @@ describe('alpha router', () => {
         swap!.estimatedGasUsedQuoteToken.currency.equals(USDC)
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -2001,9 +2001,9 @@ describe('alpha router', () => {
         swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -2059,9 +2059,9 @@ describe('alpha router', () => {
         swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -2138,9 +2138,9 @@ describe('alpha router', () => {
         swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()
@@ -2217,9 +2217,9 @@ describe('alpha router', () => {
         swap!.estimatedGasUsedQuoteToken.currency.equals(USDC!)
       ).toBeTruthy();
       expect(
-        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
-        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
-        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+        swap!.estimatedGasUsedUSD?.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD?.currency.equals(DAI)
       ).toBeTruthy();
       expect(swap!.gasPriceWei.toString()).toEqual(
         mockGasPriceWeiBN.toString()

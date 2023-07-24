@@ -33,18 +33,21 @@ import {
   USDT_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
-  WBTC_GOERLI,
+  WBTC_GOERLI
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
-import { ArbitrumGasData, IL2GasDataProvider, OptimismGasData, } from '../../../providers/v3/gas-data-provider';
+import {
+  ArbitrumGasData,
+  IL2GasDataProvider,
+  OptimismGasData
+} from '../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote,
+  V3RouteWithValidQuote
 } from '../entities/route-with-valid-quote';
-
 
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
@@ -53,7 +56,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.OPTIMISM_GOERLI]: [
     DAI_OPTIMISM_GOERLI,
     USDC_OPTIMISM_GOERLI,
-    USDT_OPTIMISM_GOERLI,
+    USDT_OPTIMISM_GOERLI
   ],
   [ChainId.ARBITRUM_GOERLI]: [USDC_ARBITRUM_GOERLI],
   [ChainId.GOERLI]: [DAI_GOERLI, USDC_GOERLI, USDT_GOERLI, WBTC_GOERLI],
@@ -65,12 +68,12 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
   [ChainId.BNB]: [USDT_BNB, USDC_BNB, DAI_BNB],
-  [ChainId.AVALANCHE]: [DAI_AVAX, USDC_AVAX],
+  [ChainId.AVALANCHE]: [DAI_AVAX, USDC_AVAX]
 };
 
 export type L1ToL2GasCosts = {
   gasUsedL1: BigNumber;
-  gasCostL1USD: CurrencyAmount;
+  gasCostL1USD: CurrencyAmount | undefined;
   gasCostL1QuoteToken: CurrencyAmount;
 };
 
@@ -95,10 +98,10 @@ export type BuildV2GasModelFactoryType = {
 };
 
 export type LiquidityCalculationPools = {
-  usdPool: Pool | undefined
-  nativeQuoteTokenV3Pool: Pool | null
-  nativeAmountTokenV3Pool: Pool | null
-}
+  usdPool: Pool | undefined;
+  nativeQuoteTokenV3Pool: Pool | null;
+  nativeAmountTokenV3Pool: Pool | null;
+};
 
 /**
  * Contains functions for generating gas estimates for given routes.
@@ -120,7 +123,7 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
   estimateGasCost(routeWithValidQuote: TRouteWithValidQuote): {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
-    gasCostInUSD: CurrencyAmount;
+    gasCostInUSD: CurrencyAmount | undefined;
   };
   calculateL1GasFees?(routes: TRouteWithValidQuote[]): Promise<L1ToL2GasCosts>;
 };
@@ -141,7 +144,7 @@ export abstract class IV2GasModelFactory {
     chainId,
     gasPriceWei,
     poolProvider,
-    token,
+    token
   }: BuildV2GasModelFactoryType): Promise<IGasModel<V2RouteWithValidQuote>>;
 }
 
@@ -164,7 +167,7 @@ export abstract class IOnChainGasModelFactory {
     amountToken,
     quoteToken,
     v2poolProvider,
-    l2GasDataProvider,
+    l2GasDataProvider
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
   >;

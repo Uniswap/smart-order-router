@@ -31,7 +31,7 @@ export interface IRouteWithValidQuote<
   gasEstimate: BigNumber;
   // The gas cost in terms of the quote token.
   gasCostInToken: CurrencyAmount;
-  gasCostInUSD: CurrencyAmount;
+  gasCostInUSD: CurrencyAmount | undefined;
   tradeType: TradeType;
   poolAddresses: string[];
   tokenPath: Token[];
@@ -86,7 +86,7 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
   public gasModel: IGasModel<V2RouteWithValidQuote>;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
-  public gasCostInUSD: CurrencyAmount;
+  public gasCostInUSD: CurrencyAmount | undefined;
   public tradeType: TradeType;
   public poolAddresses: string[];
   public tokenPath: Token[];
@@ -107,7 +107,7 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
     gasModel,
     quoteToken,
     tradeType,
-    v2PoolProvider,
+    v2PoolProvider
   }: V2RouteWithValidQuoteParams) {
     this.amount = amount;
     this.rawQuote = rawQuote;
@@ -180,7 +180,7 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
   public gasModel: IGasModel<V3RouteWithValidQuote>;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
-  public gasCostInUSD: CurrencyAmount;
+  public gasCostInUSD: CurrencyAmount | undefined;
   public tradeType: TradeType;
   public poolAddresses: string[];
   public tokenPath: Token[];
@@ -204,7 +204,7 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
     gasModel,
     quoteToken,
     tradeType,
-    v3PoolProvider,
+    v3PoolProvider
   }: V3RouteWithValidQuoteParams) {
     this.amount = amount;
     this.rawQuote = rawQuote;
@@ -282,7 +282,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
   public gasModel: IGasModel<MixedRouteWithValidQuote>;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
-  public gasCostInUSD: CurrencyAmount;
+  public gasCostInUSD: CurrencyAmount | undefined;
   public tradeType: TradeType;
   public poolAddresses: string[];
   public tokenPath: Token[];
@@ -307,7 +307,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     quoteToken,
     tradeType,
     v3PoolProvider,
-    v2PoolProvider,
+    v2PoolProvider
   }: MixedRouteWithValidQuoteParams) {
     this.amount = amount;
     this.rawQuote = rawQuote;

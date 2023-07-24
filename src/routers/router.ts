@@ -3,14 +3,14 @@ import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
   Protocol,
-  Trade,
+  Trade
 } from '@uniswap/router-sdk';
 import {
   Currency,
   Fraction,
   Percent,
   Token,
-  TradeType,
+  TradeType
 } from '@uniswap/sdk-core';
 import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
@@ -18,7 +18,7 @@ import {
   Pool,
   Position,
   MethodParameters as SDKMethodParameters,
-  Route as V3RouteRaw,
+  Route as V3RouteRaw
 } from '@uniswap/v3-sdk';
 
 import { SimulationStatus } from '../providers';
@@ -61,7 +61,7 @@ export type SwapRoute = {
   /**
    * The estimate of the gas used by the swap in USD.
    */
-  estimatedGasUsedUSD: CurrencyAmount;
+  estimatedGasUsedUSD: CurrencyAmount | undefined;
   /**
    * The gas price used when computing quoteGasAdjusted, estimatedGasUsedQuoteToken, etc.
    */
@@ -101,7 +101,7 @@ export type SwapToRatioRoute = SwapRoute & {
 export enum SwapToRatioStatus {
   SUCCESS = 1,
   NO_ROUTE_FOUND = 2,
-  NO_SWAP_NEEDED = 3,
+  NO_SWAP_NEEDED = 3
 }
 
 export type SwapToRatioSuccess = {
@@ -125,7 +125,7 @@ export type SwapToRatioResponse =
 
 export enum SwapType {
   UNIVERSAL_ROUTER,
-  SWAP_ROUTER_02,
+  SWAP_ROUTER_02
 }
 
 // Swap options for Universal Router and Permit2.

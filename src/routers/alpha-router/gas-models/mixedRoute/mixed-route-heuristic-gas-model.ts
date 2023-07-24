@@ -9,24 +9,22 @@ import _ from 'lodash';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
-import {
-  getV2NativePool,
-} from '../../../../util/gas-factory-helpers';
+import { getV2NativePool } from '../../../../util/gas-factory-helpers';
 import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildOnChainGasModelFactoryType,
   IGasModel,
-  IOnChainGasModelFactory,
+  IOnChainGasModelFactory
 } from '../gas-model';
 import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
-  COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
+  COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2
 } from '../v2/v2-heuristic-gas-model';
 import {
   BASE_SWAP_COST,
   COST_PER_HOP,
   COST_PER_INIT_TICK,
-  COST_PER_UNINIT_TICK,
+  COST_PER_UNINIT_TICK
 } from '../v3/gas-costs';
 
 /**
@@ -57,11 +55,11 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     gasPriceWei,
     pools,
     quoteToken,
-    v2poolProvider: V2poolProvider,
+    v2poolProvider: V2poolProvider
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
-    const usdPool = pools.usdPool
+    const usdPool = pools.usdPool;
 
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
@@ -73,7 +71,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       ): {
         gasEstimate: BigNumber;
         gasCostInToken: CurrencyAmount;
-        gasCostInUSD: CurrencyAmount;
+        gasCostInUSD: CurrencyAmount | undefined;
       } => {
         const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
           routeWithValidQuote,
@@ -81,7 +79,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           chainId
         );
 
-        let gasCostInTermsOfUSD: CurrencyAmount;
+        let gasCostInTermsOfUSD: CurrencyAmount | undefined;
 
         if (usdPool) {
           const token0 = usdPool.token0.address == nativeCurrency.address;
@@ -92,24 +90,24 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
             totalGasCostNativeCurrency
           ) as CurrencyAmount;
         } else {
-          gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
+          gasCostInTermsOfUSD = undefined;
         }
 
         return {
           gasEstimate: baseGasUse,
           gasCostInToken: totalGasCostNativeCurrency,
-          gasCostInUSD: gasCostInTermsOfUSD,
+          gasCostInUSD: gasCostInTermsOfUSD
         };
       };
 
       return {
-        estimateGasCost,
+        estimateGasCost
       };
     }
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool
+    const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool;
 
     let nativeV2Pool: Pair | null;
     if (V2poolProvider) {
@@ -117,17 +115,12 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       nativeV2Pool = await getV2NativePool(quoteToken, V2poolProvider);
     }
 
-    const usdToken =
-      usdPool?.token0.address == nativeCurrency.address
-        ? usdPool?.token1
-        : usdPool?.token0;
-
     const estimateGasCost = (
       routeWithValidQuote: MixedRouteWithValidQuote
     ): {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
-      gasCostInUSD: CurrencyAmount;
+      gasCostInUSD: CurrencyAmount | undefined;
     } => {
       const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
         routeWithValidQuote,
@@ -142,7 +135,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         return {
           gasEstimate: baseGasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
-          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken ?? nativeCurrency, 0),
+          gasCostInUSD: undefined
         };
       }
 
@@ -172,14 +165,14 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           {
             nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
             nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-            gasCostInEth: totalGasCostNativeCurrency.currency,
+            gasCostInEth: totalGasCostNativeCurrency.currency
           },
           'Debug eth price token issue'
         );
         throw err;
       }
 
-      let gasCostInTermsOfUSD: CurrencyAmount;
+      let gasCostInTermsOfUSD: CurrencyAmount | undefined;
       if (usdPool) {
         // true if token0 is the native currency
         const token0USDPool = usdPool.token0.address == nativeCurrency.address;
@@ -196,25 +189,25 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
             {
               usdT1: usdPool.token0.symbol,
               usdT2: usdPool.token1.symbol,
-              gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
+              gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol
             },
             'Failed to compute USD gas price'
           );
           throw err;
         }
       } else {
-        gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
+        gasCostInTermsOfUSD = undefined;
       }
 
       return {
         gasEstimate: baseGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
-        gasCostInUSD: gasCostInTermsOfUSD!,
+        gasCostInUSD: gasCostInTermsOfUSD
       };
     };
 
     return {
-      estimateGasCost: estimateGasCost.bind(this),
+      estimateGasCost: estimateGasCost.bind(this)
     };
   }
 
@@ -268,7 +261,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     return {
       totalGasCostNativeCurrency,
       totalInitializedTicksCrossed,
-      baseGasUse,
+      baseGasUse
     };
   }
 }

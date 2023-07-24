@@ -6,33 +6,31 @@ import _ from 'lodash';
 import {
   SwapOptionsUniversalRouter,
   SwapType,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../..';
 import {
   ArbitrumGasData,
-  OptimismGasData,
+  OptimismGasData
 } from '../../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../../util/amounts';
-import {
-  getL2ToL1GasUsed,
-} from '../../../../util/gas-factory-helpers';
+import { getL2ToL1GasUsed } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
 import {
   buildSwapMethodParameters,
-  buildTrade,
+  buildTrade
 } from '../../../../util/methodParameters';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildOnChainGasModelFactoryType,
   IGasModel,
-  IOnChainGasModelFactory,
+  IOnChainGasModelFactory
 } from '../gas-model';
 
 import {
   BASE_SWAP_COST,
   COST_PER_HOP,
   COST_PER_INIT_TICK,
-  COST_PER_UNINIT_TICK,
+  COST_PER_UNINIT_TICK
 } from './gas-costs';
 
 /**
@@ -78,21 +76,18 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       route: V3RouteWithValidQuote[]
     ): Promise<{
       gasUsedL1: BigNumber;
-      gasCostL1USD: CurrencyAmount;
+      gasCostL1USD: CurrencyAmount | undefined;
       gasCostL1QuoteToken: CurrencyAmount;
     }> => {
       const swapOptions: SwapOptionsUniversalRouter = {
         type: SwapType.UNIVERSAL_ROUTER,
         recipient: '0x0000000000000000000000000000000000000001',
         deadlineOrPreviousBlockhash: 100,
-        slippageTolerance: new Percent(5, 10_000),
+        slippageTolerance: new Percent(5, 10_000)
       };
       let l1Used = BigNumber.from(0);
       let l1FeeInWei = BigNumber.from(0);
-      if (
-        chainId == ChainId.OPTIMISM ||
-        chainId == ChainId.OPTIMISM_GOERLI
-      ) {
+      if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISM_GOERLI) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
           route,
           swapOptions,
@@ -116,17 +111,17 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         l1FeeInWei.toString()
       );
 
-      let gasCostL1USD: CurrencyAmount;
+      let gasCostL1USD: CurrencyAmount | undefined;
       if (usdPool) {
         // convert fee into usd
         const nativeTokenPrice =
-        usdPool.token0.address == nativeCurrency.address
-          ? usdPool.token0Price
-          : usdPool.token1Price;
+          usdPool.token0.address == nativeCurrency.address
+            ? usdPool.token0Price
+            : usdPool.token1Price;
 
         gasCostL1USD = nativeTokenPrice.quote(costNativeCurrency);
       } else {
-        gasCostL1USD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
+        gasCostL1USD = undefined;
       }
 
       let gasCostL1QuoteToken = costNativeCurrency;
@@ -151,7 +146,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       return {
         gasUsedL1: l1Used,
         gasCostL1USD,
-        gasCostL1QuoteToken,
+        gasCostL1QuoteToken
       };
     };
 
@@ -165,7 +160,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       ): {
         gasEstimate: BigNumber;
         gasCostInToken: CurrencyAmount;
-        gasCostInUSD: CurrencyAmount;
+        gasCostInUSD: CurrencyAmount | undefined;
       } => {
         const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
           routeWithValidQuote,
@@ -173,31 +168,31 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           chainId
         );
 
-        let gasCostInTermsOfUSD: CurrencyAmount;
+        let gasCostInTermsOfUSD: CurrencyAmount | undefined;
         if (usdPool) {
           const token0 = usdPool.token0.address == nativeCurrency.address;
 
           const nativeTokenPrice = token0
             ? usdPool.token0Price
             : usdPool.token1Price;
-  
+
           gasCostInTermsOfUSD = nativeTokenPrice.quote(
             totalGasCostNativeCurrency
           ) as CurrencyAmount;
         } else {
-          gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0)
+          gasCostInTermsOfUSD = undefined;
         }
 
         return {
           gasEstimate: baseGasUse,
           gasCostInToken: totalGasCostNativeCurrency,
-          gasCostInUSD: gasCostInTermsOfUSD,
+          gasCostInUSD: gasCostInTermsOfUSD
         };
       };
 
       return {
         estimateGasCost,
-        calculateL1GasFees,
+        calculateL1GasFees
       };
     }
 
@@ -220,7 +215,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     ): {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
-      gasCostInUSD: CurrencyAmount;
+      gasCostInUSD: CurrencyAmount | undefined;
     } => {
       const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
         routeWithValidQuote,
@@ -247,7 +242,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
             {
               nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
               nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-              gasCostInEth: totalGasCostNativeCurrency.currency,
+              gasCostInEth: totalGasCostNativeCurrency.currency
             },
             'Debug eth price token issue'
           );
@@ -307,7 +302,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
                 gasCostInTermsOfAmountToken.toExact(),
               executionPrice: executionPrice.toSignificant(6),
               syntheticGasCostInTermsOfQuoteToken:
-                syntheticGasCostInTermsOfQuoteToken.toSignificant(6),
+                syntheticGasCostInTermsOfQuoteToken.toSignificant(6)
             },
             'New gasCostInTermsOfQuoteToken calculated with synthetic quote token price is less than original'
           );
@@ -316,7 +311,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         }
       }
 
-      let gasCostInTermsOfUSD: CurrencyAmount;
+      let gasCostInTermsOfUSD: CurrencyAmount | undefined;
       if (usdPool) {
         // true if token0 is the native currency
         const token0USDPool = usdPool.token0.address == nativeCurrency.address;
@@ -333,14 +328,14 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
             {
               usdT1: usdPool.token0.symbol,
               usdT2: usdPool.token1.symbol,
-              gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
+              gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol
             },
             'Failed to compute USD gas price'
           );
           throw err;
         }
       } else {
-        gasCostInTermsOfUSD = CurrencyAmount.fromRawAmount(nativeCurrency, 0);
+        gasCostInTermsOfUSD = undefined;
       }
 
       // If gasCostInTermsOfQuoteToken is null, both attempts to calculate gasCostInTermsOfQuoteToken failed (nativePool and amountNativePool)
@@ -351,20 +346,22 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         return {
           gasEstimate: baseGasUse,
           gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
-          gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken ?? nativeCurrency, 0),
+          gasCostInUSD: usdToken
+            ? CurrencyAmount.fromRawAmount(usdToken, 0)
+            : undefined
         };
       }
 
       return {
         gasEstimate: baseGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
-        gasCostInUSD: gasCostInTermsOfUSD,
+        gasCostInUSD: gasCostInTermsOfUSD
       };
     };
 
     return {
       estimateGasCost: estimateGasCost.bind(this),
-      calculateL1GasFees,
+      calculateL1GasFees
     };
   }
 
@@ -402,7 +399,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     return {
       totalGasCostNativeCurrency,
       totalInitializedTicksCrossed,
-      baseGasUse,
+      baseGasUse
     };
   }
 
