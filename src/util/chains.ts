@@ -72,6 +72,10 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.MOONBEAM;
     case 43114:
       return ChainId.AVALANCHE;
+    case 8453:
+      return ChainId.BASE;
+    case 84531:
+      return ChainId.BASE_GOERLI;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -93,6 +97,8 @@ export enum ChainName {
   MOONBEAM = 'moonbeam-mainnet',
   BNB = 'bnb-mainnet',
   AVALANCHE = 'avalanche-mainnet',
+  BASE = 'base-mainnet',
+  BASE_GOERLI = 'base-goerli',
 }
 
 
@@ -215,6 +221,10 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.MOONBEAM;
     case 43114:
       return ChainName.AVALANCHE;
+    case 8453:
+      return ChainName.BASE;
+    case 84531:
+      return ChainName.BASE_GOERLI;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
