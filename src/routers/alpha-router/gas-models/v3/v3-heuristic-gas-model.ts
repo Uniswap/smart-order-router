@@ -13,9 +13,7 @@ import {
   OptimismGasData,
 } from '../../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../../util/amounts';
-import {
-  getL2ToL1GasUsed,
-} from '../../../../util/gas-factory-helpers';
+import { getL2ToL1GasUsed } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
 import {
   buildSwapMethodParameters,
@@ -33,6 +31,7 @@ import {
   COST_PER_HOP,
   COST_PER_INIT_TICK,
   COST_PER_UNINIT_TICK,
+  SINGLE_HOP_OVERHEAD,
 } from './gas-costs';
 
 /**
@@ -64,7 +63,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     pools,
     amountToken,
     quoteToken,
-    l2GasDataProvider
+    l2GasDataProvider,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote>
   > {
@@ -89,10 +88,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       };
       let l1Used = BigNumber.from(0);
       let l1FeeInWei = BigNumber.from(0);
-      if (
-        chainId == ChainId.OPTIMISM ||
-        chainId == ChainId.OPTIMISM_GOERLI
-      ) {
+      if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISM_GOERLI) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
           route,
           swapOptions,
@@ -367,7 +363,14 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     );
     const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
 
-    const hopsGasUse = COST_PER_HOP(chainId).mul(totalHops);
+    let hopsGasUse = COST_PER_HOP(chainId).mul(totalHops);
+
+    // We have observed that this algorithm tends to underestimate single hop swaps.
+    // We add a buffer in the case of a single hop swap.
+    if (totalHops.eq(1)) {
+      hopsGasUse = hopsGasUse.add(SINGLE_HOP_OVERHEAD(chainId));
+    }
+
     const tickGasUse = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed
     );

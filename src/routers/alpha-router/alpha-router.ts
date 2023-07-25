@@ -585,7 +585,7 @@ export class AlphaRouter
         chainId,
         gasPriceProviderInstance,
         new NodeJSCache<GasPrice>(
-          new NodeCache({ stdTTL: 15, useClones: false })
+          new NodeCache({ stdTTL: 7, useClones: false })
         )
       );
     this.v3GasModelFactory =

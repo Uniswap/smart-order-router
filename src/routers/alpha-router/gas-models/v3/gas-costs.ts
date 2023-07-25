@@ -91,3 +91,26 @@ export const COST_PER_HOP = (id: ChainId): BigNumber => {
       return BigNumber.from(80000);
   }
 };
+
+export const SINGLE_HOP_OVERHEAD = (id: ChainId): BigNumber => {
+  switch (id) {
+    case ChainId.MAINNET:
+    case ChainId.GOERLI:
+    case ChainId.SEPOLIA:
+    case ChainId.BNB:
+    case ChainId.OPTIMISM:
+    case ChainId.OPTIMISM_GOERLI:
+    case ChainId.AVALANCHE:
+    case ChainId.BASE:
+    case ChainId.BASE_GOERLI:
+    case ChainId.ARBITRUM_ONE:
+    case ChainId.ARBITRUM_GOERLI:
+    case ChainId.POLYGON:
+    case ChainId.POLYGON_MUMBAI:
+    case ChainId.CELO:
+    case ChainId.CELO_ALFAJORES:
+    case ChainId.GNOSIS:
+    case ChainId.MOONBEAM:
+      return BigNumber.from(15000);
+  }
+};
