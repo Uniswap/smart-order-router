@@ -15,6 +15,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.CELO,
   ChainId.BNB,
   ChainId.AVALANCHE,
+  ChainId.BASE,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -169,6 +170,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'AVALANCHE',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.BASE]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ]
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -187,6 +193,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.MOONBEAM]: NativeCurrencyName.MOONBEAM,
   [ChainId.BNB]: NativeCurrencyName.BNB,
   [ChainId.AVALANCHE]: NativeCurrencyName.AVALANCHE,
+  [ChainId.BASE]: NativeCurrencyName.ETHER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
