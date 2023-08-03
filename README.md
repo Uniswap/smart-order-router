@@ -221,7 +221,7 @@ Total ticks crossed: 7
 ## BASE Mainnet
 
 ```
-./bin/cli quote --tokenIn 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA --tokenOut 0x8Fbd0648971d56f1f2c35Fa075Ff5Bc75fb0e39D --amount 10 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 8453
+./bin/cli quote --tokenIn 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA --tokenOut 0x4200000000000000000000000000000000000006 --amount 10 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 8453
 ```
 
 
