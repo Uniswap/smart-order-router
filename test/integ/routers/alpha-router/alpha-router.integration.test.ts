@@ -2543,43 +2543,43 @@ describe('external class tests', () => {
 });
 
 describe('quote for other networks', () => {
-  const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: USDC_ON(ChainId.MAINNET),
-    [ChainId.GOERLI]: UNI_GOERLI,
-    [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
-    [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_GOERLI]: USDC_ON(ChainId.ARBITRUM_GOERLI),
-    [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
-    [ChainId.CELO]: CUSD_CELO,
-    [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
-    [ChainId.GNOSIS]: WBTC_GNOSIS,
-    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BNB]: USDC_BNB,
-    [ChainId.AVALANCHE]: USDC_ON(ChainId.AVALANCHE),
-    [ChainId.BASE]: USDC_ON(ChainId.BASE),
-    [ChainId.BASE_GOERLI]: USDC_ON(ChainId.BASE_GOERLI),
+  const TEST_ERC20_1: { [chainId in ChainId]: () => Token } = {
+    [ChainId.MAINNET]: () => USDC_ON(ChainId.MAINNET),
+    [ChainId.GOERLI]: () => UNI_GOERLI,
+    [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
+    [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
+    [ChainId.ARBITRUM_ONE]: () => USDC_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_GOERLI]: () => USDC_ON(ChainId.ARBITRUM_GOERLI),
+    [ChainId.POLYGON]: () => USDC_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: () => USDC_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: () => CUSD_CELO,
+    [ChainId.CELO_ALFAJORES]: () => CUSD_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: () => WBTC_GNOSIS,
+    [ChainId.MOONBEAM]: () => WBTC_MOONBEAM,
+    [ChainId.BNB]: () => USDC_BNB,
+    [ChainId.AVALANCHE]: () => USDC_ON(ChainId.AVALANCHE),
+    [ChainId.BASE]: () => USDC_ON(ChainId.BASE),
+    [ChainId.BASE_GOERLI]: () => USDC_ON(ChainId.BASE_GOERLI),
   };
-  const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: DAI_ON(1),
-    [ChainId.GOERLI]: DAI_ON(ChainId.GOERLI),
-    [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
-    [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_GOERLI]: DAI_ON(ChainId.ARBITRUM_GOERLI),
-    [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
-    [ChainId.CELO]: CEUR_CELO,
-    [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
-    [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
-    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BNB]: USDT_BNB,
-    [ChainId.AVALANCHE]: DAI_ON(ChainId.AVALANCHE),
-    [ChainId.BASE]: USDC_ON(ChainId.BASE),
-    [ChainId.BASE_GOERLI]: USDC_ON(ChainId.BASE_GOERLI),
+  const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
+    [ChainId.MAINNET]: () => DAI_ON(1),
+    [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
+    [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
+    [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
+    [ChainId.ARBITRUM_ONE]: () => DAI_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_GOERLI]: () => DAI_ON(ChainId.ARBITRUM_GOERLI),
+    [ChainId.POLYGON]: () => DAI_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: () => DAI_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: () => CEUR_CELO,
+    [ChainId.CELO_ALFAJORES]: () => CEUR_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: () => USDC_ETHEREUM_GNOSIS,
+    [ChainId.MOONBEAM]: () => WBTC_MOONBEAM,
+    [ChainId.BNB]: () => USDT_BNB,
+    [ChainId.AVALANCHE]: () => DAI_ON(ChainId.AVALANCHE),
+    [ChainId.BASE]: () => USDC_ON(ChainId.BASE),
+    [ChainId.BASE_GOERLI]: () => USDC_ON(ChainId.BASE_GOERLI),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -2594,11 +2594,14 @@ describe('quote for other networks', () => {
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.SEPOLIA &&
       // skip avalanche for now, need to add liquidity pools.
-      c != ChainId.AVALANCHE
+      // c != ChainId.AVALANCHE &&
+      // skip Base as there's no stablecoin yet
+      c != ChainId.BASE &&
+      c != ChainId.BASE_GOERLI
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-      const erc1 = TEST_ERC20_1[chain];
-      const erc2 = TEST_ERC20_2[chain];
+      const erc1 = TEST_ERC20_1[chain]();
+      const erc2 = TEST_ERC20_2[chain]();
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function() {
         const wrappedNative = WNATIVE_ON(chain);
