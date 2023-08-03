@@ -536,7 +536,7 @@ describe('alpha router integration', () => {
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
-      describe.skip(`+ Execute on Hardhat Fork`, () => {
+      describe(`+ Execute on Hardhat Fork`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
