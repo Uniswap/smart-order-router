@@ -2595,7 +2595,6 @@ describe('quote for other networks', () => {
       c != ChainId.SEPOLIA &&
       // skip avalanche for now, need to add liquidity pools.
       c != ChainId.AVALANCHE &&
-      // skip Base as there's no stablecoin yet
       c != ChainId.BASE &&
       c != ChainId.BASE_GOERLI
   )) {
