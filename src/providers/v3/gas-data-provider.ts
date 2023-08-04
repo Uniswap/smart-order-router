@@ -4,11 +4,7 @@ import { ChainId } from '@uniswap/sdk-core';
 
 import { GasDataArbitrum__factory } from '../../types/other/factories/GasDataArbitrum__factory';
 import { GasPriceOracle__factory } from '../../types/other/factories/GasPriceOracle__factory';
-import {
-  ARB_GASINFO_ADDRESS,
-  log,
-  OVM_GASPRICE_ADDRESS,
-} from '../../util';
+import { ARB_GASINFO_ADDRESS, log, OVM_GASPRICE_ADDRESS, } from '../../util';
 import { IMulticallProvider } from '../multicall-provider';
 
 /**
@@ -33,8 +29,7 @@ export type OptimismGasData = {
 };
 
 export class OptimismGasDataProvider
-  implements IL2GasDataProvider<OptimismGasData>
-{
+  implements IL2GasDataProvider<OptimismGasData> {
   protected gasOracleAddress: string;
 
   constructor(
@@ -42,7 +37,7 @@ export class OptimismGasDataProvider
     protected multicall2Provider: IMulticallProvider,
     gasPriceAddress?: string
   ) {
-    if (chainId != ChainId.OPTIMISM) {
+    if (chainId !== ChainId.OPTIMISM && chainId !== ChainId.BASE) {
       throw new Error('This data provider is used only on optimism networks.');
     }
     this.gasOracleAddress = gasPriceAddress ?? OVM_GASPRICE_ADDRESS;
@@ -106,10 +101,10 @@ export type ArbitrumGasData = {
 };
 
 export class ArbitrumGasDataProvider
-  implements IL2GasDataProvider<ArbitrumGasData>
-{
+  implements IL2GasDataProvider<ArbitrumGasData> {
   protected gasFeesAddress: string;
   protected blockNumberOverride: number | Promise<number> | undefined;
+
   constructor(
     protected chainId: ChainId,
     protected provider: BaseProvider,

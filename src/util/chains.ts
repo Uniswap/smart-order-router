@@ -30,6 +30,8 @@ export const HAS_L1_FEE = [
   ChainId.OPTIMISM_GOERLI,
   ChainId.ARBITRUM_ONE,
   ChainId.ARBITRUM_GOERLI,
+  ChainId.BASE,
+  ChainId.BASE_GOERLI,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -110,9 +112,10 @@ export enum NativeCurrencyName {
   CELO = 'CELO',
   GNOSIS = 'XDAI',
   MOONBEAM = 'GLMR',
-  BNB = "BNB",
+  BNB = 'BNB',
   AVALANCHE = 'AVAX',
 }
+
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.MAINNET]: [
     'ETH',
@@ -550,8 +553,9 @@ class AvalancheNativeCurrency extends NativeCurrency {
 
 export class ExtendedEther extends Ether {
   public get wrapped(): Token {
-    if (this.chainId in WRAPPED_NATIVE_CURRENCY)
+    if (this.chainId in WRAPPED_NATIVE_CURRENCY) {
       return WRAPPED_NATIVE_CURRENCY[this.chainId as ChainId];
+    }
     throw new Error('Unsupported chain ID');
   }
 
@@ -567,22 +571,26 @@ export class ExtendedEther extends Ether {
 }
 
 const cachedNativeCurrency: { [chainId: number]: NativeCurrency } = {};
+
 export function nativeOnChain(chainId: number): NativeCurrency {
-  if (cachedNativeCurrency[chainId] != undefined)
+  if (cachedNativeCurrency[chainId] != undefined) {
     return cachedNativeCurrency[chainId]!;
-  if (isMatic(chainId))
+  }
+  if (isMatic(chainId)) {
     cachedNativeCurrency[chainId] = new MaticNativeCurrency(chainId);
-  else if (isCelo(chainId))
+  } else if (isCelo(chainId)) {
     cachedNativeCurrency[chainId] = new CeloNativeCurrency(chainId);
-  else if (isGnosis(chainId))
+  } else if (isGnosis(chainId)) {
     cachedNativeCurrency[chainId] = new GnosisNativeCurrency(chainId);
-  else if (isMoonbeam(chainId))
+  } else if (isMoonbeam(chainId)) {
     cachedNativeCurrency[chainId] = new MoonbeamNativeCurrency(chainId);
-  else if (isBnb(chainId))
+  } else if (isBnb(chainId)) {
     cachedNativeCurrency[chainId] = new BnbNativeCurrency(chainId);
-  else if (isAvax(chainId))
+  } else if (isAvax(chainId)) {
     cachedNativeCurrency[chainId] = new AvalancheNativeCurrency(chainId);
-  else cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
+  } else {
+    cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
+  }
 
   return cachedNativeCurrency[chainId]!;
 }
