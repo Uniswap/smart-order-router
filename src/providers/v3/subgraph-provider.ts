@@ -61,6 +61,8 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.thegraph.com/subgraphs/name/ilyamk/uniswap-v3---bnb-chain',
   [ChainId.AVALANCHE]:
     'https://api.thegraph.com/subgraphs/name/lynnshaoyu/uniswap-v3-avax',
+  [ChainId.BASE]: 
+    'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/v0.0.1',
 };
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.

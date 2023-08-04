@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Token } from '@uniswap/sdk-core';
-
 import { Pool } from '@uniswap/v3-sdk';
+
 import { ProviderConfig } from '../../../providers/provider';
 import {
   CUSD_CELO,
@@ -18,6 +18,7 @@ import {
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_AVAX,
+  USDC_BASE,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
@@ -46,6 +47,9 @@ import {
 } from '../entities/route-with-valid-quote';
 
 
+// When adding new usd gas tokens, ensure the tokens are ordered 
+// from tokens with highest decimals to lowest decimals. For example,
+// DAI_AVAX has 18 decimals and comes before USDC_AVAX which has 6 decimals.
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
   [ChainId.ARBITRUM_ONE]: [DAI_ARBITRUM, USDC_ARBITRUM, USDT_ARBITRUM],
@@ -66,6 +70,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
   [ChainId.BNB]: [USDT_BNB, USDC_BNB, DAI_BNB],
   [ChainId.AVALANCHE]: [DAI_AVAX, USDC_AVAX],
+  [ChainId.BASE]: [USDC_BASE],
 };
 
 export type L1ToL2GasCosts = {

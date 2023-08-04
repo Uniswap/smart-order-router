@@ -462,6 +462,24 @@ export const USDC_AVAX = new Token(
   'USDC Token'
 );
 
+// Base Tokens
+export const USDC_BASE = new Token(
+  ChainId.BASE,
+  '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+  6,
+  'USDbC',
+  'USD Base Coin'
+)
+
+// Base Goerli Tokens 
+export const USDC_BASE_GOERLI = new Token(
+  ChainId.BASE_GOERLI,
+  '0x853154e2A5604E5C74a2546E2871Ad44932eB92C',
+  6,
+  'USDbC',
+  'USD Base Coin'
+)
+
 // Gnosis Tokens
 export const USDC_ETHEREUM_GNOSIS = new Token(
   ChainId.GNOSIS,
@@ -773,8 +791,10 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_BNB;
     case ChainId.AVALANCHE:
       return USDC_AVAX;
-    // TODO ROUTE-41: Add BASE and BASE_GOERLI support once the stablecoin is minted:
-    // https://uniswapteam.slack.com/archives/C054S2HKD44/p1689699537928619
+    case ChainId.BASE:
+      return USDC_BASE;
+    case ChainId.BASE_GOERLI:
+      return USDC_BASE_GOERLI;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

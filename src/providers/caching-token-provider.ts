@@ -28,6 +28,7 @@ import {
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_AVAX,
+  USDC_BASE,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
@@ -139,6 +140,10 @@ export const CACHE_SEED_TOKENS: {
     DAI: DAI_AVAX,
     WAVAX: WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE],
   },
+  [ChainId.BASE]: {
+    USDC: USDC_BASE,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.BASE],
+  }
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };
 

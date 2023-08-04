@@ -59,6 +59,7 @@ JSON_RPC_PROVIDER_CELO = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_CELO_ALFAJORES = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_BNB = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_AVALANCHE = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_BASE = '<JSON_RPC_PROVIDER>'
 ```
 
 Then from the root directory you can execute the CLI.
@@ -215,6 +216,12 @@ Total ticks crossed: 7
 
 ```
 ./bin/cli quote --tokenIn 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E --tokenOut 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7 --amount 1000 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 43114
+```
+
+## BASE Mainnet
+
+```
+./bin/cli quote --tokenIn 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA --tokenOut 0x4200000000000000000000000000000000000006 --amount 10 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 8453
 ```
 
 

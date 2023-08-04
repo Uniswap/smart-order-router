@@ -59,10 +59,7 @@ import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import { ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED } from '../../util/chains';
-import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool
-} from '../../util/gas-factory-helpers';
+import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '../../util/gas-factory-helpers';
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
@@ -391,6 +388,8 @@ export class AlphaRouter
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISM_GOERLI:
+        case ChainId.BASE:
+        case ChainId.BASE_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
@@ -599,7 +598,7 @@ export class AlphaRouter
       swapRouterProvider ??
       new SwapRouterProvider(this.multicall2Provider, this.chainId);
 
-    if (chainId === ChainId.OPTIMISM) {
+    if (chainId === ChainId.OPTIMISM || chainId === ChainId.BASE) {
       this.l2GasDataProvider =
         optimismGasDataProvider ??
         new OptimismGasDataProvider(chainId, this.multicall2Provider);
@@ -1458,7 +1457,7 @@ export class AlphaRouter
       providerConfig
     );
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
-    const nativeQuoteTokenV3PoolPromise =  !quoteToken.equals(nativeCurrency) ? getHighestLiquidityV3NativePool(
+    const nativeQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency) ? getHighestLiquidityV3NativePool(
       quoteToken,
       this.v3PoolProvider,
       providerConfig
@@ -1473,7 +1472,7 @@ export class AlphaRouter
       usdPoolPromise,
       nativeQuoteTokenV3PoolPromise,
       nativeAmountTokenV3PoolPromise
-    ])
+    ]);
 
     const pools: LiquidityCalculationPools = {
       usdPool: usdPool,

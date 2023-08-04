@@ -7,10 +7,7 @@ import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
 import { ProviderConfig } from '../providers/provider';
-import {
-  ArbitrumGasData,
-  OptimismGasData,
-} from '../providers/v3/gas-data-provider';
+import { ArbitrumGasData, OptimismGasData, } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
   MethodParameters,
@@ -275,6 +272,8 @@ export async function calculateGasUsed(
     [
       ChainId.OPTIMISM,
       ChainId.OPTIMISM_GOERLI,
+      ChainId.BASE,
+      ChainId.BASE_GOERLI,
     ].includes(chainId)
   ) {
     l2toL1FeeInWei = calculateOptimismToL1FeeFromCalldata(
@@ -449,10 +448,10 @@ export function initSwapRouteFromExisting(
     blockNumber: BigNumber.from(swapRoute.blockNumber),
     methodParameters: swapRoute.methodParameters
       ? ({
-          calldata: swapRoute.methodParameters.calldata,
-          value: swapRoute.methodParameters.value,
-          to: swapRoute.methodParameters.to,
-        } as MethodParameters)
+        calldata: swapRoute.methodParameters.calldata,
+        value: swapRoute.methodParameters.value,
+        to: swapRoute.methodParameters.to,
+      } as MethodParameters)
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
   };

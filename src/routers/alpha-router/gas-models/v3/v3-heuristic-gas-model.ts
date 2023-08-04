@@ -3,28 +3,14 @@ import { ChainId, Percent, Price, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import {
-  SwapOptionsUniversalRouter,
-  SwapType,
-  WRAPPED_NATIVE_CURRENCY,
-} from '../../../..';
-import {
-  ArbitrumGasData,
-  OptimismGasData,
-} from '../../../../providers/v3/gas-data-provider';
+import { SwapOptionsUniversalRouter, SwapType, WRAPPED_NATIVE_CURRENCY, } from '../../../..';
+import { ArbitrumGasData, OptimismGasData, } from '../../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { getL2ToL1GasUsed } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
-import {
-  buildSwapMethodParameters,
-  buildTrade,
-} from '../../../../util/methodParameters';
+import { buildSwapMethodParameters, buildTrade, } from '../../../../util/methodParameters';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import {
-  BuildOnChainGasModelFactoryType,
-  IGasModel,
-  IOnChainGasModelFactory,
-} from '../gas-model';
+import { BuildOnChainGasModelFactoryType, IGasModel, IOnChainGasModelFactory, } from '../gas-model';
 
 import {
   BASE_SWAP_COST,
@@ -89,7 +75,13 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       };
       let l1Used = BigNumber.from(0);
       let l1FeeInWei = BigNumber.from(0);
-      if (chainId == ChainId.OPTIMISM || chainId == ChainId.OPTIMISM_GOERLI) {
+      const opStackChains = [
+        ChainId.OPTIMISM,
+        ChainId.OPTIMISM_GOERLI,
+        ChainId.BASE,
+        ChainId.BASE_GOERLI,
+      ];
+      if (opStackChains.includes(chainId)) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
           route,
           swapOptions,

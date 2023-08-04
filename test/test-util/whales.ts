@@ -38,6 +38,8 @@ export const WHALES = (token: Currency): string => {
       return '0x2372031bb0fc735722aa4009aebf66e8beaf4ba1';
     case WNATIVE_ON(ChainId.POLYGON):
       return '0x369582d2010b6ed950b571f4101e3bb9b554876f';
+    case WNATIVE_ON(ChainId.BASE):
+      return '0x755554f1716d2241d6af94ea1d7dbb1631af9a40';
     case USDC_MAINNET:
       return '0x8eb8a3b98659cce290402893d0123abb75e3ab28';
     case UNI_MAINNET:
@@ -62,6 +64,8 @@ export const WHALES = (token: Currency): string => {
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
     case USDC_ON(ChainId.AVALANCHE):
       return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
+    case USDC_ON(ChainId.BASE):
+      return '0x389bfa91ad0d143e8cb26c15cb52d942ee9651f7';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):
