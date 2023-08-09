@@ -2578,8 +2578,8 @@ describe('quote for other networks', () => {
     [ChainId.MOONBEAM]: () => WBTC_MOONBEAM,
     [ChainId.BNB]: () => USDT_BNB,
     [ChainId.AVALANCHE]: () => DAI_ON(ChainId.AVALANCHE),
-    [ChainId.BASE]: () => USDC_ON(ChainId.BASE),
-    [ChainId.BASE_GOERLI]: () => USDC_ON(ChainId.BASE_GOERLI),
+    [ChainId.BASE]: () => WNATIVE_ON(ChainId.BASE),
+    [ChainId.BASE_GOERLI]: () => WNATIVE_ON(ChainId.BASE_GOERLI),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -2592,11 +2592,7 @@ describe('quote for other networks', () => {
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.SEPOLIA &&
-      // skip avalanche for now, need to add liquidity pools.
-      c != ChainId.AVALANCHE &&
-      c != ChainId.BASE &&
-      c != ChainId.BASE_GOERLI
+      c != ChainId.SEPOLIA
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
@@ -2709,7 +2705,9 @@ describe('quote for other networks', () => {
 
           it(`${native} -> erc20`, async () => {
             const tokenIn = nativeOnChain(chain);
-            const tokenOut = erc2;
+            // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
+            // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
+            const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
 
             // Celo currently has low liquidity and will not be able to find route for
             // large input amounts
