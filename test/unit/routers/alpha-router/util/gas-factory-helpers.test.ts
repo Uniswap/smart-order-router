@@ -22,7 +22,7 @@ const mockUSDCNativePools = [
   USDC_WETH_HIGH_LIQ_HIGH,
 ];
 
-describe.only('getHighestLiquidity pool tests', () => {
+describe('getHighestLiquidity pool tests', () => {
   let mockPoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
 
   beforeEach(() => {
