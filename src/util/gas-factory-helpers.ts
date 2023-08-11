@@ -1,13 +1,22 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, CurrencyAmount, Token, TradeType } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  Currency,
+  CurrencyAmount,
+  Token,
+  TradeType,
+} from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk/dist/entities';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
 import { ProviderConfig } from '../providers/provider';
-import { ArbitrumGasData, OptimismGasData, } from '../providers/v3/gas-data-provider';
+import {
+  ArbitrumGasData,
+  OptimismGasData,
+} from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
   MethodParameters,
@@ -19,6 +28,7 @@ import {
 } from '../routers';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
+import JSBI from 'jsbi';
 import { buildTrade } from './methodParameters';
 
 export async function getV2NativePool(
@@ -89,7 +99,9 @@ export async function getHighestLiquidityV3NativePool(
     return null;
   }
 
-  const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
+  const maxPool = pools.reduce((prev, current) => {
+    return JSBI.greaterThan(prev.liquidity, current.liquidity) ? prev : current;
+  });
 
   return maxPool;
 }
@@ -152,7 +164,9 @@ export async function getHighestLiquidityV3USDPool(
     throw new Error(message);
   }
 
-  const maxPool = _.maxBy(pools, (pool) => pool.liquidity) as Pool;
+  const maxPool = pools.reduce((prev, current) => {
+    return JSBI.greaterThan(prev.liquidity, current.liquidity) ? prev : current;
+  });
 
   return maxPool;
 }
@@ -258,12 +272,7 @@ export async function calculateGasUsed(
   const gasPriceWei = route.gasPriceWei;
   // calculate L2 to L1 security fee if relevant
   let l2toL1FeeInWei = BigNumber.from(0);
-  if (
-    [
-      ChainId.ARBITRUM_ONE,
-      ChainId.ARBITRUM_GOERLI,
-    ].includes(chainId)
-  ) {
+  if ([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_GOERLI].includes(chainId)) {
     l2toL1FeeInWei = calculateArbitrumToL1FeeFromCalldata(
       route.methodParameters!.calldata,
       l2GasData as ArbitrumGasData
@@ -302,7 +311,11 @@ export async function calculateGasUsed(
   // get fee in terms of quote token
   if (!quoteToken.equals(nativeCurrency)) {
     const nativePools = await Promise.all([
-      getHighestLiquidityV3NativePool(quoteToken, v3PoolProvider, providerConfig),
+      getHighestLiquidityV3NativePool(
+        quoteToken,
+        v3PoolProvider,
+        providerConfig
+      ),
       getV2NativePool(quoteToken, v2PoolProvider),
     ]);
     const nativePool = nativePools.find((pool) => pool !== null);
@@ -448,10 +461,10 @@ export function initSwapRouteFromExisting(
     blockNumber: BigNumber.from(swapRoute.blockNumber),
     methodParameters: swapRoute.methodParameters
       ? ({
-        calldata: swapRoute.methodParameters.calldata,
-        value: swapRoute.methodParameters.value,
-        to: swapRoute.methodParameters.to,
-      } as MethodParameters)
+          calldata: swapRoute.methodParameters.calldata,
+          value: swapRoute.methodParameters.value,
+          to: swapRoute.methodParameters.to,
+        } as MethodParameters)
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
   };
