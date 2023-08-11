@@ -41,7 +41,7 @@ describe.only('getHighestLiquidity pool tests', () => {
       expect(nativeAmountPool).toStrictEqual(USDC_WETH_HIGH_LIQ_HIGH);
     });
 
-    it('should return null if there are no native pools with the amount token', async () => {
+    it('should return null if there are no native pools with the specified token', async () => {
       const mockPoolProvider = sinon.createStubInstance(V3PoolProvider);
       mockPoolProvider.getPools.resolves(
         buildMockV3PoolAccessor([USDC_DAI_LOW])
