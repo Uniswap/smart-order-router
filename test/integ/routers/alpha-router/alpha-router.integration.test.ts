@@ -73,7 +73,7 @@ import { Permit2__factory } from '../../../../src/types/other/factories/Permit2_
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 16075500;
+const FORK_BLOCK = 17894002;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 
@@ -439,7 +439,7 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x06920c9fc643de77b99cb7670a944ad31eaaa260', // WETH whale
+        '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3', // WETH whale
       ]
     );
 
