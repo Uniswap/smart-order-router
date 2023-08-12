@@ -388,7 +388,6 @@ export class AlphaRouter
       switch (chainId) {
         case ChainId.OPTIMISM:
         case ChainId.OPTIMISM_GOERLI:
-
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
