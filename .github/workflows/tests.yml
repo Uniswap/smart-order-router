@@ -8,7 +8,7 @@ on:
 
 jobs:
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests & Integration Tests
     runs-on: ubuntu-latest
 
     steps:
