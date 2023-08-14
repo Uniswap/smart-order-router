@@ -41,6 +41,126 @@ jobs:
           JSON_RPC_PROVIDER_ARBITRUM_ONE: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_ONE }}
           JSON_RPC_PROVIDER_POLYGON: ${{ secrets.JSON_RPC_PROVIDER_POLYGON }}
 
+  integration-tests-alpha-router-integration-hardhat-fork:
+    name: Integration Tests - Alpha Router Integration Hardhat Fork
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'Execute on Hardhat Fork'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
+  integration-tests-alpha-router-integration-gas-price-spcified:
+    name: Integration Tests - Alpha Router Integration Gas Price Specified
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'gas price specified'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
+  integration-tests-alpha-router-integration-no-recipient-deadline-slippage:
+    name: Integration Tests - Alpha Router Integration No Recipient Deadline Slippage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'no recipient/deadline/slippage'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
+  integration-tests-alpha-router-integration-mixed-routes:
+    name: Integration Tests - Alpha Router Integration Mixed Routes
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'Mixed routes'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
   integration-tests-alpha-router-integration:
     name: Integration Tests - Alpha Router Integration
     runs-on: ubuntu-latest
