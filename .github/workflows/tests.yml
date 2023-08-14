@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 18.x
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@v2
@@ -40,3 +40,165 @@ jobs:
           JSON_RPC_PROVIDER_OPTIMISM: ${{ secrets.JSON_RPC_PROVIDER_OPTIMISM }}
           JSON_RPC_PROVIDER_ARBITRUM_ONE: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_ONE }}
           JSON_RPC_PROVIDER_POLYGON: ${{ secrets.JSON_RPC_PROVIDER_POLYGON }}
+
+  integration-tests-alpha-router-integration-mainnet-alpha-0:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha 0
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'mainnet alpha - 0'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
+  integration-tests-alpha-router-integration-mainnet-alpha-1:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha 1
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'mainnet alpha - 1'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
+  integration-tests-alpha-router-integration-mixed-routes:
+    name: Integration Tests - Alpha Router Integration Mixed Routes
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'Mixed routes'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
+  integration-tests-external-class-tests:
+    name: Integration Tests - External Class Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'external class tests'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+
+  integration-tests-quote-for-other-networks:
+    name: Integration Tests - Quote For Other Networks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'quote for other networks'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          JSON_RPC_PROVIDER_GORLI: ${{ secrets.JSON_RPC_PROVIDER_GORLI }}
+          JSON_RPC_PROVIDER_OPTIMISM: ${{ secrets.JSON_RPC_PROVIDER_OPTIMISM }}
+          JSON_RPC_PROVIDER_OPTIMISM_GOERLI: ${{ secrets.JSON_RPC_PROVIDER_OPTIMISM_GOERLI }}
+          JSON_RPC_PROVIDER_ARBITRUM_ONE: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_ONE }}
+          JSON_RPC_PROVIDER_ARBITRUM_GOERLI: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_GOERLI }}
+          JSON_RPC_PROVIDER_POLYGON: ${{ secrets.JSON_RPC_PROVIDER_POLYGON }}
+          JSON_RPC_PROVIDER_POLYGON_MUMBAI: ${{ secrets.JSON_RPC_PROVIDER_POLYGON_MUMBAI }}
+          JSON_RPC_PROVIDER_CELO: ${{ secrets.JSON_RPC_PROVIDER_CELO }}
+          JSON_RPC_PROVIDER_CELO_ALFAJORES: ${{ secrets.JSON_RPC_PROVIDER_CELO_ALFAJORES }}
+          JSON_RPC_PROVIDER_BNB: ${{ secrets.JSON_RPC_PROVIDER_BNB }}
+          JSON_RPC_PROVIDER_AVALANCHE: ${{ secrets.JSON_RPC_PROVIDER_AVALANCHE }}
+          JSON_RPC_PROVIDER_BASE: ${{ secrets.JSON_RPC_PROVIDER_BASE }}
