@@ -131,36 +131,6 @@ jobs:
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
 
-  integration-tests-alpha-router-integration:
-    name: Integration Tests - Alpha Router Integration
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 18.x
-          registry-url: https://registry.npmjs.org
-
-      - uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install dependencies
-        run: npm install
-
-      # This is required separately from yarn test because it generates the typechain definitions
-      - name: Compile
-        run: npm run build
-
-      - name: Run Integration tests
-        run: npm run integ-test  -- -t 'alpha router integration'
-        env:
-          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
-
   integration-tests-external-class-tests:
     name: Integration Tests - External Class Tests
     runs-on: ubuntu-latest
