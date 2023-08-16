@@ -22,6 +22,11 @@ export const measureDistributionPercentChangeImpact = (distributionPercentBefore
                                                        tradeType: TradeType,
                                                        chainId: ChainId,
                                                        amount: CurrencyAmount) => {
+  if (chainId !== ChainId.MAINNET) {
+    // starts with mainnet impact measurement only
+    return;
+  }
+
   const routesImpacted: Array<string> = new Array<string>();
 
   const percentDistributionBefore = getDistribution(distributionPercentBefore);
