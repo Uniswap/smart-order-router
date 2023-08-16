@@ -27,7 +27,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
         maxSwapsPerPath: 3,
         minSplits: 1,
         maxSplits: 7,
-        distributionPercent: 15,
+        distributionPercent: 25,
         forceCrossProtocol: false,
       };
     // Optimism
