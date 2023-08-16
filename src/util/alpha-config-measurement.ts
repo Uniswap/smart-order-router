@@ -47,8 +47,7 @@ export const measureDistributionPercentChangeImpact = (distributionPercentBefore
   })
 
   if (routesImpacted.length > 0) {
-    // intentionally use log.info so 10% sampling
-    log.info(`Distribution percent change impacted the routes ${routesImpacted.join(',')},
+    log.warn(`Distribution percent change impacted the routes ${routesImpacted.join(',')},
       for currency ${tokenIn.symbol}
       amount ${amount.toExact()}
       quote currency ${tokenOut.symbol}
