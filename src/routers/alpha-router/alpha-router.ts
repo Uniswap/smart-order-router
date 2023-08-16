@@ -98,6 +98,9 @@ import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixe
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+import {
+  measureDistributionPercentChangeImpact
+} from '../../util/alpha-config-measurement';
 
 export type AlphaRouterParams = {
   /**
@@ -1203,9 +1206,12 @@ export class AlphaRouter
         Date.now() - beforeSimulate,
         MetricLoggerUnit.Milliseconds
       );
+
+      measureDistributionPercentChangeImpact(5, 10, swapRouteWithSimulation, tokenIn, tokenOut, tradeType, this.chainId, amount)
       return swapRouteWithSimulation;
     }
 
+    measureDistributionPercentChangeImpact(5, 10, swapRoute, tokenIn, tokenOut, tradeType, this.chainId, amount)
     return swapRoute;
   }
 
