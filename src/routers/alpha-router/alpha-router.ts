@@ -908,10 +908,7 @@ export class AlphaRouter
     // from the same block.
     const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
 
-    log.info(`partial config distribution percent ${partialRoutingConfig.distributionPercent}
-    max splits ${partialRoutingConfig.maxSplits}
-    max swaps per path ${partialRoutingConfig.maxSwapsPerPath}`)
-
+    log.error(`sor PartialConfig: ${JSON.stringify(partialRoutingConfig)}`)
     const routingConfig: AlphaRouterConfig = _.merge(
       {},
       DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
@@ -919,9 +916,7 @@ export class AlphaRouter
       { blockNumber }
     );
 
-    log.info(`input alpha config distribution percent ${routingConfig.distributionPercent}
-    max splits ${routingConfig.maxSplits}
-    max swaps per path ${routingConfig.maxSwapsPerPath}`)
+    log.error(`sor RoutingConfig: ${JSON.stringify(routingConfig)}`)
 
     const gasPriceWei = await this.getGasPriceWei();
 
