@@ -313,6 +313,16 @@ export type AlphaRouterConfig = {
    * 40% of input => Route 3
    */
   distributionPercent: number;
+  /**
+   * Flag to indicate whether to use the cached routes or not.
+   * By default, the cached routes will be used.
+   */
+  useCachedRoutes?: boolean;
+  /**
+   * Flag to indicate whether to write to the cached routes or not.
+   * By default, the cached routes will be written to.
+   */
+  writeToCachedRoutes?: boolean;
 };
 
 export class AlphaRouter
@@ -909,7 +919,11 @@ export class AlphaRouter
     const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
 
     const routingConfig: AlphaRouterConfig = _.merge(
-      {},
+      {
+        // These settings could be changed by the partialRoutingConfig
+        useCachedRoutes: true,
+        writeToCachedRoutes: true,
+      },
       DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
       partialRoutingConfig,
       { blockNumber }
@@ -930,13 +944,13 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
-    const cacheMode = await this.routeCachingProvider?.getCacheMode(
+    const cacheMode = routingConfig.useCachedRoutes ? await this.routeCachingProvider?.getCacheMode(
       this.chainId,
       amount,
       quoteToken,
       tradeType,
       protocols
-    );
+    ) : CacheMode.Darkmode;
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
@@ -1092,7 +1106,12 @@ export class AlphaRouter
       estimatedGasUsedUSD,
     } = swapRouteRaw;
 
-    if (this.routeCachingProvider && cacheMode !== CacheMode.Darkmode && swapRouteFromChain) {
+    if (
+      this.routeCachingProvider &&
+      routingConfig.writeToCachedRoutes &&
+      cacheMode !== CacheMode.Darkmode &&
+      swapRouteFromChain
+    ) {
       // Generate the object to be cached
       const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
         swapRouteFromChain.routes,
