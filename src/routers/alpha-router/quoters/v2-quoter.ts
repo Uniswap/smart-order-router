@@ -28,6 +28,7 @@ export class V2Quoter extends BaseQuoter<V2Route> {
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
   protected v2GasModelFactory: IV2GasModelFactory;
+  protected override quoterVersion = 'v2';
 
   constructor(
     v2SubgraphProvider: IV2SubgraphProvider,

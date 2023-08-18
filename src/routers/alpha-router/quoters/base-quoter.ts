@@ -5,7 +5,13 @@ import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { ITokenListProvider, ITokenProvider, ITokenValidatorProvider, TokenValidationResult } from '../../../providers';
-import { CurrencyAmount, log, poolToString } from '../../../util';
+import {
+  CurrencyAmount,
+  log,
+  metric,
+  MetricLoggerUnit,
+  poolToString
+} from '../../../util';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
@@ -26,6 +32,7 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
   protected chainId: ChainId;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
+  protected abstract quoterVersion: string
 
   constructor(
     tokenProvider: ITokenProvider,
@@ -107,19 +114,41 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
     gasModel?: IGasModel<RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
+    const beforeGetRoutesThenQuotes = Date.now();
+
     return this.getRoutes(tokenIn, tokenOut, tradeType, routingConfig)
-      .then((routesResult) =>
-        this.getQuotes(
-          routesResult.routes,
-          amounts,
-          percents,
-          quoteToken,
-          tradeType,
-          routingConfig,
-          routesResult.candidatePools,
-          gasModel,
-          gasPriceWei
-        )
+      .then((routesResult) => {
+          const beforeGetQuotes = Date.now();
+
+          return this.getQuotes(
+            routesResult.routes,
+            amounts,
+            percents,
+            quoteToken,
+            tradeType,
+            routingConfig,
+            routesResult.candidatePools,
+            gasModel,
+            gasPriceWei
+          ).then((quotesResult) => {
+            metric.putMetric(
+              `${this.quoterVersion}GetQuotesLoad`,
+              Date.now() - beforeGetQuotes,
+              MetricLoggerUnit.Milliseconds
+            );
+
+            return quotesResult
+          })
+        }
+      ).then((quotesResult) => {
+          metric.putMetric(
+            `${this.quoterVersion}GetRoutesThenQuotesLoad`,
+            Date.now() - beforeGetRoutesThenQuotes,
+            MetricLoggerUnit.Milliseconds
+          );
+
+          return quotesResult;
+        }
       );
   }
 
