@@ -26,6 +26,7 @@ export class V3Quoter extends BaseQuoter<V3Route> {
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
   protected onChainQuoteProvider: IOnChainQuoteProvider;
+  protected override quoterVersion = 'V3';
 
   constructor(
     v3SubgraphProvider: IV3SubgraphProvider,
