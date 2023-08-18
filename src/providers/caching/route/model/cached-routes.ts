@@ -117,8 +117,13 @@ export class CachedRoutes {
    * Function to determine if, given a block number, the CachedRoute is expired or not.
    *
    * @param currentBlockNumber
+   * @param optimistic
    */
-  public notExpired(currentBlockNumber: number): boolean {
-    return (currentBlockNumber - this.blockNumber) <= this.blocksToLive;
+  public notExpired(currentBlockNumber: number, optimistic = false): boolean {
+    // When it's not optimistic, we only allow the route of the existing block.
+    const blocksToLive = optimistic ? this.blocksToLive : 0;
+    const blocksDifference = currentBlockNumber - this.blockNumber;
+
+    return blocksDifference <= blocksToLive;
   }
 }
