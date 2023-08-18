@@ -40,7 +40,15 @@ export abstract class IRouteCachingProvider {
       return undefined;
     }
 
-    const cachedRoute = await this._getCachedRoute(chainId, amount, quoteToken, tradeType, protocols, optimistic);
+    const cachedRoute = await this._getCachedRoute(
+      chainId,
+      amount,
+      quoteToken,
+      tradeType,
+      protocols,
+      blockNumber,
+      optimistic
+    );
 
     return this.filterExpiredCachedRoutes(cachedRoute, blockNumber, optimistic);
   };
@@ -107,7 +115,7 @@ export abstract class IRouteCachingProvider {
     protocols: Protocol[]
   ): Promise<CacheMode>
 
-  private filterExpiredCachedRoutes(
+  protected filterExpiredCachedRoutes(
     cachedRoutes: CachedRoutes | undefined,
     blockNumber: number,
     optimistic: boolean
@@ -132,6 +140,7 @@ export abstract class IRouteCachingProvider {
     quoteToken: Token,
     tradeType: TradeType,
     protocols: Protocol[],
+    currentBlockNumber: number,
     optimistic: boolean
   ): Promise<CachedRoutes | undefined>
 
