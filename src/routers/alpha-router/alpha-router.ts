@@ -323,6 +323,11 @@ export type AlphaRouterConfig = {
    * By default, the cached routes will be written to.
    */
   writeToCachedRoutes?: boolean;
+  /**
+   * Flag to indicate whether to use the CachedRoutes in optimistic mode.
+   * Optimistic mode means that we will allow blocksToLive greater than 1.
+   */
+  optimisticCachedRoutes?: boolean;
 };
 
 export class AlphaRouter
@@ -923,6 +928,7 @@ export class AlphaRouter
         // These settings could be changed by the partialRoutingConfig
         useCachedRoutes: true,
         writeToCachedRoutes: true,
+        optimisticCachedRoutes: false,
       },
       DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
       partialRoutingConfig,
@@ -961,7 +967,8 @@ export class AlphaRouter
         quoteToken,
         tradeType,
         protocols,
-        await blockNumber
+        await blockNumber,
+        routingConfig.optimisticCachedRoutes
       );
     }
 
