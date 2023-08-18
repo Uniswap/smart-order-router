@@ -877,6 +877,73 @@ export class AlphaRouter
     };
   }
 
+  // should fetch from db when optimistic, or default to original routing.
+  // calls to secondary lambda to populate if its not already populated 
+  private async primaryRoute(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    tradeType: TradeType,
+    swapConfig?: SwapOptions,
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+  ): Promise<null> { 
+
+  }
+
+  // get raw route and write to DB 
+  private async secondaryRoute(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    tradeType: TradeType,
+    swapConfig?: SwapOptions,
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+  ): Promise<null> { 
+
+    const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
+
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
+
+    // Get a block number to specify in all our calls. Ensures data we fetch from chain is
+    // from the same block.
+    const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
+
+    const routingConfig: AlphaRouterConfig = _.merge(
+      {},
+      DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
+      partialRoutingConfig,
+      { blockNumber }
+    );
+
+    const gasPriceWei = await this.getGasPriceWei();
+
+    const quoteToken = quoteCurrency.wrapped;
+
+    const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
+      gasPriceWei,
+      amount.currency.wrapped,
+      quoteToken,
+      { blockNumber }
+    );
+
+    // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,
+    // Then create an Array from the values of that Set.
+    const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
+
+    const swapRouteFromChainPromise = this.getSwapRouteFromChain(
+      amount,
+      tokenIn,
+      tokenOut,
+      protocols,
+      quoteToken,
+      tradeType,
+      routingConfig,
+      v3GasModel,
+      mixedRouteGasModel,
+      gasPriceWei
+    );
+
+  }
+
   /**
    * @inheritdoc IRouter
    */
