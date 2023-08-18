@@ -83,24 +83,53 @@ describe('CachedRoutes', () => {
       });
 
       describe('after blocksToLive is updated', () => {
-        beforeEach(() => {
-          cachedRoutes.blocksToLive = 5;
+        describe('with optimistic quotes set to "true"', () => {
+          let optimistic: boolean;
+          beforeEach(() => {
+            cachedRoutes.blocksToLive = 5;
+            optimistic = true;
+          });
+
+          it('returns true when blockNumber is still the same as the one in the cached routes', () => {
+            expect(cachedRoutes.notExpired(blockNumber, optimistic)).toBeTruthy();
+          });
+
+          it('returns true when blockNumber has advanced from the one in the cached routes less than BTL', () => {
+            expect(cachedRoutes.notExpired(blockNumber + 1, optimistic)).toBeTruthy();
+          });
+
+          it('returns true when blockNumber has advanced as many as blocksToLive number of blocks', () => {
+            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive, optimistic)).toBeTruthy();
+          });
+
+          it('returns false when blockNumber has advanced one more than BTL', () => {
+            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive + 1, optimistic)).toBeFalsy();
+          });
         });
 
-        it('returns true when blockNumber is still the same as the one in the cached routes', () => {
-          expect(cachedRoutes.notExpired(blockNumber)).toBeTruthy();
-        });
+        describe('with optimistic quotes set to "false"', () => {
+          // When we are not supporting optimistic quotes, blocksToLive is 0
+          let optimistic: boolean;
+          beforeEach(() => {
+            cachedRoutes.blocksToLive = 5;
+            optimistic = false;
+          });
 
-        it('returns true when blockNumber has advanced from the one in the cached routes less than BTL', () => {
-          expect(cachedRoutes.notExpired(blockNumber + 1)).toBeTruthy();
-        });
+          it('returns true when blockNumber is still the same as the one in the cached routes', () => {
+            expect(cachedRoutes.notExpired(blockNumber, optimistic)).toBeTruthy();
+          });
 
-        it('returns true when blockNumber has advanced as many as blocksToLive number of blocks', () => {
-          expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive)).toBeTruthy();
-        });
+          it('returns false when blockNumber has advanced from the one in the cached routes less than BTL', () => {
+            expect(cachedRoutes.notExpired(blockNumber + 1, optimistic)).toBeFalsy();
+          });
 
-        it('returns false when blockNumber has advanced one more than BTL', () => {
-          expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive + 1)).toBeFalsy();
+          it('returns false when blockNumber has advanced as many as blocksToLive number of blocks', () => {
+            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive, optimistic)).toBeFalsy();
+          });
+
+          it('returns false when blockNumber has advanced one more than BTL', () => {
+            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive + 1, optimistic)).toBeFalsy();
+          });
         });
       });
     });
