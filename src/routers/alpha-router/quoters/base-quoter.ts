@@ -132,7 +132,7 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
             gasPriceWei
           ).then((quotesResult) => {
             metric.putMetric(
-              `${this.quoterVersion}GetQuotesLoad`,
+              `${this.quoterVersion}OverallGetQuotesLoad`,
               Date.now() - beforeGetQuotes,
               MetricLoggerUnit.Milliseconds
             );
@@ -142,7 +142,7 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
         }
       ).then((quotesResult) => {
           metric.putMetric(
-            `${this.quoterVersion}GetRoutesThenQuotesLoad`,
+            `${this.quoterVersion}OverallGetRoutesThenQuotesLoad`,
             Date.now() - beforeGetRoutesThenQuotes,
             MetricLoggerUnit.Milliseconds
           );
