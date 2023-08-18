@@ -944,17 +944,17 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
-    const cacheMode = routingConfig.useCachedRoutes ? await this.routeCachingProvider?.getCacheMode(
+    const cacheMode = await this.routeCachingProvider?.getCacheMode(
       this.chainId,
       amount,
       quoteToken,
       tradeType,
       protocols
-    ) : CacheMode.Darkmode;
+    );
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
-    if (cacheMode !== CacheMode.Darkmode) {
+    if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
       cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
         this.chainId,
         amount,
