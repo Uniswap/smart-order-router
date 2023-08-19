@@ -5,7 +5,7 @@ import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 
 import { IUniswapV2Pair__factory } from '../../types/v2/factories/IUniswapV2Pair__factory';
-import { CurrencyAmount, metric, MetricLoggerUnit } from '../../util';
+import { CurrencyAmount, ID_TO_NETWORK_NAME, metric, MetricLoggerUnit } from '../../util';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
@@ -110,6 +110,11 @@ export class V2PoolProvider implements IV2PoolProvider {
 
     metric.putMetric('V2_RPC_POOL_RPC_CALL', 1, MetricLoggerUnit.None);
     metric.putMetric('V2GetReservesBatchSize', sortedPoolAddresses.length, MetricLoggerUnit.Count);
+    metric.putMetric(
+      `V2GetReservesBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
+      sortedPoolAddresses.length,
+      MetricLoggerUnit.Count
+    );
 
     const reservesResults = await this.getPoolsData<IReserves>(
       sortedPoolAddresses,
