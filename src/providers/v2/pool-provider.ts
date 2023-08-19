@@ -76,7 +76,8 @@ export class V2PoolProvider implements IV2PoolProvider {
       minTimeout: 50,
       maxTimeout: 500,
     }
-  ) {}
+  ) {
+  }
 
   public async getPools(
     tokenPairs: [Token, Token][],
@@ -107,7 +108,8 @@ export class V2PoolProvider implements IV2PoolProvider {
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
     );
 
-    metric.putMetric('V2_RPC_POOL_RPC_CALL', 1, MetricLoggerUnit.None)
+    metric.putMetric('V2_RPC_POOL_RPC_CALL', 1, MetricLoggerUnit.None);
+    metric.putMetric('V2GetReservesBatchSize', sortedPoolAddresses.length, MetricLoggerUnit.Count);
 
     const reservesResults = await this.getPoolsData<IReserves>(
       sortedPoolAddresses,
