@@ -1278,9 +1278,9 @@ export class AlphaRouter
 
     if (v3Routes.length > 0) {
       const v3RoutesFromCache: V3Route[] = v3Routes.map((cachedRoute) => cachedRoute.route as V3Route);
+      metric.putMetric("SwapRouteFromCache_V3_GetQuotes_Request", 1, MetricLoggerUnit.Count);
 
       const beforeGetQuotes = Date.now();
-      metric.putMetric("SwapRouteFromCache_V3_GetQuotes_Request", 1, MetricLoggerUnit.Count);
 
       quotePromises.push(
         this.v3Quoter.getQuotes(
@@ -1305,6 +1305,7 @@ export class AlphaRouter
     }
 
     if (v2Routes.length > 0) {
+      metric.putMetric("SwapRouteFromCache_V2_GetQuotes_Request", 1, MetricLoggerUnit.Count);
       const beforeGetRoutesAndQuotes = Date.now();
 
       quotePromises.push(
@@ -1334,9 +1335,9 @@ export class AlphaRouter
 
     if (mixedRoutes.length > 0) {
       const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map((cachedRoute) => cachedRoute.route as MixedRoute);
+      metric.putMetric("SwapRouteFromCache_Mixed_GetQuotes_Request", 1, MetricLoggerUnit.Count);
 
       const beforeGetQuotes = Date.now();
-      metric.putMetric("SwapRouteFromCache_Mixed_GetQuotes_Request", 1, MetricLoggerUnit.Count);
 
       quotePromises.push(
         this.mixedQuoter.getQuotes(
