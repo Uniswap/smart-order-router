@@ -1279,6 +1279,9 @@ export class AlphaRouter
     if (v3Routes.length > 0) {
       const v3RoutesFromCache: V3Route[] = v3Routes.map((cachedRoute) => cachedRoute.route as V3Route);
 
+      const beforeGetQuotes = Date.now();
+      metric.putMetric("SwapRouteFromCache_V3_GetQuotes_Request", 1, MetricLoggerUnit.Count);
+
       quotePromises.push(
         this.v3Quoter.getQuotes(
           v3RoutesFromCache,
@@ -1289,11 +1292,21 @@ export class AlphaRouter
           routingConfig,
           undefined,
           v3GasModel
-        )
+        ).then((result) => {
+          metric.putMetric(
+            `SwapRouteFromCache_V3_GetQuotes_Load`,
+            Date.now() - beforeGetQuotes,
+            MetricLoggerUnit.Milliseconds
+          );
+
+          return result;
+        })
       );
     }
 
     if (v2Routes.length > 0) {
+      const beforeGetRoutesAndQuotes = Date.now();
+
       quotePromises.push(
         // When we fetch the quotes in V2, we are not calling the `onChainProvider` like on v3Routes and mixedRoutes
         // Instead we are using the reserves in the Pool object, so we need to re-load the current reserves.
@@ -1307,12 +1320,23 @@ export class AlphaRouter
           routingConfig,
           undefined,
           gasPriceWei
-        )
+        ).then((result) => {
+          metric.putMetric(
+            `SwapRouteFromCache_V2_GetRoutesAndQuotes_Load`,
+            Date.now() - beforeGetRoutesAndQuotes,
+            MetricLoggerUnit.Milliseconds
+          );
+
+          return result;
+        })
       );
     }
 
     if (mixedRoutes.length > 0) {
       const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map((cachedRoute) => cachedRoute.route as MixedRoute);
+
+      const beforeGetQuotes = Date.now();
+      metric.putMetric("SwapRouteFromCache_Mixed_GetQuotes_Request", 1, MetricLoggerUnit.Count);
 
       quotePromises.push(
         this.mixedQuoter.getQuotes(
@@ -1324,7 +1348,15 @@ export class AlphaRouter
           routingConfig,
           undefined,
           mixedRouteGasModel
-        )
+        ).then((result) => {
+          metric.putMetric(
+            `SwapRouteFromCache_Mixed_GetQuotes_Load`,
+            Date.now() - beforeGetQuotes,
+            MetricLoggerUnit.Milliseconds
+          );
+
+          return result;
+        })
       );
     }
 
@@ -1375,6 +1407,10 @@ export class AlphaRouter
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {
       log.info({ protocols, tradeType }, 'Routing across V3');
+
+      metric.putMetric("SwapRouteFromChain_V3_GetRoutesThenQuotes_Request", 1, MetricLoggerUnit.Count);
+      const beforeGetRoutesThenQuotes = Date.now();
+
       quotePromises.push(
         this.v3Quoter.getRoutesThenQuotes(
           tokenIn,
@@ -1385,13 +1421,25 @@ export class AlphaRouter
           tradeType,
           routingConfig,
           v3GasModel
-        )
+        ).then((result) => {
+          metric.putMetric(
+            `SwapRouteFromChain_V3_GetRoutesThenQuotes_Load`,
+            Date.now() - beforeGetRoutesThenQuotes,
+            MetricLoggerUnit.Milliseconds
+          );
+
+          return result;
+        })
       );
     }
 
     // Maybe Quote V2 - if V2 is specified, or no protocol is specified AND v2 is supported in this chain
     if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
       log.info({ protocols, tradeType }, 'Routing across V2');
+
+      metric.putMetric("SwapRouteFromChain_V2_GetRoutesThenQuotes_Request", 1, MetricLoggerUnit.Count);
+      const beforeGetRoutesThenQuotes = Date.now();
+
       quotePromises.push(
         this.v2Quoter.getRoutesThenQuotes(
           tokenIn,
@@ -1403,7 +1451,15 @@ export class AlphaRouter
           routingConfig,
           undefined,
           gasPriceWei
-        )
+        ).then((result) => {
+          metric.putMetric(
+            `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
+            Date.now() - beforeGetRoutesThenQuotes,
+            MetricLoggerUnit.Milliseconds
+          );
+
+          return result;
+        })
       );
     }
 
@@ -1412,6 +1468,10 @@ export class AlphaRouter
     // AND is Mainnet or Gorli
     if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
       log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
+
+      metric.putMetric("SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Request", 1, MetricLoggerUnit.Count);
+      const beforeGetRoutesThenQuotes = Date.now();
+
       quotePromises.push(
         this.mixedQuoter.getRoutesThenQuotes(
           tokenIn,
@@ -1422,7 +1482,15 @@ export class AlphaRouter
           tradeType,
           routingConfig,
           mixedRouteGasModel
-        )
+        ).then((result) => {
+          metric.putMetric(
+            `SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Load`,
+            Date.now() - beforeGetRoutesThenQuotes,
+            MetricLoggerUnit.Milliseconds
+          );
+
+          return result;
+        })
       );
     }
 
