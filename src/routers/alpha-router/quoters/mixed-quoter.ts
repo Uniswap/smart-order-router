@@ -29,7 +29,6 @@ export class MixedQuoter extends BaseQuoter<MixedRoute> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected onChainQuoteProvider: IOnChainQuoteProvider;
-  protected override quoterVersion = 'Mixed';
 
   constructor(
     v3SubgraphProvider: IV3SubgraphProvider,
