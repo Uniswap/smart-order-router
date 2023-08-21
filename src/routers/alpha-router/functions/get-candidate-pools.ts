@@ -1002,8 +1002,11 @@ export async function getMixedRouteCandidatePools({
 }> {
   const beforeSubgraphPools = Date.now();
   const { blockNumber, debugRouting } = routingConfig;
-  const { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools } =
-    await getV3CandidatePools({
+  const [
+    { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools},
+    { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools}
+  ] = await Promise.all([
+    getV3CandidatePools({
       tokenIn,
       tokenOut,
       tokenProvider,
@@ -1013,9 +1016,8 @@ export async function getMixedRouteCandidatePools({
       subgraphProvider: v3subgraphProvider,
       routingConfig,
       chainId,
-    });
-  const { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools } =
-    await getV2CandidatePools({
+    }),
+    getV2CandidatePools({
       tokenIn,
       tokenOut,
       tokenProvider,
@@ -1025,7 +1027,8 @@ export async function getMixedRouteCandidatePools({
       subgraphProvider: v2subgraphProvider,
       routingConfig,
       chainId,
-    });
+    }),
+  ])
 
   metric.putMetric('MixedSubgraphPoolsLoad', Date.now() - beforeSubgraphPools, MetricLoggerUnit.Milliseconds);
   const beforePoolsFiltered = Date.now();
