@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import {ChainId, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
@@ -237,6 +237,8 @@ export async function getV3CandidatePools({
     Date.now() - beforeSubgraphPools,
     MetricLoggerUnit.Milliseconds
   );
+
+  const beforePoolsFiltered = Date.now();
 
   // Only consider pools where neither tokens are in the blocked token list.
   let filteredPools: V3SubgraphPool[] = allPools;
@@ -562,6 +564,12 @@ export async function getV3CandidatePools({
 
   const tokenPairs = _.compact(tokenPairsRaw);
 
+  metric.putMetric(
+    'V3PoolsFilterLoad',
+    Date.now() - beforePoolsFiltered,
+    MetricLoggerUnit.Milliseconds
+  );
+
   const beforePoolsLoad = Date.now();
 
   const poolAccessor = await poolProvider.getPools(tokenPairs, {
@@ -647,6 +655,8 @@ export async function getV2CandidatePools({
     Date.now() - beforeSubgraphPools,
     MetricLoggerUnit.Milliseconds
   );
+
+  const beforePoolsFiltered = Date.now();
 
   // Only consider pools where neither tokens are in the blocked token list.
   let filteredPools: V2SubgraphPool[] = allPools;
@@ -938,6 +948,12 @@ export async function getV2CandidatePools({
 
   const tokenPairs = _.compact(tokenPairsRaw);
 
+  metric.putMetric(
+    'V2PoolsFilterLoad',
+    Date.now() - beforePoolsFiltered,
+    MetricLoggerUnit.Milliseconds
+  );
+
   const beforePoolsLoad = Date.now();
 
   const poolAccessor = await poolProvider.getPools(tokenPairs, { blockNumber, debugRouting });
@@ -984,6 +1000,7 @@ export async function getMixedRouteCandidatePools({
   candidatePools: CandidatePoolsBySelectionCriteria;
   subgraphPools: (V2SubgraphPool | V3SubgraphPool)[];
 }> {
+  const beforeSubgraphPools = Date.now();
   const { blockNumber, debugRouting } = routingConfig;
   const { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools } =
     await getV3CandidatePools({
@@ -1009,6 +1026,9 @@ export async function getMixedRouteCandidatePools({
       routingConfig,
       chainId,
     });
+
+  metric.putMetric('MixedSubgraphPoolsLoad', Date.now() - beforeSubgraphPools, MetricLoggerUnit.Milliseconds);
+  const beforePoolsFiltered = Date.now();
 
   /**
    * Main heuristic for pruning mixedRoutes:
@@ -1150,6 +1170,14 @@ export async function getMixedRouteCandidatePools({
 
   const V2tokenPairs = _.compact(V2tokenPairsRaw);
 
+  metric.putMetric(
+    'MixedPoolsFilterLoad',
+    Date.now() - beforePoolsFiltered,
+    MetricLoggerUnit.Milliseconds
+  );
+
+  const beforePoolsLoad = Date.now();
+
   const [V2poolAccessor, V3poolAccessor] = await Promise.all([
     v2poolProvider.getPools(V2tokenPairs, {
       blockNumber,
@@ -1160,6 +1188,12 @@ export async function getMixedRouteCandidatePools({
       debugRouting
     }),
   ]);
+
+  metric.putMetric(
+    'MixedPoolsLoad',
+    Date.now() - beforePoolsLoad,
+    MetricLoggerUnit.Milliseconds
+  );
 
   /// @dev a bit tricky here since the original V2CandidateSelections object included pools that we may have dropped
   /// as part of the heuristic. We need to reconstruct a new object with the v3 pools too.
