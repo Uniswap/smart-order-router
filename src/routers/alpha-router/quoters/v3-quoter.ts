@@ -48,6 +48,7 @@ export class V3Quoter extends BaseQuoter<V3Route> {
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<V3Route>> {
+    const beforeGetRoutes = Date.now();
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
     // result in good prices.
@@ -104,6 +105,8 @@ export class V3Quoter extends BaseQuoter<V3Route> {
       maxSwapsPerPath
     );
 
+    metric.putMetric('V3GetRoutesLoad', Date.now() - beforeGetRoutes, MetricLoggerUnit.Milliseconds);
+
     return {
       routes,
       candidatePools,
@@ -120,6 +123,7 @@ export class V3Quoter extends BaseQuoter<V3Route> {
     candidatePools?: CandidatePoolsBySelectionCriteria,
     gasModel?: IGasModel<V3RouteWithValidQuote>
   ): Promise<GetQuotesResult> {
+    const beforeGetQuotes = Date.now();
     log.info('Starting to get V3 quotes');
 
     if (gasModel === undefined) {
@@ -212,6 +216,8 @@ export class V3Quoter extends BaseQuoter<V3Route> {
         routesWithValidQuotes.push(routeWithValidQuote);
       }
     }
+
+    metric.putMetric('V3GetQuotesLoad', Date.now() - beforeGetQuotes, MetricLoggerUnit.Milliseconds);
 
     return {
       routesWithValidQuotes,
