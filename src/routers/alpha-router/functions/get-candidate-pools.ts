@@ -617,6 +617,7 @@ export async function getV2CandidatePools({
       topNWithEachBaseToken,
       topNWithBaseToken,
     },
+    debugRouting,
   } = routingConfig;
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
@@ -939,7 +940,7 @@ export async function getV2CandidatePools({
 
   const beforePoolsLoad = Date.now();
 
-  const poolAccessor = await poolProvider.getPools(tokenPairs, { blockNumber });
+  const poolAccessor = await poolProvider.getPools(tokenPairs, { blockNumber, debugRouting });
 
   metric.putMetric(
     'V2PoolsLoad',
@@ -983,7 +984,7 @@ export async function getMixedRouteCandidatePools({
   candidatePools: CandidatePoolsBySelectionCriteria;
   subgraphPools: (V2SubgraphPool | V3SubgraphPool)[];
 }> {
-  const { blockNumber } = routingConfig;
+  const { blockNumber, debugRouting } = routingConfig;
   const { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools } =
     await getV3CandidatePools({
       tokenIn,
@@ -1152,9 +1153,11 @@ export async function getMixedRouteCandidatePools({
   const [V2poolAccessor, V3poolAccessor] = await Promise.all([
     v2poolProvider.getPools(V2tokenPairs, {
       blockNumber,
+      debugRouting,
     }),
     v3poolProvider.getPools(V3tokenPairs, {
       blockNumber,
+      debugRouting
     }),
   ]);
 

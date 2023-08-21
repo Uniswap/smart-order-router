@@ -47,7 +47,7 @@ import {
 } from '../entities/route-with-valid-quote';
 
 
-// When adding new usd gas tokens, ensure the tokens are ordered 
+// When adding new usd gas tokens, ensure the tokens are ordered
 // from tokens with highest decimals to lowest decimals. For example,
 // DAI_AVAX has 18 decimals and comes before USDC_AVAX which has 6 decimals.
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
@@ -97,6 +97,7 @@ export type BuildV2GasModelFactoryType = {
   gasPriceWei: BigNumber;
   poolProvider: IV2PoolProvider;
   token: Token;
+  providerConfig?: ProviderConfig;
 };
 
 export type LiquidityCalculationPools = {

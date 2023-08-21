@@ -58,6 +58,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     pools,
     quoteToken,
     v2poolProvider: V2poolProvider,
+    providerConfig: providerConfig,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
@@ -110,7 +111,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     let nativeV2Pool: Pair | null;
     if (V2poolProvider) {
       /// MixedRoutes
-      nativeV2Pool = await getV2NativePool(quoteToken, V2poolProvider);
+      nativeV2Pool = await getV2NativePool(quoteToken, V2poolProvider, providerConfig);
     }
 
     const usdToken =
