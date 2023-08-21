@@ -328,6 +328,10 @@ export type AlphaRouterConfig = {
    * Optimistic mode means that we will allow blocksToLive greater than 1.
    */
   optimisticCachedRoutes?: boolean;
+  /**
+   * Debug param that helps to see the short-term latencies improvements without impacting the main path.
+   */
+  debugRouting?: boolean;
 };
 
 export class AlphaRouter
