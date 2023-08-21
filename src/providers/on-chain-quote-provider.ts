@@ -1,10 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import {
-  encodeMixedRouteToPath,
-  MixedRouteSDK,
-  Protocol,
-} from '@uniswap/router-sdk';
+import { encodeMixedRouteToPath, MixedRouteSDK, Protocol, } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
@@ -14,11 +10,8 @@ import stats from 'stats-lite';
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
 import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { metric, MetricLoggerUnit } from '../util';
-import {
-  MIXED_ROUTE_QUOTER_V1_ADDRESSES,
-  QUOTER_V2_ADDRESSES,
-} from '../util/addresses';
+import { ID_TO_NETWORK_NAME, metric, MetricLoggerUnit } from '../util';
+import { MIXED_ROUTE_QUOTER_V1_ADDRESSES, QUOTER_V2_ADDRESSES, } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import { routeToString } from '../util/routes';
@@ -55,6 +48,7 @@ export type AmountQuote = {
 export class BlockConflictError extends Error {
   public name = 'BlockConflictError';
 }
+
 export class SuccessRateError extends Error {
   public name = 'SuccessRateError';
 }
@@ -292,7 +286,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       rollback: { enabled: false },
     },
     protected quoterAddressOverride?: string
-  ) {}
+  ) {
+  }
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
     if (this.quoterAddressOverride) {
@@ -379,14 +374,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         const encodedRoute =
           route.protocol === Protocol.V3
             ? encodeRouteToPath(
-                route,
-                functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
-              )
+              route,
+              functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
+            )
             : encodeMixedRouteToPath(
-                route instanceof V2Route
-                  ? new MixedRouteSDK(route.pairs, route.input, route.output)
-                  : route
-              );
+              route instanceof V2Route
+                ? new MixedRouteSDK(route.pairs, route.input, route.output)
+                : route
+            );
         const routeInputs: [string, string][] = amounts.map((amount) => [
           encodedRoute,
           `0x${amount.quotient.toString(16)}`,
@@ -418,6 +413,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           : ''
       } and block number: ${await providerConfig.blockNumber} [Original before offset: ${originalBlockNumber}].`
     );
+
+    metric.putMetric('QuoteBatchSize', inputs.length, MetricLoggerUnit.Count);
+    metric.putMetric(`QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`, inputs.length, MetricLoggerUnit.Count);
 
     let haveRetriedForSuccessRate = false;
     let haveRetriedForBlockHeader = false;
@@ -627,7 +625,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   providerConfig.blockNumber = providerConfig.blockNumber
                     ? (await providerConfig.blockNumber) + rollbackBlockOffset
                     : (await this.provider.getBlockNumber()) +
-                      rollbackBlockOffset;
+                    rollbackBlockOffset;
 
                   retryAll = true;
                   blockHeaderRolledBack = true;
