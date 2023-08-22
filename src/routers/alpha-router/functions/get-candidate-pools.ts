@@ -196,6 +196,7 @@ export async function getV3CandidatePools({
     blockNumber,
     v3PoolSelection: {
       topN,
+      topNDirectSwaps,
       topNTokenInOut,
       topNSecondHop,
       topNSecondHopForTokenAddress,
@@ -271,30 +272,33 @@ export async function getV3CandidatePools({
       .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
   };
 
-  // Add DirectSwapPools always
-  const topByDirectSwapPools: V3SubgraphPool[] = _.map(
-    [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
-    (feeAmount) => {
-      const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
-        tokenIn,
-        tokenOut,
-        feeAmount
-      );
-      return {
-        id: poolAddress,
-        feeTier: unparseFeeAmount(feeAmount),
-        liquidity: '10000',
-        token0: {
-          id: token0.address,
-        },
-        token1: {
-          id: token1.address,
-        },
-        tvlETH: 10000,
-        tvlUSD: 10000,
-      };
-    }
-  );
+  // Add DirectSwapPools if requested more than 0
+  let topByDirectSwapPools: V3SubgraphPool[] = [];
+  if (topNDirectSwaps > 0) {
+    topByDirectSwapPools = _.map(
+      [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
+      (feeAmount) => {
+        const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
+          tokenIn,
+          tokenOut,
+          feeAmount
+        );
+        return {
+          id: poolAddress,
+          feeTier: unparseFeeAmount(feeAmount),
+          liquidity: '10000',
+          token0: {
+            id: token0.address,
+          },
+          token1: {
+            id: token1.address,
+          },
+          tvlETH: 10000,
+          tvlUSD: 10000,
+        };
+      }
+    );
+  }
 
   addToAddressSet(topByDirectSwapPools);
 
