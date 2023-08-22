@@ -239,31 +239,9 @@ export async function getV3CandidatePools({
 
   const beforePoolsFiltered = Date.now();
 
-  // Only consider pools where neither tokens are in the blocked token list.
-  let filteredPools: V3SubgraphPool[] = allPools;
-  if (blockedTokenListProvider) {
-    filteredPools = [];
-    for (const pool of allPools) {
-      const token0InBlocklist =
-        await blockedTokenListProvider.getTokenByAddress(pool.token0.id);
-      const token1InBlocklist =
-        await blockedTokenListProvider.getTokenByAddress(pool.token1.id);
-
-      if (token0InBlocklist || token1InBlocklist) {
-        continue;
-      }
-
-      filteredPools.push(pool);
-    }
-  }
-
-  const subgraphPoolsSorted = _(filteredPools)
+  const subgraphPoolsSorted = _(allPools)
     .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
     .value();
-
-  log.info(
-    `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
-  );
 
   const poolAddressesSoFar = new Set<string>();
   const addToAddressSet = (pools: V3SubgraphPool[]) => {
@@ -272,7 +250,7 @@ export async function getV3CandidatePools({
       .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
   };
 
-  // Add DirectSwapPools if requested more than 0
+  // Add DirectSwapPools if more than 0 were requested
   let topByDirectSwapPools: V3SubgraphPool[] = [];
   if (topNDirectSwaps > 0) {
     topByDirectSwapPools = _.map(
@@ -313,11 +291,22 @@ export async function getV3CandidatePools({
   const topByTVLUsingTokenOut: V3SubgraphPool[] = [];
   const topByTVL: V3SubgraphPool[] = [];
 
-
   // Filtering step for up to first hop
   // The pools are pre-sorted, so we can just iterate through them and fill our heuristics.
   for (const subgraphPool of subgraphPoolsSorted) {
-    // First check if we have satisfied all the heuristics, if so, we can stop.
+    // Only consider pools where neither tokens are in the blocked token list.
+    if (blockedTokenListProvider) {
+      const [token0InBlocklist, token1InBlocklist] = await Promise.all([
+        blockedTokenListProvider.getTokenByAddress(subgraphPool.token0.id),
+        blockedTokenListProvider.getTokenByAddress(subgraphPool.token1.id)
+      ]);
+
+      if (token0InBlocklist || token1InBlocklist) {
+        continue;
+      }
+    }
+
+    // Check if we have satisfied all the heuristics, if so, we can stop.
     if (
       topByBaseWithTokenIn.length >= topNWithBaseToken &&
       topByBaseWithTokenOut.length >= topNWithBaseToken &&
@@ -329,7 +318,6 @@ export async function getV3CandidatePools({
       // We have satisfied all the heuristics, so we can stop.
       break;
     }
-
 
     if (
       topByBaseWithTokenIn.length < topNWithBaseToken &&
@@ -430,8 +418,19 @@ export async function getV3CandidatePools({
 
   for (const subgraphPool of subgraphPoolsSorted) {
     if (poolAddressesSoFar.has(subgraphPool.id)) {
-      // We have already added this pool to our set, continue with the next pool
       continue;
+    }
+
+    // Only consider pools where neither tokens are in the blocked token list.
+    if (blockedTokenListProvider) {
+      const [token0InBlocklist, token1InBlocklist] = await Promise.all([
+        blockedTokenListProvider.getTokenByAddress(subgraphPool.token0.id),
+        blockedTokenListProvider.getTokenByAddress(subgraphPool.token1.id)
+      ]);
+
+      if (token0InBlocklist || token1InBlocklist) {
+        continue;
+      }
     }
 
     if (
@@ -1020,8 +1019,8 @@ export async function getMixedRouteCandidatePools({
   const beforeSubgraphPools = Date.now();
   const { blockNumber, debugRouting } = routingConfig;
   const [
-    { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools},
-    { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools}
+    { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools },
+    { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools }
   ] = await Promise.all([
     getV3CandidatePools({
       tokenIn,
@@ -1045,7 +1044,7 @@ export async function getMixedRouteCandidatePools({
       routingConfig,
       chainId,
     }),
-  ])
+  ]);
 
   metric.putMetric('MixedSubgraphPoolsLoad', Date.now() - beforeSubgraphPools, MetricLoggerUnit.Milliseconds);
   const beforePoolsFiltered = Date.now();
