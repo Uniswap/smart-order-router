@@ -342,6 +342,9 @@ export async function getV3CandidatePools({
       continue;
     }
 
+    // Main reason we need this is for gas estimates, only needed if token out is not native.
+    // We don't check the seen address set because if we've already added pools for getting native quotes
+    // theres no need to add more.
     if (
       topByEthQuoteTokenPool.length < 2 &&
       (
