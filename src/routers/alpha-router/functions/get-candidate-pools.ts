@@ -454,15 +454,21 @@ export async function getV3CandidatePools({
   }
 
   for (const subgraphPool of subgraphPoolsSorted) {
-    const tokenInSecondHops = Array.from(topByTVLUsingTokenInSecondHopsMap.values());
-    const allTokenInSecondHopsHaveTheirTopN = tokenInSecondHops.every((secondHopPools) =>
-      secondHopPools.hasEnoughPools()
-    );
+    let allTokenInSecondHopsHaveTheirTopN = true;
+    for (const secondHopPools of topByTVLUsingTokenInSecondHopsMap.values()) {
+      if (!secondHopPools.hasEnoughPools()) {
+        allTokenInSecondHopsHaveTheirTopN = false;
+        break;
+      }
+    }
 
-    const tokenOutSecondHops = Array.from(topByTVLUsingTokenOutSecondHopsMap.values());
-    const allTokenOutSecondHopsHaveTheirTopN = tokenOutSecondHops.every((secondHopPools) =>
-      secondHopPools.hasEnoughPools()
-    );
+    let allTokenOutSecondHopsHaveTheirTopN = true;
+    for (const secondHopPools of topByTVLUsingTokenOutSecondHopsMap.values()) {
+      if (!secondHopPools.hasEnoughPools()) {
+        allTokenOutSecondHopsHaveTheirTopN = false;
+        break;
+      }
+    }
 
     if (allTokenInSecondHopsHaveTheirTopN && allTokenOutSecondHopsHaveTheirTopN) {
       // We have satisfied all the heuristics, so we can stop.
@@ -515,12 +521,12 @@ export async function getV3CandidatePools({
   }
 
   const topByTVLUsingTokenInSecondHops: V3SubgraphPool[] = [];
-  for (const secondHopPools of Array.from(topByTVLUsingTokenInSecondHopsMap.values())) {
+  for (const secondHopPools of topByTVLUsingTokenInSecondHopsMap.values()) {
     topByTVLUsingTokenInSecondHops.push(...secondHopPools.pools);
   }
 
   const topByTVLUsingTokenOutSecondHops: V3SubgraphPool[] = [];
-  for (const secondHopPools of Array.from(topByTVLUsingTokenOutSecondHopsMap.values())) {
+  for (const secondHopPools of topByTVLUsingTokenOutSecondHopsMap.values()) {
     topByTVLUsingTokenOutSecondHops.push(...secondHopPools.pools);
   }
 
@@ -886,15 +892,21 @@ export async function getV2CandidatePools({
   }
 
   for (const subgraphPool of subgraphPoolsSorted) {
-    const tokenInSecondHops = Array.from(topByTVLUsingTokenInSecondHopsMap.values());
-    const allTokenInSecondHopsHaveTheirTopN = tokenInSecondHops.every((secondHopPools) =>
-      secondHopPools.hasEnoughPools()
-    );
+    let allTokenInSecondHopsHaveTheirTopN = true;
+    for (const secondHopPools of topByTVLUsingTokenInSecondHopsMap.values()) {
+      if (!secondHopPools.hasEnoughPools()) {
+        allTokenInSecondHopsHaveTheirTopN = false;
+        break;
+      }
+    }
 
-    const tokenOutSecondHops = Array.from(topByTVLUsingTokenOutSecondHopsMap.values());
-    const allTokenOutSecondHopsHaveTheirTopN = tokenOutSecondHops.every((secondHopPools) =>
-      secondHopPools.hasEnoughPools()
-    );
+    let allTokenOutSecondHopsHaveTheirTopN = true;
+    for (const secondHopPools of topByTVLUsingTokenOutSecondHopsMap.values()) {
+      if (!secondHopPools.hasEnoughPools()) {
+        allTokenOutSecondHopsHaveTheirTopN = false;
+        break;
+      }
+    }
 
     if (allTokenInSecondHopsHaveTheirTopN && allTokenOutSecondHopsHaveTheirTopN) {
       // We have satisfied all the heuristics, so we can stop.
@@ -947,12 +959,12 @@ export async function getV2CandidatePools({
   }
 
   const topByTVLUsingTokenInSecondHops: V2SubgraphPool[] = [];
-  for (const secondHopPools of Array.from(topByTVLUsingTokenInSecondHopsMap.values())) {
+  for (const secondHopPools of topByTVLUsingTokenInSecondHopsMap.values()) {
     topByTVLUsingTokenInSecondHops.push(...secondHopPools.pools);
   }
 
   const topByTVLUsingTokenOutSecondHops: V2SubgraphPool[] = [];
-  for (const secondHopPools of Array.from(topByTVLUsingTokenOutSecondHopsMap.values())) {
+  for (const secondHopPools of topByTVLUsingTokenOutSecondHopsMap.values()) {
     topByTVLUsingTokenOutSecondHops.push(...secondHopPools.pools);
   }
 
