@@ -345,6 +345,19 @@ export async function getV3CandidatePools({
     if (
       topByEthQuoteTokenPool.length < 2 &&
       (
+        (
+          WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]?.symbol &&
+          tokenOut.symbol != 'WETH' &&
+          tokenOut.symbol != 'WETH9' &&
+          tokenOut.symbol != 'ETH'
+        ) ||
+        (
+          WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
+          tokenOut.symbol != 'MATIC' &&
+          tokenOut.symbol != 'WMATIC'
+        )
+      ) &&
+      (
         routeType === TradeType.EXACT_INPUT && (
           (subgraphPool.token0.id == wrappedNativeAddress && subgraphPool.token1.id == tokenOutAddress) ||
           (subgraphPool.token1.id == wrappedNativeAddress && subgraphPool.token0.id == tokenOutAddress)
@@ -609,7 +622,7 @@ export async function getV3CandidatePools({
       topByBaseWithTokenIn,
       topByBaseWithTokenOut,
       topByDirectSwapPool: topByDirectSwapPools,
-      topByEthQuoteTokenPool: topByEthQuoteTokenPool,
+      topByEthQuoteTokenPool,
       topByTVL,
       topByTVLUsingTokenIn,
       topByTVLUsingTokenOut,
@@ -1030,7 +1043,7 @@ export async function getV2CandidatePools({
       topByBaseWithTokenIn,
       topByBaseWithTokenOut,
       topByDirectSwapPool,
-      topByEthQuoteTokenPool: topByEthQuoteTokenPool,
+      topByEthQuoteTokenPool,
       topByTVL,
       topByTVLUsingTokenIn,
       topByTVLUsingTokenOut,
