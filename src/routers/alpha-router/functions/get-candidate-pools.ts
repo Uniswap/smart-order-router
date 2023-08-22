@@ -354,7 +354,7 @@ export async function getV3CandidatePools({
 
     const tokenOutToken0TopByBase = topByBaseWithTokenOutMap.get(subgraphPool.token0.id);
     if (
-      topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
+      topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken0TopByBase &&
       subgraphPool.token1.id == tokenOutAddress
     ) {
@@ -365,7 +365,7 @@ export async function getV3CandidatePools({
 
     const tokenOutToken1TopByBase = topByBaseWithTokenInMap.get(subgraphPool.token1.id);
     if (
-      topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
+      topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken1TopByBase &&
       subgraphPool.token0.id == tokenOutAddress
     ) {
@@ -876,7 +876,7 @@ export async function getV2CandidatePools({
 
     const tokenOutToken0TopByBase = topByBaseWithTokenOutMap.get(subgraphPool.token0.id);
     if (
-      topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
+      topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken0TopByBase &&
       subgraphPool.token1.id == tokenOutAddress
     ) {
@@ -887,7 +887,7 @@ export async function getV2CandidatePools({
 
     const tokenOutToken1TopByBase = topByBaseWithTokenInMap.get(subgraphPool.token1.id);
     if (
-      topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
+      topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken1TopByBase &&
       subgraphPool.token0.id == tokenOutAddress
     ) {
