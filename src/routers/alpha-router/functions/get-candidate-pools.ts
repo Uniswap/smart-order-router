@@ -261,9 +261,9 @@ export async function getV3CandidatePools({
   };
 
   const baseTokens = baseTokensByChain[chainId] ?? [];
-  const baseTokensAddresses: Map<string, boolean> = new Map();
+  const baseTokensAddresses: Set<string> = new Set();
   baseTokens.forEach((token) =>
-    baseTokensAddresses.set(token.address.toLowerCase(), true)
+    baseTokensAddresses.add(token.address.toLowerCase())
   );
   const wrappedNativeAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address;
 
@@ -318,8 +318,8 @@ export async function getV3CandidatePools({
     if (
       topByBaseWithTokenIn.length < topNWithBaseToken &&
       (
-        (baseTokensAddresses.get(subgraphPool.token0.id) && subgraphPool.token1.id == tokenInAddress) ||
-        (baseTokensAddresses.get(subgraphPool.token1.id) && subgraphPool.token0.id == tokenInAddress)
+        (baseTokensAddresses.has(subgraphPool.token0.id) && subgraphPool.token1.id == tokenInAddress) ||
+        (baseTokensAddresses.has(subgraphPool.token1.id) && subgraphPool.token0.id == tokenInAddress)
       )
     ) {
       topByBaseWithTokenIn.push(subgraphPool);
@@ -330,8 +330,8 @@ export async function getV3CandidatePools({
     if (
       topByBaseWithTokenOut.length < topNWithBaseToken &&
       (
-        (baseTokensAddresses.get(subgraphPool.token0.id) && subgraphPool.token1.id == tokenOutAddress) ||
-        (baseTokensAddresses.get(subgraphPool.token1.id) && subgraphPool.token0.id == tokenOutAddress)
+        (baseTokensAddresses.has(subgraphPool.token0.id) && subgraphPool.token1.id == tokenOutAddress) ||
+        (baseTokensAddresses.has(subgraphPool.token1.id) && subgraphPool.token0.id == tokenOutAddress)
       )
     ) {
       topByBaseWithTokenOut.push(subgraphPool);
@@ -750,9 +750,9 @@ export async function getV2CandidatePools({
   addToAddressSet(topByDirectSwapPool);
 
   const baseTokens = baseTokensByChain[chainId] ?? [];
-  const baseTokensAddresses: Map<string, boolean> = new Map();
+  const baseTokensAddresses: Set<string> = new Set();
   baseTokens.forEach((token) =>
-    baseTokensAddresses.set(token.address.toLowerCase(), true)
+    baseTokensAddresses.add(token.address.toLowerCase())
   );
   const wethAddress = WRAPPED_NATIVE_CURRENCY[chainId]!.address;
 
@@ -794,8 +794,8 @@ export async function getV2CandidatePools({
     if (
       topByBaseWithTokenIn.length < topNWithBaseToken &&
       (
-        (baseTokensAddresses.get(subgraphPool.token0.id) && subgraphPool.token1.id == tokenInAddress) ||
-        (baseTokensAddresses.get(subgraphPool.token1.id) && subgraphPool.token0.id == tokenInAddress)
+        (baseTokensAddresses.has(subgraphPool.token0.id) && subgraphPool.token1.id == tokenInAddress) ||
+        (baseTokensAddresses.has(subgraphPool.token1.id) && subgraphPool.token0.id == tokenInAddress)
       )
     ) {
       topByBaseWithTokenIn.push(subgraphPool);
@@ -806,8 +806,8 @@ export async function getV2CandidatePools({
     if (
       topByBaseWithTokenOut.length < topNWithBaseToken &&
       (
-        (baseTokensAddresses.get(subgraphPool.token0.id) && subgraphPool.token1.id == tokenOutAddress) ||
-        (baseTokensAddresses.get(subgraphPool.token1.id) && subgraphPool.token0.id == tokenOutAddress)
+        (baseTokensAddresses.has(subgraphPool.token0.id) && subgraphPool.token1.id == tokenOutAddress) ||
+        (baseTokensAddresses.has(subgraphPool.token1.id) && subgraphPool.token0.id == tokenOutAddress)
       )
     ) {
       topByBaseWithTokenOut.push(subgraphPool);
