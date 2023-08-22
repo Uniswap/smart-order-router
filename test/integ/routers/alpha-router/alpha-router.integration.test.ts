@@ -2409,6 +2409,76 @@ describe('alpha router integration', () => {
             10000
           );
         });
+
+        it.only('ETH -> UNI', async () => {
+          /// Fails for v3 for some reason, ProviderGasError
+          const tokenIn = Ether.onChain(1) as Currency;
+          const tokenOut = UNI_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.MIXED],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, methodParameters } = swap!;
+
+          expect(methodParameters).not.toBeUndefined();
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+            await executeSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              methodParameters!,
+              tokenIn,
+              tokenOut
+            );
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            // We've swapped 10 ETH + gas costs
+            expect(
+              tokenInBefore
+                .subtract(tokenInAfter)
+                .greaterThan(parseAmount('10', tokenIn))
+            ).toBe(true);
+            checkQuoteToken(
+              tokenOutBefore,
+              tokenOutAfter,
+              CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
+            );
+          } else {
+            /**
+             * @dev it is possible for an exactOut to generate more tokens on V2 due to precision errors
+             */
+            expect(
+              !tokenOutAfter
+                .subtract(tokenOutBefore)
+                // == .greaterThanOrEqualTo
+                .lessThan(
+                  CurrencyAmount.fromRawAmount(
+                    tokenOut,
+                    expandDecimals(tokenOut, 10000)
+                  )
+                )
+            ).toBe(true);
+            // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
+          }
+        });
       });
     });
   });
