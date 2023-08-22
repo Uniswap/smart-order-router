@@ -53,8 +53,8 @@ import {
 import { IV2PoolProvider, V2PoolAccessor, } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider, V3PoolAccessor, } from '../../../providers/v3/pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool, } from '../../../providers/v3/subgraph-provider';
-import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
-import { parseFeeAmount, unparseFeeAmount } from '../../../util/amounts';
+import { unparseFeeAmount, WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
@@ -250,40 +250,11 @@ export async function getV3CandidatePools({
       .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
   };
 
-  // Add DirectSwapPools if more than 0 were requested
-  let topByDirectSwapPools: V3SubgraphPool[] = [];
-  if (topNDirectSwaps > 0) {
-    topByDirectSwapPools = _.map(
-      [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
-      (feeAmount) => {
-        const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
-          tokenIn,
-          tokenOut,
-          feeAmount
-        );
-        return {
-          id: poolAddress,
-          feeTier: unparseFeeAmount(feeAmount),
-          liquidity: '10000',
-          token0: {
-            id: token0.address,
-          },
-          token1: {
-            id: token1.address,
-          },
-          tvlETH: 10000,
-          tvlUSD: 10000,
-        };
-      }
-    );
-  }
-
-  addToAddressSet(topByDirectSwapPools);
-
   const baseTokens = baseTokensByChain[chainId] ?? [];
   const baseTokensAddresses = baseTokens.map((token) => token.address.toLowerCase());
   const wrappedNativeAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address;
 
+  const topByDirectSwapPools: V3SubgraphPool[] = [];
   const topByBaseWithTokenIn: V3SubgraphPool[] = [];
   const topByBaseWithTokenOut: V3SubgraphPool[] = [];
   const topByEthQuoteTokenPool: V3SubgraphPool[] = [];
@@ -308,6 +279,7 @@ export async function getV3CandidatePools({
 
     // Check if we have satisfied all the heuristics, if so, we can stop.
     if (
+      topByDirectSwapPools.length >= topNDirectSwaps &&
       topByBaseWithTokenIn.length >= topNWithBaseToken &&
       topByBaseWithTokenOut.length >= topNWithBaseToken &&
       topByEthQuoteTokenPool.length >= 2 &&
@@ -317,6 +289,17 @@ export async function getV3CandidatePools({
     ) {
       // We have satisfied all the heuristics, so we can stop.
       break;
+    }
+
+    if (
+      topByDirectSwapPools.length < topNDirectSwaps &&
+      (
+        (subgraphPool.token0.id == tokenInAddress && subgraphPool.token1.id == tokenOutAddress) ||
+        (subgraphPool.token0.id == tokenOutAddress && subgraphPool.token1.id == tokenInAddress)
+      )
+    ) {
+      topByDirectSwapPools.push(subgraphPool);
+      continue;
     }
 
     if (
@@ -397,7 +380,36 @@ export async function getV3CandidatePools({
     }
   }
 
+  // Add DirectSwapPools if more than 0 were requested but none were found
+  if (topByDirectSwapPools.length == 0 && topNDirectSwaps > 0) {
+    const directSwapPools = _.map(
+      [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
+      (feeAmount) => {
+        const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
+          tokenIn,
+          tokenOut,
+          feeAmount
+        );
+        return {
+          id: poolAddress,
+          feeTier: unparseFeeAmount(feeAmount),
+          liquidity: '10000',
+          token0: {
+            id: token0.address,
+          },
+          token1: {
+            id: token1.address,
+          },
+          tvlETH: 10000,
+          tvlUSD: 10000,
+        };
+      }
+    );
+    topByDirectSwapPools.push(...directSwapPools);
+  }
+
   // Add the addresses found so far to our address set
+  addToAddressSet(topByDirectSwapPools);
   addToAddressSet(topByBaseWithTokenIn);
   addToAddressSet(topByBaseWithTokenOut);
   addToAddressSet(topByEthQuoteTokenPool);
