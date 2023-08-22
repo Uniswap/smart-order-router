@@ -2410,7 +2410,7 @@ describe('alpha router integration', () => {
           );
         });
 
-        it.only('ETH -> UNI', async () => {
+        it('ETH -> UNI', async () => {
           /// Fails for v3 for some reason, ProviderGasError
           const tokenIn = Ether.onChain(1) as Currency;
           const tokenOut = UNI_MAINNET;
