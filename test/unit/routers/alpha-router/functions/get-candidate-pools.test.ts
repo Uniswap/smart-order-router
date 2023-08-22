@@ -140,8 +140,10 @@ describe('get candidate pools', () => {
 
     expect(
       mockV3PoolProvider.getPools.calledWithExactly([
-        [DAI, USDC, FeeAmount.LOW],
+        [DAI, USDC, FeeAmount.HIGH],
         [DAI, USDC, FeeAmount.MEDIUM],
+        [DAI, USDC, FeeAmount.LOW],
+        [DAI, USDC, FeeAmount.LOWEST],
       ], { blockNumber: undefined })
     ).toBeTruthy();
   });
