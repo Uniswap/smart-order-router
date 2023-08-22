@@ -311,9 +311,9 @@ export async function getV3CandidatePools({
       topByBaseWithTokenIn.length >= topNWithBaseToken &&
       topByBaseWithTokenOut.length >= topNWithBaseToken &&
       topByEthQuoteTokenPool.length >= 2 &&
+      topByTVL.length >= topN &&
       topByTVLUsingTokenIn.length >= topNTokenInOut &&
-      topByTVLUsingTokenOut.length >= topNTokenInOut &&
-      topByTVL.length >= topN
+      topByTVLUsingTokenOut.length >= topNTokenInOut
     ) {
       // We have satisfied all the heuristics, so we can stop.
       break;
@@ -344,7 +344,7 @@ export async function getV3CandidatePools({
 
     // Main reason we need this is for gas estimates, only needed if token out is not native.
     // We don't check the seen address set because if we've already added pools for getting native quotes
-    // theres no need to add more.
+    // there's no need to add more.
     if (
       topByEthQuoteTokenPool.length < 2 &&
       (
@@ -375,6 +375,11 @@ export async function getV3CandidatePools({
       continue;
     }
 
+    if (topByTVL.length < topN) {
+      topByTVL.push(subgraphPool);
+      continue;
+    }
+
     if (
       topByTVLUsingTokenIn.length < topNTokenInOut &&
       (subgraphPool.token0.id == tokenInAddress || subgraphPool.token1.id == tokenInAddress)
@@ -388,11 +393,6 @@ export async function getV3CandidatePools({
       (subgraphPool.token0.id == tokenOutAddress || subgraphPool.token1.id == tokenOutAddress)
     ) {
       topByTVLUsingTokenOut.push(subgraphPool);
-      continue;
-    }
-
-    if (topByTVL.length < topN) {
-      topByTVL.push(subgraphPool);
       continue;
     }
   }
@@ -764,9 +764,9 @@ export async function getV2CandidatePools({
       topByBaseWithTokenIn.length >= topNWithBaseToken &&
       topByBaseWithTokenOut.length >= topNWithBaseToken &&
       topByEthQuoteTokenPool.length >= 2 &&
+      topByTVL.length >= topN &&
       topByTVLUsingTokenIn.length >= topNTokenInOut &&
-      topByTVLUsingTokenOut.length >= topNTokenInOut &&
-      topByTVL.length >= topN
+      topByTVLUsingTokenOut.length >= topNTokenInOut
     ) {
       // We have satisfied all the heuristics, so we can stop.
       break;
@@ -819,6 +819,11 @@ export async function getV2CandidatePools({
       continue;
     }
 
+    if (topByTVL.length < topN) {
+      topByTVL.push(subgraphPool);
+      continue;
+    }
+
     if (
       topByTVLUsingTokenIn.length < topNTokenInOut &&
       (subgraphPool.token0.id == tokenInAddress || subgraphPool.token1.id == tokenInAddress)
@@ -832,11 +837,6 @@ export async function getV2CandidatePools({
       (subgraphPool.token0.id == tokenOutAddress || subgraphPool.token1.id == tokenOutAddress)
     ) {
       topByTVLUsingTokenOut.push(subgraphPool);
-      continue;
-    }
-
-    if (topByTVL.length < topN) {
-      topByTVL.push(subgraphPool);
       continue;
     }
   }
