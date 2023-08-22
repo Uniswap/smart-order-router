@@ -525,10 +525,7 @@ export async function getV3CandidatePools({
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
   ];
-  const subgraphPoolsSet: Set<V3SubgraphPool> = new Set();
-  for (const pool of topPoolsByAllHeuristics) {
-    subgraphPoolsSet.add(pool);
-  }
+  const subgraphPoolsSet: Set<V3SubgraphPool> = new Set(topPoolsByAllHeuristics);
   const subgraphPools = Array.from(subgraphPoolsSet);
 
   const tokenAddressesSet: Set<string> = new Set();
@@ -962,10 +959,7 @@ export async function getV2CandidatePools({
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
   ];
-  const subgraphPoolsSet: Set<V2SubgraphPool> = new Set();
-  for (const pool of topPoolsByAllHeuristics) {
-    subgraphPoolsSet.add(pool);
-  }
+  const subgraphPoolsSet: Set<V2SubgraphPool> = new Set(topPoolsByAllHeuristics);
   const subgraphPools = Array.from(subgraphPoolsSet);
 
   const tokenAddressesSet: Set<string> = new Set();
