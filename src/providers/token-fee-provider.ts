@@ -1,8 +1,8 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { ICache } from './cache';
 import { IMulticallProvider } from './multicall-provider';

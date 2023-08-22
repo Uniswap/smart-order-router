@@ -1,8 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { ChainId } from '@uniswap/sdk-core';
 
 import { SwapOptions, SwapRoute, SwapType } from '../routers';
-import { ChainId, log } from '../util';
+import { log } from '../util';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
@@ -39,7 +40,8 @@ export class EthEstimateGasSimulator extends Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     route: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData
+    l2GasData?: ArbitrumGasData | OptimismGasData,
+    providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
     let estimatedGasUsed: BigNumber;
@@ -104,7 +106,8 @@ export class EthEstimateGasSimulator extends Simulator {
       estimatedGasUsed,
       this.v2PoolProvider,
       this.v3PoolProvider,
-      l2GasData
+      l2GasData,
+      providerConfig
     );
 
     return {

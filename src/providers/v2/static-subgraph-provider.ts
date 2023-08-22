@@ -1,16 +1,14 @@
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
   DAI_MAINNET,
-  DAI_RINKEBY_1,
-  DAI_RINKEBY_2,
   USDC_MAINNET,
   USDT_MAINNET,
-  WBTC_MAINNET,
+  WBTC_MAINNET
 } from '../token-provider';
 
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
@@ -25,31 +23,25 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     DAI_MAINNET,
     USDC_MAINNET,
     USDT_MAINNET,
-    WBTC_MAINNET,
+    WBTC_MAINNET
   ],
-  [ChainId.ROPSTEN]: [WRAPPED_NATIVE_CURRENCY[ChainId.ROPSTEN]!],
-  [ChainId.RINKEBY]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!,
-    DAI_RINKEBY_1,
-    DAI_RINKEBY_2,
-  ],
-  [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
+  [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
   [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
-  [ChainId.KOVAN]: [WRAPPED_NATIVE_CURRENCY[ChainId.KOVAN]!],
-  //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam] and their testnets
+  //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
   [ChainId.OPTIMISM]: [],
   [ChainId.ARBITRUM_ONE]: [],
-  [ChainId.ARBITRUM_RINKEBY]: [],
   [ChainId.ARBITRUM_GOERLI]: [],
   [ChainId.OPTIMISM_GOERLI]: [],
-  [ChainId.OPTIMISTIC_KOVAN]: [],
   [ChainId.POLYGON]: [],
   [ChainId.POLYGON_MUMBAI]: [],
   [ChainId.CELO]: [],
   [ChainId.CELO_ALFAJORES]: [],
   [ChainId.GNOSIS]: [],
   [ChainId.MOONBEAM]: [],
-  [ChainId.BSC]: [],
+  [ChainId.BNB]: [],
+  [ChainId.AVALANCHE]: [],
+  [ChainId.BASE_GOERLI]: [],
+  [ChainId.BASE]: []
 };
 
 /**
@@ -116,14 +108,14 @@ export class StaticV2SubgraphProvider implements IV2SubgraphProvider {
           id: poolAddress,
           liquidity: '100',
           token0: {
-            id: token0.address,
+            id: token0.address
           },
           token1: {
-            id: token1.address,
+            id: token1.address
           },
           supply: 100,
           reserve: 100,
-          reserveUSD: 100,
+          reserveUSD: 100
         };
       })
       .compact()

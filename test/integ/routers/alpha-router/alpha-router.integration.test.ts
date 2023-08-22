@@ -5,12 +5,12 @@
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Ether, Percent, Token, TradeType, } from '@uniswap/sdk-core';
+import { ChainId, Currency, CurrencyAmount, Ether, Percent, Token, TradeType, } from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
 } from '@uniswap/universal-router-sdk';
-import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/permit2';
+import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
@@ -26,7 +26,6 @@ import {
   CachingV3PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
-  ChainId,
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
@@ -50,14 +49,14 @@ import {
   SwapOptions,
   SwapType,
   TenderlySimulator,
-  UNI_GÖRLI,
+  UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
-  USDC_BSC,
+  USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_ON,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   V2_SUPPORTED,
   V2PoolProvider,
@@ -74,7 +73,7 @@ import { Permit2__factory } from '../../../../src/types/other/factories/Permit2_
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 16075500;
+const FORK_BLOCK = 17894002;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 
@@ -440,7 +439,7 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x06920c9fc643de77b99cb7670a944ad31eaaa260', // WETH whale
+        '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3', // WETH whale
       ]
     );
 
@@ -2410,6 +2409,76 @@ describe('alpha router integration', () => {
             10000
           );
         });
+
+        it('ETH -> UNI', async () => {
+          /// Fails for v3 for some reason, ProviderGasError
+          const tokenIn = Ether.onChain(1) as Currency;
+          const tokenOut = UNI_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('10', tokenIn)
+              : parseAmount('10000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.MIXED],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, methodParameters } = swap!;
+
+          expect(methodParameters).not.toBeUndefined();
+
+          const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+            await executeSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              methodParameters!,
+              tokenIn,
+              tokenOut
+            );
+
+          if (tradeType == TradeType.EXACT_INPUT) {
+            // We've swapped 10 ETH + gas costs
+            expect(
+              tokenInBefore
+                .subtract(tokenInAfter)
+                .greaterThan(parseAmount('10', tokenIn))
+            ).toBe(true);
+            checkQuoteToken(
+              tokenOutBefore,
+              tokenOutAfter,
+              CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
+            );
+          } else {
+            /**
+             * @dev it is possible for an exactOut to generate more tokens on V2 due to precision errors
+             */
+            expect(
+              !tokenOutAfter
+                .subtract(tokenOutBefore)
+                // == .greaterThanOrEqualTo
+                .lessThan(
+                  CurrencyAmount.fromRawAmount(
+                    tokenOut,
+                    expandDecimals(tokenOut, 10000)
+                  )
+                )
+            ).toBe(true);
+            // Can't easily check slippage for ETH due to gas costs effecting ETH balance.
+          }
+        });
       });
     });
   });
@@ -2544,60 +2613,51 @@ describe('external class tests', () => {
 });
 
 describe('quote for other networks', () => {
-  const TEST_ERC20_1: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: USDC_ON(1),
-    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: UNI_GÖRLI,
-    [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
-    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
-    [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
-    [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
-    [ChainId.ARBITRUM_GOERLI]: USDC_ON(ChainId.ARBITRUM_GOERLI),
-    [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
-    [ChainId.CELO]: CUSD_CELO,
-    [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
-    [ChainId.GNOSIS]: WBTC_GNOSIS,
-    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDC_BSC,
+  const TEST_ERC20_1: { [chainId in ChainId]: () => Token } = {
+    [ChainId.MAINNET]: () => USDC_ON(ChainId.MAINNET),
+    [ChainId.GOERLI]: () => UNI_GOERLI,
+    [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
+    [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
+    [ChainId.ARBITRUM_ONE]: () => USDC_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_GOERLI]: () => USDC_ON(ChainId.ARBITRUM_GOERLI),
+    [ChainId.POLYGON]: () => USDC_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: () => USDC_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: () => CUSD_CELO,
+    [ChainId.CELO_ALFAJORES]: () => CUSD_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: () => WBTC_GNOSIS,
+    [ChainId.MOONBEAM]: () => WBTC_MOONBEAM,
+    [ChainId.BNB]: () => USDC_BNB,
+    [ChainId.AVALANCHE]: () => USDC_ON(ChainId.AVALANCHE),
+    [ChainId.BASE]: () => USDC_ON(ChainId.BASE),
+    [ChainId.BASE_GOERLI]: () => USDC_ON(ChainId.BASE_GOERLI),
   };
-  const TEST_ERC20_2: { [chainId in ChainId]: Token } = {
-    [ChainId.MAINNET]: DAI_ON(1),
-    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
-    [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
-    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
-    [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
-    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
-    [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
-    [ChainId.ARBITRUM_GOERLI]: DAI_ON(ChainId.ARBITRUM_GOERLI),
-    [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
-    [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
-    [ChainId.CELO]: CEUR_CELO,
-    [ChainId.CELO_ALFAJORES]: CEUR_CELO_ALFAJORES,
-    [ChainId.GNOSIS]: USDC_ETHEREUM_GNOSIS,
-    [ChainId.MOONBEAM]: WBTC_MOONBEAM,
-    [ChainId.BSC]: USDT_BSC,
+  const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
+    [ChainId.MAINNET]: () => DAI_ON(1),
+    [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
+    [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
+    [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
+    [ChainId.ARBITRUM_ONE]: () => DAI_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_GOERLI]: () => DAI_ON(ChainId.ARBITRUM_GOERLI),
+    [ChainId.POLYGON]: () => DAI_ON(ChainId.POLYGON),
+    [ChainId.POLYGON_MUMBAI]: () => DAI_ON(ChainId.POLYGON_MUMBAI),
+    [ChainId.CELO]: () => CEUR_CELO,
+    [ChainId.CELO_ALFAJORES]: () => CEUR_CELO_ALFAJORES,
+    [ChainId.GNOSIS]: () => USDC_ETHEREUM_GNOSIS,
+    [ChainId.MOONBEAM]: () => WBTC_MOONBEAM,
+    [ChainId.BNB]: () => USDT_BNB,
+    [ChainId.AVALANCHE]: () => DAI_ON(ChainId.AVALANCHE),
+    [ChainId.BASE]: () => WNATIVE_ON(ChainId.BASE),
+    [ChainId.BASE_GOERLI]: () => WNATIVE_ON(ChainId.BASE_GOERLI),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
   for (const chain of _.filter(
     SUPPORTED_CHAINS,
     (c) =>
-      c != ChainId.RINKEBY &&
-      c != ChainId.ROPSTEN &&
-      c != ChainId.KOVAN &&
-      c != ChainId.OPTIMISTIC_KOVAN &&
       c != ChainId.OPTIMISM_GOERLI &&
       c != ChainId.POLYGON_MUMBAI &&
-      c != ChainId.ARBITRUM_RINKEBY &&
       c != ChainId.ARBITRUM_GOERLI &&
       c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
@@ -2605,8 +2665,8 @@ describe('quote for other networks', () => {
       c != ChainId.SEPOLIA
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-      const erc1 = TEST_ERC20_1[chain];
-      const erc2 = TEST_ERC20_2[chain];
+      const erc1 = TEST_ERC20_1[chain]();
+      const erc2 = TEST_ERC20_2[chain]();
 
       describe(`${ID_TO_NETWORK_NAME(chain)} ${tradeType} 2xx`, function() {
         const wrappedNative = WNATIVE_ON(chain);
@@ -2715,7 +2775,9 @@ describe('quote for other networks', () => {
 
           it(`${native} -> erc20`, async () => {
             const tokenIn = nativeOnChain(chain);
-            const tokenOut = erc2;
+            // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
+            // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
+            const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
 
             // Celo currently has low liquidity and will not be able to find route for
             // large input amounts
@@ -2841,7 +2903,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),
@@ -2896,7 +2958,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),
@@ -2951,7 +3013,7 @@ describe('quote for other networks', () => {
 
               // Universal Router is not deployed on Gorli.
               const swapOptions: SwapOptions =
-                chain == ChainId.GÖRLI
+                chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
                     recipient: WHALES(tokenIn),

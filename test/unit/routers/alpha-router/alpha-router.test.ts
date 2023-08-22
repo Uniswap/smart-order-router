@@ -488,11 +488,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -507,10 +510,11 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any, /// v3 pool provider
+          pools: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match.any
         })
       ).toBeTruthy();
 
@@ -706,21 +710,27 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any, /// v3 pool provider
+          pools: sinon.match.any, /// v3 pool provider
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -878,11 +888,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -1000,11 +1013,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1137,10 +1153,13 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1398,11 +1417,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1548,10 +1570,13 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           v2poolProvider: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1623,11 +1648,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: WRAPPED_NATIVE_CURRENCY[1],
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1826,11 +1854,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: WRAPPED_NATIVE_CURRENCY[1],
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -1845,10 +1876,13 @@ describe('alpha router', () => {
         mockMixedRouteGasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           v2poolProvider: sinon.match.any,
           amountToken: WRAPPED_NATIVE_CURRENCY[1],
           quoteToken: USDC,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
 
@@ -1931,11 +1965,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(
@@ -2144,11 +2181,14 @@ describe('alpha router', () => {
         mockV3GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
-          v3poolProvider: sinon.match.any,
+          pools: sinon.match.any,
           amountToken: amount.currency,
           quoteToken: USDC,
           v2poolProvider: sinon.match.any,
           l2GasDataProvider: undefined,
+          providerConfig: sinon.match({
+            blockNumber: sinon.match.instanceOf(Promise)
+          })
         })
       ).toBeTruthy();
       expect(

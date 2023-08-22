@@ -1,12 +1,11 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import {
   AlphaRouterConfig,
-  ChainId,
   CurrencyAmount,
   DAI_MAINNET as DAI,
   TokenAccessor,
@@ -82,6 +81,35 @@ export const USDC_WETH_MEDIUM = new Pool(
   FeeAmount.MEDIUM,
   encodeSqrtRatioX96(1, 1),
   500,
+  0
+);
+
+// Mock USDC weth pools with different liquidity
+
+export const USDC_WETH_LOW_LIQ_LOW = new Pool(
+  USDC,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.LOW,
+  encodeSqrtRatioX96(1, 1),
+  100,
+  0
+);
+
+export const USDC_WETH_MED_LIQ_MEDIUM = new Pool(
+  USDC,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
+export const USDC_WETH_HIGH_LIQ_HIGH = new Pool(
+  USDC,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.HIGH,
+  encodeSqrtRatioX96(1, 1),
+  1000,
   0
 );
 

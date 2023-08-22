@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import {
@@ -11,7 +11,7 @@ import {
   IV2SubgraphProvider,
   TokenValidationResult
 } from '../../../providers';
-import { ChainId, CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { V2Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { V2RouteWithValidQuote } from '../entities';
@@ -52,6 +52,7 @@ export class V2Quoter extends BaseQuoter<V2Route> {
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<V2Route>> {
+    const beforeGetRoutes = Date.now();
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
     // result in good prices.
@@ -104,6 +105,8 @@ export class V2Quoter extends BaseQuoter<V2Route> {
       maxSwapsPerPath
     );
 
+    metric.putMetric('V2GetRoutesLoad', Date.now() - beforeGetRoutes, MetricLoggerUnit.Milliseconds);
+
     return {
       routes,
       candidatePools,
@@ -121,6 +124,7 @@ export class V2Quoter extends BaseQuoter<V2Route> {
     _gasModel?: IGasModel<V2RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
+    const beforeGetQuotes = Date.now();
     log.info('Starting to get V2 quotes');
     if (gasPriceWei === undefined) {
       throw new Error('GasPriceWei for V2Routes is required to getQuotes');
@@ -198,6 +202,8 @@ export class V2Quoter extends BaseQuoter<V2Route> {
         routesWithValidQuotes.push(routeWithValidQuote);
       }
     }
+
+    metric.putMetric('V2GetQuotesLoad', Date.now() - beforeGetQuotes, MetricLoggerUnit.Milliseconds);
 
     return {
       routesWithValidQuotes,

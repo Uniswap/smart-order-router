@@ -1,11 +1,11 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber } from '@ethersproject/bignumber';
 import { parseBytes32String } from '@ethersproject/strings';
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
-import { ChainId, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { IMulticallProvider, Result } from './multicall-provider';
 import { ProviderConfig } from './provider';
@@ -80,56 +80,22 @@ export const UNI_MAINNET = new Token(
   'Uniswap'
 );
 
-export const USDC_ROPSTEN = new Token(
-  ChainId.ROPSTEN,
-  '0x07865c6e87b9f70255377e024ace6630c1eaa37f',
-  6,
-  'USDC',
-  'USD//C'
-);
-export const USDT_ROPSTEN = new Token(
-  ChainId.ROPSTEN,
-  '0x516de3a7a567d81737e3a46ec4ff9cfd1fcb0136',
-  6,
-  'USDT',
-  'Tether USD'
-);
-export const DAI_ROPSTEN = new Token(
-  ChainId.ROPSTEN,
-  '0xad6d458402f60fd3bd25163575031acdce07538d',
+export const AAVE_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
   18,
-  'DAI',
-  'Dai Stablecoin'
+  'AAVE',
+  'Aave Token'
 );
 
-export const DAI_RINKEBY_1 = new Token(
-  ChainId.RINKEBY,
-  '0x5592ec0cfb4dbc12d3ab100b257153436a1f0fea',
+export const LIDO_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32',
   18,
-  'DAI',
-  'DAI'
+  'LDO',
+  'Lido DAO Token'
 );
-export const DAI_RINKEBY_2 = new Token(
-  ChainId.RINKEBY,
-  '0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735',
-  18,
-  'DAI',
-  'DAI'
-);
-export const USDC_RINKEBY = new Token(
-  ChainId.RINKEBY,
-  '0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b',
-  6,
-  'tUSDC',
-  'test USD//C'
-);
-export const USDT_RINKEBY = new Token(
-  ChainId.RINKEBY,
-  '0xa689352b7c1cad82864beb1d90679356d3962f4d',
-  18,
-  'USDT',
-  'Tether USD'
-);
+
 export const USDC_SEPOLIA = new Token(
   ChainId.SEPOLIA,
   '0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5',
@@ -144,69 +110,40 @@ export const DAI_SEPOLIA = new Token(
   'DAI',
   'DAI Token'
 );
-export const USDC_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const USDC_GOERLI = new Token(
+  ChainId.GOERLI,
   '0x07865c6e87b9f70255377e024ace6630c1eaa37f',
   6,
   'USDC',
   'USD//C'
 );
-export const USDT_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const USDT_GOERLI = new Token(
+  ChainId.GOERLI,
   '0xe583769738b6dd4e7caf8451050d1948be717679',
   18,
   'USDT',
   'Tether USD'
 );
-export const WBTC_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const WBTC_GOERLI = new Token(
+  ChainId.GOERLI,
   '0xa0a5ad2296b38bd3e3eb59aaeaf1589e8d9a29a9',
   8,
   'WBTC',
   'Wrapped BTC'
 );
-export const DAI_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const DAI_GOERLI = new Token(
+  ChainId.GOERLI,
   '0x11fe4b6ae13d2a6055c8d9cf65c55bac32b5d844',
   18,
   'DAI',
   'Dai Stablecoin'
 );
-export const UNI_GÖRLI = new Token(
-  ChainId.GÖRLI,
+export const UNI_GOERLI = new Token(
+  ChainId.GOERLI,
   '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
   18,
   'UNI',
   'Uni token'
-);
-
-export const USDC_KOVAN = new Token(
-  ChainId.KOVAN,
-  '0x31eeb2d0f9b6fd8642914ab10f4dd473677d80df',
-  6,
-  'USDC',
-  'USD//C'
-);
-export const USDT_KOVAN = new Token(
-  ChainId.KOVAN,
-  '0xa325f1b1ebb748715dfbbaf62e0c6677e137f45d',
-  18,
-  'USDT',
-  'Tether USD'
-);
-export const WBTC_KOVAN = new Token(
-  ChainId.KOVAN,
-  '0xe36bc5d8b689ad6d80e78c3e736670e80d4b329d',
-  8,
-  'WBTC',
-  'Wrapped BTC'
-);
-export const DAI_KOVAN = new Token(
-  ChainId.KOVAN,
-  '0x9dc7b33c3b63fc00ed5472fbd7813edda6a64752',
-  18,
-  'DAI',
-  'Dai Stablecoin'
 );
 
 export const USDC_OPTIMISM = new Token(
@@ -274,35 +211,6 @@ export const DAI_OPTIMISM_GOERLI = new Token(
   'Dai Stablecoin'
 );
 
-export const USDC_OPTIMISTIC_KOVAN = new Token(
-  ChainId.OPTIMISTIC_KOVAN,
-  '0x3b8e53b3ab8e01fb57d0c9e893bc4d655aa67d84',
-  6,
-  'USDC',
-  'USD//C'
-);
-export const USDT_OPTIMISTIC_KOVAN = new Token(
-  ChainId.OPTIMISTIC_KOVAN,
-  '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
-  6,
-  'USDT',
-  'Tether USD'
-);
-export const WBTC_OPTIMISTIC_KOVAN = new Token(
-  ChainId.OPTIMISTIC_KOVAN,
-  '0x2382a8f65b9120E554d1836a504808aC864E169d',
-  8,
-  'WBTC',
-  'Wrapped BTC'
-);
-export const DAI_OPTIMISTIC_KOVAN = new Token(
-  ChainId.OPTIMISTIC_KOVAN,
-  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
-  18,
-  'DAI',
-  'Dai Stablecoin'
-);
-
 export const USDC_ARBITRUM = new Token(
   ChainId.ARBITRUM_ONE,
   '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
@@ -340,53 +248,12 @@ export const ARB_ARBITRUM = new Token(
   'Arbitrum'
 );
 
-// export const DAI_ARBITRUM_RINKEBY = new Token(
-//   ChainId.ARBITRUM_RINKEBY,
-//   '0x2f3C1B6A51A469051A22986aA0dDF98466cc8D3c',
-//   18,
-//   'DAI',
-//   'Dai Stablecoin'
-// );
-
-// higher liquidity in dai-weth pool on arb-rinkeby
-export const DAI_ARBITRUM_RINKEBY = new Token(
-  ChainId.ARBITRUM_RINKEBY,
-  '0x5364dc963c402aaf150700f38a8ef52c1d7d7f14',
-  18,
-  'DAI',
-  'Dai Stablecoin'
-);
-
 export const DAI_ARBITRUM_GOERLI = new Token(
   ChainId.ARBITRUM_GOERLI,
   '0x0000000000000000000000000000000000000000', // TODO: add address
   18,
   'DAI',
   'Dai Stablecoin'
-);
-
-export const USDT_ARBITRUM_RINKEBY = new Token(
-  ChainId.ARBITRUM_RINKEBY,
-  '0x920b9301c2de92186299cd2abc7199e25b9728b3',
-  6,
-  'UDST',
-  'Tether USD'
-);
-
-export const USDC_ARBITRUM_RINKEBY = new Token(
-  ChainId.ARBITRUM_RINKEBY,
-  '0x09b98f8b2395d076514037ff7d39a091a536206c',
-  6,
-  'USDC',
-  'USD//C'
-);
-
-export const UNI_ARBITRUM_RINKEBY = new Token(
-  ChainId.ARBITRUM_RINKEBY,
-  '0x049251a7175071316e089d0616d8b6aacd2c93b8',
-  18,
-  'UNI',
-  'Uni token'
 );
 
 // Bridged version of official Goerli USDC
@@ -465,48 +332,48 @@ export const WETH_POLYGON_MUMBAI = new Token(
 );
 
 // BNB chain Tokens
-export const BTC_BSC = new Token(
-  ChainId.BSC,
+export const BTC_BNB = new Token(
+  ChainId.BNB,
   '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c',
   18,
   'BTCB',
   'Binance BTC'
 );
 
-export const BUSD_BSC = new Token(
-  ChainId.BSC,
+export const BUSD_BNB = new Token(
+  ChainId.BNB,
   '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
   18,
   'BUSD',
   'BUSD'
 );
 
-export const DAI_BSC = new Token(
-  ChainId.BSC,
+export const DAI_BNB = new Token(
+  ChainId.BNB,
   '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3',
   18,
   'DAI',
   'DAI'
 );
 
-export const ETH_BSC = new Token(
-  ChainId.BSC,
+export const ETH_BNB = new Token(
+  ChainId.BNB,
   '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
   18,
   'ETH',
   'ETH'
 );
 
-export const USDC_BSC = new Token(
-  ChainId.BSC,
+export const USDC_BNB = new Token(
+  ChainId.BNB,
   '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
   18,
   'USDC',
   'USDC'
 );
 
-export const USDT_BSC = new Token(
-  ChainId.BSC,
+export const USDT_BNB = new Token(
+  ChainId.BNB,
   '0x55d398326f99059fF775485246999027B3197955',
   18,
   'USDT',
@@ -578,6 +445,41 @@ export const CEUR_CELO_ALFAJORES = new Token(
   'Celo Euro Stablecoin'
 );
 
+// Avalanche Tokens
+export const DAI_AVAX = new Token(
+  ChainId.AVALANCHE,
+  '0xd586E7F844cEa2F87f50152665BCbc2C279D8d70',
+  18,
+  'DAI.e',
+  'DAI.e Token'
+);
+
+export const USDC_AVAX = new Token(
+  ChainId.AVALANCHE,
+  '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
+// Base Tokens
+export const USDC_BASE = new Token(
+  ChainId.BASE,
+  '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+  6,
+  'USDbC',
+  'USD Base Coin'
+)
+
+// Base Goerli Tokens 
+export const USDC_BASE_GOERLI = new Token(
+  ChainId.BASE_GOERLI,
+  '0x853154e2A5604E5C74a2546E2871Ad44932eB92C',
+  6,
+  'USDbC',
+  'USD Base Coin'
+)
+
 // Gnosis Tokens
 export const USDC_ETHEREUM_GNOSIS = new Token(
   ChainId.GNOSIS,
@@ -640,8 +542,7 @@ export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) {
-  }
+  ) {}
 
   private async getTokenSymbol(
     addresses: string[],
@@ -651,23 +552,27 @@ export class TokenProvider implements ITokenProvider {
       blockNumber: BigNumber;
       results: Result<[string]>[];
     };
-    isBytes32: boolean
+    isBytes32: boolean;
   }> {
     let result;
     let isBytes32 = false;
 
     try {
-      result = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
-        undefined,
-        [string]
-      >({
-        addresses,
-        contractInterface: IERC20Metadata__factory.createInterface(),
-        functionName: 'symbol',
-        providerConfig,
-      });
+      result =
+        await this.multicall2Provider.callSameFunctionOnMultipleContracts<
+          undefined,
+          [string]
+        >({
+          addresses,
+          contractInterface: IERC20Metadata__factory.createInterface(),
+          functionName: 'symbol',
+          providerConfig,
+        });
     } catch (error) {
-      log.error({ addresses }, `TokenProvider.getTokenSymbol[string] failed with error ${error}. Trying with bytes32.`);
+      log.error(
+        { addresses },
+        `TokenProvider.getTokenSymbol[string] failed with error ${error}. Trying with bytes32.`
+      );
 
       const bytes32Interface = new Interface([
         {
@@ -682,31 +587,40 @@ export class TokenProvider implements ITokenProvider {
           ],
           stateMutability: 'view',
           type: 'function',
-        }
+        },
       ]);
 
       try {
-        result = await this.multicall2Provider.callSameFunctionOnMultipleContracts<
-          undefined,
-          [string]
-        >({
-          addresses,
-          contractInterface: bytes32Interface,
-          functionName: 'symbol',
-          providerConfig,
-        });
+        result =
+          await this.multicall2Provider.callSameFunctionOnMultipleContracts<
+            undefined,
+            [string]
+          >({
+            addresses,
+            contractInterface: bytes32Interface,
+            functionName: 'symbol',
+            providerConfig,
+          });
         isBytes32 = true;
       } catch (error) {
-        log.fatal({ addresses }, `TokenProvider.getTokenSymbol[bytes32] failed with error ${error}.`);
+        log.fatal(
+          { addresses },
+          `TokenProvider.getTokenSymbol[bytes32] failed with error ${error}.`
+        );
 
-        throw new Error('[TokenProvider.getTokenSymbol] Impossible to fetch token symbol.');
+        throw new Error(
+          '[TokenProvider.getTokenSymbol] Impossible to fetch token symbol.'
+        );
       }
     }
 
     return { result, isBytes32 };
   }
 
-  private async getTokenDecimals(addresses: string[], providerConfig?: ProviderConfig) {
+  private async getTokenDecimals(
+    addresses: string[],
+    providerConfig?: ProviderConfig
+  ) {
     return this.multicall2Provider.callSameFunctionOnMultipleContracts<
       undefined,
       [number]
@@ -733,7 +647,7 @@ export class TokenProvider implements ITokenProvider {
     if (addresses.length > 0) {
       const [symbolsResult, decimalsResult] = await Promise.all([
         this.getTokenSymbol(addresses, providerConfig),
-        this.getTokenDecimals(addresses, providerConfig)
+        this.getTokenDecimals(addresses, providerConfig),
       ]);
 
       const isBytes32 = symbolsResult.isBytes32;
@@ -757,7 +671,9 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
-        const symbol = isBytes32 ? parseBytes32String(symbolResult.result[0]!) : symbolResult.result[0]!;
+        const symbol = isBytes32
+          ? parseBytes32String(symbolResult.result[0]!)
+          : symbolResult.result[0]!;
         const decimal = decimalResult.result[0]!;
 
         addressToToken[address.toLowerCase()] = new Token(
@@ -797,26 +713,16 @@ export const DAI_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return DAI_MAINNET;
-    case ChainId.ROPSTEN:
-      return DAI_ROPSTEN;
-    case ChainId.RINKEBY:
-      return DAI_RINKEBY_1;
-    case ChainId.GÖRLI:
-      return DAI_GÖRLI;
+    case ChainId.GOERLI:
+      return DAI_GOERLI;
     case ChainId.SEPOLIA:
       return DAI_SEPOLIA;
-    case ChainId.KOVAN:
-      return DAI_KOVAN;
     case ChainId.OPTIMISM:
       return DAI_OPTIMISM;
     case ChainId.OPTIMISM_GOERLI:
       return DAI_OPTIMISM_GOERLI;
-    case ChainId.OPTIMISTIC_KOVAN:
-      return DAI_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
       return DAI_ARBITRUM;
-    case ChainId.ARBITRUM_RINKEBY:
-      return DAI_ARBITRUM_RINKEBY;
     case ChainId.ARBITRUM_GOERLI:
       return DAI_ARBITRUM_GOERLI;
     case ChainId.POLYGON:
@@ -829,8 +735,10 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_CELO_ALFAJORES;
     case ChainId.MOONBEAM:
       return DAI_MOONBEAM;
-    case ChainId.BSC:
-      return DAI_BSC;
+    case ChainId.BNB:
+      return DAI_BNB;
+    case ChainId.AVALANCHE:
+      return DAI_AVAX;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -840,26 +748,16 @@ export const USDT_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return USDT_MAINNET;
-    case ChainId.ROPSTEN:
-      return USDT_ROPSTEN;
-    case ChainId.RINKEBY:
-      return USDT_RINKEBY;
-    case ChainId.GÖRLI:
-      return USDT_GÖRLI;
-    case ChainId.KOVAN:
-      return USDT_KOVAN;
+    case ChainId.GOERLI:
+      return USDT_GOERLI;
     case ChainId.OPTIMISM:
       return USDT_OPTIMISM;
     case ChainId.OPTIMISM_GOERLI:
       return USDT_OPTIMISM_GOERLI;
-    case ChainId.OPTIMISTIC_KOVAN:
-      return USDT_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
       return USDT_ARBITRUM;
-    case ChainId.ARBITRUM_RINKEBY:
-      return USDT_ARBITRUM_RINKEBY;
-    case ChainId.BSC:
-      return USDT_BSC;
+    case ChainId.BNB:
+      return USDT_BNB;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -869,26 +767,16 @@ export const USDC_ON = (chainId: ChainId): Token => {
   switch (chainId) {
     case ChainId.MAINNET:
       return USDC_MAINNET;
-    case ChainId.ROPSTEN:
-      return USDC_ROPSTEN;
-    case ChainId.RINKEBY:
-      return USDC_RINKEBY;
-    case ChainId.GÖRLI:
-      return USDC_GÖRLI;
+    case ChainId.GOERLI:
+      return USDC_GOERLI;
     case ChainId.SEPOLIA:
       return USDC_SEPOLIA;
-    case ChainId.KOVAN:
-      return USDC_KOVAN;
     case ChainId.OPTIMISM:
       return USDC_OPTIMISM;
     case ChainId.OPTIMISM_GOERLI:
       return USDC_OPTIMISM_GOERLI;
-    case ChainId.OPTIMISTIC_KOVAN:
-      return USDC_OPTIMISTIC_KOVAN;
     case ChainId.ARBITRUM_ONE:
       return USDC_ARBITRUM;
-    case ChainId.ARBITRUM_RINKEBY:
-      return USDC_ARBITRUM_RINKEBY;
     case ChainId.ARBITRUM_GOERLI:
       return USDC_ARBITRUM_GOERLI;
     case ChainId.POLYGON:
@@ -899,8 +787,14 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ETHEREUM_GNOSIS;
     case ChainId.MOONBEAM:
       return USDC_MOONBEAM;
-    case ChainId.BSC:
-      return USDC_BSC;
+    case ChainId.BNB:
+      return USDC_BNB;
+    case ChainId.AVALANCHE:
+      return USDC_AVAX;
+    case ChainId.BASE:
+      return USDC_BASE;
+    case ChainId.BASE_GOERLI:
+      return USDC_BASE_GOERLI;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

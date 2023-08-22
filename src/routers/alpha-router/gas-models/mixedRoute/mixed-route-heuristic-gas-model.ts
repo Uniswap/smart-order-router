@@ -1,16 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
+import { ChainId } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
-import { ChainId, log } from '../../../../util';
+import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
   getV2NativePool,
 } from '../../../../util/gas-factory-helpers';
 import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
@@ -56,16 +55,14 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
   public async buildGasModel({
     chainId,
     gasPriceWei,
-    v3poolProvider: V3poolProvider,
+    pools,
     quoteToken,
     v2poolProvider: V2poolProvider,
+    providerConfig: providerConfig,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
-    const usdPool: Pool = await getHighestLiquidityV3USDPool(
-      chainId,
-      V3poolProvider
-    );
+    const usdPool: Pool = pools.usdPool
 
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
@@ -109,15 +106,12 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativeV3Pool: Pool | null = await getHighestLiquidityV3NativePool(
-      quoteToken,
-      V3poolProvider
-    );
+    const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool
 
     let nativeV2Pool: Pair | null;
     if (V2poolProvider) {
       /// MixedRoutes
-      nativeV2Pool = await getV2NativePool(quoteToken, V2poolProvider);
+      nativeV2Pool = await getV2NativePool(quoteToken, V2poolProvider, providerConfig);
     }
 
     const usdToken =

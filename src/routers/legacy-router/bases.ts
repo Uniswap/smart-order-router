@@ -1,22 +1,25 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 
 import {
-  BTC_BSC,
-  BUSD_BSC,
-  DAI_BSC,
+  BTC_BNB,
+  BUSD_BNB,
+  DAI_AVAX,
+  DAI_BNB,
   DAI_MAINNET,
   ITokenProvider,
-  USDC_BSC,
+  USDC_AVAX,
+  USDC_BASE,
+  USDC_BNB,
   USDC_MAINNET,
-  USDT_BSC,
+  USDT_BNB,
   USDT_MAINNET,
   WBTC_MAINNET,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
 
 } from '../../providers/token-provider';
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -33,22 +36,13 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       USDT_MAINNET,
       WBTC_MAINNET,
     ],
-    [ChainId.ROPSTEN]: [WRAPPED_NATIVE_CURRENCY[ChainId.ROPSTEN]!],
-    [ChainId.RINKEBY]: [WRAPPED_NATIVE_CURRENCY[ChainId.RINKEBY]!],
-    [ChainId.GÖRLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GÖRLI]!],
+    [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
     [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
-    [ChainId.KOVAN]: [WRAPPED_NATIVE_CURRENCY[ChainId.KOVAN]!],
     [ChainId.OPTIMISM]: [WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!],
     [ChainId.OPTIMISM_GOERLI]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM_GOERLI]!,
     ],
-    [ChainId.OPTIMISTIC_KOVAN]: [
-      WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISTIC_KOVAN]!,
-    ],
     [ChainId.ARBITRUM_ONE]: [WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_ONE]!],
-    [ChainId.ARBITRUM_RINKEBY]: [
-      WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_RINKEBY]!,
-    ],
     [ChainId.ARBITRUM_GOERLI]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_GOERLI]!,
     ],
@@ -58,14 +52,17 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     [ChainId.CELO_ALFAJORES]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO_ALFAJORES]],
     [ChainId.GNOSIS]: [WRAPPED_NATIVE_CURRENCY[ChainId.GNOSIS]],
     [ChainId.MOONBEAM]: [WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM]],
-    [ChainId.BSC]: [
-      WRAPPED_NATIVE_CURRENCY[ChainId.BSC]!,
-      BUSD_BSC,
-      DAI_BSC,
-      USDC_BSC,
-      USDT_BSC,
-      BTC_BSC,
+    [ChainId.BNB]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.BNB]!,
+      BUSD_BNB,
+      DAI_BNB,
+      USDC_BNB,
+      USDT_BNB,
+      BTC_BNB,
     ],
+    [ChainId.AVALANCHE]: [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!, USDC_AVAX, DAI_AVAX],
+    [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE]!, USDC_BASE],
+    [ChainId.BASE_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]!],
   };
 };
 

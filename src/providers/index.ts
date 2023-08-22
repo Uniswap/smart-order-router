@@ -18,6 +18,7 @@ export * from './swap-router-provider';
 export * from './tenderly-simulation-provider';
 export * from './token-provider';
 export * from './token-validator-provider';
+export * from './token-fee-provider';
 export * from './uri-subgraph-provider';
 export * from './caching/route';
 export * from './v2/caching-pool-provider';

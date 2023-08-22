@@ -1,4 +1,4 @@
-import { ChainId } from '../util/chains';
+import { ChainId } from '@uniswap/sdk-core';
 
 import { EIP1559GasPriceProvider } from './eip-1559-gas-price-provider';
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
@@ -6,12 +6,8 @@ import { LegacyGasPriceProvider } from './legacy-gas-price-provider';
 
 const DEFAULT_EIP_1559_SUPPORTED_CHAINS = [
   ChainId.MAINNET,
-  ChainId.RINKEBY,
-  ChainId.ROPSTEN,
-  ChainId.GÖRLI,
+  ChainId.GOERLI,
   ChainId.POLYGON_MUMBAI,
-  // infura endpoint having difficulty w/ eip-1559 on kovan
-  // ChainId.KOVAN,
 ];
 
 /**

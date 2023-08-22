@@ -1,11 +1,10 @@
-import { Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import sinon from 'sinon';
 import {
   AlphaRouterConfig,
   CachingTokenListProvider,
-  ChainId,
   DAI_MAINNET as DAI,
   TokenProvider,
   USDC_MAINNET as USDC,
@@ -116,7 +115,7 @@ describe('get candidate pools', () => {
       mockV3PoolProvider.getPools.calledWithExactly([
         [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW],
         [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW],
-      ])
+      ], { blockNumber: undefined })
     ).toBeTruthy();
   });
 
@@ -143,7 +142,7 @@ describe('get candidate pools', () => {
       mockV3PoolProvider.getPools.calledWithExactly([
         [DAI, USDC, FeeAmount.LOW],
         [DAI, USDC, FeeAmount.MEDIUM],
-      ])
+      ], { blockNumber: undefined })
     ).toBeTruthy();
   });
 
@@ -170,7 +169,7 @@ describe('get candidate pools', () => {
       mockV3PoolProvider.getPools.calledWithExactly([
         [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW],
         [DAI, USDC, FeeAmount.LOW],
-      ])
+      ], { blockNumber: undefined })
     ).toBeTruthy();
   });
 
@@ -227,7 +226,7 @@ describe('get candidate pools', () => {
         [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.MEDIUM],
         [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW],
         [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOWEST],
-      ])
+      ], { blockNumber: undefined })
     ).toBeTruthy();
   });
 });

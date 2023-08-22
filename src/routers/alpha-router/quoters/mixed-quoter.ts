@@ -1,4 +1,4 @@
-import { Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import {
@@ -12,7 +12,7 @@ import {
   IV3SubgraphProvider,
   TokenValidationResult
 } from '../../../providers';
-import { ChainId, CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { MixedRouteWithValidQuote } from '../entities';
@@ -55,6 +55,8 @@ export class MixedQuoter extends BaseQuoter<MixedRoute> {
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<MixedRoute>> {
+    const beforeGetRoutes = Date.now();
+
     if (tradeType != TradeType.EXACT_INPUT) {
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
@@ -124,6 +126,8 @@ export class MixedQuoter extends BaseQuoter<MixedRoute> {
       maxSwapsPerPath
     );
 
+    metric.putMetric('MixedGetRoutesLoad', Date.now() - beforeGetRoutes, MetricLoggerUnit.Milliseconds);
+
     return {
       routes,
       candidatePools
@@ -140,6 +144,7 @@ export class MixedQuoter extends BaseQuoter<MixedRoute> {
     candidatePools?: CandidatePoolsBySelectionCriteria,
     gasModel?: IGasModel<MixedRouteWithValidQuote>
   ): Promise<GetQuotesResult> {
+    const beforeGetQuotes = Date.now();
     log.info('Starting to get mixed quotes');
     if (gasModel === undefined) {
       throw new Error('GasModel for MixedRouteWithValidQuote is required to getQuotes');
@@ -226,6 +231,8 @@ export class MixedQuoter extends BaseQuoter<MixedRoute> {
         routesWithValidQuotes.push(routeWithValidQuote);
       }
     }
+
+    metric.putMetric('MixedGetQuotesLoad', Date.now() - beforeGetQuotes, MetricLoggerUnit.Milliseconds);
 
     return {
       routesWithValidQuotes,

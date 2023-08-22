@@ -1,41 +1,24 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Percent, Price, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Percent, Price, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import {
-  SwapOptionsUniversalRouter,
-  SwapType,
-  WRAPPED_NATIVE_CURRENCY,
-} from '../../../..';
-import {
-  ArbitrumGasData,
-  OptimismGasData,
-} from '../../../../providers/v3/gas-data-provider';
-import { ChainId } from '../../../../util';
+import { SwapOptionsUniversalRouter, SwapType, WRAPPED_NATIVE_CURRENCY, } from '../../../..';
+import { ArbitrumGasData, OptimismGasData, } from '../../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../../util/amounts';
-import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
-  getL2ToL1GasUsed,
-} from '../../../../util/gas-factory-helpers';
+import { getL2ToL1GasUsed } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
-import {
-  buildSwapMethodParameters,
-  buildTrade,
-} from '../../../../util/methodParameters';
+import { buildSwapMethodParameters, buildTrade, } from '../../../../util/methodParameters';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import {
-  BuildOnChainGasModelFactoryType,
-  IGasModel,
-  IOnChainGasModelFactory,
-} from '../gas-model';
+import { BuildOnChainGasModelFactoryType, IGasModel, IOnChainGasModelFactory, } from '../gas-model';
 
 import {
   BASE_SWAP_COST,
   COST_PER_HOP,
   COST_PER_INIT_TICK,
   COST_PER_UNINIT_TICK,
+  SINGLE_HOP_OVERHEAD,
+  TOKEN_OVERHEAD,
 } from './gas-costs';
 
 /**
@@ -64,7 +47,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
   public async buildGasModel({
     chainId,
     gasPriceWei,
-    v3poolProvider: poolProvider,
+    pools,
     amountToken,
     quoteToken,
     l2GasDataProvider,
@@ -75,10 +58,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       ? await l2GasDataProvider.getGasData()
       : undefined;
 
-    const usdPool: Pool = await getHighestLiquidityV3USDPool(
-      chainId,
-      poolProvider
-    );
+    const usdPool: Pool = pools.usdPool;
 
     const calculateL1GasFees = async (
       route: V3RouteWithValidQuote[]
@@ -95,11 +75,13 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       };
       let l1Used = BigNumber.from(0);
       let l1FeeInWei = BigNumber.from(0);
-      if (
-        chainId == ChainId.OPTIMISM ||
-        chainId == ChainId.OPTIMISTIC_KOVAN ||
-        chainId == ChainId.OPTIMISM_GOERLI
-      ) {
+      const opStackChains = [
+        ChainId.OPTIMISM,
+        ChainId.OPTIMISM_GOERLI,
+        ChainId.BASE,
+        ChainId.BASE_GOERLI,
+      ];
+      if (opStackChains.includes(chainId)) {
         [l1Used, l1FeeInWei] = this.calculateOptimismToL1SecurityFee(
           route,
           swapOptions,
@@ -107,7 +89,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         );
       } else if (
         chainId == ChainId.ARBITRUM_ONE ||
-        chainId == ChainId.ARBITRUM_RINKEBY ||
         chainId == ChainId.ARBITRUM_GOERLI
       ) {
         [l1Used, l1FeeInWei] = this.calculateArbitrumToL1SecurityFee(
@@ -136,10 +117,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       let gasCostL1QuoteToken = costNativeCurrency;
       // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
       if (!quoteToken.equals(nativeCurrency)) {
-        const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
-          quoteToken,
-          poolProvider
-        );
+        const nativePool: Pool | null = pools.nativeQuoteTokenV3Pool;
         if (!nativePool) {
           log.info(
             'Could not find a pool to convert the cost into the quote token'
@@ -205,17 +183,11 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativePool: Pool | null = await getHighestLiquidityV3NativePool(
-      quoteToken,
-      poolProvider
-    );
+    const nativePool: Pool | null = pools.nativeQuoteTokenV3Pool;
 
     let nativeAmountPool: Pool | null = null;
     if (!amountToken.equals(nativeCurrency)) {
-      nativeAmountPool = await getHighestLiquidityV3NativePool(
-        amountToken,
-        poolProvider
-      );
+      nativeAmountPool = pools.nativeAmountTokenV3Pool;
     }
 
     const usdToken =
@@ -268,7 +240,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${quoteToken.symbol} to produce gas adjusted costs. Using amountToken to calculate gas costs.`
         );
       }
-      
+
       // Highest liquidity pool for the non quote token / ETH
       // A pool with the non quote token / ETH should not be required and errors should be handled separately
       if (nativeAmountPool) {
@@ -279,7 +251,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           routeWithValidQuote.amount.quotient,
           routeWithValidQuote.quote.quotient
         );
-        
+
         const inputIsToken0 =
           nativeAmountPool.token0.address == nativeCurrency.address;
         // ratio of input / native
@@ -384,7 +356,19 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     );
     const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
 
-    const hopsGasUse = COST_PER_HOP(chainId).mul(totalHops);
+    let hopsGasUse = COST_PER_HOP(chainId).mul(totalHops);
+
+    // We have observed that this algorithm tends to underestimate single hop swaps.
+    // We add a buffer in the case of a single hop swap.
+    if (totalHops.eq(1)) {
+      hopsGasUse = hopsGasUse.add(SINGLE_HOP_OVERHEAD(chainId));
+    }
+
+    // Some tokens have extremely expensive transferFrom functions, which causes
+    // us to underestimate them by a large amount. For known tokens, we apply an
+    // adjustment.
+    const tokenOverhead = TOKEN_OVERHEAD(chainId, routeWithValidQuote.route);
+
     const tickGasUse = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed
     );
@@ -393,6 +377,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     // base estimate gas used based on chainId estimates for hops and ticks gas useage
     const baseGasUse = BASE_SWAP_COST(chainId)
       .add(hopsGasUse)
+      .add(tokenOverhead)
       .add(tickGasUse)
       .add(uninitializedTickGasUse);
 
