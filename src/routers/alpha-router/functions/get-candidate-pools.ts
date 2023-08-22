@@ -270,13 +270,15 @@ export async function getV3CandidatePools({
   const baseTokensAddresses: Set<string> = new Set();
 
   baseTokens.forEach((token) => {
-    baseTokensAddresses.add(token.address.toLowerCase());
+    const baseTokenAddr = token.address.toLowerCase();
+
+    baseTokensAddresses.add(baseTokenAddr);
     topByBaseWithTokenInMap.set(
-      token.address.toLowerCase(),
+      baseTokenAddr,
       new SubcategorySelectionPools<V3SubgraphPool>([], topNWithEachBaseToken)
     );
     topByBaseWithTokenOutMap.set(
-      token.address.toLowerCase(),
+      baseTokenAddr,
       new SubcategorySelectionPools<V3SubgraphPool>([], topNWithEachBaseToken)
     );
   });
@@ -805,13 +807,15 @@ export async function getV2CandidatePools({
   const baseTokensAddresses: Set<string> = new Set();
 
   baseTokens.forEach((token) => {
-    baseTokensAddresses.add(token.address.toLowerCase());
+    const baseTokenAddr = token.address.toLowerCase();
+
+    baseTokensAddresses.add(baseTokenAddr);
     topByBaseWithTokenInMap.set(
-      token.address.toLowerCase(),
+      baseTokenAddr,
       new SubcategorySelectionPools<V2SubgraphPool>([], topNWithEachBaseToken)
     );
     topByBaseWithTokenOutMap.set(
-      token.address.toLowerCase(),
+      baseTokenAddr,
       new SubcategorySelectionPools<V2SubgraphPool>([], topNWithEachBaseToken)
     );
   });
