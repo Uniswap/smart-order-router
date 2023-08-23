@@ -1,4 +1,5 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
+import { BigNumber } from 'ethers';
 import _ from 'lodash';
 
 import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
@@ -10,14 +11,14 @@ import { ProviderConfig } from './provider';
 import { DEFAULT_ALLOWLIST } from './token-validator-provider';
 
 export type TokenFeeResult = {
-  buyFeeBps: number,
-  sellFeeBps: number,
+  buyFeeBps: BigNumber,
+  sellFeeBps: BigNumber,
 }
 
 // on detector failure, assume no fee
 const DEFAULT_TOKEN_FEE_RESULT = {
-  buyFeeBps: 0,
-  sellFeeBps: 0,
+  buyFeeBps: BigNumber.from(0),
+  sellFeeBps: BigNumber.from(0),
 };
 
 export interface TokenFeeResults {
@@ -25,7 +26,7 @@ export interface TokenFeeResults {
 }
 
 const FEE_DETECTOR_ADDRESS = '0x57eC54d113719dDE9A90E6bE807524a86560E89D';
-const AMOUNT_TO_FLASH_BORROW = '1000';
+const AMOUNT_TO_FLASH_BORROW = '10000';
 const GAS_LIMIT_PER_VALIDATE = 1_000_000;
 
 /**
@@ -36,7 +37,7 @@ const GAS_LIMIT_PER_VALIDATE = 1_000_000;
  */
 export interface ITokenFeeProvider {
   /**
-   * Gets the token at each address. Any addresses that are not valid ERC-20 are ignored.
+   * Gets the fees for the token at each address.
    *
    * @param tokens The token addresses to fetch fees for.
    * @param [providerConfig] The provider config.
