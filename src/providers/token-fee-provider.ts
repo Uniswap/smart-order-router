@@ -1,5 +1,5 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
-import { BigNumber } from 'ethers';
+import { BigNumber } from '@ethersproject/bignumber';
 import _ from 'lodash';
 
 import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
