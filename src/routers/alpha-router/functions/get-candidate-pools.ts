@@ -337,14 +337,12 @@ export async function getV3CandidatePools({
     if (
       topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
       tokenInToken0TopByBase &&
+      subgraphPool.token0.id != tokenOutAddress &&
       subgraphPool.token1.id == tokenInAddress
     ) {
       topByBaseWithTokenInPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
-      if (
-        subgraphPool.token0.id != tokenOutAddress &&
-        topByTVLUsingTokenIn.length < topNTokenInOut
-      ) {
+      if (topByTVLUsingTokenIn.length < topNTokenInOut) {
         topByTVLUsingTokenIn.push(subgraphPool);
       }
       tokenInToken0TopByBase.pools.push(subgraphPool);
@@ -355,14 +353,12 @@ export async function getV3CandidatePools({
     if (
       topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
       tokenInToken1TopByBase &&
-      subgraphPool.token0.id == tokenInAddress
+      subgraphPool.token0.id == tokenInAddress &&
+      subgraphPool.token1.id != tokenOutAddress
     ) {
       topByBaseWithTokenInPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
-      if (
-        subgraphPool.token1.id != tokenOutAddress &&
-        topByTVLUsingTokenIn.length < topNTokenInOut
-      ) {
+      if (topByTVLUsingTokenIn.length < topNTokenInOut) {
         topByTVLUsingTokenIn.push(subgraphPool);
       }
       tokenInToken1TopByBase.pools.push(subgraphPool);
@@ -373,14 +369,12 @@ export async function getV3CandidatePools({
     if (
       topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken0TopByBase &&
+      subgraphPool.token0.id != tokenInAddress &&
       subgraphPool.token1.id == tokenOutAddress
     ) {
       topByBaseWithTokenOutPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
-      if (
-        subgraphPool.token0.id != tokenInAddress &&
-        topByTVLUsingTokenOut.length < topNTokenInOut
-      ) {
+      if (topByTVLUsingTokenOut.length < topNTokenInOut) {
         topByTVLUsingTokenOut.push(subgraphPool);
       }
       tokenOutToken0TopByBase.pools.push(subgraphPool);
@@ -391,14 +385,12 @@ export async function getV3CandidatePools({
     if (
       topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken1TopByBase &&
-      subgraphPool.token0.id == tokenOutAddress
+      subgraphPool.token0.id == tokenOutAddress &&
+      subgraphPool.token1.id != tokenInAddress
     ) {
       topByBaseWithTokenOutPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
-      if (
-        subgraphPool.token1.id != tokenInAddress &&
-        topByTVLUsingTokenOut.length < topNTokenInOut
-      ) {
+      if (topByTVLUsingTokenOut.length < topNTokenInOut) {
         topByTVLUsingTokenOut.push(subgraphPool);
       }
       tokenOutToken1TopByBase.pools.push(subgraphPool);
