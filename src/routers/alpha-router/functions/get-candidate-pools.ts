@@ -452,7 +452,7 @@ export async function getV3CandidatePools({
         );
         poolAddressesSoFar.add(poolAddress);
         return {
-          id: poolAddress,
+          id: poolAddress.toLowerCase(),
           feeTier: unparseFeeAmount(feeAmount),
           liquidity: '10000',
           token0: {
@@ -618,7 +618,7 @@ export async function getV3CandidatePools({
   log.error(`topByTVLUsingTokenInSecondHops ${topByTVLUsingTokenInSecondHops.length} | topN: ${topNSecondHop}`);
   log.error(`topByTVLUsingTokenOutSecondHops ${topByTVLUsingTokenOutSecondHops.length} | topN: ${topNSecondHop}`);
 
-  const subgraphPools = _([
+  const subgraphPools = [
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
     ...topByDirectSwapPools,
@@ -628,10 +628,10 @@ export async function getV3CandidatePools({
     ...topByTVLUsingTokenOut,
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
-  ]).sortBy((pool) => -pool.tvlUSD).value();
+  ];
 
   log.error(`subgraphPools ${subgraphPools.length}`);
-  log.error(`${subgraphPools.map((pool) => pool.id).join(', ')}`);
+  log.error(`${subgraphPools.map((pool) => pool.id).join(',\n')}`);
 
   const tokenAddressesSet: Set<string> = new Set();
   for (const pool of subgraphPools) {
