@@ -466,9 +466,10 @@ export async function getV3CandidatePools({
           tokenOut,
           feeAmount
         );
-        poolAddressesSoFar.add(poolAddress);
+        const lowerCasePoolAddress = poolAddress.toLowerCase();
+        poolAddressesSoFar.add(lowerCasePoolAddress);
         return {
-          id: poolAddress.toLowerCase(),
+          id: lowerCasePoolAddress,
           feeTier: unparseFeeAmount(feeAmount),
           liquidity: '10000',
           token0: {
