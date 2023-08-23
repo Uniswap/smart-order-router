@@ -624,16 +624,6 @@ export async function getV3CandidatePools({
     topByTVLUsingTokenOutSecondHops.push(...secondHopPools.pools);
   }
 
-  log.error(`topByBaseWithTokenIn ${topByBaseWithTokenIn.length} | topN: ${topNWithBaseToken}`);
-  log.error(`topByBaseWithTokenOut ${topByBaseWithTokenOut.length} | topN: ${topNWithBaseToken}`);
-  log.error(`top2DirectSwapPool ${topByDirectSwapPools.length} | topN: ${topNDirectSwaps}`);
-  log.error(`top2EthQuoteTokenPool ${topByEthQuoteTokenPool.length} | topN: ${2}`);
-  log.error(`topByTVL ${topByTVL.length} | topN: ${topN}`);
-  log.error(`topByTVLUsingTokenIn ${topByTVLUsingTokenIn.length} | topN: ${topNTokenInOut}`);
-  log.error(`topByTVLUsingTokenOut ${topByTVLUsingTokenOut.length} | topN: ${topNTokenInOut}`);
-  log.error(`topByTVLUsingTokenInSecondHops ${topByTVLUsingTokenInSecondHops.length} | topN: ${topNSecondHop}`);
-  log.error(`topByTVLUsingTokenOutSecondHops ${topByTVLUsingTokenOutSecondHops.length} | topN: ${topNSecondHop}`);
-
   const subgraphPools = [
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
@@ -645,9 +635,6 @@ export async function getV3CandidatePools({
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
   ];
-
-  log.error(`subgraphPools ${subgraphPools.length}`);
-  log.error(`${subgraphPools.map((pool) => pool.id).join(',\n')}`);
 
   const tokenAddressesSet: Set<string> = new Set();
   for (const pool of subgraphPools) {
