@@ -624,7 +624,7 @@ export async function getV3CandidatePools({
     topByTVLUsingTokenOutSecondHops.push(...secondHopPools.pools);
   }
 
-  const subgraphPools = [
+  const subgraphPools = _([
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
     ...topByDirectSwapPools,
@@ -634,7 +634,9 @@ export async function getV3CandidatePools({
     ...topByTVLUsingTokenOut,
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
-  ];
+  ])
+    .uniqBy((pool) => pool.id)
+    .value();
 
   const tokenAddressesSet: Set<string> = new Set();
   for (const pool of subgraphPools) {
@@ -816,7 +818,7 @@ export async function getV2CandidatePools({
       tokenOut
     );
 
-    poolAddressesSoFar.add(poolAddress);
+    poolAddressesSoFar.add(poolAddress.toLowerCase());
 
     topByDirectSwapPool = [
       {
@@ -902,10 +904,14 @@ export async function getV2CandidatePools({
     if (
       topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
       tokenInToken0TopByBase &&
+      subgraphPool.token0.id != tokenOutAddress &&
       subgraphPool.token1.id == tokenInAddress
     ) {
       topByBaseWithTokenInPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
+      if (topByTVLUsingTokenIn.length < topNTokenInOut) {
+        topByTVLUsingTokenIn.push(subgraphPool);
+      }
       tokenInToken0TopByBase.pools.push(subgraphPool);
       continue;
     }
@@ -914,10 +920,14 @@ export async function getV2CandidatePools({
     if (
       topByBaseWithTokenInPoolsFound < topNWithBaseToken &&
       tokenInToken1TopByBase &&
-      subgraphPool.token0.id == tokenInAddress
+      subgraphPool.token0.id == tokenInAddress &&
+      subgraphPool.token1.id != tokenOutAddress
     ) {
       topByBaseWithTokenInPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
+      if (topByTVLUsingTokenIn.length < topNTokenInOut) {
+        topByTVLUsingTokenIn.push(subgraphPool);
+      }
       tokenInToken1TopByBase.pools.push(subgraphPool);
       continue;
     }
@@ -926,10 +936,14 @@ export async function getV2CandidatePools({
     if (
       topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken0TopByBase &&
+      subgraphPool.token0.id != tokenInAddress &&
       subgraphPool.token1.id == tokenOutAddress
     ) {
       topByBaseWithTokenOutPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
+      if (topByTVLUsingTokenOut.length < topNTokenInOut) {
+        topByTVLUsingTokenOut.push(subgraphPool);
+      }
       tokenOutToken0TopByBase.pools.push(subgraphPool);
       continue;
     }
@@ -938,10 +952,14 @@ export async function getV2CandidatePools({
     if (
       topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken1TopByBase &&
-      subgraphPool.token0.id == tokenOutAddress
+      subgraphPool.token0.id == tokenOutAddress &&
+      subgraphPool.token1.id != tokenInAddress
     ) {
       topByBaseWithTokenOutPoolsFound += 1;
       poolAddressesSoFar.add(subgraphPool.id);
+      if (topByTVLUsingTokenOut.length < topNTokenInOut) {
+        topByTVLUsingTokenOut.push(subgraphPool);
+      }
       tokenOutToken1TopByBase.pools.push(subgraphPool);
       continue;
     }
@@ -1110,7 +1128,7 @@ export async function getV2CandidatePools({
     topByTVLUsingTokenOutSecondHops.push(...secondHopPools.pools);
   }
 
-  const subgraphPools = [
+  const subgraphPools = _([
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
     ...topByDirectSwapPool,
@@ -1120,7 +1138,9 @@ export async function getV2CandidatePools({
     ...topByTVLUsingTokenOut,
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
-  ];
+  ])
+    .uniqBy((pool) => pool.id)
+    .value();
 
   const tokenAddressesSet: Set<string> = new Set();
   for (const pool of subgraphPools) {
