@@ -949,7 +949,7 @@ export async function getV2CandidatePools({
       continue;
     }
 
-    const tokenOutToken1TopByBase = topByBaseWithTokenInMap.get(subgraphPool.token1.id);
+    const tokenOutToken1TopByBase = topByBaseWithTokenOutMap.get(subgraphPool.token1.id);
     if (
       topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken1TopByBase &&
