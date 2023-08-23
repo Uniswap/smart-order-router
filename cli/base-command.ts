@@ -191,7 +191,7 @@ export abstract class BaseCommand extends Command {
     } = query.flags;
 
     // initialize logger
-    const logLevel = debug || debugJSON ? bunyan.DEBUG : bunyan.INFO;
+    const logLevel = debug || debugJSON ? bunyan.ERROR : bunyan.INFO;
     this._log = bunyan.createLogger({
       name: 'Uniswap Smart Order Router',
       serializers: bunyan.stdSerializers,

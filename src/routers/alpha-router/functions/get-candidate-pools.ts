@@ -369,7 +369,7 @@ export async function getV3CandidatePools({
       continue;
     }
 
-    const tokenOutToken1TopByBase = topByBaseWithTokenInMap.get(subgraphPool.token1.id);
+    const tokenOutToken1TopByBase = topByBaseWithTokenOutMap.get(subgraphPool.token1.id);
     if (
       topByBaseWithTokenOutPoolsFound < topNWithBaseToken &&
       tokenOutToken1TopByBase &&
@@ -540,9 +540,17 @@ export async function getV3CandidatePools({
       }
     }
 
+    let topByTVLUsingTokenInSecondHopsSizeSoFar = 0;
+    for (const secondHopsList of topByTVLUsingTokenInSecondHopsMap.values()) {
+      topByTVLUsingTokenInSecondHopsSizeSoFar += secondHopsList.pools.length;
+    }
     const tokenInToken0SecondHop = topByTVLUsingTokenInSecondHopsMap.get(subgraphPool.token0.id);
 
-    if (tokenInToken0SecondHop && !tokenInToken0SecondHop.hasEnoughPools()) {
+    if (
+      topByTVLUsingTokenInSecondHopsSizeSoFar < topNSecondHop &&
+      tokenInToken0SecondHop &&
+      !tokenInToken0SecondHop.hasEnoughPools()
+    ) {
       poolAddressesSoFar.add(subgraphPool.id);
       tokenInToken0SecondHop.pools.push(subgraphPool);
       continue;
@@ -550,15 +558,28 @@ export async function getV3CandidatePools({
 
     const tokenInToken1SecondHop = topByTVLUsingTokenInSecondHopsMap.get(subgraphPool.token1.id);
 
-    if (tokenInToken1SecondHop && !tokenInToken1SecondHop.hasEnoughPools()) {
+    if (
+      topByTVLUsingTokenInSecondHopsSizeSoFar < topNSecondHop &&
+      tokenInToken1SecondHop &&
+      !tokenInToken1SecondHop.hasEnoughPools()
+    ) {
       poolAddressesSoFar.add(subgraphPool.id);
       tokenInToken1SecondHop.pools.push(subgraphPool);
       continue;
     }
 
+    let topByTVLUsingTokenOutSecondHopsSizeSoFar = 0;
+    for (const secondHopsList of topByTVLUsingTokenOutSecondHopsMap.values()) {
+      topByTVLUsingTokenOutSecondHopsSizeSoFar += secondHopsList.pools.length;
+    }
+
     const tokenOutToken0SecondHop = topByTVLUsingTokenOutSecondHopsMap.get(subgraphPool.token0.id);
 
-    if (tokenOutToken0SecondHop && !tokenOutToken0SecondHop.hasEnoughPools()) {
+    if (
+      topByTVLUsingTokenOutSecondHopsSizeSoFar < topNSecondHop &&
+      tokenOutToken0SecondHop &&
+      !tokenOutToken0SecondHop.hasEnoughPools()
+    ) {
       poolAddressesSoFar.add(subgraphPool.id);
       tokenOutToken0SecondHop.pools.push(subgraphPool);
       continue;
@@ -566,7 +587,11 @@ export async function getV3CandidatePools({
 
     const tokenOutToken1SecondHop = topByTVLUsingTokenOutSecondHopsMap.get(subgraphPool.token1.id);
 
-    if (tokenOutToken1SecondHop && !tokenOutToken1SecondHop.hasEnoughPools()) {
+    if (
+      topByTVLUsingTokenOutSecondHopsSizeSoFar < topNSecondHop &&
+      tokenOutToken1SecondHop &&
+      !tokenOutToken1SecondHop.hasEnoughPools()
+    ) {
       poolAddressesSoFar.add(subgraphPool.id);
       tokenOutToken1SecondHop.pools.push(subgraphPool);
       continue;
@@ -583,7 +608,17 @@ export async function getV3CandidatePools({
     topByTVLUsingTokenOutSecondHops.push(...secondHopPools.pools);
   }
 
-  const topPoolsByAllHeuristics = [
+  log.error(`topByBaseWithTokenIn ${topByBaseWithTokenIn.length} | topN: ${topNWithBaseToken}`);
+  log.error(`topByBaseWithTokenOut ${topByBaseWithTokenOut.length} | topN: ${topNWithBaseToken}`);
+  log.error(`top2DirectSwapPool ${topByDirectSwapPools.length} | topN: ${topNDirectSwaps}`);
+  log.error(`top2EthQuoteTokenPool ${topByEthQuoteTokenPool.length} | topN: ${2}`);
+  log.error(`topByTVL ${topByTVL.length} | topN: ${topN}`);
+  log.error(`topByTVLUsingTokenIn ${topByTVLUsingTokenIn.length} | topN: ${topNTokenInOut}`);
+  log.error(`topByTVLUsingTokenOut ${topByTVLUsingTokenOut.length} | topN: ${topNTokenInOut}`);
+  log.error(`topByTVLUsingTokenInSecondHops ${topByTVLUsingTokenInSecondHops.length} | topN: ${topNSecondHop}`);
+  log.error(`topByTVLUsingTokenOutSecondHops ${topByTVLUsingTokenOutSecondHops.length} | topN: ${topNSecondHop}`);
+
+  const subgraphPools = _([
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
     ...topByDirectSwapPools,
@@ -593,9 +628,10 @@ export async function getV3CandidatePools({
     ...topByTVLUsingTokenOut,
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
-  ];
-  const subgraphPoolsSet: Set<V3SubgraphPool> = new Set(topPoolsByAllHeuristics);
-  const subgraphPools = Array.from(subgraphPoolsSet);
+  ]).sortBy((pool) => -pool.tvlUSD).value();
+
+  log.error(`subgraphPools ${subgraphPools.length}`);
+  log.error(`${subgraphPools.map((pool) => pool.id).join(', ')}`);
 
   const tokenAddressesSet: Set<string> = new Set();
   for (const pool of subgraphPools) {
