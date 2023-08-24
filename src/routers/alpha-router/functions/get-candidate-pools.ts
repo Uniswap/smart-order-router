@@ -218,28 +218,19 @@ export async function getV3CandidatePools({
 
   const beforeSubgraphPools = Date.now();
 
-  const allPoolsRaw = await subgraphProvider.getPools(tokenIn, tokenOut, {
+  const allPools = await subgraphProvider.getPools(tokenIn, tokenOut, {
     blockNumber,
   });
 
   log.info(
-    { samplePools: allPoolsRaw.slice(0, 3) },
+    { samplePools: allPools.slice(0, 3) },
     'Got all pools from V3 subgraph provider'
   );
 
-  const allPools = _.map(allPoolsRaw, (pool) => {
-    return {
-      ...pool,
-      token0: {
-        ...pool.token0,
-        id: pool.token0.id.toLowerCase(),
-      },
-      token1: {
-        ...pool.token1,
-        id: pool.token1.id.toLowerCase(),
-      },
-    };
-  });
+  for (const pool of allPools) {
+    pool.token0.id = pool.token0.id.toLowerCase();
+    pool.token1.id = pool.token1.id.toLowerCase();
+  }
 
   metric.putMetric(
     'V3SubgraphPoolsLoad',
@@ -267,9 +258,7 @@ export async function getV3CandidatePools({
     }
   }
 
-  const subgraphPoolsSorted = _(filteredPools)
-    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
-    .value();
+  const subgraphPoolsSorted = filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD);
 
   log.info(
     `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
@@ -643,23 +632,14 @@ export async function getV2CandidatePools({
 
   const beforeSubgraphPools = Date.now();
 
-  const allPoolsRaw = await subgraphProvider.getPools(tokenIn, tokenOut, {
+  const allPools = await subgraphProvider.getPools(tokenIn, tokenOut, {
     blockNumber,
   });
 
-  const allPools = _.map(allPoolsRaw, (pool) => {
-    return {
-      ...pool,
-      token0: {
-        ...pool.token0,
-        id: pool.token0.id.toLowerCase(),
-      },
-      token1: {
-        ...pool.token1,
-        id: pool.token1.id.toLowerCase(),
-      },
-    };
-  });
+  for (const pool of allPools) {
+    pool.token0.id = pool.token0.id.toLowerCase();
+    pool.token1.id = pool.token1.id.toLowerCase();
+  }
 
   metric.putMetric(
     'V2SubgraphPoolsLoad',
@@ -669,9 +649,7 @@ export async function getV2CandidatePools({
 
   const beforePoolsFiltered = Date.now();
 
-  const subgraphPoolsSorted = _(allPools)
-    .sortBy((tokenListPool) => -tokenListPool.reserve)
-    .value();
+  const subgraphPoolsSorted = allPools.sort((a, b) => b.reserve - a.reserve);
 
   const poolAddressesSoFar = new Set<string>();
 
