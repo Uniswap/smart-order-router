@@ -218,28 +218,21 @@ export async function getV3CandidatePools({
 
   const beforeSubgraphPools = Date.now();
 
-  const allPoolsRaw = await subgraphProvider.getPools(tokenIn, tokenOut, {
+  const allPools = await subgraphProvider.getPools(tokenIn, tokenOut, {
     blockNumber,
   });
 
   log.info(
-    { samplePools: allPoolsRaw.slice(0, 3) },
+    { samplePools: allPools.slice(0, 3) },
     'Got all pools from V3 subgraph provider'
   );
 
-  const allPools = _.map(allPoolsRaw, (pool) => {
-    return {
-      ...pool,
-      token0: {
-        ...pool.token0,
-        id: pool.token0.id.toLowerCase(),
-      },
-      token1: {
-        ...pool.token1,
-        id: pool.token1.id.toLowerCase(),
-      },
-    };
-  });
+  // Although this is less of an optimization than the V2 equivalent,
+  // save some time copying objects by mutating the underlying pool directly.
+  for (const pool of allPools) {
+    pool.token0.id = pool.token0.id.toLowerCase()
+    pool.token1.id = pool.token1.id.toLowerCase()
+  }
 
   metric.putMetric(
     'V3SubgraphPoolsLoad',
