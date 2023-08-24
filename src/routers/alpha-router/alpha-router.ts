@@ -76,6 +76,7 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  V2Route,
   V3Route,
 } from '../router';
 
@@ -87,7 +88,15 @@ import {
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
-import { CandidatePoolsBySelectionCriteria, PoolId, } from './functions/get-candidate-pools';
+import { computeAllV2Routes } from './functions/compute-all-routes';
+import {
+  CandidatePoolsBySelectionCriteria,
+  getV2CandidatePools,
+  getV3CandidatePools,
+  PoolId,
+  V2CandidatePools,
+  V3CandidatePools,
+} from './functions/get-candidate-pools';
 import {
   IGasModel,
   IOnChainGasModelFactory,
@@ -1282,7 +1291,7 @@ export class AlphaRouter
 
     if (v3Routes.length > 0) {
       const v3RoutesFromCache: V3Route[] = v3Routes.map((cachedRoute) => cachedRoute.route as V3Route);
-      metric.putMetric("SwapRouteFromCache_V3_GetQuotes_Request", 1, MetricLoggerUnit.Count);
+      metric.putMetric('SwapRouteFromCache_V3_GetQuotes_Request', 1, MetricLoggerUnit.Count);
 
       const beforeGetQuotes = Date.now();
 
@@ -1309,37 +1318,51 @@ export class AlphaRouter
     }
 
     if (v2Routes.length > 0) {
-      metric.putMetric("SwapRouteFromCache_V2_GetQuotes_Request", 1, MetricLoggerUnit.Count);
+      const v2RoutesFromCache: V2Route[] = v2Routes.map((cachedRoute) => cachedRoute.route as V2Route);
+      const tokenPairs: [Token, Token][] = [];
+      v2RoutesFromCache.forEach((route) =>
+        route.pairs.forEach((pair) =>
+          tokenPairs.push([pair.token0, pair.token1])
+        )
+      );
+      metric.putMetric('SwapRouteFromCache_V2_GetQuotes_Request', 1, MetricLoggerUnit.Count);
       const beforeGetRoutesAndQuotes = Date.now();
 
       quotePromises.push(
-        // When we fetch the quotes in V2, we are not calling the `onChainProvider` like on v3Routes and mixedRoutes
-        // Instead we are using the reserves in the Pool object, so we need to re-load the current reserves.
-        this.v2Quoter.getRoutesThenQuotes(
-          v2Routes[0]!.tokenIn,
-          v2Routes[0]!.tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          tradeType,
-          routingConfig,
-          undefined,
-          gasPriceWei
-        ).then((result) => {
-          metric.putMetric(
-            `SwapRouteFromCache_V2_GetRoutesAndQuotes_Load`,
-            Date.now() - beforeGetRoutesAndQuotes,
-            MetricLoggerUnit.Milliseconds
+        this.v2PoolProvider.getPools(tokenPairs, routingConfig).then((poolAccesor) => {
+          const routes = computeAllV2Routes(
+            cachedRoutes.tokenIn,
+            cachedRoutes.tokenOut,
+            poolAccesor.getAllPools(),
+            routingConfig.maxSwapsPerPath
           );
 
-          return result;
+          return this.v2Quoter.getQuotes(
+            routes,
+            amounts,
+            percents,
+            quoteToken,
+            tradeType,
+            routingConfig,
+            undefined,
+            undefined,
+            gasPriceWei
+          ).then((result) => {
+            metric.putMetric(
+              `SwapRouteFromCache_V2_GetRoutesAndQuotes_Load`,
+              Date.now() - beforeGetRoutesAndQuotes,
+              MetricLoggerUnit.Milliseconds
+            );
+
+            return result;
+          });
         })
       );
     }
 
     if (mixedRoutes.length > 0) {
       const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map((cachedRoute) => cachedRoute.route as MixedRoute);
-      metric.putMetric("SwapRouteFromCache_Mixed_GetQuotes_Request", 1, MetricLoggerUnit.Count);
+      metric.putMetric('SwapRouteFromCache_Mixed_GetQuotes_Request', 1, MetricLoggerUnit.Count);
 
       const beforeGetQuotes = Date.now();
 
@@ -1407,13 +1430,48 @@ export class AlphaRouter
     const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GOERLI].includes(this.chainId) &&
       tradeType === TradeType.EXACT_INPUT;
 
+    let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> = Promise.resolve(undefined);
+    if (v3ProtocolSpecified || noProtocolsSpecified || (shouldQueryMixedProtocol && mixedProtocolAllowed)) {
+      v3CandidatePoolsPromise = getV3CandidatePools({
+        tokenIn,
+        tokenOut,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v3PoolProvider,
+        routeType: tradeType,
+        subgraphProvider: this.v3SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+      });
+    }
+
+    let v2CandidatePoolsPromise: Promise<V2CandidatePools | undefined> = Promise.resolve(undefined);
+    if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified) || (shouldQueryMixedProtocol && mixedProtocolAllowed)) {
+      // Fetch all the pools that we will consider routing via. There are thousands
+      // of pools, so we filter them to a set of candidate pools that we expect will
+      // result in good prices.
+      v2CandidatePoolsPromise = getV2CandidatePools({
+        tokenIn,
+        tokenOut,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v2PoolProvider,
+        routeType: tradeType,
+        subgraphProvider: this.v2SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+      });
+    }
+
+    const [v3CandidatePools, v2CandidatePools] = await Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]);
+
     const quotePromises: Promise<GetQuotesResult>[] = [];
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {
       log.info({ protocols, tradeType }, 'Routing across V3');
 
-      metric.putMetric("SwapRouteFromChain_V3_GetRoutesThenQuotes_Request", 1, MetricLoggerUnit.Count);
+      metric.putMetric('SwapRouteFromChain_V3_GetRoutesThenQuotes_Request', 1, MetricLoggerUnit.Count);
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
@@ -1423,6 +1481,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
+          v3CandidatePools!,
           tradeType,
           routingConfig,
           v3GasModel
@@ -1442,7 +1501,7 @@ export class AlphaRouter
     if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
       log.info({ protocols, tradeType }, 'Routing across V2');
 
-      metric.putMetric("SwapRouteFromChain_V2_GetRoutesThenQuotes_Request", 1, MetricLoggerUnit.Count);
+      metric.putMetric('SwapRouteFromChain_V2_GetRoutesThenQuotes_Request', 1, MetricLoggerUnit.Count);
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
@@ -1452,6 +1511,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
+          v2CandidatePools!,
           tradeType,
           routingConfig,
           undefined,
@@ -1474,7 +1534,7 @@ export class AlphaRouter
     if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
       log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
 
-      metric.putMetric("SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Request", 1, MetricLoggerUnit.Count);
+      metric.putMetric('SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Request', 1, MetricLoggerUnit.Count);
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
@@ -1484,6 +1544,7 @@ export class AlphaRouter
           amounts,
           percents,
           quoteToken,
+          [v3CandidatePools!, v2CandidatePools!],
           tradeType,
           routingConfig,
           mixedRouteGasModel

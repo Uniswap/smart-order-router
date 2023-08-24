@@ -14,16 +14,16 @@ import {
 import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { V2Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
-import { V2RouteWithValidQuote } from '../entities';
+import { RouteWithValidQuote, V2RouteWithValidQuote } from '../entities';
 import { computeAllV2Routes } from '../functions/compute-all-routes';
-import { CandidatePoolsBySelectionCriteria, getV2CandidatePools } from '../functions/get-candidate-pools';
+import { CandidatePoolsBySelectionCriteria, V2CandidatePools } from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
 
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
 
-export class V2Quoter extends BaseQuoter<V2Route> {
+export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
@@ -49,24 +49,15 @@ export class V2Quoter extends BaseQuoter<V2Route> {
   protected async getRoutes(
     tokenIn: Token,
     tokenOut: Token,
-    tradeType: TradeType,
+    v2CandidatePools: V2CandidatePools,
+    _tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<V2Route>> {
     const beforeGetRoutes = Date.now();
     // Fetch all the pools that we will consider routing via. There are thousands
     // of pools, so we filter them to a set of candidate pools that we expect will
     // result in good prices.
-    const { poolAccessor, candidatePools } = await getV2CandidatePools({
-      tokenIn,
-      tokenOut,
-      tokenProvider: this.tokenProvider,
-      blockedTokenListProvider: this.blockedTokenListProvider,
-      poolProvider: this.v2PoolProvider,
-      routeType: tradeType,
-      subgraphProvider: this.v2SubgraphProvider,
-      routingConfig,
-      chainId: this.chainId,
-    });
+    const { poolAccessor, candidatePools } = v2CandidatePools;
     const poolsRaw = poolAccessor.getAllPools();
 
     // Drop any pools that contain tokens that can not be transferred according to the token validator.
@@ -209,5 +200,33 @@ export class V2Quoter extends BaseQuoter<V2Route> {
       routesWithValidQuotes,
       candidatePools
     };
+  }
+
+  public refreshRoutesThenQuotes(
+    tokenIn: Token,
+    tokenOut: Token,
+    amounts: CurrencyAmount[],
+    percents: number[],
+    quoteToken: Token,
+    candidatePools: CandidatePools,
+    tradeType: TradeType,
+    routingConfig: AlphaRouterConfig,
+    gasModel?: IGasModel<RouteWithValidQuote>,
+    gasPriceWei?: BigNumber
+  ): Promise<GetQuotesResult> {
+    return this.refreshRoutes(tokenIn, tokenOut, candidatePools, tradeType, routingConfig)
+      .then((routesResult) =>
+        this.getQuotes(
+          routesResult.routes,
+          amounts,
+          percents,
+          quoteToken,
+          tradeType,
+          routingConfig,
+          routesResult.candidatePools,
+          gasModel,
+          gasPriceWei
+        )
+      );
   }
 }

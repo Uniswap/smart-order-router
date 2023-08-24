@@ -9,7 +9,11 @@ import { CurrencyAmount, log, poolToString } from '../../../util';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
-import { CandidatePoolsBySelectionCriteria } from '../functions/get-candidate-pools';
+import {
+  CandidatePoolsBySelectionCriteria,
+  V2CandidatePools,
+  V3CandidatePools
+} from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
 import { GetQuotesResult, GetRoutesResult } from './model/results';
@@ -21,7 +25,10 @@ import { GetQuotesResult, GetRoutesResult } from './model/results';
  * @abstract
  * @template Route
  */
-export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
+export abstract class BaseQuoter<
+  CandidatePools extends V2CandidatePools | V3CandidatePools | [V3CandidatePools, V2CandidatePools],
+  Route extends V2Route | V3Route | MixedRoute
+> {
   protected tokenProvider: ITokenProvider;
   protected chainId: ChainId;
   protected blockedTokenListProvider?: ITokenListProvider;
@@ -53,6 +60,7 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
   protected abstract getRoutes(
     tokenIn: Token,
     tokenOut: Token,
+    candidatePools: CandidatePools,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<Route>>
@@ -91,6 +99,7 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
    * @param amounts the list of amounts to query for EACH route.
    * @param percents the percentage of each amount.
    * @param quoteToken
+   * @param candidatePools
    * @param tradeType
    * @param routingConfig
    * @param gasModel the gasModel to be used for estimating gas cost
@@ -102,12 +111,13 @@ export abstract class BaseQuoter<Route extends V2Route | V3Route | MixedRoute> {
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
+    candidatePools: CandidatePools,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     gasModel?: IGasModel<RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
-    return this.getRoutes(tokenIn, tokenOut, tradeType, routingConfig)
+    return this.getRoutes(tokenIn, tokenOut, candidatePools, tradeType, routingConfig)
       .then((routesResult) =>
         this.getQuotes(
           routesResult.routes,

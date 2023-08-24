@@ -103,12 +103,9 @@ export type V2GetCandidatePoolsParams = {
 };
 
 export type MixedRouteGetCandidatePoolsParams = {
-  tokenIn: Token;
-  tokenOut: Token;
-  routeType: TradeType;
+  v3CandidatePools: V3CandidatePools;
+  v2CandidatePools: V2CandidatePools;
   routingConfig: AlphaRouterConfig;
-  v2subgraphProvider: IV2SubgraphProvider;
-  v3subgraphProvider: IV3SubgraphProvider;
   tokenProvider: ITokenProvider;
   v2poolProvider: IV2PoolProvider;
   v3poolProvider: IV3PoolProvider;
@@ -187,6 +184,12 @@ class SubcategorySelectionPools<SubgraphPool> {
 
 }
 
+export type V3CandidatePools = {
+  poolAccessor: V3PoolAccessor;
+  candidatePools: CandidatePoolsBySelectionCriteria;
+  subgraphPools: V3SubgraphPool[];
+};
+
 export async function getV3CandidatePools({
   tokenIn,
   tokenOut,
@@ -197,11 +200,7 @@ export async function getV3CandidatePools({
   poolProvider,
   blockedTokenListProvider,
   chainId,
-}: V3GetCandidatePoolsParams): Promise<{
-  poolAccessor: V3PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria;
-  subgraphPools: V3SubgraphPool[];
-}> {
+}: V3GetCandidatePoolsParams): Promise<V3CandidatePools> {
   const {
     blockNumber,
     v3PoolSelection: {
@@ -610,6 +609,12 @@ export async function getV3CandidatePools({
   return { poolAccessor, candidatePools: poolsBySelection, subgraphPools };
 }
 
+export type V2CandidatePools = {
+  poolAccessor: V2PoolAccessor;
+  candidatePools: CandidatePoolsBySelectionCriteria;
+  subgraphPools: V2SubgraphPool[];
+}
+
 export async function getV2CandidatePools({
   tokenIn,
   tokenOut,
@@ -620,11 +625,7 @@ export async function getV2CandidatePools({
   poolProvider,
   blockedTokenListProvider,
   chainId,
-}: V2GetCandidatePoolsParams): Promise<{
-  poolAccessor: V2PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria;
-  subgraphPools: V2SubgraphPool[];
-}> {
+}: V2GetCandidatePoolsParams): Promise<V2CandidatePools> {
   const {
     blockNumber,
     v2PoolSelection: {
@@ -1098,53 +1099,27 @@ export async function getV2CandidatePools({
   return { poolAccessor, candidatePools: poolsBySelection, subgraphPools };
 }
 
-export async function getMixedRouteCandidatePools({
-  tokenIn,
-  tokenOut,
-  routeType,
-  routingConfig,
-  v3subgraphProvider,
-  v2subgraphProvider,
-  tokenProvider,
-  v3poolProvider,
-  v2poolProvider,
-  blockedTokenListProvider,
-  chainId,
-}: MixedRouteGetCandidatePoolsParams): Promise<{
+export type MixedCandidatePools = {
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
   subgraphPools: (V2SubgraphPool | V3SubgraphPool)[];
-}> {
+};
+
+export async function getMixedRouteCandidatePools({
+  v3CandidatePools,
+  v2CandidatePools,
+  routingConfig,
+  tokenProvider,
+  v3poolProvider,
+  v2poolProvider,
+}: MixedRouteGetCandidatePoolsParams): Promise<MixedCandidatePools> {
   const beforeSubgraphPools = Date.now();
   const { blockNumber, debugRouting } = routingConfig;
   const [
     { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools },
     { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools }
-  ] = await Promise.all([
-    getV3CandidatePools({
-      tokenIn,
-      tokenOut,
-      tokenProvider,
-      blockedTokenListProvider,
-      poolProvider: v3poolProvider,
-      routeType,
-      subgraphProvider: v3subgraphProvider,
-      routingConfig,
-      chainId,
-    }),
-    getV2CandidatePools({
-      tokenIn,
-      tokenOut,
-      tokenProvider,
-      blockedTokenListProvider,
-      poolProvider: v2poolProvider,
-      routeType,
-      subgraphProvider: v2subgraphProvider,
-      routingConfig,
-      chainId,
-    }),
-  ]);
+  ] = [v3CandidatePools, v2CandidatePools];
 
   metric.putMetric('MixedSubgraphPoolsLoad', Date.now() - beforeSubgraphPools, MetricLoggerUnit.Milliseconds);
   const beforePoolsFiltered = Date.now();
