@@ -3,6 +3,7 @@ import { ChainId, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 
+import { ProviderConfig } from '../../../../providers/provider';
 import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
@@ -13,7 +14,7 @@ import {
   IV2GasModelFactory,
   usdGasTokensByChain,
 } from '../gas-model';
-import { ProviderConfig } from '../../../../providers/provider';
+import { WRAPPED_NATIVE_OVERHEAD } from '../v3/gas-costs';
 
 // Constant cost for doing any swap regardless of pools.
 export const BASE_SWAP_COST = BigNumber.from(135000); // 115000, bumped up by 20_000 @eric 7/8/2022
@@ -48,7 +49,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     gasPriceWei,
     poolProvider,
     token,
-    providerConfig
+    providerConfig,
   }: BuildV2GasModelFactoryType): Promise<IGasModel<V2RouteWithValidQuote>> {
     if (token.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
       const usdPool: Pair = await this.getHighestLiquidityUSDPool(
@@ -62,7 +63,8 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           const { gasCostInEth, gasUse } = this.estimateGas(
             routeWithValidQuote,
             gasPriceWei,
-            chainId
+            chainId,
+            providerConfig
           );
 
           const ethToken0 =
@@ -115,7 +117,14 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         const { gasCostInEth, gasUse } = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
-          chainId
+          chainId,
+          {
+            ...providerConfig,
+            additionalGasOverhead: WRAPPED_NATIVE_OVERHEAD(
+              routeWithValidQuote.amount.currency,
+              routeWithValidQuote.quoteToken
+            ),
+          }
         );
 
         if (!ethPool) {
@@ -186,10 +195,15 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
   private estimateGas(
     routeWithValidQuote: V2RouteWithValidQuote,
     gasPriceWei: BigNumber,
-    chainId: ChainId
+    chainId: ChainId,
+    providerConfig?: ProviderConfig
   ) {
     const hops = routeWithValidQuote.route.pairs.length;
-    const gasUse = BASE_SWAP_COST.add(COST_PER_EXTRA_HOP.mul(hops - 1));
+    let gasUse = BASE_SWAP_COST.add(COST_PER_EXTRA_HOP.mul(hops - 1));
+
+    if (providerConfig?.additionalGasOverhead) {
+      gasUse = gasUse.add(providerConfig.additionalGasOverhead);
+    }
 
     const totalGasCostWei = gasPriceWei.mul(gasUse);
 
@@ -207,11 +221,14 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     chainId: ChainId,
     token: Token,
     poolProvider: IV2PoolProvider,
-    providerConfig?: ProviderConfig,
+    providerConfig?: ProviderConfig
   ): Promise<Pair | null> {
     const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
-    const poolAccessor = await poolProvider.getPools([[weth, token]], providerConfig);
+    const poolAccessor = await poolProvider.getPools(
+      [[weth, token]],
+      providerConfig
+    );
     const pool = poolAccessor.getPool(weth, token);
 
     if (!pool || pool.reserve0.equalTo(0) || pool.reserve1.equalTo(0)) {
@@ -234,7 +251,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
   private async getHighestLiquidityUSDPool(
     chainId: ChainId,
     poolProvider: IV2PoolProvider,
-    providerConfig?: ProviderConfig,
+    providerConfig?: ProviderConfig
   ): Promise<Pair> {
     const usdTokens = usdGasTokensByChain[chainId];
 

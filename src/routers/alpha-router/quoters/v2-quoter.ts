@@ -9,14 +9,23 @@ import {
   IV2PoolProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
-  TokenValidationResult
+  TokenValidationResult,
 } from '../../../providers';
-import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
+import {
+  CurrencyAmount,
+  log,
+  metric,
+  MetricLoggerUnit,
+  routeToString,
+} from '../../../util';
 import { V2Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { V2RouteWithValidQuote } from '../entities';
 import { computeAllV2Routes } from '../functions/compute-all-routes';
-import { CandidatePoolsBySelectionCriteria, V2CandidatePools } from '../functions/get-candidate-pools';
+import {
+  CandidatePoolsBySelectionCriteria,
+  V2CandidatePools,
+} from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
 
 import { BaseQuoter } from './base-quoter';
@@ -39,7 +48,12 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     blockedTokenListProvider?: ITokenListProvider,
     tokenValidatorProvider?: ITokenValidatorProvider
   ) {
-    super(tokenProvider, chainId, blockedTokenListProvider, tokenValidatorProvider);
+    super(
+      tokenProvider,
+      chainId,
+      blockedTokenListProvider,
+      tokenValidatorProvider
+    );
     this.v2SubgraphProvider = v2SubgraphProvider;
     this.v2PoolProvider = v2PoolProvider;
     this.v2QuoteProvider = v2QuoteProvider;
@@ -96,7 +110,11 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
       maxSwapsPerPath
     );
 
-    metric.putMetric('V2GetRoutesLoad', Date.now() - beforeGetRoutes, MetricLoggerUnit.Milliseconds);
+    metric.putMetric(
+      'V2GetRoutesLoad',
+      Date.now() - beforeGetRoutes,
+      MetricLoggerUnit.Milliseconds
+    );
 
     return {
       routes,
@@ -194,15 +212,19 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
       }
     }
 
-    metric.putMetric('V2GetQuotesLoad', Date.now() - beforeGetQuotes, MetricLoggerUnit.Milliseconds);
+    metric.putMetric(
+      'V2GetQuotesLoad',
+      Date.now() - beforeGetQuotes,
+      MetricLoggerUnit.Milliseconds
+    );
 
     return {
       routesWithValidQuotes,
-      candidatePools
+      candidatePools,
     };
   }
 
-  public refreshRoutesThenGetQuotes(
+  public async refreshRoutesThenGetQuotes(
     tokenIn: Token,
     tokenOut: Token,
     routes: V2Route[],
@@ -215,30 +237,30 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
   ): Promise<GetQuotesResult> {
     const tokenPairs: [Token, Token][] = [];
     routes.forEach((route) =>
-      route.pairs.forEach((pair) =>
-        tokenPairs.push([pair.token0, pair.token1])
-      )
+      route.pairs.forEach((pair) => tokenPairs.push([pair.token0, pair.token1]))
     );
 
-    return this.v2PoolProvider.getPools(tokenPairs, routingConfig).then((poolAccesor) => {
-      const routes = computeAllV2Routes(
-        tokenIn,
-        tokenOut,
-        poolAccesor.getAllPools(),
-        routingConfig.maxSwapsPerPath
-      );
+    return this.v2PoolProvider
+      .getPools(tokenPairs, routingConfig)
+      .then((poolAccesor) => {
+        const routes = computeAllV2Routes(
+          tokenIn,
+          tokenOut,
+          poolAccesor.getAllPools(),
+          routingConfig.maxSwapsPerPath
+        );
 
-      return this.getQuotes(
-        routes,
-        amounts,
-        percents,
-        quoteToken,
-        tradeType,
-        routingConfig,
-        undefined,
-        undefined,
-        gasPriceWei
-      );
-    });
+        return this.getQuotes(
+          routes,
+          amounts,
+          percents,
+          quoteToken,
+          tradeType,
+          routingConfig,
+          undefined,
+          undefined,
+          gasPriceWei
+        );
+      });
   }
 }
