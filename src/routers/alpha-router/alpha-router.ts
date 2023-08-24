@@ -1448,8 +1448,6 @@ export class AlphaRouter
       });
     }
 
-    const [v3CandidatePools, v2CandidatePools] = await Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]);
-
     const quotePromises: Promise<GetQuotesResult>[] = [];
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
@@ -1460,25 +1458,27 @@ export class AlphaRouter
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
-        this.v3Quoter.getRoutesThenQuotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          v3CandidatePools!,
-          tradeType,
-          routingConfig,
-          v3GasModel
-        ).then((result) => {
-          metric.putMetric(
-            `SwapRouteFromChain_V3_GetRoutesThenQuotes_Load`,
-            Date.now() - beforeGetRoutesThenQuotes,
-            MetricLoggerUnit.Milliseconds
-          );
+        v3CandidatePoolsPromise.then((v3CandidatePools) =>
+          this.v3Quoter.getRoutesThenQuotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            v3CandidatePools!,
+            tradeType,
+            routingConfig,
+            v3GasModel
+          ).then((result) => {
+            metric.putMetric(
+              `SwapRouteFromChain_V3_GetRoutesThenQuotes_Load`,
+              Date.now() - beforeGetRoutesThenQuotes,
+              MetricLoggerUnit.Milliseconds
+            );
 
-          return result;
-        })
+            return result;
+          })
+        )
       );
     }
 
@@ -1490,26 +1490,28 @@ export class AlphaRouter
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
-        this.v2Quoter.getRoutesThenQuotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          v2CandidatePools!,
-          tradeType,
-          routingConfig,
-          undefined,
-          gasPriceWei
-        ).then((result) => {
-          metric.putMetric(
-            `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
-            Date.now() - beforeGetRoutesThenQuotes,
-            MetricLoggerUnit.Milliseconds
-          );
+        v2CandidatePoolsPromise.then((v2CandidatePools) =>
+          this.v2Quoter.getRoutesThenQuotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            v2CandidatePools!,
+            tradeType,
+            routingConfig,
+            undefined,
+            gasPriceWei
+          ).then((result) => {
+            metric.putMetric(
+              `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
+              Date.now() - beforeGetRoutesThenQuotes,
+              MetricLoggerUnit.Milliseconds
+            );
 
-          return result;
-        })
+            return result;
+          })
+        )
       );
     }
 
@@ -1523,25 +1525,27 @@ export class AlphaRouter
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
-        this.mixedQuoter.getRoutesThenQuotes(
-          tokenIn,
-          tokenOut,
-          amounts,
-          percents,
-          quoteToken,
-          [v3CandidatePools!, v2CandidatePools!],
-          tradeType,
-          routingConfig,
-          mixedRouteGasModel
-        ).then((result) => {
-          metric.putMetric(
-            `SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Load`,
-            Date.now() - beforeGetRoutesThenQuotes,
-            MetricLoggerUnit.Milliseconds
-          );
+        Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(([v3CandidatePools, v2CandidatePools]) =>
+          this.mixedQuoter.getRoutesThenQuotes(
+            tokenIn,
+            tokenOut,
+            amounts,
+            percents,
+            quoteToken,
+            [v3CandidatePools!, v2CandidatePools!],
+            tradeType,
+            routingConfig,
+            mixedRouteGasModel
+          ).then((result) => {
+            metric.putMetric(
+              `SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Load`,
+              Date.now() - beforeGetRoutesThenQuotes,
+              MetricLoggerUnit.Milliseconds
+            );
 
-          return result;
-        })
+            return result;
+          })
+        )
       );
     }
 

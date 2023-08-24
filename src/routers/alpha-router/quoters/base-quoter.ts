@@ -53,6 +53,7 @@ export abstract class BaseQuoter<
    * @abstract
    * @param tokenIn The token that the user wants to provide
    * @param tokenOut The token that the usaw wants to receive
+   * @param candidatePools the candidate pools that are used to generate the routes
    * @param tradeType The type of quote the user wants. He could want to provide exactly X tokenIn or receive exactly X tokenOut
    * @param routingConfig
    * @returns Promise<GetRoutesResult<Route>>
