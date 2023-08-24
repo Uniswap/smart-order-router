@@ -1415,6 +1415,8 @@ export class AlphaRouter
     const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GOERLI].includes(this.chainId) &&
       tradeType === TradeType.EXACT_INPUT;
 
+    const beforeGetCandidates = Date.now();
+
     let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> = Promise.resolve(undefined);
     if (
       v3ProtocolSpecified ||
@@ -1431,6 +1433,9 @@ export class AlphaRouter
         subgraphProvider: this.v3SubgraphProvider,
         routingConfig,
         chainId: this.chainId,
+      }).then((candidatePools) => {
+        metric.putMetric('GetV3CandidatePools', Date.now() - beforeGetCandidates, MetricLoggerUnit.Milliseconds);
+        return candidatePools;
       });
     }
 
@@ -1452,6 +1457,9 @@ export class AlphaRouter
         subgraphProvider: this.v2SubgraphProvider,
         routingConfig,
         chainId: this.chainId,
+      }).then((candidatePools) => {
+        metric.putMetric('GetV2CandidatePools', Date.now() - beforeGetCandidates, MetricLoggerUnit.Milliseconds);
+        return candidatePools;
       });
     }
 
