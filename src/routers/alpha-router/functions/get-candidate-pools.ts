@@ -260,10 +260,8 @@ export async function getV3CandidatePools({
     }
   }
 
-  filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD)
-
-  // TODO(andy.smith): Re-assign to avoid a heavier refactor of this method
-  const subgraphPoolsSorted = filteredPools
+  // Sort by tvlUSD in descending order
+  const subgraphPoolsSorted = filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD)
 
   log.info(
     `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
@@ -658,10 +656,8 @@ export async function getV2CandidatePools({
 
   // In-place sort rather than using lodash's sortBy to avoid the additional array copy.
   // Sort by pool reserve in descending order.
-  allPoolsRaw.sort((a, b) => b.reserve - a.reserve)
+  const subgraphPoolsSorted = allPoolsRaw.sort((a, b) => b.reserve - a.reserve)
 
-  // TODO(andy.smith): Re-assign to avoid a heavier refactor of this method.
-  const subgraphPoolsSorted = allPoolsRaw
   const poolAddressesSoFar = new Set<string>();
 
   // Always add the direct swap pool into the mix regardless of if it exists in the subgraph pool list.
