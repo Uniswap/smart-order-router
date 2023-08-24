@@ -1416,7 +1416,11 @@ export class AlphaRouter
       tradeType === TradeType.EXACT_INPUT;
 
     let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> = Promise.resolve(undefined);
-    if (v3ProtocolSpecified || noProtocolsSpecified || (shouldQueryMixedProtocol && mixedProtocolAllowed)) {
+    if (
+      v3ProtocolSpecified ||
+      noProtocolsSpecified ||
+      (shouldQueryMixedProtocol && mixedProtocolAllowed)
+    ) {
       v3CandidatePoolsPromise = getV3CandidatePools({
         tokenIn,
         tokenOut,
@@ -1431,7 +1435,10 @@ export class AlphaRouter
     }
 
     let v2CandidatePoolsPromise: Promise<V2CandidatePools | undefined> = Promise.resolve(undefined);
-    if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified) || (shouldQueryMixedProtocol && mixedProtocolAllowed)) {
+    if (
+      (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) ||
+      (shouldQueryMixedProtocol && mixedProtocolAllowed)
+    ) {
       // Fetch all the pools that we will consider routing via. There are thousands
       // of pools, so we filter them to a set of candidate pools that we expect will
       // result in good prices.
