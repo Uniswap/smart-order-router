@@ -647,19 +647,10 @@ export async function getV2CandidatePools({
     blockNumber,
   });
 
-  const allPools = _.map(allPoolsRaw, (pool) => {
-    return {
-      ...pool,
-      token0: {
-        ...pool.token0,
-        id: pool.token0.id.toLowerCase(),
-      },
-      token1: {
-        ...pool.token1,
-        id: pool.token1.id.toLowerCase(),
-      },
-    };
-  });
+  for (const pool of allPoolsRaw) {
+    pool.token0.id = pool.token0.id.toLowerCase()
+    pool.token1.id = pool.token1.id.toLowerCase()
+  }
 
   metric.putMetric(
     'V2SubgraphPoolsLoad',
@@ -669,7 +660,7 @@ export async function getV2CandidatePools({
 
   const beforePoolsFiltered = Date.now();
 
-  const subgraphPoolsSorted = _(allPools)
+  const subgraphPoolsSorted = _(allPoolsRaw)
     .sortBy((tokenListPool) => -tokenListPool.reserve)
     .value();
 
