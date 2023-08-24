@@ -647,6 +647,8 @@ export async function getV2CandidatePools({
     blockNumber,
   });
 
+  // With tens of thousands of V2 pools, operations that copy pools become costly.
+  // Mutate the pool directly rather than creating a new pool / token to optimmize for speed.
   for (const pool of allPoolsRaw) {
     pool.token0.id = pool.token0.id.toLowerCase()
     pool.token1.id = pool.token1.id.toLowerCase()
@@ -660,10 +662,12 @@ export async function getV2CandidatePools({
 
   const beforePoolsFiltered = Date.now();
 
-  const subgraphPoolsSorted = _(allPoolsRaw)
-    .sortBy((tokenListPool) => -tokenListPool.reserve)
-    .value();
+  // In-place sort rather than using lodash's sortBy to avoid the additional array copy.
+  // Sort by pool reserve in descending order.
+  allPoolsRaw.sort((a, b) => b.reserve - a.reserve)
 
+  // TODO(andy.smith): Re-assign to avoid a heavier refactor of this method.
+  const subgraphPoolsSorted = allPoolsRaw
   const poolAddressesSoFar = new Set<string>();
 
   // Always add the direct swap pool into the mix regardless of if it exists in the subgraph pool list.
