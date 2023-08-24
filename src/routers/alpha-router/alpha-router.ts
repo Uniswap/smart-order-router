@@ -88,7 +88,6 @@ import {
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
-import { computeAllV2Routes } from './functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
   getV2CandidatePools,
@@ -1319,43 +1318,29 @@ export class AlphaRouter
 
     if (v2Routes.length > 0) {
       const v2RoutesFromCache: V2Route[] = v2Routes.map((cachedRoute) => cachedRoute.route as V2Route);
-      const tokenPairs: [Token, Token][] = [];
-      v2RoutesFromCache.forEach((route) =>
-        route.pairs.forEach((pair) =>
-          tokenPairs.push([pair.token0, pair.token1])
-        )
-      );
       metric.putMetric('SwapRouteFromCache_V2_GetQuotes_Request', 1, MetricLoggerUnit.Count);
-      const beforeGetRoutesAndQuotes = Date.now();
+
+      const beforeGetQuotes = Date.now();
 
       quotePromises.push(
-        this.v2PoolProvider.getPools(tokenPairs, routingConfig).then((poolAccesor) => {
-          const routes = computeAllV2Routes(
-            cachedRoutes.tokenIn,
-            cachedRoutes.tokenOut,
-            poolAccesor.getAllPools(),
-            routingConfig.maxSwapsPerPath
+        this.v2Quoter.refreshRoutesThenGetQuotes(
+          cachedRoutes.tokenIn,
+          cachedRoutes.tokenOut,
+          v2RoutesFromCache,
+          amounts,
+          percents,
+          quoteToken,
+          tradeType,
+          routingConfig,
+          gasPriceWei
+        ).then((result) => {
+          metric.putMetric(
+            `SwapRouteFromCache_V2_GetQuotes_Load`,
+            Date.now() - beforeGetQuotes,
+            MetricLoggerUnit.Milliseconds
           );
 
-          return this.v2Quoter.getQuotes(
-            routes,
-            amounts,
-            percents,
-            quoteToken,
-            tradeType,
-            routingConfig,
-            undefined,
-            undefined,
-            gasPriceWei
-          ).then((result) => {
-            metric.putMetric(
-              `SwapRouteFromCache_V2_GetRoutesAndQuotes_Load`,
-              Date.now() - beforeGetRoutesAndQuotes,
-              MetricLoggerUnit.Milliseconds
-            );
-
-            return result;
-          });
+          return result;
         })
       );
     }

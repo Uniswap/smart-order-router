@@ -14,7 +14,7 @@ import {
 import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString } from '../../../util';
 import { V2Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
-import { RouteWithValidQuote, V2RouteWithValidQuote } from '../entities';
+import { V2RouteWithValidQuote } from '../entities';
 import { computeAllV2Routes } from '../functions/compute-all-routes';
 import { CandidatePoolsBySelectionCriteria, V2CandidatePools } from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
@@ -202,31 +202,43 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     };
   }
 
-  public refreshRoutesThenQuotes(
+  public refreshRoutesThenGetQuotes(
     tokenIn: Token,
     tokenOut: Token,
+    routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
-    candidatePools: CandidatePools,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    gasModel?: IGasModel<RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
-    return this.refreshRoutes(tokenIn, tokenOut, candidatePools, tradeType, routingConfig)
-      .then((routesResult) =>
-        this.getQuotes(
-          routesResult.routes,
-          amounts,
-          percents,
-          quoteToken,
-          tradeType,
-          routingConfig,
-          routesResult.candidatePools,
-          gasModel,
-          gasPriceWei
-        )
+    const tokenPairs: [Token, Token][] = [];
+    routes.forEach((route) =>
+      route.pairs.forEach((pair) =>
+        tokenPairs.push([pair.token0, pair.token1])
+      )
+    );
+
+    return this.v2PoolProvider.getPools(tokenPairs, routingConfig).then((poolAccesor) => {
+      const routes = computeAllV2Routes(
+        tokenIn,
+        tokenOut,
+        poolAccesor.getAllPools(),
+        routingConfig.maxSwapsPerPath
       );
+
+      return this.getQuotes(
+        routes,
+        amounts,
+        percents,
+        quoteToken,
+        tradeType,
+        routingConfig,
+        undefined,
+        undefined,
+        gasPriceWei
+      );
+    });
   }
 }
