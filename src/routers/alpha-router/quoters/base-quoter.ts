@@ -23,6 +23,7 @@ import { GetQuotesResult, GetRoutesResult } from './model/results';
  * Defines the base dependencies, helper methods and interface for how to fetch quotes.
  *
  * @abstract
+ * @template CandidatePools
  * @template Route
  */
 export abstract class BaseQuoter<
