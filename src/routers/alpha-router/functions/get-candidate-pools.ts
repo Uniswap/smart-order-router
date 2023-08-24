@@ -654,7 +654,6 @@ export async function getV2CandidatePools({
 
   const beforePoolsFiltered = Date.now();
 
-  // In-place sort rather than using lodash's sortBy to avoid the additional array copy.
   // Sort by pool reserve in descending order.
   const subgraphPoolsSorted = allPoolsRaw.sort((a, b) => b.reserve - a.reserve)
 
