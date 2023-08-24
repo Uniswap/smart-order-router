@@ -733,9 +733,13 @@ export async function getV2CandidatePools({
   const topByTVLUsingTokenOut: V2SubgraphPool[] = [];
   const topByTVL: V2SubgraphPool[] = [];
 
+  // Used to track how many iterations we do in the first loop
+  let loopsInFirstIteration = 0;
+
   // Filtering step for up to first hop
   // The pools are pre-sorted, so we can just iterate through them and fill our heuristics.
   for (const subgraphPool of subgraphPoolsSorted) {
+    loopsInFirstIteration += 1;
     // Check if we have satisfied all the heuristics, if so, we can stop.
     if (
       topByBaseWithTokenInPoolsFound >= topNWithBaseToken &&
@@ -881,6 +885,8 @@ export async function getV2CandidatePools({
     }
   }
 
+  metric.putMetric('V2SubgraphLoopsInFirstIteration', loopsInFirstIteration, MetricLoggerUnit.Count);
+
   const topByBaseWithTokenIn: V2SubgraphPool[] = [];
   for (const topByBaseWithTokenInSelection of topByBaseWithTokenInMap.values()) {
     topByBaseWithTokenIn.push(...topByBaseWithTokenInSelection.pools);
@@ -914,7 +920,12 @@ export async function getV2CandidatePools({
     );
   }
 
+  // Used to track how many iterations we do in the second loop
+  let loopsInSecondIteration = 0;
+
   for (const subgraphPool of subgraphPoolsSorted) {
+    loopsInSecondIteration += 1;
+
     let allTokenInSecondHopsHaveTheirTopN = true;
     for (const secondHopPools of topByTVLUsingTokenInSecondHopsMap.values()) {
       if (!secondHopPools.hasEnoughPools()) {
@@ -984,6 +995,8 @@ export async function getV2CandidatePools({
       continue;
     }
   }
+
+  metric.putMetric('V2SubgraphLoopsInSecondIteration', loopsInSecondIteration, MetricLoggerUnit.Count);
 
   const topByTVLUsingTokenInSecondHops: V2SubgraphPool[] = [];
   for (const secondHopPools of topByTVLUsingTokenInSecondHopsMap.values()) {
