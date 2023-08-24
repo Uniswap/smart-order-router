@@ -260,9 +260,10 @@ export async function getV3CandidatePools({
     }
   }
 
-  const subgraphPoolsSorted = _(filteredPools)
-    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
-    .value();
+  filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD)
+
+  // TODO(andy.smith): Re-assign to avoid a heavier refactor of this method
+  const subgraphPoolsSorted = filteredPools
 
   log.info(
     `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
