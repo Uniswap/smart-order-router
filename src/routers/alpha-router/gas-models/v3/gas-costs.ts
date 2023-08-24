@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { AAVE_MAINNET, LIDO_MAINNET } from '../../../../providers';
 
 import { V3Route } from '../../../router';
@@ -118,4 +118,19 @@ export const TOKEN_OVERHEAD = (id: ChainId, route: V3Route): BigNumber => {
   }
 
   return overhead;
+};
+
+export const WRAPPED_NATIVE_OVERHEAD = (
+  amount: Currency,
+  quote: Currency
+): BigNumber => {
+  if (amount.isNative) {
+    // need to wrap eth in
+    return BigNumber.from(27938);
+  }
+  if (quote.isNative) {
+    // need to unwrap eth out
+    return BigNumber.from(36000);
+  }
+  return BigNumber.from(0);
 };

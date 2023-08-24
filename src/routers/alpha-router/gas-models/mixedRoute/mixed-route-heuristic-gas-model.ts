@@ -7,11 +7,10 @@ import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
+import { ProviderConfig } from '../../../../providers/provider';
 import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
-import {
-  getV2NativePool,
-} from '../../../../util/gas-factory-helpers';
+import { getV2NativePool } from '../../../../util/gas-factory-helpers';
 import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildOnChainGasModelFactoryType,
@@ -58,11 +57,11 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     pools,
     quoteToken,
     v2poolProvider: V2poolProvider,
-    providerConfig: providerConfig,
+    providerConfig,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
-    const usdPool: Pool = pools.usdPool
+    const usdPool: Pool = pools.usdPool;
 
     // If our quote token is WETH, we don't need to convert our gas use to be in terms
     // of the quote token in order to produce a gas adjusted amount.
@@ -79,7 +78,8 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
-          chainId
+          chainId,
+          providerConfig
         );
 
         const token0 = usdPool.token0.address == nativeCurrency.address;
@@ -106,12 +106,16 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
 
     // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool
+    const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool;
 
     let nativeV2Pool: Pair | null;
     if (V2poolProvider) {
       /// MixedRoutes
-      nativeV2Pool = await getV2NativePool(quoteToken, V2poolProvider, providerConfig);
+      nativeV2Pool = await getV2NativePool(
+        quoteToken,
+        V2poolProvider,
+        providerConfig
+      );
     }
 
     const usdToken =
@@ -129,7 +133,8 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
         routeWithValidQuote,
         gasPriceWei,
-        chainId
+        chainId,
+        providerConfig
       );
 
       if (!nativeV3Pool && !nativeV2Pool) {
@@ -216,7 +221,8 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
   private estimateGas(
     routeWithValidQuote: MixedRouteWithValidQuote,
     gasPriceWei: BigNumber,
-    chainId: ChainId
+    chainId: ChainId,
+    providerConfig?: ProviderConfig
   ) {
     const totalInitializedTicksCrossed = BigNumber.from(
       Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
@@ -250,6 +256,10 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
 
     // base estimate gas used based on chainId estimates for hops and ticks gas useage
     baseGasUse = baseGasUse.add(tickGasUse).add(uninitializedTickGasUse);
+
+    if (providerConfig?.additionalGasOverhead) {
+      baseGasUse = baseGasUse.add(providerConfig.additionalGasOverhead);
+    }
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
