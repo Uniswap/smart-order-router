@@ -2659,7 +2659,6 @@ describe('quote for other networks', () => {
       c != ChainId.OPTIMISM_GOERLI &&
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_GOERLI &&
-      c != ChainId.OPTIMISM && /// @dev infura has been having issues with optimism lately
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.SEPOLIA
