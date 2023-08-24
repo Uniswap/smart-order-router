@@ -939,6 +939,10 @@ export class AlphaRouter
       { blockNumber }
     );
 
+    if (routingConfig.debugRouting) {
+      log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
+    }
+
     const gasPriceWei = await this.getGasPriceWei();
 
     const quoteToken = quoteCurrency.wrapped;
