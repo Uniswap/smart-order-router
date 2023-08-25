@@ -44,7 +44,7 @@ import {
   getMockedV3PoolProvider,
 } from './test-util/mocked-dependencies';
 
-describe('mixed route gas model', () => {
+describe('mixed route gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
   const chainId = 1;
   const mixedGasModelFactory = new MixedRouteHeuristicGasModelFactory();

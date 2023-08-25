@@ -14,7 +14,7 @@ import { WETH_DAI } from '../../../../test-util/mock-data';
 import { getV2RouteWithValidQuoteStub } from '../../../providers/caching/route/test-util/mocked-dependencies';
 import { getMockedV2PoolProvider } from './test-util/mocked-dependencies';
 
-describe('v2 gas model', () => {
+describe('v2 gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
   const chainId = 1;
   const v2GasModelFactory = new V2HeuristicGasModelFactory();

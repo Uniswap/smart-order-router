@@ -35,7 +35,7 @@ import {
   getMockedV3PoolProvider,
 } from './test-util/mocked-dependencies';
 
-describe('v3 gas model', () => {
+describe('v3 gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
   const chainId = 1;
   const v3GasModelFactory = new V3HeuristicGasModelFactory();

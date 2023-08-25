@@ -100,14 +100,7 @@ export function getMockedV2GasModel(): IGasModel<V2RouteWithValidQuote> {
 
 export function getMockedV2PoolProvider(): V2PoolProvider {
   const mockV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
-  const v2MockPools = [
-    DAI_USDT,
-    USDC_WETH,
-    WETH_USDT,
-    USDC_DAI,
-    WBTC_WETH,
-    // WETH_DAI,
-  ];
+  const v2MockPools = [DAI_USDT, USDC_WETH, WETH_USDT, USDC_DAI, WBTC_WETH];
   mockV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
   mockV2PoolProvider.getPoolAddress.callsFake((tA, tB) => ({
     poolAddress: Pair.getAddress(tA, tB),
