@@ -153,7 +153,7 @@ export class CachingTokenListProvider
     const addToken = (token?: Token) => {
       if (!token) return;
       addressToToken.set(token.address.toLowerCase(), token);
-      if (!!token.symbol) {
+      if (token.symbol !== undefined) {
         symbolToToken.set(token.symbol.toLowerCase(), token);
       }
     };
