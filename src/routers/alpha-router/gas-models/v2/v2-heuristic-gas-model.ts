@@ -3,17 +3,12 @@ import { ChainId, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 
+import { ProviderConfig } from '../../../../providers/provider';
 import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { V2RouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import {
-  BuildV2GasModelFactoryType,
-  IGasModel,
-  IV2GasModelFactory,
-  usdGasTokensByChain,
-} from '../gas-model';
-import { ProviderConfig } from '../../../../providers/provider';
+import { BuildV2GasModelFactoryType, IGasModel, IV2GasModelFactory, usdGasTokensByChain, } from '../gas-model';
 
 // Constant cost for doing any swap regardless of pools.
 export const BASE_SWAP_COST = BigNumber.from(135000); // 115000, bumped up by 20_000 @eric 7/8/2022
@@ -87,23 +82,26 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
     // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <token>/ETH pool.
-    const ethPool: Pair | null = await this.getEthPool(
+    const ethPoolPromise = this.getEthPool(
       chainId,
       token,
       poolProvider,
       providerConfig
     );
+
+    const usdPoolPromise = this.getHighestLiquidityUSDPool(
+      chainId,
+      poolProvider,
+      providerConfig
+    );
+
+    const [ethPool, usdPool] = await Promise.all([ethPoolPromise, usdPoolPromise]);
+
     if (!ethPool) {
       log.info(
         'Unable to find ETH pool with the quote token to produce gas adjusted costs. Route will not account for gas.'
       );
     }
-
-    const usdPool: Pair = await this.getHighestLiquidityUSDPool(
-      chainId,
-      poolProvider,
-      providerConfig
-    );
 
     return {
       estimateGasCost: (routeWithValidQuote: V2RouteWithValidQuote) => {
