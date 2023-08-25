@@ -713,7 +713,8 @@ export async function getV2CandidatePools({
   let topByBaseWithTokenOutPoolsFound = 0;
 
   // Main reason we need this is for gas estimates
-  let topNEthQuoteToken = 2;
+  // There can ever only be 1 Token/ETH pool, so we will only look for 1
+  let topNEthQuoteToken = 1;
   // but, we only need it if token out is not ETH.
   if (tokenOut.symbol == 'WETH' || tokenOut.symbol == 'WETH9' || tokenOut.symbol == 'ETH') {
     // if it's eth we change the topN to 0, so we can break early from the loop.
