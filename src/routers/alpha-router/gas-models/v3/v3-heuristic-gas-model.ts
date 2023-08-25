@@ -8,6 +8,7 @@ import {
   SwapType,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../..';
+import { ProviderConfig } from '../../../../providers/provider';
 import {
   ArbitrumGasData,
   OptimismGasData,
@@ -26,7 +27,6 @@ import {
   IOnChainGasModelFactory,
 } from '../gas-model';
 
-import { ProviderConfig } from '../../../../providers/provider';
 import {
   BASE_SWAP_COST,
   COST_PER_HOP,
