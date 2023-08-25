@@ -8,6 +8,7 @@ import {
   IGasModel,
   USDC_MAINNET as USDC,
   V2PoolProvider,
+  V2RouteWithValidQuote,
   V3PoolProvider,
 } from '../../../../../../src';
 import {
@@ -64,9 +65,32 @@ export function getMockedV3PoolProvider(): V3PoolProvider {
   return mockV3PoolProvider;
 }
 
+export function getMockedV2GasModel(): IGasModel<V2RouteWithValidQuote> {
+  const mockV2GasModel = {
+    estimateGasCost: sinon.stub(),
+  };
+
+  mockV2GasModel.estimateGasCost.callsFake((r) => {
+    return {
+      gasEstimate: BigNumber.from(10000),
+      gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+      gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+    };
+  });
+
+  return mockV2GasModel;
+}
+
 export function getMockedV2PoolProvider(): V2PoolProvider {
   const mockV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
-  const v2MockPools = [DAI_USDT, USDC_WETH, WETH_USDT, USDC_DAI, WBTC_WETH];
+  const v2MockPools = [
+    DAI_USDT,
+    USDC_WETH,
+    WETH_USDT,
+    USDC_DAI,
+    WBTC_WETH,
+    // WETH_DAI,
+  ];
   mockV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
   mockV2PoolProvider.getPoolAddress.callsFake((tA, tB) => ({
     poolAddress: Pair.getAddress(tA, tB),

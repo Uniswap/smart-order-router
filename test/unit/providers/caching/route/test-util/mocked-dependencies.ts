@@ -12,13 +12,36 @@ import {
   CurrencyAmount,
   DAI_MAINNET as DAI,
   USDC_MAINNET as USDC,
+  V2Route,
+  V2RouteWithValidQuote,
+  V2RouteWithValidQuoteParams,
   V3RouteWithValidQuoteParams,
 } from '../../../../../../src';
-import { USDC_DAI_MEDIUM } from '../../../../../test-util/mock-data';
+import { USDC_DAI, USDC_DAI_MEDIUM } from '../../../../../test-util/mock-data';
 import {
+  getMockedV2GasModel,
+  getMockedV2PoolProvider,
   getMockedV3GasModel,
   getMockedV3PoolProvider,
 } from '../../../../routers/alpha-router/gas-models/test-util/mocked-dependencies';
+
+export function getV2RouteWithValidQuoteStub(
+  overrides?: Partial<V2RouteWithValidQuoteParams>
+): V2RouteWithValidQuote {
+  const route = new V2Route([USDC_DAI], USDC_MAINNET, DAI_MAINNET);
+
+  return new V2RouteWithValidQuote({
+    amount: CurrencyAmount.fromRawAmount(USDC, 100),
+    rawQuote: BigNumber.from(100),
+    percent: 100,
+    route,
+    gasModel: getMockedV2GasModel(),
+    quoteToken: DAI,
+    tradeType: TradeType.EXACT_INPUT,
+    v2PoolProvider: getMockedV2PoolProvider(),
+    ...overrides,
+  });
+}
 
 export function getV3RouteWithValidQuoteStub(
   overrides?: Partial<V3RouteWithValidQuoteParams>

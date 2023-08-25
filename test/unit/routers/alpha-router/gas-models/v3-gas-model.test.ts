@@ -43,6 +43,7 @@ describe('v3 gas model', () => {
   const mockedV3PoolProvider = getMockedV3PoolProvider();
   const mockedV2PoolProvider = getMockedV2PoolProvider();
 
+  // helper function to get pools for building gas model
   async function getPools(
     amountToken: Token,
     quoteToken: Token,

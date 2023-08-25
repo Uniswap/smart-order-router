@@ -14,7 +14,6 @@ import {
   IV2GasModelFactory,
   usdGasTokensByChain,
 } from '../gas-model';
-import { WRAPPED_NATIVE_OVERHEAD } from '../v3/gas-costs';
 
 // Constant cost for doing any swap regardless of pools.
 export const BASE_SWAP_COST = BigNumber.from(135000); // 115000, bumped up by 20_000 @eric 7/8/2022
@@ -120,10 +119,6 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           chainId,
           {
             ...providerConfig,
-            additionalGasOverhead: WRAPPED_NATIVE_OVERHEAD(
-              routeWithValidQuote.amount.currency,
-              routeWithValidQuote.quoteToken
-            ),
           }
         );
 

@@ -160,6 +160,10 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
       gasPriceWei,
       poolProvider: this.v2PoolProvider,
       token: quoteToken,
+      providerConfig: {
+        // TODO: implement wrap overhead for v2 routes
+        additionalGasOverhead: BigNumber.from(0),
+      },
     });
 
     metric.putMetric(
