@@ -1213,6 +1213,7 @@ export class AlphaRouter
       trade,
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
+      hitsCachedRoute: !swapRouteFromChain && swapRouteFromCache !== null,
     };
 
     if (
@@ -1239,7 +1240,7 @@ export class AlphaRouter
           ? await this.l2GasDataProvider!.getGasData()
           : undefined,
         { blockNumber }
-      );
+    );
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
