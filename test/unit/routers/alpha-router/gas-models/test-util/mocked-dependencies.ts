@@ -6,6 +6,7 @@ import { V3RouteWithValidQuote } from '../../../../../../build/main';
 import {
   CurrencyAmount,
   IGasModel,
+  MixedRouteWithValidQuote,
   USDC_MAINNET as USDC,
   V2PoolProvider,
   V2RouteWithValidQuote,
@@ -26,6 +27,22 @@ import {
   WETH9_USDT_LOW,
   WETH_USDT,
 } from '../../../../../test-util/mock-data';
+
+export function getMockedMixedGasModel(): IGasModel<MixedRouteWithValidQuote> {
+  const mockMixedGasModel = {
+    estimateGasCost: sinon.stub(),
+  };
+
+  mockMixedGasModel.estimateGasCost.callsFake((r) => {
+    return {
+      gasEstimate: BigNumber.from(10000),
+      gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+      gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+    };
+  });
+
+  return mockMixedGasModel;
+}
 
 export function getMockedV3GasModel(): IGasModel<V3RouteWithValidQuote> {
   const mockV3GasModel = {

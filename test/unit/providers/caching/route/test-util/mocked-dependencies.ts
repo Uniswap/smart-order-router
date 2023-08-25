@@ -11,14 +11,23 @@ import {
   CachedRoutes,
   CurrencyAmount,
   DAI_MAINNET as DAI,
+  MixedRoute,
+  MixedRouteWithValidQuote,
+  MixedRouteWithValidQuoteParams,
   USDC_MAINNET as USDC,
   V2Route,
   V2RouteWithValidQuote,
   V2RouteWithValidQuoteParams,
   V3RouteWithValidQuoteParams,
 } from '../../../../../../src';
-import { USDC_DAI, USDC_DAI_MEDIUM } from '../../../../../test-util/mock-data';
 import {
+  USDC_DAI,
+  USDC_DAI_MEDIUM,
+  USDC_WETH_MEDIUM,
+  WETH_DAI,
+} from '../../../../../test-util/mock-data';
+import {
+  getMockedMixedGasModel,
   getMockedV2GasModel,
   getMockedV2PoolProvider,
   getMockedV3GasModel,
@@ -60,6 +69,33 @@ export function getV3RouteWithValidQuoteStub(
     quoteToken: DAI,
     tradeType: TradeType.EXACT_INPUT,
     v3PoolProvider: getMockedV3PoolProvider(),
+    ...overrides,
+  });
+}
+
+export function getMixedRouteWithValidQuoteStub(
+  overrides?: Partial<MixedRouteWithValidQuoteParams>
+): MixedRouteWithValidQuote {
+  const route = new MixedRoute(
+    // v3 USDC -> WETH , v2 WETH -> DAI
+    [USDC_WETH_MEDIUM, WETH_DAI],
+    USDC_MAINNET,
+    DAI_MAINNET
+  );
+
+  return new MixedRouteWithValidQuote({
+    amount: CurrencyAmount.fromRawAmount(USDC, 100),
+    rawQuote: BigNumber.from(100),
+    sqrtPriceX96AfterList: [BigNumber.from(1)],
+    initializedTicksCrossedList: [1],
+    quoterGasEstimate: BigNumber.from(100000), // unused
+    percent: 100,
+    route,
+    mixedRouteGasModel: getMockedMixedGasModel(),
+    quoteToken: DAI,
+    tradeType: TradeType.EXACT_INPUT,
+    v3PoolProvider: getMockedV3PoolProvider(),
+    v2PoolProvider: getMockedV2PoolProvider(),
     ...overrides,
   });
 }
