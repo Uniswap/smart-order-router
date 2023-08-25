@@ -139,21 +139,36 @@ export class CachingTokenListProvider
     return tokenProvider;
   }
 
-  public async getTokens(_addresses: string[]): Promise<TokenAccessor> {
+  /**
+   * If no addresses array is specified, all tokens in the token list are
+   * returned.
+   *
+   * @param _addresses (optional) The token addresses to get.
+   * @returns Promise<TokenAccessor> A token accessor with methods for accessing the tokens.
+   */
+  public async getTokens(_addresses?: string[]): Promise<TokenAccessor> {
     const addressToToken: Map<string, Token> = new Map();
     const symbolToToken: Map<string, Token> = new Map();
 
-    for (const address of _addresses) {
-      const token = await this.getTokenByAddress(address);
-      if (!token) {
-        continue;
+    const addToken = (token?: Token) => {
+      if (!token) return;
+      addressToToken.set(token.address.toLowerCase(), token);
+      if (!!token.symbol) {
+        symbolToToken.set(token.symbol.toLowerCase(), token);
       }
-      addressToToken.set(address.toLowerCase(), token);
+    };
 
-      if (!token.symbol) {
-        continue;
+    if (_addresses) {
+      for (const address of _addresses) {
+        const token = await this.getTokenByAddress(address);
+        addToken(token);
       }
-      symbolToToken.set(token.symbol.toLowerCase(), token);
+    } else {
+      const chainTokens = this.chainToTokenInfos.get(this.chainId.toString()) ?? [];
+      for (const info of chainTokens) {
+        const token = await this.buildToken(info);
+        addToken(token);
+      }
     }
 
     return {
