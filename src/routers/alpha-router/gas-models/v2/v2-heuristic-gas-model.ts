@@ -88,23 +88,29 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
     // If the quote token is not WETH, we convert the gas cost to be in terms of the quote token.
     // We do this by getting the highest liquidity <token>/ETH pool.
-    const ethPool: Pair | null = await this.getEthPool(
+    const ethPoolPromise = this.getEthPool(
       chainId,
       token,
       poolProvider,
       providerConfig
     );
+
+    const usdPoolPromise = this.getHighestLiquidityUSDPool(
+      chainId,
+      poolProvider,
+      providerConfig
+    );
+
+    const [ethPool, usdPool] = await Promise.all([
+      ethPoolPromise,
+      usdPoolPromise,
+    ]);
+
     if (!ethPool) {
       log.info(
         'Unable to find ETH pool with the quote token to produce gas adjusted costs. Route will not account for gas.'
       );
     }
-
-    const usdPool: Pair = await this.getHighestLiquidityUSDPool(
-      chainId,
-      poolProvider,
-      providerConfig
-    );
 
     return {
       estimateGasCost: (routeWithValidQuote: V2RouteWithValidQuote) => {
