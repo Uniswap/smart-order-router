@@ -7,8 +7,8 @@ import {
   V2HeuristicGasModelFactory,
 } from '../../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
+  NATIVE_OVERHEAD,
   NATIVE_WRAP_OVERHEAD,
-  WRAPPED_NATIVE_OVERHEAD,
 } from '../../../../../src/routers/alpha-router/gas-models/v3/gas-costs';
 import { WETH_DAI } from '../../../../test-util/mock-data';
 import { getV2RouteWithValidQuoteStub } from '../../../providers/caching/route/test-util/mocked-dependencies';
@@ -54,12 +54,12 @@ describe('v2 gas model tests', () => {
       poolProvider: mockedV2PoolProvider,
       token: quoteToken,
       providerConfig: {
-        additionalGasOverhead: WRAPPED_NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
       },
     });
 
     expect(
-      WRAPPED_NATIVE_OVERHEAD(amountToken, quoteToken).eq(NATIVE_WRAP_OVERHEAD)
+      NATIVE_OVERHEAD(amountToken, quoteToken).eq(NATIVE_WRAP_OVERHEAD)
     ).toBe(true);
 
     const v2RouteWithQuote = getV2RouteWithValidQuoteStub({

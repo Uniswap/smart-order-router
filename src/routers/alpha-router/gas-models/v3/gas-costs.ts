@@ -124,7 +124,7 @@ export const TOKEN_OVERHEAD = (id: ChainId, route: V3Route): BigNumber => {
 export const NATIVE_WRAP_OVERHEAD = BigNumber.from(27938);
 export const NATIVE_UNWRAP_OVERHEAD = BigNumber.from(36000);
 
-export const WRAPPED_NATIVE_OVERHEAD = (
+export const NATIVE_OVERHEAD = (
   amount: Currency,
   quote: Currency
 ): BigNumber => {

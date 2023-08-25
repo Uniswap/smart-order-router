@@ -138,7 +138,7 @@ import {
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
-import { WRAPPED_NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
+import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
 
@@ -1005,10 +1005,7 @@ export class AlphaRouter
       quoteToken,
       {
         blockNumber,
-        additionalGasOverhead: WRAPPED_NATIVE_OVERHEAD(
-          amount.currency,
-          quoteCurrency
-        ),
+        additionalGasOverhead: NATIVE_OVERHEAD(amount.currency, quoteCurrency),
       }
     );
 

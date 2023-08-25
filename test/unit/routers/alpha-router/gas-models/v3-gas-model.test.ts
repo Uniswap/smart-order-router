@@ -15,10 +15,10 @@ import {
   BASE_SWAP_COST,
   COST_PER_HOP,
   COST_PER_INIT_TICK,
+  NATIVE_OVERHEAD,
   NATIVE_UNWRAP_OVERHEAD,
   NATIVE_WRAP_OVERHEAD,
   SINGLE_HOP_OVERHEAD,
-  WRAPPED_NATIVE_OVERHEAD,
 } from '../../../../../src/routers/alpha-router/gas-models/v3/gas-costs';
 import {
   getHighestLiquidityV3NativePool,
@@ -204,7 +204,7 @@ describe('v3 gas model tests', () => {
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
       providerConfig: {
-        additionalGasOverhead: WRAPPED_NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
       },
     });
 
@@ -262,7 +262,7 @@ describe('v3 gas model tests', () => {
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
       providerConfig: {
-        additionalGasOverhead: WRAPPED_NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
       },
     });
 
