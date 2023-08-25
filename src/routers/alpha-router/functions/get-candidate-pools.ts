@@ -840,9 +840,6 @@ export async function getV2CandidatePools({
       continue;
     }
 
-
-    // We don't check the seen address set because if we've already added pools for getting ETH quotes
-    // there's no need to add more.
     // Note: we do not need to check other native currencies for the V2 Protocol
     if (
       topByEthQuoteTokenPool.length < topNEthQuoteToken &&
