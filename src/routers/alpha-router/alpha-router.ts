@@ -1213,7 +1213,7 @@ export class AlphaRouter
       trade,
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
-      hitsCachedRoute: swapRouteFromChain === null,
+      hitsCachedRoute: !swapRouteFromChain && swapRouteFromCache !== null ,
     };
 
     if (
