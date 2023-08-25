@@ -399,11 +399,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       .add(tokenOverhead)
       .add(tickGasUse)
       .add(uninitializedTickGasUse)
-      .add(
-        providerConfig?.additionalGasOverhead
-          ? providerConfig.additionalGasOverhead
-          : BigNumber.from(0)
-      );
+      .add(providerConfig?.additionalGasOverhead ?? BigNumber.from(0));
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
