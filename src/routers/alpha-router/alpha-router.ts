@@ -106,6 +106,7 @@ import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixe
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 
 export type AlphaRouterParams = {
   /**
@@ -959,7 +960,7 @@ export class AlphaRouter
       gasPriceWei,
       amount.currency.wrapped,
       quoteToken,
-      { blockNumber }
+      { blockNumber, additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency) }
     );
 
     // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,

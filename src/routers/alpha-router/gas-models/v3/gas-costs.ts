@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { AAVE_MAINNET, LIDO_MAINNET } from '../../../../providers';
+import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 
+import { AAVE_MAINNET, LIDO_MAINNET } from '../../../../providers';
 import { V3Route } from '../../../router';
 
 // Cost for crossing an uninitialized tick.
@@ -118,4 +118,35 @@ export const TOKEN_OVERHEAD = (id: ChainId, route: V3Route): BigNumber => {
   }
 
   return overhead;
+};
+
+// TODO: change per chain
+export const NATIVE_WRAP_OVERHEAD = (id: ChainId): BigNumber => {
+  switch (id) {
+    default:
+      return BigNumber.from(27938);
+  }
+};
+
+export const NATIVE_UNWRAP_OVERHEAD = (id: ChainId): BigNumber => {
+  switch (id) {
+    default:
+      return BigNumber.from(36000);
+  }
+};
+
+export const NATIVE_OVERHEAD = (
+  chainId: ChainId,
+  amount: Currency,
+  quote: Currency
+): BigNumber => {
+  if (amount.isNative) {
+    // need to wrap eth in
+    return NATIVE_WRAP_OVERHEAD(chainId);
+  }
+  if (quote.isNative) {
+    // need to unwrap eth out
+    return NATIVE_UNWRAP_OVERHEAD(chainId);
+  }
+  return BigNumber.from(0);
 };

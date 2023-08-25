@@ -3,14 +3,29 @@ import { ChainId, Percent, Price, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import { SwapOptionsUniversalRouter, SwapType, WRAPPED_NATIVE_CURRENCY, } from '../../../..';
-import { ArbitrumGasData, OptimismGasData, } from '../../../../providers/v3/gas-data-provider';
+import {
+  SwapOptionsUniversalRouter,
+  SwapType,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../../..';
+import { ProviderConfig } from '../../../../providers/provider';
+import {
+  ArbitrumGasData,
+  OptimismGasData,
+} from '../../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { getL2ToL1GasUsed } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
-import { buildSwapMethodParameters, buildTrade, } from '../../../../util/methodParameters';
+import {
+  buildSwapMethodParameters,
+  buildTrade,
+} from '../../../../util/methodParameters';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
-import { BuildOnChainGasModelFactoryType, IGasModel, IOnChainGasModelFactory, } from '../gas-model';
+import {
+  BuildOnChainGasModelFactoryType,
+  IGasModel,
+  IOnChainGasModelFactory,
+} from '../gas-model';
 
 import {
   BASE_SWAP_COST,
@@ -51,6 +66,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     amountToken,
     quoteToken,
     l2GasDataProvider,
+    providerConfig,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote>
   > {
@@ -155,7 +171,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
-          chainId
+          chainId,
+          providerConfig
         );
 
         const token0 = usdPool.token0.address == nativeCurrency.address;
@@ -205,7 +222,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
         routeWithValidQuote,
         gasPriceWei,
-        chainId
+        chainId,
+        providerConfig
       );
 
       let gasCostInTermsOfQuoteToken: CurrencyAmount | null = null;
@@ -349,7 +367,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
   private estimateGas(
     routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
-    chainId: ChainId
+    chainId: ChainId,
+    providerConfig?: ProviderConfig
   ) {
     const totalInitializedTicksCrossed = BigNumber.from(
       Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
@@ -379,7 +398,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       .add(hopsGasUse)
       .add(tokenOverhead)
       .add(tickGasUse)
-      .add(uninitializedTickGasUse);
+      .add(uninitializedTickGasUse)
+      .add(providerConfig?.additionalGasOverhead ?? BigNumber.from(0));
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
