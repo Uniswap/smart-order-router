@@ -230,8 +230,8 @@ export async function getV3CandidatePools({
   // Although this is less of an optimization than the V2 equivalent,
   // save some time copying objects by mutating the underlying pool directly.
   for (const pool of allPools) {
-    pool.token0.id = pool.token0.id.toLowerCase()
-    pool.token1.id = pool.token1.id.toLowerCase()
+    pool.token0.id = pool.token0.id.toLowerCase();
+    pool.token1.id = pool.token1.id.toLowerCase();
   }
 
   metric.putMetric(
@@ -261,7 +261,7 @@ export async function getV3CandidatePools({
   }
 
   // Sort by tvlUSD in descending order
-  const subgraphPoolsSorted = filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD)
+  const subgraphPoolsSorted = filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD);
 
   log.info(
     `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
@@ -642,8 +642,8 @@ export async function getV2CandidatePools({
   // With tens of thousands of V2 pools, operations that copy pools become costly.
   // Mutate the pool directly rather than creating a new pool / token to optimmize for speed.
   for (const pool of allPoolsRaw) {
-    pool.token0.id = pool.token0.id.toLowerCase()
-    pool.token1.id = pool.token1.id.toLowerCase()
+    pool.token0.id = pool.token0.id.toLowerCase();
+    pool.token1.id = pool.token1.id.toLowerCase();
   }
 
   metric.putMetric(
@@ -655,7 +655,7 @@ export async function getV2CandidatePools({
   const beforePoolsFiltered = Date.now();
 
   // Sort by pool reserve in descending order.
-  const subgraphPoolsSorted = allPoolsRaw.sort((a, b) => b.reserve - a.reserve)
+  const subgraphPoolsSorted = allPoolsRaw.sort((a, b) => b.reserve - a.reserve);
 
   const poolAddressesSoFar = new Set<string>();
 
@@ -712,6 +712,15 @@ export async function getV2CandidatePools({
   let topByBaseWithTokenInPoolsFound = 0;
   let topByBaseWithTokenOutPoolsFound = 0;
 
+  // Main reason we need this is for gas estimates
+  let topNEthQuoteToken = 2;
+  // but, we only need it if token out is not ETH.
+  if (tokenOut.symbol == 'WETH' || tokenOut.symbol == 'WETH9' || tokenOut.symbol == 'ETH') {
+    // if it's eth we change the topN to 0, so we can break early from the loop.
+    topNEthQuoteToken = 0;
+  }
+
+
   const topByEthQuoteTokenPool: V2SubgraphPool[] = [];
   const topByTVLUsingTokenIn: V2SubgraphPool[] = [];
   const topByTVLUsingTokenOut: V2SubgraphPool[] = [];
@@ -728,7 +737,7 @@ export async function getV2CandidatePools({
     if (
       topByBaseWithTokenInPoolsFound >= topNWithBaseToken &&
       topByBaseWithTokenOutPoolsFound >= topNWithBaseToken &&
-      topByEthQuoteTokenPool.length >= 2 &&
+      topByEthQuoteTokenPool.length >= topNEthQuoteToken &&
       topByTVL.length >= topN &&
       topByTVLUsingTokenIn.length >= topNTokenInOut &&
       topByTVLUsingTokenOut.length >= topNTokenInOut
@@ -767,6 +776,9 @@ export async function getV2CandidatePools({
       if (topByTVLUsingTokenIn.length < topNTokenInOut) {
         topByTVLUsingTokenIn.push(subgraphPool);
       }
+      if (routeType === TradeType.EXACT_OUTPUT && subgraphPool.token0.id == wethAddress) {
+        topByEthQuoteTokenPool.push(subgraphPool);
+      }
       tokenInToken0TopByBase.pools.push(subgraphPool);
       continue;
     }
@@ -782,6 +794,9 @@ export async function getV2CandidatePools({
       poolAddressesSoFar.add(subgraphPool.id);
       if (topByTVLUsingTokenIn.length < topNTokenInOut) {
         topByTVLUsingTokenIn.push(subgraphPool);
+      }
+      if (routeType === TradeType.EXACT_OUTPUT && subgraphPool.token1.id == wethAddress) {
+        topByEthQuoteTokenPool.push(subgraphPool);
       }
       tokenInToken1TopByBase.pools.push(subgraphPool);
       continue;
@@ -799,6 +814,9 @@ export async function getV2CandidatePools({
       if (topByTVLUsingTokenOut.length < topNTokenInOut) {
         topByTVLUsingTokenOut.push(subgraphPool);
       }
+      if (routeType === TradeType.EXACT_INPUT && subgraphPool.token0.id == wethAddress) {
+        topByEthQuoteTokenPool.push(subgraphPool);
+      }
       tokenOutToken0TopByBase.pools.push(subgraphPool);
       continue;
     }
@@ -815,19 +833,16 @@ export async function getV2CandidatePools({
       if (topByTVLUsingTokenOut.length < topNTokenInOut) {
         topByTVLUsingTokenOut.push(subgraphPool);
       }
+      if (routeType === TradeType.EXACT_INPUT && subgraphPool.token1.id == wethAddress) {
+        topByEthQuoteTokenPool.push(subgraphPool);
+      }
       tokenOutToken1TopByBase.pools.push(subgraphPool);
       continue;
     }
 
-    // Main reason we need this is for gas estimates, only needed if token out is not ETH.
-    // We don't check the seen address set because if we've already added pools for getting ETH quotes
-    // there's no need to add more.
     // Note: we do not need to check other native currencies for the V2 Protocol
     if (
-      topByEthQuoteTokenPool.length < 2 &&
-      tokenOut.symbol != 'WETH' &&
-      tokenOut.symbol != 'WETH9' &&
-      tokenOut.symbol != 'ETH' &&
+      topByEthQuoteTokenPool.length < topNEthQuoteToken &&
       (
         routeType === TradeType.EXACT_INPUT && (
           (subgraphPool.token0.id == wethAddress && subgraphPool.token1.id == tokenOutAddress) ||
