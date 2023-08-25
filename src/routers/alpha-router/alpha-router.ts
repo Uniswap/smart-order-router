@@ -1009,7 +1009,7 @@ export class AlphaRouter
       quoteToken,
       {
         blockNumber,
-        additionalGasOverhead: NATIVE_OVERHEAD(amount.currency, quoteCurrency),
+        additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency),
       }
     );
 

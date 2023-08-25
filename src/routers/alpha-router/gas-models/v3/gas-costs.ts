@@ -121,20 +121,32 @@ export const TOKEN_OVERHEAD = (id: ChainId, route: V3Route): BigNumber => {
 };
 
 // TODO: change per chain
-export const NATIVE_WRAP_OVERHEAD = BigNumber.from(27938);
-export const NATIVE_UNWRAP_OVERHEAD = BigNumber.from(36000);
+export const NATIVE_WRAP_OVERHEAD = (id: ChainId): BigNumber => {
+  switch (id) {
+    default:
+      return BigNumber.from(27938);
+  }
+};
+
+export const NATIVE_UNWRAP_OVERHEAD = (id: ChainId): BigNumber => {
+  switch (id) {
+    default:
+      return BigNumber.from(36000);
+  }
+};
 
 export const NATIVE_OVERHEAD = (
+  chainId: ChainId,
   amount: Currency,
   quote: Currency
 ): BigNumber => {
   if (amount.isNative) {
     // need to wrap eth in
-    return BigNumber.from(27938);
+    return NATIVE_WRAP_OVERHEAD(chainId);
   }
   if (quote.isNative) {
     // need to unwrap eth out
-    return BigNumber.from(36000);
+    return NATIVE_UNWRAP_OVERHEAD(chainId);
   }
   return BigNumber.from(0);
 };

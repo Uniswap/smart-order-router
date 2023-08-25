@@ -204,7 +204,11 @@ describe('v3 gas model tests', () => {
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
       providerConfig: {
-        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(
+          chainId,
+          amountToken,
+          quoteToken
+        ),
       },
     });
 
@@ -237,7 +241,7 @@ describe('v3 gas model tests', () => {
       .add(gasOverheadFromHops)
       .add(gasOverheadFromTicks)
       .add(SINGLE_HOP_OVERHEAD(chainId))
-      .add(NATIVE_WRAP_OVERHEAD);
+      .add(NATIVE_WRAP_OVERHEAD(chainId));
 
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
   });
@@ -262,7 +266,11 @@ describe('v3 gas model tests', () => {
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
       providerConfig: {
-        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(
+          chainId,
+          amountToken,
+          quoteToken
+        ),
       },
     });
 
@@ -295,7 +303,7 @@ describe('v3 gas model tests', () => {
       .add(gasOverheadFromHops)
       .add(gasOverheadFromTicks)
       .add(SINGLE_HOP_OVERHEAD(chainId))
-      .add(NATIVE_UNWRAP_OVERHEAD);
+      .add(NATIVE_UNWRAP_OVERHEAD(chainId));
 
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
   });

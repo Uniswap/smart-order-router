@@ -54,12 +54,18 @@ describe('v2 gas model tests', () => {
       poolProvider: mockedV2PoolProvider,
       token: quoteToken,
       providerConfig: {
-        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(
+          chainId,
+          amountToken,
+          quoteToken
+        ),
       },
     });
 
     expect(
-      NATIVE_OVERHEAD(amountToken, quoteToken).eq(NATIVE_WRAP_OVERHEAD)
+      NATIVE_OVERHEAD(chainId, amountToken, quoteToken).eq(
+        NATIVE_WRAP_OVERHEAD(chainId)
+      )
     ).toBe(true);
 
     const v2RouteWithQuote = getV2RouteWithValidQuoteStub({
@@ -72,7 +78,7 @@ describe('v2 gas model tests', () => {
     const hops = v2RouteWithQuote.route.pairs.length;
     let expectedGasCost = BASE_SWAP_COST.add(
       COST_PER_EXTRA_HOP.mul(hops - 1)
-    ).add(NATIVE_WRAP_OVERHEAD);
+    ).add(NATIVE_WRAP_OVERHEAD(chainId));
 
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
   });

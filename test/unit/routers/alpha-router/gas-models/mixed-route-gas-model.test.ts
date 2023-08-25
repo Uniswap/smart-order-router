@@ -181,7 +181,11 @@ describe('mixed route gas model tests', () => {
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
       providerConfig: {
-        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(
+          chainId,
+          amountToken,
+          quoteToken
+        ),
       },
     });
 
@@ -198,8 +202,9 @@ describe('mixed route gas model tests', () => {
     });
 
     const { gasEstimate } = mixedGasModel.estimateGasCost(mixedRouteWithQuote);
-    const expectedGasCost =
-      calculateGasEstimate(mixedRouteWithQuote).add(NATIVE_WRAP_OVERHEAD);
+    const expectedGasCost = calculateGasEstimate(mixedRouteWithQuote).add(
+      NATIVE_WRAP_OVERHEAD(chainId)
+    );
 
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
   });
@@ -224,7 +229,11 @@ describe('mixed route gas model tests', () => {
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
       providerConfig: {
-        additionalGasOverhead: NATIVE_OVERHEAD(amountToken, quoteToken),
+        additionalGasOverhead: NATIVE_OVERHEAD(
+          chainId,
+          amountToken,
+          quoteToken
+        ),
       },
     });
 
@@ -242,7 +251,7 @@ describe('mixed route gas model tests', () => {
 
     const { gasEstimate } = mixedGasModel.estimateGasCost(mixedRouteWithQuote);
     const expectedGasCost = calculateGasEstimate(mixedRouteWithQuote).add(
-      NATIVE_UNWRAP_OVERHEAD
+      NATIVE_UNWRAP_OVERHEAD(chainId)
     );
 
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
