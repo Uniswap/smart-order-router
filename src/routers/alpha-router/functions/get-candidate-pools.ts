@@ -360,7 +360,7 @@ export async function getV3CandidatePools({
 
   addToAddressSet(top2DirectSwapPool);
 
-  const wrappedNativeAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address;
+  const wrappedNativeAddress = WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLowerCase();
 
   // Main reason we need this is for gas estimates, only needed if token out is not native.
   // We don't check the seen address set because if we've already added pools for getting native quotes
@@ -687,7 +687,7 @@ export async function getV2CandidatePools({
     ];
   }
 
-  const wethAddress = WRAPPED_NATIVE_CURRENCY[chainId]!.address;
+  const wethAddress = WRAPPED_NATIVE_CURRENCY[chainId]!.address.toLowerCase();
 
   const topByBaseWithTokenInMap: Map<string, SubcategorySelectionPools<V2SubgraphPool>> = new Map();
   const topByBaseWithTokenOutMap: Map<string, SubcategorySelectionPools<V2SubgraphPool>> = new Map();
