@@ -248,9 +248,9 @@ export async function getV3CandidatePools({
     filteredPools = [];
     for (const pool of allPools) {
       const token0InBlocklist =
-        await blockedTokenListProvider.getTokenByAddress(pool.token0.id);
+        await blockedTokenListProvider.hasTokenByAddress(pool.token0.id);
       const token1InBlocklist =
-        await blockedTokenListProvider.getTokenByAddress(pool.token1.id);
+        await blockedTokenListProvider.hasTokenByAddress(pool.token1.id);
 
       if (token0InBlocklist || token1InBlocklist) {
         continue;
@@ -755,8 +755,8 @@ export async function getV2CandidatePools({
     // Only consider pools where neither tokens are in the blocked token list.
     if (blockedTokenListProvider) {
       const [token0InBlocklist, token1InBlocklist] = await Promise.all([
-        blockedTokenListProvider.getTokenByAddress(subgraphPool.token0.id),
-        blockedTokenListProvider.getTokenByAddress(subgraphPool.token1.id)
+        blockedTokenListProvider.hasTokenByAddress(subgraphPool.token0.id),
+        blockedTokenListProvider.hasTokenByAddress(subgraphPool.token1.id)
       ]);
 
       if (token0InBlocklist || token1InBlocklist) {
@@ -953,8 +953,8 @@ export async function getV2CandidatePools({
     // Only consider pools where neither tokens are in the blocked token list.
     if (blockedTokenListProvider) {
       const [token0InBlocklist, token1InBlocklist] = await Promise.all([
-        blockedTokenListProvider.getTokenByAddress(subgraphPool.token0.id),
-        blockedTokenListProvider.getTokenByAddress(subgraphPool.token1.id)
+        blockedTokenListProvider.hasTokenByAddress(subgraphPool.token0.id),
+        blockedTokenListProvider.hasTokenByAddress(subgraphPool.token1.id)
       ]);
 
       if (token0InBlocklist || token1InBlocklist) {
