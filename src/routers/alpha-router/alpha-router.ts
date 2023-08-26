@@ -1066,8 +1066,10 @@ export class AlphaRouter
     ]);
 
     let swapRouteRaw: BestSwapRoute | null;
+    let hitsCachedRoute = false;
     if (cacheMode === CacheMode.Livemode && swapRouteFromCache) {
       log.info(`CacheMode is ${cacheMode}, and we are using swapRoute from cache`);
+      hitsCachedRoute = true;
       swapRouteRaw = swapRouteFromCache;
     } else {
       log.info(`CacheMode is ${cacheMode}, and we are using materialized swapRoute`);
@@ -1214,7 +1216,7 @@ export class AlphaRouter
       trade,
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
-      hitsCachedRoute: !swapRouteFromChain && swapRouteFromCache !== null,
+      hitsCachedRoute: hitsCachedRoute,
     };
 
     if (
