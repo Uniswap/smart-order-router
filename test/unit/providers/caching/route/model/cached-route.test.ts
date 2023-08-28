@@ -40,7 +40,7 @@ describe('CachedRoute', () => {
       const cachedRoute = new CachedRoute({ route: route, percent: 100 });
 
       expect(cachedRoute.routePath)
-        .toEqual('0x6B175474E89094C44Da98b954EedeAC495271d0F/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/3000');
+        .toEqual('[V3]0x6B175474E89094C44Da98b954EedeAC495271d0F/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/3000');
     });
 
     it('is correctly returned when using V2Route', () => {
@@ -48,7 +48,7 @@ describe('CachedRoute', () => {
       const cachedRoute = new CachedRoute({ route: route, percent: 100 });
 
       expect(cachedRoute.routePath)
-        .toEqual('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48->0x6B175474E89094C44Da98b954EedeAC495271d0F');
+        .toEqual('[V2]0x6B175474E89094C44Da98b954EedeAC495271d0F/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48');
     });
 
     it('is correctly returned when using MixedRoute', () => {
@@ -66,14 +66,14 @@ describe('CachedRoute', () => {
       const route = new V3Route([USDC_DAI_MEDIUM], USDC_MAINNET, DAI_MAINNET);
       const cachedRoute = new CachedRoute({ route: route, percent: 100 });
 
-      expect(cachedRoute.routeId).toEqual(1364761099);
+      expect(cachedRoute.routeId).toEqual(610157808);
     });
 
     it('is correctly returned when using V2Route', () => {
       const route = new V2Route([USDC_DAI], USDC_MAINNET, DAI_MAINNET);
       const cachedRoute = new CachedRoute({ route: route, percent: 100 });
 
-      expect(cachedRoute.routeId).toEqual(-1824900155);
+      expect(cachedRoute.routeId).toEqual(783252763);
     });
 
     it('is correctly returned when using MixedRoute', () => {
