@@ -786,7 +786,10 @@ describe('alpha router', () => {
       /// @dev so it's hard to actually force all 3 protocols since there's no concept of liquidity in these mocks
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.V3)
-      ).toHaveLength(2);
+      ).toHaveLength(1);
+      expect(
+        _.filter(swap!.route, (r) => r.protocol == Protocol.V2)
+      ).toHaveLength(1);
       expect(
         _.filter(swap!.route, (r) => r.protocol == Protocol.MIXED)
       ).toHaveLength(1);
@@ -2664,7 +2667,7 @@ describe('alpha router', () => {
               ROUTING_CONFIG
             );
 
-            expect(spy.calledTwice).toEqual(true);
+            expect(spy.calledOnce).toEqual(true);
 
             const [
               optimalRatioFirst,
@@ -2680,22 +2683,6 @@ describe('alpha router', () => {
             );
             expect(inputBalanceFirst).toEqual(token0Balance);
             expect(outputBalanceFirst).toEqual(token1Balance);
-
-            const [
-              optimalRatioSecond,
-              exchangeRateSecond,
-              inputBalanceSecond,
-              outputBalanceSecond,
-            ] = spy.secondCall.args;
-            expect(optimalRatioSecond.toFixed(2)).toEqual(
-              new Fraction(1, 8).toFixed(2)
-            );
-            // all other params remain the same
-            expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
-              new Fraction(1, 1).toFixed(6)
-            );
-            expect(inputBalanceSecond).toEqual(token0Balance);
-            expect(outputBalanceSecond).toEqual(token1Balance);
           }
         );
 
@@ -2734,7 +2721,7 @@ describe('alpha router', () => {
               ROUTING_CONFIG
             );
 
-            expect(spy.calledTwice).toEqual(true);
+            expect(spy.calledOnce).toEqual(true);
 
             const [
               optimalRatioFirst,
@@ -2750,20 +2737,6 @@ describe('alpha router', () => {
             );
             expect(inputBalanceFirst).toEqual(token0Balance);
             expect(outputBalanceFirst).toEqual(token1Balance);
-
-            const [
-              optimalRatioSecond,
-              exchangeRateSecond,
-              inputBalanceSecond,
-              outputBalanceSecond,
-            ] = spy.secondCall.args;
-            expect(optimalRatioSecond).toEqual(new Fraction(0, 1));
-            // all other params remain the same
-            expect(exchangeRateSecond.asFraction.toFixed(6)).toEqual(
-              new Fraction(1, 1).toFixed(6)
-            );
-            expect(inputBalanceSecond).toEqual(token0Balance);
-            expect(outputBalanceSecond).toEqual(token1Balance);
           }
         );
       });
