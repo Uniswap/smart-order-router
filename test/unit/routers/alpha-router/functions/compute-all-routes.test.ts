@@ -6,6 +6,7 @@ import {
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
   WBTC_MAINNET as WBTC,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
 import {
   computeAllV2Routes,
@@ -17,6 +18,7 @@ import {
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
+  USDC_USDT,
   USDC_WETH,
   USDC_WETH_LOW,
   WBTC_WETH,
@@ -51,6 +53,22 @@ describe('compute all v3 routes', () => {
     expect(routes).toHaveLength(2);
   });
 
+  test('succeeds to compute all routes with 4 hops, ignoring arbitrage opportunities', async () => {
+    const pools = [
+      USDC_DAI_LOW,
+      USDC_DAI_MEDIUM,
+      USDC_WETH_LOW,
+      WETH9_USDT_LOW,
+      DAI_USDT_LOW,
+    ];
+    const routes = computeAllV3Routes(USDC, WRAPPED_NATIVE_CURRENCY[1]!, pools, 4);
+
+    routes.forEach((route) => {
+      expect(route.pools).not.toEqual([USDC_DAI_MEDIUM, USDC_DAI_LOW, USDC_WETH_LOW]);
+    });
+    expect(routes).toHaveLength(3);
+  });
+
   test('succeeds when no routes', async () => {
     const pools = [
       USDC_DAI_LOW,
@@ -81,6 +99,17 @@ describe('compute all v2 routes', () => {
     const routes = computeAllV2Routes(USDC, DAI, pools, 1);
 
     expect(routes).toHaveLength(1);
+  });
+
+  test('succeeds to compute all routes with 5 hops. ignoring arbitrage opportunities', async () => {
+    const pools = [DAI_USDT, USDC_DAI, USDC_USDT, USDC_WETH, WETH_USDT, WBTC_WETH];
+    const routes = computeAllV2Routes(USDC, WRAPPED_NATIVE_CURRENCY[1]!, pools, 5);
+
+    routes.forEach((route) => {
+      expect(route.pairs).not.toEqual([USDC_USDT, DAI_USDT, USDC_DAI, USDC_WETH]);
+      expect(route.pairs).not.toEqual([USDC_DAI, DAI_USDT, USDC_USDT, USDC_WETH]);
+    });
+    expect(routes).toHaveLength(3);
   });
 
   test('succeeds when no routes', async () => {
