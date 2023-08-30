@@ -1,11 +1,12 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { ITokenListProvider, ITokenProvider, ITokenValidatorProvider, TokenValidationResult } from '../../../providers';
-import { CurrencyAmount, log, poolToString } from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, poolToString } from '../../../util';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
@@ -32,17 +33,20 @@ export abstract class BaseQuoter<
 > {
   protected tokenProvider: ITokenProvider;
   protected chainId: ChainId;
+  protected protocol: Protocol;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
 
   constructor(
     tokenProvider: ITokenProvider,
     chainId: ChainId,
+    protocol: Protocol,
     blockedTokenListProvider?: ITokenListProvider,
     tokenValidatorProvider?: ITokenValidatorProvider
   ) {
     this.tokenProvider = tokenProvider;
     this.chainId = chainId;
+    this.protocol = protocol;
     this.blockedTokenListProvider = blockedTokenListProvider;
     this.tokenValidatorProvider = tokenValidatorProvider;
   }
@@ -110,6 +114,7 @@ export abstract class BaseQuoter<
   public getRoutesThenQuotes(
     tokenIn: Token,
     tokenOut: Token,
+    amount: CurrencyAmount,
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
@@ -120,8 +125,28 @@ export abstract class BaseQuoter<
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
     return this.getRoutes(tokenIn, tokenOut, candidatePools, tradeType, routingConfig)
-      .then((routesResult) =>
-        this.getQuotes(
+      .then((routesResult) => {
+        if (routesResult.routes.length == 1) {
+          metric.putMetric(`${this.protocol}QuoterSingleRoute`, 1, MetricLoggerUnit.Count);
+          percents = [100];
+          amounts = [amount];
+        }
+
+        if (routesResult.routes.length > 0) {
+          metric.putMetric(
+            `${this.protocol}QuoterRoutesFound`,
+            routesResult.routes.length,
+            MetricLoggerUnit.Count
+          );
+        } else {
+          metric.putMetric(
+            `${this.protocol}QuoterNoRoutesFound`,
+            routesResult.routes.length,
+            MetricLoggerUnit.Count
+          );
+        }
+
+        return this.getQuotes(
           routesResult.routes,
           amounts,
           percents,
@@ -131,8 +156,8 @@ export abstract class BaseQuoter<
           routesResult.candidatePools,
           gasModel,
           gasPriceWei
-        )
-      );
+        );
+      });
   }
 
   protected async applyTokenValidatorToPools<T extends Pool | Pair>(
