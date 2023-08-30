@@ -934,7 +934,7 @@ export class AlphaRouter
 
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
-    const blockNumber = await (partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise());
+    const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {
@@ -985,14 +985,14 @@ export class AlphaRouter
         quoteToken,
         tradeType,
         protocols,
-        blockNumber,
+        await blockNumber,
         optimistic
       );
     }
 
     // If cachedRoutes are expired we will run in tapcompare mode
     // This is a temporary solution to gather data
-    if (cachedRoutes && !cachedRoutes.notExpired(blockNumber, optimistic)) {
+    if (cachedRoutes && !cachedRoutes.notExpired(await blockNumber, optimistic)) {
       cacheMode = CacheMode.Tapcompare;
     }
 
@@ -1040,7 +1040,7 @@ export class AlphaRouter
     if (cachedRoutes) {
       swapRouteFromCachePromise = this.getSwapRouteFromCache(
         cachedRoutes,
-        blockNumber,
+        await blockNumber,
         amount,
         quoteToken,
         tradeType,
@@ -1152,7 +1152,7 @@ export class AlphaRouter
         tokenIn,
         tokenOut,
         protocols.sort(), // sort it for consistency in the order of the protocols.
-        blockNumber,
+        await blockNumber,
         tradeType,
         amount.toExact()
       );
@@ -1222,7 +1222,7 @@ export class AlphaRouter
       route: routeAmounts,
       trade,
       methodParameters,
-      blockNumber: BigNumber.from(blockNumber),
+      blockNumber: BigNumber.from(await blockNumber),
       hitsCachedRoute: hitsCachedRoute,
     };
 
