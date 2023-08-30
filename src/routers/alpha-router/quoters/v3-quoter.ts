@@ -1,3 +1,4 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
@@ -36,7 +37,7 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route> {
     blockedTokenListProvider?: ITokenListProvider,
     tokenValidatorProvider?: ITokenValidatorProvider
   ) {
-    super(tokenProvider, chainId, blockedTokenListProvider, tokenValidatorProvider);
+    super(tokenProvider, chainId, Protocol.V3, blockedTokenListProvider, tokenValidatorProvider);
     this.v3SubgraphProvider = v3SubgraphProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.onChainQuoteProvider = onChainQuoteProvider;

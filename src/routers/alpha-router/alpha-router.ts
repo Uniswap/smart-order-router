@@ -1492,6 +1492,7 @@ export class AlphaRouter
           this.v3Quoter.getRoutesThenQuotes(
             tokenIn,
             tokenOut,
+            amount,
             amounts,
             percents,
             quoteToken,
@@ -1524,6 +1525,7 @@ export class AlphaRouter
           this.v2Quoter.getRoutesThenQuotes(
             tokenIn,
             tokenOut,
+            amount,
             amounts,
             percents,
             quoteToken,
@@ -1559,6 +1561,7 @@ export class AlphaRouter
           this.mixedQuoter.getRoutesThenQuotes(
             tokenIn,
             tokenOut,
+            amount,
             amounts,
             percents,
             quoteToken,
