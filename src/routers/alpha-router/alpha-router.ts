@@ -104,9 +104,9 @@ import {
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
+import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
-import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 
 export type AlphaRouterParams = {
   /**
@@ -1243,7 +1243,7 @@ export class AlphaRouter
           ? await this.l2GasDataProvider!.getGasData()
           : undefined,
         { blockNumber }
-    );
+      );
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
@@ -1485,6 +1485,7 @@ export class AlphaRouter
           this.v3Quoter.getRoutesThenQuotes(
             tokenIn,
             tokenOut,
+            amount,
             amounts,
             percents,
             quoteToken,
@@ -1517,6 +1518,7 @@ export class AlphaRouter
           this.v2Quoter.getRoutesThenQuotes(
             tokenIn,
             tokenOut,
+            amount,
             amounts,
             percents,
             quoteToken,
@@ -1552,6 +1554,7 @@ export class AlphaRouter
           this.mixedQuoter.getRoutesThenQuotes(
             tokenIn,
             tokenOut,
+            amount,
             amounts,
             percents,
             quoteToken,

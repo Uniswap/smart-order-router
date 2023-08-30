@@ -110,6 +110,7 @@ export abstract class BaseQuoter<
   public getRoutesThenQuotes(
     tokenIn: Token,
     tokenOut: Token,
+    amount: CurrencyAmount,
     amounts: CurrencyAmount[],
     percents: number[],
     quoteToken: Token,
@@ -120,8 +121,13 @@ export abstract class BaseQuoter<
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
     return this.getRoutes(tokenIn, tokenOut, candidatePools, tradeType, routingConfig)
-      .then((routesResult) =>
-        this.getQuotes(
+      .then((routesResult) => {
+        if (routesResult.routes.length == 1) {
+          percents = [100];
+          amounts = [amount];
+        }
+
+        return this.getQuotes(
           routesResult.routes,
           amounts,
           percents,
@@ -131,8 +137,8 @@ export abstract class BaseQuoter<
           routesResult.candidatePools,
           gasModel,
           gasPriceWei
-        )
-      );
+        );
+      });
   }
 
   protected async applyTokenValidatorToPools<T extends Pool | Pair>(
