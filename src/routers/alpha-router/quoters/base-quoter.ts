@@ -5,7 +5,7 @@ import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { ITokenListProvider, ITokenProvider, ITokenValidatorProvider, TokenValidationResult } from '../../../providers';
-import { CurrencyAmount, log, poolToString } from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, poolToString } from '../../../util';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
@@ -123,9 +123,16 @@ export abstract class BaseQuoter<
     return this.getRoutes(tokenIn, tokenOut, candidatePools, tradeType, routingConfig)
       .then((routesResult) => {
         if (routesResult.routes.length == 1) {
+          metric.putMetric(`${routesResult.routes[0]!.protocol}QuoterSingleRoute`, 1, MetricLoggerUnit.Count);
           percents = [100];
           amounts = [amount];
         }
+
+        metric.putMetric(
+          `${routesResult.routes[0]!.protocol}QuoterNumberOfRoutes`,
+          routesResult.routes.length,
+          MetricLoggerUnit.Count
+        );
 
         return this.getQuotes(
           routesResult.routes,
