@@ -967,13 +967,14 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
-    const cacheMode = await this.routeCachingProvider?.getCacheMode(
+    let cacheMode = await this.routeCachingProvider?.getCacheMode(
       this.chainId,
       amount,
       quoteToken,
       tradeType,
       protocols
     );
+    const optimistic = routingConfig.optimisticCachedRoutes;
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
@@ -985,8 +986,14 @@ export class AlphaRouter
         tradeType,
         protocols,
         await blockNumber,
-        routingConfig.optimisticCachedRoutes
+        optimistic
       );
+    }
+
+    // If cachedRoutes are expired we will run in tapcompare mode
+    // This is a temporary solution to gather data
+    if (cachedRoutes && !cachedRoutes.notExpired(await blockNumber, optimistic)) {
+      cacheMode = CacheMode.Tapcompare;
     }
 
     if (cacheMode && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
