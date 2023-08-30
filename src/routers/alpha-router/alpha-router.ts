@@ -104,9 +104,9 @@ import {
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
+import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
-import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 
 export type AlphaRouterParams = {
   /**
@@ -934,7 +934,7 @@ export class AlphaRouter
 
     // Get a block number to specify in all our calls. Ensures data we fetch from chain is
     // from the same block.
-    const blockNumber = partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
+    const blockNumber = await (partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise());
 
     const routingConfig: AlphaRouterConfig = _.merge(
       {
@@ -967,13 +967,14 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
-    const cacheMode = await this.routeCachingProvider?.getCacheMode(
+    let cacheMode = await this.routeCachingProvider?.getCacheMode(
       this.chainId,
       amount,
       quoteToken,
       tradeType,
       protocols
     );
+    const optimistic = routingConfig.optimisticCachedRoutes;
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
@@ -984,9 +985,15 @@ export class AlphaRouter
         quoteToken,
         tradeType,
         protocols,
-        await blockNumber,
-        routingConfig.optimisticCachedRoutes
+        blockNumber,
+        optimistic
       );
+    }
+
+    // If cachedRoutes are expired we will run in tapcompare mode
+    // This is a temporary solution to gather data
+    if (cachedRoutes && !cachedRoutes.notExpired(blockNumber, optimistic)) {
+      cacheMode = CacheMode.Tapcompare;
     }
 
     if (cacheMode && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
@@ -1033,7 +1040,7 @@ export class AlphaRouter
     if (cachedRoutes) {
       swapRouteFromCachePromise = this.getSwapRouteFromCache(
         cachedRoutes,
-        await blockNumber,
+        blockNumber,
         amount,
         quoteToken,
         tradeType,
@@ -1145,7 +1152,7 @@ export class AlphaRouter
         tokenIn,
         tokenOut,
         protocols.sort(), // sort it for consistency in the order of the protocols.
-        await blockNumber,
+        blockNumber,
         tradeType,
         amount.toExact()
       );
@@ -1215,7 +1222,7 @@ export class AlphaRouter
       route: routeAmounts,
       trade,
       methodParameters,
-      blockNumber: BigNumber.from(await blockNumber),
+      blockNumber: BigNumber.from(blockNumber),
       hitsCachedRoute: hitsCachedRoute,
     };
 
@@ -1243,7 +1250,7 @@ export class AlphaRouter
           ? await this.l2GasDataProvider!.getGasData()
           : undefined,
         { blockNumber }
-    );
+      );
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
