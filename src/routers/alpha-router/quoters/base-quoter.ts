@@ -128,11 +128,13 @@ export abstract class BaseQuoter<
           amounts = [amount];
         }
 
-        metric.putMetric(
-          `${routesResult.routes[0]!.protocol}QuoterNumberOfRoutes`,
-          routesResult.routes.length,
-          MetricLoggerUnit.Count
-        );
+        if (routesResult.routes.length > 0) {
+          metric.putMetric(
+            `${routesResult.routes[0]?.protocol}QuoterNumberOfRoutes`,
+            routesResult.routes.length,
+            MetricLoggerUnit.Count
+          );
+        }
 
         return this.getQuotes(
           routesResult.routes,
