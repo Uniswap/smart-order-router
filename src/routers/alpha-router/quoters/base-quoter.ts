@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
@@ -32,17 +33,20 @@ export abstract class BaseQuoter<
 > {
   protected tokenProvider: ITokenProvider;
   protected chainId: ChainId;
+  protected protocol: Protocol;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
 
   constructor(
     tokenProvider: ITokenProvider,
     chainId: ChainId,
+    protocol: Protocol,
     blockedTokenListProvider?: ITokenListProvider,
     tokenValidatorProvider?: ITokenValidatorProvider
   ) {
     this.tokenProvider = tokenProvider;
     this.chainId = chainId;
+    this.protocol = protocol;
     this.blockedTokenListProvider = blockedTokenListProvider;
     this.tokenValidatorProvider = tokenValidatorProvider;
   }
@@ -123,14 +127,20 @@ export abstract class BaseQuoter<
     return this.getRoutes(tokenIn, tokenOut, candidatePools, tradeType, routingConfig)
       .then((routesResult) => {
         if (routesResult.routes.length == 1) {
-          metric.putMetric(`${routesResult.routes[0]!.protocol}QuoterSingleRoute`, 1, MetricLoggerUnit.Count);
+          metric.putMetric(`${this.protocol}QuoterSingleRoute`, 1, MetricLoggerUnit.Count);
           percents = [100];
           amounts = [amount];
         }
 
         if (routesResult.routes.length > 0) {
           metric.putMetric(
-            `${routesResult.routes[0]?.protocol}QuoterNumberOfRoutes`,
+            `${this.protocol}QuoterRoutesFound`,
+            routesResult.routes.length,
+            MetricLoggerUnit.Count
+          );
+        } else {
+          metric.putMetric(
+            `${this.protocol}QuoterNoRoutesFound`,
             routesResult.routes.length,
             MetricLoggerUnit.Count
           );

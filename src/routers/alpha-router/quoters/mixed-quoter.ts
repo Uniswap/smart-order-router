@@ -1,3 +1,4 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
@@ -46,7 +47,7 @@ export class MixedQuoter extends BaseQuoter<[V3CandidatePools, V2CandidatePools]
     blockedTokenListProvider?: ITokenListProvider,
     tokenValidatorProvider?: ITokenValidatorProvider
   ) {
-    super(tokenProvider, chainId, blockedTokenListProvider, tokenValidatorProvider);
+    super(tokenProvider, chainId, Protocol.MIXED, blockedTokenListProvider, tokenValidatorProvider);
     this.v3SubgraphProvider = v3SubgraphProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.v2SubgraphProvider = v2SubgraphProvider;

@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
@@ -11,21 +12,12 @@ import {
   IV2SubgraphProvider,
   TokenValidationResult,
 } from '../../../providers';
-import {
-  CurrencyAmount,
-  log,
-  metric,
-  MetricLoggerUnit,
-  routeToString,
-} from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString, } from '../../../util';
 import { V2Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { V2RouteWithValidQuote } from '../entities';
 import { computeAllV2Routes } from '../functions/compute-all-routes';
-import {
-  CandidatePoolsBySelectionCriteria,
-  V2CandidatePools,
-} from '../functions/get-candidate-pools';
+import { CandidatePoolsBySelectionCriteria, V2CandidatePools, } from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
 
 import { BaseQuoter } from './base-quoter';
@@ -51,6 +43,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     super(
       tokenProvider,
       chainId,
+      Protocol.V2,
       blockedTokenListProvider,
       tokenValidatorProvider
     );
