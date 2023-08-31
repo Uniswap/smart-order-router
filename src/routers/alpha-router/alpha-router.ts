@@ -996,7 +996,13 @@ export class AlphaRouter
       cacheMode = CacheMode.Tapcompare;
     }
 
-    if (cacheMode && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
+    metric.putMetric(
+      routingConfig.useCachedRoutes ? 'GetQuoteUsingCachedRoutes' : 'GetQuoteNotUsingCachedRoutes',
+      1,
+      MetricLoggerUnit.Count
+    );
+
+    if (cacheMode && routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode && !cachedRoutes) {
       metric.putMetric(
         `GetCachedRoute_miss_${cacheMode}`,
         1,
@@ -1015,7 +1021,7 @@ export class AlphaRouter
         },
         `GetCachedRoute miss ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(tokenIn, tokenOut, tradeType)}`
       );
-    } else if (cachedRoutes) {
+    } else if (cachedRoutes && routingConfig.useCachedRoutes) {
       metric.putMetric(
         `GetCachedRoute_hit_${cacheMode}`,
         1,
