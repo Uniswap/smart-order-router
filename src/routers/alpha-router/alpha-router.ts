@@ -967,7 +967,7 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
-    let cacheMode = await this.routeCachingProvider?.getCacheMode(
+    const cacheMode = await this.routeCachingProvider?.getCacheMode(
       this.chainId,
       amount,
       quoteToken,
@@ -988,12 +988,6 @@ export class AlphaRouter
         await blockNumber,
         optimistic
       );
-    }
-
-    // If cachedRoutes are expired we will run in tapcompare mode
-    // This is a temporary solution to gather data
-    if (cachedRoutes && !cachedRoutes.notExpired(await blockNumber, optimistic)) {
-      cacheMode = CacheMode.Tapcompare;
     }
 
     metric.putMetric(
