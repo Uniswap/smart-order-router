@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId } from '@uniswap/sdk-core';
 
-import { TokenFeeDetector__factory } from '../types/other';
+import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { IMulticallProvider } from './multicall-provider';
