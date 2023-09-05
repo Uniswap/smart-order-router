@@ -341,6 +341,10 @@ export type AlphaRouterConfig = {
    * Debug param that helps to see the short-term latencies improvements without impacting the main path.
    */
   debugRouting?: boolean;
+  /**
+   * Flag that allow us to override the cache mode.
+   */
+  overwriteCacheMode?: CacheMode
 };
 
 export class AlphaRouter
@@ -967,14 +971,13 @@ export class AlphaRouter
     // Then create an Array from the values of that Set.
     const protocols: Protocol[] = Array.from(new Set(routingConfig.protocols).values());
 
-    const cacheMode = await this.routeCachingProvider?.getCacheMode(
+    const cacheMode = routingConfig.overwriteCacheMode ?? await this.routeCachingProvider?.getCacheMode(
       this.chainId,
       amount,
       quoteToken,
       tradeType,
       protocols
     );
-    const optimistic = routingConfig.optimisticCachedRoutes;
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
@@ -986,7 +989,7 @@ export class AlphaRouter
         tradeType,
         protocols,
         await blockNumber,
-        optimistic
+        routingConfig.optimisticCachedRoutes
       );
     }
 
@@ -1182,6 +1185,12 @@ export class AlphaRouter
             MetricLoggerUnit.Count
           );
         });
+      } else {
+        metric.putMetric(
+          `SetCachedRoute_unnecessary`,
+          1,
+          MetricLoggerUnit.Count
+        );
       }
     }
 
