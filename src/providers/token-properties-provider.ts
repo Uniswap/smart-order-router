@@ -6,10 +6,7 @@ import { log } from '../util';
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import { ITokenFeeFetcher, TokenFeeResult } from './token-fee-fetcher';
-import {
-  DEFAULT_ALLOWLIST,
-} from './token-validator-provider';
-
+import { DEFAULT_ALLOWLIST } from './token-validator-provider';
 
 const DEFAULT_TOKEN_BUY_FEE_BPS = BigNumber.from(0);
 const DEFAULT_TOKEN_SELL_FEE_BPS = BigNumber.from(0);
@@ -22,19 +19,19 @@ const DEFAULT_TOKEN_FEE_RESULT = {
 
 const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
   tokenFeeResult: DEFAULT_TOKEN_FEE_RESULT,
-}
+};
 
-type Address = string
+type Address = string;
 export type TokenPropertiesResult = {
   tokenFeeResult: TokenFeeResult;
-}
-export type TokenPropertiesMap = Record<Address, TokenPropertiesResult>
+};
+export type TokenPropertiesMap = Record<Address, TokenPropertiesResult>;
 
 export interface ITokenPropertiesProvider {
   getTokensProperties(
     tokens: Token[],
     providerConfig?: ProviderConfig
-  ): Promise<TokenPropertiesMap>
+  ): Promise<TokenPropertiesMap>;
 }
 
 export class TokenPropertiesProvider implements ITokenPropertiesProvider {
@@ -46,8 +43,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
     private allowList = DEFAULT_ALLOWLIST
-  ) {
-  }
+  ) {}
 
   public async getTokensProperties(
     tokens: Token[],
@@ -59,9 +55,11 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
 
     // Check if we have cached token validation results for any tokens.
     for (const address of addressesRaw) {
-      const cachedValue = await this.tokenPropertiesCache.get(this.CACHE_KEY(this.chainId, address));
+      const cachedValue = await this.tokenPropertiesCache.get(
+        this.CACHE_KEY(this.chainId, address)
+      );
       if (cachedValue) {
-        tokenToResult[address] = cachedValue
+        tokenToResult[address] = cachedValue;
       } else if (this.allowList.has(address)) {
         tokenToResult[address] = DEFAULT_TOKEN_PROPERTIES_RESULT;
       } else {
@@ -70,12 +68,18 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     }
 
     log.info(
-      `Got token fee results for ${addressesRaw.size - addressesToFetchFeesOnchain.length
-      } tokens from cache. Getting ${addressesToFetchFeesOnchain.length} on-chain.`
+      `Got token fee results for ${
+        addressesRaw.size - addressesToFetchFeesOnchain.length
+      } tokens from cache. Getting ${
+        addressesToFetchFeesOnchain.length
+      } on-chain.`
     );
 
     if (addressesToFetchFeesOnchain.length > 0) {
-      const tokenFeeMap = await this.tokenFeeFetcher.fetchFees(addressesToFetchFeesOnchain, providerConfig);
+      const tokenFeeMap = await this.tokenFeeFetcher.fetchFees(
+        addressesToFetchFeesOnchain,
+        providerConfig
+      );
 
       for (const address of addressesToFetchFeesOnchain) {
         const tokenFee = tokenFeeMap[address];
@@ -97,7 +101,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     for (const token of tokens) {
       const address = token.address.toLowerCase();
       if (!addressesRaw.has(address)) {
-        addressesRaw.add(address)
+        addressesRaw.add(address);
       }
     }
 

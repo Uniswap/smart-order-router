@@ -7,13 +7,13 @@ import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import { IMulticallProvider } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
-type Address = string
+type Address = string;
 
 export type TokenFeeResult = {
-  buyFeeBps: BigNumber,
-  sellFeeBps: BigNumber,
-}
-export type TokenFeeMap = Record<Address, TokenFeeResult>
+  buyFeeBps: BigNumber;
+  sellFeeBps: BigNumber;
+};
+export type TokenFeeMap = Record<Address, TokenFeeResult>;
 
 // address at which the FeeDetector lens is deployed
 const FEE_DETECTOR_ADDRESS = '0x57eC54d113719dDE9A90E6bE807524a86560E89D';
@@ -25,7 +25,10 @@ const AMOUNT_TO_FLASH_BORROW = '10000';
 const GAS_LIMIT_PER_VALIDATE = 1_000_000;
 
 export interface ITokenFeeFetcher {
-  fetchFees(addresses: Address[], providerConfig?: ProviderConfig): Promise<TokenFeeMap>
+  fetchFees(
+    addresses: Address[],
+    providerConfig?: ProviderConfig
+  ): Promise<TokenFeeMap>;
 }
 
 export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
@@ -36,16 +39,22 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
     private multicall2Provider: IMulticallProvider,
     private tokenFeeAddress = FEE_DETECTOR_ADDRESS,
     private gasLimitPerCall = GAS_LIMIT_PER_VALIDATE,
-    private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW,
+    private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW
   ) {
     this.BASE_TOKEN = WRAPPED_NATIVE_CURRENCY[this.chainId]?.address;
   }
 
-  public async fetchFees(addresses: Address[], providerConfig?: ProviderConfig): Promise<TokenFeeMap> {
+  public async fetchFees(
+    addresses: Address[],
+    providerConfig?: ProviderConfig
+  ): Promise<TokenFeeMap> {
     const tokenToResult: TokenFeeMap = {};
 
-    const functionParams = addresses
-      .map((address) => [address, this.BASE_TOKEN, this.amountToFlashBorrow]) as [string, string, string][];
+    const functionParams = addresses.map((address) => [
+      address,
+      this.BASE_TOKEN,
+      this.amountToFlashBorrow,
+    ]) as [string, string, string][];
 
     // We use the validate function instead of batchValidate to avoid poison pill problem.
     // One token that consumes too much gas could cause the entire batch to fail.
@@ -89,7 +98,6 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
       tokenToResult[tokenAddress] = resultWrapper.result[0];
     }
 
-    return tokenToResult
+    return tokenToResult;
   }
 }
-
