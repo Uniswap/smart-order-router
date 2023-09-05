@@ -1182,6 +1182,12 @@ export class AlphaRouter
             MetricLoggerUnit.Count
           );
         });
+      } else {
+        metric.putMetric(
+          `SetCachedRoute_unnecessary`,
+          1,
+          MetricLoggerUnit.Count
+        );
       }
     }
 
