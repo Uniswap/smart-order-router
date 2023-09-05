@@ -23,7 +23,7 @@ import {
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
   IRouteCachingProvider,
-  ISwapRouterProvider,
+  ISwapRouterProvider, ITokenPropertiesProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
   LegacyGasPriceProvider,
@@ -38,7 +38,7 @@ import {
   URISubgraphProvider,
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
-  V3SubgraphProviderWithFallBacks,
+  V3SubgraphProviderWithFallBacks
 } from '../../providers';
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
@@ -208,6 +208,11 @@ export type AlphaRouterParams = {
    * A provider for caching the best route given an amount, quoteToken, tradeType
    */
   routeCachingProvider?: IRouteCachingProvider;
+
+  /**
+   * A provider for getting token properties for special tokens like fee-on-transfer tokens.
+   */
+  tokenPropertiesProvider?: ITokenPropertiesProvider;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -371,6 +376,7 @@ export class AlphaRouter
   protected v3Quoter: V3Quoter;
   protected mixedQuoter: MixedQuoter;
   protected routeCachingProvider?: IRouteCachingProvider;
+  protected tokenPropertiesProvider?: ITokenPropertiesProvider;
 
   constructor({
     chainId,
@@ -394,6 +400,7 @@ export class AlphaRouter
     arbitrumGasDataProvider,
     simulator,
     routeCachingProvider,
+    tokenPropertiesProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -409,6 +416,7 @@ export class AlphaRouter
       );
     this.simulator = simulator;
     this.routeCachingProvider = routeCachingProvider;
+    this.tokenPropertiesProvider = tokenPropertiesProvider;
 
     if (onChainQuoteProvider) {
       this.onChainQuoteProvider = onChainQuoteProvider;
