@@ -80,11 +80,6 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
     ]) as [string, string, string][];
 
     const results = await Promise.all(functionParams.map(async ([address, baseToken, amountToBorrow]) => {
-      log.info(
-        { address, baseToken, amountToBorrow },
-        `Called validate on-chain for token ${address}`
-      );
-
       try {
         // We use the validate function instead of batchValidate to avoid poison pill problem.
         // One token that consumes too much gas could cause the entire batch to fail.

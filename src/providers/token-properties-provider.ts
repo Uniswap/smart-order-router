@@ -1,8 +1,5 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
 
-import { DEFAULT_ALLOWLIST, ITokenValidatorProvider } from '../../build/main';
-import { log } from '../util';
-
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import {
@@ -10,7 +7,11 @@ import {
   ITokenFeeFetcher,
   TokenFeeResult
 } from './token-fee-fetcher';
-import { TokenValidationResult } from './token-validator-provider';
+import {
+  DEFAULT_ALLOWLIST,
+  ITokenValidatorProvider,
+  TokenValidationResult
+} from './token-validator-provider';
 
 
 export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
@@ -73,14 +74,6 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
         addressesToFetchFeesOnchain.push(address);
       }
     }
-
-    log.info(
-      `Got token fee results for ${
-        addressesRaw.size - addressesToFetchFeesOnchain.length
-      } tokens from cache. Getting ${
-        addressesToFetchFeesOnchain.length
-      } on-chain.`
-    );
 
     if (addressesToFetchFeesOnchain.length > 0) {
       const tokenFeeMap = await this.tokenFeeFetcher.fetchFees(
