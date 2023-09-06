@@ -36,7 +36,7 @@ export interface ITokenPropertiesProvider {
 
 export class TokenPropertiesProvider implements ITokenPropertiesProvider {
   private CACHE_KEY = (chainId: ChainId, address: string) =>
-    `token-${chainId}-${address}`;
+    `token-properties-${chainId}-${address}`;
 
   constructor(
     private chainId: ChainId,
