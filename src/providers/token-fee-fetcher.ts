@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { JsonRpcProvider } from '@ethersproject/providers';
+import { BaseProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
 import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
@@ -9,6 +9,14 @@ import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 import { ProviderConfig } from './provider';
 
 
+const DEFAULT_TOKEN_BUY_FEE_BPS = BigNumber.from(0);
+const DEFAULT_TOKEN_SELL_FEE_BPS = BigNumber.from(0);
+
+// on detector failure, assume no fee
+export const DEFAULT_TOKEN_FEE_RESULT = {
+  buyFeeBps: DEFAULT_TOKEN_BUY_FEE_BPS,
+  sellFeeBps: DEFAULT_TOKEN_SELL_FEE_BPS,
+};
 
 type Address = string;
 
@@ -47,10 +55,10 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
 
   constructor(
     private chainId: ChainId,
+    rpcProvider: BaseProvider,
     private tokenFeeAddress = FEE_DETECTOR_ADDRESS(chainId),
     private gasLimitPerCall = GAS_LIMIT_PER_VALIDATE,
-    private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW,
-    rpcProvider: JsonRpcProvider
+    private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW
   ) {
     this.BASE_TOKEN = WRAPPED_NATIVE_CURRENCY[this.chainId]?.address;
     this.contract = TokenFeeDetector__factory.connect(
@@ -77,20 +85,24 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
         `Called validate on-chain for token ${address}`
       );
 
-      // We use the validate function instead of batchValidate to avoid poison pill problem.
-      // One token that consumes too much gas could cause the entire batch to fail.
-      return await this.contract.callStatic.validate(address, baseToken, amountToBorrow, {
-        gasLimit: this.gasLimitPerCall,
-        blockTag: providerConfig?.blockNumber,
-      })
+      try {
+        // We use the validate function instead of batchValidate to avoid poison pill problem.
+        // One token that consumes too much gas could cause the entire batch to fail.
+        const feeResult = await this.contract.callStatic.validate(address, baseToken, amountToBorrow, {
+          gasLimit: this.gasLimitPerCall,
+          blockTag: providerConfig?.blockNumber,
+        })
+        return {address, ...feeResult}
+      } catch (err) {
+        log.error({ err }, `Error calling validate on-chain for token ${address}`);
+        // in case of FOT token fee fetch failure, we return 0 bps
+        return {address, ...DEFAULT_TOKEN_FEE_RESULT};
+      }
     }));
 
-    for (let i = 0; i < results.length; i++) {
-      const resultWrapper = results[i]!;
-      const tokenAddress = addresses[i]!;
-
-      tokenToResult[tokenAddress] = resultWrapper;
-    }
+    results.forEach(({address, buyFeeBps, sellFeeBps}) => {
+      tokenToResult[address] = {buyFeeBps, sellFeeBps}
+    })
 
     return tokenToResult;
   }

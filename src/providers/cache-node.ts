@@ -10,15 +10,16 @@ export class NodeJSCache<T> implements ICache<T> {
   }
 
   async batchGet(keys: Set<string>): Promise<Record<string, T | undefined>> {
-    const items = [...keys].reduce(
-      async (map, key) => {
-        const awaitedMap = await map
-        awaitedMap[key] = await this.get(key);
-        return awaitedMap;
-      }, {} as Promise<Record<string, (T | undefined)>>
-    );
+    const keysArr = Array.from(keys);
+    const values = await Promise.all(keysArr.map((key) => this.get(key)));
 
-    return await items
+    const result: Record<string, T | undefined> = {};
+
+    keysArr.forEach((key, index) => {
+      result[key] = values[index];
+    })
+
+    return result;
   }
 
   async set(key: string, value: T): Promise<boolean> {

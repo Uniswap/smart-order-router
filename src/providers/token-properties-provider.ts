@@ -1,29 +1,26 @@
-import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Token } from '@uniswap/sdk-core';
 
+import { DEFAULT_ALLOWLIST, ITokenValidatorProvider } from '../../build/main';
 import { log } from '../util';
 
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
-import { ITokenFeeFetcher, TokenFeeResult } from './token-fee-fetcher';
-import { DEFAULT_ALLOWLIST } from './token-validator-provider';
+import {
+  DEFAULT_TOKEN_FEE_RESULT,
+  ITokenFeeFetcher,
+  TokenFeeResult
+} from './token-fee-fetcher';
+import { TokenValidationResult } from './token-validator-provider';
 
-const DEFAULT_TOKEN_BUY_FEE_BPS = BigNumber.from(0);
-const DEFAULT_TOKEN_SELL_FEE_BPS = BigNumber.from(0);
 
-// on detector failure, assume no fee
-const DEFAULT_TOKEN_FEE_RESULT = {
-  buyFeeBps: DEFAULT_TOKEN_BUY_FEE_BPS,
-  sellFeeBps: DEFAULT_TOKEN_SELL_FEE_BPS,
-};
-
-const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
+export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
   tokenFeeResult: DEFAULT_TOKEN_FEE_RESULT,
 };
 
 type Address = string;
 export type TokenPropertiesResult = {
-  tokenFeeResult: TokenFeeResult;
+  tokenFeeResult?: TokenFeeResult;
+  tokenValidationResult?: TokenValidationResult;
 };
 export type TokenPropertiesMap = Record<Address, TokenPropertiesResult>;
 
@@ -40,16 +37,28 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
 
   constructor(
     private chainId: ChainId,
+    private tokenValidatorProvider: ITokenValidatorProvider,
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
-    private allowList = DEFAULT_ALLOWLIST
+    private allowList = DEFAULT_ALLOWLIST,
   ) {}
 
   public async getTokensProperties(
     tokens: Token[],
     providerConfig?: ProviderConfig
   ): Promise<TokenPropertiesMap> {
+    const tokenValidationResults = await this.tokenValidatorProvider.validateTokens(tokens, providerConfig);
     const tokenToResult: TokenPropertiesMap = {};
+
+    tokens.forEach((token) => {
+      if (this.allowList.has(token.address.toLowerCase())) {
+        // if the token is in the allowlist, make it UNKNOWN so that we don't fetch the FOT fee on-chain
+        tokenToResult[token.address.toLowerCase()] = { tokenValidationResult: TokenValidationResult.UNKN}
+      } else {
+        tokenToResult[token.address.toLowerCase()] = { tokenValidationResult: tokenValidationResults.getValidationByToken(token) }
+      }
+    })
+
     const addressesToFetchFeesOnchain: string[] = [];
     const addressesRaw = this.buildAddressesRaw(tokens);
 
@@ -60,9 +69,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       const cachedValue = tokenProperties[address];
       if (cachedValue) {
         tokenToResult[address] = cachedValue;
-      } else if (this.allowList.has(address)) {
-        tokenToResult[address] = DEFAULT_TOKEN_PROPERTIES_RESULT;
-      } else {
+      } else if (tokenToResult[address]?.tokenValidationResult === TokenValidationResult.FOT) {
         addressesToFetchFeesOnchain.push(address);
       }
     }
@@ -81,15 +88,18 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
         providerConfig
       );
 
-      for (const address of addressesToFetchFeesOnchain) {
+      await Promise.all(addressesToFetchFeesOnchain.map((address) => {
         const tokenFee = tokenFeeMap[address];
         if (tokenFee) {
-          await this.tokenPropertiesCache.set(
+          // update cache concurrently
+          return this.tokenPropertiesCache.set(
             this.CACHE_KEY(this.chainId, address),
             { tokenFeeResult: tokenFee }
           );
+        } else {
+          return Promise.resolve(true)
         }
-      }
+      }));
     }
 
     return tokenToResult;

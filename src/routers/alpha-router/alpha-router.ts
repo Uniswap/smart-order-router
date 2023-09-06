@@ -33,7 +33,7 @@ import {
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
-  SwapRouterProvider,
+  SwapRouterProvider, TokenPropertiesProvider,
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
@@ -107,6 +107,7 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 
 export type AlphaRouterParams = {
   /**
@@ -420,7 +421,6 @@ export class AlphaRouter
       );
     this.simulator = simulator;
     this.routeCachingProvider = routeCachingProvider;
-    this.tokenPropertiesProvider = tokenPropertiesProvider;
 
     if (onChainQuoteProvider) {
       this.onChainQuoteProvider = onChainQuoteProvider;
@@ -691,6 +691,16 @@ export class AlphaRouter
         this.multicall2Provider,
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
       );
+    }
+    if (tokenPropertiesProvider) {
+      this.tokenPropertiesProvider = tokenPropertiesProvider;
+    } else if (this.chainId === ChainId.MAINNET) {
+      this.tokenPropertiesProvider = new TokenPropertiesProvider(
+        this.chainId,
+        this.tokenValidatorProvider!,
+        new NodeJSCache(new NodeCache({ stdTTL: 86400, useClones: false })),
+        new OnChainTokenFeeFetcher(this.chainId, provider)
+      )
     }
 
     // Initialize the Quoters.
