@@ -9,6 +9,8 @@
 export interface ICache<T> {
   get(key: string): Promise<T | undefined>;
 
+  batchGet(keys: Set<string>): Promise<Record<string, T | undefined>> ;
+
   set(key: string, value: T): Promise<boolean>;
 
   has(key: string): Promise<boolean>;

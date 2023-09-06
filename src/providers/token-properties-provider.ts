@@ -53,11 +53,11 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     const addressesToFetchFeesOnchain: string[] = [];
     const addressesRaw = this.buildAddressesRaw(tokens);
 
+    const tokenProperties = await this.tokenPropertiesCache.batchGet(addressesRaw)
+
     // Check if we have cached token validation results for any tokens.
     for (const address of addressesRaw) {
-      const cachedValue = await this.tokenPropertiesCache.get(
-        this.CACHE_KEY(this.chainId, address)
-      );
+      const cachedValue = tokenProperties[address];
       if (cachedValue) {
         tokenToResult[address] = cachedValue;
       } else if (this.allowList.has(address)) {
