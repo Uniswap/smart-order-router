@@ -48,7 +48,8 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     tokens: Token[],
     providerConfig?: ProviderConfig
   ): Promise<TokenPropertiesMap> {
-    const tokenValidationResults = await this.tokenValidatorProvider.validateTokens(tokens, providerConfig);
+    const nonAllowlistTokens = tokens.filter((token) => !this.allowList.has(token.address.toLowerCase()));
+    const tokenValidationResults = await this.tokenValidatorProvider.validateTokens(nonAllowlistTokens, providerConfig);
     const tokenToResult: TokenPropertiesMap = {};
 
     tokens.forEach((token) => {
