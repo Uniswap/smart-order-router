@@ -75,8 +75,22 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             let outputAmount = amount.wrapped;
 
             for (const pair of route.pairs) {
+              /* TODO uncomment once sdk-core upgrades
+              const sellFeeBps = outputAmount.currency.sellFeeBps;
+              if (sellFeeBps.gt(BigNumber.from(0))) {
+                outputAmount = outputAmount.multiply(new Fraction(ONE).subtract(sellFeeBps.divide(10000)));
+              }
+              */
+
               const [outputAmountNew] = pair.getOutputAmount(outputAmount);
               outputAmount = outputAmountNew;
+
+              /* TODO uncomment once sdk-core upgrades
+              const buyFeeBps = outputAmount.currency.buyFeeBps;
+              if (buyFeeBps.gt(BigNumber.from(0))) {
+                outputAmount = outputAmount.multiply(new Fraction(ONE).subtract(buyFeeBps.divide(10000)));
+              }
+              */
             }
 
             amountQuotes.push({
@@ -87,8 +101,22 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             let inputAmount = amount.wrapped;
 
             for (let i = route.pairs.length - 1; i >= 0; i--) {
+              /* TODO uncomment once sdk-core upgrades
+              const buyFeeBps = inputAmount.currency.buyFeeBps;
+              if (buyFeeBps.gt(BigNumber.from(0))) {
+                inputAmount = inputAmount.multiply(new Fraction(ONE).subtract(buyFeeBps.divide(10000)));
+              }
+              */
+
               const pair = route.pairs[i]!;
               [inputAmount] = pair.getInputAmount(inputAmount);
+
+              /* TODO uncomment once sdk-core upgrades
+              const sellFeeBps = inputAmount.currency.sellFeeBps;
+              if (sellFeeBps.gt(BigNumber.from(0))) {
+                inputAmount = inputAmount.multiply(new Fraction(ONE).subtract(sellFeeBps.divide(10000)));
+              }
+              */
             }
 
             amountQuotes.push({
