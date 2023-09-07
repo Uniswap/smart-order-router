@@ -111,7 +111,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       await Promise.all(
         addressesToFetchFeesOnchain.map((address) => {
           const tokenFee = tokenFeeMap[address];
-          if (tokenFee) {
+          if (tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps)) {
             const tokenResultForAddress = tokenToResult[address];
 
             if (tokenResultForAddress) {
