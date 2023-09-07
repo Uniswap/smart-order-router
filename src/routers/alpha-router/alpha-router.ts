@@ -23,7 +23,8 @@ import {
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
   IRouteCachingProvider,
-  ISwapRouterProvider, ITokenPropertiesProvider,
+  ISwapRouterProvider,
+  ITokenPropertiesProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
   LegacyGasPriceProvider,
@@ -43,6 +44,7 @@ import {
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
 import { ProviderConfig } from '../../providers/provider';
+import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
 import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
@@ -107,7 +109,6 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
-import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 
 export type AlphaRouterParams = {
   /**
