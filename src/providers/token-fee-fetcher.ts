@@ -90,14 +90,18 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
         return {address, ...feeResult}
       } catch (err) {
         log.error({ err }, `Error calling validate on-chain for token ${address}`);
-        // in case of FOT token fee fetch failure, we return 0 bps
-        return {address, ...DEFAULT_TOKEN_FEE_RESULT};
+        // in case of FOT token fee fetch failure, we return null
+        // so that they won't get returned from the token-fee-fetcher
+        // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
+        return {address, buyFeeBps: null, sellFeeBps: null};
       }
     }));
 
     results.forEach(({address, buyFeeBps, sellFeeBps}) => {
-      tokenToResult[address] = {buyFeeBps, sellFeeBps}
-    })
+      if (buyFeeBps && sellFeeBps) {
+        tokenToResult[address] = {buyFeeBps, sellFeeBps}
+      }
+    });
 
     return tokenToResult;
   }

@@ -55,11 +55,11 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     tokens.forEach((token) => {
       if (this.allowList.has(token.address.toLowerCase())) {
         // if the token is in the allowlist, make it UNKNOWN so that we don't fetch the FOT fee on-chain
-        tokenToResult[token.address.toLowerCase()] = { tokenValidationResult: TokenValidationResult.UNKN}
+        tokenToResult[token.address.toLowerCase()] = { tokenValidationResult: TokenValidationResult.UNKN }
       } else {
         tokenToResult[token.address.toLowerCase()] = { tokenValidationResult: tokenValidationResults.getValidationByToken(token) }
       }
-    })
+    });
 
     const addressesToFetchFeesOnchain: string[] = [];
     const addressesRaw = this.buildAddressesRaw(tokens);
@@ -85,10 +85,20 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       await Promise.all(addressesToFetchFeesOnchain.map((address) => {
         const tokenFee = tokenFeeMap[address];
         if (tokenFee) {
+          const tokenResultForAddress = tokenToResult[address]
+
+          if (tokenResultForAddress) {
+            tokenResultForAddress.tokenFeeResult = tokenFee;
+          }
+
           // update cache concurrently
+          // at this point, we are confident that the tokens are FOT, so we can hardcode the validation result
           return this.tokenPropertiesCache.set(
             this.CACHE_KEY(this.chainId, address),
-            { tokenFeeResult: tokenFee }
+            {
+              tokenFeeResult: tokenFee,
+              tokenValidationResult: TokenValidationResult.FOT
+            }
           );
         } else {
           return Promise.resolve(true)
