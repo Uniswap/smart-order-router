@@ -5,7 +5,12 @@ import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 
 import { IUniswapV2Pair__factory } from '../../types/v2/factories/IUniswapV2Pair__factory';
-import { CurrencyAmount, ID_TO_NETWORK_NAME, metric, MetricLoggerUnit } from '../../util';
+import {
+  CurrencyAmount,
+  ID_TO_NETWORK_NAME,
+  metric,
+  MetricLoggerUnit,
+} from '../../util';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
@@ -80,8 +85,7 @@ export class V2PoolProvider implements IV2PoolProvider {
       minTimeout: 50,
       maxTimeout: 500,
     }
-  ) {
-  }
+  ) {}
 
   public async getPools(
     tokenPairs: [Token, Token][],
@@ -113,19 +117,28 @@ export class V2PoolProvider implements IV2PoolProvider {
     );
 
     metric.putMetric('V2_RPC_POOL_RPC_CALL', 1, MetricLoggerUnit.None);
-    metric.putMetric('V2GetReservesBatchSize', sortedPoolAddresses.length, MetricLoggerUnit.Count);
+    metric.putMetric(
+      'V2GetReservesBatchSize',
+      sortedPoolAddresses.length,
+      MetricLoggerUnit.Count
+    );
     metric.putMetric(
       `V2GetReservesBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
       sortedPoolAddresses.length,
       MetricLoggerUnit.Count
     );
 
-    const [reservesResults, tokenPropertiesMap] =
-      await Promise.all([this.getPoolsData<IReserves>(
-      sortedPoolAddresses,
-      'getReserves',
-      providerConfig
-    ), this.tokenPropertiesProvider.getTokensProperties(this.flatMap(tokenPairs), providerConfig)]);
+    const [reservesResults, tokenPropertiesMap] = await Promise.all([
+      this.getPoolsData<IReserves>(
+        sortedPoolAddresses,
+        'getReserves',
+        providerConfig
+      ),
+      this.tokenPropertiesProvider.getTokensProperties(
+        this.flatMap(tokenPairs),
+        providerConfig
+      ),
+    ]);
 
     log.info(
       `Got reserves for ${poolAddressSet.size} pools ${
@@ -150,15 +163,33 @@ export class V2PoolProvider implements IV2PoolProvider {
       }
 
       let token0 = sortedTokenPairs[i]![0];
-      if (tokenPropertiesMap[token0.address.toLowerCase()]?.tokenValidationResult === TokenValidationResult.FOT) {
+      if (
+        tokenPropertiesMap[token0.address.toLowerCase()]
+          ?.tokenValidationResult === TokenValidationResult.FOT
+      ) {
         // TODO add buyFeeBps and sellFeeBps once we upgrade sdk-core
-        token0 = new Token(token0.chainId, token0.address, token0.decimals, token0.symbol, token0.name);
+        token0 = new Token(
+          token0.chainId,
+          token0.address,
+          token0.decimals,
+          token0.symbol,
+          token0.name
+        );
       }
 
       let token1 = sortedTokenPairs[i]![1];
-      if (tokenPropertiesMap[token1.address.toLowerCase()]?.tokenValidationResult === TokenValidationResult.FOT) {
+      if (
+        tokenPropertiesMap[token1.address.toLowerCase()]
+          ?.tokenValidationResult === TokenValidationResult.FOT
+      ) {
         // TODO add buyFeeBps and sellFeeBps once we upgrade sdk-core
-        token1 = new Token(token1.chainId, token1.address, token1.decimals, token1.symbol, token1.name);
+        token1 = new Token(
+          token1.chainId,
+          token1.address,
+          token1.decimals,
+          token1.symbol,
+          token1.name
+        );
       }
 
       const { reserve0, reserve1 } = reservesResult.result;
@@ -254,6 +285,6 @@ export class V2PoolProvider implements IV2PoolProvider {
       tokens.push(tokenB);
     }
 
-    return tokens
+    return tokens;
   }
 }
