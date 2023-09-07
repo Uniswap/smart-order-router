@@ -24,6 +24,7 @@ import {
   IOnChainQuoteProvider,
   IRouteCachingProvider,
   ISwapRouterProvider,
+  ITokenPropertiesProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
   LegacyGasPriceProvider,
@@ -33,16 +34,17 @@ import {
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
-  SwapRouterProvider,
+  SwapRouterProvider, TokenPropertiesProvider,
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
-  V3SubgraphProviderWithFallBacks,
+  V3SubgraphProviderWithFallBacks
 } from '../../providers';
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
 import { ProviderConfig } from '../../providers/provider';
+import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
 import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
@@ -208,6 +210,11 @@ export type AlphaRouterParams = {
    * A provider for caching the best route given an amount, quoteToken, tradeType
    */
   routeCachingProvider?: IRouteCachingProvider;
+
+  /**
+   * A provider for getting token properties for special tokens like fee-on-transfer tokens.
+   */
+  tokenPropertiesProvider?: ITokenPropertiesProvider;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -375,6 +382,7 @@ export class AlphaRouter
   protected v3Quoter: V3Quoter;
   protected mixedQuoter: MixedQuoter;
   protected routeCachingProvider?: IRouteCachingProvider;
+  protected tokenPropertiesProvider?: ITokenPropertiesProvider;
 
   constructor({
     chainId,
@@ -398,6 +406,7 @@ export class AlphaRouter
     arbitrumGasDataProvider,
     simulator,
     routeCachingProvider,
+    tokenPropertiesProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -683,6 +692,16 @@ export class AlphaRouter
         this.multicall2Provider,
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
       );
+    }
+    if (tokenPropertiesProvider) {
+      this.tokenPropertiesProvider = tokenPropertiesProvider;
+    } else if (this.chainId === ChainId.MAINNET) {
+      this.tokenPropertiesProvider = new TokenPropertiesProvider(
+        this.chainId,
+        this.tokenValidatorProvider!,
+        new NodeJSCache(new NodeCache({ stdTTL: 86400, useClones: false })),
+        new OnChainTokenFeeFetcher(this.chainId, provider)
+      )
     }
 
     // Initialize the Quoters.

@@ -14,7 +14,7 @@ import {
   CacheMode,
   CachingTokenListProvider,
   CurrencyAmount,
-  DAI_MAINNET as DAI,
+  DAI_MAINNET as DAI, DEFAULT_TOKEN_PROPERTIES_RESULT,
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
   MixedRoute,
@@ -27,6 +27,7 @@ import {
   SwapRouterProvider,
   SwapToRatioStatus,
   SwapType,
+  TokenPropertiesProvider,
   TokenProvider,
   UniswapMulticallProvider,
   USDC_MAINNET as USDC,
@@ -44,7 +45,7 @@ import {
   V3RouteWithValidQuote,
   V3SubgraphPool,
   V3SubgraphProvider,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import { TokenValidationResult, TokenValidatorProvider, } from '../../../../src/providers/token-validator-provider';
@@ -101,8 +102,10 @@ describe('alpha router', () => {
 
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
   let mockTokenValidatorProvider: sinon.SinonStubbedInstance<TokenValidatorProvider>;
+  let mockTokenPropertiesProvider: sinon.SinonStubbedInstance<TokenPropertiesProvider>;
 
   let mockFallbackTenderlySimulator: sinon.SinonStubbedInstance<FallbackTenderlySimulator>;
+
 
   let inMemoryRouteCachingProvider: InMemoryRouteCachingProvider;
 
@@ -375,6 +378,13 @@ describe('alpha router', () => {
       getValidationByToken: () => TokenValidationResult.UNKN,
     });
 
+    mockTokenPropertiesProvider = sinon.createStubInstance(
+      TokenPropertiesProvider
+    )
+    mockTokenPropertiesProvider.getTokensProperties.resolves({
+      '0x0': DEFAULT_TOKEN_PROPERTIES_RESULT
+    })
+
     mockFallbackTenderlySimulator = sinon.createStubInstance(
       FallbackTenderlySimulator
     );
@@ -402,7 +412,8 @@ describe('alpha router', () => {
       swapRouterProvider: mockSwapRouterProvider,
       tokenValidatorProvider: mockTokenValidatorProvider,
       simulator: mockFallbackTenderlySimulator,
-      routeCachingProvider: inMemoryRouteCachingProvider
+      routeCachingProvider: inMemoryRouteCachingProvider,
+      tokenPropertiesProvider: mockTokenPropertiesProvider,
     });
   });
 
