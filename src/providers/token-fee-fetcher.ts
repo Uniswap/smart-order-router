@@ -30,7 +30,7 @@ const FEE_DETECTOR_ADDRESS = (chainId: ChainId) => {
   switch (chainId) {
     case ChainId.MAINNET:
     default:
-      return '0x57eC54d113719dDE9A90E6bE807524a86560E89D';
+      return '0x19C97dc2a25845C7f9d1d519c8C2d4809c58b43f';
   }
 };
 
