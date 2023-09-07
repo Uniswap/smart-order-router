@@ -20,8 +20,8 @@ export const DEFAULT_TOKEN_FEE_RESULT = {
 type Address = string;
 
 export type TokenFeeResult = {
-  buyFeeBps: BigNumber;
-  sellFeeBps: BigNumber;
+  buyFeeBps?: BigNumber;
+  sellFeeBps?: BigNumber;
 };
 export type TokenFeeMap = Record<Address, TokenFeeResult>;
 
@@ -101,13 +101,13 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
           // in case of FOT token fee fetch failure, we return null
           // so that they won't get returned from the token-fee-fetcher
           // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
-          return { address, buyFeeBps: null, sellFeeBps: null };
+          return { address, buyFeeBps: undefined, sellFeeBps: undefined };
         }
       })
     );
 
     results.forEach(({ address, buyFeeBps, sellFeeBps }) => {
-      if (buyFeeBps && sellFeeBps) {
+      if (buyFeeBps || sellFeeBps) {
         tokenToResult[address] = { buyFeeBps, sellFeeBps };
       }
     });
