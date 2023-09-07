@@ -17,7 +17,7 @@ export class NodeJSCache<T> implements ICache<T> {
 
     keysArr.forEach((key, index) => {
       result[key] = values[index];
-    })
+    });
 
     return result;
   }

@@ -1,19 +1,19 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
 
+import { log } from '../util';
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import {
   DEFAULT_TOKEN_FEE_RESULT,
-  ITokenFeeFetcher, TokenFeeMap,
-  TokenFeeResult
+  ITokenFeeFetcher,
+  TokenFeeMap,
+  TokenFeeResult,
 } from './token-fee-fetcher';
 import {
   DEFAULT_ALLOWLIST,
   ITokenValidatorProvider,
-  TokenValidationResult
+  TokenValidationResult,
 } from './token-validator-provider';
-import { log } from '../util';
-
 
 export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
   tokenFeeResult: DEFAULT_TOKEN_FEE_RESULT,
@@ -42,37 +42,53 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     private tokenValidatorProvider: ITokenValidatorProvider,
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
-    private allowList = DEFAULT_ALLOWLIST,
+    private allowList = DEFAULT_ALLOWLIST
   ) {}
 
   public async getTokensProperties(
     tokens: Token[],
     providerConfig?: ProviderConfig
   ): Promise<TokenPropertiesMap> {
-    const nonAllowlistTokens = tokens.filter((token) => !this.allowList.has(token.address.toLowerCase()));
-    const tokenValidationResults = await this.tokenValidatorProvider.validateTokens(nonAllowlistTokens, providerConfig);
+    const nonAllowlistTokens = tokens.filter(
+      (token) => !this.allowList.has(token.address.toLowerCase())
+    );
+    const tokenValidationResults =
+      await this.tokenValidatorProvider.validateTokens(
+        nonAllowlistTokens,
+        providerConfig
+      );
     const tokenToResult: TokenPropertiesMap = {};
 
     tokens.forEach((token) => {
       if (this.allowList.has(token.address.toLowerCase())) {
         // if the token is in the allowlist, make it UNKNOWN so that we don't fetch the FOT fee on-chain
-        tokenToResult[token.address.toLowerCase()] = { tokenValidationResult: TokenValidationResult.UNKN }
+        tokenToResult[token.address.toLowerCase()] = {
+          tokenValidationResult: TokenValidationResult.UNKN,
+        };
       } else {
-        tokenToResult[token.address.toLowerCase()] = { tokenValidationResult: tokenValidationResults.getValidationByToken(token) }
+        tokenToResult[token.address.toLowerCase()] = {
+          tokenValidationResult:
+            tokenValidationResults.getValidationByToken(token),
+        };
       }
     });
 
     const addressesToFetchFeesOnchain: string[] = [];
     const addressesRaw = this.buildAddressesRaw(tokens);
 
-    const tokenProperties = await this.tokenPropertiesCache.batchGet(addressesRaw)
+    const tokenProperties = await this.tokenPropertiesCache.batchGet(
+      addressesRaw
+    );
 
     // Check if we have cached token validation results for any tokens.
     for (const address of addressesRaw) {
       const cachedValue = tokenProperties[address];
       if (cachedValue) {
         tokenToResult[address] = cachedValue;
-      } else if (tokenToResult[address]?.tokenValidationResult === TokenValidationResult.FOT) {
+      } else if (
+        tokenToResult[address]?.tokenValidationResult ===
+        TokenValidationResult.FOT
+      ) {
         addressesToFetchFeesOnchain.push(address);
       }
     }
@@ -86,31 +102,36 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
           providerConfig
         );
       } catch (err) {
-        log.error({ err }, `Error fetching fees for tokens ${addressesToFetchFeesOnchain}`);
+        log.error(
+          { err },
+          `Error fetching fees for tokens ${addressesToFetchFeesOnchain}`
+        );
       }
 
-      await Promise.all(addressesToFetchFeesOnchain.map((address) => {
-        const tokenFee = tokenFeeMap[address];
-        if (tokenFee) {
-          const tokenResultForAddress = tokenToResult[address]
+      await Promise.all(
+        addressesToFetchFeesOnchain.map((address) => {
+          const tokenFee = tokenFeeMap[address];
+          if (tokenFee) {
+            const tokenResultForAddress = tokenToResult[address];
 
-          if (tokenResultForAddress) {
-            tokenResultForAddress.tokenFeeResult = tokenFee;
-          }
-
-          // update cache concurrently
-          // at this point, we are confident that the tokens are FOT, so we can hardcode the validation result
-          return this.tokenPropertiesCache.set(
-            this.CACHE_KEY(this.chainId, address),
-            {
-              tokenFeeResult: tokenFee,
-              tokenValidationResult: TokenValidationResult.FOT
+            if (tokenResultForAddress) {
+              tokenResultForAddress.tokenFeeResult = tokenFee;
             }
-          );
-        } else {
-          return Promise.resolve(true)
-        }
-      }));
+
+            // update cache concurrently
+            // at this point, we are confident that the tokens are FOT, so we can hardcode the validation result
+            return this.tokenPropertiesCache.set(
+              this.CACHE_KEY(this.chainId, address),
+              {
+                tokenFeeResult: tokenFee,
+                tokenValidationResult: TokenValidationResult.FOT,
+              }
+            );
+          } else {
+            return Promise.resolve(true);
+          }
+        })
+      );
     }
 
     return tokenToResult;

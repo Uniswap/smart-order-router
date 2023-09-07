@@ -2,12 +2,11 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
-import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
 import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
+import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { ProviderConfig } from './provider';
-
 
 const DEFAULT_TOKEN_BUY_FEE_BPS = BigNumber.from(0);
 const DEFAULT_TOKEN_SELL_FEE_BPS = BigNumber.from(0);
@@ -31,7 +30,7 @@ const FEE_DETECTOR_ADDRESS = (chainId: ChainId) => {
   switch (chainId) {
     case ChainId.MAINNET:
     default:
-      return '0x57eC54d113719dDE9A90E6bE807524a86560E89D'
+      return '0x57eC54d113719dDE9A90E6bE807524a86560E89D';
   }
 };
 
@@ -64,7 +63,7 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
     this.contract = TokenFeeDetector__factory.connect(
       this.tokenFeeAddress,
       rpcProvider
-    )
+    );
   }
 
   public async fetchFees(
@@ -79,27 +78,37 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
       this.amountToFlashBorrow,
     ]) as [string, string, string][];
 
-    const results = await Promise.all(functionParams.map(async ([address, baseToken, amountToBorrow]) => {
-      try {
-        // We use the validate function instead of batchValidate to avoid poison pill problem.
-        // One token that consumes too much gas could cause the entire batch to fail.
-        const feeResult = await this.contract.callStatic.validate(address, baseToken, amountToBorrow, {
-          gasLimit: this.gasLimitPerCall,
-          blockTag: providerConfig?.blockNumber,
-        })
-        return {address, ...feeResult}
-      } catch (err) {
-        log.error({ err }, `Error calling validate on-chain for token ${address}`);
-        // in case of FOT token fee fetch failure, we return null
-        // so that they won't get returned from the token-fee-fetcher
-        // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
-        return {address, buyFeeBps: null, sellFeeBps: null};
-      }
-    }));
+    const results = await Promise.all(
+      functionParams.map(async ([address, baseToken, amountToBorrow]) => {
+        try {
+          // We use the validate function instead of batchValidate to avoid poison pill problem.
+          // One token that consumes too much gas could cause the entire batch to fail.
+          const feeResult = await this.contract.callStatic.validate(
+            address,
+            baseToken,
+            amountToBorrow,
+            {
+              gasLimit: this.gasLimitPerCall,
+              blockTag: providerConfig?.blockNumber,
+            }
+          );
+          return { address, ...feeResult };
+        } catch (err) {
+          log.error(
+            { err },
+            `Error calling validate on-chain for token ${address}`
+          );
+          // in case of FOT token fee fetch failure, we return null
+          // so that they won't get returned from the token-fee-fetcher
+          // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
+          return { address, buyFeeBps: null, sellFeeBps: null };
+        }
+      })
+    );
 
-    results.forEach(({address, buyFeeBps, sellFeeBps}) => {
+    results.forEach(({ address, buyFeeBps, sellFeeBps }) => {
       if (buyFeeBps && sellFeeBps) {
-        tokenToResult[address] = {buyFeeBps, sellFeeBps}
+        tokenToResult[address] = { buyFeeBps, sellFeeBps };
       }
     });
 
