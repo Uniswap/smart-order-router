@@ -4,7 +4,7 @@ import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import {
   DEFAULT_TOKEN_FEE_RESULT,
-  ITokenFeeFetcher,
+  ITokenFeeFetcher, TokenFeeMap,
   TokenFeeResult
 } from './token-fee-fetcher';
 import {
@@ -12,6 +12,7 @@ import {
   ITokenValidatorProvider,
   TokenValidationResult
 } from './token-validator-provider';
+import { log } from '../util';
 
 
 export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
@@ -77,10 +78,16 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     }
 
     if (addressesToFetchFeesOnchain.length > 0) {
-      const tokenFeeMap = await this.tokenFeeFetcher.fetchFees(
-        addressesToFetchFeesOnchain,
-        providerConfig
-      );
+      let tokenFeeMap: TokenFeeMap = {};
+
+      try {
+        tokenFeeMap = await this.tokenFeeFetcher.fetchFees(
+          addressesToFetchFeesOnchain,
+          providerConfig
+        );
+      } catch (err) {
+        log.error({ err }, `Error fetching fees for tokens ${addressesToFetchFeesOnchain}`);
+      }
 
       await Promise.all(addressesToFetchFeesOnchain.map((address) => {
         const tokenFee = tokenFeeMap[address];

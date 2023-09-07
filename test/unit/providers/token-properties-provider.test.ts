@@ -1,47 +1,70 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
 import NodeCache from 'node-cache';
 import sinon from 'sinon';
-import { ITokenFeeFetcher, OnChainTokenFeeFetcher, TokenFeeMap } from '../../../src/providers/token-fee-fetcher';
+import {
+  ITokenFeeFetcher,
+  OnChainTokenFeeFetcher,
+  TokenFeeMap
+} from '../../../src/providers/token-fee-fetcher';
 import { BigNumber } from '@ethersproject/bignumber';
 import {
+  CallSameFunctionOnContractWithMultipleParams,
+  ICache,
+  IMulticallProvider,
   ITokenPropertiesProvider,
   ITokenValidatorProvider,
+  NodeJSCache,
   TokenPropertiesProvider,
   TokenPropertiesResult,
   TokenValidationResult,
-  TokenValidatorProvider
+  TokenValidatorProvider,
+  UniswapMulticallConfig,
+  UniswapMulticallProvider,
+  USDC_MAINNET
 } from '../../../src';
-import { NodeJSCache } from '../../../src';
-import { ICache } from '../../../src';
-import { USDC_MAINNET } from '../../../src';
 
 describe('TokenPropertiesProvider', () => {
   let tokenPropertiesProvider: ITokenPropertiesProvider
-  let mockTokenValidatorProvider: sinon.SinonStubbedInstance<ITokenValidatorProvider>
-  let cache: ICache<TokenPropertiesResult>
+  let tokenValidatorProvider: ITokenValidatorProvider
+  let tokenPropertiesResultCache: ICache<TokenPropertiesResult>
+  let tokenValidationResultCache: ICache<TokenValidationResult>
+  let mockMulticall2Provider: sinon.SinonStubbedInstance<IMulticallProvider<UniswapMulticallConfig>>
   let mockTokenFeeFetcher: sinon.SinonStubbedInstance<ITokenFeeFetcher>
 
   const CACHE_KEY = (chainId: ChainId, address: string) =>
     `token-properties-${chainId}-${address}`;
 
   beforeEach(async () => {
-    cache = new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }));
+    tokenPropertiesResultCache = new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }));
+    tokenValidationResultCache = new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }));
     mockTokenFeeFetcher = sinon.createStubInstance(OnChainTokenFeeFetcher)
-    mockTokenValidatorProvider = sinon.createStubInstance(TokenValidatorProvider)
+    mockMulticall2Provider = sinon.createStubInstance(UniswapMulticallProvider)
+
+    tokenValidatorProvider = new TokenValidatorProvider(
+      ChainId.MAINNET,
+      mockMulticall2Provider,
+      tokenValidationResultCache,
+    )
 
     tokenPropertiesProvider = new TokenPropertiesProvider(
       ChainId.MAINNET,
-      mockTokenValidatorProvider,
-      cache,
+      tokenValidatorProvider,
+      tokenPropertiesResultCache,
       mockTokenFeeFetcher,
     )
 
-    mockTokenValidatorProvider.validateTokens.callsFake(async (tokens) => {
-      const tokenToResult: { [tokenAddress: string]: TokenValidationResult } = {};
-      tokens.forEach((token) => tokenToResult[token.address.toLowerCase()] = TokenValidationResult.FOT)
+    type functionParams = [string, string[], string][]
+    mockMulticall2Provider.callSameFunctionOnContractWithMultipleParams.callsFake(async (
+      params: CallSameFunctionOnContractWithMultipleParams<functionParams | undefined, UniswapMulticallConfig>) => {
       return {
-        getValidationByToken: (token: Token) =>
-          tokenToResult[token.address.toLowerCase()],
+        blockNumber: BigNumber.from(100),
+        approxGasUsedPerSuccessCall: 100,
+        results: params.functionParams.map((_?: functionParams) => {
+          return ({
+            success: true,
+            result: [TokenValidationResult.FOT]
+          })
+        })
       };
     })
 
@@ -60,12 +83,12 @@ describe('TokenPropertiesProvider', () => {
     it('succeeds to get token fee and updates cache', async () => {
       const token = USDC_MAINNET
 
-      expect(await cache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))).toBeUndefined();
+      expect(await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))).toBeUndefined();
       const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([token]);
       expect(tokenPropertiesMap[token.address.toLowerCase()]).toBeDefined();
       assertExpectedTokenProperties(tokenPropertiesMap[token.address.toLowerCase()], BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
 
-      const cachedTokenProperties = await cache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+      const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
       expect(cachedTokenProperties).toBeDefined();
       assertExpectedTokenProperties(cachedTokenProperties, BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
     })
@@ -73,13 +96,13 @@ describe('TokenPropertiesProvider', () => {
     it('succeeds to get token fee cache hit and second token fee fetcher call is skipped', async function() {
       const token = USDC_MAINNET
 
-      expect(await cache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))).toBeUndefined();
+      expect(await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))).toBeUndefined();
       const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([token]);
       expect(tokenPropertiesMap[token.address.toLowerCase()]).toBeDefined();
       assertExpectedTokenProperties(tokenPropertiesMap[token.address.toLowerCase()], BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
       sinon.assert.calledOnce(mockTokenFeeFetcher.fetchFees)
 
-      const cachedTokenProperties = await cache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+      const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
       expect(cachedTokenProperties).toBeDefined();
       assertExpectedTokenProperties(cachedTokenProperties, BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
       sinon.assert.calledOnce(mockTokenFeeFetcher.fetchFees)
@@ -93,7 +116,7 @@ describe('TokenPropertiesProvider', () => {
       expect(tokenPropertiesMap[allowListToken.address.toLowerCase()]?.tokenFeeResult).toBeUndefined();
       assertExpectedTokenProperties(tokenPropertiesMap[allowListToken.address.toLowerCase()], undefined, undefined, TokenValidationResult.UNKN);
 
-      expect(await cache.get(CACHE_KEY(ChainId.MAINNET, allowListToken.address.toLowerCase()))).toBeUndefined();
+      expect(await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, allowListToken.address.toLowerCase()))).toBeUndefined();
     });
 
     it('succeeds to get token properties in a single batch', async function() {
@@ -125,9 +148,76 @@ describe('TokenPropertiesProvider', () => {
         const expectedSellFeeBps = tokenPropertiesMap[address]?.tokenFeeResult?.sellFeeBps
         assertExpectedTokenProperties(tokenPropertiesMap[address], expectedBuyFeeBps, expectedSellFeeBps, TokenValidationResult.FOT);
 
-        const cachedTokenProperties = await cache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
         expect(cachedTokenProperties).toBeDefined();
         assertExpectedTokenProperties(cachedTokenProperties, expectedBuyFeeBps, expectedSellFeeBps, TokenValidationResult.FOT);
+      }
+    });
+
+    it('all tokens in the batch failed to get token validation result, no fees fetched', async function() {
+      const token1 = new Token(1, '0x0000000000000000000000000000000000000012', 18);
+      const token2 = new Token(1, '0x0000000000000000000000000000000000000034', 18);
+      const token3 = new Token(1, '0x0000000000000000000000000000000000000056', 18);
+
+      const tokens = [token1, token2, token3]
+
+      mockTokenFeeFetcher.fetchFees.callsFake(async (addresses) => {
+        const tokenToResult: TokenFeeMap = {};
+        addresses.forEach((address) => {
+          tokenToResult[address] = {
+            buyFeeBps: BigNumber.from(parseInt(address[address.length - 2]!)),
+            sellFeeBps: BigNumber.from(parseInt(address[address.length - 1]!))
+          }
+        });
+
+        return tokenToResult
+      });
+
+      type functionParams = [string, string[], string][]
+      mockMulticall2Provider.callSameFunctionOnContractWithMultipleParams.callsFake(async (
+        params: CallSameFunctionOnContractWithMultipleParams<functionParams | undefined, UniswapMulticallConfig>) => {
+        return {
+          blockNumber: BigNumber.from(100),
+          approxGasUsedPerSuccessCall: 100,
+          results: params.functionParams.map(() => {
+            return { success: false, returnData: 'Not FOT' }
+          })
+        };
+      })
+
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens);
+
+      for (const token of tokens) {
+        const address = token.address.toLowerCase()
+        expect(tokenPropertiesMap[address]).toBeDefined();
+        expect(tokenPropertiesMap[address]?.tokenFeeResult).toBeUndefined();
+        assertExpectedTokenProperties(tokenPropertiesMap[address], undefined, undefined, undefined);
+
+        const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(cachedTokenProperties).toBeUndefined();
+      }
+    });
+
+    it('all token fee fetch failed', async function() {
+      const token1 = new Token(1, '0x0000000000000000000000000000000000000012', 18);
+      const token2 = new Token(1, '0x0000000000000000000000000000000000000034', 18);
+      const token3 = new Token(1, '0x0000000000000000000000000000000000000056', 18);
+
+      const tokens = [token1, token2, token3]
+
+      mockTokenFeeFetcher.fetchFees.withArgs(tokens.map(token => token.address)).throws(new Error('Failed to fetch fees for token 1'));
+
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens);
+
+      for (const token of tokens) {
+        const address = token.address.toLowerCase()
+        expect(tokenPropertiesMap[address]).toBeDefined();
+        expect(tokenPropertiesMap[address]?.tokenFeeResult).toBeUndefined();
+        assertExpectedTokenProperties(tokenPropertiesMap[address], undefined, undefined, TokenValidationResult.FOT);
+
+        const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(cachedTokenProperties).toBeUndefined();
+
       }
     });
   });
