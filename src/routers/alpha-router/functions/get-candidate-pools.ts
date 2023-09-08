@@ -629,6 +629,7 @@ export async function getV2CandidatePools({
       topNWithBaseToken,
     },
     debugRouting,
+    enableFeeOnTransferFeeFetching,
   } = routingConfig;
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
@@ -1088,7 +1089,10 @@ export async function getV2CandidatePools({
 
   const beforePoolsLoad = Date.now();
 
-  const poolAccessor = await poolProvider.getPools(tokenPairs, { blockNumber, debugRouting });
+  // this should be the only place to enable fee-on-transfer fee fetching,
+  // because this places loads pools (pairs of tokens with fot taxes) from the subgraph
+  const poolAccessor = await poolProvider.getPools(tokenPairs,
+    { blockNumber, debugRouting, enableFeeOnTransferFeeFetching });
 
   metric.putMetric(
     'V2PoolsLoad',
@@ -1288,6 +1292,8 @@ export async function getMixedRouteCandidatePools({
   const beforePoolsLoad = Date.now();
 
   const [V2poolAccessor, V3poolAccessor] = await Promise.all([
+    // we intentionally don't allow fetching v2 fee-on-transfer fees in mixed routes
+    // since v3 part of mixed routes drops FOT in MixedQuoter
     v2poolProvider.getPools(V2tokenPairs, {
       blockNumber,
       debugRouting,
