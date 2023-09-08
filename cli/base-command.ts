@@ -39,7 +39,9 @@ import {
   setGlobalMetric,
   SimulationStatus,
   TenderlySimulator,
+  TokenPropertiesProvider,
   TokenProvider,
+  TokenValidatorProvider,
   UniswapMulticallProvider,
   V2PoolProvider,
   V3PoolProvider,
@@ -47,6 +49,7 @@ import {
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
 import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
+import { OnChainTokenFeeFetcher } from '../src/providers/token-fee-fetcher';
 
 export abstract class BaseCommand extends Command {
   static flags = {
@@ -284,7 +287,22 @@ export abstract class BaseCommand extends Command {
         new V3PoolProvider(chainId, multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-      const v2PoolProvider = new V2PoolProvider(chainId, multicall2Provider);
+      const tokenValidatorProvider = new TokenValidatorProvider(
+        chainId,
+        multicall2Provider,
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+      )
+      const tokenFeeFetcher = new OnChainTokenFeeFetcher(
+        chainId,
+        provider
+      )
+      const tokenPropertiesProvider = new TokenPropertiesProvider(
+        chainId,
+        tokenValidatorProvider,
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
+        tokenFeeFetcher
+      )
+      const v2PoolProvider = new V2PoolProvider(chainId, multicall2Provider, tokenPropertiesProvider);
 
       const tenderlySimulator = new TenderlySimulator(
         chainId,

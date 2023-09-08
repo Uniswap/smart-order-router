@@ -34,6 +34,7 @@ export class Quote extends BaseCommand {
       default: false,
     }),
     simulate: flags.boolean({ required: false, default: false }),
+    enableFeeOnTransferFeeFetching: flags.boolean({ required: false, default: true })
   };
 
   async run() {
@@ -63,6 +64,7 @@ export class Quote extends BaseCommand {
       forceCrossProtocol,
       forceMixedRoutes,
       simulate,
+      enableFeeOnTransferFeeFetching
     } = flags;
 
     const topNSecondHopForTokenAddress = new MapWithLowerCaseKey();
@@ -143,6 +145,7 @@ export class Quote extends BaseCommand {
             topNWithBaseToken,
             topNWithBaseTokenInSet,
             topNDirectSwaps,
+            enableFeeOnTransferFeeFetching,
           },
           maxSwapsPerPath,
           minSplits,
