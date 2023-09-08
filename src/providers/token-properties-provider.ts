@@ -42,7 +42,6 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     private tokenValidatorProvider: ITokenValidatorProvider,
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
-    private enableFeeOnTransferFeeFetching = true,
     private allowList = DEFAULT_ALLOWLIST,
   ) {}
 
@@ -52,7 +51,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
   ): Promise<TokenPropertiesMap> {
     const tokenToResult: TokenPropertiesMap = {};
 
-    if (!this.enableFeeOnTransferFeeFetching) {
+    if (!providerConfig?.enableFeeOnTransferFeeFetching) {
       return tokenToResult;
     }
 

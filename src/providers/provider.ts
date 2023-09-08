@@ -13,6 +13,10 @@ export type ProviderConfig = {
    * Debug flag to test some codepaths
    */
   debugRouting?: boolean;
+  /**
+   * Flag for token properties provider to enable fetching fee-on-transfer tokens.
+   */
+  enableFeeOnTransferFeeFetching?: boolean;
 };
 
 export type LocalCacheEntry<T> = {

@@ -215,11 +215,6 @@ export type AlphaRouterParams = {
    * A provider for getting token properties for special tokens like fee-on-transfer tokens.
    */
   tokenPropertiesProvider?: ITokenPropertiesProvider;
-
-  /**
-   * Flag for token properties provider to enable fetching fee-on-transfer tokens.
-   */
-  enableFeeOnTransferFeeFetching?: boolean
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -357,6 +352,10 @@ export type AlphaRouterConfig = {
    * Flag that allow us to override the cache mode.
    */
   overwriteCacheMode?: CacheMode;
+  /**
+   * Flag for token properties provider to enable fetching fee-on-transfer tokens.
+   */
+  enableFeeOnTransferFeeFetching?: boolean;
 };
 
 export class AlphaRouter
@@ -412,7 +411,6 @@ export class AlphaRouter
     simulator,
     routeCachingProvider,
     tokenPropertiesProvider,
-    enableFeeOnTransferFeeFetching,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -577,15 +575,14 @@ export class AlphaRouter
       }
     }
 
-    if (tokenPropertiesProvider && enableFeeOnTransferFeeFetching) {
+    if (tokenPropertiesProvider) {
       this.tokenPropertiesProvider = tokenPropertiesProvider;
     } else {
       this.tokenPropertiesProvider = new TokenPropertiesProvider(
         this.chainId,
         this.tokenValidatorProvider!,
         new NodeJSCache(new NodeCache({ stdTTL: 86400, useClones: false })),
-        new OnChainTokenFeeFetcher(this.chainId, provider),
-        enableFeeOnTransferFeeFetching,
+        new OnChainTokenFeeFetcher(this.chainId, provider)
       )
     }
     this.v2PoolProvider =
