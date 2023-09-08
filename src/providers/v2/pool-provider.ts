@@ -137,7 +137,7 @@ export class V2PoolProvider implements IV2PoolProvider {
         providerConfig
       ),
       this.tokenPropertiesProvider.getTokensProperties(
-        this.flatMap(tokenPairs),
+        this.flatten(tokenPairs),
         providerConfig
       ),
     ]);
@@ -278,7 +278,7 @@ export class V2PoolProvider implements IV2PoolProvider {
   }
 
   // We are using ES2017. ES2019 has native flatMap support
-  private flatMap(tokenPairs: Array<[Token, Token]>): Token[] {
+  private flatten(tokenPairs: Array<[Token, Token]>): Token[] {
     const tokens = new Array<Token>();
 
     for (const [tokenA, tokenB] of tokenPairs) {
