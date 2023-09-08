@@ -175,7 +175,10 @@ export class V2PoolProvider implements IV2PoolProvider {
           token0.address,
           token0.decimals,
           token0.symbol,
-          token0.name
+          token0.name,
+          true, // at this point we know it's valid token address
+          tokenPropertiesMap[token0.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
+          tokenPropertiesMap[token0.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
         );
       }
 
@@ -189,7 +192,10 @@ export class V2PoolProvider implements IV2PoolProvider {
           token1.address,
           token1.decimals,
           token1.symbol,
-          token1.name
+          token1.name,
+          true, // at this point we know it's valid token address
+          tokenPropertiesMap[token1.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
+          tokenPropertiesMap[token1.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
         );
       }
 
