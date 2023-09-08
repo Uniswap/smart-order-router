@@ -215,6 +215,11 @@ export type AlphaRouterParams = {
    * A provider for getting token properties for special tokens like fee-on-transfer tokens.
    */
   tokenPropertiesProvider?: ITokenPropertiesProvider;
+
+  /**
+   * Flag for token properties provider to enable fetching fee-on-transfer tokens.
+   */
+  enableFeeOnTransferFeeFetching?: boolean
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -351,7 +356,7 @@ export type AlphaRouterConfig = {
   /**
    * Flag that allow us to override the cache mode.
    */
-  overwriteCacheMode?: CacheMode
+  overwriteCacheMode?: CacheMode;
 };
 
 export class AlphaRouter
@@ -382,7 +387,7 @@ export class AlphaRouter
   protected v3Quoter: V3Quoter;
   protected mixedQuoter: MixedQuoter;
   protected routeCachingProvider?: IRouteCachingProvider;
-  protected tokenPropertiesProvider?: ITokenPropertiesProvider;
+  protected tokenPropertiesProvider: ITokenPropertiesProvider;
 
   constructor({
     chainId,
@@ -407,6 +412,7 @@ export class AlphaRouter
     simulator,
     routeCachingProvider,
     tokenPropertiesProvider,
+    enableFeeOnTransferFeeFetching,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -571,11 +577,22 @@ export class AlphaRouter
       }
     }
 
+    if (tokenPropertiesProvider && enableFeeOnTransferFeeFetching) {
+      this.tokenPropertiesProvider = tokenPropertiesProvider;
+    } else {
+      this.tokenPropertiesProvider = new TokenPropertiesProvider(
+        this.chainId,
+        this.tokenValidatorProvider!,
+        new NodeJSCache(new NodeCache({ stdTTL: 86400, useClones: false })),
+        new OnChainTokenFeeFetcher(this.chainId, provider),
+        enableFeeOnTransferFeeFetching,
+      )
+    }
     this.v2PoolProvider =
       v2PoolProvider ??
       new CachingV2PoolProvider(
         chainId,
-        new V2PoolProvider(chainId, this.multicall2Provider),
+        new V2PoolProvider(chainId, this.multicall2Provider, this.tokenPropertiesProvider),
         new NodeJSCache(new NodeCache({ stdTTL: 60, useClones: false }))
       );
 
@@ -692,16 +709,6 @@ export class AlphaRouter
         this.multicall2Provider,
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
       );
-    }
-    if (tokenPropertiesProvider) {
-      this.tokenPropertiesProvider = tokenPropertiesProvider;
-    } else if (this.chainId === ChainId.MAINNET) {
-      this.tokenPropertiesProvider = new TokenPropertiesProvider(
-        this.chainId,
-        this.tokenValidatorProvider!,
-        new NodeJSCache(new NodeCache({ stdTTL: 86400, useClones: false })),
-        new OnChainTokenFeeFetcher(this.chainId, provider)
-      )
     }
 
     // Initialize the Quoters.

@@ -42,13 +42,20 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     private tokenValidatorProvider: ITokenValidatorProvider,
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
-    private allowList = DEFAULT_ALLOWLIST
+    private enableFeeOnTransferFeeFetching = true,
+    private allowList = DEFAULT_ALLOWLIST,
   ) {}
 
   public async getTokensProperties(
     tokens: Token[],
     providerConfig?: ProviderConfig
   ): Promise<TokenPropertiesMap> {
+    const tokenToResult: TokenPropertiesMap = {};
+
+    if (!this.enableFeeOnTransferFeeFetching) {
+      return tokenToResult;
+    }
+
     const nonAllowlistTokens = tokens.filter(
       (token) => !this.allowList.has(token.address.toLowerCase())
     );
@@ -57,7 +64,6 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
         nonAllowlistTokens,
         providerConfig
       );
-    const tokenToResult: TokenPropertiesMap = {};
 
     tokens.forEach((token) => {
       if (this.allowList.has(token.address.toLowerCase())) {

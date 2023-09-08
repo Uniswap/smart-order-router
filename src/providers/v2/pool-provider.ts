@@ -15,7 +15,9 @@ import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ProviderConfig } from '../provider';
-import { TokenPropertiesProvider } from '../token-properties-provider';
+import {
+  ITokenPropertiesProvider,
+} from '../token-properties-provider';
 import { TokenValidationResult } from '../token-validator-provider';
 
 type IReserves = {
@@ -79,7 +81,7 @@ export class V2PoolProvider implements IV2PoolProvider {
   constructor(
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,
-    protected tokenPropertiesProvider: TokenPropertiesProvider,
+    protected tokenPropertiesProvider: ITokenPropertiesProvider,
     protected retryOptions: V2PoolRetryOptions = {
       retries: 2,
       minTimeout: 50,
