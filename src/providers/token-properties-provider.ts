@@ -51,7 +51,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
   ): Promise<TokenPropertiesMap> {
     const tokenToResult: TokenPropertiesMap = {};
 
-    if (!providerConfig?.enableFeeOnTransferFeeFetching) {
+    if (!providerConfig?.enableFeeOnTransferFeeFetching || this.chainId !== ChainId.MAINNET) {
       return tokenToResult;
     }
 
