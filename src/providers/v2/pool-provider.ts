@@ -164,7 +164,7 @@ export class V2PoolProvider implements IV2PoolProvider {
         continue;
       }
 
-      let token0 = sortedTokenPairs[i]![0];
+      let [token0, token1] = sortedTokenPairs[i]!;
       if (
         tokenPropertiesMap[token0.address.toLowerCase()]
           ?.tokenValidationResult === TokenValidationResult.FOT
@@ -179,7 +179,6 @@ export class V2PoolProvider implements IV2PoolProvider {
         );
       }
 
-      let token1 = sortedTokenPairs[i]![1];
       if (
         tokenPropertiesMap[token1.address.toLowerCase()]
           ?.tokenValidationResult === TokenValidationResult.FOT
