@@ -575,6 +575,15 @@ export class AlphaRouter
       }
     }
 
+    if (tokenValidatorProvider) {
+      this.tokenValidatorProvider = tokenValidatorProvider;
+    } else if (this.chainId === ChainId.MAINNET) {
+      this.tokenValidatorProvider = new TokenValidatorProvider(
+        this.chainId,
+        this.multicall2Provider,
+        new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
+      );
+    }
     if (tokenPropertiesProvider) {
       this.tokenPropertiesProvider = tokenPropertiesProvider;
     } else {
@@ -697,15 +706,6 @@ export class AlphaRouter
       this.l2GasDataProvider =
         arbitrumGasDataProvider ??
         new ArbitrumGasDataProvider(chainId, this.provider);
-    }
-    if (tokenValidatorProvider) {
-      this.tokenValidatorProvider = tokenValidatorProvider;
-    } else if (this.chainId === ChainId.MAINNET) {
-      this.tokenValidatorProvider = new TokenValidatorProvider(
-        this.chainId,
-        this.multicall2Provider,
-        new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
-      );
     }
 
     // Initialize the Quoters.
