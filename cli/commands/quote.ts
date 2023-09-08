@@ -34,7 +34,8 @@ export class Quote extends BaseCommand {
       default: false,
     }),
     simulate: flags.boolean({ required: false, default: false }),
-    enableFeeOnTransferFeeFetching: flags.boolean({ required: false, default: true })
+    debugRouting: flags.boolean({ required: false, default: true }),
+    enableFeeOnTransferFeeFetching: flags.boolean({ required: false, default: true }),
   };
 
   async run() {
@@ -64,6 +65,7 @@ export class Quote extends BaseCommand {
       forceCrossProtocol,
       forceMixedRoutes,
       simulate,
+      debugRouting,
       enableFeeOnTransferFeeFetching
     } = flags;
 
@@ -145,7 +147,6 @@ export class Quote extends BaseCommand {
             topNWithBaseToken,
             topNWithBaseTokenInSet,
             topNDirectSwaps,
-            enableFeeOnTransferFeeFetching,
           },
           maxSwapsPerPath,
           minSplits,
@@ -154,6 +155,8 @@ export class Quote extends BaseCommand {
           protocols,
           forceCrossProtocol,
           forceMixedRoutes,
+          debugRouting,
+          enableFeeOnTransferFeeFetching,
         }
       );
     } else {
