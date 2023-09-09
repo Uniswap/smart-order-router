@@ -165,7 +165,6 @@ export class V2PoolProvider implements IV2PoolProvider {
       }
 
       let [token0, token1] = sortedTokenPairs[i]!;
-
       if (
         tokenPropertiesMap[token0.address.toLowerCase()]
           ?.tokenValidationResult === TokenValidationResult.FOT
@@ -227,14 +226,6 @@ export class V2PoolProvider implements IV2PoolProvider {
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
     log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
-
-    console.log(`all pools ${JSON.stringify(Object.values(poolAddressToPool))}`)
-
-    try {
-      throw new Error('help me debug')
-    } catch (err) {
-      console.log(err)
-    }
 
     return {
       getPool: (tokenA: Token, tokenB: Token): Pair | undefined => {
