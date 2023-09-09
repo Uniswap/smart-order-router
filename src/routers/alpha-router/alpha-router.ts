@@ -982,12 +982,17 @@ export class AlphaRouter
     const gasPriceWei = await this.getGasPriceWei();
 
     const quoteToken = quoteCurrency.wrapped;
+    const providerConfig: ProviderConfig = {
+      ...routingConfig,
+      blockNumber,
+      additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency),
+    };
 
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
       quoteToken,
-      { blockNumber, additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency) }
+      providerConfig
     );
 
     // Create a Set to sanitize the protocols input, a Set of undefined becomes an empty set,

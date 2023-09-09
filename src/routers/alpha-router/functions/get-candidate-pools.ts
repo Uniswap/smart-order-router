@@ -1134,7 +1134,6 @@ export async function getMixedRouteCandidatePools({
   v2poolProvider,
 }: MixedRouteGetCandidatePoolsParams): Promise<MixedCandidatePools> {
   const beforeSubgraphPools = Date.now();
-  const { blockNumber, debugRouting } = routingConfig;
   const [
     { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools },
     { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools }
@@ -1227,9 +1226,7 @@ export async function getMixedRouteCandidatePools({
     `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} pools we are considering`
   );
 
-  const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {
-    blockNumber,
-  });
+  const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, routingConfig);
 
   const V3tokenPairsRaw = _.map<
     V3SubgraphPool,
@@ -1292,16 +1289,8 @@ export async function getMixedRouteCandidatePools({
   const beforePoolsLoad = Date.now();
 
   const [V2poolAccessor, V3poolAccessor] = await Promise.all([
-    // we intentionally don't allow fetching v2 fee-on-transfer fees in mixed routes
-    // since v3 part of mixed routes drops FOT in MixedQuoter
-    v2poolProvider.getPools(V2tokenPairs, {
-      blockNumber,
-      debugRouting,
-    }),
-    v3poolProvider.getPools(V3tokenPairs, {
-      blockNumber,
-      debugRouting
-    }),
+    v2poolProvider.getPools(V2tokenPairs, routingConfig),
+    v3poolProvider.getPools(V3tokenPairs, routingConfig),
   ]);
 
   metric.putMetric(
