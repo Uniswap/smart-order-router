@@ -628,8 +628,6 @@ export async function getV2CandidatePools({
       topNWithEachBaseToken,
       topNWithBaseToken,
     },
-    debugRouting,
-    enableFeeOnTransferFeeFetching,
   } = routingConfig;
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
@@ -1091,8 +1089,7 @@ export async function getV2CandidatePools({
 
   // this should be the only place to enable fee-on-transfer fee fetching,
   // because this places loads pools (pairs of tokens with fot taxes) from the subgraph
-  const poolAccessor = await poolProvider.getPools(tokenPairs,
-    { blockNumber, debugRouting, enableFeeOnTransferFeeFetching });
+  const poolAccessor = await poolProvider.getPools(tokenPairs, routingConfig);
 
   metric.putMetric(
     'V2PoolsLoad',
