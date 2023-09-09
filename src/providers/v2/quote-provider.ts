@@ -107,7 +107,6 @@ export class V2QuoteProvider implements IV2QuoteProvider {
               } else {
                 [inputAmount] = pair.getInputAmount(inputAmount);
               }
-              [inputAmount] = pair.getInputAmount(inputAmount);
             }
 
             amountQuotes.push({
