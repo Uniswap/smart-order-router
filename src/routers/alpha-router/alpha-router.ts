@@ -1375,7 +1375,23 @@ export class AlphaRouter
       const v2RoutesFromCache: V2Route[] = v2Routes.map((cachedRoute) => cachedRoute.route as V2Route);
       metric.putMetric('SwapRouteFromCache_V2_GetQuotes_Request', 1, MetricLoggerUnit.Count);
 
-      const pools = v2RoutesFromCache.map((route) => route.pairs).reduce((pools, pool) => pools.concat(pool), []);
+      const pools = v2RoutesFromCache.map((route) => route.pairs).reduce((matchedPools, currentPools) => {
+        if (currentPools.find((pair) => pair.involvesToken(cachedRoutes.tokenIn)
+          && !matchedPools.find((pair) => pair.involvesToken(cachedRoutes.tokenIn)))) {
+          // only add current pools that contains the tokenIn to the matched pools
+          // as well as ensuring the matched pools don't already have the tokenIn
+          // to save memories
+          return matchedPools.concat(currentPools)
+        } else if (currentPools.find((pair) => pair.involvesToken(cachedRoutes.tokenOut)
+          && !matchedPools.find((pair) => pair.involvesToken(cachedRoutes.tokenOut)))) {
+          // only add current pools that contains the tokenOut to the matched pools
+          // as well as ensuring the matched pools don't already have the tokenOut
+          // to save memories
+          return matchedPools.concat(currentPools)
+        } else {
+          return matchedPools
+        }
+      });
       const tokenInWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenIn, pools);
       const tokenOutWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenOut, pools);
       const amountToken = getTokenWithFotTaxFromPools(amount.currency.wrapped, pools);
