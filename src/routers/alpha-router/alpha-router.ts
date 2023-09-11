@@ -34,7 +34,9 @@ import {
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
-  SwapRouterProvider, TokenPropertiesProvider,
+  SwapRouterProvider,
+  TokenPropertiesProvider,
+  TokenValidationResult,
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
@@ -46,14 +48,14 @@ import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider'
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
-import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
+import { ITokenValidatorProvider, TokenValidatorProvider } from '../../providers/token-validator-provider';
 import { IV2PoolProvider, V2PoolProvider } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
   IL2GasDataProvider,
   OptimismGasData,
-  OptimismGasDataProvider,
+  OptimismGasDataProvider
 } from '../../providers/v3/gas-data-provider';
 import { IV3PoolProvider, V3PoolProvider } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
@@ -1327,7 +1329,13 @@ export class AlphaRouter
 
     let percents: number[];
     let amounts: CurrencyAmount[];
-    if (cachedRoutes.routes.length > 1) {
+    if (v2Routes.length > 1) {
+      const amountWithFotTax = await this.getAmountWithFotTax(amount, routingConfig);
+      [percents, amounts] = this.getAmountDistribution(
+        amountWithFotTax,
+        routingConfig
+      );
+    } else if (cachedRoutes.routes.length > 1) {
       // If we have more than 1 route, we will quote the different percents for it, following the regular process
       [percents, amounts] = this.getAmountDistribution(
         amount,
@@ -1451,14 +1459,6 @@ export class AlphaRouter
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber
   ): Promise<BestSwapRoute | null> {
-    // Generate our distribution of amounts, i.e. fractions of the input amount.
-    // We will get quotes for fractions of the input amount for different routes, then
-    // combine to generate split routes.
-    const [percents, amounts] = this.getAmountDistribution(
-      amount,
-      routingConfig
-    );
-
     const noProtocolsSpecified = protocols.length === 0;
     const v3ProtocolSpecified = protocols.includes(Protocol.V3);
     const v2ProtocolSpecified = protocols.includes(Protocol.V2);
@@ -1466,6 +1466,17 @@ export class AlphaRouter
     const shouldQueryMixedProtocol = protocols.includes(Protocol.MIXED) || (noProtocolsSpecified && v2SupportedInChain);
     const mixedProtocolAllowed = [ChainId.MAINNET, ChainId.GOERLI].includes(this.chainId) &&
       tradeType === TradeType.EXACT_INPUT;
+    const shouldFetchV2CandidatePools = (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) ||
+      (shouldQueryMixedProtocol && mixedProtocolAllowed)
+
+    // Generate our distribution of amounts, i.e. fractions of the input amount.
+    // We will get quotes for fractions of the input amount for different routes, then
+    // combine to generate split routes.
+    const amountWithFotTax = await this.getAmountWithFotTax(amount, routingConfig);
+    const [percents, amounts] = this.getAmountDistribution(
+      amountWithFotTax,
+      routingConfig
+    );
 
     const beforeGetCandidates = Date.now();
 
@@ -1492,10 +1503,7 @@ export class AlphaRouter
     }
 
     let v2CandidatePoolsPromise: Promise<V2CandidatePools | undefined> = Promise.resolve(undefined);
-    if (
-      (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) ||
-      (shouldQueryMixedProtocol && mixedProtocolAllowed)
-    ) {
+    if (shouldFetchV2CandidatePools) {
       // Fetch all the pools that we will consider routing via. There are thousands
       // of pools, so we filter them to a set of candidate pools that we expect will
       // result in good prices.
@@ -2059,5 +2067,31 @@ export class AlphaRouter
         maxTimeout: 1000,
       }
     );
+  }
+
+  private async getAmountWithFotTax(amount: CurrencyAmount, routingConfig: AlphaRouterConfig): Promise<CurrencyAmount> {
+    const wrappedAmountToken = amount.currency.wrapped
+    const tokenProperties = await this.tokenPropertiesProvider.getTokensProperties([wrappedAmountToken], routingConfig)
+
+    let amountWithFotTax = amount
+
+    if (tokenProperties[wrappedAmountToken.address.toLowerCase()]?.tokenValidationResult === TokenValidationResult.FOT) {
+      const buyFeeBps = tokenProperties[wrappedAmountToken.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps
+      const sellFeeBps = tokenProperties[wrappedAmountToken.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
+
+      const tokenWithFotTax = new Token(
+        wrappedAmountToken.chainId,
+        wrappedAmountToken.address,
+        wrappedAmountToken.decimals,
+        wrappedAmountToken.symbol,
+        wrappedAmountToken.name,
+        true,
+        buyFeeBps,
+        sellFeeBps,
+      )
+      amountWithFotTax = CurrencyAmount.fromRawAmount(tokenWithFotTax, amount.quotient)
+    }
+
+    return amountWithFotTax
   }
 }
