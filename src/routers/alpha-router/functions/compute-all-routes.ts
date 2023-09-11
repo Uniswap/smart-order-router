@@ -5,7 +5,6 @@ import { Pool } from '@uniswap/v3-sdk';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import { MixedRoute, V2Route, V3Route } from '../../router';
-import { getTokenWithFotTaxFromPools } from '../../../util/pools';
 
 export function computeAllV3Routes(
   tokenIn: Token,
@@ -30,12 +29,9 @@ export function computeAllV2Routes(
   pools: Pair[],
   maxHops: number
 ): V2Route[] {
-  const tokenInWithFotTax = getTokenWithFotTaxFromPools(tokenIn, pools);
-  const tokenOutWithFotTax = getTokenWithFotTaxFromPools(tokenOut, pools);
-
   return computeAllRoutes<Pair, V2Route>(
-    tokenInWithFotTax,
-    tokenOutWithFotTax,
+    tokenIn,
+    tokenOut,
     (route: Pair[], tokenIn: Token, tokenOut: Token) => {
       return new V2Route(route, tokenIn, tokenOut);
     },
