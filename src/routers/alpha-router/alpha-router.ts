@@ -1394,7 +1394,7 @@ export class AlphaRouter
       });
       const tokenInWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenIn, pools) ?? cachedRoutes.tokenIn;
       const tokenOutWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenOut, pools) ?? cachedRoutes.tokenOut;
-      const amountToken = getTokenWithFotTaxFromPools(amount.currency.wrapped, pools);
+      const amountToken = getCurrencyWithFotTaxFromPools(amount.currency, pools);
       const amountWithFotTax = amountToken ? CurrencyAmount.fromRawAmount(amountToken, amount.quotient) : amount;
       const quoteTokenWithFotTax = getTokenWithFotTaxFromPools(quoteToken, pools) ?? quoteToken;
 
