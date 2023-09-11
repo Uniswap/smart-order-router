@@ -169,7 +169,6 @@ export class V2PoolProvider implements IV2PoolProvider {
         tokenPropertiesMap[token0.address.toLowerCase()]
           ?.tokenValidationResult === TokenValidationResult.FOT
       ) {
-        // TODO add buyFeeBps and sellFeeBps once we upgrade sdk-core
         token0 = new Token(
           token0.chainId,
           token0.address,
@@ -186,7 +185,6 @@ export class V2PoolProvider implements IV2PoolProvider {
         tokenPropertiesMap[token1.address.toLowerCase()]
           ?.tokenValidationResult === TokenValidationResult.FOT
       ) {
-        // TODO add buyFeeBps and sellFeeBps once we upgrade sdk-core
         token1 = new Token(
           token1.chainId,
           token1.address,

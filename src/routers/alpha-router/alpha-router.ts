@@ -35,7 +35,7 @@ import {
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
   SwapRouterProvider,
-  TokenPropertiesProvider,
+  TokenPropertiesProvider, TokenValidationResult,
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
@@ -68,7 +68,6 @@ import { buildSwapMethodParameters, buildTrade } from '../../util/methodParamete
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
   getCurrencyWithFotTaxFromPools,
-  getMatchedPoolsFromV2Routes,
   getTokenWithFotTaxFromPools
 } from '../../util/pools';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
@@ -1183,12 +1182,42 @@ export class AlphaRouter
       cacheMode !== CacheMode.Darkmode &&
       swapRouteFromChain
     ) {
+      const tokenPropertiesMap = await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], routingConfig);
+
+      const tokenInWithFotTax =
+        (tokenPropertiesMap[tokenIn.address.toLowerCase()]
+          ?.tokenValidationResult === TokenValidationResult.FOT) ?
+        new Token(
+          tokenIn.chainId,
+          tokenIn.address,
+          tokenIn.decimals,
+          tokenIn.symbol,
+          tokenIn.name,
+          true, // at this point we know it's valid token address
+          tokenPropertiesMap[tokenIn.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
+          tokenPropertiesMap[tokenIn.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
+        ) : tokenIn;
+
+      const tokenOutWithFotTax =
+        (tokenPropertiesMap[tokenOut.address.toLowerCase()]
+          ?.tokenValidationResult === TokenValidationResult.FOT) ?
+          new Token(
+            tokenOut.chainId,
+            tokenOut.address,
+            tokenOut.decimals,
+            tokenOut.symbol,
+            tokenOut.name,
+            true, // at this point we know it's valid token address
+            tokenPropertiesMap[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
+            tokenPropertiesMap[tokenOut.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
+          ) : tokenOut;
+
       // Generate the object to be cached
       const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
         swapRouteFromChain.routes,
         this.chainId,
-        tokenIn,
-        tokenOut,
+        tokenInWithFotTax,
+        tokenOutWithFotTax,
         protocols.sort(), // sort it for consistency in the order of the protocols.
         await blockNumber,
         tradeType,
@@ -1379,28 +1408,16 @@ export class AlphaRouter
       const v2RoutesFromCache: V2Route[] = v2Routes.map((cachedRoute) => cachedRoute.route as V2Route);
       metric.putMetric('SwapRouteFromCache_V2_GetQuotes_Request', 1, MetricLoggerUnit.Count);
 
-      const pools = getMatchedPoolsFromV2Routes(v2RoutesFromCache, cachedRoutes);
-      const tokenInWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenIn, pools) ?? cachedRoutes.tokenIn;
-      const tokenOutWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenOut, pools) ?? cachedRoutes.tokenOut;
-      const amountToken = getCurrencyWithFotTaxFromPools(amount.currency, pools);
-      const amountWithFotTax = amountToken ? CurrencyAmount.fromRawAmount(amountToken, amount.quotient) : amount;
-      const quoteTokenWithFotTax = getTokenWithFotTaxFromPools(quoteToken, pools) ?? quoteToken;
-
-      [percents, amounts] = this.getAmountDistribution(
-        amountWithFotTax,
-        routingConfig
-      );
-
       const beforeGetQuotes = Date.now();
 
       quotePromises.push(
         this.v2Quoter.refreshRoutesThenGetQuotes(
-          tokenInWithFotTax,
-          tokenOutWithFotTax,
+          cachedRoutes.tokenIn,
+          cachedRoutes.tokenOut,
           v2RoutesFromCache,
           amounts,
           percents,
-          quoteTokenWithFotTax,
+          quoteToken,
           tradeType,
           routingConfig,
           gasPriceWei
