@@ -5,6 +5,7 @@ import { Pool } from '@uniswap/v3-sdk';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import { MixedRoute, V2Route, V3Route } from '../../router';
+import { getTokenWithFotTaxFromPools } from '../../../util/pools';
 
 export function computeAllV3Routes(
   tokenIn: Token,
@@ -29,23 +30,8 @@ export function computeAllV2Routes(
   pools: Pair[],
   maxHops: number
 ): V2Route[] {
-  function getTokenWithFotTaxFromPools(pools: Pair[], token: Token): Token {
-    const firstPoolContainingToken = pools.find((pool) => pool.involvesToken(token));
-    let tokenWithFotTax = tokenIn;
-
-    if (firstPoolContainingToken) {
-      if (firstPoolContainingToken.token0.equals(token)) {
-        tokenWithFotTax = firstPoolContainingToken.token0;
-      } else if (firstPoolContainingToken.token1.equals(token)) {
-        tokenWithFotTax = firstPoolContainingToken.token1;
-      }
-    }
-
-    return tokenWithFotTax
-  }
-
-  const tokenInWithFotTax = getTokenWithFotTaxFromPools(pools, tokenIn);
-  const tokenOutWithFotTax = getTokenWithFotTaxFromPools(pools, tokenOut);
+  const tokenInWithFotTax = getTokenWithFotTaxFromPools(tokenIn, pools);
+  const tokenOutWithFotTax = getTokenWithFotTaxFromPools(tokenOut, pools);
 
   return computeAllRoutes<Pair, V2Route>(
     tokenInWithFotTax,
