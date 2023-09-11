@@ -66,6 +66,7 @@ import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '.
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
+import { getCurrencyWithFotTaxFromPools, getTokenWithFotTaxFromPools } from '../../util/pools';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
@@ -110,7 +111,7 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
-import { getTokenWithFotTaxFromPools } from '../../util/pools';
+
 
 export type AlphaRouterParams = {
   /**
@@ -1304,7 +1305,7 @@ export class AlphaRouter
   private async getSwapRouteFromCache(
     cachedRoutes: CachedRoutes,
     blockNumber: number,
-    amountPreprocessing: CurrencyAmount,
+    amount: CurrencyAmount,
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
@@ -1329,7 +1330,6 @@ export class AlphaRouter
 
     let percents: number[];
     let amounts: CurrencyAmount[];
-    let amount = amountPreprocessing;
     if (cachedRoutes.routes.length > 1) {
       // If we have more than 1 route, we will quote the different percents for it, following the regular process
       [percents, amounts] = this.getAmountDistribution(
@@ -1392,14 +1392,14 @@ export class AlphaRouter
           return matchedPools
         }
       });
-      const tokenInWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenIn, pools);
-      const tokenOutWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenOut, pools);
+      const tokenInWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenIn, pools) ?? cachedRoutes.tokenIn;
+      const tokenOutWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenOut, pools) ?? cachedRoutes.tokenOut;
       const amountToken = getTokenWithFotTaxFromPools(amount.currency.wrapped, pools);
-      amount = CurrencyAmount.fromRawAmount(amountToken, amount.quotient);
-      const quoteTokenWithFotTax = getTokenWithFotTaxFromPools(quoteToken, pools);
+      const amountWithFotTax = amountToken ? CurrencyAmount.fromRawAmount(amountToken, amount.quotient) : amount;
+      const quoteTokenWithFotTax = getTokenWithFotTaxFromPools(quoteToken, pools) ?? quoteToken;
 
       [percents, amounts] = this.getAmountDistribution(
-        amount,
+        amountWithFotTax,
         routingConfig
       );
 
@@ -1471,7 +1471,7 @@ export class AlphaRouter
   }
 
   private async getSwapRouteFromChain(
-    amountPreprocessing: CurrencyAmount,
+    amount: CurrencyAmount,
     tokenIn: Token,
     tokenOut: Token,
     protocols: Protocol[],
@@ -1482,8 +1482,6 @@ export class AlphaRouter
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber
   ): Promise<BestSwapRoute | null> {
-    let amount = amountPreprocessing;
-
     // Generate our distribution of amounts, i.e. fractions of the input amount.
     // We will get quotes for fractions of the input amount for different routes, then
     // combine to generate split routes.
@@ -1591,17 +1589,16 @@ export class AlphaRouter
         v2CandidatePoolsPromise.then(async (v2CandidatePools) =>
           {
             const pools = v2CandidatePools?.poolAccessor.getAllPools();
-            const tokenInWithFotTax = getTokenWithFotTaxFromPools(tokenIn, pools);
-            const tokenOutWithFotTax = getTokenWithFotTaxFromPools(tokenOut, pools);
-            const amountToken = getTokenWithFotTaxFromPools(amount.currency.wrapped, pools);
-            amount = CurrencyAmount.fromRawAmount(amountToken, amount.quotient);
-            const [percents, amounts] = this.getAmountDistribution(amount, routingConfig);
-            const quoteTokenWithFotTax = getTokenWithFotTaxFromPools(quoteToken, pools);
+            const tokenInWithFotTax = getTokenWithFotTaxFromPools(tokenIn, pools) ?? tokenIn;
+            const tokenOutWithFotTax = getTokenWithFotTaxFromPools(tokenOut, pools) ?? tokenOut;
+            const amountToken = getCurrencyWithFotTaxFromPools(amount.currency, pools);
+            const amountWithFotTax = amountToken ? CurrencyAmount.fromRawAmount(amountToken, amount.quotient) : amount;
+            const quoteTokenWithFotTax = getTokenWithFotTaxFromPools(quoteToken, pools) ?? quoteToken;
 
             const result = await this.v2Quoter.getRoutesThenQuotes(
               tokenInWithFotTax,
               tokenOutWithFotTax,
-              amount,
+              amountWithFotTax,
               amounts,
               percents,
               quoteTokenWithFotTax,
