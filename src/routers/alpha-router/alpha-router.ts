@@ -66,7 +66,11 @@ import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '.
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import { getCurrencyWithFotTaxFromPools, getTokenWithFotTaxFromPools } from '../../util/pools';
+import {
+  getCurrencyWithFotTaxFromPools,
+  getMatchedPoolsFromV2Routes,
+  getTokenWithFotTaxFromPools
+} from '../../util/pools';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
@@ -1375,23 +1379,7 @@ export class AlphaRouter
       const v2RoutesFromCache: V2Route[] = v2Routes.map((cachedRoute) => cachedRoute.route as V2Route);
       metric.putMetric('SwapRouteFromCache_V2_GetQuotes_Request', 1, MetricLoggerUnit.Count);
 
-      const pools = v2RoutesFromCache.map((route) => route.pairs).reduce((matchedPools, currentPools) => {
-        if (currentPools.find((pair) => pair.involvesToken(cachedRoutes.tokenIn)
-          && !matchedPools.find((pair) => pair.involvesToken(cachedRoutes.tokenIn)))) {
-          // only add current pools that contains the tokenIn to the matched pools
-          // as well as ensuring the matched pools don't already have the tokenIn
-          // to save memories
-          return matchedPools.concat(currentPools)
-        } else if (currentPools.find((pair) => pair.involvesToken(cachedRoutes.tokenOut)
-          && !matchedPools.find((pair) => pair.involvesToken(cachedRoutes.tokenOut)))) {
-          // only add current pools that contains the tokenOut to the matched pools
-          // as well as ensuring the matched pools don't already have the tokenOut
-          // to save memories
-          return matchedPools.concat(currentPools)
-        } else {
-          return matchedPools
-        }
-      });
+      const pools = getMatchedPoolsFromV2Routes(v2RoutesFromCache, cachedRoutes);
       const tokenInWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenIn, pools) ?? cachedRoutes.tokenIn;
       const tokenOutWithFotTax = getTokenWithFotTaxFromPools(cachedRoutes.tokenOut, pools) ?? cachedRoutes.tokenOut;
       const amountToken = getCurrencyWithFotTaxFromPools(amount.currency, pools);
