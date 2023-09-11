@@ -29,9 +29,27 @@ export function computeAllV2Routes(
   pools: Pair[],
   maxHops: number
 ): V2Route[] {
+  function getTokenWithFotTaxFromPools(pools: Pair[], token: Token): Token {
+    const firstPoolContainingToken = pools.find((pool) => pool.involvesToken(token));
+    let tokenWithFotTax = tokenIn;
+
+    if (firstPoolContainingToken) {
+      if (firstPoolContainingToken.token0.equals(token)) {
+        tokenWithFotTax = firstPoolContainingToken.token0;
+      } else if (firstPoolContainingToken.token1.equals(token)) {
+        tokenWithFotTax = firstPoolContainingToken.token1;
+      }
+    }
+
+    return tokenWithFotTax
+  }
+
+  const tokenInWithFotTax = getTokenWithFotTaxFromPools(pools, tokenIn);
+  const tokenOutWithFotTax = getTokenWithFotTaxFromPools(pools, tokenOut);
+
   return computeAllRoutes<Pair, V2Route>(
-    tokenIn,
-    tokenOut,
+    tokenInWithFotTax,
+    tokenOutWithFotTax,
     (route: Pair[], tokenIn: Token, tokenOut: Token) => {
       return new V2Route(route, tokenIn, tokenOut);
     },
