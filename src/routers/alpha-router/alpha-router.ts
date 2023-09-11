@@ -1804,7 +1804,7 @@ export class AlphaRouter
       percents.push(i * distributionPercent);
       amounts.push(amount.multiply(new Fraction(i * distributionPercent, 100)));
     }
-    
+
     return [percents, amounts];
   }
 
