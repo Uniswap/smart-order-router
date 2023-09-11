@@ -192,6 +192,8 @@ export class Quote extends BaseCommand {
           protocols,
           forceCrossProtocol,
           forceMixedRoutes,
+          debugRouting,
+          enableFeeOnTransferFeeFetching,
         }
       );
     }
