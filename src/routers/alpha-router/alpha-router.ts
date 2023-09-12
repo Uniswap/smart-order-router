@@ -1182,7 +1182,7 @@ export class AlphaRouter
       cacheMode !== CacheMode.Darkmode &&
       swapRouteFromChain
     ) {
-      const tokenPropertiesMap = await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], routingConfig);
+      const tokenPropertiesMap = await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], providerConfig);
 
       const tokenInWithFotTax =
         (tokenPropertiesMap[tokenIn.address.toLowerCase()]
