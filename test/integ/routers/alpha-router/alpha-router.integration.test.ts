@@ -67,7 +67,10 @@ import {
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
+  TokenPropertiesProvider,
+  TokenValidatorProvider,
 } from '../../../../src';
+import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
@@ -480,9 +483,25 @@ describe('alpha router integration', () => {
       new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
       new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
     );
+    const tokenValidatorProvider = new TokenValidatorProvider(
+      ChainId.MAINNET,
+      multicall2Provider,
+      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+    )
+    const tokenFeeFetcher = new OnChainTokenFeeFetcher(
+      ChainId.MAINNET,
+      hardhat.provider
+    )
+    const tokenPropertiesProvider = new TokenPropertiesProvider(
+      ChainId.MAINNET,
+      tokenValidatorProvider,
+      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
+      tokenFeeFetcher
+    )
     const v2PoolProvider = new V2PoolProvider(
       ChainId.MAINNET,
-      multicall2Provider
+      multicall2Provider,
+      tokenPropertiesProvider
     );
 
     const ethEstimateGasSimulator = new EthEstimateGasSimulator(
@@ -2686,7 +2705,22 @@ describe('quote for other networks', () => {
             new V3PoolProvider(chain, multicall2Provider),
             new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
           );
-          const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider);
+          const tokenValidatorProvider = new TokenValidatorProvider(
+            ChainId.MAINNET,
+            multicall2Provider,
+            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+          )
+          const tokenFeeFetcher = new OnChainTokenFeeFetcher(
+            ChainId.MAINNET,
+            hardhat.provider
+          )
+          const tokenPropertiesProvider = new TokenPropertiesProvider(
+            ChainId.MAINNET,
+            tokenValidatorProvider,
+            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
+            tokenFeeFetcher
+          )
+          const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider, tokenPropertiesProvider);
 
           const ethEstimateGasSimulator = new EthEstimateGasSimulator(
             chain,

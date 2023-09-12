@@ -515,6 +515,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
       expect(
@@ -918,6 +919,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
 
@@ -1103,6 +1105,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
 
@@ -1512,6 +1515,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
 
@@ -1884,6 +1888,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: USDC,
+          providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
       expect(
@@ -2046,6 +2051,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: USDC,
+          providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
       expect(
@@ -2125,6 +2131,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: USDC,
+          providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
       expect(
