@@ -66,10 +66,6 @@ import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool } from '.
 import { log } from '../../util/log';
 import { buildSwapMethodParameters, buildTrade } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
-import {
-  getCurrencyWithFotTaxFromPools,
-  getTokenWithFotTaxFromPools
-} from '../../util/pools';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
@@ -1591,37 +1587,29 @@ export class AlphaRouter
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
-        v2CandidatePoolsPromise.then(async (v2CandidatePools) =>
-          {
-            const pools = v2CandidatePools?.poolAccessor.getAllPools();
-            const tokenInWithFotTax = getTokenWithFotTaxFromPools(tokenIn, pools) ?? tokenIn;
-            const tokenOutWithFotTax = getTokenWithFotTaxFromPools(tokenOut, pools) ?? tokenOut;
-            const amountToken = getCurrencyWithFotTaxFromPools(amount.currency, pools);
-            const amountWithFotTax = amountToken ? CurrencyAmount.fromRawAmount(amountToken, amount.quotient) : amount;
-            const quoteTokenWithFotTax = getTokenWithFotTaxFromPools(quoteToken, pools) ?? quoteToken;
+          v2CandidatePoolsPromise.then((v2CandidatePools) =>
+              this.v2Quoter.getRoutesThenQuotes(
+                  tokenIn,
+                  tokenOut,
+                  amount,
+                  amounts,
+                  percents,
+                  quoteToken,
+                  v2CandidatePools!,
+                  tradeType,
+                  routingConfig,
+                  undefined,
+                  gasPriceWei
+              ).then((result) => {
+                metric.putMetric(
+                    `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
+                    Date.now() - beforeGetRoutesThenQuotes,
+                    MetricLoggerUnit.Milliseconds
+                );
 
-            const result = await this.v2Quoter.getRoutesThenQuotes(
-              tokenInWithFotTax,
-              tokenOutWithFotTax,
-              amountWithFotTax,
-              amounts,
-              percents,
-              quoteTokenWithFotTax,
-              v2CandidatePools!,
-              tradeType,
-              routingConfig,
-              undefined,
-              gasPriceWei
-            );
-            metric.putMetric(
-              `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
-              Date.now() - beforeGetRoutesThenQuotes,
-              MetricLoggerUnit.Milliseconds
-            );
-
-            return result;
-          }
-        )
+                return result;
+              })
+          )
       );
     }
 
