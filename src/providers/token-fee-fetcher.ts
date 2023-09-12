@@ -36,8 +36,9 @@ const FEE_DETECTOR_ADDRESS = (chainId: ChainId) => {
 
 // Amount has to be big enough to avoid rounding errors, but small enough that
 // most v2 pools will have at least this many token units
-// 10000 is the smallest number that avoids rounding errors in bps terms
-const AMOUNT_TO_FLASH_BORROW = '10000';
+// 100000 is the smallest number that avoids rounding errors in bps terms
+// 10000 was not sufficient due to rounding errors for rebase token (e.g. stETH)
+const AMOUNT_TO_FLASH_BORROW = '100000';
 // 1M gas limit per validate call, should cover most swap cases
 const GAS_LIMIT_PER_VALIDATE = 1_000_000;
 

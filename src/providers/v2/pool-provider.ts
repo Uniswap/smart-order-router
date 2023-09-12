@@ -5,11 +5,20 @@ import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 
 import { IUniswapV2Pair__factory } from '../../types/v2/factories/IUniswapV2Pair__factory';
-import { CurrencyAmount, ID_TO_NETWORK_NAME, metric, MetricLoggerUnit } from '../../util';
+import {
+  CurrencyAmount,
+  ID_TO_NETWORK_NAME,
+  metric,
+  MetricLoggerUnit,
+} from '../../util';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ProviderConfig } from '../provider';
+import {
+  ITokenPropertiesProvider,
+} from '../token-properties-provider';
+import { TokenValidationResult } from '../token-validator-provider';
 
 type IReserves = {
   reserve0: BigNumber;
@@ -66,18 +75,19 @@ export class V2PoolProvider implements IV2PoolProvider {
    * Creates an instance of V2PoolProvider.
    * @param chainId The chain id to use.
    * @param multicall2Provider The multicall provider to use to get the pools.
+   * @param tokenPropertiesProvider The token properties provider to use to get token properties.
    * @param retryOptions The retry options for each call to the multicall.
    */
   constructor(
     protected chainId: ChainId,
     protected multicall2Provider: IMulticallProvider,
+    protected tokenPropertiesProvider: ITokenPropertiesProvider,
     protected retryOptions: V2PoolRetryOptions = {
       retries: 2,
       minTimeout: 50,
       maxTimeout: 500,
     }
-  ) {
-  }
+  ) {}
 
   public async getPools(
     tokenPairs: [Token, Token][],
@@ -109,18 +119,28 @@ export class V2PoolProvider implements IV2PoolProvider {
     );
 
     metric.putMetric('V2_RPC_POOL_RPC_CALL', 1, MetricLoggerUnit.None);
-    metric.putMetric('V2GetReservesBatchSize', sortedPoolAddresses.length, MetricLoggerUnit.Count);
+    metric.putMetric(
+      'V2GetReservesBatchSize',
+      sortedPoolAddresses.length,
+      MetricLoggerUnit.Count
+    );
     metric.putMetric(
       `V2GetReservesBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
       sortedPoolAddresses.length,
       MetricLoggerUnit.Count
     );
 
-    const reservesResults = await this.getPoolsData<IReserves>(
-      sortedPoolAddresses,
-      'getReserves',
-      providerConfig
-    );
+    const [reservesResults, tokenPropertiesMap] = await Promise.all([
+      this.getPoolsData<IReserves>(
+        sortedPoolAddresses,
+        'getReserves',
+        providerConfig
+      ),
+      this.tokenPropertiesProvider.getTokensProperties(
+        this.flatten(tokenPairs),
+        providerConfig
+      ),
+    ]);
 
     log.info(
       `Got reserves for ${poolAddressSet.size} pools ${
@@ -144,7 +164,39 @@ export class V2PoolProvider implements IV2PoolProvider {
         continue;
       }
 
-      const [token0, token1] = sortedTokenPairs[i]!;
+      let [token0, token1] = sortedTokenPairs[i]!;
+      if (
+        tokenPropertiesMap[token0.address.toLowerCase()]
+          ?.tokenValidationResult === TokenValidationResult.FOT
+      ) {
+        token0 = new Token(
+          token0.chainId,
+          token0.address,
+          token0.decimals,
+          token0.symbol,
+          token0.name,
+          true, // at this point we know it's valid token address
+          tokenPropertiesMap[token0.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
+          tokenPropertiesMap[token0.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
+        );
+      }
+
+      if (
+        tokenPropertiesMap[token1.address.toLowerCase()]
+          ?.tokenValidationResult === TokenValidationResult.FOT
+      ) {
+        token1 = new Token(
+          token1.chainId,
+          token1.address,
+          token1.decimals,
+          token1.symbol,
+          token1.name,
+          true, // at this point we know it's valid token address
+          tokenPropertiesMap[token1.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
+          tokenPropertiesMap[token1.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
+        );
+      }
+
       const { reserve0, reserve1 } = reservesResult.result;
 
       const pool = new Pair(
@@ -227,5 +279,17 @@ export class V2PoolProvider implements IV2PoolProvider {
     log.debug(`Pool data fetched as of block ${blockNumber}`);
 
     return results;
+  }
+
+  // We are using ES2017. ES2019 has native flatMap support
+  private flatten(tokenPairs: Array<[Token, Token]>): Token[] {
+    const tokens = new Array<Token>();
+
+    for (const [tokenA, tokenB] of tokenPairs) {
+      tokens.push(tokenA);
+      tokens.push(tokenB);
+    }
+
+    return tokens;
   }
 }

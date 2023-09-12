@@ -153,6 +153,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
       gasPriceWei,
       poolProvider: this.v2PoolProvider,
       token: quoteToken,
+      providerConfig: _routingConfig,
       // TODO: implement wrap overhead for v2 routes
     });
 

@@ -75,8 +75,18 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             let outputAmount = amount.wrapped;
 
             for (const pair of route.pairs) {
-              const [outputAmountNew] = pair.getOutputAmount(outputAmount);
-              outputAmount = outputAmountNew;
+              if (pair.token0.equals(outputAmount.currency) && pair.token0.sellFeeBps?.gt(BigNumber.from(0))) {
+                const outputAmountWithSellFeeBps = CurrencyAmount.fromRawAmount(pair.token0, outputAmount.quotient);
+                const [outputAmountNew] = pair.getOutputAmount(outputAmountWithSellFeeBps);
+                outputAmount = outputAmountNew;
+              } else if (pair.token1.equals(outputAmount.currency) && pair.token1.sellFeeBps?.gt(BigNumber.from(0))) {
+                const outputAmountWithSellFeeBps = CurrencyAmount.fromRawAmount(pair.token1, outputAmount.quotient);
+                const [outputAmountNew] = pair.getOutputAmount(outputAmountWithSellFeeBps);
+                outputAmount = outputAmountNew;
+              } else {
+                const [outputAmountNew] = pair.getOutputAmount(outputAmount);
+                outputAmount = outputAmountNew;
+              }
             }
 
             amountQuotes.push({
@@ -88,7 +98,15 @@ export class V2QuoteProvider implements IV2QuoteProvider {
 
             for (let i = route.pairs.length - 1; i >= 0; i--) {
               const pair = route.pairs[i]!;
-              [inputAmount] = pair.getInputAmount(inputAmount);
+              if (pair.token0.equals(inputAmount.currency) && pair.token0.buyFeeBps?.gt(BigNumber.from(0))) {
+                const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(pair.token0, inputAmount.quotient);
+                [inputAmount] = pair.getInputAmount(inputAmountWithBuyFeeBps);
+              } else if (pair.token1.equals(inputAmount.currency) && pair.token1.buyFeeBps?.gt(BigNumber.from(0))) {
+                const inputAmountWithSellFeeBps = CurrencyAmount.fromRawAmount(pair.token1, inputAmount.quotient);
+                [inputAmount] = pair.getInputAmount(inputAmountWithSellFeeBps);
+              } else {
+                [inputAmount] = pair.getInputAmount(inputAmount);
+              }
             }
 
             amountQuotes.push({

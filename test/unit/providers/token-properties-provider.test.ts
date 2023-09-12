@@ -84,7 +84,7 @@ describe('TokenPropertiesProvider', () => {
       const token = USDC_MAINNET
 
       expect(await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))).toBeUndefined();
-      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([token]);
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([token], { enableFeeOnTransferFeeFetching: true });
       expect(tokenPropertiesMap[token.address.toLowerCase()]).toBeDefined();
       assertExpectedTokenProperties(tokenPropertiesMap[token.address.toLowerCase()], BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
 
@@ -97,7 +97,7 @@ describe('TokenPropertiesProvider', () => {
       const token = USDC_MAINNET
 
       expect(await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))).toBeUndefined();
-      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([token]);
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([token], { enableFeeOnTransferFeeFetching: true });
       expect(tokenPropertiesMap[token.address.toLowerCase()]).toBeDefined();
       assertExpectedTokenProperties(tokenPropertiesMap[token.address.toLowerCase()], BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
       sinon.assert.calledOnce(mockTokenFeeFetcher.fetchFees)
@@ -110,7 +110,7 @@ describe('TokenPropertiesProvider', () => {
 
     it('succeeds to get token allowlist with no on-chain calls nor caching', async function() {
       const allowListToken = new Token(1, '0x777E2ae845272a2F540ebf6a3D03734A5a8f618e', 18);
-      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([allowListToken]);
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties([allowListToken], { enableFeeOnTransferFeeFetching: true });
 
       expect(tokenPropertiesMap[allowListToken.address.toLowerCase()]).toBeDefined();
       expect(tokenPropertiesMap[allowListToken.address.toLowerCase()]?.tokenFeeResult).toBeUndefined();
@@ -138,7 +138,7 @@ describe('TokenPropertiesProvider', () => {
         return tokenToResult
       });
 
-      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens);
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
 
       for (const token of tokens) {
         const address = token.address.toLowerCase()
@@ -185,7 +185,7 @@ describe('TokenPropertiesProvider', () => {
         };
       })
 
-      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens);
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
 
       for (const token of tokens) {
         const address = token.address.toLowerCase()
@@ -207,7 +207,7 @@ describe('TokenPropertiesProvider', () => {
 
       mockTokenFeeFetcher.fetchFees.withArgs(tokens.map(token => token.address)).throws(new Error('Failed to fetch fees for token 1'));
 
-      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens);
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
 
       for (const token of tokens) {
         const address = token.address.toLowerCase()
