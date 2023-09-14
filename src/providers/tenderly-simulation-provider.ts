@@ -47,6 +47,22 @@ export type TenderlyResponseSwapRouter02 = {
   simulation_results: [SimulationResult, SimulationResult];
 };
 
+type SimulationRequest = {
+  network_id: ChainId;
+  estimate_gas: boolean;
+  input: string;
+  to: string;
+  value: string;
+  from: string;
+  simulation_type: 'quick' | 'full' | 'abi';
+  block_number?: number;
+};
+
+type SimulationBody = {
+  simulations: SimulationRequest[];
+  estimate_gas: boolean;
+};
+
 const TENDERLY_BATCH_SIMULATE_API = (
   tenderlyBaseUrl: string,
   tenderlyUser: string,
@@ -215,7 +231,7 @@ export class TenderlySimulator extends Simulator {
           Math.floor(new Date().getTime() / 1000) + 10000000,
         ]);
 
-      const approvePermit2 = {
+      const approvePermit2: SimulationRequest = {
         network_id: chainId,
         estimate_gas: true,
         input: approvePermit2Calldata,
@@ -225,7 +241,7 @@ export class TenderlySimulator extends Simulator {
         simulation_type: 'quick'
       };
 
-      const approveUniversalRouter = {
+      const approveUniversalRouter: SimulationRequest = {
         network_id: chainId,
         estimate_gas: true,
         input: approveUniversalRouterCallData,
@@ -235,7 +251,7 @@ export class TenderlySimulator extends Simulator {
         simulation_type: 'quick'
       };
 
-      const swap = {
+      const swap: SimulationRequest = {
         network_id: chainId,
         input: calldata,
         estimate_gas: true,
@@ -250,7 +266,7 @@ export class TenderlySimulator extends Simulator {
         simulation_type: 'quick'
       };
 
-      const body = {
+      const body: SimulationBody = {
         simulations: [approvePermit2, approveUniversalRouter, swap],
         estimate_gas: true,
       };
