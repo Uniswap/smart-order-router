@@ -51,7 +51,12 @@ export class V2QuoteProvider implements IV2QuoteProvider {
     routes: V2Route[],
     providerConfig: ProviderConfig
   ): Promise<{ routesWithQuotes: V2RouteWithQuotes[] }> {
-    return this.getQuotes(amountIns, routes, TradeType.EXACT_INPUT, providerConfig);
+    return this.getQuotes(
+      amountIns,
+      routes,
+      TradeType.EXACT_INPUT,
+      providerConfig
+    );
   }
 
   public async getQuotesManyExactOut(
@@ -59,14 +64,19 @@ export class V2QuoteProvider implements IV2QuoteProvider {
     routes: V2Route[],
     providerConfig: ProviderConfig
   ): Promise<{ routesWithQuotes: V2RouteWithQuotes[] }> {
-    return this.getQuotes(amountOuts, routes, TradeType.EXACT_OUTPUT, providerConfig);
+    return this.getQuotes(
+      amountOuts,
+      routes,
+      TradeType.EXACT_OUTPUT,
+      providerConfig
+    );
   }
 
   private async getQuotes(
     amounts: CurrencyAmount[],
     routes: V2Route[],
     tradeType: TradeType,
-    providerConfig: ProviderConfig,
+    providerConfig: ProviderConfig
   ): Promise<{ routesWithQuotes: V2RouteWithQuotes[] }> {
     const routesWithQuotes: V2RouteWithQuotes[] = [];
 
@@ -85,24 +95,50 @@ export class V2QuoteProvider implements IV2QuoteProvider {
               if (amount.wrapped.currency.sellFeeBps) {
                 // this should never happen, but just in case it happens,
                 // there is a bug in sor. We need to log this and investigate.
-                const error = new Error(`Sell fee bps should not exist on output amount
+                const error =
+                  new Error(`Sell fee bps should not exist on output amount
                 ${JSON.stringify(amount)} on amounts ${JSON.stringify(amounts)}
-                on routes ${JSON.stringify(routes)}`)
+                on routes ${JSON.stringify(routes)}`);
 
                 // artificially create error object and pass in log.error so that
                 // it also log the stack trace
-                log.error({ error }, 'Sell fee bps should not exist on output amount')
-                metric.putMetric('V2_QUOTE_PROVIDER_INCONSISTENT_SELL_FEE_BPS_VS_FEATURE_FLAG', 1, MetricLoggerUnit.Count)
+                log.error(
+                  { error },
+                  'Sell fee bps should not exist on output amount'
+                );
+                metric.putMetric(
+                  'V2_QUOTE_PROVIDER_INCONSISTENT_SELL_FEE_BPS_VS_FEATURE_FLAG',
+                  1,
+                  MetricLoggerUnit.Count
+                );
               }
 
               if (providerConfig.enableFeeOnTransferFeeFetching) {
-                if (pair.token0.equals(outputAmount.currency) && pair.token0.sellFeeBps?.gt(BigNumber.from(0))) {
-                  const outputAmountWithSellFeeBps = CurrencyAmount.fromRawAmount(pair.token0, outputAmount.quotient);
-                  const [outputAmountNew] = pair.getOutputAmount(outputAmountWithSellFeeBps);
+                if (
+                  pair.token0.equals(outputAmount.currency) &&
+                  pair.token0.sellFeeBps?.gt(BigNumber.from(0))
+                ) {
+                  const outputAmountWithSellFeeBps =
+                    CurrencyAmount.fromRawAmount(
+                      pair.token0,
+                      outputAmount.quotient
+                    );
+                  const [outputAmountNew] = pair.getOutputAmount(
+                    outputAmountWithSellFeeBps
+                  );
                   outputAmount = outputAmountNew;
-                } else if (pair.token1.equals(outputAmount.currency) && pair.token1.sellFeeBps?.gt(BigNumber.from(0))) {
-                  const outputAmountWithSellFeeBps = CurrencyAmount.fromRawAmount(pair.token1, outputAmount.quotient);
-                  const [outputAmountNew] = pair.getOutputAmount(outputAmountWithSellFeeBps);
+                } else if (
+                  pair.token1.equals(outputAmount.currency) &&
+                  pair.token1.sellFeeBps?.gt(BigNumber.from(0))
+                ) {
+                  const outputAmountWithSellFeeBps =
+                    CurrencyAmount.fromRawAmount(
+                      pair.token1,
+                      outputAmount.quotient
+                    );
+                  const [outputAmountNew] = pair.getOutputAmount(
+                    outputAmountWithSellFeeBps
+                  );
                   outputAmount = outputAmountNew;
                 } else {
                   const [outputAmountNew] = pair.getOutputAmount(outputAmount);
@@ -126,22 +162,42 @@ export class V2QuoteProvider implements IV2QuoteProvider {
               if (amount.wrapped.currency.buyFeeBps) {
                 // this should never happen, but just in case it happens,
                 // there is a bug in sor. We need to log this and investigate.
-                const error = new Error(`Buy fee bps should not exist on input amount
+                const error =
+                  new Error(`Buy fee bps should not exist on input amount
                 ${JSON.stringify(amount)} on amounts ${JSON.stringify(amounts)}
-                on routes ${JSON.stringify(routes)}`)
+                on routes ${JSON.stringify(routes)}`);
 
                 // artificially create error object and pass in log.error so that
                 // it also log the stack trace
-                log.error({ error }, 'Buy fee bps should not exist on input amount')
-                metric.putMetric('V2_QUOTE_PROVIDER_INCONSISTENT_BUY_FEE_BPS_VS_FEATURE_FLAG', 1, MetricLoggerUnit.Count)
+                log.error(
+                  { error },
+                  'Buy fee bps should not exist on input amount'
+                );
+                metric.putMetric(
+                  'V2_QUOTE_PROVIDER_INCONSISTENT_BUY_FEE_BPS_VS_FEATURE_FLAG',
+                  1,
+                  MetricLoggerUnit.Count
+                );
               }
 
               if (providerConfig.enableFeeOnTransferFeeFetching) {
-                if (pair.token0.equals(inputAmount.currency) && pair.token0.buyFeeBps?.gt(BigNumber.from(0))) {
-                  const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(pair.token0, inputAmount.quotient);
+                if (
+                  pair.token0.equals(inputAmount.currency) &&
+                  pair.token0.buyFeeBps?.gt(BigNumber.from(0))
+                ) {
+                  const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(
+                    pair.token0,
+                    inputAmount.quotient
+                  );
                   [inputAmount] = pair.getInputAmount(inputAmountWithBuyFeeBps);
-                } else if (pair.token1.equals(inputAmount.currency) && pair.token1.buyFeeBps?.gt(BigNumber.from(0))) {
-                  const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(pair.token1, inputAmount.quotient);
+                } else if (
+                  pair.token1.equals(inputAmount.currency) &&
+                  pair.token1.buyFeeBps?.gt(BigNumber.from(0))
+                ) {
+                  const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(
+                    pair.token1,
+                    inputAmount.quotient
+                  );
                   [inputAmount] = pair.getInputAmount(inputAmountWithBuyFeeBps);
                 } else {
                   [inputAmount] = pair.getInputAmount(inputAmount);
