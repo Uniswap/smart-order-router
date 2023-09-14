@@ -82,11 +82,11 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             let outputAmount = amount.wrapped;
 
             for (const pair of route.pairs) {
-              if (outputAmount.currency.sellFeeBps) {
+              if (amount.wrapped.currency.sellFeeBps) {
                 // this should never happen, but just in case it happens,
                 // there is a bug in sor. We need to log this and investigate.
                 const error = new Error(`Sell fee bps should not exist on output amount
-                ${JSON.stringify(outputAmount)} on amounts ${JSON.stringify(amounts)}
+                ${JSON.stringify(amount)} on amounts ${JSON.stringify(amounts)}
                 on routes ${JSON.stringify(routes)}`)
 
                 // artificially create error object and pass in log.error so that
@@ -95,11 +95,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
                 metric.putMetric('V2_QUOTE_PROVIDER_INCONSISTENT_SELL_FEE_BPS_VS_FEATURE_FLAG', 1, MetricLoggerUnit.Count)
               }
 
-              // outputAmount.currency.sellFeeBps is extra safeguard, just in case there's a bug
-              // in sor that causes outputAmount.currency.sellFeeBps to be defined
-              // If it happens, since we get routes from cached routes most of the time
-              // the FOT quote will become smaller and smaller, which will be difficult to self-correct in prod
-              if (providerConfig.enableFeeOnTransferFeeFetching && !outputAmount.currency.sellFeeBps) {
+              if (providerConfig.enableFeeOnTransferFeeFetching) {
                 if (pair.token0.equals(outputAmount.currency) && pair.token0.sellFeeBps?.gt(BigNumber.from(0))) {
                   const outputAmountWithSellFeeBps = CurrencyAmount.fromRawAmount(pair.token0, outputAmount.quotient);
                   const [outputAmountNew] = pair.getOutputAmount(outputAmountWithSellFeeBps);
@@ -127,11 +123,11 @@ export class V2QuoteProvider implements IV2QuoteProvider {
 
             for (let i = route.pairs.length - 1; i >= 0; i--) {
               const pair = route.pairs[i]!;
-              if (inputAmount.currency.buyFeeBps) {
+              if (amount.wrapped.currency.buyFeeBps) {
                 // this should never happen, but just in case it happens,
                 // there is a bug in sor. We need to log this and investigate.
                 const error = new Error(`Buy fee bps should not exist on input amount
-                ${JSON.stringify(inputAmount)} on amounts ${JSON.stringify(amounts)}
+                ${JSON.stringify(amount)} on amounts ${JSON.stringify(amounts)}
                 on routes ${JSON.stringify(routes)}`)
 
                 // artificially create error object and pass in log.error so that
@@ -140,11 +136,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
                 metric.putMetric('V2_QUOTE_PROVIDER_INCONSISTENT_BUY_FEE_BPS_VS_FEATURE_FLAG', 1, MetricLoggerUnit.Count)
               }
 
-              // inputAmount.currency.buyFeeBps is extra safeguard, just in case there's a bug
-              // in sor that causes inputAmount.currency.buyFeeBps to be defined
-              // If it happens, since we get routes from cached routes most of the time
-              // the FOT quote will become larger and larger, which will be difficult to self-correct in prod
-              if (providerConfig.enableFeeOnTransferFeeFetching && !inputAmount.currency.buyFeeBps) {
+              if (providerConfig.enableFeeOnTransferFeeFetching) {
                 if (pair.token0.equals(inputAmount.currency) && pair.token0.buyFeeBps?.gt(BigNumber.from(0))) {
                   const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(pair.token0, inputAmount.quotient);
                   [inputAmount] = pair.getInputAmount(inputAmountWithBuyFeeBps);
