@@ -51,7 +51,7 @@ enum TenderlySimulationType {
   QUICK = 'quick',
   FULL = 'full',
   ABI = 'abi',
-}
+} 
 
 type TenderlySimulationRequest = {
   network_id: ChainId;
