@@ -397,9 +397,8 @@ export const BULLET = new Token(
     BigNumber.from(500),
     BigNumber.from(500)
 )
-/*
 // stETH is a special case (rebase token), that would make the token include buyFeeBps and sellFeeBps of 0 as always
-const STETH = new Token(
+export const STETH = new Token(
     ChainId.MAINNET,
     '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
     18,
@@ -409,4 +408,3 @@ const STETH = new Token(
     BigNumber.from(0),
     BigNumber.from(0)
 )
- */

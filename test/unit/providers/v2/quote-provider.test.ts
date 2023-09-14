@@ -1,6 +1,6 @@
 import { CurrencyAmount, V2QuoteProvider, V2Route, WETH9 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
-import { BLAST, BLAST_WITHOUT_TAX, BULLET, BULLET_WITHOUT_TAX } from '../../../test-util/mock-data';
+import { BLAST, BLAST_WITHOUT_TAX, BULLET, BULLET_WITHOUT_TAX, STETH } from '../../../test-util/mock-data';
 import JSBI from 'jsbi';
 import { ChainId, Fraction } from '@uniswap/sdk-core';
 import { computeAllV2Routes } from '../../../../src/routers/alpha-router/functions/compute-all-routes';
@@ -13,6 +13,8 @@ const inputBulletOriginalAmount = JSBI.BigInt(10)
 const inputBulletCurrencyAmount = CurrencyAmount.fromRawAmount(tokenIn, JSBI.exponentiate(inputBulletOriginalAmount, JSBI.BigInt(tokenIn.decimals)))
 const wethOriginalAmount = JSBI.BigInt(10)
 const wethCurrencyAmount = CurrencyAmount.fromRawAmount(WETH9[ChainId.MAINNET], JSBI.exponentiate(wethOriginalAmount, JSBI.BigInt(WETH9[ChainId.MAINNET].decimals)))
+const stEthOriginalAmount = JSBI.BigInt(10)
+const stEthCurrencyAmount = CurrencyAmount.fromRawAmount(STETH, JSBI.exponentiate(stEthOriginalAmount, JSBI.BigInt(STETH.decimals)))
 const blastOriginalAmount = JSBI.BigInt(10)
 const blastCurrencyAmount = CurrencyAmount.fromRawAmount(BLAST, JSBI.exponentiate(blastOriginalAmount, JSBI.BigInt(BLAST.decimals)))
 
@@ -29,9 +31,12 @@ const WETHReserve = CurrencyAmount.fromRawAmount(WETH9[ChainId.MAINNET], wethCur
 const bulletWETHPool = new Pair(bulletReserve, WETHReserve)
 const blastReserve = CurrencyAmount.fromRawAmount(BLAST, blastCurrencyAmount.multiply(amountFactorForReserves).quotient)
 const WETHBlastPool = new Pair(WETHReserve, blastReserve)
+const stETHReserve = CurrencyAmount.fromRawAmount(STETH, stEthCurrencyAmount.multiply(amountFactorForReserves).quotient)
+const bulletSTETHPool = new Pair(bulletReserve, stETHReserve)
+const stETHBlastPool = new Pair(stETHReserve, blastReserve)
 
-const pools: Pair[] = [bulletWETHPool, WETHBlastPool]
-const v2Routes: Array<V2Route> = computeAllV2Routes(tokenIn, tokenOut, pools, 3)
+const pools: Pair[] = [bulletWETHPool, WETHBlastPool, bulletSTETHPool, stETHBlastPool]
+const v2Routes: Array<V2Route> = computeAllV2Routes(tokenIn, tokenOut, pools, 7)
 
 const quoteProvider = new V2QuoteProvider()
 
@@ -42,8 +47,10 @@ describe('QuoteProvider', () => {
 
         it('should return correct quote for exact in', async () => {
             const {  routesWithQuotes } = await quoteProvider.getQuotesManyExactIn(inputBulletCurrencyAmounts, v2Routes, providerConfig)
-            console.log(JSON.stringify(routesWithQuotes))
+            expect(routesWithQuotes.length).toEqual(2)
+            routesWithQuotes.forEach(([route, quote])  => {
+                route.path
+            })
         })
-
     })
 })
