@@ -146,7 +146,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     log.info(
       `Getting quotes for V2 for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
-    const { routesWithQuotes } = await quoteFn(amounts, routes);
+    const { routesWithQuotes } = await quoteFn(amounts, routes, _routingConfig);
 
     const v2GasModel = await this.v2GasModelFactory.buildGasModel({
       chainId: this.chainId,
