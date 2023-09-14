@@ -222,6 +222,7 @@ export class TenderlySimulator extends Simulator {
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
+        simulation_type: 'quick'
       };
 
       const approveUniversalRouter = {
@@ -231,6 +232,7 @@ export class TenderlySimulator extends Simulator {
         to: PERMIT2_ADDRESS,
         value: '0',
         from: fromAddress,
+        simulation_type: 'quick'
       };
 
       const swap = {
@@ -245,6 +247,7 @@ export class TenderlySimulator extends Simulator {
           chainId == ChainId.ARBITRUM_ONE && blockNumber
             ? blockNumber - 5
             : undefined,
+        simulation_type: 'quick'
       };
 
       const body = {
