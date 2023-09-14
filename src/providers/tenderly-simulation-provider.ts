@@ -47,19 +47,25 @@ export type TenderlyResponseSwapRouter02 = {
   simulation_results: [SimulationResult, SimulationResult];
 };
 
-type SimulationRequest = {
+enum TenderlySimulationType {
+  QUICK = 'quick',
+  FULL = 'full',
+  ABI = 'abi',
+}
+
+type TenderlySimulationRequest = {
   network_id: ChainId;
   estimate_gas: boolean;
   input: string;
   to: string;
   value: string;
   from: string;
-  simulation_type: 'quick' | 'full' | 'abi';
+  simulation_type: TenderlySimulationType;
   block_number?: number;
 };
 
-type SimulationBody = {
-  simulations: SimulationRequest[];
+type TenderlySimulationBody = {
+  simulations: TenderlySimulationRequest[];
   estimate_gas: boolean;
 };
 
@@ -231,27 +237,27 @@ export class TenderlySimulator extends Simulator {
           Math.floor(new Date().getTime() / 1000) + 10000000,
         ]);
 
-      const approvePermit2: SimulationRequest = {
+      const approvePermit2: TenderlySimulationRequest = {
         network_id: chainId,
         estimate_gas: true,
         input: approvePermit2Calldata,
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
-        simulation_type: 'quick'
+        simulation_type: TenderlySimulationType.QUICK
       };
 
-      const approveUniversalRouter: SimulationRequest = {
+      const approveUniversalRouter: TenderlySimulationRequest = {
         network_id: chainId,
         estimate_gas: true,
         input: approveUniversalRouterCallData,
         to: PERMIT2_ADDRESS,
         value: '0',
         from: fromAddress,
-        simulation_type: 'quick'
+        simulation_type: TenderlySimulationType.QUICK
       };
 
-      const swap: SimulationRequest = {
+      const swap: TenderlySimulationRequest = {
         network_id: chainId,
         input: calldata,
         estimate_gas: true,
@@ -263,10 +269,10 @@ export class TenderlySimulator extends Simulator {
           chainId == ChainId.ARBITRUM_ONE && blockNumber
             ? blockNumber - 5
             : undefined,
-        simulation_type: 'quick'
+        simulation_type: TenderlySimulationType.QUICK
       };
 
-      const body: SimulationBody = {
+      const body: TenderlySimulationBody = {
         simulations: [approvePermit2, approveUniversalRouter, swap],
         estimate_gas: true,
       };
