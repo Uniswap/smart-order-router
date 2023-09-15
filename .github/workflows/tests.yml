@@ -67,7 +67,7 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'mainnet alpha - EXACT_INPUT'
+        run: npm run integ-test  -- -t 'mainnet alpha - 0'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
@@ -101,7 +101,7 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'mainnet alpha - EXACT_OUTPUT'
+        run: npm run integ-test  -- -t 'mainnet alpha - 1'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
