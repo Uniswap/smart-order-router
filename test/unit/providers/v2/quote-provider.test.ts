@@ -50,7 +50,7 @@ const poolsWithoutTax: Pair[] = [bulletWithoutTaxWETHPool, WETHBlastWithoutTaxPo
 const quoteProvider = new V2QuoteProvider()
 
 describe('QuoteProvider', () => {
-    const enableFeeOnTransferFeeFetching = [undefined]
+    const enableFeeOnTransferFeeFetching = [true, false, undefined]
 
     enableFeeOnTransferFeeFetching.forEach((enableFeeOnTransferFeeFetching) => {
         describe(`fee-on-transfer flag enableFeeOnTransferFeeFetching = ${enableFeeOnTransferFeeFetching}`,  () => {
@@ -61,9 +61,7 @@ describe('QuoteProvider', () => {
             it('should return correct quote for exact in', async () => {
                 const {  routesWithQuotes } = await quoteProvider.getQuotesManyExactIn(inputBulletCurrencyAmounts, v2Routes, providerConfig)
                 expect(routesWithQuotes.length).toEqual(2)
-
-                console.log(JSON.stringify(routesWithQuotes))
-
+                
                 routesWithQuotes.forEach(([route, quote])  => {
                     expect(quote.length).toEqual(inputBulletCurrencyAmounts.length)
                     expect(route.path.length).toEqual(3)
