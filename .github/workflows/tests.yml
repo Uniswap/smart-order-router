@@ -41,8 +41,8 @@ jobs:
           JSON_RPC_PROVIDER_ARBITRUM_ONE: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_ONE }}
           JSON_RPC_PROVIDER_POLYGON: ${{ secrets.JSON_RPC_PROVIDER_POLYGON }}
 
-  integration-tests-alpha-router-integration-mainnet-alpha-0:
-    name: Integration Tests - Alpha Router Integration Mainnet Alpha 0
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_input:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_INPUT
     runs-on: ubuntu-latest
 
     steps:
@@ -67,7 +67,7 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'mainnet alpha - 0'
+        run: npm run integ-test  -- -t 'mainnet alpha - EXACT_INPUT'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
@@ -75,8 +75,8 @@ jobs:
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
-  integration-tests-alpha-router-integration-mainnet-alpha-1:
-    name: Integration Tests - Alpha Router Integration Mainnet Alpha 1
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_output:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_OUTPUT
     runs-on: ubuntu-latest
 
     steps:
@@ -101,7 +101,7 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'mainnet alpha - 1'
+        run: npm run integ-test  -- -t 'mainnet alpha - EXACT_OUTPUT'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}

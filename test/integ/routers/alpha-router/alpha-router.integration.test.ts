@@ -555,7 +555,7 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType.toString()}`, () => {
       describe(`+ Execute on Hardhat Fork`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion

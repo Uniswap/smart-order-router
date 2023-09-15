@@ -35,7 +35,7 @@ export const WHALES = (token: Currency): string => {
     case nativeOnChain(ChainId.BNB):
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case nativeOnChain(ChainId.OPTIMISM):
-      return '0x85149247691df622eaf1a8bd0cafd40bc45154a9';
+      return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
     case WETH9[1]:
       return '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3';
     case WNATIVE_ON(ChainId.MAINNET):
@@ -78,8 +78,10 @@ export const WHALES = (token: Currency): string => {
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
     case USDC_ON(ChainId.AVALANCHE):
       return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
+    case USDC_ON(ChainId.BNB):
+      return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case USDC_ON(ChainId.BASE):
-      return '0x389bfa91ad0d143e8cb26c15cb52d942ee9651f7';
+      return '0x4a3636608d7bc5776cb19eb72caa36ebb9ea683b';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):
