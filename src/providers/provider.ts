@@ -17,6 +17,11 @@ export type ProviderConfig = {
    * Flag for token properties provider to enable fetching fee-on-transfer tokens.
    */
   enableFeeOnTransferFeeFetching?: boolean;
+  /**
+   * Tenderly natively support save simulation failures if failed,
+   * we need this as a pass-through flag to enable/disable this feature.
+   */
+  saveTenderlySimulationIfFailed?: boolean;
 };
 
 export type LocalCacheEntry<T> = {

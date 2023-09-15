@@ -177,6 +177,7 @@ describe('alpha router integration', () => {
     // @ts-ignore[TS7053] - complaining about switch being non exhaustive
     ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
     protocols: [Protocol.V3, Protocol.V2],
+    saveTenderlySimulationIfFailed: true, // save tenderly simulation on integ-test runs, easier for debugging
   };
 
   const executeSwap = async (

@@ -51,7 +51,7 @@ enum TenderlySimulationType {
   QUICK = 'quick',
   FULL = 'full',
   ABI = 'abi',
-} 
+}
 
 type TenderlySimulationRequest = {
   network_id: ChainId;
@@ -62,6 +62,7 @@ type TenderlySimulationRequest = {
   from: string;
   simulation_type: TenderlySimulationType;
   block_number?: number;
+  save_if_fails?: boolean;
 };
 
 type TenderlySimulationBody = {
@@ -244,7 +245,8 @@ export class TenderlySimulator extends Simulator {
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
-        simulation_type: TenderlySimulationType.QUICK
+        simulation_type: TenderlySimulationType.QUICK,
+        save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
 
       const approveUniversalRouter: TenderlySimulationRequest = {
@@ -254,7 +256,8 @@ export class TenderlySimulator extends Simulator {
         to: PERMIT2_ADDRESS,
         value: '0',
         from: fromAddress,
-        simulation_type: TenderlySimulationType.QUICK
+        simulation_type: TenderlySimulationType.QUICK,
+        save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
 
       const swap: TenderlySimulationRequest = {
@@ -269,7 +272,8 @@ export class TenderlySimulator extends Simulator {
           chainId == ChainId.ARBITRUM_ONE && blockNumber
             ? blockNumber - 5
             : undefined,
-        simulation_type: TenderlySimulationType.QUICK
+        simulation_type: TenderlySimulationType.QUICK,
+        save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
 
       const body: TenderlySimulationBody = {
