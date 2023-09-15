@@ -40,6 +40,12 @@ export const WHALES = (token: Currency): string => {
       return '0x369582d2010b6ed950b571f4101e3bb9b554876f';
     case WNATIVE_ON(ChainId.BASE):
       return '0x755554f1716d2241d6af94ea1d7dbb1631af9a40';
+    case WNATIVE_ON(ChainId.OPTIMISM):
+      return '0x85149247691df622eaf1a8bd0cafd40bc45154a9';
+    case WNATIVE_ON(ChainId.BNB):
+      return '0x59d779BED4dB1E734D3fDa3172d45bc3063eCD69';
+    case WNATIVE_ON(ChainId.AVALANCHE):
+      return '0xba12222222228d8ba445958a75a0704d566bf2c8';
     case USDC_MAINNET:
       return '0x8eb8a3b98659cce290402893d0123abb75e3ab28';
     case UNI_MAINNET:

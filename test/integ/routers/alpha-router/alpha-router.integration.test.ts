@@ -2922,7 +2922,7 @@ describe('quote for other networks', () => {
         });
 
         if (isTenderlyEnvironmentSet()) {
-          describe(`Simulate + Swap`, function() {
+          describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
             if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
               return;
