@@ -3039,7 +3039,9 @@ describe('quote for other networks', () => {
 
             it(`${native} -> erc20`, async () => {
               const tokenIn = nativeOnChain(chain);
-              const tokenOut = erc2;
+              // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
+              // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
+              const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)
