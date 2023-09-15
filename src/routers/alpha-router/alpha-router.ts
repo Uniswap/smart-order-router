@@ -358,6 +358,11 @@ export type AlphaRouterConfig = {
    * Flag for token properties provider to enable fetching fee-on-transfer tokens.
    */
   enableFeeOnTransferFeeFetching?: boolean;
+  /**
+   * Tenderly natively support save simulation failures if failed,
+   * we need this as a pass-through flag to enable/disable this feature.
+   */
+  saveTenderlySimulationIfFailed?: boolean;
 };
 
 export class AlphaRouter
@@ -1288,7 +1293,7 @@ export class AlphaRouter
         this.l2GasDataProvider
           ? await this.l2GasDataProvider!.getGasData()
           : undefined,
-        { blockNumber }
+          providerConfig
       );
       metric.putMetric(
         'SimulateTransaction',
