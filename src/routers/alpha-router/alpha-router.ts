@@ -35,7 +35,7 @@ import {
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
   SwapRouterProvider,
-  TokenPropertiesProvider, TokenValidationResult,
+  TokenPropertiesProvider,
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
@@ -1178,42 +1178,12 @@ export class AlphaRouter
       cacheMode !== CacheMode.Darkmode &&
       swapRouteFromChain
     ) {
-      const tokenPropertiesMap = await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], providerConfig);
-
-      const tokenInWithFotTax =
-        (tokenPropertiesMap[tokenIn.address.toLowerCase()]
-          ?.tokenValidationResult === TokenValidationResult.FOT) ?
-        new Token(
-          tokenIn.chainId,
-          tokenIn.address,
-          tokenIn.decimals,
-          tokenIn.symbol,
-          tokenIn.name,
-          true, // at this point we know it's valid token address
-          tokenPropertiesMap[tokenIn.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
-          tokenPropertiesMap[tokenIn.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
-        ) : tokenIn;
-
-      const tokenOutWithFotTax =
-        (tokenPropertiesMap[tokenOut.address.toLowerCase()]
-          ?.tokenValidationResult === TokenValidationResult.FOT) ?
-          new Token(
-            tokenOut.chainId,
-            tokenOut.address,
-            tokenOut.decimals,
-            tokenOut.symbol,
-            tokenOut.name,
-            true, // at this point we know it's valid token address
-            tokenPropertiesMap[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps,
-            tokenPropertiesMap[tokenOut.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps
-          ) : tokenOut;
-
       // Generate the object to be cached
       const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
         swapRouteFromChain.routes,
         this.chainId,
-        tokenInWithFotTax,
-        tokenOutWithFotTax,
+        tokenIn,
+        tokenOut,
         protocols.sort(), // sort it for consistency in the order of the protocols.
         await blockNumber,
         tradeType,

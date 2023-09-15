@@ -361,3 +361,58 @@ export const mockTokenList: TokenList = {
     },
   ],
 };
+
+export const BLAST_WITHOUT_TAX = new Token(
+    ChainId.MAINNET,
+    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+    18,
+    'BLAST',
+    'BLAST',
+)
+export const BLAST = new Token(
+    ChainId.MAINNET,
+    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+    18,
+    'BLAST',
+    'BLAST',
+    false,
+    BigNumber.from(400),
+    BigNumber.from(10000)
+)
+export const BULLET_WITHOUT_TAX = new Token(
+    ChainId.MAINNET,
+    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+    8,
+    'BULLET',
+    'Bullet Game Betting Token',
+    false
+)
+export const BULLET = new Token(
+    ChainId.MAINNET,
+    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+    8,
+    'BULLET',
+    'Bullet Game Betting Token',
+    false,
+    BigNumber.from(500),
+    BigNumber.from(500)
+)
+export const STETH_WITHOUT_TAX = new Token(
+    ChainId.MAINNET,
+    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+    18,
+    'stETH',
+    'stETH',
+    false
+)
+// stETH is a special case (rebase token), that would make the token include buyFeeBps and sellFeeBps of 0 as always
+export const STETH = new Token(
+    ChainId.MAINNET,
+    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+    18,
+    'stETH',
+    'stETH',
+    false,
+    BigNumber.from(0),
+    BigNumber.from(0)
+)
