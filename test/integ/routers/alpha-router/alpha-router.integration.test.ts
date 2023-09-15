@@ -2348,6 +2348,8 @@ describe('alpha router integration', () => {
   }
 
   describe('Mixed routes', () => {
+    jest.setTimeout(1000 * 1000); // 1000s
+
     const tradeType = TradeType.EXACT_INPUT;
 
     const BOND_MAINNET = new Token(
