@@ -2962,6 +2962,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
@@ -3017,6 +3018,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
@@ -3074,6 +3076,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
