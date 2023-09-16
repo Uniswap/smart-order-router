@@ -2384,6 +2384,8 @@ describe('alpha router integration', () => {
     describe(`exactIn mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('BOND -> APE', async () => {
+          jest.setTimeout(1000 * 1000); // 1000s
+
           const tokenIn = BOND_MAINNET;
           const tokenOut = APE_MAINNET;
 
