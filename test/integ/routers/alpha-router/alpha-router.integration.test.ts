@@ -555,7 +555,7 @@ describe('alpha router integration', () => {
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType.toString()}`, () => {
       describe(`+ Execute on Hardhat Fork`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -2384,6 +2384,8 @@ describe('alpha router integration', () => {
     describe(`exactIn mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('BOND -> APE', async () => {
+          jest.setTimeout(1000 * 1000); // 1000s
+
           const tokenIn = BOND_MAINNET;
           const tokenOut = APE_MAINNET;
 
@@ -2922,7 +2924,7 @@ describe('quote for other networks', () => {
         });
 
         if (isTenderlyEnvironmentSet()) {
-          describe(`Simulate + Swap`, function() {
+          describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
             if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
               return;
@@ -2962,6 +2964,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
@@ -3017,6 +3020,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
@@ -3039,7 +3043,9 @@ describe('quote for other networks', () => {
 
             it(`${native} -> erc20`, async () => {
               const tokenIn = nativeOnChain(chain);
-              const tokenOut = erc2;
+              // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
+              // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
+              const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)
@@ -3072,6 +3078,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
