@@ -91,6 +91,14 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       const cachedValue = tokenProperties[address];
       if (cachedValue) {
         metric.putMetric("TokenPropertiesProviderBatchGetCacheHit", 1, MetricLoggerUnit.Count)
+        const tokenFee = cachedValue.tokenFeeResult;
+        const tokenFeeResultExists: BigNumber | undefined = tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps)
+
+        if (tokenFeeResultExists) {
+          metric.putMetric(`TokenPropertiesProviderCacheHitTokenFeeResultExists${tokenFeeResultExists}`, 1, MetricLoggerUnit.Count)
+        } else {
+          metric.putMetric(`TokenPropertiesProviderCacheHitTokenFeeResultNotExists`, 1, MetricLoggerUnit.Count)
+        }
 
         tokenToResult[address] = cachedValue;
       } else if (
@@ -127,7 +135,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
             // so that we can accurately log the token fee for a particular quote request (without breaching metrics dimensionality limit)
             // in the form of metrics.
             // if we log as logging, given prod traffic volume, the logging volume will be high.
-            metric.putMetric(`TokenPropertiesProviderTokenFeeResultExists${tokenFeeResultExists}`, 1, MetricLoggerUnit.Count)
+            metric.putMetric(`TokenPropertiesProviderTokenFeeResultCacheMissExists${tokenFeeResultExists}`, 1, MetricLoggerUnit.Count)
             const tokenResultForAddress = tokenToResult[address];
 
             if (tokenResultForAddress) {
@@ -146,7 +154,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
               }
             );
           } else {
-            metric.putMetric(`TokenPropertiesProviderTokenFeeResultNotExists`, 1, MetricLoggerUnit.Count)
+            metric.putMetric(`TokenPropertiesProviderTokenFeeResultCacheMissNotExists`, 1, MetricLoggerUnit.Count)
             return Promise.resolve(true);
           }
         })
