@@ -1,6 +1,6 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
 
-import { log } from '../util';
+import { log, metric, MetricLoggerUnit } from '../util';
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import {
@@ -89,6 +89,8 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     for (const address of addressesRaw) {
       const cachedValue = tokenProperties[address];
       if (cachedValue) {
+        metric.putMetric("TokenPropertiesProviderBatchGetCacheHit", 1, MetricLoggerUnit.Count)
+
         tokenToResult[address] = cachedValue;
       } else if (
         tokenToResult[address]?.tokenValidationResult ===
@@ -116,12 +118,16 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       await Promise.all(
         addressesToFetchFeesOnchain.map((address) => {
           const tokenFee = tokenFeeMap[address];
+          metric.putMetric(`TokenPropertiesProviderTokenFeeResultExists${tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps)}`, 1, MetricLoggerUnit.Count)
+
           if (tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps)) {
             const tokenResultForAddress = tokenToResult[address];
 
             if (tokenResultForAddress) {
               tokenResultForAddress.tokenFeeResult = tokenFee;
             }
+
+            metric.putMetric("TokenPropertiesProviderBatchGetCacheMiss", 1, MetricLoggerUnit.Count)
 
             // update cache concurrently
             // at this point, we are confident that the tokens are FOT, so we can hardcode the validation result
