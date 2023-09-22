@@ -90,7 +90,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
             this.CACHE_KEY(this.chainId, address)
           ))!;
 
-        metric.putMetric("TokenValidatorProviderValidateCacheHit", 1, MetricLoggerUnit.Count)
+        metric.putMetric(`TokenValidatorProviderValidateCacheHitResult${tokenToResult[address.toLowerCase()]}`, 1, MetricLoggerUnit.Count)
       } else {
         addresses.push(address);
       }
@@ -164,8 +164,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
         tokenToResult[token.address.toLowerCase()]!
       );
 
-      metric.putMetric("TokenValidatorProviderValidateCacheMiss", 1, MetricLoggerUnit.Count)
-      metric.putMetric(`TokenValidatorProviderValidateResult${validationResult}`, 1, MetricLoggerUnit.Count)
+      metric.putMetric(`TokenValidatorProviderValidateCacheMissResult${validationResult}`, 1, MetricLoggerUnit.Count)
     }
 
     return {
