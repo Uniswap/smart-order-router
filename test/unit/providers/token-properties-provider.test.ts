@@ -8,27 +8,18 @@ import {
 } from '../../../src/providers/token-fee-fetcher';
 import { BigNumber } from '@ethersproject/bignumber';
 import {
-  CallSameFunctionOnContractWithMultipleParams,
   ICache,
-  IMulticallProvider,
   ITokenPropertiesProvider,
-  ITokenValidatorProvider,
   NodeJSCache,
   TokenPropertiesProvider,
   TokenPropertiesResult,
   TokenValidationResult,
-  TokenValidatorProvider,
-  UniswapMulticallConfig,
-  UniswapMulticallProvider,
   USDC_MAINNET
 } from '../../../src';
 
 describe('TokenPropertiesProvider', () => {
   let tokenPropertiesProvider: ITokenPropertiesProvider
-  let tokenValidatorProvider: ITokenValidatorProvider
   let tokenPropertiesResultCache: ICache<TokenPropertiesResult>
-  let tokenValidationResultCache: ICache<TokenValidationResult>
-  let mockMulticall2Provider: sinon.SinonStubbedInstance<IMulticallProvider<UniswapMulticallConfig>>
   let mockTokenFeeFetcher: sinon.SinonStubbedInstance<ITokenFeeFetcher>
 
   const CACHE_KEY = (chainId: ChainId, address: string) =>
@@ -36,37 +27,13 @@ describe('TokenPropertiesProvider', () => {
 
   beforeEach(async () => {
     tokenPropertiesResultCache = new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }));
-    tokenValidationResultCache = new NodeJSCache(new NodeCache({ stdTTL: 3600, useClones: false }));
     mockTokenFeeFetcher = sinon.createStubInstance(OnChainTokenFeeFetcher)
-    mockMulticall2Provider = sinon.createStubInstance(UniswapMulticallProvider)
-
-    tokenValidatorProvider = new TokenValidatorProvider(
-      ChainId.MAINNET,
-      mockMulticall2Provider,
-      tokenValidationResultCache,
-    )
 
     tokenPropertiesProvider = new TokenPropertiesProvider(
       ChainId.MAINNET,
-      tokenValidatorProvider,
       tokenPropertiesResultCache,
       mockTokenFeeFetcher,
     )
-
-    type functionParams = [string, string[], string][]
-    mockMulticall2Provider.callSameFunctionOnContractWithMultipleParams.callsFake(async (
-      params: CallSameFunctionOnContractWithMultipleParams<functionParams | undefined, UniswapMulticallConfig>) => {
-      return {
-        blockNumber: BigNumber.from(100),
-        approxGasUsedPerSuccessCall: 100,
-        results: params.functionParams.map((_?: functionParams) => {
-          return ({
-            success: true,
-            result: [TokenValidationResult.FOT]
-          })
-        })
-      };
-    })
 
     mockTokenFeeFetcher.fetchFees.callsFake(async (addresses) => {
       const tokenToResult: TokenFeeMap = {};
@@ -173,18 +140,6 @@ describe('TokenPropertiesProvider', () => {
         return tokenToResult
       });
 
-      type functionParams = [string, string[], string][]
-      mockMulticall2Provider.callSameFunctionOnContractWithMultipleParams.callsFake(async (
-        params: CallSameFunctionOnContractWithMultipleParams<functionParams | undefined, UniswapMulticallConfig>) => {
-        return {
-          blockNumber: BigNumber.from(100),
-          approxGasUsedPerSuccessCall: 100,
-          results: params.functionParams.map(() => {
-            return { success: false, returnData: 'Not FOT' }
-          })
-        };
-      })
-
       const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
 
       for (const token of tokens) {
@@ -243,5 +198,3 @@ describe('TokenPropertiesProvider', () => {
     expect(tokenProperties?.tokenValidationResult).toEqual(expectedTokenValidationResult);
   }
 });
-
-

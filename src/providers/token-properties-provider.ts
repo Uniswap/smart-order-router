@@ -1,6 +1,8 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Token } from '@uniswap/sdk-core';
 
 import { log, metric, MetricLoggerUnit } from '../util';
+
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import {
@@ -11,10 +13,9 @@ import {
 } from './token-fee-fetcher';
 import {
   DEFAULT_ALLOWLIST,
-  ITokenValidatorProvider,
   TokenValidationResult,
 } from './token-validator-provider';
-import { BigNumber } from '@ethersproject/bignumber';
+
 
 export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
   tokenFeeResult: DEFAULT_TOKEN_FEE_RESULT,
@@ -40,7 +41,6 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
 
   constructor(
     private chainId: ChainId,
-    private tokenValidatorProvider: ITokenValidatorProvider,
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
     private allowList = DEFAULT_ALLOWLIST,
@@ -55,29 +55,6 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     if (!providerConfig?.enableFeeOnTransferFeeFetching || this.chainId !== ChainId.MAINNET) {
       return tokenToResult;
     }
-
-    const nonAllowlistTokens = tokens.filter(
-      (token) => !this.allowList.has(token.address.toLowerCase())
-    );
-    const tokenValidationResults =
-      await this.tokenValidatorProvider.validateTokens(
-        nonAllowlistTokens,
-        providerConfig
-      );
-
-    tokens.forEach((token) => {
-      if (this.allowList.has(token.address.toLowerCase())) {
-        // if the token is in the allowlist, make it UNKNOWN so that we don't fetch the FOT fee on-chain
-        tokenToResult[token.address.toLowerCase()] = {
-          tokenValidationResult: TokenValidationResult.UNKN,
-        };
-      } else {
-        tokenToResult[token.address.toLowerCase()] = {
-          tokenValidationResult:
-            tokenValidationResults.getValidationByToken(token),
-        };
-      }
-    });
 
     const addressesToFetchFeesOnchain: string[] = [];
     const addressesRaw = this.buildAddressesRaw(tokens);
@@ -101,10 +78,11 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
         }
 
         tokenToResult[address] = cachedValue;
-      } else if (
-        tokenToResult[address]?.tokenValidationResult ===
-        TokenValidationResult.FOT
-      ) {
+      } else if (this.allowList.has(address)) {
+        tokenToResult[address] = {
+          tokenValidationResult: TokenValidationResult.UNKN
+        }
+      } else {
         addressesToFetchFeesOnchain.push(address);
       }
     }
