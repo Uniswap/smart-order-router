@@ -165,7 +165,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
       );
 
       metric.putMetric("TokenValidatorProviderValidateCacheMiss", 1, MetricLoggerUnit.Count)
-      metric.putMetric(`TokenValidatorProviderValidateResult${tokenToResult[token.address.toLowerCase()]?.toString()}`, 1, MetricLoggerUnit.Count)
+      metric.putMetric(`TokenValidatorProviderValidateResult${validationResult}`, 1, MetricLoggerUnit.Count)
     }
 
     return {
