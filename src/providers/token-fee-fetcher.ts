@@ -4,7 +4,7 @@ import { ChainId } from '@uniswap/sdk-core';
 
 import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
 import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
-import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log, metric, MetricLoggerUnit, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { ProviderConfig } from './provider';
 
@@ -93,12 +93,18 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
               blockTag: providerConfig?.blockNumber,
             }
           );
+
+          metric.putMetric("TokenFeeFetcherFetchFeesSuccess", 1, MetricLoggerUnit.Count)
+
           return { address, ...feeResult };
         } catch (err) {
           log.error(
             { err },
             `Error calling validate on-chain for token ${address}`
           );
+
+          metric.putMetric("TokenFeeFetcherFetchFeesFailure", 1, MetricLoggerUnit.Count)
+
           // in case of FOT token fee fetch failure, we return null
           // so that they won't get returned from the token-fee-fetcher
           // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
