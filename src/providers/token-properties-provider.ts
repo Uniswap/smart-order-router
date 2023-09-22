@@ -14,6 +14,7 @@ import {
   ITokenValidatorProvider,
   TokenValidationResult,
 } from './token-validator-provider';
+import { BigNumber } from '@ethersproject/bignumber';
 
 export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
   tokenFeeResult: DEFAULT_TOKEN_FEE_RESULT,
@@ -118,9 +119,15 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       await Promise.all(
         addressesToFetchFeesOnchain.map((address) => {
           const tokenFee = tokenFeeMap[address];
-          metric.putMetric(`TokenPropertiesProviderTokenFeeResultExists${tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps)}`, 1, MetricLoggerUnit.Count)
+          const tokenFeeResultExists: BigNumber | undefined = tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps)
 
-          if (tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps)) {
+          if (tokenFeeResultExists) {
+            // we will leverage the metric to log the token fee result, if it exists
+            // the idea is that the token fee should not differ by too much across tokens,
+            // so that we can accurately log the token fee for a particular quote request (without breaching metrics dimensionality limit)
+            // in the form of metrics.
+            // if we log as logging, given prod traffic volume, the logging volume will be high.
+            metric.putMetric(`TokenPropertiesProviderTokenFeeResultExists${tokenFeeResultExists}`, 1, MetricLoggerUnit.Count)
             const tokenResultForAddress = tokenToResult[address];
 
             if (tokenResultForAddress) {
@@ -139,6 +146,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
               }
             );
           } else {
+            metric.putMetric(`TokenPropertiesProviderTokenFeeResultNotExists`, 1, MetricLoggerUnit.Count)
             return Promise.resolve(true);
           }
         })
