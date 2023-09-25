@@ -20,6 +20,8 @@ import {
 export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
   tokenFeeResult: DEFAULT_TOKEN_FEE_RESULT,
 };
+export const POSITIVE_CACHE_ENTRY_TTL = 600; // 10 minutes in seconds
+export const NEGATIVE_CACHE_ENTRY_TTL = 10; // 10 seconds
 
 type Address = string;
 export type TokenPropertiesResult = {
@@ -44,6 +46,8 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
     private allowList = DEFAULT_ALLOWLIST,
+    private positiveCacheEntryTTL = POSITIVE_CACHE_ENTRY_TTL,
+    private negativeCacheEntryTTL = NEGATIVE_CACHE_ENTRY_TTL
   ) {}
 
   public async getTokensProperties(
@@ -129,11 +133,19 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
               {
                 tokenFeeResult: tokenFee,
                 tokenValidationResult: TokenValidationResult.FOT,
-              }
+              } as TokenPropertiesResult,
+              this.positiveCacheEntryTTL
             );
           } else {
             metric.putMetric(`TokenPropertiesProviderTokenFeeResultCacheMissNotExists`, 1, MetricLoggerUnit.Count)
-            return Promise.resolve(true);
+            return this.tokenPropertiesCache.set(
+              this.CACHE_KEY(this.chainId, address),
+              {
+                tokenFeeResult: undefined,
+                tokenValidationResult: undefined,
+              } as TokenPropertiesResult,
+              this.negativeCacheEntryTTL
+            );
           }
         })
       );
