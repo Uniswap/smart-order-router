@@ -118,11 +118,12 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
             // in the form of metrics.
             // if we log as logging, given prod traffic volume, the logging volume will be high.
             metric.putMetric(`TokenPropertiesProviderTokenFeeResultCacheMissExists${tokenFeeResultExists}`, 1, MetricLoggerUnit.Count)
-            const tokenResultForAddress = tokenToResult[address];
 
-            if (tokenResultForAddress) {
-              tokenResultForAddress.tokenFeeResult = tokenFee;
+            const tokenPropertiesResult = {
+              tokenFeeResult: tokenFee,
+              tokenValidationResult: TokenValidationResult.FOT,
             }
+            tokenToResult[address] = tokenPropertiesResult;
 
             metric.putMetric("TokenPropertiesProviderBatchGetCacheMiss", 1, MetricLoggerUnit.Count)
 
@@ -130,20 +131,21 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
             // at this point, we are confident that the tokens are FOT, so we can hardcode the validation result
             return this.tokenPropertiesCache.set(
               this.CACHE_KEY(this.chainId, address),
-              {
-                tokenFeeResult: tokenFee,
-                tokenValidationResult: TokenValidationResult.FOT,
-              } as TokenPropertiesResult,
+              tokenPropertiesResult,
               this.positiveCacheEntryTTL
             );
           } else {
             metric.putMetric(`TokenPropertiesProviderTokenFeeResultCacheMissNotExists`, 1, MetricLoggerUnit.Count)
+
+            const tokenPropertiesResult = {
+              tokenFeeResult: undefined,
+              tokenValidationResult: undefined,
+            }
+            tokenToResult[address] = tokenPropertiesResult;
+
             return this.tokenPropertiesCache.set(
               this.CACHE_KEY(this.chainId, address),
-              {
-                tokenFeeResult: undefined,
-                tokenValidationResult: undefined,
-              } as TokenPropertiesResult,
+              tokenPropertiesResult,
               this.negativeCacheEntryTTL
             );
           }

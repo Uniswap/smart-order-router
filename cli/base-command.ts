@@ -41,7 +41,6 @@ import {
   TenderlySimulator,
   TokenPropertiesProvider,
   TokenProvider,
-  TokenValidatorProvider,
   UniswapMulticallProvider,
   V2PoolProvider,
   V3PoolProvider,
@@ -287,18 +286,12 @@ export abstract class BaseCommand extends Command {
         new V3PoolProvider(chainId, multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-      const tokenValidatorProvider = new TokenValidatorProvider(
-        chainId,
-        multicall2Provider,
-        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-      )
       const tokenFeeFetcher = new OnChainTokenFeeFetcher(
         chainId,
         provider
       )
       const tokenPropertiesProvider = new TokenPropertiesProvider(
         chainId,
-        tokenValidatorProvider,
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
         tokenFeeFetcher
       )

@@ -1,5 +1,5 @@
 import NodeCache from 'node-cache';
-import { NodeJSCache } from '../../../build/main';
+import { NodeJSCache } from '../../../src';
 
 describe('NodeJSCache', () => {
   const underlyingCache = new NodeCache()
