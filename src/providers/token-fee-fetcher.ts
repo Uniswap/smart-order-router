@@ -73,7 +73,8 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
   ): Promise<TokenFeeMap> {
     const tokenToResult: TokenFeeMap = {};
 
-    const functionParams = addresses.map((address) => [
+    const addressesWithoutBaseToken = addresses.filter((address) => address === this.BASE_TOKEN)
+    const functionParams = addressesWithoutBaseToken.map((address) => [
       address,
       this.BASE_TOKEN,
       this.amountToFlashBorrow,
