@@ -79,7 +79,7 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
     const tokenToResult: TokenFeeMap = {};
 
     const addressesWithoutBaseToken = addresses.filter(
-      (address) => address !== this.BASE_TOKEN
+      (address) => address.toLowerCase() !== this.BASE_TOKEN.toLowerCase()
     );
     const functionParams = addressesWithoutBaseToken.map((address) => [
       address,

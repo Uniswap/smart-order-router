@@ -1,4 +1,4 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Token, WETH9 } from '@uniswap/sdk-core';
 import NodeCache from 'node-cache';
 import sinon from 'sinon';
 import {
@@ -14,8 +14,13 @@ import {
   TokenPropertiesProvider,
   TokenPropertiesResult,
   TokenValidationResult,
-  USDC_MAINNET
+  USDC_MAINNET, ID_TO_PROVIDER
 } from '../../../src';
+import dotenv from 'dotenv';
+import { JsonRpcProvider } from '@ethersproject/providers';
+import { BITBOY } from '../../test-util/mock-data';
+
+dotenv.config();
 
 describe('TokenPropertiesProvider', () => {
   let mockTokenFeeFetcher: sinon.SinonStubbedInstance<ITokenFeeFetcher>
@@ -190,6 +195,48 @@ describe('TokenPropertiesProvider', () => {
         underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
         expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase())) ?? 0) / 1000)).toEqual(currentEpochTimeInSeconds + NEGATIVE_CACHE_ENTRY_TTL);
       }
+    });
+
+    it('real ETH and BITBOY token fee fetch, only BITBOY fetched', async function() {
+      const chain = ChainId.MAINNET;
+      const chainProvider = ID_TO_PROVIDER(chain);
+      const provider = new JsonRpcProvider(chainProvider, chain);
+      const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+
+      const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
+      const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
+      const tokenPropertiesProvider = new TokenPropertiesProvider(
+        ChainId.MAINNET,
+        tokenPropertiesResultCache,
+        tokenFeeFetcher,
+      )
+      const currentEpochTimeInSeconds = Math.floor(Date.now() / 1000);
+
+      const tokens = [WETH9[ChainId.MAINNET]!, BITBOY]
+
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
+
+      expect(tokenPropertiesMap[WETH9[ChainId.MAINNET]!.address.toLowerCase()]).toBeDefined()
+      expect(tokenPropertiesMap[WETH9[ChainId.MAINNET]!.address.toLowerCase()]?.tokenFeeResult).toBeUndefined()
+      expect(tokenPropertiesMap[WETH9[ChainId.MAINNET]!.address.toLowerCase()]?.tokenValidationResult).toBeUndefined()
+
+      expect(tokenPropertiesMap[BITBOY.address.toLowerCase()]).toBeDefined();
+      expect(tokenPropertiesMap[BITBOY.address.toLowerCase()]?.tokenFeeResult).toBeDefined();
+      expect(tokenPropertiesMap[BITBOY.address.toLowerCase()]?.tokenValidationResult).toBeDefined();
+      assertExpectedTokenProperties(tokenPropertiesMap[BITBOY.address.toLowerCase()],
+        BITBOY?.buyFeeBps,
+        BITBOY?.sellFeeBps,
+        TokenValidationResult.FOT);
+
+      const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, BITBOY.address.toLowerCase()))
+      expect(cachedTokenProperties).toBeDefined();
+      assertExpectedTokenProperties(cachedTokenProperties, BITBOY?.buyFeeBps, BITBOY?.sellFeeBps, TokenValidationResult.FOT);
+
+      underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, BITBOY.address.toLowerCase()))
+
+      const ttlUpperBoundBuffer = 1 // in seconds
+      expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, BITBOY.address.toLowerCase())) ?? 0) / 1000)).toBeGreaterThanOrEqual(currentEpochTimeInSeconds + POSITIVE_CACHE_ENTRY_TTL);
+      expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, BITBOY.address.toLowerCase())) ?? 0) / 1000)).toBeLessThanOrEqual(currentEpochTimeInSeconds + POSITIVE_CACHE_ENTRY_TTL + ttlUpperBoundBuffer);
     });
   });
 
