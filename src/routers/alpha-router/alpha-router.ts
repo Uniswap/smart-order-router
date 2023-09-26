@@ -596,7 +596,6 @@ export class AlphaRouter
     } else {
       this.tokenPropertiesProvider = new TokenPropertiesProvider(
         this.chainId,
-        this.tokenValidatorProvider!,
         new NodeJSCache(new NodeCache({ stdTTL: 86400, useClones: false })),
         new OnChainTokenFeeFetcher(this.chainId, provider)
       )
