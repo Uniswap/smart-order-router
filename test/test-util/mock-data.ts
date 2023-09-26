@@ -416,3 +416,13 @@ export const STETH = new Token(
     BigNumber.from(0),
     BigNumber.from(0)
 )
+export const BITBOY = new Token(
+  ChainId.MAINNET,
+  '0x4a500ed6add5994569e66426588168705fcc9767',
+  8,
+  'BITBOY',
+  'BitBoy Fund',
+  false,
+  BigNumber.from(300),
+  BigNumber.from(300)
+)
