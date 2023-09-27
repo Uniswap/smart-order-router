@@ -96,7 +96,10 @@ export class CachingV2PoolProvider implements IV2PoolProvider {
     if (poolsToGetAddresses.length > 0) {
       const poolAccessor = await this.poolProvider.getPools(
         poolsToGetTokenPairs,
-        providerConfig
+        {
+          ...providerConfig,
+          enableFeeOnTransferFeeFetching: true,
+        }
       );
       for (const address of poolsToGetAddresses) {
         const pool = poolAccessor.getPoolByAddress(address);
