@@ -5,10 +5,16 @@ import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS,
 } from '@uniswap/universal-router-sdk';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
-import { SwapOptions, SwapRoute, SwapType } from '../routers';
+import {
+  metric,
+  MetricLoggerUnit,
+  SwapOptions,
+  SwapRoute,
+  SwapType
+} from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { log, MAX_UINT160, SWAP_ROUTER_02_ADDRESSES } from '../util';
@@ -157,6 +163,7 @@ export class TenderlySimulator extends Simulator {
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
+  private tenderlyRequestTimeout?: number;
 
   constructor(
     chainId: ChainId,
@@ -167,7 +174,8 @@ export class TenderlySimulator extends Simulator {
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
     provider: JsonRpcProvider,
-    overrideEstimateMultiplier?: { [chainId in ChainId]?: number }
+    overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
+    tenderlyRequestTimeout?: number,
   ) {
     super(provider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
@@ -177,6 +185,7 @@ export class TenderlySimulator extends Simulator {
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
+    this.tenderlyRequestTimeout = tenderlyRequestTimeout;
   }
 
   public async simulateTransaction(
@@ -280,19 +289,27 @@ export class TenderlySimulator extends Simulator {
         simulations: [approvePermit2, approveUniversalRouter, swap],
         estimate_gas: true,
       };
-      const opts = {
+      const opts: AxiosRequestConfig = {
         headers: {
           'X-Access-Key': this.tenderlyAccessKey,
         },
+        timeout: this.tenderlyRequestTimeout,
       };
       const url = TENDERLY_BATCH_SIMULATE_API(
         this.tenderlyBaseUrl,
         this.tenderlyUser,
         this.tenderlyProject
       );
+
+      const before = Date.now();
+
       const resp = (
         await axios.post<TenderlyResponseUniversalRouter>(url, body, opts)
       ).data;
+
+      const latencies = Date.now() - before
+      log.info(`Tenderly simulation universal router request body: ${body}, having latencies ${latencies} in milliseconds.`)
+      metric.putMetric('TenderlySimulationUniversalRouterLatencies', Date.now() - before, MetricLoggerUnit.Milliseconds);
 
       // Validate tenderly response body
       if (
@@ -337,16 +354,17 @@ export class TenderlySimulator extends Simulator {
         'Successful Tenderly Swap Simulation for Universal Router'
       );
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
-      const approve = {
+      const approve: TenderlySimulationRequest = {
         network_id: chainId,
         input: APPROVE_TOKEN_FOR_TRANSFER,
         estimate_gas: true,
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
+        simulation_type: TenderlySimulationType.QUICK,
       };
 
-      const swap = {
+      const swap: TenderlySimulationRequest = {
         network_id: chainId,
         input: calldata,
         to: SWAP_ROUTER_02_ADDRESSES(chainId),
@@ -358,13 +376,15 @@ export class TenderlySimulator extends Simulator {
           chainId == ChainId.ARBITRUM_ONE && blockNumber
             ? blockNumber - 5
             : undefined,
+        simulation_type: TenderlySimulationType.QUICK,
       };
 
       const body = { simulations: [approve, swap] };
-      const opts = {
+      const opts: AxiosRequestConfig = {
         headers: {
           'X-Access-Key': this.tenderlyAccessKey,
         },
+        timeout: this.tenderlyRequestTimeout,
       };
 
       const url = TENDERLY_BATCH_SIMULATE_API(
@@ -373,9 +393,15 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyProject
       );
 
+      const before = Date.now()
+
       const resp = (
         await axios.post<TenderlyResponseSwapRouter02>(url, body, opts)
       ).data;
+
+      const latencies = Date.now() - before
+      log.info(`Tenderly simulation swap router02 request body: ${body}, having latencies ${latencies} in milliseconds.`)
+      metric.putMetric('TenderlySimulationSwapRouter02Latencies', latencies, MetricLoggerUnit.Milliseconds);
 
       // Validate tenderly response body
       if (
