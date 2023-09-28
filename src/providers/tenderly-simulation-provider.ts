@@ -354,16 +354,17 @@ export class TenderlySimulator extends Simulator {
         'Successful Tenderly Swap Simulation for Universal Router'
       );
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
-      const approve = {
+      const approve: TenderlySimulationRequest = {
         network_id: chainId,
         input: APPROVE_TOKEN_FOR_TRANSFER,
         estimate_gas: true,
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
+        simulation_type: TenderlySimulationType.QUICK,
       };
 
-      const swap = {
+      const swap: TenderlySimulationRequest = {
         network_id: chainId,
         input: calldata,
         to: SWAP_ROUTER_02_ADDRESSES(chainId),
@@ -375,6 +376,7 @@ export class TenderlySimulator extends Simulator {
           chainId == ChainId.ARBITRUM_ONE && blockNumber
             ? blockNumber - 5
             : undefined,
+        simulation_type: TenderlySimulationType.QUICK,
       };
 
       const body = { simulations: [approve, swap] };
