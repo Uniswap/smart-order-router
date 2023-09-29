@@ -143,14 +143,20 @@ describe('QuoteProvider', () => {
                   expect(nextToken.buyFeeBps).toBeDefined();
                 }
               } else {
-                expect(
-                  nextToken.sellFeeBps === undefined ||
+                // when nextToken is tokenOut, we don't require them to exclude sellFeeBps or buyFeeBps
+                // the reason is because routing-api filters them out based on the enableFeeOnTransferFeeFetching flag
+                // however it's important if tokenIn is fot, we need to exclude sellFeeBps or buyFeeBps
+                // below is the logic to exclude sellFeeBps or buyFeeBps
+                if (!nextToken.equals(tokenOut)) {
+                  expect(
+                    nextToken.sellFeeBps === undefined ||
                     nextToken.sellFeeBps.eq(BigNumber.from(0))
-                ).toBeTruthy();
-                expect(
-                  nextToken.buyFeeBps === undefined ||
+                  ).toBeTruthy();
+                  expect(
+                    nextToken.buyFeeBps === undefined ||
                     nextToken.buyFeeBps.eq(BigNumber.from(0))
-                ).toBeTruthy();
+                  ).toBeTruthy();
+                }
               }
             }
 
