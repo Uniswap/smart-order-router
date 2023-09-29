@@ -92,7 +92,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             for (const pair of route.pairs) {
               [outputAmount] = pair.getOutputAmount(
                 outputAmount,
-                providerConfig.enableFeeOnTransferFeeFetching ?? false
+                providerConfig.enableFeeOnTransferFeeFetching === true
               );
             }
 
@@ -106,7 +106,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             for (const pair of route.pairs.reverse()) {
               [inputAmount] = pair.getInputAmount(
                 inputAmount,
-                providerConfig.enableFeeOnTransferFeeFetching ?? false
+                providerConfig.enableFeeOnTransferFeeFetching === true
               );
             }
 
