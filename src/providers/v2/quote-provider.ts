@@ -103,7 +103,8 @@ export class V2QuoteProvider implements IV2QuoteProvider {
           } else {
             let inputAmount = amount.wrapped;
 
-            for (const pair of route.pairs.reverse()) {
+            for (let i = route.pairs.length - 1; i >= 0; i--) {
+              const pair = route.pairs[i]!;
               [inputAmount] = pair.getInputAmount(
                 inputAmount,
                 providerConfig.enableFeeOnTransferFeeFetching === true
