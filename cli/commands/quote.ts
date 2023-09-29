@@ -35,7 +35,7 @@ export class Quote extends BaseCommand {
     }),
     simulate: flags.boolean({ required: false, default: false }),
     debugRouting: flags.boolean({ required: false, default: true }),
-    enableFeeOnTransferFeeFetching: flags.boolean({ required: false, default: true }),
+    enableFeeOnTransferFeeFetching: flags.boolean({ required: false, default: false }),
   };
 
   async run() {
