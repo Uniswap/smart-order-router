@@ -1,14 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { TradeType } from '@uniswap/sdk-core';
-import {
-  InsufficientInputAmountError,
-  InsufficientReservesError,
-} from '@uniswap/v2-sdk';
+import { InsufficientInputAmountError, InsufficientReservesError } from '@uniswap/v2-sdk';
 
 import { V2Route } from '../../routers/router';
 import { CurrencyAmount } from '../../util/amounts';
 import { log } from '../../util/log';
-import { metric, MetricLoggerUnit } from '../../util/metric';
 import { routeToString } from '../../util/routes';
 import { ProviderConfig } from '../provider';
 
@@ -43,7 +39,9 @@ export interface IV2QuoteProvider {
  */
 export class V2QuoteProvider implements IV2QuoteProvider {
   /* eslint-disable @typescript-eslint/no-empty-function */
-  constructor() {}
+  constructor() {
+  }
+
   /* eslint-enable @typescript-eslint/no-empty-function */
 
   public async getQuotesManyExactIn(
@@ -92,62 +90,10 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             let outputAmount = amount.wrapped;
 
             for (const pair of route.pairs) {
-              if (amount.wrapped.currency.sellFeeBps) {
-                // this should never happen, but just in case it happens,
-                // there is a bug in sor. We need to log this and investigate.
-                const error =
-                  new Error(`Sell fee bps should not exist on output amount
-                ${JSON.stringify(amount)} on amounts ${JSON.stringify(amounts)}
-                on routes ${JSON.stringify(routes)}`);
-
-                // artificially create error object and pass in log.error so that
-                // it also log the stack trace
-                log.error(
-                  { error },
-                  'Sell fee bps should not exist on output amount'
-                );
-                metric.putMetric(
-                  'V2_QUOTE_PROVIDER_INCONSISTENT_SELL_FEE_BPS_VS_FEATURE_FLAG',
-                  1,
-                  MetricLoggerUnit.Count
-                );
-              }
-
-              if (providerConfig.enableFeeOnTransferFeeFetching) {
-                if (
-                  pair.token0.equals(outputAmount.currency) &&
-                  pair.token0.sellFeeBps?.gt(BigNumber.from(0))
-                ) {
-                  const outputAmountWithSellFeeBps =
-                    CurrencyAmount.fromRawAmount(
-                      pair.token0,
-                      outputAmount.quotient
-                    );
-                  const [outputAmountNew] = pair.getOutputAmount(
-                    outputAmountWithSellFeeBps
-                  );
-                  outputAmount = outputAmountNew;
-                } else if (
-                  pair.token1.equals(outputAmount.currency) &&
-                  pair.token1.sellFeeBps?.gt(BigNumber.from(0))
-                ) {
-                  const outputAmountWithSellFeeBps =
-                    CurrencyAmount.fromRawAmount(
-                      pair.token1,
-                      outputAmount.quotient
-                    );
-                  const [outputAmountNew] = pair.getOutputAmount(
-                    outputAmountWithSellFeeBps
-                  );
-                  outputAmount = outputAmountNew;
-                } else {
-                  const [outputAmountNew] = pair.getOutputAmount(outputAmount);
-                  outputAmount = outputAmountNew;
-                }
-              } else {
-                const [outputAmountNew] = pair.getOutputAmount(outputAmount);
-                outputAmount = outputAmountNew;
-              }
+              [outputAmount] = pair.getOutputAmount(
+                outputAmount,
+                providerConfig.enableFeeOnTransferFeeFetching ?? false
+              );
             }
 
             amountQuotes.push({
@@ -157,54 +103,11 @@ export class V2QuoteProvider implements IV2QuoteProvider {
           } else {
             let inputAmount = amount.wrapped;
 
-            for (let i = route.pairs.length - 1; i >= 0; i--) {
-              const pair = route.pairs[i]!;
-              if (amount.wrapped.currency.buyFeeBps) {
-                // this should never happen, but just in case it happens,
-                // there is a bug in sor. We need to log this and investigate.
-                const error =
-                  new Error(`Buy fee bps should not exist on input amount
-                ${JSON.stringify(amount)} on amounts ${JSON.stringify(amounts)}
-                on routes ${JSON.stringify(routes)}`);
-
-                // artificially create error object and pass in log.error so that
-                // it also log the stack trace
-                log.error(
-                  { error },
-                  'Buy fee bps should not exist on input amount'
-                );
-                metric.putMetric(
-                  'V2_QUOTE_PROVIDER_INCONSISTENT_BUY_FEE_BPS_VS_FEATURE_FLAG',
-                  1,
-                  MetricLoggerUnit.Count
-                );
-              }
-
-              if (providerConfig.enableFeeOnTransferFeeFetching) {
-                if (
-                  pair.token0.equals(inputAmount.currency) &&
-                  pair.token0.buyFeeBps?.gt(BigNumber.from(0))
-                ) {
-                  const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(
-                    pair.token0,
-                    inputAmount.quotient
-                  );
-                  [inputAmount] = pair.getInputAmount(inputAmountWithBuyFeeBps);
-                } else if (
-                  pair.token1.equals(inputAmount.currency) &&
-                  pair.token1.buyFeeBps?.gt(BigNumber.from(0))
-                ) {
-                  const inputAmountWithBuyFeeBps = CurrencyAmount.fromRawAmount(
-                    pair.token1,
-                    inputAmount.quotient
-                  );
-                  [inputAmount] = pair.getInputAmount(inputAmountWithBuyFeeBps);
-                } else {
-                  [inputAmount] = pair.getInputAmount(inputAmount);
-                }
-              } else {
-                [inputAmount] = pair.getInputAmount(inputAmount);
-              }
+            for (const pair of route.pairs.reverse()) {
+              [inputAmount] = pair.getInputAmount(
+                inputAmount,
+                providerConfig.enableFeeOnTransferFeeFetching ?? false
+              );
             }
 
             amountQuotes.push({
