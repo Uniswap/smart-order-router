@@ -105,7 +105,11 @@ export class V2QuoteProvider implements IV2QuoteProvider {
               quote: BigNumber.from(outputAmount.quotient.toString()),
             });
           } else {
-            let inputAmount = amount.wrapped;
+            const lastPair = route.pairs[route.pairs.length - 1]!;
+            let inputAmount = CurrencyAmount.fromRawAmount(
+              lastPair.token0.equals(amount.wrapped.currency) ? lastPair.token0 : lastPair.token1,
+              amount.wrapped.quotient
+            );
 
             for (let i = route.pairs.length - 1; i >= 0; i--) {
               const pair = route.pairs[i]!;
