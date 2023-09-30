@@ -87,7 +87,11 @@ export class V2QuoteProvider implements IV2QuoteProvider {
       for (const amount of amounts) {
         try {
           if (tradeType == TradeType.EXACT_INPUT) {
-            let outputAmount = amount.wrapped;
+            const firstPair = route.pairs[0]!;
+            let outputAmount = CurrencyAmount.fromRawAmount(
+              firstPair.token0.equals(amount.wrapped.currency) ? firstPair.token0 : firstPair.token1,
+              amount.wrapped.quotient
+            );
 
             for (const pair of route.pairs) {
               [outputAmount] = pair.getOutputAmount(
