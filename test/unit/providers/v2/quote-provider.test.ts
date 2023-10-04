@@ -53,44 +53,22 @@ const bulletReserve = CurrencyAmount.fromRawAmount(
   BULLET,
   inputBulletCurrencyAmount.multiply(amountFactorForReserves).quotient
 );
-const bulletWithoutTaxReserve = CurrencyAmount.fromRawAmount(
-  BULLET_WITHOUT_TAX,
-  inputBulletCurrencyAmount.multiply(amountFactorForReserves).quotient
-);
 const WETHReserve = CurrencyAmount.fromRawAmount(
   WETH9[ChainId.MAINNET],
   wethCurrencyAmount.multiply(amountFactorForReserves).quotient
 );
 const bulletWETHPool = new Pair(bulletReserve, WETHReserve);
-const bulletWithoutTaxWETHPool = new Pair(bulletWithoutTaxReserve, WETHReserve);
 const blastReserve = CurrencyAmount.fromRawAmount(
   BLAST,
   blastCurrencyAmount.multiply(amountFactorForReserves).quotient
 );
-const blastWithoutTaxReserve = CurrencyAmount.fromRawAmount(
-  BLAST_WITHOUT_TAX,
-  blastCurrencyAmount.multiply(amountFactorForReserves).quotient
-);
 const WETHBlastPool = new Pair(WETHReserve, blastReserve);
-const WETHBlastWithoutTaxPool = new Pair(WETHReserve, blastWithoutTaxReserve);
 const stETHReserve = CurrencyAmount.fromRawAmount(
   STETH,
   stEthCurrencyAmount.multiply(amountFactorForReserves).quotient
 );
-const stETHWithoutTaxReserve = CurrencyAmount.fromRawAmount(
-  STETH,
-  stEthCurrencyAmount.multiply(amountFactorForReserves).quotient
-);
 const bulletSTETHPool = new Pair(bulletReserve, stETHReserve);
-const bulletWithoutTaxSTETHWithoutTaxPool = new Pair(
-  bulletWithoutTaxReserve,
-  stETHWithoutTaxReserve
-);
 const stETHBlastPool = new Pair(stETHReserve, blastReserve);
-const stETHWithoutTaxBlastWithoutTaxPool = new Pair(
-  stETHWithoutTaxReserve,
-  blastWithoutTaxReserve
-);
 
 const poolsWithTax: Pair[] = [
   bulletWETHPool,
@@ -98,24 +76,18 @@ const poolsWithTax: Pair[] = [
   bulletSTETHPool,
   stETHBlastPool,
 ];
-const poolsWithoutTax: Pair[] = [
-  bulletWithoutTaxWETHPool,
-  WETHBlastWithoutTaxPool,
-  bulletWithoutTaxSTETHWithoutTaxPool,
-  stETHWithoutTaxBlastWithoutTaxPool,
-];
 
 const quoteProvider = new V2QuoteProvider();
 
 describe('QuoteProvider', () => {
-  const enableFeeOnTransferFeeFetching = [true, false, undefined];
+  const enableFeeOnTransferFeeFetching = [undefined, false, true];
 
   enableFeeOnTransferFeeFetching.forEach((enableFeeOnTransferFeeFetching) => {
     describe(`fee-on-transfer flag enableFeeOnTransferFeeFetching = ${enableFeeOnTransferFeeFetching}`, () => {
       const v2Routes: Array<V2Route> = computeAllV2Routes(
         tokenIn,
         tokenOut,
-        enableFeeOnTransferFeeFetching ? poolsWithTax : poolsWithoutTax,
+        poolsWithTax,
         7
       );
       const providerConfig: ProviderConfig = {
@@ -150,38 +122,16 @@ describe('QuoteProvider', () => {
                 pair.reserve0.currency.equals(BULLET) ||
                 pair.reserve0.currency.equals(BLAST)
               ) {
-                if (enableFeeOnTransferFeeFetching) {
-                  expect(pair.reserve0.currency.sellFeeBps).toBeDefined();
-                  expect(pair.reserve0.currency.buyFeeBps).toBeDefined();
-                } else {
-                  expect(
-                    pair.reserve0.currency.sellFeeBps === undefined ||
-                      pair.reserve0.currency.sellFeeBps.eq(BigNumber.from(0))
-                  ).toBeTruthy();
-                  expect(
-                    pair.reserve0.currency.buyFeeBps === undefined ||
-                      pair.reserve0.currency.buyFeeBps.eq(BigNumber.from(0))
-                  ).toBeTruthy();
-                }
+                expect(pair.reserve0.currency.sellFeeBps).toBeDefined();
+                expect(pair.reserve0.currency.buyFeeBps).toBeDefined();
               }
 
               if (
                 pair.reserve1.currency.equals(BULLET) ||
                 pair.reserve1.currency.equals(BLAST)
               ) {
-                if (enableFeeOnTransferFeeFetching) {
-                  expect(pair.reserve1.currency.sellFeeBps).toBeDefined();
-                  expect(pair.reserve1.currency.buyFeeBps).toBeDefined();
-                } else {
-                  expect(
-                    pair.reserve1.currency.sellFeeBps === undefined ||
-                      pair.reserve1.currency.sellFeeBps.eq(BigNumber.from(0))
-                  ).toBeTruthy();
-                  expect(
-                    pair.reserve1.currency.buyFeeBps === undefined ||
-                      pair.reserve1.currency.buyFeeBps.eq(BigNumber.from(0))
-                  ).toBeTruthy();
-                }
+                expect(pair.reserve1.currency.sellFeeBps).toBeDefined();
+                expect(pair.reserve1.currency.buyFeeBps).toBeDefined();
               }
 
               const [outputAmount] = pair.getOutputAmount(currentInputAmount);
@@ -193,14 +143,20 @@ describe('QuoteProvider', () => {
                   expect(nextToken.buyFeeBps).toBeDefined();
                 }
               } else {
-                expect(
-                  nextToken.sellFeeBps === undefined ||
+                // when nextToken is tokenOut, we don't require them to exclude sellFeeBps or buyFeeBps
+                // the reason is because routing-api filters them out based on the enableFeeOnTransferFeeFetching flag
+                // however it's important if tokenIn is fot, we need to exclude sellFeeBps or buyFeeBps
+                // below is the logic to exclude sellFeeBps or buyFeeBps
+                if (!nextToken.equals(tokenOut)) {
+                  expect(
+                    nextToken.sellFeeBps === undefined ||
                     nextToken.sellFeeBps.eq(BigNumber.from(0))
-                ).toBeTruthy();
-                expect(
-                  nextToken.buyFeeBps === undefined ||
+                  ).toBeTruthy();
+                  expect(
+                    nextToken.buyFeeBps === undefined ||
                     nextToken.buyFeeBps.eq(BigNumber.from(0))
-                ).toBeTruthy();
+                  ).toBeTruthy();
+                }
               }
             }
 
