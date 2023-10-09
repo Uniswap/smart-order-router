@@ -44,6 +44,10 @@ import {
 } from '../../providers';
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
+import {
+  IPortionProvider,
+  PortionProvider
+} from '../../providers/portion-provider';
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
@@ -80,14 +84,17 @@ import {
   SwapToRatioResponse,
   SwapToRatioStatus,
   V2Route,
-  V3Route
+  V3Route,
 } from '../router';
 
-import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL } from './config';
+import {
+  DEFAULT_ROUTING_CONFIG_BY_CHAIN,
+  ETH_GAS_STATION_API_URL,
+} from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
-  V3RouteWithValidQuote
+  V3RouteWithValidQuote,
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
@@ -217,6 +224,11 @@ export type AlphaRouterParams = {
    * A provider for getting token properties for special tokens like fee-on-transfer tokens.
    */
   tokenPropertiesProvider?: ITokenPropertiesProvider;
+
+  /**
+   * A provider for computing the portion-related data for routes and quotes.
+   */
+  portionProvider?: IPortionProvider;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -394,6 +406,7 @@ export class AlphaRouter
   protected mixedQuoter: MixedQuoter;
   protected routeCachingProvider?: IRouteCachingProvider;
   protected tokenPropertiesProvider: ITokenPropertiesProvider;
+  protected portionProvider: IPortionProvider;
 
   constructor({
     chainId,
@@ -418,6 +431,7 @@ export class AlphaRouter
     simulator,
     routeCachingProvider,
     tokenPropertiesProvider,
+    portionProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -629,6 +643,7 @@ export class AlphaRouter
         ),
         new TokenProvider(chainId, this.multicall2Provider)
       );
+    this.portionProvider = portionProvider ?? new PortionProvider();
 
     const chainName = ID_TO_NETWORK_NAME(chainId);
 
@@ -948,6 +963,17 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
+    if (tradeType === TradeType.EXACT_OUTPUT) {
+      const portionAmount = this.portionProvider.getPortionAmount(amount, tradeType, swapConfig)
+    // In case of exact out swap, before we route, we need to make sure that the
+      // token out amount accounts for flat portion, and token in amount after the best swap route contains the token in equivalent of portion.
+      // In other words, in case a pool's LP fee bps is lower than the portion bps (0.01%/0.05% for v3), a pool can go insolvency.
+      // This is because instead of the swapper gets responsible for the portion,
+      // the pool instead gets responsible for the portion.
+      // Below addition avoids that situation.
+      amount = amount.add(portionAmount);
+    }
+
     const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
 
     const tokenIn = currencyIn.wrapped;
@@ -1255,8 +1281,14 @@ export class AlphaRouter
       );
     }
 
+    const tokenOutAmount = tradeType === TradeType.EXACT_OUTPUT ? amount : quote;
+    const portionAmount = this.portionProvider.getPortionAmount(tokenOutAmount, tradeType, swapConfig);
+    // TODO: check with the team whether they'd love to avoid changing best quote comparison in unified-routing-api
+    // const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(portionAmount, quote, amount)
+    // const exactOutQuoteCorrection = tradeType === TradeType.EXACT_OUTPUT ? quote.subtract(portionQuoteAmount) : quote;
+    const quoteGasAndPortionAdjusted = this.portionProvider.getPortionAdjustedQuote(tradeType, amount, quote, quoteGasAdjusted, portionAmount)
     const swapRoute: SwapRoute = {
-      quote,
+      quote, // quote: exactOutQuoteCorrection,
       quoteGasAdjusted,
       estimatedGasUsed,
       estimatedGasUsedQuoteToken,
@@ -1267,6 +1299,8 @@ export class AlphaRouter
       methodParameters,
       blockNumber: BigNumber.from(await blockNumber),
       hitsCachedRoute: hitsCachedRoute,
+      portionAmount: portionAmount,
+      quoteGasAndPortionAdjusted: quoteGasAndPortionAdjusted,
     };
 
     if (
