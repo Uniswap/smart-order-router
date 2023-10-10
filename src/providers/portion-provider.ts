@@ -6,12 +6,29 @@ import { SwapOptions, SwapOptionsUniversalRouter, SwapType } from '../routers';
 import { CurrencyAmount } from '../util';
 
 export interface IPortionProvider {
+  /**
+   * Get the portion amount for the given token out amount.
+   * portion amount is always calculated against the token out amount.
+   *
+   * @param tokenOutAmount the token out amount, either the quote for exact in, or the swapper requested amount for exact out
+   * @param tradeType the trade type, exact in or exact out
+   * @param swapConfig swap config, containing the portion related data
+   */
   getPortionAmount(
     tokenOutAmount: CurrencyAmount,
     tradeType: TradeType,
     swapConfig?: SwapOptions
   ): CurrencyAmount;
 
+  /**
+   * Get the portion quote amount for the given portion amount.
+   * Only applicable for exact out. For exact out, will return zero amount.
+   *
+   * @param tradeType the trade type, exact in or exact out
+   * @param portionAmountToken the portion amount for token out. computed against swapper request amount for exact out.
+   * @param quote token in amount for exact out.
+   * @param amount swapper request amount for exact out.
+   */
   getPortionQuoteAmount(
     tradeType: TradeType,
     portionAmountToken: CurrencyAmount,
@@ -19,18 +36,51 @@ export interface IPortionProvider {
     amount: CurrencyAmount
   ): CurrencyAmount;
 
+  /**
+   * Get the quote gas adjusted amount for exact in and exact out.
+   * For exact in, quote amount is the same as the best swap quote.
+   * For exact out, quote amount is the best swap quote minus the portion quote token amount.
+   * The reason is SOR adds the portion amount into the exact out swapper requested amount.
+   * SOR needs to estimate the equivalent portion quote token amount, and have quote amount subtract portion quote token amount.
+   *
+   * @param tradeType the trade type, exact in or exact out
+   * @param quote the best swap quote
+   * @param portionQuoteAmount the portion quote token amount
+   */
   getQuote(
     tradeType: TradeType,
     quote: CurrencyAmount,
     portionQuoteAmount: CurrencyAmount
   ): CurrencyAmount;
 
+  /**
+   * Get the quote gas adjusted amount for exact in and exact out.
+   * For exact in, quote gas adjusted amount is the same as the best swap quote gas adjusted amount.
+   * For exact out, quote gas adjusted amount is the best swap quote gas adjusted amount minus the portion quote token amount.
+   * The reason is SOR adds the portion amount into the exact out swapper requested amount.
+   * SOR needs to estimate the equivalent portion quote token amount, and have quote gas adjusted amount subtract portion quote token amount.
+   *
+   * @param tradeType the trade type, exact in or exact out
+   * @param quoteGasAdjusted the best swap quote gas adjusted amount
+   * @param portionQuoteAmount the portion quote token amount
+   */
   getQuoteGasAdjusted(
     tradeType: TradeType,
     quoteGasAdjusted: CurrencyAmount,
     portionQuoteAmount: CurrencyAmount
   ): CurrencyAmount;
 
+  /**
+   * Get the quote gas and portion adjusted amount for exact in and exact out.
+   * For exact in, quote gas and portion adjusted amount is the best swap quote gas adjusted amount minus the portion amount.
+   * The reason is because quote gas and portion adjusted amount for exact in does not know anything about portion.
+   * For exact out, quote gas and portion adjusted amount is the best swap quote gas adjusted amount.
+   * The reason is because quote gas and portion adjusted amount for exact out has already added the portion quote token amount.
+   *
+   * @param tradeType
+   * @param quoteGasAdjusted
+   * @param portionAmount
+   */
   getQuoteGasAndPortionAdjusted(
     tradeType: TradeType,
     quoteGasAdjusted: CurrencyAmount,
@@ -90,10 +140,7 @@ export class PortionProvider implements IPortionProvider {
     // this method can only be called for exact out
     // for exact in, there is no need to compute the portion quote amount, since portion is always against token out amount
     if (tradeType !== TradeType.EXACT_OUTPUT) {
-      return  CurrencyAmount.fromRawAmount(
-        quote.currency,
-        ZERO
-      );
+      return CurrencyAmount.fromRawAmount(quote.currency, ZERO);
     }
 
     // 1. we know the portion amount for exact out with 100% correctness,
