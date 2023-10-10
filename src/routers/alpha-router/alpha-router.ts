@@ -1293,6 +1293,7 @@ export class AlphaRouter
       swapConfig
     );
     const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(
+      tradeType,
       portionAmount,
       quote,
       amount

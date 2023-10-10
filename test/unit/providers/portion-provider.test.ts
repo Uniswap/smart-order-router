@@ -110,6 +110,7 @@ describe('portion provider', () => {
         expect(portionAmount?.quotient.toString()).toBe(expectedPortionAmount.quotient.toString());
 
         const actualPortionQuoteAmount = portionProvider.getPortionQuoteAmount(
+          TradeType.EXACT_OUTPUT,
           expectedPortionAmount,
           quoteAmount,
           amount

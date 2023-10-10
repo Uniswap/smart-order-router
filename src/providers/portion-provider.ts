@@ -13,6 +13,7 @@ export interface IPortionProvider {
   ): CurrencyAmount;
 
   getPortionQuoteAmount(
+    tradeType: TradeType,
     portionAmountToken: CurrencyAmount,
     quote: CurrencyAmount,
     amount: CurrencyAmount
@@ -81,10 +82,20 @@ export class PortionProvider implements IPortionProvider {
   }
 
   getPortionQuoteAmount(
+    tradeType: TradeType,
     portionAmountToken: CurrencyAmount,
     quote: CurrencyAmount,
     amount: CurrencyAmount
   ): CurrencyAmount {
+    // this method can only be called for exact out
+    // for exact in, there is no need to compute the portion quote amount, since portion is always against token out amount
+    if (tradeType !== TradeType.EXACT_OUTPUT) {
+      return  CurrencyAmount.fromRawAmount(
+        quote.currency,
+        ZERO
+      );
+    }
+
     // 1. we know the portion amount for exact out with 100% correctness,
     //    so we can add the portion amount into the exact out amount swapper requested.
     //    i.e. portionAdjustedAmount = amount + portionAmountToken
