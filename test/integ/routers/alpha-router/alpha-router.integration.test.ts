@@ -73,9 +73,10 @@ import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetc
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
+import { FLAT_PORTION, GREENLIST_TOKEN_PAIRS } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 17894002;
+const FORK_BLOCK = 18318644;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 
@@ -2272,6 +2273,80 @@ describe('alpha router integration', () => {
             expect(methodParameters).not.toBeUndefined();
 
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+          });
+
+          GREENLIST_TOKEN_PAIRS.forEach(([tokenIn, tokenOut]) => {
+            it(`${tokenIn.symbol} -> ${tokenOut.symbol} with portion`, async () => {
+              const originalAmount = (tokenIn.symbol === 'WBTC' && tradeType === TradeType.EXACT_INPUT) ||
+              (tokenOut.symbol === 'WBTC' && tradeType === TradeType.EXACT_OUTPUT)
+                ? '1'
+                : '100';
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount(originalAmount, tokenIn)
+                  : parseAmount(originalAmount, tokenOut);
+              const bps = new Percent(FLAT_PORTION.bips, 10_000)
+              const portionAmount = amount.multiply(bps)
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: alice._address,
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                  simulate: { fromAddress: WHALES(tokenIn) },
+                  fee: tradeType == TradeType.EXACT_INPUT ? { fee: bps, recipient: FLAT_PORTION.recipient } : undefined,
+                  flatFee: tradeType == TradeType.EXACT_OUTPUT ? { amount: portionAmount.quotient.toString(), recipient: FLAT_PORTION.recipient } : undefined
+                },
+                {
+                  ...ROUTING_CONFIG,
+                }
+              );
+
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+
+              // Expect tenderly simulation to be successful
+              expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+              expect(swap!.methodParameters).toBeDefined();
+              expect(swap!.methodParameters!.to).toBeDefined();
+
+              const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsed, estimatedGasUsedQuoteToken } = swap!;
+
+              const acceptableDifference = tokenIn.isNative || tokenOut.isNative ? quote.multiply(SLIPPAGE.add(bps)).add(estimatedGasUsedQuoteToken).quotient : quote.multiply(SLIPPAGE.add(bps)).quotient
+              await validateSwapRoute(
+                quote,
+                quoteGasAdjusted,
+                tradeType,
+                parseFloat(quote.toExact()),
+                parseInt(acceptableDifference.toString())
+              );
+
+              // skip checking token in amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
+              const checkTokenInAmount = tokenIn.isNative ? undefined: parseFloat(amount.toExact())
+              // skip checking token out amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
+              const checkTokenOutAmount = tokenOut.isNative ? undefined : parseFloat(amount.toExact())
+
+              // If token out is native, and trade type is exact in, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
+              // If token in is native, and trade type is exact out, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
+              if ((!tokenOut.isNative && tradeType === TradeType.EXACT_INPUT)
+                || (!tokenIn.isNative && tradeType === TradeType.EXACT_OUTPUT)) {
+                await validateExecuteSwap(
+                  SwapType.UNIVERSAL_ROUTER,
+                  quote,
+                  tokenIn,
+                  tokenOut,
+                  methodParameters,
+                  tradeType,
+                  checkTokenInAmount,
+                  checkTokenOutAmount,
+                  estimatedGasUsed
+                );
+              }
+            });
           });
         });
       }
