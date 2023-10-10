@@ -964,8 +964,12 @@ export class AlphaRouter
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
     if (tradeType === TradeType.EXACT_OUTPUT) {
-      const portionAmount = this.portionProvider.getPortionAmount(amount, tradeType, swapConfig)
-    // In case of exact out swap, before we route, we need to make sure that the
+      const portionAmount = this.portionProvider.getPortionAmount(
+        amount,
+        tradeType,
+        swapConfig
+      );
+      // In case of exact out swap, before we route, we need to make sure that the
       // token out amount accounts for flat portion, and token in amount after the best swap route contains the token in equivalent of portion.
       // In other words, in case a pool's LP fee bps is lower than the portion bps (0.01%/0.05% for v3), a pool can go insolvency.
       // This is because instead of the swapper gets responsible for the portion,
@@ -1281,16 +1285,39 @@ export class AlphaRouter
       );
     }
 
-    const tokenOutAmount = tradeType === TradeType.EXACT_OUTPUT ? amount : quote;
-    const portionAmount = this.portionProvider.getPortionAmount(tokenOutAmount, tradeType, swapConfig);
-    // TODO: check with the team whether they'd love to avoid changing best quote comparison in unified-routing-api
-    // const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(portionAmount, quote, amount)
-    // const exactOutQuoteCorrection = tradeType === TradeType.EXACT_OUTPUT ? quote.subtract(portionQuoteAmount) : quote;
-    // recommendation is to use exactOutQuoteCorrection
-    const quoteGasAndPortionAdjusted = this.portionProvider.getPortionAdjustedQuote(tradeType, amount, quote, quoteGasAdjusted, portionAmount)
-    const swapRoute: SwapRoute = {
-      quote, // quote: exactOutQuoteCorrection,
+    const tokenOutAmount =
+      tradeType === TradeType.EXACT_OUTPUT ? amount : quote;
+    const portionAmount = this.portionProvider.getPortionAmount(
+      tokenOutAmount,
+      tradeType,
+      swapConfig
+    );
+    const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(
+      portionAmount,
+      quote,
+      amount
+    );
+
+    // we need to correct quote and quote gas adjusted for exact output when portion is part of the exact out swap
+    const correctedQuote = this.portionProvider.getQuote(
+      tradeType,
+      quote,
+      portionQuoteAmount
+    );
+    const correctedQuoteGasAdjusted = this.portionProvider.getQuoteGasAdjusted(
+      tradeType,
       quoteGasAdjusted,
+      portionQuoteAmount
+    );
+    const quoteGasAndPortionAdjusted =
+      this.portionProvider.getQuoteGasAndPortionAdjusted(
+        tradeType,
+        quoteGasAdjusted,
+        portionAmount
+      );
+    const swapRoute: SwapRoute = {
+      quote: correctedQuote,
+      quoteGasAdjusted: correctedQuoteGasAdjusted,
       estimatedGasUsed,
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,

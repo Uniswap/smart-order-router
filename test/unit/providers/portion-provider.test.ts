@@ -22,18 +22,15 @@ describe('portion provider', () => {
         const tokenAddress2 = token2.wrapped.address;
 
         it(`token address ${tokenAddress1} to token address ${tokenAddress2} within the list, should have portion`, async () => {
-          const amount = parseAmount(expectedRequestAmount, token1);
-          await exactInGetPortionAndAssert(amount, token2);
+          await exactInGetPortionAndAssert(token2);
         });
 
         it(`token symbol ${tokenSymbol1} to token symbol ${tokenSymbol2} within the list, should have portion`, async () => {
-          const amount = parseAmount(expectedRequestAmount, token1);
-          await exactInGetPortionAndAssert(amount, token2);
+          await exactInGetPortionAndAssert(token2);
         });
       });
 
       async function exactInGetPortionAndAssert(
-        amount: CurrencyAmount<Currency>,
         token2: Currency | Token
       ) {
         const quoteAmount = parseAmount(expectedQuote, token2);
@@ -53,13 +50,7 @@ describe('portion provider', () => {
           TradeType.EXACT_INPUT,
           swapConfig
         );
-        const portionAdjustedQuote = portionProvider.getPortionAdjustedQuote(
-          TradeType.EXACT_INPUT,
-          amount,
-          quoteAmount,
-          quoteGasAdjustedAmount,
-          portionAmount
-        );
+        const portionAdjustedQuote = portionProvider.getQuoteGasAndPortionAdjusted(TradeType.EXACT_INPUT, quoteGasAdjustedAmount, portionAmount);
 
         // 1605.56 * 10^8 * 5 / 10000 = 80278000
         const expectedPortionAmount = quoteAmount.multiply(new Fraction(expectedPortion.bips, 10_000));
@@ -101,6 +92,8 @@ describe('portion provider', () => {
         token1: Currency | Token
       ) {
         const quoteAmount = parseAmount(expectedQuote, token1);
+        const quoteGasAdjustedAmount = quoteAmount.add(parseAmount(expectedGas, token1));
+
         const expectedPortionAmount = amount.multiply(new Fraction(expectedPortion.bips, 10_000));
         const swapConfig: SwapOptions = {
           type: SwapType.UNIVERSAL_ROUTER,
@@ -112,29 +105,32 @@ describe('portion provider', () => {
           }
         }
         const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, swapConfig);
-        const quoteGasAdjustedAmount = quoteAmount.add(parseAmount(expectedGas, token1));
-        const portionAdjustedQuote = portionProvider.getPortionAdjustedQuote(
-          TradeType.EXACT_OUTPUT,
-          amount,
-          quoteAmount,
-          quoteGasAdjustedAmount,
-          portionAmount
-        );
-
         // 1.01 * 10^8 * 12 / 10000 = 121200
         // (exact out requested amount) * (USDC decimal scale) * (portion bips) / 10000 = portion amount
         expect(portionAmount?.quotient.toString()).toBe(expectedPortionAmount.quotient.toString());
 
-        const expectedPortionQuoteAmount = portionProvider.getPortionQuoteAmount(
+        const actualPortionQuoteAmount = portionProvider.getPortionQuoteAmount(
           expectedPortionAmount,
           quoteAmount,
           amount
         );
 
+        const expectedPortionQuoteAmount = portionAmount.divide(portionAmount.add(amount)).multiply(quoteAmount)
+        expect(actualPortionQuoteAmount.quotient.toString()).toBe(expectedPortionQuoteAmount.quotient.toString());
+
+        const actualCorrectedQuoteAmount = portionProvider.getQuote(TradeType.EXACT_OUTPUT, quoteAmount, actualPortionQuoteAmount);
+        const expectedCorrectedQuoteAmount = quoteAmount.subtract(actualPortionQuoteAmount);
+        expect(actualCorrectedQuoteAmount?.quotient.toString()).toBe(expectedCorrectedQuoteAmount.quotient.toString());
+
+        const actualCorrectedQuoteGasAdjustedAmount = portionProvider.getQuoteGasAdjusted(TradeType.EXACT_OUTPUT, quoteGasAdjustedAmount, actualPortionQuoteAmount);
+        const expectedCorrectedQuoteGasAdjustedAmount = quoteGasAdjustedAmount.subtract(actualPortionQuoteAmount);
+        expect(actualCorrectedQuoteGasAdjustedAmount?.quotient.toString()).toBe(expectedCorrectedQuoteGasAdjustedAmount.quotient.toString())
+
+        const actualCorrectedQuoteGasAndPortionAdjustedAmount = portionProvider.getQuoteGasAndPortionAdjusted(TradeType.EXACT_OUTPUT, actualCorrectedQuoteGasAdjustedAmount, portionAmount);
         // 1605.56 * 10^18 + 121200 / (1.01 * 10^8 + 121200) * 1605.56 * 10^18 = 1.6074867e+21
-        // (exact in quote amount) * (ETH decimal scale) + (portion amount) / (exact out requested amount + portion amount) * (exact in quote amount) * (ETH decimal scale) = portion adjusted quote amount
-        const expectedQuoteGasAndPortionAdjusted = quoteGasAdjustedAmount.add(expectedPortionQuoteAmount);
-        expect(portionAdjustedQuote?.quotient.toString()).toBe(expectedQuoteGasAndPortionAdjusted.quotient.toString());
+        // (exact in quote gas adjusted amount) * (ETH decimal scale) + (portion amount) / (exact out requested amount + portion amount) * (exact in quote amount) * (ETH decimal scale)
+        // = (quote gas and portion adjusted amount)
+        expect(actualCorrectedQuoteGasAndPortionAdjustedAmount?.quotient.toString()).toBe(actualCorrectedQuoteGasAdjustedAmount.quotient.toString());
       }
     });
   });
