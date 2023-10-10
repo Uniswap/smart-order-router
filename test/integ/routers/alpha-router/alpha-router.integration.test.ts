@@ -76,7 +76,9 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import { FLAT_PORTION, GREENLIST_TOKEN_PAIRS } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 18318644;
+// TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023, e.g. at block 18318644
+// TODO: permit-related tests will fail during hardfork swap execution when changing to later block. Investigate why.
+const FORK_BLOCK = 17894002;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 
