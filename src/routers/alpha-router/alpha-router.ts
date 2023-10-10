@@ -1286,6 +1286,7 @@ export class AlphaRouter
     // TODO: check with the team whether they'd love to avoid changing best quote comparison in unified-routing-api
     // const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(portionAmount, quote, amount)
     // const exactOutQuoteCorrection = tradeType === TradeType.EXACT_OUTPUT ? quote.subtract(portionQuoteAmount) : quote;
+    // recommendation is to use exactOutQuoteCorrection
     const quoteGasAndPortionAdjusted = this.portionProvider.getPortionAdjustedQuote(tradeType, amount, quote, quoteGasAdjusted, portionAmount)
     const swapRoute: SwapRoute = {
       quote, // quote: exactOutQuoteCorrection,

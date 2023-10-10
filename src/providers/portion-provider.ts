@@ -1,7 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ZERO } from '@uniswap/router-sdk';
-import { TradeType } from '@uniswap/sdk-core';
-import JSBI from 'jsbi';
+import { Fraction, TradeType } from '@uniswap/sdk-core';
 
 import { SwapOptions, SwapOptionsUniversalRouter, SwapType } from '../routers';
 import { CurrencyAmount } from '../util';
@@ -74,21 +73,19 @@ export class PortionProvider implements IPortionProvider {
     // 2. then we know portion amount and portion adjusted exact out amount,
     //    we can get a ratio
     //    i.e. portionToPortionAdjustedAmountRatio = portionAmountToken / portionAdjustedAmount
-    const portionToPortionAdjustedAmountRatio = portionAmountToken.divide(portionAdjustedAmount);
-    // 3. this step is purely technical, we need to convert the CurrencyAmount into JSBI, which is token-less
-    //    otherwise step 4 will fail with Currency Invariant.
-    const unitlessRatio: JSBI = portionToPortionAdjustedAmountRatio.quotient;
-    // 4. we have the portionAmountToken / portionAdjustedAmount ratio
+    const portionToPortionAdjustedAmountRatio = new Fraction(
+      portionAmountToken.quotient,
+      portionAdjustedAmount.quotient
+    );
+    // 3. we have the portionAmountToken / portionAdjustedAmount ratio
     //    then we can estimate the portion amount for quote, i.e. what is the estimated token in amount deducted for the portion
     //    this amount will be portionQuoteAmountToken = portionAmountToken / portionAdjustedAmount * quoteCurrencyAmount
     //    CAVEAT: we prefer to use the quote currency amount OVER quote gas adjusted currency amount for the formula
     //    because the portion amount calculated from the exact out has no way to account for the gas units.
-    const portionQuoteAmountToken = CurrencyAmount.fromRawAmount(
+    return CurrencyAmount.fromRawAmount(
       quoteCurrencyAmount.currency,
-      JSBI.multiply(unitlessRatio, quoteCurrencyAmount.quotient)
+      portionToPortionAdjustedAmountRatio.multiply(quoteCurrencyAmount).quotient
     );
-
-    return portionQuoteAmountToken;
   }
 
   getPortionAdjustedQuote(
@@ -135,7 +132,7 @@ export class PortionProvider implements IPortionProvider {
     // we have a simple heuristic to estimate the quote gas and portion adjusted for exact out
 
     const portionQuoteAmountToken = this.getPortionQuoteAmount(portionAmountToken, quoteCurrencyAmount, amount);
-    // 5. finally we have the estimated portion quote amount, we can add it to the quote gas adjusted amount,
+    // 4. finally we have the estimated portion quote amount, we can add it to the quote gas adjusted amount,
     //    i.e. quoteGasAdjustedCurrencyAmount = quoteGasAdjustedCurrencyAmount + portionQuoteAmountToken
     return quoteGasAdjustedCurrencyAmount.add(portionQuoteAmountToken);
   }
