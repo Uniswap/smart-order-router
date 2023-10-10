@@ -972,9 +972,9 @@ export class AlphaRouter
       // In case of exact out swap, before we route, we need to make sure that the
       // token out amount accounts for flat portion, and token in amount after the best swap route contains the token in equivalent of portion.
       // In other words, in case a pool's LP fee bps is lower than the portion bps (0.01%/0.05% for v3), a pool can go insolvency.
-      // This is because instead of the swapper gets responsible for the portion,
+      // This is because instead of the swapper being responsible for the portion,
       // the pool instead gets responsible for the portion.
-      // Below addition avoids that situation.
+      // The addition below avoids that situation.
       amount = amount.add(portionAmount);
     }
 
