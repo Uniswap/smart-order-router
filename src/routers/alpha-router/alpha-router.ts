@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { Protocol, SwapRouter, Trade } from '@uniswap/router-sdk';
+import { Protocol, SwapRouter, Trade, ZERO } from '@uniswap/router-sdk';
 import { ChainId, Currency, Fraction, Token, TradeType } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
@@ -963,19 +963,22 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
+    const originalAmount = amount;
     if (tradeType === TradeType.EXACT_OUTPUT) {
       const portionAmount = this.portionProvider.getPortionAmount(
         amount,
         tradeType,
         swapConfig
       );
-      // In case of exact out swap, before we route, we need to make sure that the
-      // token out amount accounts for flat portion, and token in amount after the best swap route contains the token in equivalent of portion.
-      // In other words, in case a pool's LP fee bps is lower than the portion bps (0.01%/0.05% for v3), a pool can go insolvency.
-      // This is because instead of the swapper being responsible for the portion,
-      // the pool instead gets responsible for the portion.
-      // The addition below avoids that situation.
-      amount = amount.add(portionAmount);
+      if (portionAmount && portionAmount.greaterThan(ZERO)) {
+        // In case of exact out swap, before we route, we need to make sure that the
+        // token out amount accounts for flat portion, and token in amount after the best swap route contains the token in equivalent of portion.
+        // In other words, in case a pool's LP fee bps is lower than the portion bps (0.01%/0.05% for v3), a pool can go insolvency.
+        // This is because instead of the swapper being responsible for the portion,
+        // the pool instead gets responsible for the portion.
+        // The addition below avoids that situation.
+        amount = amount.add(portionAmount);
+      }
     }
 
     const { currencyIn, currencyOut } = this.determineCurrencyInOutFromTradeType(tradeType, amount, quoteCurrency);
@@ -1286,7 +1289,9 @@ export class AlphaRouter
     }
 
     const tokenOutAmount =
-      tradeType === TradeType.EXACT_OUTPUT ? amount : quote;
+      tradeType === TradeType.EXACT_OUTPUT ?
+        originalAmount  // we need to pass in originalAmount instead of amount, because amount already added portionAmount in case of exact out swap
+        : quote;
     const portionAmount = this.portionProvider.getPortionAmount(
       tokenOutAmount,
       tradeType,
@@ -1294,9 +1299,9 @@ export class AlphaRouter
     );
     const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(
       tradeType,
-      portionAmount,
       quote,
-      amount
+      amount, // we need to pass in amount instead of originalAmount here, because amount here needs to add the portion for exact out
+      portionAmount
     );
 
     // we need to correct quote and quote gas adjusted for exact output when portion is part of the exact out swap
@@ -1305,6 +1310,7 @@ export class AlphaRouter
       quote,
       portionQuoteAmount
     );
+
     const correctedQuoteGasAdjusted = this.portionProvider.getQuoteGasAdjusted(
       tradeType,
       quoteGasAdjusted,

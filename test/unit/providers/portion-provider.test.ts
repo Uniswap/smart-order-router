@@ -105,26 +105,29 @@ describe('portion provider', () => {
           }
         }
         const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, swapConfig);
+        expect(portionAmount).toBeDefined();
+
         // 1.01 * 10^8 * 12 / 10000 = 121200
         // (exact out requested amount) * (USDC decimal scale) * (portion bips) / 10000 = portion amount
         expect(portionAmount?.quotient.toString()).toBe(expectedPortionAmount.quotient.toString());
 
         const actualPortionQuoteAmount = portionProvider.getPortionQuoteAmount(
           TradeType.EXACT_OUTPUT,
-          expectedPortionAmount,
           quoteAmount,
-          amount
+          amount.add(portionAmount!),
+          expectedPortionAmount
         );
+        expect(actualPortionQuoteAmount).toBeDefined();
 
-        const expectedPortionQuoteAmount = portionAmount.divide(portionAmount.add(amount)).multiply(quoteAmount)
-        expect(actualPortionQuoteAmount.quotient.toString()).toBe(expectedPortionQuoteAmount.quotient.toString());
+        const expectedPortionQuoteAmount = portionAmount!.divide(portionAmount!.add(amount)).multiply(quoteAmount)
+        expect(actualPortionQuoteAmount!.quotient.toString()).toBe(expectedPortionQuoteAmount.quotient.toString());
 
         const actualCorrectedQuoteAmount = portionProvider.getQuote(TradeType.EXACT_OUTPUT, quoteAmount, actualPortionQuoteAmount);
-        const expectedCorrectedQuoteAmount = quoteAmount.subtract(actualPortionQuoteAmount);
+        const expectedCorrectedQuoteAmount = quoteAmount.subtract(actualPortionQuoteAmount!);
         expect(actualCorrectedQuoteAmount?.quotient.toString()).toBe(expectedCorrectedQuoteAmount.quotient.toString());
 
         const actualCorrectedQuoteGasAdjustedAmount = portionProvider.getQuoteGasAdjusted(TradeType.EXACT_OUTPUT, quoteGasAdjustedAmount, actualPortionQuoteAmount);
-        const expectedCorrectedQuoteGasAdjustedAmount = quoteGasAdjustedAmount.subtract(actualPortionQuoteAmount);
+        const expectedCorrectedQuoteGasAdjustedAmount = quoteGasAdjustedAmount.subtract(actualPortionQuoteAmount!);
         expect(actualCorrectedQuoteGasAdjustedAmount?.quotient.toString()).toBe(expectedCorrectedQuoteGasAdjustedAmount.quotient.toString())
 
         const actualCorrectedQuoteGasAndPortionAdjustedAmount = portionProvider.getQuoteGasAndPortionAdjusted(TradeType.EXACT_OUTPUT, actualCorrectedQuoteGasAdjustedAmount, portionAmount);

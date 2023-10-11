@@ -431,7 +431,13 @@ export const PORTION_BIPS = 12
 export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
 export const PORTION_TYPE = 'flat'
 
-export const FLAT_PORTION = {
+export type Portion = {
+  bips: number,
+  recipient: string,
+  type: string,
+}
+
+export const FLAT_PORTION: Portion = {
   bips: PORTION_BIPS,
   recipient: PORTION_RECIPIENT,
   type: PORTION_TYPE,

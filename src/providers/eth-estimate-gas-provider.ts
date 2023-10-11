@@ -8,6 +8,7 @@ import {
   calculateGasUsed,
   initSwapRouteFromExisting,
 } from '../util/gas-factory-helpers';
+import { IPortionProvider } from './portion-provider';
 
 import { ProviderConfig } from './provider';
 import { SimulationStatus, Simulator } from './simulation-provider';
@@ -28,9 +29,10 @@ export class EthEstimateGasSimulator extends Simulator {
     provider: JsonRpcProvider,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
+    portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number }
   ) {
-    super(provider, chainId);
+    super(provider, portionProvider, chainId);
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
@@ -109,7 +111,7 @@ export class EthEstimateGasSimulator extends Simulator {
       l2GasData,
       providerConfig
     );
-
+    const portionAmount = this.portionProvider.getQuoteGasAndPortionAdjusted(route.trade.tradeType, quoteGasAdjusted, route.portionAmount)
     return {
       ...initSwapRouteFromExisting(
         route,
@@ -118,7 +120,8 @@ export class EthEstimateGasSimulator extends Simulator {
         quoteGasAdjusted,
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
-        estimatedGasUsedUSD
+        estimatedGasUsedUSD,
+        portionAmount
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };

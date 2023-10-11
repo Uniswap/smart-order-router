@@ -359,7 +359,8 @@ export function initSwapRouteFromExisting(
   quoteGasAdjusted: CurrencyAmount<Currency>,
   estimatedGasUsed: BigNumber,
   estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
-  estimatedGasUsedUSD: CurrencyAmount<Currency>
+  estimatedGasUsedUSD: CurrencyAmount<Currency>,
+  quoteGasAndPortionAdjusted?: CurrencyAmount<Currency>
 ): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
@@ -453,6 +454,7 @@ export function initSwapRouteFromExisting(
   return {
     quote: swapRoute.quote,
     quoteGasAdjusted,
+    quoteGasAndPortionAdjusted,
     estimatedGasUsed,
     estimatedGasUsedQuoteToken,
     estimatedGasUsedUSD,
@@ -468,5 +470,6 @@ export function initSwapRouteFromExisting(
         } as MethodParameters)
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
+    portionAmount: swapRoute.portionAmount
   };
 }
