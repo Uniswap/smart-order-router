@@ -25,6 +25,7 @@ import {
 } from '../util/gas-factory-helpers';
 
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
+import { IPortionProvider } from './portion-provider';
 import { ProviderConfig } from './provider';
 import {
   SimulationResult,
@@ -92,10 +93,11 @@ export class FallbackTenderlySimulator extends Simulator {
   constructor(
     chainId: ChainId,
     provider: JsonRpcProvider,
+    portionProvider: IPortionProvider,
     tenderlySimulator: TenderlySimulator,
     ethEstimateGasSimulator: EthEstimateGasSimulator
   ) {
-    super(provider, chainId);
+    super(provider, portionProvider, chainId);
     this.tenderlySimulator = tenderlySimulator;
     this.ethEstimateGasSimulator = ethEstimateGasSimulator;
   }
@@ -174,10 +176,11 @@ export class TenderlySimulator extends Simulator {
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
     provider: JsonRpcProvider,
+    portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
     tenderlyRequestTimeout?: number,
   ) {
-    super(provider, chainId);
+    super(provider, portionProvider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
     this.tenderlyUser = tenderlyUser;
     this.tenderlyProject = tenderlyProject;
@@ -462,6 +465,7 @@ export class TenderlySimulator extends Simulator {
       l2GasData,
       providerConfig
     );
+    const quoteGasAndPortionAdjusted = swapRoute.portionAmount ? this.portionProvider.getQuoteGasAndPortionAdjusted(swapRoute.trade.tradeType, quoteGasAdjusted, swapRoute.portionAmount) : undefined;
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
@@ -470,7 +474,8 @@ export class TenderlySimulator extends Simulator {
         quoteGasAdjusted,
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
-        estimatedGasUsedUSD
+        estimatedGasUsedUSD,
+        quoteGasAndPortionAdjusted
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };
