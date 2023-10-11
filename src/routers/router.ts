@@ -49,7 +49,8 @@ export type SwapRoute = {
    * this estimate to be in terms of the quote token, and subtracting that from the quote.
    * i.e. quoteGasAdjusted = quote - estimatedGasUsedQuoteToken
    */
-  quoteGasAdjusted: CurrencyAmount;  /**
+  quoteGasAdjusted: CurrencyAmount;
+  /**
    * The quote adjusted for the estimated gas used by the swap as well as the portion amount, if applicable.
    * This is computed by estimating the amount of gas used by the swap, converting
    * this estimate to be in terms of the quote token, and subtracting that from the quote.
