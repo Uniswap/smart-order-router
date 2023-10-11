@@ -237,7 +237,7 @@ export class TenderlySimulator extends Simulator {
       );
 
       // We are unsure if the users calldata contains a permit or not. We just
-      // max approve the Univeral Router from Permit2 instead, which will cover both cases.
+      // max approve the Universal Router from Permit2 instead, which will cover both cases.
       const permit2Interface = Permit2__factory.createInterface();
       const approveUniversalRouterCallData =
         permit2Interface.encodeFunctionData('approve', [
