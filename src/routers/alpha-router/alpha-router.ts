@@ -1117,7 +1117,8 @@ export class AlphaRouter
         routingConfig,
         v3GasModel,
         mixedRouteGasModel,
-        gasPriceWei
+        gasPriceWei,
+        swapConfig
       );
     }
 
@@ -1133,7 +1134,8 @@ export class AlphaRouter
         routingConfig,
         v3GasModel,
         mixedRouteGasModel,
-        gasPriceWei
+        gasPriceWei,
+        swapConfig
       );
     }
 
@@ -1383,7 +1385,8 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
-    gasPriceWei: BigNumber
+    gasPriceWei: BigNumber,
+    swapConfig?: SwapOptions
   ): Promise<BestSwapRoute | null> {
     log.info(
       {
@@ -1510,7 +1513,9 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
-      v3GasModel
+      this.portionProvider,
+      v3GasModel,
+      swapConfig
     );
   }
 
@@ -1524,7 +1529,8 @@ export class AlphaRouter
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
-    gasPriceWei: BigNumber
+    gasPriceWei: BigNumber,
+    swapConfig?: SwapOptions,
   ): Promise<BestSwapRoute | null> {
     // Generate our distribution of amounts, i.e. fractions of the input amount.
     // We will get quotes for fractions of the input amount for different routes, then
@@ -1715,7 +1721,9 @@ export class AlphaRouter
       tradeType,
       this.chainId,
       routingConfig,
-      v3GasModel
+      this.portionProvider,
+      v3GasModel,
+      swapConfig
     );
 
     if (bestSwapRoute) {
