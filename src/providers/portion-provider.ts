@@ -2,7 +2,12 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { ZERO } from '@uniswap/router-sdk';
 import { Fraction, TradeType } from '@uniswap/sdk-core';
 
-import { SwapOptions, SwapOptionsUniversalRouter, SwapType } from '../routers';
+import {
+  RouteWithValidQuote,
+  SwapOptions,
+  SwapOptionsUniversalRouter,
+  SwapType,
+} from '../routers';
 import { CurrencyAmount } from '../util';
 
 export interface IPortionProvider {
@@ -33,8 +38,27 @@ export interface IPortionProvider {
     tradeType: TradeType,
     quote: CurrencyAmount,
     amount: CurrencyAmount,
-    portionAmount?: CurrencyAmount,
+    portionAmount?: CurrencyAmount
   ): CurrencyAmount | undefined;
+
+  /**
+   * In-place update the route quote amount with the portion amount deducted.
+   * This method is only applicable for exact in.
+   * For exact out, the portion amount gets added into the swapper requested amount at the beginning of
+   * `AlphaRouter.route(...)` method.
+   *
+   * For exact in, the portion amount gets subtracted from the quote amount at the end of
+   * get best swap route.
+   *
+   * @param tradeType the trade type, exact in or exact out
+   * @param routeWithQuotes the route with quotes
+   * @param swapConfig swap config, containing the portion related data
+   */
+  getRouteWithQuotePortionAdjusted(
+    tradeType: TradeType,
+    routeWithQuotes: RouteWithValidQuote[],
+    swapConfig?: SwapOptions
+  ): RouteWithValidQuote[];
 
   /**
    * Get the quote gas adjusted amount for exact in and exact out.
@@ -130,7 +154,7 @@ export class PortionProvider implements IPortionProvider {
     tradeType: TradeType,
     quote: CurrencyAmount,
     portionAdjustedAmount: CurrencyAmount,
-    portionAmount?: CurrencyAmount,
+    portionAmount?: CurrencyAmount
   ): CurrencyAmount | undefined {
     if (!portionAmount) {
       return undefined;
@@ -160,6 +184,46 @@ export class PortionProvider implements IPortionProvider {
     );
   }
 
+  getRouteWithQuotePortionAdjusted(
+    tradeType: TradeType,
+    routeWithQuotes: RouteWithValidQuote[],
+    swapConfig?: SwapOptions
+  ): RouteWithValidQuote[] {
+    // the route with quote portion adjustment is only needed for exact in routes with quotes
+    // because the route with quotes does not know the output amount needs to subtract the portion amount
+    if (tradeType !== TradeType.EXACT_INPUT) {
+      return routeWithQuotes;
+    }
+
+    // the route with quote portion adjustment is only needed for universal router
+    // for swap router 02, it doesn't have portion-related commands
+    if (swapConfig?.type !== SwapType.UNIVERSAL_ROUTER) {
+      return routeWithQuotes;
+    }
+
+    return routeWithQuotes.map((routeWithQuote) => {
+      const portionAmount = this.getPortionAmount(
+        routeWithQuote.quote,
+        tradeType,
+        swapConfig
+      );
+
+      // This is a sub-optimal solution agreed among the teams to work around the exact in
+      // portion amount issue for universal router.
+      // The most optimal solution is to update router-sdk https://github.com/Uniswap/router-sdk/blob/main/src/entities/trade.ts#L215
+      // `minimumAmountOut` to include portionBips as well, `public minimumAmountOut(slippageTolerance: Percent, amountOut = this.outputAmount, portionBips: Percent)
+      // but this will require a new release of router-sdk, and bump router-sdk versions in across downstream dependencies across the stack.
+      // We opt to use this sub-optimal solution for now, and revisit the optimal solution in the future.
+      // Since SOR subtracts portion amount from EACH route output amount (note the routeWithQuote.quote above),
+      // SOR will have as accurate ouput amount per route as possible, which helps with the final `minimumAmountOut`
+      if (portionAmount) {
+        routeWithQuote.quote = routeWithQuote.quote.subtract(portionAmount);
+      }
+
+      return routeWithQuote;
+    });
+  }
+
   getQuote(
     tradeType: TradeType,
     quote: CurrencyAmount,
@@ -184,7 +248,9 @@ export class PortionProvider implements IPortionProvider {
       case TradeType.EXACT_INPUT:
         return quoteGasAdjusted;
       case TradeType.EXACT_OUTPUT:
-        return portionQuoteAmount ? quoteGasAdjusted.subtract(portionQuoteAmount) : quoteGasAdjusted;
+        return portionQuoteAmount
+          ? quoteGasAdjusted.subtract(portionQuoteAmount)
+          : quoteGasAdjusted;
       default:
         throw new Error(`Unknown trade type ${tradeType}`);
     }

@@ -13,6 +13,7 @@ import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
+import { IPortionProvider } from '../providers/portion-provider';
 import { ProviderConfig } from '../providers/provider';
 import {
   ArbitrumGasData,
@@ -22,6 +23,7 @@ import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
   MethodParameters,
   MixedRouteWithValidQuote,
+  SwapOptions,
   SwapRoute,
   usdGasTokensByChain,
   V2RouteWithValidQuote,
@@ -356,11 +358,12 @@ export function initSwapRouteFromExisting(
   swapRoute: SwapRoute,
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
+  portionProvider: IPortionProvider,
   quoteGasAdjusted: CurrencyAmount<Currency>,
   estimatedGasUsed: BigNumber,
   estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
   estimatedGasUsedUSD: CurrencyAmount<Currency>,
-  quoteGasAndPortionAdjusted?: CurrencyAmount<Currency>
+  swapOptions: SwapOptions
 ): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
@@ -451,6 +454,21 @@ export function initSwapRouteFromExisting(
     tradeType,
     routesWithValidQuote
   );
+
+  const quoteGasAndPortionAdjusted = swapRoute.portionAmount
+    ? portionProvider.getQuoteGasAndPortionAdjusted(
+        swapRoute.trade.tradeType,
+        quoteGasAdjusted,
+        swapRoute.portionAmount
+      )
+    : undefined;
+  const routesWithValidQuotePortionAdjusted =
+    portionProvider.getRouteWithQuotePortionAdjusted(
+      swapRoute.trade.tradeType,
+      routesWithValidQuote,
+      swapOptions
+    );
+
   return {
     quote: swapRoute.quote,
     quoteGasAdjusted,
@@ -460,7 +478,7 @@ export function initSwapRouteFromExisting(
     estimatedGasUsedUSD,
     gasPriceWei: BigNumber.from(swapRoute.gasPriceWei),
     trade,
-    route: routesWithValidQuote,
+    route: routesWithValidQuotePortionAdjusted,
     blockNumber: BigNumber.from(swapRoute.blockNumber),
     methodParameters: swapRoute.methodParameters
       ? ({
@@ -470,6 +488,6 @@ export function initSwapRouteFromExisting(
         } as MethodParameters)
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
-    portionAmount: swapRoute.portionAmount
+    portionAmount: swapRoute.portionAmount,
   };
 }
