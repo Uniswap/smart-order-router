@@ -13,7 +13,7 @@ import {
   MetricLoggerUnit,
   SwapOptions,
   SwapRoute,
-  SwapType
+  SwapType,
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
@@ -465,17 +465,17 @@ export class TenderlySimulator extends Simulator {
       l2GasData,
       providerConfig
     );
-    const quoteGasAndPortionAdjusted = swapRoute.portionAmount ? this.portionProvider.getQuoteGasAndPortionAdjusted(swapRoute.trade.tradeType, quoteGasAdjusted, swapRoute.portionAmount) : undefined;
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
         this.v2PoolProvider,
         this.v3PoolProvider,
+        this.portionProvider,
         quoteGasAdjusted,
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
-        quoteGasAndPortionAdjusted
+        swapOptions
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };
