@@ -19,7 +19,7 @@ import {
   USDC_MAINNET,
   V2PoolProvider,
 } from '../../../src';
-import { PortionProvider } from '../../../src/providers/portion-provider';
+import { IPortionProvider, PortionProvider } from '../../../src/providers/portion-provider';
 import { Erc20 } from '../../../src/types/other/Erc20';
 import { Permit2 } from '../../../src/types/other/Permit2';
 
@@ -48,10 +48,12 @@ jest.mock('../../../src/util/gas-factory-helpers', () => ({
     swapRoute: SwapRoute,
     _v2PoolProvider: IV2PoolProvider,
     _v3PoolProvider: IV3PoolProvider,
+    _portionProvider: IPortionProvider,
     quoteGasAdjusted: CurrencyAmount,
     estimatedGasUsed: BigNumber,
     estimatedGasUsedQuoteToken: CurrencyAmount,
-    estimatedGasUsedUSD: CurrencyAmount
+    estimatedGasUsedUSD: CurrencyAmount,
+    _swapOptions?: SwapOptions,
   ): SwapRoute => {
     return {
       ...swapRoute,

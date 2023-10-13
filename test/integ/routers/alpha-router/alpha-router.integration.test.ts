@@ -2412,7 +2412,22 @@ describe('alpha router integration', () => {
               expect(swap!.methodParameters).toBeDefined();
               expect(swap!.methodParameters!.to).toBeDefined();
 
-              const { quote, quoteGasAdjusted, quoteGasAndPortionAdjusted, methodParameters, estimatedGasUsed, portionAmount } = swap!;
+              const { quote, quoteGasAdjusted, quoteGasAndPortionAdjusted, methodParameters, estimatedGasUsed, portionAmount, route } = swap!;
+
+              // The most strict way to ensure the output amount from route path is correct with respect to portion
+              // is to make sure the output amount from route path is exactly portion bps different from the quote
+              const allQuotesAcrossRoutes = route.map(route => route.quote).reduce((sum, quote) => quote.add(sum))
+              if (tradeType === TradeType.EXACT_INPUT) {
+                const tokensDiff = quote.subtract(allQuotesAcrossRoutes)
+                const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+              } else {
+                expect(allQuotesAcrossRoutes.greaterThan(quote)).toBe(true);
+
+                const tokensDiff = allQuotesAcrossRoutes.subtract(quote)
+                const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+              }
 
               expect(quoteGasAndPortionAdjusted).toBeDefined();
               expect(portionAmount).toBeDefined();
