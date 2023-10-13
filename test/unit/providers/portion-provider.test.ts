@@ -1,17 +1,30 @@
-import { Currency, CurrencyAmount, Fraction, Percent, Token, TradeType } from '@uniswap/sdk-core';
-import { parseAmount, SwapOptions, SwapType } from '../../../src';
+import { BigNumber } from '@ethersproject/bignumber';
+import {
+  Currency,
+  CurrencyAmount,
+  Fraction,
+  Percent,
+  Token,
+  TradeType,
+} from '@uniswap/sdk-core';
+import { parseAmount, RouteWithValidQuote, SwapOptions, SwapType, V2RouteWithValidQuote, V3RouteWithValidQuote } from '../../../src';
 import { PortionProvider } from '../../../src/providers/portion-provider';
 import { FLAT_PORTION, GREENLIST_TOKEN_PAIRS } from '../../test-util/mock-data';
+import {
+  getMixedRouteWithValidQuoteStub,
+  getV2RouteWithValidQuoteStub,
+  getV3RouteWithValidQuoteStub
+} from './caching/route/test-util/mocked-dependencies';
 
 describe('portion provider', () => {
   const expectedRequestAmount = '1.01';
   const expectedQuote = '1605.56';
   const expectedGas = '2.35';
   const expectedPortion = FLAT_PORTION
+  const portionProvider = new PortionProvider();
 
   describe('getPortion test', () => {
     describe('exact in quote test', () => {
-      const portionProvider = new PortionProvider();
 
       GREENLIST_TOKEN_PAIRS.forEach((pair) => {
         const token1: Currency | Token = pair[0].isNative ? (pair[0] as Currency) : pair[0].wrapped;
@@ -136,6 +149,101 @@ describe('portion provider', () => {
         // = (quote gas and portion adjusted amount)
         expect(actualCorrectedQuoteGasAndPortionAdjustedAmount?.quotient.toString()).toBe(actualCorrectedQuoteGasAdjustedAmount.quotient.toString());
       }
+    });
+  });
+
+  describe('getRouteWithQuotePortionAdjusted test', () => {
+    it('exact in test', () => {
+      const v2RouteWithQuote = getV2RouteWithValidQuoteStub({
+        rawQuote: BigNumber.from(20),
+        percent: 5
+      });
+      const v3RouteWithQuote = getV3RouteWithValidQuoteStub({
+        rawQuote: BigNumber.from(50),
+        percent: 35
+      });
+      const mixedRouteWithQuote = getMixedRouteWithValidQuoteStub({
+        rawQuote: BigNumber.from(30),
+        percent: 60
+      });
+      const routesWithValidQuotes: RouteWithValidQuote[] = [
+        v2RouteWithQuote,
+        v3RouteWithQuote,
+        mixedRouteWithQuote
+      ]
+      const swapParams: SwapOptions = {
+        type: SwapType.UNIVERSAL_ROUTER,
+        deadlineOrPreviousBlockhash: undefined,
+        recipient: '0x123',
+        slippageTolerance: new Percent(5),
+        fee: {
+          fee: new Percent(FLAT_PORTION.bips, 10_000),
+          recipient: FLAT_PORTION.recipient
+        }
+      }
+      const oneHundredPercent = new Percent(1);
+
+      const routesWithQuotePortionAdjusted = portionProvider.getRouteWithQuotePortionAdjusted(TradeType.EXACT_INPUT, routesWithValidQuotes, swapParams);
+
+      routesWithQuotePortionAdjusted.forEach((routeWithQuotePortionAdjusted) => {
+        if (routeWithQuotePortionAdjusted instanceof V2RouteWithValidQuote) {
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000)).multiply(20).quotient.toString())
+        }
+
+        if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
+          expect(routeWithQuotePortionAdjusted.quote.toExact()).toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000)).multiply(50).quotient.toString())
+        }
+
+        if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
+          expect(routeWithQuotePortionAdjusted.quote.toExact()).toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000)).multiply(60).quotient.toString())
+        }
+      })
+    });
+
+    it('exact out test', () => {
+      const v2RouteWithQuote = getV2RouteWithValidQuoteStub({
+        rawQuote: BigNumber.from(20),
+        percent: 5
+      });
+      const v3RouteWithQuote = getV3RouteWithValidQuoteStub({
+        rawQuote: BigNumber.from(50),
+        percent: 35
+      });
+      const mixedRouteWithQuote = getMixedRouteWithValidQuoteStub({
+        rawQuote: BigNumber.from(30),
+        percent: 60
+      });
+      const routesWithValidQuotes: RouteWithValidQuote[] = [
+        v2RouteWithQuote,
+        v3RouteWithQuote,
+        mixedRouteWithQuote
+      ]
+      const swapParams: SwapOptions = {
+        type: SwapType.UNIVERSAL_ROUTER,
+        deadlineOrPreviousBlockhash: undefined,
+        recipient: '0x123',
+        slippageTolerance: new Percent(5),
+        fee: {
+          fee: new Percent(FLAT_PORTION.bips, 10_000),
+          recipient: FLAT_PORTION.recipient
+        }
+      }
+
+      const routesWithQuotePortionAdjusted = portionProvider.getRouteWithQuotePortionAdjusted(TradeType.EXACT_OUTPUT, routesWithValidQuotes, swapParams);
+
+      routesWithQuotePortionAdjusted.forEach((routeWithQuotePortionAdjusted) => {
+        if (routeWithQuotePortionAdjusted instanceof V2RouteWithValidQuote) {
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('20')
+        }
+
+        if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('50')
+        }
+
+        if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('30')
+        }
+      })
     });
   });
 });

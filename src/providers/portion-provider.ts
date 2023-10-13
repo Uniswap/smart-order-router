@@ -41,6 +41,19 @@ export interface IPortionProvider {
     portionAmount?: CurrencyAmount
   ): CurrencyAmount | undefined;
 
+  /**
+   * In-place update the route quote amount with the portion amount deducted.
+   * This method is only applicable for exact in.
+   * For exact out, the portion amount gets added into the swapper requested amount at the beginning of
+   * `AlphaRouter.route(...)` method.
+   *
+   * For exact in, the portion amount gets subtracted from the quote amount at the end of
+   * get best swap route.
+   *
+   * @param tradeType the trade type, exact in or exact out
+   * @param routeWithQuotes the route with quotes
+   * @param swapConfig swap config, containing the portion related data
+   */
   getRouteWithQuotePortionAdjusted(
     tradeType: TradeType,
     routeWithQuotes: RouteWithValidQuote[],
@@ -195,6 +208,14 @@ export class PortionProvider implements IPortionProvider {
         swapConfig
       );
 
+      // This is a sub-optimal solution agreed among the teams to work around the exact in
+      // portion amount issue for universal router.
+      // The most optimal solution is to update router-sdk https://github.com/Uniswap/router-sdk/blob/main/src/entities/trade.ts#L215
+      // `minimumAmountOut` to include portionBips as well, `public minimumAmountOut(slippageTolerance: Percent, amountOut = this.outputAmount, portionBips: Percent)
+      // but this will require a new release of router-sdk, and bump router-sdk versions in across downstream dependencies across the stack.
+      // We opt to use this sub-optimal solution for now, and revisit the optimal solution in the future.
+      // Since SOR subtracts portion amount from EACH route output amount (note the routeWithQuote.quote above),
+      // SOR will have as accurate ouput amount per route as possible, which helps with the final `minimumAmountOut`
       if (portionAmount) {
         routeWithQuote.quote = routeWithQuote.quote.subtract(portionAmount);
       }
