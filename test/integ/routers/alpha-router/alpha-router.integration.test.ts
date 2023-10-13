@@ -2465,10 +2465,6 @@ describe('alpha router integration', () => {
               const checkTokenOutAmount = tokenOut.isNative ? undefined : parseFloat(amount.toFixed(0))
               const checkPortionAmount = parseFloat(expectedPortionAmount.toFixed(0))
 
-              if (checkTokenOutAmount) {
-
-              }
-
               const skipQuoteTokenCheck =
                 // If token out is native, and trade type is exact in, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
                 tokenOut.isNative && tradeType === TradeType.EXACT_INPUT
