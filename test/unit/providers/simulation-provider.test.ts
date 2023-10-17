@@ -19,6 +19,7 @@ import {
   USDC_MAINNET,
   V2PoolProvider,
 } from '../../../src';
+import { IPortionProvider, PortionProvider } from '../../../src/providers/portion-provider';
 import { Erc20 } from '../../../src/types/other/Erc20';
 import { Permit2 } from '../../../src/types/other/Permit2';
 
@@ -47,10 +48,12 @@ jest.mock('../../../src/util/gas-factory-helpers', () => ({
     swapRoute: SwapRoute,
     _v2PoolProvider: IV2PoolProvider,
     _v3PoolProvider: IV3PoolProvider,
+    _portionProvider: IPortionProvider,
     quoteGasAdjusted: CurrencyAmount,
     estimatedGasUsed: BigNumber,
     estimatedGasUsedQuoteToken: CurrencyAmount,
-    estimatedGasUsedUSD: CurrencyAmount
+    estimatedGasUsedUSD: CurrencyAmount,
+    _swapOptions?: SwapOptions,
   ): SwapRoute => {
     return {
       ...swapRoute,
@@ -70,6 +73,7 @@ const v3PoolAccessor = {
 const v3PoolProvider = {
   getPools: jest.fn().mockImplementation(() => Promise.resolve(v3PoolAccessor)),
 } as unknown as IV3PoolProvider;
+const portionProvider = new PortionProvider();
 const fromAddress = 'fromAddress';
 const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 300);
 const trade = { inputAmount: amount, tradeType: TradeType.EXACT_INPUT };
@@ -121,6 +125,7 @@ describe('Fallback Tenderly simulator', () => {
     simulator = new FallbackTenderlySimulator(
       chainId,
       provider,
+      portionProvider,
       tenderlySimulator,
       ethEstimateGasSimulator
     );
@@ -275,7 +280,8 @@ describe('Eth estimate gas simulator', () => {
       chainId,
       provider,
       v2PoolProvider,
-      v3PoolProvider
+      v3PoolProvider,
+      portionProvider
     );
     permit2Contract = {
       allowance: async () => {

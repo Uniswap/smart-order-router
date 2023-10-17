@@ -5,7 +5,7 @@
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, CurrencyAmount, Ether, Percent, Token, TradeType, } from '@uniswap/sdk-core';
+import { ChainId, Currency, CurrencyAmount, Ether, Fraction, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
@@ -69,13 +69,17 @@ import {
   WNATIVE_ON,
   TokenPropertiesProvider,
 } from '../../../../src';
+import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
+import { FLAT_PORTION, GREENLIST_TOKEN_PAIRS, Portion } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 17894002;
+// TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023 deployed at block 18222746. We can use later block, e.g. at block 18318644
+// TODO: permit-related tests will fail during hardfork swap execution when changing to later block. Investigate why.
+const FORK_BLOCK = 18222746;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 
@@ -93,6 +97,21 @@ const checkQuoteToken = (
     : tokensSwapped.subtract(tokensQuoted);
 
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction);
+  expect(percentDiff.lessThan(SLIPPAGE.asFraction)).toBe(true);
+};
+
+const checkPortionRecipientToken = (
+  before: CurrencyAmount<Currency>,
+  after: CurrencyAmount<Currency>,
+  expectedPortionAmountReceived: CurrencyAmount<Currency>
+) => {
+  const actualPortionAmountReceived = after.subtract(before);
+
+  const tokensDiff = expectedPortionAmountReceived.greaterThan(actualPortionAmountReceived)
+    ? expectedPortionAmountReceived.subtract(actualPortionAmountReceived)
+    : actualPortionAmountReceived.subtract(expectedPortionAmountReceived);
+  // There will be a slight difference between expected and actual due to slippage during the hardhat fork swap.
+  const percentDiff = tokensDiff.asFraction.divide(expectedPortionAmountReceived.asFraction);
   expect(percentDiff.lessThan(SLIPPAGE.asFraction)).toBe(true);
 };
 
@@ -185,18 +204,24 @@ describe('alpha router integration', () => {
     tokenIn: Currency,
     tokenOut: Currency,
     gasLimit?: BigNumber,
-    permit?: boolean
+    permit?: boolean,
+    portion?: Portion
   ): Promise<{
     tokenInAfter: CurrencyAmount<Currency>;
     tokenInBefore: CurrencyAmount<Currency>;
     tokenOutAfter: CurrencyAmount<Currency>;
     tokenOutBefore: CurrencyAmount<Currency>;
+    tokenOutPortionRecipientBefore?: CurrencyAmount<Currency>;
+    tokenOutPortionRecipientAfter?: CurrencyAmount<Currency>;
   }> => {
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     let transactionResponse: providers.TransactionResponse;
 
     let tokenInBefore: CurrencyAmount<Currency>;
     let tokenOutBefore: CurrencyAmount<Currency>;
+    const tokenOutPortionRecipientBefore = portion
+      ? await hardhat.getBalance(portion.recipient, tokenOut)
+      : undefined;
     if (swapType == SwapType.UNIVERSAL_ROUTER) {
       // Approve Permit2
       // We use this helper function for approving rather than hardhat.provider.approve
@@ -272,12 +297,17 @@ describe('alpha router integration', () => {
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
     const tokenOutAfter = await hardhat.getBalance(alice._address, tokenOut);
+    const tokenOutPortionRecipientAfter = portion
+      ? await hardhat.getBalance(portion.recipient, tokenOut)
+      : undefined;
 
     return {
       tokenInAfter,
       tokenInBefore,
       tokenOutAfter,
       tokenOutBefore,
+      tokenOutPortionRecipientBefore,
+      tokenOutPortionRecipientAfter,
     };
   };
 
@@ -294,7 +324,10 @@ describe('alpha router integration', () => {
     quoteGasAdjusted: CurrencyAmount<Currency>,
     tradeType: TradeType,
     targetQuoteDecimalsAmount?: number,
-    acceptableDifference?: number
+    acceptableDifference?: number,
+    quoteGasAndPortionAdjusted?: CurrencyAmount<Currency>,
+    targetQuoteGasAndPortionAdjustedDecimalsAmount?: number,
+    acceptablePortionDifference?: number
   ) => {
     // strict undefined checks here to avoid confusion with 0 being a falsy value
     if (targetQuoteDecimalsAmount !== undefined) {
@@ -325,12 +358,47 @@ describe('alpha router integration', () => {
       ).toBe(true);
     }
 
+    if (targetQuoteGasAndPortionAdjustedDecimalsAmount && quoteGasAndPortionAdjusted) {
+      acceptablePortionDifference = acceptablePortionDifference ?? 0
+
+      expect(
+        quoteGasAndPortionAdjusted.greaterThan(
+          CurrencyAmount.fromRawAmount(
+            quoteGasAndPortionAdjusted.currency,
+            expandDecimals(
+              quoteGasAndPortionAdjusted.currency,
+              targetQuoteGasAndPortionAdjustedDecimalsAmount - acceptablePortionDifference
+            )
+          )
+        )
+      ).toBe(true);
+      expect(
+        quoteGasAndPortionAdjusted.lessThan(
+          CurrencyAmount.fromRawAmount(
+            quoteGasAndPortionAdjusted.currency,
+            expandDecimals(
+              quoteGasAndPortionAdjusted.currency,
+              targetQuoteGasAndPortionAdjustedDecimalsAmount + acceptablePortionDifference
+            )
+          )
+        )
+      ).toBe(true);
+    }
+
     if (tradeType == TradeType.EXACT_INPUT) {
       // == lessThanOrEqualTo
       expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
+
+      if (quoteGasAndPortionAdjusted) {
+        expect(!quoteGasAndPortionAdjusted.greaterThan(quoteGasAdjusted)).toBe(true);
+      }
     } else {
       // == greaterThanOrEqual
       expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
+
+      if (quoteGasAndPortionAdjusted) {
+        expect(!quoteGasAndPortionAdjusted.lessThan(quoteGasAdjusted)).toBe(true);
+      }
     }
   };
 
@@ -354,17 +422,21 @@ describe('alpha router integration', () => {
     checkTokenInAmount?: number,
     checkTokenOutAmount?: number,
     estimatedGasUsed?: BigNumber,
-    permit?: boolean
+    permit?: boolean,
+    portion?: Portion,
+    checkTokenOutPortionAmount?: number,
+    skipQuoteTokenCheck?: boolean,
   ) => {
     expect(methodParameters).not.toBeUndefined();
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, tokenOutPortionRecipientBefore, tokenOutPortionRecipientAfter } =
       await executeSwap(
         swapType,
         methodParameters!,
         tokenIn,
         tokenOut!,
         estimatedGasUsed,
-        permit
+        permit,
+        portion
       );
 
     if (tradeType == TradeType.EXACT_INPUT) {
@@ -380,12 +452,24 @@ describe('alpha router integration', () => {
             )
         ).toBe(true);
       }
-      checkQuoteToken(
-        tokenOutBefore,
-        tokenOutAfter,
-        /// @dev we need to recreate the CurrencyAmount object here because tokenOut can be different from quote.currency (in the case of ETH vs. WETH)
-        CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
-      );
+      if (!skipQuoteTokenCheck) {
+        checkQuoteToken(
+          tokenOutBefore,
+          tokenOutAfter,
+          /// @dev we need to recreate the CurrencyAmount object here because tokenOut can be different from quote.currency (in the case of ETH vs. WETH)
+          CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
+        );
+      }
+      if (checkTokenOutPortionAmount) {
+        checkPortionRecipientToken(
+          tokenOutPortionRecipientBefore!,
+          tokenOutPortionRecipientAfter!,
+          CurrencyAmount.fromRawAmount(
+            tokenOut,
+            expandDecimals(tokenOut, checkTokenOutPortionAmount)
+          )
+        );
+      }
     } else {
       if (checkTokenOutAmount) {
         expect(
@@ -399,11 +483,23 @@ describe('alpha router integration', () => {
             )
         ).toBe(true);
       }
-      checkQuoteToken(
-        tokenInBefore,
-        tokenInAfter,
-        CurrencyAmount.fromRawAmount(tokenIn, quote.quotient)
-      );
+      if (!skipQuoteTokenCheck) {
+        checkQuoteToken(
+          tokenInBefore,
+          tokenInAfter,
+          CurrencyAmount.fromRawAmount(tokenIn, quote.quotient)
+        );
+      }
+      if (checkTokenOutPortionAmount) {
+        checkPortionRecipientToken(
+          tokenOutPortionRecipientBefore!,
+          tokenOutPortionRecipientAfter!,
+          CurrencyAmount.fromRawAmount(
+            tokenOut,
+            expandDecimals(tokenOut, checkTokenOutPortionAmount)
+          )
+        );
+      }
     }
   };
 
@@ -498,11 +594,13 @@ describe('alpha router integration', () => {
       tokenPropertiesProvider
     );
 
+    const portionProvider = new PortionProvider();
     const ethEstimateGasSimulator = new EthEstimateGasSimulator(
       ChainId.MAINNET,
       hardhat.providers[0]!,
       v2PoolProvider,
-      v3PoolProvider
+      v3PoolProvider,
+      portionProvider
     );
 
     const tenderlySimulator = new TenderlySimulator(
@@ -513,12 +611,14 @@ describe('alpha router integration', () => {
       process.env.TENDERLY_ACCESS_KEY!,
       v2PoolProvider,
       v3PoolProvider,
-      hardhat.providers[0]!
+      hardhat.providers[0]!,
+      portionProvider
     );
 
     const simulator = new FallbackTenderlySimulator(
       ChainId.MAINNET,
       hardhat.providers[0]!,
+      new PortionProvider(),
       tenderlySimulator,
       ethEstimateGasSimulator
     );
@@ -2273,6 +2373,121 @@ describe('alpha router integration', () => {
 
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
+
+          GREENLIST_TOKEN_PAIRS.forEach(([tokenIn, tokenOut]) => {
+            it(`${tokenIn.symbol} -> ${tokenOut.symbol} with portion`, async () => {
+              const originalAmount = (tokenIn.symbol === 'WBTC' && tradeType === TradeType.EXACT_INPUT) ||
+              (tokenOut.symbol === 'WBTC' && tradeType === TradeType.EXACT_OUTPUT)
+                ? '1'
+                : '100';
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount(originalAmount, tokenIn)
+                  : parseAmount(originalAmount, tokenOut);
+              const bps = new Percent(FLAT_PORTION.bips, 10_000)
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: alice._address,
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                  simulate: { fromAddress: WHALES(tokenIn) },
+                  fee: tradeType == TradeType.EXACT_INPUT ? { fee: bps, recipient: FLAT_PORTION.recipient } : undefined,
+                  flatFee: tradeType == TradeType.EXACT_OUTPUT ? { amount: amount.multiply(bps).quotient.toString(), recipient: FLAT_PORTION.recipient } : undefined
+                },
+                {
+                  ...ROUTING_CONFIG,
+                }
+              );
+
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+
+              // Expect tenderly simulation to be successful
+              expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+              expect(swap!.methodParameters).toBeDefined();
+              expect(swap!.methodParameters!.to).toBeDefined();
+
+              const { quote, quoteGasAdjusted, quoteGasAndPortionAdjusted, methodParameters, estimatedGasUsed, portionAmount, route } = swap!;
+
+              // The most strict way to ensure the output amount from route path is correct with respect to portion
+              // is to make sure the output amount from route path is exactly portion bps different from the quote
+              const allQuotesAcrossRoutes = route.map(route => route.quote).reduce((sum, quote) => quote.add(sum))
+              if (tradeType === TradeType.EXACT_INPUT) {
+                const tokensDiff = quote.subtract(allQuotesAcrossRoutes)
+                const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+              } else {
+                expect(allQuotesAcrossRoutes.greaterThan(quote)).toBe(true);
+
+                const tokensDiff = allQuotesAcrossRoutes.subtract(quote)
+                const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+              }
+
+              expect(quoteGasAndPortionAdjusted).toBeDefined();
+              expect(portionAmount).toBeDefined();
+
+              const expectedPortionAmount = tradeType === TradeType.EXACT_INPUT ? quote.multiply(new Fraction(FLAT_PORTION.bips, 10_000)) : amount.multiply(new Fraction(FLAT_PORTION.bips, 10_000))
+              expect(portionAmount?.toExact()).toEqual(expectedPortionAmount.toExact())
+
+              // We must have very strict difference tolerance to not hide any bug.
+              // the only difference can be due to rounding,
+              // so regardless of token decimals & amounts,
+              // the difference will always be at most 1
+              const acceptableDifference = 1
+              const acceptablePortionDifference = 1
+              const portionQuoteAmount = tradeType === TradeType.EXACT_OUTPUT ? quoteGasAndPortionAdjusted!.subtract(quoteGasAdjusted) : portionAmount
+              expect(portionQuoteAmount).toBeDefined();
+
+              const targetQuoteGasAndPortionAdjustedDecimalsAmount =
+                tradeType === TradeType.EXACT_OUTPUT ?
+                  quoteGasAdjusted.add(portionQuoteAmount!) :
+                  quoteGasAdjusted.subtract(expectedPortionAmount)
+              await validateSwapRoute(
+                quote,
+                quoteGasAdjusted,
+                tradeType,
+                parseFloat(quote.toFixed(0)),
+                acceptableDifference,
+                quoteGasAndPortionAdjusted,
+                parseFloat(targetQuoteGasAndPortionAdjustedDecimalsAmount.toFixed(0)),
+                acceptablePortionDifference
+              );
+
+              // skip checking token in amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
+              const checkTokenInAmount = tokenIn.isNative ? undefined: parseFloat(amount.toFixed(0))
+              // skip checking token out amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
+              const checkTokenOutAmount = tokenOut.isNative ? undefined : parseFloat(amount.toFixed(0))
+              const checkPortionAmount = parseFloat(expectedPortionAmount.toFixed(0))
+
+              const skipQuoteTokenCheck =
+                // If token out is native, and trade type is exact in, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
+                tokenOut.isNative && tradeType === TradeType.EXACT_INPUT
+                // If token in is native, and trade type is exact out, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
+                || tokenIn.isNative && tradeType === TradeType.EXACT_OUTPUT
+
+              await validateExecuteSwap(
+                SwapType.UNIVERSAL_ROUTER,
+                quote,
+                tokenIn,
+                tokenOut,
+                methodParameters,
+                tradeType,
+                checkTokenInAmount,
+                checkTokenOutAmount,
+                estimatedGasUsed,
+                false,
+                FLAT_PORTION,
+                checkPortionAmount,
+                skipQuoteTokenCheck
+              );
+            });
+          });
         });
       }
 
@@ -2712,11 +2927,13 @@ describe('quote for other networks', () => {
           )
           const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider, tokenPropertiesProvider);
 
+          const portionProvider = new PortionProvider();
           const ethEstimateGasSimulator = new EthEstimateGasSimulator(
             chain,
             provider,
             v2PoolProvider,
-            v3PoolProvider
+            v3PoolProvider,
+            portionProvider
           );
 
           const tenderlySimulator = new TenderlySimulator(
@@ -2727,12 +2944,14 @@ describe('quote for other networks', () => {
             process.env.TENDERLY_ACCESS_KEY!,
             v2PoolProvider,
             v3PoolProvider,
-            provider
+            provider,
+            portionProvider
           );
 
           const simulator = new FallbackTenderlySimulator(
             chain,
             provider,
+            new PortionProvider(),
             tenderlySimulator,
             ethEstimateGasSimulator
           );

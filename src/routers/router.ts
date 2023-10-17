@@ -51,6 +51,14 @@ export type SwapRoute = {
    */
   quoteGasAdjusted: CurrencyAmount;
   /**
+   * The quote adjusted for the estimated gas used by the swap as well as the portion amount, if applicable.
+   * This is computed by estimating the amount of gas used by the swap, converting
+   * this estimate to be in terms of the quote token, and subtracting that from the quote.
+   * Then it uses the IPortionProvider.getPortionAdjustedQuote method to adjust the quote for the portion amount.
+   * i.e. quoteGasAdjusted = quote - estimatedGasUsedQuoteToken - portionAmount
+   */
+  quoteGasAndPortionAdjusted?: CurrencyAmount;
+  /**
    * The estimate of the gas used by the swap.
    */
   estimatedGasUsed: BigNumber;
@@ -94,6 +102,10 @@ export type SwapRoute = {
    * hit the cached routes. This is used further down the line for future perf optimizations.
    */
   hitsCachedRoute?: boolean;
+  /**
+   * Portion amount either echoed from upstream routing-api for exact out or calculated from portionBips for exact in
+   */
+  portionAmount?: CurrencyAmount;
 };
 
 export type MethodParameters = SDKMethodParameters & { to: string };
