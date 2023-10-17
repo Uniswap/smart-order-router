@@ -80,7 +80,7 @@ const poolsWithTax: Pair[] = [
 const quoteProvider = new V2QuoteProvider();
 
 describe('QuoteProvider', () => {
-  const enableFeeOnTransferFeeFetching = [undefined, false, true];
+  const enableFeeOnTransferFeeFetching = [true, false, undefined];
 
   enableFeeOnTransferFeeFetching.forEach((enableFeeOnTransferFeeFetching) => {
     describe(`fee-on-transfer flag enableFeeOnTransferFeeFetching = ${enableFeeOnTransferFeeFetching}`, () => {
@@ -134,7 +134,7 @@ describe('QuoteProvider', () => {
                 expect(pair.reserve1.currency.buyFeeBps).toBeDefined();
               }
 
-              const [outputAmount] = pair.getOutputAmount(currentInputAmount);
+              const [outputAmount] = pair.getOutputAmount(currentInputAmount, enableFeeOnTransferFeeFetching);
               currentInputAmount = outputAmount;
 
               if (enableFeeOnTransferFeeFetching) {
@@ -167,21 +167,11 @@ describe('QuoteProvider', () => {
               quote[index]!.amount.toExact()
             );
 
-            // we need to account for the round down/up during quote,
-            // 0.001 should be small enough rounding error
-            // this is the post fot tax quote amount
-            // this is the most important assertion, since interface & mobile
-            // uses this post fot tax quote amount to calculate the quote from each route
             expect(
               CurrencyAmount.fromRawAmount(
                 tokenOut,
                 quote[index]!.quote!.toString()
-              )
-                .subtract(currentInputAmount)
-                .lessThan(
-                  CurrencyAmount.fromFractionalAmount(tokenOut, 1, 1000)
-                )
-            );
+              ).quotient.toString()).toEqual(currentInputAmount.quotient.toString());
 
             expect(route.input.equals(tokenIn)).toBeTruthy();
             expect(route.output.equals(tokenOut)).toBeTruthy();
