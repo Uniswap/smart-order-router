@@ -5,10 +5,20 @@
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, CurrencyAmount, Ether, Fraction, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  Currency,
+  CurrencyAmount,
+  Ether,
+  Fraction,
+  Percent,
+  Rounding,
+  Token,
+  TradeType
+} from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
-  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
+  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
 } from '@uniswap/universal-router-sdk';
 import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
 import { Pair } from '@uniswap/v2-sdk';
@@ -23,6 +33,7 @@ import NodeCache from 'node-cache';
 import {
   AlphaRouter,
   AlphaRouterConfig,
+  CachingV2PoolProvider,
   CachingV3PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
@@ -49,6 +60,7 @@ import {
   SwapOptions,
   SwapType,
   TenderlySimulator,
+  TokenPropertiesProvider,
   UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
@@ -66,15 +78,14 @@ import {
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
-  WNATIVE_ON,
-  TokenPropertiesProvider,
+  WNATIVE_ON
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
-import { FLAT_PORTION, GREENLIST_TOKEN_PAIRS, Portion } from '../../../test-util/mock-data';
+import { BULLET, BULLET_WITHOUT_TAX, FLAT_PORTION, GREENLIST_TOKEN_PAIRS, Portion } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
 // TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023 deployed at block 18222746. We can use later block, e.g. at block 18318644
@@ -186,6 +197,7 @@ describe('alpha router integration', () => {
 
   let alphaRouter: AlphaRouter;
   let customAlphaRouter: AlphaRouter;
+  let feeOnTransferAlphaRouter: AlphaRouter;
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
@@ -542,6 +554,14 @@ describe('alpha router integration', () => {
       ]
     );
 
+    await hardhat.fund(
+      alice._address,
+      [parseAmount('735871', BULLET)],
+      [
+        '0x171d311eAcd2206d21Cb462d661C33F0eddadC03', // BULLET whale
+      ]
+    );
+
     // alice should always have 10000 ETH
     const aliceEthBalance = await hardhat.provider.getBalance(alice._address);
     /// Since alice is deploying the QuoterV3 contract, expect to have slightly less than 10_000 ETH but not too little
@@ -573,6 +593,11 @@ describe('alpha router integration', () => {
       UNI_MAINNET
     );
     expect(aliceUNIBalance).toEqual(parseAmount('1000', UNI_MAINNET));
+    const aliceBULLETBalance = await hardhat.getBalance(
+      alice._address,
+      BULLET
+    )
+    expect(aliceBULLETBalance).toEqual(parseAmount('735871', BULLET))
 
     const v3PoolProvider = new CachingV3PoolProvider(
       ChainId.MAINNET,
@@ -593,6 +618,11 @@ describe('alpha router integration', () => {
       multicall2Provider,
       tokenPropertiesProvider
     );
+    const cachingV2PoolProvider = new CachingV2PoolProvider(
+      ChainId.MAINNET,
+      v2PoolProvider,
+      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+    )
 
     const portionProvider = new PortionProvider();
     const ethEstimateGasSimulator = new EthEstimateGasSimulator(
@@ -641,6 +671,15 @@ describe('alpha router integration', () => {
       v2PoolProvider,
       v3PoolProvider,
       simulator: ethEstimateGasSimulator,
+    });
+
+    feeOnTransferAlphaRouter = new AlphaRouter({
+      chainId: ChainId.MAINNET,
+      provider: hardhat.providers[0]!,
+      multicall2Provider,
+      v2PoolProvider: cachingV2PoolProvider,
+      v3PoolProvider,
+      simulator,
     });
   });
 
@@ -2488,6 +2527,170 @@ describe('alpha router integration', () => {
               );
             });
           });
+
+          // FOT swap only works for exact in
+          if (tradeType === TradeType.EXACT_INPUT) {
+            const tokenInAndTokenOut = [
+              [BULLET_WITHOUT_TAX, WETH9[ChainId.MAINNET]!],
+              [WETH9[ChainId.MAINNET]!, BULLET_WITHOUT_TAX],
+            ]
+
+            tokenInAndTokenOut.forEach(([tokenIn, tokenOut]) => {
+              it(`fee-on-transfer ${tokenIn?.symbol} -> ${tokenOut?.symbol}`, async () => {
+                const enableFeeOnTransferFeeFetching = [true, false, undefined]
+                // we want to swap the tokenIn/tokenOut order so that we can test both sellFeeBps and buyFeeBps for exactIn vs exactOut
+                const originalAmount = tokenIn?.equals(WETH9[ChainId.MAINNET]!) ? '10' : '2924'
+                const amount = parseAmount(originalAmount, tokenIn!);
+
+                // Parallelize the FOT quote requests, because we notice there might be tricky race condition that could cause quote to not include FOT tax
+                const responses = await Promise.all(
+                  enableFeeOnTransferFeeFetching.map(async (enableFeeOnTransferFeeFetching) => {
+                    if (enableFeeOnTransferFeeFetching) {
+                      // if it's FOT flag enabled request, we delay it so that it's more likely to repro the race condition in
+                      // https://github.com/Uniswap/smart-order-router/pull/415#issue-1914604864
+                      await new Promise((f) => setTimeout(f, 1000))
+                    }
+
+                    const swap = await feeOnTransferAlphaRouter.route(
+                      amount,
+                      getQuoteToken(tokenIn!, tokenOut!, tradeType),
+                      tradeType,
+                      {
+                        type: SwapType.UNIVERSAL_ROUTER,
+                        recipient: alice._address,
+                        slippageTolerance: SLIPPAGE,
+                        deadlineOrPreviousBlockhash: parseDeadline(360),
+                        simulate: { fromAddress: WHALES(tokenIn!) },
+                      },
+                      {
+                        ...ROUTING_CONFIG,
+                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching
+                      }
+                    );
+
+                    expect(swap).toBeDefined();
+                    expect(swap).not.toBeNull();
+
+                    // Expect tenderly simulation to be successful
+                    expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    expect(swap!.methodParameters).toBeDefined();
+                    expect(swap!.methodParameters!.to).toBeDefined();
+
+                    return { enableFeeOnTransferFeeFetching, ...swap! }
+                  })
+                )
+
+                const quoteWithFlagOn = responses.find((r) => r.enableFeeOnTransferFeeFetching === true)
+                expect(quoteWithFlagOn).toBeDefined();
+                responses
+                  .filter((r) => r.enableFeeOnTransferFeeFetching !== true)
+                  .forEach((r) => {
+                    if (tradeType === TradeType.EXACT_INPUT) {
+                      // quote without fot flag must be greater than the quote with fot flag
+                      // this is to catch https://github.com/Uniswap/smart-order-router/pull/421
+                      expect(r.quote.greaterThan(quoteWithFlagOn!.quote)).toBeTruthy();
+
+                      // below is additional assertion to ensure the quote without fot tax vs quote with tax should be very roughly equal to the fot sell/buy tax rate
+                      const tokensDiff = r.quote.subtract(quoteWithFlagOn!.quote);
+                      const percentDiff = tokensDiff.asFraction.divide(r.quote.asFraction);
+                      if (tokenIn?.equals(BULLET_WITHOUT_TAX)) {
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.sellFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                      } else if (tokenOut?.equals(BULLET_WITHOUT_TAX)) {
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.buyFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                      }
+                    }
+                  })
+
+                for (const response of responses) {
+                  const { enableFeeOnTransferFeeFetching, quote, quoteGasAdjusted, methodParameters, route, estimatedGasUsed } = response
+
+                  if (tradeType == TradeType.EXACT_INPUT) {
+                    expect(quoteGasAdjusted.lessThan(quote)).toBeTruthy();
+                  } else {
+                    expect(quoteGasAdjusted.greaterThan(quote)).toBeTruthy();
+                  }
+
+                  expect(methodParameters).toBeDefined();
+
+                  for (const r of route) {
+                    expect(r.route).toBeInstanceOf(V2Route)
+                    const tokenIn = (r.route as V2Route).input
+                    const tokenOut = (r.route as V2Route).output
+                    const pools = (r.route as V2Route).pairs
+
+                    for (const pool of pools) {
+                      if (enableFeeOnTransferFeeFetching) {
+                        // the assertion here will differ from routing-api one
+                        // https://github.com/Uniswap/routing-api/blob/09a40a0a9a40ad0881337decd0db9a43ba39f3eb/test/mocha/integ/quote.test.ts#L1141-L1152
+                        // the reason is because from sor, we intentionally don't reinstantiate token in and token out with the fot taxes
+                        // at sor level, fot taxes can only be retrieved from the pool reserves
+                        if (tokenIn.address === BULLET.address) {
+                          expect(tokenIn.sellFeeBps).toBeUndefined();
+                          expect(tokenIn.buyFeeBps).toBeUndefined();
+                        }
+                        if (tokenOut.address === BULLET.address) {
+                          expect(tokenOut.sellFeeBps).toBeUndefined();
+                          expect(tokenOut.buyFeeBps).toBeUndefined();
+                        }
+                        if (pool.reserve0.currency.address === BULLET.address) {
+                          expect(pool.reserve0.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve0.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString())
+                          expect(pool.reserve0.currency.buyFeeBps).toBeDefined();
+                          expect(pool.reserve0.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString())
+                        }
+                        if (pool.reserve1.currency.address === BULLET.address) {
+                          expect(pool.reserve1.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve1.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString())
+                          expect(pool.reserve1.currency.buyFeeBps).toBeDefined();
+                          expect(pool.reserve1.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString())
+                        }
+                      } else {
+                        expect(tokenOut.sellFeeBps).toBeUndefined();
+                        expect(tokenOut.buyFeeBps).toBeUndefined();
+                        // we actually don't have a way to toggle off the fot taxes for pool reserve at sor level,
+                        // due to https://github.com/Uniswap/smart-order-router/pull/415
+                        // we are relying on routing-api level test assertion
+                        // https://github.com/Uniswap/routing-api/blob/09a40a0a9a40ad0881337decd0db9a43ba39f3eb/test/mocha/integ/quote.test.ts#L1168-L1172
+                        if (pool.reserve0.currency.address === BULLET.address) {
+                          expect(pool.reserve0.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve0.currency.buyFeeBps).toBeDefined();
+                        }
+                        if (pool.reserve1.currency.address === BULLET.address) {
+                          expect(pool.reserve1.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve1.currency.buyFeeBps).toBeDefined();
+                        }
+                      }
+                    }
+                  }
+
+                  // without enabling the fee fetching
+                  // sometimes we can get execute swap failure due to unpredictable gas limit
+                  // underneath the hood, the returned universal router calldata can be bad enough to cause swap failures
+                  // which is equivalent of what was happening in prod, before interface supports FOT
+                  // we only care about hardhat fork swap execution success after we enable fee-on-transfer
+                  if (enableFeeOnTransferFeeFetching) {
+                    const checkTokenInAmount = parseFloat(amount.toFixed(0))
+                    const checkTokenOutAmount = parseFloat(amount.toFixed(0))
+
+                    // We don't have a bullet proof way to asser the fot-involved quote is post tax
+                    // so the best way is to execute the swap on hardhat mainnet fork,
+                    // and make sure the executed quote doesn't differ from callstatic simulated quote by over slippage tolerance
+                    await validateExecuteSwap(
+                      SwapType.UNIVERSAL_ROUTER,
+                      quote,
+                      tokenIn!,
+                      tokenOut!,
+                      methodParameters,
+                      tradeType,
+                      checkTokenInAmount,
+                      checkTokenOutAmount,
+                      estimatedGasUsed
+                    );
+                  }
+                }
+              })
+            });
+          }
         });
       }
 
