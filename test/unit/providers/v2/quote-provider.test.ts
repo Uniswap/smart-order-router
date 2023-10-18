@@ -167,6 +167,7 @@ describe('QuoteProvider', () => {
               quote[index]!.amount.toExact()
             );
 
+            // With all the FOT bug fixes in, below quote with the final output amount assertion must match exactly
             expect(
               CurrencyAmount.fromRawAmount(
                 tokenOut,
