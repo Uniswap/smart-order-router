@@ -5,7 +5,17 @@
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, CurrencyAmount, Ether, Fraction, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  Currency,
+  CurrencyAmount,
+  Ether,
+  Fraction,
+  Percent,
+  Rounding,
+  Token,
+  TradeType
+} from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
@@ -23,6 +33,7 @@ import NodeCache from 'node-cache';
 import {
   AlphaRouter,
   AlphaRouterConfig,
+  CachingV2PoolProvider,
   CachingV3PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
@@ -67,8 +78,7 @@ import {
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
-  WNATIVE_ON,
-  CachingV2PoolProvider
+  WNATIVE_ON
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
@@ -2575,9 +2585,20 @@ describe('alpha router integration', () => {
                 responses
                   .filter((r) => r.enableFeeOnTransferFeeFetching !== true)
                   .forEach((r) => {
-                    // quote without fot flag must be greater than the quote with fot flag
-                    // this is to catch https://github.com/Uniswap/smart-order-router/pull/421
-                    expect(r.quote.greaterThan(quoteWithFlagOn!.quote)).toBeTruthy();
+                    if (tradeType === TradeType.EXACT_INPUT) {
+                      // quote without fot flag must be greater than the quote with fot flag
+                      // this is to catch https://github.com/Uniswap/smart-order-router/pull/421
+                      expect(r.quote.greaterThan(quoteWithFlagOn!.quote)).toBeTruthy();
+
+                      // below is additional assertion to ensure the quote without fot tax vs quote with tax should be very roughly equal to the fot sell/buy tax rate
+                      const tokensDiff = r.quote.subtract(quoteWithFlagOn!.quote);
+                      const percentDiff = tokensDiff.asFraction.divide(r.quote.asFraction);
+                      if (tokenIn?.equals(BULLET_WITHOUT_TAX)) {
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.sellFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                      } else if (tokenOut?.equals(BULLET_WITHOUT_TAX)) {
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.buyFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                      }
+                    }
                   })
 
                 for (const response of responses) {
