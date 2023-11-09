@@ -209,6 +209,7 @@ export async function getV3CandidatePools({
       topNTokenInOut,
       topNSecondHop,
       topNSecondHopForTokenAddress,
+      tokensToAvoidOnSecondHops,
       topNWithEachBaseToken,
       topNWithBaseToken,
     },
@@ -446,6 +447,7 @@ export async function getV3CandidatePools({
         .filter((subgraphPool) => {
           return (
             !poolAddressesSoFar.has(subgraphPool.id) &&
+            !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()) &&
             (subgraphPool.token0.id == secondHopId ||
               subgraphPool.token1.id == secondHopId)
           );
@@ -469,6 +471,7 @@ export async function getV3CandidatePools({
         .filter((subgraphPool) => {
           return (
             !poolAddressesSoFar.has(subgraphPool.id) &&
+            !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()) &&
             (subgraphPool.token0.id == secondHopId ||
               subgraphPool.token1.id == secondHopId)
           );
@@ -625,6 +628,7 @@ export async function getV2CandidatePools({
       topNDirectSwaps,
       topNTokenInOut,
       topNSecondHop,
+      tokensToAvoidOnSecondHops,
       topNWithEachBaseToken,
       topNWithBaseToken,
     },
@@ -899,11 +903,25 @@ export async function getV2CandidatePools({
   // Filtering step for second hops
   const topByTVLUsingTokenInSecondHopsMap: Map<string, SubcategorySelectionPools<V2SubgraphPool>> = new Map();
   const topByTVLUsingTokenOutSecondHopsMap: Map<string, SubcategorySelectionPools<V2SubgraphPool>> = new Map();
-  const tokenInSecondHopAddresses = topByTVLUsingTokenIn.map((pool) =>
-    tokenInAddress == pool.token0.id ? pool.token1.id : pool.token0.id
+  const tokenInSecondHopAddresses = topByTVLUsingTokenIn.filter((pool) => {
+    // filtering second hops
+    if (tokenInAddress === pool.token0.id) {
+      return !tokensToAvoidOnSecondHops?.includes(pool.token1.id.toLowerCase());
+    } else {
+      return !tokensToAvoidOnSecondHops?.includes(pool.token0.id.toLowerCase());
+    }
+  }).map((pool) =>
+    tokenInAddress === pool.token0.id ? pool.token1.id : pool.token0.id
   );
-  const tokenOutSecondHopAddresses = topByTVLUsingTokenOut.map((pool) =>
-    tokenOutAddress == pool.token0.id ? pool.token1.id : pool.token0.id
+  const tokenOutSecondHopAddresses = topByTVLUsingTokenOut.filter((pool) => {
+    // filtering second hops
+    if (tokenInAddress === pool.token0.id) {
+      return !tokensToAvoidOnSecondHops?.includes(pool.token1.id.toLowerCase());
+    } else {
+      return !tokensToAvoidOnSecondHops?.includes(pool.token0.id.toLowerCase());
+    }
+  }).map((pool) =>
+    tokenOutAddress === pool.token0.id ? pool.token1.id : pool.token0.id
   );
 
   for (const secondHopId of tokenInSecondHopAddresses) {
