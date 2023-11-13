@@ -44,10 +44,7 @@ import {
 } from '../../providers';
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
-import {
-  IPortionProvider,
-  PortionProvider
-} from '../../providers/portion-provider';
+import { IPortionProvider, PortionProvider } from '../../providers/portion-provider';
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
@@ -87,10 +84,7 @@ import {
   V3Route,
 } from '../router';
 
-import {
-  DEFAULT_ROUTING_CONFIG_BY_CHAIN,
-  ETH_GAS_STATION_API_URL,
-} from './config';
+import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
@@ -237,6 +231,13 @@ export class MapWithLowerCaseKey<V> extends Map<string, V> {
   }
 }
 
+export class LowerCaseStringArray extends Array<string> {
+  constructor(...items: string[]) {
+    // Convert all items to lowercase before calling the parent constructor
+    super(...items.map(item => item.toLowerCase()));
+  }
+}
+
 /**
  * Determines the pools that the algorithm will consider when finding the optimal swap.
  *
@@ -274,6 +275,13 @@ export type ProtocolPoolSelection = {
    * it would find the top 4 pools that involve USDT, and find the topNSecondHop pools that involve DAI
    */
   topNSecondHopForTokenAddress?: MapWithLowerCaseKey<number>;
+  /**
+   * List of token addresses to avoid using as a second hop.
+   * There might be multiple reasons why we would like to avoid a specific token,
+   *   but the specific reason that we are trying to solve is when the pool is not synced properly
+   *   e.g. when the pool has a rebasing token that isn't syncing the pool on every rebase.
+   */
+  tokensToAvoidOnSecondHops?: LowerCaseStringArray;
   /**
    * The top N pools for token in and token out that involve a token from a list of
    * hardcoded 'base tokens'. These are standard tokens such as WETH, USDC, DAI, etc.
@@ -612,7 +620,7 @@ export class AlphaRouter
         this.chainId,
         new NodeJSCache(new NodeCache({ stdTTL: 86400, useClones: false })),
         new OnChainTokenFeeFetcher(this.chainId, provider)
-      )
+      );
     }
     this.v2PoolProvider =
       v2PoolProvider ??
@@ -1363,7 +1371,7 @@ export class AlphaRouter
         this.l2GasDataProvider
           ? await this.l2GasDataProvider!.getGasData()
           : undefined,
-          providerConfig
+        providerConfig
       );
       metric.putMetric(
         'SimulateTransaction',
@@ -1636,29 +1644,29 @@ export class AlphaRouter
       const beforeGetRoutesThenQuotes = Date.now();
 
       quotePromises.push(
-          v2CandidatePoolsPromise.then((v2CandidatePools) =>
-              this.v2Quoter.getRoutesThenQuotes(
-                  tokenIn,
-                  tokenOut,
-                  amount,
-                  amounts,
-                  percents,
-                  quoteToken,
-                  v2CandidatePools!,
-                  tradeType,
-                  routingConfig,
-                  undefined,
-                  gasPriceWei
-              ).then((result) => {
-                metric.putMetric(
-                    `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
-                    Date.now() - beforeGetRoutesThenQuotes,
-                    MetricLoggerUnit.Milliseconds
-                );
+        v2CandidatePoolsPromise.then((v2CandidatePools) =>
+          this.v2Quoter.getRoutesThenQuotes(
+            tokenIn,
+            tokenOut,
+            amount,
+            amounts,
+            percents,
+            quoteToken,
+            v2CandidatePools!,
+            tradeType,
+            routingConfig,
+            undefined,
+            gasPriceWei
+          ).then((result) => {
+            metric.putMetric(
+              `SwapRouteFromChain_V2_GetRoutesThenQuotes_Load`,
+              Date.now() - beforeGetRoutesThenQuotes,
+              MetricLoggerUnit.Milliseconds
+            );
 
-                return result;
-              })
-          )
+            return result;
+          })
+        )
       );
     }
 
