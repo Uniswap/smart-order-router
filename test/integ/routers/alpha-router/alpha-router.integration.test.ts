@@ -93,6 +93,7 @@ import { WHALES } from '../../../test-util/whales';
 const FORK_BLOCK = 18222746;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
+const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -1752,7 +1753,7 @@ describe('alpha router integration', () => {
               {
                 type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
+                slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
@@ -1954,7 +1955,7 @@ describe('alpha router integration', () => {
               {
                 type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
+                slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
@@ -2432,7 +2433,7 @@ describe('alpha router integration', () => {
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
                   recipient: alice._address,
-                  slippageTolerance: SLIPPAGE,
+                  slippageTolerance: LARGE_SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
                   simulate: { fromAddress: WHALES(tokenIn) },
                   fee: tradeType == TradeType.EXACT_INPUT ? { fee: bps, recipient: FLAT_PORTION.recipient } : undefined,
