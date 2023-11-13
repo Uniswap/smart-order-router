@@ -915,7 +915,7 @@ export async function getV2CandidatePools({
   );
   const tokenOutSecondHopAddresses = topByTVLUsingTokenOut.filter((pool) => {
     // filtering second hops
-    if (tokenInAddress === pool.token0.id) {
+    if (tokenOutAddress === pool.token0.id) {
       return !tokensToAvoidOnSecondHops?.includes(pool.token1.id.toLowerCase());
     } else {
       return !tokensToAvoidOnSecondHops?.includes(pool.token0.id.toLowerCase());
