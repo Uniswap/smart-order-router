@@ -304,15 +304,18 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyProject
       );
 
+      metric.putMetric('TenderlySimulationUniversalRouterRequests', 1, MetricLoggerUnit.Count);
+
       const before = Date.now();
 
-      const resp = (
+      const { data: resp, status: httpStatus } = (
         await axios.post<TenderlyResponseUniversalRouter>(url, body, opts)
-      ).data;
+      );
 
       const latencies = Date.now() - before
       log.info(`Tenderly simulation universal router request body: ${body}, having latencies ${latencies} in milliseconds.`)
       metric.putMetric('TenderlySimulationUniversalRouterLatencies', Date.now() - before, MetricLoggerUnit.Milliseconds);
+      metric.putMetric('TenderlySimulationUniversalRouterResponseStatus', httpStatus);
 
       // Validate tenderly response body
       if (
@@ -396,11 +399,15 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyProject
       );
 
+      metric.putMetric('TenderlySimulationSwapRouter02Requests', 1, MetricLoggerUnit.Count);
+
       const before = Date.now()
 
-      const resp = (
+      const { data: resp, status: httpStatus } = (
         await axios.post<TenderlyResponseSwapRouter02>(url, body, opts)
-      ).data;
+      );
+
+      metric.putMetric('TenderlySimulationSwapRouter02ResponseStatus', httpStatus);
 
       const latencies = Date.now() - before
       log.info(`Tenderly simulation swap router02 request body: ${body}, having latencies ${latencies} in milliseconds.`)
