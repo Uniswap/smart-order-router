@@ -15,6 +15,7 @@ import {
   WETH9,
   WNATIVE_ON,
 } from '../../src';
+import { BULLET, BULLET_WITHOUT_TAX } from './mock-data';
 
 export const WHALES = (token: Currency): string => {
   switch (token) {
@@ -47,7 +48,7 @@ export const WHALES = (token: Currency): string => {
     case WNATIVE_ON(ChainId.POLYGON):
       return '0x369582d2010b6ed950b571f4101e3bb9b554876f';
     case WNATIVE_ON(ChainId.BASE):
-      return '0x755554f1716d2241d6af94ea1d7dbb1631af9a40';
+      return '0x4bb6b2efe7036020ba6f02a05602546c9f25bf28';
     case WNATIVE_ON(ChainId.OPTIMISM):
       return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
     case WNATIVE_ON(ChainId.BNB):
@@ -104,6 +105,8 @@ export const WHALES = (token: Currency): string => {
       return '0x6cC083Aed9e3ebe302A6336dBC7c921C9f03349E';
     case CUSD_CELO:
       return '0xC32cBaf3D44dA6fbC761289b871af1A30cc7f993';
+    case BULLET_WITHOUT_TAX || BULLET:
+      return '0x171d311eAcd2206d21Cb462d661C33F0eddadC03';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

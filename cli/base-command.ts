@@ -48,6 +48,7 @@ import {
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
 import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
+import { PortionProvider } from '../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../src/providers/token-fee-fetcher';
 
 export abstract class BaseCommand extends Command {
@@ -297,6 +298,7 @@ export abstract class BaseCommand extends Command {
       )
       const v2PoolProvider = new V2PoolProvider(chainId, multicall2Provider, tokenPropertiesProvider);
 
+      const portionProvider = new PortionProvider();
       const tenderlySimulator = new TenderlySimulator(
         chainId,
         'http://api.tenderly.co',
@@ -306,6 +308,7 @@ export abstract class BaseCommand extends Command {
         v2PoolProvider,
         v3PoolProvider,
         provider,
+        portionProvider,
         { [ChainId.ARBITRUM_ONE]: 1 }
       );
 
@@ -313,12 +316,14 @@ export abstract class BaseCommand extends Command {
         chainId,
         provider,
         v2PoolProvider,
-        v3PoolProvider
+        v3PoolProvider,
+        portionProvider
       );
 
       const simulator = new FallbackTenderlySimulator(
         chainId,
         provider,
+        portionProvider,
         tenderlySimulator,
         ethEstimateGasSimulator
       );

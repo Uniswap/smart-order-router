@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Ether, Token } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
@@ -17,7 +17,7 @@ import {
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../src';
-import { V2PoolAccessor } from '../../src/providers/v2/pool-provider';
+import { V2PoolAccessor } from '../../src';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
@@ -426,3 +426,30 @@ export const BITBOY = new Token(
   BigNumber.from(300),
   BigNumber.from(300)
 )
+
+export const PORTION_BIPS = 12
+export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
+export const PORTION_TYPE = 'flat'
+
+export type Portion = {
+  bips: number,
+  recipient: string,
+  type: string,
+}
+
+export const FLAT_PORTION: Portion = {
+  bips: PORTION_BIPS,
+  recipient: PORTION_RECIPIENT,
+  type: PORTION_TYPE,
+}
+
+export const GREENLIST_TOKEN_PAIRS: Array<[Currency, Currency]> = [
+  [Ether.onChain(ChainId.MAINNET), USDC],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], USDT],
+  [DAI, WBTC],
+];
+
+export const GREENLIST_CARVEOUT_PAIRS: Array<[Currency, Currency]> = [
+  [USDC, DAI],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], Ether.onChain(ChainId.MAINNET)],
+];
