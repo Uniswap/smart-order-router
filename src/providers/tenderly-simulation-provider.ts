@@ -35,6 +35,8 @@ import {
 import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
+import http from 'http';
+import https from 'https';
 
 export type TenderlyResponseUniversalRouter = {
   config: {
@@ -166,6 +168,12 @@ export class TenderlySimulator extends Simulator {
   private v3PoolProvider: IV3PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
   private tenderlyRequestTimeout?: number;
+  private tenderlyServiceInstance = axios.create({
+    // keep connections alive,
+    // maxSockets default is Infinity, so Infinity is read as 50 sockets
+    httpAgent: new http.Agent({ keepAlive: true }),
+    httpsAgent: new https.Agent({ keepAlive: true }),
+  });
 
   constructor(
     chainId: ChainId,
@@ -309,13 +317,13 @@ export class TenderlySimulator extends Simulator {
       const before = Date.now();
 
       const { data: resp, status: httpStatus } = (
-        await axios.post<TenderlyResponseUniversalRouter>(url, body, opts)
+        await this.tenderlyServiceInstance.post<TenderlyResponseUniversalRouter>(url, body, opts)
       );
 
       const latencies = Date.now() - before
       log.info(`Tenderly simulation universal router request body: ${body}, having latencies ${latencies} in milliseconds.`)
       metric.putMetric('TenderlySimulationUniversalRouterLatencies', Date.now() - before, MetricLoggerUnit.Milliseconds);
-      metric.putMetric('TenderlySimulationUniversalRouterResponseStatus', httpStatus);
+      metric.putMetric(`TenderlySimulationUniversalRouterResponseStatus${httpStatus}`, 1, MetricLoggerUnit.Count);
 
       // Validate tenderly response body
       if (
@@ -404,10 +412,10 @@ export class TenderlySimulator extends Simulator {
       const before = Date.now()
 
       const { data: resp, status: httpStatus } = (
-        await axios.post<TenderlyResponseSwapRouter02>(url, body, opts)
+        await this.tenderlyServiceInstance.post<TenderlyResponseSwapRouter02>(url, body, opts)
       );
 
-      metric.putMetric('TenderlySimulationSwapRouter02ResponseStatus', httpStatus);
+      metric.putMetric(`TenderlySimulationSwapRouter02ResponseStatus${httpStatus}`, 1, MetricLoggerUnit.Count);
 
       const latencies = Date.now() - before
       log.info(`Tenderly simulation swap router02 request body: ${body}, having latencies ${latencies} in milliseconds.`)
