@@ -2559,7 +2559,7 @@ describe('alpha router integration', () => {
                       {
                         type: SwapType.UNIVERSAL_ROUTER,
                         recipient: alice._address,
-                        slippageTolerance: SLIPPAGE,
+                        slippageTolerance: LARGE_SLIPPAGE,
                         deadlineOrPreviousBlockhash: parseDeadline(360),
                         simulate: { fromAddress: WHALES(tokenIn!) },
                       },
