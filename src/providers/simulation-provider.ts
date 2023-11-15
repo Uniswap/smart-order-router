@@ -66,6 +66,7 @@ export abstract class Simulator {
       )
     ) {
       log.info(
+        {addr: fromAddress},
         'User has sufficient balance to simulate. Simulating transaction.'
       );
       try {
@@ -110,7 +111,9 @@ export abstract class Simulator {
       const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
       let balance;
       if (neededBalance.currency.isNative) {
-        balance = await this.provider.getBalance(fromAddress);
+        //balance = await this.provider.getBalance(fromAddress);
+        //always simulate with ETH input
+        return true;
       } else {
         const tokenContract = Erc20__factory.connect(
           neededBalance.currency.address,

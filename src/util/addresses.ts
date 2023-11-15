@@ -164,3 +164,5 @@ export const WETH9: {
     'Wrapped Ether'
   )
 };
+
+export const BEACON_CHAIN_DEPOSIT_ADDRESS = '0x00000000219ab540356cBB839Cbe05303d7705Fa';
