@@ -46,12 +46,6 @@ export class EthEstimateGasSimulator extends Simulator {
     providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
-    if (currencyIn.isNative) {
-      // w/o this gas estimate differs by a lot depending on if user holds enough native balance
-      // always estimate gas as if user holds enough balance
-      // so that gas estimate is consistent for UniswapX
-      fromAddress = BEACON_CHAIN_DEPOSIT_ADDRESS;
-    }
     let estimatedGasUsed: BigNumber;
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
       log.info(
@@ -75,6 +69,12 @@ export class EthEstimateGasSimulator extends Simulator {
         };
       }
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
+      if (currencyIn.isNative) {
+        // w/o this gas estimate differs by a lot depending on if user holds enough native balance
+        // always estimate gas as if user holds enough balance
+        // so that gas estimate is consistent for UniswapX
+        fromAddress = BEACON_CHAIN_DEPOSIT_ADDRESS;
+      }
       try {
         estimatedGasUsed = await this.provider.estimateGas({
           data: route.methodParameters!.calldata,
