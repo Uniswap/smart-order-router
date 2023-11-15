@@ -3,7 +3,7 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
 import { SwapOptions, SwapRoute, SwapType } from '../routers';
-import { log } from '../util';
+import { BEACON_CHAIN_DEPOSIT_ADDRESS, log } from '../util';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
@@ -46,10 +46,13 @@ export class EthEstimateGasSimulator extends Simulator {
     providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
+    if (currencyIn.isNative) {
+      fromAddress = BEACON_CHAIN_DEPOSIT_ADDRESS;
+    }
     let estimatedGasUsed: BigNumber;
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
       log.info(
-        { methodParameters: route.methodParameters },
+        { addr: fromAddress, methodParameters: route.methodParameters },
         'Simulating using eth_estimateGas on Universal Router'
       );
       try {

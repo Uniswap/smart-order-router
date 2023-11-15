@@ -117,6 +117,7 @@ export class FallbackTenderlySimulator extends Simulator {
     const inputAmount = swapRoute.trade.inputAmount;
 
     if (
+      inputAmount.currency.isNative ||
       (await this.checkTokenApproved(
         fromAddress,
         inputAmount,
@@ -125,7 +126,7 @@ export class FallbackTenderlySimulator extends Simulator {
       ))
     ) {
       log.info(
-        'Simulating with eth_estimateGas since token is approved.'
+        'Simulating with eth_estimateGas since token is native or approved.'
       );
 
       try {
