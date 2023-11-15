@@ -66,7 +66,6 @@ export abstract class Simulator {
       )
     ) {
       log.info(
-        {addr: fromAddress},
         'User has sufficient balance to simulate. Simulating transaction.'
       );
       try {
