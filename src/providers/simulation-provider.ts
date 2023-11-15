@@ -109,7 +109,7 @@ export abstract class Simulator {
     try {
       const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
       let balance;
-      if (neededBalance.currency.isNative) {
+      if (neededBalance.currency.isNative && this.chainId == ChainId.MAINNET) {
         //balance = await this.provider.getBalance(fromAddress);
         //always simulate with ETH input
         return true;
