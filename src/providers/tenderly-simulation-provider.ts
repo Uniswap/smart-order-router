@@ -243,7 +243,7 @@ export class TenderlySimulator extends Simulator {
 
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
       // simulating from beacon chain deposit address that should always hold **enough balance**
-      if (currencyIn.isNative) {
+      if (currencyIn.isNative && this.chainId == ChainId.MAINNET) {
         fromAddress = BEACON_CHAIN_DEPOSIT_ADDRESS;
       }
       // Do initial onboarding approval of Permit2.
