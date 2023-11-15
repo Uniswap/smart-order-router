@@ -2452,7 +2452,7 @@ describe('alpha router integration', () => {
               expect(swap!.methodParameters).toBeDefined();
               expect(swap!.methodParameters!.to).toBeDefined();
 
-              const { quote, quoteGasAdjusted, quoteGasAndPortionAdjusted, methodParameters, estimatedGasUsed, portionAmount, route } = swap!;
+              const { quote, quoteGasAdjusted, quoteGasAndPortionAdjusted, methodParameters, portionAmount, route } = swap!;
 
               // The most strict way to ensure the output amount from route path is correct with respect to portion
               // is to make sure the output amount from route path is exactly portion bps different from the quote
@@ -2520,7 +2520,7 @@ describe('alpha router integration', () => {
                 tradeType,
                 checkTokenInAmount,
                 checkTokenOutAmount,
-                estimatedGasUsed,
+                undefined,
                 false,
                 FLAT_PORTION,
                 checkPortionAmount,
