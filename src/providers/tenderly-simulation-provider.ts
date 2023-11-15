@@ -235,10 +235,6 @@ export class TenderlySimulator extends Simulator {
       'Simulating transaction on Tenderly'
     );
 
-    // simulating from beacon chain deposit address that should always hold **enough balance**
-    if (currencyIn.isNative) {
-      fromAddress = BEACON_CHAIN_DEPOSIT_ADDRESS;
-    }
 
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
@@ -246,6 +242,10 @@ export class TenderlySimulator extends Simulator {
       this.overrideEstimateMultiplier[chainId] ?? DEFAULT_ESTIMATE_MULTIPLIER;
 
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
+      // simulating from beacon chain deposit address that should always hold **enough balance**
+      if (currencyIn.isNative) {
+        fromAddress = BEACON_CHAIN_DEPOSIT_ADDRESS;
+      }
       // Do initial onboarding approval of Permit2.
       const erc20Interface = Erc20__factory.createInterface();
       const approvePermit2Calldata = erc20Interface.encodeFunctionData(
