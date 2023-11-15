@@ -57,14 +57,16 @@ export abstract class Simulator {
     l2GasData?: OptimismGasData | ArbitrumGasData,
     providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
-    if (
+    const neededBalance = swapRoute.trade.tradeType == TradeType.EXACT_INPUT ? amount : quote;
+    if ((neededBalance.currency.isNative && this.chainId == ChainId.MAINNET) || 
+      (
       await this.userHasSufficientBalance(
         fromAddress,
         swapRoute.trade.tradeType,
         amount,
         quote
       )
-    ) {
+    )) {
       log.info(
         'User has sufficient balance to simulate. Simulating transaction.'
       );
@@ -109,7 +111,7 @@ export abstract class Simulator {
     try {
       const neededBalance = tradeType == TradeType.EXACT_INPUT ? amount : quote;
       let balance;
-      if (neededBalance.currency.isNative && this.chainId == ChainId.MAINNET) {
+      if (neededBalance.currency.isNative) {
         //balance = await this.provider.getBalance(fromAddress);
         //always simulate with ETH input
         return true;
