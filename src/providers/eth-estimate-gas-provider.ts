@@ -48,7 +48,7 @@ export class EthEstimateGasSimulator extends Simulator {
     const currencyIn = route.trade.inputAmount.currency;
     let estimatedGasUsed: BigNumber;
     if (swapOptions.type == SwapType.UNIVERSAL_ROUTER) {
-      if (currencyIn.isNative) {
+      if (currencyIn.isNative && this.chainId == ChainId.MAINNET) {
         // w/o this gas estimate differs by a lot depending on if user holds enough native balance
         // always estimate gas as if user holds enough balance
         // so that gas estimate is consistent for UniswapX
