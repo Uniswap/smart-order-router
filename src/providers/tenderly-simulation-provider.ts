@@ -1,3 +1,6 @@
+import http from 'http';
+import https from 'https';
+
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
@@ -17,7 +20,7 @@ import {
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
-import { log, MAX_UINT160, SWAP_ROUTER_02_ADDRESSES } from '../util';
+import { BEACON_CHAIN_DEPOSIT_ADDRESS, log, MAX_UINT160, SWAP_ROUTER_02_ADDRESSES } from '../util';
 import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
@@ -35,8 +38,6 @@ import {
 import { IV2PoolProvider } from './v2/pool-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
-import http from 'http';
-import https from 'https';
 
 export type TenderlyResponseUniversalRouter = {
   config: {
@@ -233,6 +234,11 @@ export class TenderlySimulator extends Simulator {
       },
       'Simulating transaction on Tenderly'
     );
+
+    // simulating from beacon chain deposit address that should always hold **enough balance**
+    if (currencyIn.isNative) {
+      fromAddress = BEACON_CHAIN_DEPOSIT_ADDRESS;
+    }
 
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;

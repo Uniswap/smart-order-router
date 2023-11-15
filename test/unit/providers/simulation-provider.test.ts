@@ -186,6 +186,35 @@ describe('Fallback Tenderly simulator', () => {
       SimulationStatus.Succeeded
     );
   });
+  test('simuates through eth_estimateGas always when input is ETH', async () => {
+    tokenContract = {
+      balanceOf: async () => {
+        return BigNumber.from(0);
+      },
+      allowance: async () => {
+        return BigNumber.from(0);
+      },
+    } as unknown as Erc20;
+    const ethInputAmount =  CurrencyAmount.fromRawAmount(nativeOnChain(1), 300)
+    const swapRouteWithGasEstimate = await simulator.simulate(
+      fromAddress,
+      swapOptions,
+      {
+        ...swaproute,
+        trade: {
+          inputAmount: ethInputAmount,
+          tradeType: 0
+        } as Trade<any, any, any>,
+      },
+      CurrencyAmount.fromRawAmount(nativeOnChain(1), 300),
+      quote
+    );
+    expect(ethEstimateGasSimulator.ethEstimateGas.called).toBeTruthy();
+    expect(tenderlySimulator.simulateTransaction.called).toBeFalsy();
+    expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
+      SimulationStatus.Succeeded
+    );
+  });
   test('does not simulate when user has insufficient balance', async () => {
     tokenContract = {
       balanceOf: async () => {
