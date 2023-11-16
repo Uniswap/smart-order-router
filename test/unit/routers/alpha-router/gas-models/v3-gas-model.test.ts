@@ -261,7 +261,7 @@ describe('v3 gas model tests', () => {
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
   });
 
-  it.only('returns gas estimate for specified gasToken', async () => {
+  it('returns gas estimate for specified gasToken', async () => {
     // copied from `returns correct gas estimate for a v3 route | hops: 1 | ticks 1` test above
 
     const amountToken = USDC_MAINNET;
