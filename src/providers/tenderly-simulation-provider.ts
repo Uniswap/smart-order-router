@@ -130,7 +130,6 @@ export class FallbackTenderlySimulator extends Simulator {
       );
 
       try {
-        const swapRouteWithGasEstimate =
           await this.ethEstimateGasSimulator.ethEstimateGas(
             fromAddress,
             swapOptions,
@@ -138,10 +137,9 @@ export class FallbackTenderlySimulator extends Simulator {
             l2GasData,
             providerConfig
           );
-        return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
-        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+        // return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
     }
 
@@ -382,6 +380,7 @@ export class TenderlySimulator extends Simulator {
         value: '0',
         from: fromAddress,
         simulation_type: TenderlySimulationType.QUICK,
+        save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
 
       const swap: TenderlySimulationRequest = {
@@ -397,6 +396,7 @@ export class TenderlySimulator extends Simulator {
             ? blockNumber - 5
             : undefined,
         simulation_type: TenderlySimulationType.QUICK,
+        save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
 
       const body = { simulations: [approve, swap] };
