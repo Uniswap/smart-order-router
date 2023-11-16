@@ -14,13 +14,13 @@ import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
-import { ProviderConfig } from '../providers/provider';
 import {
   ArbitrumGasData,
   OptimismGasData,
 } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
+  GasModelProviderConfig,
   MethodParameters,
   MixedRouteWithValidQuote,
   SwapOptions,
@@ -36,7 +36,7 @@ import { buildTrade } from './methodParameters';
 export async function getV2NativePool(
   token: Token,
   poolProvider: IV2PoolProvider,
-  providerConfig?: ProviderConfig,
+  providerConfig?: GasModelProviderConfig,
 ): Promise<Pair | null> {
   const chainId = token.chainId as ChainId;
   const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -64,7 +64,7 @@ export async function getV2NativePool(
 export async function getHighestLiquidityV3NativePool(
   token: Token,
   poolProvider: IV3PoolProvider,
-  providerConfig?: ProviderConfig
+  providerConfig?: GasModelProviderConfig
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
@@ -81,6 +81,8 @@ export async function getHighestLiquidityV3NativePool(
 
   const poolAccessor = await poolProvider.getPools(nativePools, providerConfig);
 
+  console.log(nativePools)
+
   const pools = _([
     FeeAmount.HIGH,
     FeeAmount.MEDIUM,
@@ -92,6 +94,8 @@ export async function getHighestLiquidityV3NativePool(
     })
     .compact()
     .value();
+  
+  console.log(pools)
 
   if (pools.length == 0) {
     log.error(
@@ -112,7 +116,7 @@ export async function getHighestLiquidityV3NativePool(
 export async function getHighestLiquidityV3USDPool(
   chainId: ChainId,
   poolProvider: IV3PoolProvider,
-  providerConfig?: ProviderConfig
+  providerConfig?: GasModelProviderConfig
 ): Promise<Pool> {
   const usdTokens = usdGasTokensByChain[chainId];
   const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -269,7 +273,7 @@ export async function calculateGasUsed(
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
   l2GasData?: ArbitrumGasData | OptimismGasData,
-  providerConfig?: ProviderConfig
+  providerConfig?: GasModelProviderConfig
 ) {
   const quoteToken = route.quote.currency.wrapped;
   const gasPriceWei = route.gasPriceWei;

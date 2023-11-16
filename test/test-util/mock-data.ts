@@ -9,6 +9,7 @@ import {
   CurrencyAmount,
   DAI_MAINNET as DAI,
   TokenAccessor,
+  UNI_MAINNET,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
   V2SubgraphPool,
@@ -173,6 +174,14 @@ export const WBTC_USDT_MEDIUM = new Pool(
 export const WBTC_WETH_MEDIUM = new Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   WBTC,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+export const UNI_WETH_MEDIUM = new Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  UNI_MAINNET,
   FeeAmount.MEDIUM,
   encodeSqrtRatioX96(1, 1),
   500,

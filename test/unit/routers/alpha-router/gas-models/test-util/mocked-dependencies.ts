@@ -17,6 +17,7 @@ import {
   buildMockV3PoolAccessor,
   DAI_USDT,
   DAI_USDT_LOW,
+  UNI_WETH_MEDIUM,
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
@@ -70,6 +71,7 @@ export function getMockedV3PoolProvider(): V3PoolProvider {
     WETH9_USDT_LOW,
     DAI_USDT_LOW,
     USDC_USDT_MEDIUM,
+    UNI_WETH_MEDIUM
   ];
 
   mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));

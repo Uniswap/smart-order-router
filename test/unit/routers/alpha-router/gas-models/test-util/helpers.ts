@@ -44,6 +44,7 @@ export async function getPools(
         v3PoolProvider,
         providerConfig
       ) : Promise.resolve(null);
+    console.log(gasToken, await nativeGasTokenV3PoolPromise);
 
     const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool, nativeGasTokenV3Pool] =
       await Promise.all([
