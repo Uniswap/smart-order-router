@@ -358,7 +358,7 @@ export async function getBestSwapRouteBy(
             );
 
             if (gasModel == undefined || !onlyV3Routes) {
-              throw new Error('Can\'t compute L1 gas fees.');
+              throw new Error("Can't compute L1 gas fees.");
             } else {
               const gasCostL1 = await gasModel.calculateL1GasFees!(
                 curRoutesNew as V3RouteWithValidQuote[]
@@ -454,7 +454,7 @@ export async function getBestSwapRouteBy(
       (route) => route.protocol == Protocol.V3
     );
     if (gasModel == undefined || !onlyV3Routes) {
-      throw new Error('Can\'t compute L1 gas fees.');
+      throw new Error("Can't compute L1 gas fees.");
     } else {
       gasCostsL1ToL2 = await gasModel.calculateL1GasFees!(
         bestSwap as V3RouteWithValidQuote[]

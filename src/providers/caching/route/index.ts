@@ -1,2 +1,2 @@
-export * from './route-caching-provider';
 export * from './model/';
+export * from './route-caching-provider';
