@@ -10,6 +10,7 @@ import { CurrencyAmount } from '../../../../util/amounts';
 import { V2RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildV2GasModelFactoryType,
+  GasModelProviderConfig,
   IGasModel,
   IV2GasModelFactory,
   usdGasTokensByChain,
@@ -94,6 +95,13 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       poolProvider,
       providerConfig
     );
+    
+    const nativeGasTokenPoolPromise = providerConfig?.gasToken ? this.getEthPool(
+      chainId,
+      providerConfig.gasToken,
+      poolProvider,
+      providerConfig
+    ) : Promise.resolve(null);
 
     const usdPoolPromise = this.getHighestLiquidityUSDPool(
       chainId,
@@ -101,9 +109,10 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       providerConfig
     );
 
-    const [ethPool, usdPool] = await Promise.all([
+    const [ethPool, usdPool, nativeGasTokenPool] = await Promise.all([
       ethPoolPromise,
       usdPoolPromise,
+      nativeGasTokenPoolPromise
     ]);
 
     if (!ethPool) {
@@ -160,6 +169,29 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           throw err;
         }
 
+        let gasCostInTermsOfGasToken: CurrencyAmount | undefined;
+        if(nativeGasTokenPool) {
+          const nativeIsToken0 = nativeGasTokenPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address; 
+          const nativeTokenPrice = nativeIsToken0
+            ? nativeGasTokenPool.token0Price
+            : nativeGasTokenPool.token1Price;
+          try {
+            gasCostInTermsOfGasToken = ethTokenPrice.quote(
+                gasCostInEth
+              ) as CurrencyAmount;
+          } catch (err) {
+              log.error(
+                {
+                  ethTokenPriceBase: nativeTokenPrice.baseCurrency,
+                  ethTokenPriceQuote: nativeTokenPrice.quoteCurrency,
+                  gasCostInEth: gasCostInEth.currency,
+                },
+                'Debug eth price token issue'
+              );
+              throw err;
+          }
+        }
+
         const ethToken0USDPool =
           usdPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address;
 
@@ -188,6 +220,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           gasEstimate: gasUse,
           gasCostInToken: gasCostInTermsOfQuoteToken,
           gasCostInUSD: gasCostInTermsOfUSD!,
+          gasCostInGasToken: gasCostInTermsOfGasToken
         };
       },
     };
@@ -197,7 +230,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     routeWithValidQuote: V2RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ) {
     const hops = routeWithValidQuote.route.pairs.length;
     let gasUse = BASE_SWAP_COST.add(COST_PER_EXTRA_HOP.mul(hops - 1));

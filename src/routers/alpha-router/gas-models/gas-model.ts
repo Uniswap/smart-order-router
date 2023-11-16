@@ -82,6 +82,15 @@ export type L1ToL2GasCosts = {
   gasCostL1QuoteToken: CurrencyAmount;
 };
 
+export type GasModelProviderConfig = ProviderConfig & {
+  /*
+   * Any additional overhead to add to the gas estimate
+  */
+  additionalGasOverhead?: BigNumber;
+
+  gasToken?: Token;
+}
+
 export type BuildOnChainGasModelFactoryType = {
   chainId: ChainId;
   gasPriceWei: BigNumber;
@@ -92,7 +101,7 @@ export type BuildOnChainGasModelFactoryType = {
   l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
-  providerConfig?: ProviderConfig;
+  providerConfig?: GasModelProviderConfig;
 };
 
 export type BuildV2GasModelFactoryType = {
@@ -100,13 +109,14 @@ export type BuildV2GasModelFactoryType = {
   gasPriceWei: BigNumber;
   poolProvider: IV2PoolProvider;
   token: Token;
-  providerConfig?: ProviderConfig;
+  providerConfig?: GasModelProviderConfig;
 };
 
 export type LiquidityCalculationPools = {
   usdPool: Pool;
   nativeQuoteTokenV3Pool: Pool | null;
   nativeAmountTokenV3Pool: Pool | null;
+  nativeGasTokenV3Pool: Pool | null;
 };
 
 /**
@@ -130,6 +140,7 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;
+    gasCostInGasToken?: CurrencyAmount;
   };
   calculateL1GasFees?(routes: TRouteWithValidQuote[]): Promise<L1ToL2GasCosts>;
 };
@@ -170,10 +181,10 @@ export abstract class IOnChainGasModelFactory {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,
-    pools: LiquidityCalculationPools,
+    pools,
     amountToken,
     quoteToken,
-    v2poolProvider: V2poolProvider,
+    v2poolProvider,
     l2GasDataProvider,
     providerConfig,
   }: BuildOnChainGasModelFactoryType): Promise<

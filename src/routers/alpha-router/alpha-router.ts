@@ -45,7 +45,6 @@ import {
 import { CachingTokenListProvider, ITokenListProvider } from '../../providers/caching-token-list-provider';
 import { GasPrice, IGasPriceProvider } from '../../providers/gas-price-provider';
 import { IPortionProvider, PortionProvider } from '../../providers/portion-provider';
-import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import { ITokenValidatorProvider, TokenValidatorProvider } from '../../providers/token-validator-provider';
@@ -101,6 +100,7 @@ import {
   V3CandidatePools
 } from './functions/get-candidate-pools';
 import {
+  GasModelProviderConfig,
   IGasModel,
   IOnChainGasModelFactory,
   IV2GasModelFactory,
@@ -383,6 +383,11 @@ export type AlphaRouterConfig = {
    * we need this as a pass-through flag to enable/disable this feature.
    */
   saveTenderlySimulationIfFailed?: boolean;
+  /**
+   * Include an additional response field specifying the swap gas estimation in terms of a specific gas token.
+   * This requires a suitable Native/GasToken pool to exist on V3. If one does not exist this field will return null. 
+   */
+  gasToken?: string;
 };
 
 export class AlphaRouter
@@ -1029,10 +1034,12 @@ export class AlphaRouter
     const gasPriceWei = await this.getGasPriceWei();
 
     const quoteToken = quoteCurrency.wrapped;
-    const providerConfig: ProviderConfig = {
+    const gasToken = routingConfig.gasToken ? (await this.tokenProvider.getTokens([routingConfig.gasToken])).getTokenByAddress(routingConfig.gasToken) : undefined;
+    const providerConfig: GasModelProviderConfig = {
       ...routingConfig,
       blockNumber,
       additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency),
+      gasToken
     };
 
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
@@ -1783,7 +1790,8 @@ export class AlphaRouter
     gasPriceWei: BigNumber,
     amountToken: Token,
     quoteToken: Token,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig,
+    gasToken?: Token
   ): Promise<[
     IGasModel<V3RouteWithValidQuote>,
     IGasModel<MixedRouteWithValidQuote>
@@ -1807,16 +1815,24 @@ export class AlphaRouter
       providerConfig
     ) : Promise.resolve(null);
 
-    const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool] = await Promise.all([
+    const nativeGasTokenV3PoolPromise = gasToken ? getHighestLiquidityV3NativePool(
+      gasToken,
+      this.v3PoolProvider,
+      providerConfig
+    ) : Promise.resolve(null);
+
+    const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool, nativeGasTokenV3Pool] = await Promise.all([
       usdPoolPromise,
       nativeQuoteTokenV3PoolPromise,
-      nativeAmountTokenV3PoolPromise
+      nativeAmountTokenV3PoolPromise,
+      nativeGasTokenV3PoolPromise
     ]);
 
     const pools: LiquidityCalculationPools = {
       usdPool: usdPool,
       nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
-      nativeAmountTokenV3Pool: nativeAmountTokenV3Pool
+      nativeAmountTokenV3Pool: nativeAmountTokenV3Pool,
+      nativeGasTokenV3Pool: nativeGasTokenV3Pool
     };
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({

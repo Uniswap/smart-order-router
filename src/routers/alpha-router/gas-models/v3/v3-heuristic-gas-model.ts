@@ -8,7 +8,6 @@ import {
   SwapType,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../..';
-import { ProviderConfig } from '../../../../providers/provider';
 import {
   ArbitrumGasData,
   OptimismGasData,
@@ -23,6 +22,7 @@ import {
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildOnChainGasModelFactoryType,
+  GasModelProviderConfig,
   IGasModel,
   IOnChainGasModelFactory,
 } from '../gas-model';
@@ -218,6 +218,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
       gasCostInUSD: CurrencyAmount;
+      gasCostInGasToken?: CurrencyAmount
     } => {
       const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
         routeWithValidQuote,
@@ -225,6 +226,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         chainId,
         providerConfig
       );
+
+      /** ------ MARK: Main gas logic in terms of quote token -------- */ 
 
       let gasCostInTermsOfQuoteToken: CurrencyAmount | null = null;
       if (nativePool) {
@@ -258,6 +261,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${quoteToken.symbol} to produce gas adjusted costs. Using amountToken to calculate gas costs.`
         );
       }
+
+      /** ------ MARK: (V3 ONLY) Logic for calculating synthetic gas cost in terms of amount token -------- */ 
 
       // Highest liquidity pool for the non quote token / ETH
       // A pool with the non quote token / ETH should not be required and errors should be handled separately
@@ -314,6 +319,38 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         }
       }
 
+      /** ------ MARK: Conditional logic run if gasToken is specified  -------- */ 
+
+      let nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
+      let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
+      if(nativeGasTokenPool) {
+        const token0 = nativeGasTokenPool.token0.address == nativeCurrency.address;
+
+        // returns mid price in terms of the native currency (the ratio of gasToken/nativeToken)
+        const nativeTokenPrice = token0
+          ? nativeGasTokenPool.token0Price
+          : nativeGasTokenPool.token1Price;
+
+        try {
+          // native token is base currency
+          gasCostInTermsOfGasToken = nativeTokenPrice.quote(
+            totalGasCostNativeCurrency
+          ) as CurrencyAmount;
+        } catch (err) {
+          log.info(
+            {
+              nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
+              nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
+              gasCostInEth: totalGasCostNativeCurrency.currency,
+            },
+            'Debug eth price token issue'
+          );
+          throw err;
+        }
+      }
+
+      /** ------ MARK: USD Logic -------- */ 
+
       // true if token0 is the native currency
       const token0USDPool = usdPool.token0.address == nativeCurrency.address;
 
@@ -355,6 +392,9 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         gasEstimate: baseGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
         gasCostInUSD: gasCostInTermsOfUSD!,
+        ...(gasCostInTermsOfGasToken ?? {
+          gasCostInGasToken: gasCostInTermsOfGasToken
+        })
       };
     };
 
@@ -368,7 +408,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     routeWithValidQuote: V3RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ) {
     const totalInitializedTicksCrossed = BigNumber.from(
       Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
