@@ -49,6 +49,8 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import { Pair } from '@uniswap/v2-sdk';
 
 // When adding new usd gas tokens, ensure the tokens are ordered
 // from tokens with highest decimals to lowest decimals. For example,
@@ -190,4 +192,30 @@ export abstract class IOnChainGasModelFactory {
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
   >;
+
+  // Determines if native currency is token0
+  // Gets the native price of the pool, dependent on 0 or 1
+  // tries to quote across the pool
+  protected getQuoteThroughNativePool(
+    chainId: ChainId,
+    totalGasCostNativeCurrency: any, // TODO: weird CurrencyAmount type issue because we're using wrapped native currency which doesn't fit cleanly into the type
+    nativeTokenPool: Pool | Pair
+  ): CurrencyAmount {
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+    const isToken0 = nativeTokenPool.token0.address == nativeCurrency.address;
+    // returns mid price in terms of the native currency (the ratio of gasToken/nativeToken)
+    const nativeTokenPrice = isToken0
+          ? nativeTokenPool.token0Price
+          : nativeTokenPool.token1Price;
+    let gasCostInTermsOfToken1: CurrencyAmount | undefined;
+    try {
+      // native token is base currency
+      gasCostInTermsOfToken1 = nativeTokenPrice.quote(
+        totalGasCostNativeCurrency
+      ) as CurrencyAmount;
+    } catch (err) {
+      throw err;
+    }
+    return gasCostInTermsOfToken1;
+  }
 }

@@ -182,65 +182,17 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         providerConfig
       );
 
-      /** ------ MARK: USD Logic -------- */ 
-
-      // true if token0 is the native currency
-      const token0USDPool = usdPool.token0.address == nativeCurrency.address;
-
-      // gets the mid price of the pool in terms of the native token
-      const nativeTokenPriceUSDPool = token0USDPool
-        ? usdPool.token0Price
-        : usdPool.token1Price;
-
-      let gasCostInTermsOfUSD: CurrencyAmount;
-      try {
-        gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
-      } catch (err) {
-        log.info(
-          {
-            usdT1: usdPool.token0.symbol,
-            usdT2: usdPool.token1.symbol,
-            gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
-          },
-          'Failed to compute USD gas price'
-        );
-        throw err;
-      }
+      /** ------ MARK: USD logic  -------- */ 
+      let gasCostInTermsOfUSD = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, usdPool)
 
       /** ------ MARK: Conditional logic run if gasToken is specified  -------- */ 
-
       let nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
       if(nativeGasTokenPool) {
-        const token0 = nativeGasTokenPool.token0.address == nativeCurrency.address;
-
-        // returns mid price in terms of the native currency (the ratio of gasToken/nativeToken)
-        const nativeTokenPrice = token0
-          ? nativeGasTokenPool.token0Price
-          : nativeGasTokenPool.token1Price;
-
-        try {
-          // native token is base currency
-          gasCostInTermsOfGasToken = nativeTokenPrice.quote(
-            totalGasCostNativeCurrency
-          ) as CurrencyAmount;
-        } catch (err) {
-          log.info(
-            {
-              nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
-              nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-              gasCostInEth: totalGasCostNativeCurrency.currency,
-            },
-            'Debug eth price token issue'
-          );
-          throw err;
-        }
+        gasCostInTermsOfGasToken = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, nativeGasTokenPool);
       }
 
       /** ------ MARK: return early if quoteToken is wrapped native currency ------- */
-      
       if (quoteToken.equals(nativeCurrency)) {
         return {
           gasEstimate: baseGasUse,
@@ -258,29 +210,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
       let gasCostInTermsOfQuoteToken: CurrencyAmount | null = null;
       if (nativeQuoteTokenPool) {
-        const token0 = nativeQuoteTokenPool.token0.address == nativeCurrency.address;
-
-        // returns mid price in terms of the native currency (the ratio of quoteToken/nativeToken)
-        const nativeTokenPrice = token0
-          ? nativeQuoteTokenPool.token0Price
-          : nativeQuoteTokenPool.token1Price;
-
-        try {
-          // native token is base currency
-          gasCostInTermsOfQuoteToken = nativeTokenPrice.quote(
-            totalGasCostNativeCurrency
-          ) as CurrencyAmount;
-        } catch (err) {
-          log.info(
-            {
-              nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
-              nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-              gasCostInEth: totalGasCostNativeCurrency.currency,
-            },
-            'Debug eth price token issue'
-          );
-          throw err;
-        }
+        gasCostInTermsOfQuoteToken = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, nativeQuoteTokenPool);
       }
       // We may have a nativeAmountPool, but not a nativePool
       else {
@@ -290,6 +220,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       }
 
       /** ------ MARK: (V3 ONLY) Logic for calculating synthetic gas cost in terms of amount token -------- */ 
+      // TODO: evaluate effectiveness and potentially refactor
 
       // Highest liquidity pool for the non quote token / ETH
       // A pool with the non quote token / ETH should not be required and errors should be handled separately

@@ -61,55 +61,16 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
-    const usdPool: Pool = pools.usdPool;
-
-    // If our quote token is WETH, we don't need to convert our gas use to be in terms
-    // of the quote token in order to produce a gas adjusted amount.
-    // We do return a gas use in USD however, so we still convert to usd.
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
-    if (quoteToken.equals(nativeCurrency)) {
-      const estimateGasCost = (
-        routeWithValidQuote: MixedRouteWithValidQuote
-      ): {
-        gasEstimate: BigNumber;
-        gasCostInToken: CurrencyAmount;
-        gasCostInUSD: CurrencyAmount;
-      } => {
-        const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
-          routeWithValidQuote,
-          gasPriceWei,
-          chainId,
-          providerConfig
-        );
-
-        const token0 = usdPool.token0.address == nativeCurrency.address;
-
-        const nativeTokenPrice = token0
-          ? usdPool.token0Price
-          : usdPool.token1Price;
-
-        const gasCostInTermsOfUSD: CurrencyAmount = nativeTokenPrice.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
-
-        return {
-          gasEstimate: baseGasUse,
-          gasCostInToken: totalGasCostNativeCurrency,
-          gasCostInUSD: gasCostInTermsOfUSD,
-        };
-      };
-
-      return {
-        estimateGasCost,
-      };
-    }
-
-    // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
-    // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-    const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool;
-
+    const usdPool: Pool = pools.usdPool;
+    const usdToken =
+      usdPool.token0.address == nativeCurrency.address
+        ? usdPool.token1
+        : usdPool.token0;
+        
     let nativeV2Pool: Pair | null;
-    if (V2poolProvider) {
+    // Avoid fetching for a (WETH,WETH) pool here, we handle the quoteToken = wrapped native case in estimateGasCost
+    if (!quoteToken.equals(nativeCurrency) && V2poolProvider) {
       /// MixedRoutes
       nativeV2Pool = await getV2NativePool(
         quoteToken,
@@ -117,11 +78,6 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         providerConfig
       );
     }
-
-    const usdToken =
-      usdPool.token0.address == nativeCurrency.address
-        ? usdPool.token1
-        : usdPool.token0;
 
     const estimateGasCost = (
       routeWithValidQuote: MixedRouteWithValidQuote
@@ -138,6 +94,32 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         providerConfig
       );
 
+      /** ------ MARK: USD Logic -------- */ 
+      let gasCostInTermsOfUSD = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, usdPool);
+
+      /** ------ MARK: Conditional logic run if gasToken is specified  -------- */ 
+      let nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
+      let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
+      if(nativeGasTokenPool) {
+        gasCostInTermsOfGasToken = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, nativeGasTokenPool);
+      }
+
+      /** ------ MARK: return early if quoteToken is wrapped native currency ------- */
+      if (quoteToken.equals(nativeCurrency)) {
+        return {
+          gasEstimate: baseGasUse,
+          gasCostInToken: totalGasCostNativeCurrency,
+          gasCostInUSD: gasCostInTermsOfUSD,
+          gasCostInGasToken: gasCostInTermsOfGasToken
+        };
+      }
+
+      /** ------ MARK: Main gas logic in terms of quote token -------- */ 
+
+      // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
+      // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
+      const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool;
+
       if (!nativeV3Pool && !nativeV2Pool) {
         log.info(
           `Unable to find ${nativeCurrency.symbol} pool with the quote token, ${quoteToken.symbol} to produce gas adjusted costs. Route will not account for gas.`
@@ -149,8 +131,6 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
         };
       }
 
-      /** ------ MARK: Main gas logic in terms of quote token -------- */ 
-
       /// we will use nativeV2Pool for fallback if nativeV3 does not exist or has 0 liquidity
       /// can use ! here because we return above if v3Pool and v2Pool are null
       const nativePool =
@@ -159,95 +139,13 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           ? nativeV2Pool
           : nativeV3Pool!;
 
-      const token0 = nativePool.token0.address == nativeCurrency.address;
-
-      // returns mid price in terms of the native currency (the ratio of quoteToken/nativeToken)
-      const nativeTokenPrice = token0
-        ? nativePool.token0Price
-        : nativePool.token1Price;
-
-      let gasCostInTermsOfQuoteToken: CurrencyAmount;
-      try {
-        // native token is base currency
-        gasCostInTermsOfQuoteToken = nativeTokenPrice.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
-      } catch (err) {
-        log.info(
-          {
-            nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
-            nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-            gasCostInEth: totalGasCostNativeCurrency.currency,
-          },
-          'Debug eth price token issue'
-        );
-        throw err;
-      }
-
-      /** ------ MARK: Conditional logic run if gasToken is specified  -------- */ 
-
-      let nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
-      let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
-      if(nativeGasTokenPool) {
-        const token0 = nativeGasTokenPool.token0.address == nativeCurrency.address;
-
-        // returns mid price in terms of the native currency (the ratio of gasToken/nativeToken)
-        const nativeTokenPrice = token0
-          ? nativeGasTokenPool.token0Price
-          : nativeGasTokenPool.token1Price;
-
-        try {
-          // native token is base currency
-          gasCostInTermsOfGasToken = nativeTokenPrice.quote(
-            totalGasCostNativeCurrency
-          ) as CurrencyAmount;
-        } catch (err) {
-          log.info(
-            {
-              nativeTokenPriceBase: nativeTokenPrice.baseCurrency,
-              nativeTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-              gasCostInEth: totalGasCostNativeCurrency.currency,
-            },
-            'Debug eth price token issue'
-          );
-          throw err;
-        }
-      }
-
-      /** ------ MARK: USD Logic -------- */ 
-
-      // true if token0 is the native currency
-      const token0USDPool = usdPool.token0.address == nativeCurrency.address;
-
-      // gets the mid price of the pool in terms of the native token
-      const nativeTokenPriceUSDPool = token0USDPool
-        ? usdPool.token0Price
-        : usdPool.token1Price;
-
-      let gasCostInTermsOfUSD: CurrencyAmount;
-      try {
-        gasCostInTermsOfUSD = nativeTokenPriceUSDPool.quote(
-          totalGasCostNativeCurrency
-        ) as CurrencyAmount;
-      } catch (err) {
-        log.info(
-          {
-            usdT1: usdPool.token0.symbol,
-            usdT2: usdPool.token1.symbol,
-            gasCostInNativeToken: totalGasCostNativeCurrency.currency.symbol,
-          },
-          'Failed to compute USD gas price'
-        );
-        throw err;
-      }
+      let gasCostInTermsOfQuoteToken = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, nativePool);
 
       return {
         gasEstimate: baseGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
         gasCostInUSD: gasCostInTermsOfUSD!,
-        ...(gasCostInTermsOfGasToken ?? {
-          gasCostInGasToken: gasCostInTermsOfGasToken
-        })
+        gasCostInGasToken: gasCostInTermsOfGasToken
       };
     };
 

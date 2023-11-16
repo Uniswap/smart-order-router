@@ -81,8 +81,6 @@ export async function getHighestLiquidityV3NativePool(
 
   const poolAccessor = await poolProvider.getPools(nativePools, providerConfig);
 
-  console.log(nativePools)
-
   const pools = _([
     FeeAmount.HIGH,
     FeeAmount.MEDIUM,
@@ -95,8 +93,6 @@ export async function getHighestLiquidityV3NativePool(
     .compact()
     .value();
   
-  console.log(pools)
-
   if (pools.length == 0) {
     log.error(
       { pools },
