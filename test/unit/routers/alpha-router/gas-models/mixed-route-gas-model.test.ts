@@ -1,19 +1,16 @@
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Ether, Token } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount, Ether } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import {
   DAI_MAINNET,
-  LiquidityCalculationPools,
   MixedRoute,
   MixedRouteWithValidQuote,
   USDC_MAINNET,
-  V3PoolProvider,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
-import { ProviderConfig } from '../../../../../src/providers/provider';
 import { MixedRouteHeuristicGasModelFactory } from '../../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
@@ -29,10 +26,6 @@ import {
   NATIVE_WRAP_OVERHEAD,
 } from '../../../../../src/routers/alpha-router/gas-models/v3/gas-costs';
 import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
-} from '../../../../../src/util/gas-factory-helpers';
-import {
   USDC_DAI,
   USDC_DAI_MEDIUM,
   USDC_WETH_MEDIUM,
@@ -43,6 +36,7 @@ import {
   getMockedV2PoolProvider,
   getMockedV3PoolProvider,
 } from './test-util/mocked-dependencies';
+import { getPools } from './test-util/helpers';
 
 describe('mixed route gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
@@ -51,49 +45,6 @@ describe('mixed route gas model tests', () => {
 
   const mockedV3PoolProvider = getMockedV3PoolProvider();
   const mockedV2PoolProvider = getMockedV2PoolProvider();
-
-  // helper function to get pools for building gas model
-  async function getPools(
-    amountToken: Token,
-    quoteToken: Token,
-    v3PoolProvider: V3PoolProvider,
-    providerConfig: ProviderConfig
-  ): Promise<LiquidityCalculationPools> {
-    const usdPoolPromise = getHighestLiquidityV3USDPool(
-      chainId,
-      v3PoolProvider,
-      providerConfig
-    );
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
-    const nativeQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
-      ? getHighestLiquidityV3NativePool(
-          quoteToken,
-          v3PoolProvider,
-          providerConfig
-        )
-      : Promise.resolve(null);
-    const nativeAmountTokenV3PoolPromise = !amountToken.equals(nativeCurrency)
-      ? getHighestLiquidityV3NativePool(
-          amountToken,
-          v3PoolProvider,
-          providerConfig
-        )
-      : Promise.resolve(null);
-
-    const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool] =
-      await Promise.all([
-        usdPoolPromise,
-        nativeQuoteTokenV3PoolPromise,
-        nativeAmountTokenV3PoolPromise,
-      ]);
-
-    const pools: LiquidityCalculationPools = {
-      usdPool: usdPool,
-      nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
-      nativeAmountTokenV3Pool: nativeAmountTokenV3Pool,
-    };
-    return pools;
-  }
 
   function calculateGasEstimate(routeWithValidQuote: MixedRouteWithValidQuote) {
     // copied from mixed route heuristic gas model
