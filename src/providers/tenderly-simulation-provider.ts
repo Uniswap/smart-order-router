@@ -154,7 +154,7 @@ export class FallbackTenderlySimulator extends Simulator {
         providerConfig
       );
     } catch (err) {
-      log.info({ err: err }, 'Failed to simulate via Tenderly');
+      log.error({ err: err }, 'Failed to simulate via Tenderly');
 
       if (err instanceof Error && err.message.includes('timeout')) {
         metric.putMetric('TenderlySimulationTimeouts', 1, MetricLoggerUnit.Count);
