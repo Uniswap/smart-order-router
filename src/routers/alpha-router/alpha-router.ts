@@ -1074,14 +1074,6 @@ export class AlphaRouter
       partialRoutingConfig,
       { blockNumber }
     );
-
-    if (routingConfig.debugRouting) {
-      log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
-    }
-
-    const gasPriceWei = await this.getGasPriceWei();
-
-    const quoteToken = quoteCurrency.wrapped;
     const providerConfig: ProviderConfig = {
       ...routingConfig,
       blockNumber,
@@ -1091,6 +1083,14 @@ export class AlphaRouter
         quoteCurrency
       ),
     };
+
+    if (routingConfig.debugRouting) {
+      log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
+    }
+
+    const gasPriceWei = await this.getGasPriceWei(providerConfig);
+
+    const quoteToken = quoteCurrency.wrapped;
 
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
       gasPriceWei,
@@ -1947,12 +1947,12 @@ export class AlphaRouter
     }
   }
 
-  private async getGasPriceWei(): Promise<BigNumber> {
+  private async getGasPriceWei(providerConfig: ProviderConfig): Promise<BigNumber> {
     // Track how long it takes to resolve this async call.
     const beforeGasTimestamp = Date.now();
 
     // Get an estimate of the gas price to use when estimating gas cost of different routes.
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice(providerConfig);
 
     metric.putMetric(
       'GasPriceLoad',

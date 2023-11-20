@@ -5,6 +5,7 @@ import _ from 'lodash';
 import { log } from '../util/log';
 
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
+import { ProviderConfig } from './provider';
 
 export type RawFeeHistoryResponse = {
   baseFeePerGas: string[];
@@ -43,14 +44,14 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
     super();
   }
 
-  public async getGasPrice(): Promise<GasPrice> {
+  public async getGasPrice(providerConfig: ProviderConfig): Promise<GasPrice> {
     const feeHistoryRaw = (await this.provider.send('eth_feeHistory', [
       /**
        * @fix Use BigNumber.from(this.blocksToConsider).toHexString() after hardhat adds support
        * @see https://github.com/NomicFoundation/hardhat/issues/1585 .___.
        */
       BigNumber.from(this.blocksToConsider).toHexString().replace('0x0', '0x'),
-      'latest',
+      providerConfig.blockNumber,
       [this.priorityFeePercentile],
     ])) as RawFeeHistoryResponse;
 

@@ -26,7 +26,7 @@ export class CachingGasStationProvider implements IGasPriceProvider {
     private cache: ICache<GasPrice>
   ) {}
 
-  public async getGasPrice(): Promise<GasPrice> {
+  public async getGasPrice(providerConfig.blockNumber): Promise<GasPrice> {
     const cachedGasPrice = await this.cache.get(this.GAS_KEY(this.chainId));
 
     if (cachedGasPrice) {
