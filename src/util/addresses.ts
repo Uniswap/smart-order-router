@@ -7,7 +7,6 @@ export const BNB_TICK_LENS_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].tickLensAddress;
 export const BNB_NONFUNGIBLE_POSITION_MANAGER_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].nonfungiblePositionManagerAddress;
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 export const BNB_SWAP_ROUTER_02_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].swapRouter02Address!;
 export const BNB_V3_MIGRATOR_ADDRESS =
