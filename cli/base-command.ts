@@ -301,7 +301,7 @@ export abstract class BaseCommand extends Command {
       const portionProvider = new PortionProvider();
       const tenderlySimulator = new TenderlySimulator(
         chainId,
-        'http://api.tenderly.co',
+        'https://api.tenderly.co',
         process.env.TENDERLY_USER!,
         process.env.TENDERLY_PROJECT!,
         process.env.TENDERLY_ACCESS_KEY!,
