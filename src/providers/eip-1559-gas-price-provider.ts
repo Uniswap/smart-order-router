@@ -50,7 +50,7 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
        * @see https://github.com/NomicFoundation/hardhat/issues/1585 .___.
        */
       BigNumber.from(this.blocksToConsider).toHexString().replace('0x0', '0x'),
-      requestBlockNumber.toString(),
+      BigNumber.from(requestBlockNumber).toHexString().replace('0x0', '0x'),
       [this.priorityFeePercentile],
     ])) as RawFeeHistoryResponse;
 
