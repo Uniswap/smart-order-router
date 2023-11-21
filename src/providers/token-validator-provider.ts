@@ -2,7 +2,12 @@ import { ChainId, Token } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { ITokenValidator__factory } from '../types/other/factories/ITokenValidator__factory';
-import { log, metric, MetricLoggerUnit, WRAPPED_NATIVE_CURRENCY } from '../util';
+import {
+  log,
+  metric,
+  MetricLoggerUnit,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../util';
 
 import { ICache } from './cache';
 import { IMulticallProvider } from './multicall-provider';
@@ -90,7 +95,13 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
             this.CACHE_KEY(this.chainId, address)
           ))!;
 
-        metric.putMetric(`TokenValidatorProviderValidateCacheHitResult${tokenToResult[address.toLowerCase()]}`, 1, MetricLoggerUnit.Count)
+        metric.putMetric(
+          `TokenValidatorProviderValidateCacheHitResult${
+            tokenToResult[address.toLowerCase()]
+          }`,
+          1,
+          MetricLoggerUnit.Count
+        );
       } else {
         addresses.push(address);
       }
@@ -142,7 +153,11 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
       // Could happen if the tokens transfer consumes too much gas so we revert. Just
       // drop the token in that case.
       if (!resultWrapper.success) {
-        metric.putMetric("TokenValidatorProviderValidateFailed", 1, MetricLoggerUnit.Count)
+        metric.putMetric(
+          'TokenValidatorProviderValidateFailed',
+          1,
+          MetricLoggerUnit.Count
+        );
 
         log.error(
           { result: resultWrapper },
@@ -152,7 +167,11 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
         continue;
       }
 
-      metric.putMetric("TokenValidatorProviderValidateSuccess", 1, MetricLoggerUnit.Count)
+      metric.putMetric(
+        'TokenValidatorProviderValidateSuccess',
+        1,
+        MetricLoggerUnit.Count
+      );
 
       const validationResult = resultWrapper.result[0]!;
 
@@ -164,7 +183,11 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
         tokenToResult[token.address.toLowerCase()]!
       );
 
-      metric.putMetric(`TokenValidatorProviderValidateCacheMissResult${validationResult}`, 1, MetricLoggerUnit.Count)
+      metric.putMetric(
+        `TokenValidatorProviderValidateCacheMissResult${validationResult}`,
+        1,
+        MetricLoggerUnit.Count
+      );
     }
 
     return {

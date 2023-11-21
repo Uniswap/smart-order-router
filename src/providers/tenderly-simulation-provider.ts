@@ -20,7 +20,12 @@ import {
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
-import { BEACON_CHAIN_DEPOSIT_ADDRESS, log, MAX_UINT160, SWAP_ROUTER_02_ADDRESSES } from '../util';
+import {
+  BEACON_CHAIN_DEPOSIT_ADDRESS,
+  log,
+  MAX_UINT160,
+  SWAP_ROUTER_02_ADDRESSES,
+} from '../util';
 import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
@@ -191,7 +196,7 @@ export class TenderlySimulator extends Simulator {
     provider: JsonRpcProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
-    tenderlyRequestTimeout?: number,
+    tenderlyRequestTimeout?: number
   ) {
     super(provider, portionProvider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
@@ -238,7 +243,6 @@ export class TenderlySimulator extends Simulator {
       },
       'Simulating transaction on Tenderly'
     );
-
 
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
@@ -322,18 +326,35 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyProject
       );
 
-      metric.putMetric('TenderlySimulationUniversalRouterRequests', 1, MetricLoggerUnit.Count);
+      metric.putMetric(
+        'TenderlySimulationUniversalRouterRequests',
+        1,
+        MetricLoggerUnit.Count
+      );
 
       const before = Date.now();
 
-      const { data: resp, status: httpStatus } = (
-        await this.tenderlyServiceInstance.post<TenderlyResponseUniversalRouter>(url, body, opts)
-      );
+      const { data: resp, status: httpStatus } =
+        await this.tenderlyServiceInstance.post<TenderlyResponseUniversalRouter>(
+          url,
+          body,
+          opts
+        );
 
-      const latencies = Date.now() - before
-      log.info(`Tenderly simulation universal router request body: ${body}, having latencies ${latencies} in milliseconds.`)
-      metric.putMetric('TenderlySimulationUniversalRouterLatencies', Date.now() - before, MetricLoggerUnit.Milliseconds);
-      metric.putMetric(`TenderlySimulationUniversalRouterResponseStatus${httpStatus}`, 1, MetricLoggerUnit.Count);
+      const latencies = Date.now() - before;
+      log.info(
+        `Tenderly simulation universal router request body: ${body}, having latencies ${latencies} in milliseconds.`
+      );
+      metric.putMetric(
+        'TenderlySimulationUniversalRouterLatencies',
+        Date.now() - before,
+        MetricLoggerUnit.Milliseconds
+      );
+      metric.putMetric(
+        `TenderlySimulationUniversalRouterResponseStatus${httpStatus}`,
+        1,
+        MetricLoggerUnit.Count
+      );
 
       // Validate tenderly response body
       if (
@@ -417,19 +438,36 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyProject
       );
 
-      metric.putMetric('TenderlySimulationSwapRouter02Requests', 1, MetricLoggerUnit.Count);
-
-      const before = Date.now()
-
-      const { data: resp, status: httpStatus } = (
-        await this.tenderlyServiceInstance.post<TenderlyResponseSwapRouter02>(url, body, opts)
+      metric.putMetric(
+        'TenderlySimulationSwapRouter02Requests',
+        1,
+        MetricLoggerUnit.Count
       );
 
-      metric.putMetric(`TenderlySimulationSwapRouter02ResponseStatus${httpStatus}`, 1, MetricLoggerUnit.Count);
+      const before = Date.now();
 
-      const latencies = Date.now() - before
-      log.info(`Tenderly simulation swap router02 request body: ${body}, having latencies ${latencies} in milliseconds.`)
-      metric.putMetric('TenderlySimulationSwapRouter02Latencies', latencies, MetricLoggerUnit.Milliseconds);
+      const { data: resp, status: httpStatus } =
+        await this.tenderlyServiceInstance.post<TenderlyResponseSwapRouter02>(
+          url,
+          body,
+          opts
+        );
+
+      metric.putMetric(
+        `TenderlySimulationSwapRouter02ResponseStatus${httpStatus}`,
+        1,
+        MetricLoggerUnit.Count
+      );
+
+      const latencies = Date.now() - before;
+      log.info(
+        `Tenderly simulation swap router02 request body: ${body}, having latencies ${latencies} in milliseconds.`
+      );
+      metric.putMetric(
+        'TenderlySimulationSwapRouter02Latencies',
+        latencies,
+        MetricLoggerUnit.Milliseconds
+      );
 
       // Validate tenderly response body
       if (

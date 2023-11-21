@@ -9,7 +9,6 @@ import { ICache } from './../cache';
 import { ProviderConfig } from './../provider';
 import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
 
-
 /**
  * Provider for getting V3 pools, with functionality for caching the results.
  * Does not cache by block because we compute quotes using the on-chain quoter
@@ -32,8 +31,7 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
     protected chainId: ChainId,
     protected poolProvider: IV3PoolProvider,
     private cache: ICache<Pool>
-  ) {
-  }
+  ) {}
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][],
@@ -61,12 +59,20 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
         this.POOL_KEY(this.chainId, poolAddress)
       );
       if (cachedPool) {
-        metric.putMetric('V3_INMEMORY_CACHING_POOL_HIT_IN_MEMORY', 1, MetricLoggerUnit.None);
+        metric.putMetric(
+          'V3_INMEMORY_CACHING_POOL_HIT_IN_MEMORY',
+          1,
+          MetricLoggerUnit.None
+        );
         poolAddressToPool[poolAddress] = cachedPool;
         continue;
       }
 
-      metric.putMetric('V3_INMEMORY_CACHING_POOL_MISS_NOT_IN_MEMORY', 1, MetricLoggerUnit.None);
+      metric.putMetric(
+        'V3_INMEMORY_CACHING_POOL_MISS_NOT_IN_MEMORY',
+        1,
+        MetricLoggerUnit.None
+      );
       poolsToGetTokenPairs.push([token0, token1, feeAmount]);
       poolsToGetAddresses.push(poolAddress);
     }
