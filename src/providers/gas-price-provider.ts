@@ -1,5 +1,4 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ProviderConfig } from './provider';
 
 export type GasPrice = {
   gasPriceWei: BigNumber;
@@ -9,5 +8,5 @@ export type GasPrice = {
  * Provider for getting gas prices.
  */
 export abstract class IGasPriceProvider {
-  public abstract getGasPrice(providerConfig: ProviderConfig): Promise<GasPrice>;
+  public abstract getGasPrice(requestBlockNumber: number): Promise<GasPrice>;
 }
