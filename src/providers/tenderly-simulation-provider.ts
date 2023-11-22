@@ -32,7 +32,6 @@ import {
   initSwapRouteFromExisting,
 } from '../util/gas-factory-helpers';
 
-import { DEFAULT_BLOCKS_TO_LOOK_BACK } from './eip-1559-gas-price-provider';
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { IPortionProvider } from './portion-provider';
 import { ProviderConfig } from './provider';
@@ -302,8 +301,7 @@ export class TenderlySimulator extends Simulator {
         to: UNIVERSAL_ROUTER_ADDRESS(this.chainId),
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
-        block_number: blockNumber ? blockNumber - DEFAULT_BLOCKS_TO_LOOK_BACK : undefined,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
         save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
@@ -414,7 +412,7 @@ export class TenderlySimulator extends Simulator {
         estimate_gas: true,
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        block_number: blockNumber ? blockNumber - DEFAULT_BLOCKS_TO_LOOK_BACK : undefined,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
       };
 

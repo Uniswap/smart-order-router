@@ -388,7 +388,7 @@ export abstract class BaseCommand extends Command {
     this.logger.info(`Calldata: ${methodParameters?.calldata}`);
     this.logger.info(`Value: ${methodParameters?.value}`);
     this.logger.info({
-      requestBlockNumber: blockNumber.toString(),
+      blockNumber: blockNumber.toString(),
       estimatedGasUsed: estimatedGasUsed.toString(),
       gasPriceWei: gasPriceWei.toString(),
       simulationStatus: simulationStatus,
