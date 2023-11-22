@@ -23,7 +23,7 @@ export type FeeHistoryResponse = {
 // We get the Xth percentile of priority fees for transactions successfully included in previous blocks.
 const DEFAULT_PRIORITY_FEE_PERCENTILE = 50;
 // Infura docs say only past 4 blocks guaranteed to be available: https://infura.io/docs/ethereum#operation/eth_feeHistory
-const DEFAULT_BLOCKS_TO_LOOK_BACK = 4;
+export const DEFAULT_BLOCKS_TO_LOOK_BACK = 4;
 
 /**
  * Computes a gas estimate using on-chain data from the eth_feeHistory RPC endpoint.
