@@ -36,6 +36,7 @@ export class Quote extends BaseCommand {
     simulate: flags.boolean({ required: false, default: false }),
     debugRouting: flags.boolean({ required: false, default: true }),
     enableFeeOnTransferFeeFetching: flags.boolean({ required: false, default: false }),
+    requestBlockNumber: flags.integer({ required: false }),
   };
 
   async run() {
@@ -66,7 +67,8 @@ export class Quote extends BaseCommand {
       forceMixedRoutes,
       simulate,
       debugRouting,
-      enableFeeOnTransferFeeFetching
+      enableFeeOnTransferFeeFetching,
+      requestBlockNumber
     } = flags;
 
     const topNSecondHopForTokenAddress = new MapWithLowerCaseKey();
@@ -137,7 +139,7 @@ export class Quote extends BaseCommand {
           }
           : undefined,
         {
-          blockNumber: this.blockNumber,
+          blockNumber: requestBlockNumber ?? this.blockNumber,
           v3PoolSelection: {
             topN,
             topNTokenInOut,

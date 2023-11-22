@@ -1466,7 +1466,7 @@ export class AlphaRouter
       if (!this.simulator) {
         throw new Error('Simulator not initialized!');
       }
-      log.info({ swapConfig, methodParameters }, 'Starting simulation');
+      log.info({ swapConfig, methodParameters, providerConfig }, `Starting simulation ${await providerConfig.blockNumber}`);
       const fromAddress = swapConfig.simulate.fromAddress;
       const beforeSimulate = Date.now();
       const swapRouteWithSimulation = await this.simulator.simulate(
