@@ -301,11 +301,7 @@ export class TenderlySimulator extends Simulator {
         to: UNIVERSAL_ROUTER_ADDRESS(this.chainId),
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
-        block_number:
-          chainId == ChainId.ARBITRUM_ONE && blockNumber
-            ? blockNumber - 5
-            : undefined,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
         save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
@@ -343,7 +339,7 @@ export class TenderlySimulator extends Simulator {
 
       const latencies = Date.now() - before;
       log.info(
-        `Tenderly simulation universal router request body: ${body}, having latencies ${latencies} in milliseconds.`
+        `Tenderly simulation universal router request body: ${JSON.stringify(body, null, 2)}, having latencies ${latencies} in milliseconds.`
       );
       metric.putMetric(
         'TenderlySimulationUniversalRouterLatencies',
@@ -416,11 +412,7 @@ export class TenderlySimulator extends Simulator {
         estimate_gas: true,
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
-        block_number:
-          chainId == ChainId.ARBITRUM_ONE && blockNumber
-            ? blockNumber - 5
-            : undefined,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
       };
 
