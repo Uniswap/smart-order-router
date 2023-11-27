@@ -20,7 +20,12 @@ import {
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
-import { BEACON_CHAIN_DEPOSIT_ADDRESS, log, MAX_UINT160, SWAP_ROUTER_02_ADDRESSES } from '../util';
+import {
+  BEACON_CHAIN_DEPOSIT_ADDRESS,
+  log,
+  MAX_UINT160,
+  SWAP_ROUTER_02_ADDRESSES,
+} from '../util';
 import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
@@ -154,7 +159,11 @@ export class FallbackTenderlySimulator extends Simulator {
         providerConfig
       );
     } catch (err) {
-      log.info({ err: err }, 'Failed to simulate via Tenderly');
+      log.error({ err: err }, 'Failed to simulate via Tenderly');
+
+      if (err instanceof Error && err.message.includes('timeout')) {
+        metric.putMetric('TenderlySimulationTimeouts', 1, MetricLoggerUnit.Count);
+      }
       return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
   }
@@ -187,7 +196,7 @@ export class TenderlySimulator extends Simulator {
     provider: JsonRpcProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
-    tenderlyRequestTimeout?: number,
+    tenderlyRequestTimeout?: number
   ) {
     super(provider, portionProvider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
@@ -234,7 +243,6 @@ export class TenderlySimulator extends Simulator {
       },
       'Simulating transaction on Tenderly'
     );
-
 
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
@@ -293,11 +301,7 @@ export class TenderlySimulator extends Simulator {
         to: UNIVERSAL_ROUTER_ADDRESS(this.chainId),
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
-        block_number:
-          chainId == ChainId.ARBITRUM_ONE && blockNumber
-            ? blockNumber - 5
-            : undefined,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
         save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
@@ -318,18 +322,35 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyProject
       );
 
-      metric.putMetric('TenderlySimulationUniversalRouterRequests', 1, MetricLoggerUnit.Count);
+      metric.putMetric(
+        'TenderlySimulationUniversalRouterRequests',
+        1,
+        MetricLoggerUnit.Count
+      );
 
       const before = Date.now();
 
-      const { data: resp, status: httpStatus } = (
-        await this.tenderlyServiceInstance.post<TenderlyResponseUniversalRouter>(url, body, opts)
-      );
+      const { data: resp, status: httpStatus } =
+        await this.tenderlyServiceInstance.post<TenderlyResponseUniversalRouter>(
+          url,
+          body,
+          opts
+        );
 
-      const latencies = Date.now() - before
-      log.info(`Tenderly simulation universal router request body: ${body}, having latencies ${latencies} in milliseconds.`)
-      metric.putMetric('TenderlySimulationUniversalRouterLatencies', Date.now() - before, MetricLoggerUnit.Milliseconds);
-      metric.putMetric(`TenderlySimulationUniversalRouterResponseStatus${httpStatus}`, 1, MetricLoggerUnit.Count);
+      const latencies = Date.now() - before;
+      log.info(
+        `Tenderly simulation universal router request body: ${JSON.stringify(body, null, 2)}, having latencies ${latencies} in milliseconds.`
+      );
+      metric.putMetric(
+        'TenderlySimulationUniversalRouterLatencies',
+        Date.now() - before,
+        MetricLoggerUnit.Milliseconds
+      );
+      metric.putMetric(
+        `TenderlySimulationUniversalRouterResponseStatus${httpStatus}`,
+        1,
+        MetricLoggerUnit.Count
+      );
 
       // Validate tenderly response body
       if (
@@ -391,11 +412,7 @@ export class TenderlySimulator extends Simulator {
         estimate_gas: true,
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
-        // TODO: This is a Temporary fix given by Tenderly team, remove once resolved on their end.
-        block_number:
-          chainId == ChainId.ARBITRUM_ONE && blockNumber
-            ? blockNumber - 5
-            : undefined,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
       };
 
@@ -413,19 +430,36 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyProject
       );
 
-      metric.putMetric('TenderlySimulationSwapRouter02Requests', 1, MetricLoggerUnit.Count);
-
-      const before = Date.now()
-
-      const { data: resp, status: httpStatus } = (
-        await this.tenderlyServiceInstance.post<TenderlyResponseSwapRouter02>(url, body, opts)
+      metric.putMetric(
+        'TenderlySimulationSwapRouter02Requests',
+        1,
+        MetricLoggerUnit.Count
       );
 
-      metric.putMetric(`TenderlySimulationSwapRouter02ResponseStatus${httpStatus}`, 1, MetricLoggerUnit.Count);
+      const before = Date.now();
 
-      const latencies = Date.now() - before
-      log.info(`Tenderly simulation swap router02 request body: ${body}, having latencies ${latencies} in milliseconds.`)
-      metric.putMetric('TenderlySimulationSwapRouter02Latencies', latencies, MetricLoggerUnit.Milliseconds);
+      const { data: resp, status: httpStatus } =
+        await this.tenderlyServiceInstance.post<TenderlyResponseSwapRouter02>(
+          url,
+          body,
+          opts
+        );
+
+      metric.putMetric(
+        `TenderlySimulationSwapRouter02ResponseStatus${httpStatus}`,
+        1,
+        MetricLoggerUnit.Count
+      );
+
+      const latencies = Date.now() - before;
+      log.info(
+        `Tenderly simulation swap router02 request body: ${body}, having latencies ${latencies} in milliseconds.`
+      );
+      metric.putMetric(
+        'TenderlySimulationSwapRouter02Latencies',
+        latencies,
+        MetricLoggerUnit.Milliseconds
+      );
 
       // Validate tenderly response body
       if (

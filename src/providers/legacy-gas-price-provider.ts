@@ -9,7 +9,8 @@ export class LegacyGasPriceProvider extends IGasPriceProvider {
     super();
   }
 
-  public async getGasPrice(): Promise<GasPrice> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public override async getGasPrice(_requestBlockNumber: number): Promise<GasPrice> {
     const gasPriceWei = await this.provider.getGasPrice();
     log.info(
       { gasPriceWei },

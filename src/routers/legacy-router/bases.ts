@@ -17,7 +17,6 @@ import {
   WBTC_MAINNET,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-
 } from '../../providers/token-provider';
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
@@ -60,7 +59,11 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       USDT_BNB,
       BTC_BNB,
     ],
-    [ChainId.AVALANCHE]: [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!, USDC_AVAX, DAI_AVAX],
+    [ChainId.AVALANCHE]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!,
+      USDC_AVAX,
+      DAI_AVAX,
+    ],
     [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE]!, USDC_BASE],
     [ChainId.BASE_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]!],
   };

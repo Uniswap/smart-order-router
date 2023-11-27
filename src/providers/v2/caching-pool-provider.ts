@@ -31,8 +31,7 @@ export class CachingV2PoolProvider implements IV2PoolProvider {
     // we compute quotes off-chain.
     // If no block is specified in the call to getPools we just return whatever is in the cache.
     private cache: ICache<{ pair: Pair; block?: number }>
-  ) {
-  }
+  ) {}
 
   public async getPools(
     tokenPairs: [Token, Token][],
