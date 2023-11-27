@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Token, CurrencyAmount as CurrencyAmountRaw } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 
@@ -198,24 +198,18 @@ export abstract class IOnChainGasModelFactory {
   // tries to quote across the pool
   protected getQuoteThroughNativePool(
     chainId: ChainId,
-    totalGasCostNativeCurrency: any, // TODO: weird CurrencyAmount type issue because we're using wrapped native currency which doesn't fit cleanly into the type
+    totalGasCostNativeCurrency: CurrencyAmountRaw<Token>,
     nativeTokenPool: Pool | Pair
   ): CurrencyAmount {
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
     const isToken0 = nativeTokenPool.token0.address == nativeCurrency.address;
-    // returns mid price in terms of the native currency (the ratio of gasToken/nativeToken)
+    // returns mid price in terms of the native currency (the ratio of token/nativeToken)
     const nativeTokenPrice = isToken0
       ? nativeTokenPool.token0Price
       : nativeTokenPool.token1Price;
-    let gasCostInTermsOfToken1: CurrencyAmount | undefined;
-    try {
-      // native token is base currency
-      gasCostInTermsOfToken1 = nativeTokenPrice.quote(
-        totalGasCostNativeCurrency
-      ) as CurrencyAmount;
-    } catch (err) {
-      throw err;
-    }
-    return gasCostInTermsOfToken1;
+    // return gas cost in terms of the non native currency
+    return nativeTokenPrice.quote(
+      totalGasCostNativeCurrency
+    ) as CurrencyAmount;
   }
 }
