@@ -202,6 +202,11 @@ export const DAI_USDT = new Pair(
   CurrencyAmount.fromRawAmount(USDT, 10000000000)
 );
 
+export const DAI_WETH = new Pair(
+  CurrencyAmount.fromRawAmount(DAI, 10000000000),
+  CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
+);
+
 export const USDC_WETH = new Pair(
   CurrencyAmount.fromRawAmount(USDC, 10000000000),
   CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)

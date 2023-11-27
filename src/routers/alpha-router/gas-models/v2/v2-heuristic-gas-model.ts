@@ -231,8 +231,10 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     const pools = _.filter(
       poolsRaw,
       (pool) => pool.reserve0.greaterThan(0) && pool.reserve1.greaterThan(0)
+        // this case should never happen in production, but when we mock the pool provider it may return non native pairs
+        && (pool.token0.equals(WRAPPED_NATIVE_CURRENCY[chainId]!) || pool.token1.equals(WRAPPED_NATIVE_CURRENCY[chainId]!))
     );
-
+    
     if (pools.length == 0) {
       log.error(
         { pools },
