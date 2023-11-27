@@ -173,7 +173,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       gasEstimate: BigNumber;
       gasCostInToken: CurrencyAmount;
       gasCostInUSD: CurrencyAmount;
-      gasCostInGasToken?: CurrencyAmount
+      gasCostInGasToken?: CurrencyAmount;
     } => {
       const { totalGasCostNativeCurrency, baseGasUse } = this.estimateGas(
         routeWithValidQuote,
@@ -182,14 +182,22 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         providerConfig
       );
 
-      /** ------ MARK: USD logic  -------- */ 
-      let gasCostInTermsOfUSD = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, usdPool)
+      /** ------ MARK: USD logic  -------- */
+      const gasCostInTermsOfUSD = this.getQuoteThroughNativePool(
+        chainId,
+        totalGasCostNativeCurrency,
+        usdPool
+      );
 
-      /** ------ MARK: Conditional logic run if gasToken is specified  -------- */ 
-      let nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
+      /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
+      const nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
-      if(nativeGasTokenPool) {
-        gasCostInTermsOfGasToken = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, nativeGasTokenPool);
+      if (nativeGasTokenPool) {
+        gasCostInTermsOfGasToken = this.getQuoteThroughNativePool(
+          chainId,
+          totalGasCostNativeCurrency,
+          nativeGasTokenPool
+        );
       }
 
       /** ------ MARK: return early if quoteToken is wrapped native currency ------- */
@@ -198,11 +206,11 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           gasEstimate: baseGasUse,
           gasCostInToken: totalGasCostNativeCurrency,
           gasCostInUSD: gasCostInTermsOfUSD,
-          gasCostInGasToken: gasCostInTermsOfGasToken
+          gasCostInGasToken: gasCostInTermsOfGasToken,
         };
       }
 
-      /** ------ MARK: Main gas logic in terms of quote token -------- */ 
+      /** ------ MARK: Main gas logic in terms of quote token -------- */
 
       // Since the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
       // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
@@ -210,7 +218,11 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
       let gasCostInTermsOfQuoteToken: CurrencyAmount | null = null;
       if (nativeQuoteTokenPool) {
-        gasCostInTermsOfQuoteToken = this.getQuoteThroughNativePool(chainId, totalGasCostNativeCurrency, nativeQuoteTokenPool);
+        gasCostInTermsOfQuoteToken = this.getQuoteThroughNativePool(
+          chainId,
+          totalGasCostNativeCurrency,
+          nativeQuoteTokenPool
+        );
       }
       // We may have a nativeAmountPool, but not a nativePool
       else {
@@ -219,7 +231,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         );
       }
 
-      /** ------ MARK: (V3 ONLY) Logic for calculating synthetic gas cost in terms of amount token -------- */ 
+      /** ------ MARK: (V3 ONLY) Logic for calculating synthetic gas cost in terms of amount token -------- */
       // TODO: evaluate effectiveness and potentially refactor
 
       // Highest liquidity pool for the non quote token / ETH
@@ -293,7 +305,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         gasEstimate: baseGasUse,
         gasCostInToken: gasCostInTermsOfQuoteToken,
         gasCostInUSD: gasCostInTermsOfUSD!,
-        gasCostInGasToken: gasCostInTermsOfGasToken
+        gasCostInGasToken: gasCostInTermsOfGasToken,
       };
     };
 

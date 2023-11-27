@@ -152,8 +152,12 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     }
     // safe to force unwrap here because we throw if there are no amounts
     const amountToken = amounts[0]!.currency;
-    const gasToken = _routingConfig.gasToken ? (await this.tokenProvider.getTokens([_routingConfig.gasToken])).getTokenByAddress(_routingConfig.gasToken) : undefined;
-    
+    const gasToken = _routingConfig.gasToken
+      ? (
+          await this.tokenProvider.getTokens([_routingConfig.gasToken])
+        ).getTokenByAddress(_routingConfig.gasToken)
+      : undefined;
+
     if (routes.length == 0) {
       return { routesWithValidQuotes: [], candidatePools };
     }
@@ -178,8 +182,12 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
       token: quoteToken,
       providerConfig: {
         ..._routingConfig,
-        additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amountToken, quoteToken),
-        gasToken
+        additionalGasOverhead: NATIVE_OVERHEAD(
+          this.chainId,
+          amountToken,
+          quoteToken
+        ),
+        gasToken,
       },
     });
 

@@ -421,7 +421,7 @@ export type AlphaRouterConfig = {
   saveTenderlySimulationIfFailed?: boolean;
   /**
    * Include an additional response field specifying the swap gas estimation in terms of a specific gas token.
-   * This requires a suitable Native/GasToken pool to exist on V3. If one does not exist this field will return null. 
+   * This requires a suitable Native/GasToken pool to exist on V3. If one does not exist this field will return null.
    */
   gasToken?: string;
 };
@@ -1087,12 +1087,20 @@ export class AlphaRouter
     const gasPriceWei = await this.getGasPriceWei(await blockNumber);
 
     const quoteToken = quoteCurrency.wrapped;
-    const gasToken = routingConfig.gasToken ? (await this.tokenProvider.getTokens([routingConfig.gasToken])).getTokenByAddress(routingConfig.gasToken) : undefined;
+    const gasToken = routingConfig.gasToken
+      ? (
+          await this.tokenProvider.getTokens([routingConfig.gasToken])
+        ).getTokenByAddress(routingConfig.gasToken)
+      : undefined;
     const providerConfig: GasModelProviderConfig = {
       ...routingConfig,
       blockNumber,
-      additionalGasOverhead: NATIVE_OVERHEAD(this.chainId, amount.currency, quoteCurrency),
-      gasToken
+      additionalGasOverhead: NATIVE_OVERHEAD(
+        this.chainId,
+        amount.currency,
+        quoteCurrency
+      ),
+      gasToken,
     };
 
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
@@ -1470,7 +1478,14 @@ export class AlphaRouter
         throw new Error('Simulator not initialized!');
       }
 
-      log.info(JSON.stringify({ swapConfig, methodParameters, providerConfig }, null, 2), `Starting simulation`);
+      log.info(
+        JSON.stringify(
+          { swapConfig, methodParameters, providerConfig },
+          null,
+          2
+        ),
+        `Starting simulation`
+      );
       const fromAddress = swapConfig.simulate.fromAddress;
       const beforeSimulate = Date.now();
       const swapRouteWithSimulation = await this.simulator.simulate(
@@ -1956,7 +1971,9 @@ export class AlphaRouter
     const beforeGasTimestamp = Date.now();
 
     // Get an estimate of the gas price to use when estimating gas cost of different routes.
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice(blockNumber);
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice(
+      blockNumber
+    );
 
     metric.putMetric(
       'GasPriceLoad',
@@ -1973,10 +1990,9 @@ export class AlphaRouter
     quoteToken: Token,
     providerConfig?: GasModelProviderConfig,
     gasToken?: Token
-  ): Promise<[
-    IGasModel<V3RouteWithValidQuote>,
-    IGasModel<MixedRouteWithValidQuote>
-  ]> {
+  ): Promise<
+    [IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
+  > {
     const beforeGasModel = Date.now();
 
     const usdPoolPromise = getHighestLiquidityV3USDPool(
@@ -2000,24 +2016,31 @@ export class AlphaRouter
         )
       : Promise.resolve(null);
 
-    const nativeGasTokenV3PoolPromise = gasToken ? getHighestLiquidityV3NativePool(
-      gasToken,
-      this.v3PoolProvider,
-      providerConfig
-    ) : Promise.resolve(null);
+    const nativeGasTokenV3PoolPromise = gasToken
+      ? getHighestLiquidityV3NativePool(
+          gasToken,
+          this.v3PoolProvider,
+          providerConfig
+        )
+      : Promise.resolve(null);
 
-    const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool, nativeGasTokenV3Pool] = await Promise.all([
+    const [
+      usdPool,
+      nativeQuoteTokenV3Pool,
+      nativeAmountTokenV3Pool,
+      nativeGasTokenV3Pool,
+    ] = await Promise.all([
       usdPoolPromise,
       nativeQuoteTokenV3PoolPromise,
       nativeAmountTokenV3PoolPromise,
-      nativeGasTokenV3PoolPromise
+      nativeGasTokenV3PoolPromise,
     ]);
 
     const pools: LiquidityCalculationPools = {
       usdPool: usdPool,
       nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
       nativeAmountTokenV3Pool: nativeAmountTokenV3Pool,
-      nativeGasTokenV3Pool: nativeGasTokenV3Pool
+      nativeGasTokenV3Pool: nativeGasTokenV3Pool,
     };
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({

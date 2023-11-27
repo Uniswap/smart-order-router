@@ -36,7 +36,7 @@ import { buildTrade } from './methodParameters';
 export async function getV2NativePool(
   token: Token,
   poolProvider: IV2PoolProvider,
-  providerConfig?: GasModelProviderConfig,
+  providerConfig?: GasModelProviderConfig
 ): Promise<Pair | null> {
   const chainId = token.chainId as ChainId;
   const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -95,7 +95,7 @@ export async function getHighestLiquidityV3NativePool(
     })
     .compact()
     .value();
-  
+
   if (pools.length == 0) {
     log.error(
       { pools },

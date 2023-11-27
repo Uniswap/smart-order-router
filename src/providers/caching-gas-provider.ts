@@ -12,7 +12,8 @@ import { GasPrice, IGasPriceProvider } from './gas-price-provider';
  * @class CachingV3SubgraphProvider
  */
 export class CachingGasStationProvider extends IGasPriceProvider {
-  private GAS_KEY = (chainId: ChainId, blockNumber: number) => `gasPrice-${chainId}-${blockNumber}`;
+  private GAS_KEY = (chainId: ChainId, blockNumber: number) =>
+    `gasPrice-${chainId}-${blockNumber}`;
 
   /**
    * Creates an instance of CachingGasStationProvider.
@@ -28,8 +29,12 @@ export class CachingGasStationProvider extends IGasPriceProvider {
     super();
   }
 
-  public override async getGasPrice(requestBlockNumber: number): Promise<GasPrice> {
-    const cachedGasPrice = await this.cache.get(this.GAS_KEY(this.chainId, requestBlockNumber));
+  public override async getGasPrice(
+    requestBlockNumber: number
+  ): Promise<GasPrice> {
+    const cachedGasPrice = await this.cache.get(
+      this.GAS_KEY(this.chainId, requestBlockNumber)
+    );
 
     if (cachedGasPrice) {
       log.info(
@@ -41,8 +46,13 @@ export class CachingGasStationProvider extends IGasPriceProvider {
     }
 
     log.info('Gas station price local cache miss.');
-    const gasPrice = await this.gasPriceProvider.getGasPrice(requestBlockNumber);
-    await this.cache.set(this.GAS_KEY(this.chainId, requestBlockNumber), gasPrice);
+    const gasPrice = await this.gasPriceProvider.getGasPrice(
+      requestBlockNumber
+    );
+    await this.cache.set(
+      this.GAS_KEY(this.chainId, requestBlockNumber),
+      gasPrice
+    );
 
     return gasPrice;
   }

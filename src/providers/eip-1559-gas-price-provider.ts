@@ -43,7 +43,9 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
     super();
   }
 
-  public override async getGasPrice(requestBlockNumber: number): Promise<GasPrice> {
+  public override async getGasPrice(
+    requestBlockNumber: number
+  ): Promise<GasPrice> {
     const feeHistoryRaw = (await this.provider.send('eth_feeHistory', [
       /**
        * @fix Use BigNumber.from(this.blocksToConsider).toHexString() after hardhat adds support

@@ -1,5 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Token } from '@uniswap/sdk-core';
+import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 
 import { ProviderConfig } from '../../../providers/provider';
@@ -42,6 +43,7 @@ import {
   IL2GasDataProvider,
   OptimismGasData,
 } from '../../../providers/v3/gas-data-provider';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import {
   MixedRouteWithValidQuote,
@@ -49,8 +51,6 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
-import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
-import { Pair } from '@uniswap/v2-sdk';
 
 // When adding new usd gas tokens, ensure the tokens are ordered
 // from tokens with highest decimals to lowest decimals. For example,
@@ -87,11 +87,11 @@ export type L1ToL2GasCosts = {
 export type GasModelProviderConfig = ProviderConfig & {
   /*
    * Any additional overhead to add to the gas estimate
-  */
+   */
   additionalGasOverhead?: BigNumber;
 
   gasToken?: Token;
-}
+};
 
 export type BuildOnChainGasModelFactoryType = {
   chainId: ChainId;
@@ -205,8 +205,8 @@ export abstract class IOnChainGasModelFactory {
     const isToken0 = nativeTokenPool.token0.address == nativeCurrency.address;
     // returns mid price in terms of the native currency (the ratio of gasToken/nativeToken)
     const nativeTokenPrice = isToken0
-          ? nativeTokenPool.token0Price
-          : nativeTokenPool.token1Price;
+      ? nativeTokenPool.token0Price
+      : nativeTokenPool.token1Price;
     let gasCostInTermsOfToken1: CurrencyAmount | undefined;
     try {
       // native token is base currency

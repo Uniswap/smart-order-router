@@ -95,13 +95,15 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       poolProvider,
       providerConfig
     );
-    
-    const nativeGasTokenPoolPromise = providerConfig?.gasToken ? this.getEthPool(
-      chainId,
-      providerConfig.gasToken,
-      poolProvider,
-      providerConfig
-    ) : Promise.resolve(null);
+
+    const nativeGasTokenPoolPromise = providerConfig?.gasToken
+      ? this.getEthPool(
+          chainId,
+          providerConfig.gasToken,
+          poolProvider,
+          providerConfig
+        )
+      : Promise.resolve(null);
 
     const usdPoolPromise = this.getHighestLiquidityUSDPool(
       chainId,
@@ -112,7 +114,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     const [ethPool, usdPool, nativeGasTokenPool] = await Promise.all([
       ethPoolPromise,
       usdPoolPromise,
-      nativeGasTokenPoolPromise
+      nativeGasTokenPoolPromise,
     ]);
 
     if (!ethPool) {
@@ -170,25 +172,27 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         }
 
         let gasCostInTermsOfGasToken: CurrencyAmount | undefined;
-        if(nativeGasTokenPool) {
-          const nativeIsToken0 = nativeGasTokenPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address; 
+        if (nativeGasTokenPool) {
+          const nativeIsToken0 =
+            nativeGasTokenPool.token0.address ==
+            WRAPPED_NATIVE_CURRENCY[chainId]!.address;
           const nativeTokenPrice = nativeIsToken0
             ? nativeGasTokenPool.token0Price
             : nativeGasTokenPool.token1Price;
           try {
             gasCostInTermsOfGasToken = ethTokenPrice.quote(
-                gasCostInEth
-              ) as CurrencyAmount;
+              gasCostInEth
+            ) as CurrencyAmount;
           } catch (err) {
-              log.error(
-                {
-                  ethTokenPriceBase: nativeTokenPrice.baseCurrency,
-                  ethTokenPriceQuote: nativeTokenPrice.quoteCurrency,
-                  gasCostInEth: gasCostInEth.currency,
-                },
-                'Debug eth price token issue'
-              );
-              throw err;
+            log.error(
+              {
+                ethTokenPriceBase: nativeTokenPrice.baseCurrency,
+                ethTokenPriceQuote: nativeTokenPrice.quoteCurrency,
+                gasCostInEth: gasCostInEth.currency,
+              },
+              'Debug eth price token issue'
+            );
+            throw err;
           }
         }
 
@@ -220,7 +224,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           gasEstimate: gasUse,
           gasCostInToken: gasCostInTermsOfQuoteToken,
           gasCostInUSD: gasCostInTermsOfUSD!,
-          gasCostInGasToken: gasCostInTermsOfGasToken
+          gasCostInGasToken: gasCostInTermsOfGasToken,
         };
       },
     };

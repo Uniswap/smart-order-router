@@ -162,7 +162,11 @@ export class FallbackTenderlySimulator extends Simulator {
       log.error({ err: err }, 'Failed to simulate via Tenderly');
 
       if (err instanceof Error && err.message.includes('timeout')) {
-        metric.putMetric('TenderlySimulationTimeouts', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          'TenderlySimulationTimeouts',
+          1,
+          MetricLoggerUnit.Count
+        );
       }
       return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
@@ -339,7 +343,11 @@ export class TenderlySimulator extends Simulator {
 
       const latencies = Date.now() - before;
       log.info(
-        `Tenderly simulation universal router request body: ${JSON.stringify(body, null, 2)}, having latencies ${latencies} in milliseconds.`
+        `Tenderly simulation universal router request body: ${JSON.stringify(
+          body,
+          null,
+          2
+        )}, having latencies ${latencies} in milliseconds.`
       );
       metric.putMetric(
         'TenderlySimulationUniversalRouterLatencies',
