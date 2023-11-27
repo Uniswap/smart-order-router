@@ -18,8 +18,8 @@ import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
  * @class CachingV3PoolProvider
  */
 export class CachingV3PoolProvider implements IV3PoolProvider {
-  private POOL_KEY = (chainId: ChainId, address: string) =>
-    `pool-${chainId}-${address}`;
+  private POOL_KEY = (chainId: ChainId, address: string, blockNumber?: number) =>
+    blockNumber ? `pool-${chainId}-${address}-${blockNumber}` : `pool-${chainId}-${address}`;
 
   /**
    * Creates an instance of CachingV3PoolProvider.
@@ -41,6 +41,7 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
     const poolsToGetTokenPairs: Array<[Token, Token, FeeAmount]> = [];
     const poolsToGetAddresses: string[] = [];
     const poolAddressToPool: { [poolAddress: string]: Pool } = {};
+    const blockNumber = await providerConfig?.blockNumber
 
     for (const [tokenA, tokenB, feeAmount] of tokenPairs) {
       const { poolAddress, token0, token1 } = this.getPoolAddress(
@@ -56,7 +57,7 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
       poolAddressSet.add(poolAddress);
 
       const cachedPool = await this.cache.get(
-        this.POOL_KEY(this.chainId, poolAddress)
+        this.POOL_KEY(this.chainId, poolAddress, blockNumber)
       );
       if (cachedPool) {
         metric.putMetric(
@@ -105,7 +106,7 @@ export class CachingV3PoolProvider implements IV3PoolProvider {
         if (pool) {
           poolAddressToPool[address] = pool;
           // We don't want to wait for this caching to complete before returning the pools.
-          this.cache.set(this.POOL_KEY(this.chainId, address), pool);
+          this.cache.set(this.POOL_KEY(this.chainId, address, blockNumber), pool);
         }
       }
     }
