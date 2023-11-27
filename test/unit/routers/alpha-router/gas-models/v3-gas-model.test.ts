@@ -20,6 +20,7 @@ import {
 } from '../../../../../src/routers/alpha-router/gas-models/v3/gas-costs';
 import {
   DAI_USDT_LOW,
+  DAI_WETH_MEDIUM,
   UNI_WETH_MEDIUM,
   USDC_USDT_MEDIUM,
   USDC_WETH_MEDIUM,
@@ -316,6 +317,63 @@ describe('v3 gas model tests', () => {
     expect(gasCostInToken).toBeDefined();
     expect(gasCostInUSD).toBeDefined();
     expect(gasCostInGasToken).toBeDefined();
+  })
+
+  it('if gasToken == quoteToken returned values are equal', async () => {
+    // copied from `returns correct gas estimate for a v3 route | hops: 1 | ticks 1` test above
+    const amountToken = USDC_MAINNET;
+    const quoteToken = DAI_MAINNET;
+    const gasToken = DAI_MAINNET // same as quoteToken
+    const providerConfig = {
+      gasToken
+    }
+
+    const pools = await getPools(
+      amountToken,
+      quoteToken,
+      mockedV3PoolProvider,
+      providerConfig,
+      gasToken
+    );
+
+    expect(pools.nativeGasTokenV3Pool).toStrictEqual(DAI_WETH_MEDIUM);
+
+    const v3GasModel = await v3GasModelFactory.buildGasModel({
+      chainId: chainId,
+      gasPriceWei,
+      pools,
+      amountToken,
+      quoteToken,
+      v2poolProvider: mockedV2PoolProvider,
+      l2GasDataProvider: undefined,
+      providerConfig
+    });
+
+    const v3RouteWithQuote = getV3RouteWithValidQuoteStub({
+      gasModel: v3GasModel,
+      initializedTicksCrossedList: [1],
+    });
+
+    const totalInitializedTicksCrossed = BigNumber.from(
+      Math.max(1, _.sum(v3RouteWithQuote.initializedTicksCrossedList))
+    );
+
+    const gasOverheadFromTicks = COST_PER_INIT_TICK(chainId).mul(
+      totalInitializedTicksCrossed
+    );
+
+    const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } = v3GasModel.estimateGasCost(v3RouteWithQuote);
+
+    const expectedGasCost = BASE_SWAP_COST(chainId)
+      .add(COST_PER_HOP(chainId))
+      .add(SINGLE_HOP_OVERHEAD(chainId))
+      .add(gasOverheadFromTicks);
+
+    expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
+    expect(gasCostInToken).toBeDefined();
+    expect(gasCostInUSD).toBeDefined();
+    expect(gasCostInGasToken).toBeDefined();
+    expect(gasCostInToken.equalTo(gasCostInGasToken!)).toBeTruthy();
   })
 
   // TODO: splits, multiple hops, token overheads, gasCostInToken, gasCostInUSD

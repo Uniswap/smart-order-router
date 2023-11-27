@@ -163,6 +163,14 @@ export const DAI_USDT_MEDIUM = new Pool(
   10,
   0
 );
+export const DAI_WETH_MEDIUM = new Pool(
+  DAI,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
 export const WBTC_USDT_MEDIUM = new Pool(
   USDT,
   WBTC,
