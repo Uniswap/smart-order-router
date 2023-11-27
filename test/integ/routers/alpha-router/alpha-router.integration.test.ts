@@ -2789,7 +2789,6 @@ describe('alpha router integration', () => {
 
         expect(estimatedGasUsedGasToken).toBeDefined();
         expect(estimatedGasUsedGasToken?.currency.wrapped.address.toLowerCase()).toEqual(DAI_MAINNET.address.toLowerCase());
-        console.log(estimatedGasUsedGasToken?.toExact());
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
 

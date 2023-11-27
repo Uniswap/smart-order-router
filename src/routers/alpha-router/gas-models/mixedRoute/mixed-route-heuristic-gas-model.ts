@@ -112,6 +112,10 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           nativeGasTokenPool
         );
       }
+      // if the gasToken is the native currency, we can just use the totalGasCostNativeCurrency
+      else if (providerConfig?.gasToken?.equals(nativeCurrency)) {
+        gasCostInTermsOfGasToken = totalGasCostNativeCurrency;
+      }
 
       /** ------ MARK: return early if quoteToken is wrapped native currency ------- */
       if (quoteToken.equals(nativeCurrency)) {

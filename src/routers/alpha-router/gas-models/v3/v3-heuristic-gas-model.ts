@@ -193,12 +193,17 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
       const nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
+      // we don't want to fetch the gasToken pool if the gasToken is the native currency
       if (nativeGasTokenPool) {
         gasCostInTermsOfGasToken = getQuoteThroughNativePool(
           chainId,
           totalGasCostNativeCurrency,
           nativeGasTokenPool
         );
+      } 
+      // if the gasToken is the native currency, we can just use the totalGasCostNativeCurrency
+      else if (providerConfig?.gasToken?.equals(nativeCurrency)) {
+        gasCostInTermsOfGasToken = totalGasCostNativeCurrency;
       }
 
       /** ------ MARK: return early if quoteToken is wrapped native currency ------- */

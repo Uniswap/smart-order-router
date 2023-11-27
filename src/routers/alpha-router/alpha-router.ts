@@ -1087,11 +1087,13 @@ export class AlphaRouter
     const gasPriceWei = await this.getGasPriceWei(await blockNumber);
 
     const quoteToken = quoteCurrency.wrapped;
+    // const gasTokenAccessor = await this.tokenProvider.getTokens([routingConfig.gasToken!]);
     const gasToken = routingConfig.gasToken
       ? (
           await this.tokenProvider.getTokens([routingConfig.gasToken])
         ).getTokenByAddress(routingConfig.gasToken)
       : undefined;
+
     const providerConfig: GasModelProviderConfig = {
       ...routingConfig,
       blockNumber,
@@ -1991,7 +1993,6 @@ export class AlphaRouter
     amountToken: Token,
     quoteToken: Token,
     providerConfig?: GasModelProviderConfig,
-    gasToken?: Token
   ): Promise<
     [IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
   > {
@@ -2018,9 +2019,9 @@ export class AlphaRouter
         )
       : Promise.resolve(null);
 
-    const nativeGasTokenV3PoolPromise = gasToken
+    const nativeGasTokenV3PoolPromise = providerConfig?.gasToken && !providerConfig?.gasToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
-          gasToken,
+        providerConfig?.gasToken,
           this.v3PoolProvider,
           providerConfig
         )

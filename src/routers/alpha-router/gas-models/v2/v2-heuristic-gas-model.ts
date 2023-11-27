@@ -113,6 +113,10 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
             nativeGasTokenPool
           );
         }
+        // if the gasToken is the native currency, we can just use the gasCostInEth
+        else if (providerConfig?.gasToken?.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
+          gasCostInTermsOfGasToken = gasCostInEth;
+        }
 
         /** ------ MARK: return early if quoteToken is wrapped native currency ------- */
         if (token.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {

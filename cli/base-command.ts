@@ -355,11 +355,12 @@ export abstract class BaseCommand extends Command {
     quoteGasAdjusted: CurrencyAmount<Currency>,
     estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
     estimatedGasUsedUSD: CurrencyAmount<Currency>,
+    estimatedGasUsedGasToken: CurrencyAmount<Currency> | undefined,
     methodParameters: MethodParameters | undefined,
     blockNumber: BigNumber,
     estimatedGasUsed: BigNumber,
     gasPriceWei: BigNumber,
-    simulationStatus?: SimulationStatus
+    simulationStatus?: SimulationStatus,
   ) {
     this.logger.info(`Best Route:`);
     this.logger.info(`${routeAmountsToString(routeAmounts)}`);
@@ -385,6 +386,13 @@ export abstract class BaseCommand extends Command {
         Math.min(estimatedGasUsedUSD.currency.decimals, 6)
       )}`
     );
+    if(estimatedGasUsedGasToken) {
+      this.logger.info(
+        `Gas Used gas token: ${estimatedGasUsedGasToken.toFixed(
+          Math.min(estimatedGasUsedGasToken.currency.decimals, 6)
+        )}`
+      );
+    }
     this.logger.info(`Calldata: ${methodParameters?.calldata}`);
     this.logger.info(`Value: ${methodParameters?.value}`);
     this.logger.info({
