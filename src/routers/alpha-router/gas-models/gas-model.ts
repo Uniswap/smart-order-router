@@ -195,10 +195,10 @@ export abstract class IOnChainGasModelFactory {
 
   // Determines if native currency is token0
   // Gets the native price of the pool, dependent on 0 or 1
-  // tries to quote across the pool
+  // quotes across the pool
   protected getQuoteThroughNativePool(
     chainId: ChainId,
-    totalGasCostNativeCurrency: CurrencyAmountRaw<Token>,
+    nativeTokenAmount: CurrencyAmountRaw<Token>,
     nativeTokenPool: Pool | Pair
   ): CurrencyAmount {
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
@@ -209,7 +209,7 @@ export abstract class IOnChainGasModelFactory {
       : nativeTokenPool.token1Price;
     // return gas cost in terms of the non native currency
     return nativeTokenPrice.quote(
-      totalGasCostNativeCurrency
+      nativeTokenAmount
     ) as CurrencyAmount;
   }
 }
