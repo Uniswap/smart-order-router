@@ -1992,7 +1992,7 @@ export class AlphaRouter
     gasPriceWei: BigNumber,
     amountToken: Token,
     quoteToken: Token,
-    providerConfig?: GasModelProviderConfig,
+    providerConfig?: GasModelProviderConfig
   ): Promise<
     [IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
   > {
@@ -2019,13 +2019,15 @@ export class AlphaRouter
         )
       : Promise.resolve(null);
 
-    const nativeGasTokenV3PoolPromise = providerConfig?.gasToken && !providerConfig?.gasToken.equals(nativeCurrency)
-      ? getHighestLiquidityV3NativePool(
-        providerConfig?.gasToken,
-          this.v3PoolProvider,
-          providerConfig
-        )
-      : Promise.resolve(null);
+    const nativeGasTokenV3PoolPromise =
+      providerConfig?.gasToken &&
+      !providerConfig?.gasToken.equals(nativeCurrency)
+        ? getHighestLiquidityV3NativePool(
+            providerConfig?.gasToken,
+            this.v3PoolProvider,
+            providerConfig
+          )
+        : Promise.resolve(null);
 
     const [
       usdPool,

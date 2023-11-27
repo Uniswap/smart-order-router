@@ -59,14 +59,16 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     );
 
     // Only fetch the native gasToken pool if specified by the config AND the gas token is not the native currency.
-    const nativeGasTokenPoolPromise = providerConfig?.gasToken && !providerConfig?.gasToken.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)
-      ? this.getEthPool(
-          chainId,
-          providerConfig.gasToken,
-          poolProvider,
-          providerConfig
-        )
-      : Promise.resolve(null);
+    const nativeGasTokenPoolPromise =
+      providerConfig?.gasToken &&
+      !providerConfig?.gasToken.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)
+        ? this.getEthPool(
+            chainId,
+            providerConfig.gasToken,
+            poolProvider,
+            providerConfig
+          )
+        : Promise.resolve(null);
 
     const [usdPool, nativeGasTokenPool] = await Promise.all([
       usdPoolPromise,
@@ -74,7 +76,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     ]);
 
     let ethPool: Pair | null = null;
-    if(!token.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
+    if (!token.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
       ethPool = await this.getEthPool(
         chainId,
         token,
@@ -114,7 +116,9 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           );
         }
         // if the gasToken is the native currency, we can just use the gasCostInEth
-        else if (providerConfig?.gasToken?.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)) {
+        else if (
+          providerConfig?.gasToken?.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)
+        ) {
           gasCostInTermsOfGasToken = gasCostInEth;
         }
 
@@ -137,7 +141,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           return {
             gasEstimate: gasUse,
             gasCostInToken: CurrencyAmount.fromRawAmount(token, 0),
-            gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0)
+            gasCostInUSD: CurrencyAmount.fromRawAmount(usdToken, 0),
           };
         }
 
@@ -234,11 +238,14 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     const poolsRaw = poolAccessor.getAllPools();
     const pools = _.filter(
       poolsRaw,
-      (pool) => pool.reserve0.greaterThan(0) && pool.reserve1.greaterThan(0)
+      (pool) =>
+        pool.reserve0.greaterThan(0) &&
+        pool.reserve1.greaterThan(0) &&
         // this case should never happen in production, but when we mock the pool provider it may return non native pairs
-        && (pool.token0.equals(WRAPPED_NATIVE_CURRENCY[chainId]!) || pool.token1.equals(WRAPPED_NATIVE_CURRENCY[chainId]!))
+        (pool.token0.equals(WRAPPED_NATIVE_CURRENCY[chainId]!) ||
+          pool.token1.equals(WRAPPED_NATIVE_CURRENCY[chainId]!))
     );
-    
+
     if (pools.length == 0) {
       log.error(
         { pools },

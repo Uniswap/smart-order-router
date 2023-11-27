@@ -214,4 +214,4 @@ export const getQuoteThroughNativePool = (
     : nativeTokenPool.token1Price;
   // return gas cost in terms of the non native currency
   return nativeTokenPrice.quote(nativeTokenAmount) as CurrencyAmount;
-}
+};

@@ -23,9 +23,9 @@ import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildOnChainGasModelFactoryType,
   GasModelProviderConfig,
+  getQuoteThroughNativePool,
   IGasModel,
   IOnChainGasModelFactory,
-  getQuoteThroughNativePool,
 } from '../gas-model';
 
 import {
@@ -200,7 +200,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
           totalGasCostNativeCurrency,
           nativeGasTokenPool
         );
-      } 
+      }
       // if the gasToken is the native currency, we can just use the totalGasCostNativeCurrency
       else if (providerConfig?.gasToken?.equals(nativeCurrency)) {
         gasCostInTermsOfGasToken = totalGasCostNativeCurrency;

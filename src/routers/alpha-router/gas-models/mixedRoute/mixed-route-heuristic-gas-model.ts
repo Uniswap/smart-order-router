@@ -14,9 +14,9 @@ import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote'
 import {
   BuildOnChainGasModelFactoryType,
   GasModelProviderConfig,
+  getQuoteThroughNativePool,
   IGasModel,
   IOnChainGasModelFactory,
-  getQuoteThroughNativePool,
 } from '../gas-model';
 import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
