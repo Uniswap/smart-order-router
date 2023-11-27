@@ -2756,6 +2756,54 @@ describe('alpha router integration', () => {
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
       });
+      
+      it('erc20 -> erc20 gas token specified', async () => {
+        // declaring these to reduce confusion
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = USDT_MAINNET;
+        const amount =
+          tradeType == TradeType.EXACT_INPUT
+            ? parseAmount('100', tokenIn)
+            : parseAmount('100', tokenOut);
+
+        const swap = await alphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          {
+            type: SwapType.UNIVERSAL_ROUTER,
+            recipient: alice._address,
+            slippageTolerance: SLIPPAGE,
+            deadlineOrPreviousBlockhash: parseDeadline(360),
+          },
+          {
+            ...ROUTING_CONFIG,
+            gasToken: DAI_MAINNET.address
+          }
+        );
+
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
+
+        const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken } = swap!;
+
+        expect(estimatedGasUsedGasToken).toBeDefined();
+        expect(estimatedGasUsedGasToken?.currency.wrapped.address.toLowerCase()).toEqual(DAI_MAINNET.address.toLowerCase());
+        console.log(estimatedGasUsedGasToken?.toExact());
+
+        await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+
+        await validateExecuteSwap(
+          SwapType.UNIVERSAL_ROUTER,
+          quote,
+          tokenIn,
+          tokenOut,
+          methodParameters,
+          tradeType,
+          100,
+          100
+        );
+      });
     });
   }
 

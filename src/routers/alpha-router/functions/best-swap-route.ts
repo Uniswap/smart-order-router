@@ -27,6 +27,7 @@ export type BestSwapRoute = {
   estimatedGasUsed: BigNumber;
   estimatedGasUsedUSD: CurrencyAmount;
   estimatedGasUsedQuoteToken: CurrencyAmount;
+  estimatedGasUsedGasToken?: CurrencyAmount;
   routes: RouteWithValidQuote[];
 };
 
@@ -524,6 +525,17 @@ export async function getBestSwapRouteBy(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.gasCostInToken)
   ).add(gasCostL1QuoteToken);
 
+
+  let estimatedGasUsedGasToken: CurrencyAmount | undefined;
+  if (routingConfig.gasToken) {
+    if(bestSwap.some((routeWithValidQuote) => routeWithValidQuote.gasCostInGasToken === undefined)) {
+      throw new Error("Can't compute gas cost in terms of gas token cost.");
+    }
+    estimatedGasUsedGasToken = sumFn(
+      _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.gasCostInGasToken!) // force unwrap because we check above
+    );
+  }
+
   const quote = sumFn(
     _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
   );
@@ -553,6 +565,7 @@ export async function getBestSwapRouteBy(
     estimatedGasUsed,
     estimatedGasUsedUSD,
     estimatedGasUsedQuoteToken,
+    estimatedGasUsedGasToken,
     routes: portionProvider.getRouteWithQuotePortionAdjusted(
       routeType,
       routeWithQuotes,

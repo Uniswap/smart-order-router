@@ -1331,6 +1331,7 @@ export class AlphaRouter
       routes: routeAmounts,
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,
+      estimatedGasUsedGasToken
     } = swapRouteRaw;
 
     if (
@@ -1458,6 +1459,7 @@ export class AlphaRouter
       estimatedGasUsed,
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,
+      estimatedGasUsedGasToken,
       gasPriceWei,
       route: routeAmounts,
       trade,
