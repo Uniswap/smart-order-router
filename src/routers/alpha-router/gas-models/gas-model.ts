@@ -196,22 +196,22 @@ export abstract class IOnChainGasModelFactory {
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
   >;
+}
 
-  // Determines if native currency is token0
-  // Gets the native price of the pool, dependent on 0 or 1
-  // quotes across the pool
-  protected getQuoteThroughNativePool(
-    chainId: ChainId,
-    nativeTokenAmount: CurrencyAmountRaw<Token>,
-    nativeTokenPool: Pool | Pair
-  ): CurrencyAmount {
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
-    const isToken0 = nativeTokenPool.token0.address == nativeCurrency.address;
-    // returns mid price in terms of the native currency (the ratio of token/nativeToken)
-    const nativeTokenPrice = isToken0
-      ? nativeTokenPool.token0Price
-      : nativeTokenPool.token1Price;
-    // return gas cost in terms of the non native currency
-    return nativeTokenPrice.quote(nativeTokenAmount) as CurrencyAmount;
-  }
+// Determines if native currency is token0
+// Gets the native price of the pool, dependent on 0 or 1
+// quotes across the pool
+export const getQuoteThroughNativePool = (
+  chainId: ChainId,
+  nativeTokenAmount: CurrencyAmountRaw<Token>,
+  nativeTokenPool: Pool | Pair
+): CurrencyAmount => {
+  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+  const isToken0 = nativeTokenPool.token0.address == nativeCurrency.address;
+  // returns mid price in terms of the native currency (the ratio of token/nativeToken)
+  const nativeTokenPrice = isToken0
+    ? nativeTokenPool.token0Price
+    : nativeTokenPool.token1Price;
+  // return gas cost in terms of the non native currency
+  return nativeTokenPrice.quote(nativeTokenAmount) as CurrencyAmount;
 }

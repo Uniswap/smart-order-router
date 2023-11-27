@@ -16,6 +16,7 @@ import {
   GasModelProviderConfig,
   IGasModel,
   IOnChainGasModelFactory,
+  getQuoteThroughNativePool,
 } from '../gas-model';
 import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
@@ -95,7 +96,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       );
 
       /** ------ MARK: USD Logic -------- */
-      const gasCostInTermsOfUSD = this.getQuoteThroughNativePool(
+      const gasCostInTermsOfUSD = getQuoteThroughNativePool(
         chainId,
         totalGasCostNativeCurrency,
         usdPool
@@ -105,7 +106,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       const nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
       if (nativeGasTokenPool) {
-        gasCostInTermsOfGasToken = this.getQuoteThroughNativePool(
+        gasCostInTermsOfGasToken = getQuoteThroughNativePool(
           chainId,
           totalGasCostNativeCurrency,
           nativeGasTokenPool
@@ -147,7 +148,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           ? nativeV2Pool
           : nativeV3Pool!;
 
-      const gasCostInTermsOfQuoteToken = this.getQuoteThroughNativePool(
+      const gasCostInTermsOfQuoteToken = getQuoteThroughNativePool(
         chainId,
         totalGasCostNativeCurrency,
         nativePool
