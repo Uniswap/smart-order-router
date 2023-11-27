@@ -1331,7 +1331,7 @@ export class AlphaRouter
       routes: routeAmounts,
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,
-      estimatedGasUsedGasToken
+      estimatedGasUsedGasToken,
     } = swapRouteRaw;
 
     if (

@@ -1,5 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token, CurrencyAmount as CurrencyAmountRaw } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  CurrencyAmount as CurrencyAmountRaw,
+  Token,
+} from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 
@@ -208,8 +212,6 @@ export abstract class IOnChainGasModelFactory {
       ? nativeTokenPool.token0Price
       : nativeTokenPool.token1Price;
     // return gas cost in terms of the non native currency
-    return nativeTokenPrice.quote(
-      nativeTokenAmount
-    ) as CurrencyAmount;
+    return nativeTokenPrice.quote(nativeTokenAmount) as CurrencyAmount;
   }
 }
