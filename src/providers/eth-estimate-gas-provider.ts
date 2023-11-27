@@ -150,7 +150,6 @@ export class EthEstimateGasSimulator extends Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData | undefined,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _providerConfig?: ProviderConfig | undefined
   ): Promise<SwapRoute> {
     const inputAmount = swapRoute.trade.inputAmount;
