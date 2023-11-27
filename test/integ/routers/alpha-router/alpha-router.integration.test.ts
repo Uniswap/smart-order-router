@@ -1628,7 +1628,7 @@ describe('alpha router integration', () => {
           expect(estimatedGasUsedGasToken).toBeDefined();
           expect(estimatedGasUsedGasToken?.currency.equals(WRAPPED_NATIVE_CURRENCY[1]!)).toBe(true);
   
-          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
   
           await validateExecuteSwap(
             SwapType.UNIVERSAL_ROUTER,
