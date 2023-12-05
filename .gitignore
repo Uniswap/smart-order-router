@@ -13,3 +13,4 @@ types/*
 .env
 cache/
 tmp.md
+.DS_Store
