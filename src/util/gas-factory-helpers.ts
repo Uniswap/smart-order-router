@@ -1,10 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import {
-  ChainId,
-  Token,
-  TradeType,
-} from '@uniswap/sdk-core';
+import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk/dist/entities';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
@@ -296,31 +292,33 @@ export async function calculateGasUsed(
 
   /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
   let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
-  if(providerConfig?.gasToken) {
-    if(providerConfig.gasToken.equals(nativeCurrency)) {
+  if (providerConfig?.gasToken) {
+    if (providerConfig.gasToken.equals(nativeCurrency)) {
       gasCostInTermsOfGasToken = costNativeCurrency;
-    }
-    else {
+    } else {
       const nativeGasTokenPool = await getHighestLiquidityV3NativePool(
         providerConfig.gasToken,
         v3PoolProvider,
         providerConfig
       );
-      if(!nativeGasTokenPool) {
-        throw new Error(`Could not find a V3 pool for gas token ${providerConfig.gasToken.symbol}`);
+      if (nativeGasTokenPool) {
+        gasCostInTermsOfGasToken = getQuoteThroughNativePool(
+          chainId,
+          costNativeCurrency,
+          nativeGasTokenPool
+        );
+      } else {
+        log.info(
+          `Could not find a V3 pool for gas token ${providerConfig.gasToken.symbol}`
+        );
       }
-      gasCostInTermsOfGasToken = getQuoteThroughNativePool(
-        chainId,
-        costNativeCurrency,
-        nativeGasTokenPool
-      );
     }
   }
 
   /** ------ MARK: Main gas logic in terms of quote token -------- */
   let gasCostQuoteToken: CurrencyAmount | undefined = undefined;
   // shortcut if quote token is native currency
-  if(quoteToken.equals(nativeCurrency)) {
+  if (quoteToken.equals(nativeCurrency)) {
     gasCostQuoteToken = costNativeCurrency;
   }
   // get fee in terms of quote token

@@ -163,10 +163,9 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       nativeAmountPool = pools.nativeAmountTokenV3Pool;
     }
 
-    const usdToken =
-      usdPool.token0.equals(nativeCurrency)
-        ? usdPool.token1
-        : usdPool.token0;
+    const usdToken = usdPool.token0.equals(nativeCurrency)
+      ? usdPool.token1
+      : usdPool.token0;
 
     const estimateGasCost = (
       routeWithValidQuote: V3RouteWithValidQuote
