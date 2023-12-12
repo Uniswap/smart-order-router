@@ -207,7 +207,7 @@ export const getQuoteThroughNativePool = (
   nativeTokenPool: Pool | Pair
 ): CurrencyAmount => {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
-  const isToken0 = nativeTokenPool.token0.address == nativeCurrency.address;
+  const isToken0 = nativeTokenPool.token0.equals(nativeCurrency);
   // returns mid price in terms of the native currency (the ratio of token/nativeToken)
   const nativeTokenPrice = isToken0
     ? nativeTokenPool.token0Price

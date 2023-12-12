@@ -65,7 +65,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
     const usdPool: Pool = pools.usdPool;
     const usdToken =
-      usdPool.token0.address == nativeCurrency.address
+      usdPool.token0.equals(nativeCurrency)
         ? usdPool.token1
         : usdPool.token0;
 

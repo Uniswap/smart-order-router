@@ -164,7 +164,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     }
 
     const usdToken =
-      usdPool.token0.address == nativeCurrency.address
+      usdPool.token0.equals(nativeCurrency)
         ? usdPool.token1
         : usdPool.token0;
 
