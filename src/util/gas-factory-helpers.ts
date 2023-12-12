@@ -2,8 +2,6 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import {
   ChainId,
-  Currency,
-  CurrencyAmount,
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
@@ -21,6 +19,7 @@ import {
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
   GasModelProviderConfig,
+  getQuoteThroughNativePool,
   MethodParameters,
   MixedRouteWithValidQuote,
   SwapOptions,
@@ -29,7 +28,7 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '../routers';
-import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { buildTrade } from './methodParameters';
 
@@ -177,21 +176,6 @@ export async function getHighestLiquidityV3USDPool(
   return maxPool;
 }
 
-export function getGasCostInUSD(
-  usdPool: Pool,
-  costNativeCurrency: CurrencyAmount<Token>
-) {
-  const nativeCurrency = costNativeCurrency.currency;
-  // convert fee into usd
-  const nativeTokenPrice =
-    usdPool.token0.address == nativeCurrency.address
-      ? usdPool.token0Price
-      : usdPool.token1Price;
-
-  const gasCostUSD = nativeTokenPrice.quote(costNativeCurrency);
-  return gasCostUSD;
-}
-
 export function getGasCostInNativeCurrency(
   nativeCurrency: Token,
   gasCostInWei: BigNumber
@@ -202,19 +186,6 @@ export function getGasCostInNativeCurrency(
     gasCostInWei.toString()
   );
   return costNativeCurrency;
-}
-
-export async function getGasCostInQuoteToken(
-  quoteToken: Token,
-  nativePool: Pool | Pair,
-  costNativeCurrency: CurrencyAmount<Token>
-) {
-  const nativeTokenPrice =
-    nativePool.token0.address == quoteToken.address
-      ? nativePool.token1Price
-      : nativePool.token0Price;
-  const gasCostQuoteToken = nativeTokenPrice.quote(costNativeCurrency);
-  return gasCostQuoteToken;
 }
 
 export function calculateArbitrumToL1FeeFromCalldata(
@@ -273,7 +244,12 @@ export async function calculateGasUsed(
   v3PoolProvider: IV3PoolProvider,
   l2GasData?: ArbitrumGasData | OptimismGasData,
   providerConfig?: GasModelProviderConfig
-) {
+): Promise<{
+  estimatedGasUsedUSD: CurrencyAmount;
+  estimatedGasUsedQuoteToken: CurrencyAmount;
+  estimatedGasUsedGasToken?: CurrencyAmount;
+  quoteGasAdjusted: CurrencyAmount;
+}> {
   const quoteToken = route.quote.currency.wrapped;
   const gasPriceWei = route.gasPriceWei;
   // calculate L2 to L1 security fee if relevant
@@ -311,11 +287,44 @@ export async function calculateGasUsed(
     providerConfig
   );
 
-  const gasCostUSD = await getGasCostInUSD(usdPool, costNativeCurrency);
+  /** ------ MARK: USD logic  -------- */
+  const gasCostUSD = getQuoteThroughNativePool(
+    chainId,
+    costNativeCurrency,
+    usdPool
+  );
 
-  let gasCostQuoteToken = costNativeCurrency;
+  /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
+  let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
+  if(providerConfig?.gasToken) {
+    if(providerConfig.gasToken.equals(nativeCurrency)) {
+      gasCostInTermsOfGasToken = costNativeCurrency;
+    }
+    else {
+      const nativeGasTokenPool = await getHighestLiquidityV3NativePool(
+        providerConfig.gasToken,
+        v3PoolProvider,
+        providerConfig
+      );
+      if(!nativeGasTokenPool) {
+        throw new Error(`Could not find a V3 pool for gas token ${providerConfig.gasToken.symbol}`);
+      }
+      gasCostInTermsOfGasToken = getQuoteThroughNativePool(
+        chainId,
+        costNativeCurrency,
+        nativeGasTokenPool
+      );
+    }
+  }
+
+  /** ------ MARK: Main gas logic in terms of quote token -------- */
+  let gasCostQuoteToken: CurrencyAmount | undefined = undefined;
+  // shortcut if quote token is native currency
+  if(quoteToken.equals(nativeCurrency)) {
+    gasCostQuoteToken = costNativeCurrency;
+  }
   // get fee in terms of quote token
-  if (!quoteToken.equals(nativeCurrency)) {
+  else {
     const nativePools = await Promise.all([
       getHighestLiquidityV3NativePool(
         quoteToken,
@@ -332,10 +341,10 @@ export async function calculateGasUsed(
       );
       gasCostQuoteToken = CurrencyAmount.fromRawAmount(quoteToken, 0);
     } else {
-      gasCostQuoteToken = await getGasCostInQuoteToken(
-        quoteToken,
-        nativePool,
-        costNativeCurrency
+      gasCostQuoteToken = getQuoteThroughNativePool(
+        chainId,
+        costNativeCurrency,
+        nativePool
       );
     }
   }
@@ -353,6 +362,7 @@ export async function calculateGasUsed(
   return {
     estimatedGasUsedUSD: gasCostUSD,
     estimatedGasUsedQuoteToken: gasCostQuoteToken,
+    estimatedGasUsedGasToken: gasCostInTermsOfGasToken,
     quoteGasAdjusted: quoteGasAdjusted,
   };
 }
@@ -362,10 +372,10 @@ export function initSwapRouteFromExisting(
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
   portionProvider: IPortionProvider,
-  quoteGasAdjusted: CurrencyAmount<Currency>,
+  quoteGasAdjusted: CurrencyAmount,
   estimatedGasUsed: BigNumber,
-  estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
-  estimatedGasUsedUSD: CurrencyAmount<Currency>,
+  estimatedGasUsedQuoteToken: CurrencyAmount,
+  estimatedGasUsedUSD: CurrencyAmount,
   swapOptions: SwapOptions
 ): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
