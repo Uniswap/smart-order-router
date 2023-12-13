@@ -374,7 +374,8 @@ export function initSwapRouteFromExisting(
   estimatedGasUsed: BigNumber,
   estimatedGasUsedQuoteToken: CurrencyAmount,
   estimatedGasUsedUSD: CurrencyAmount,
-  swapOptions: SwapOptions
+  swapOptions: SwapOptions,
+  estimatedGasUsedGasToken?: CurrencyAmount
 ): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
@@ -486,6 +487,7 @@ export function initSwapRouteFromExisting(
     quoteGasAndPortionAdjusted,
     estimatedGasUsed,
     estimatedGasUsedQuoteToken,
+    estimatedGasUsedGasToken,
     estimatedGasUsedUSD,
     gasPriceWei: BigNumber.from(swapRoute.gasPriceWei),
     trade,

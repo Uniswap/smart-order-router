@@ -107,6 +107,7 @@ export class EthEstimateGasSimulator extends Simulator {
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
+      estimatedGasUsedGasToken,
       quoteGasAdjusted,
     } = await calculateGasUsed(
       route.quote.currency.chainId,
@@ -127,7 +128,8 @@ export class EthEstimateGasSimulator extends Simulator {
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
-        swapOptions
+        swapOptions,
+        estimatedGasUsedGasToken
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };
