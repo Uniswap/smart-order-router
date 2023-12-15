@@ -12,6 +12,7 @@ import axios, { AxiosRequestConfig } from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
 import {
+  GasModelProviderConfig,
   metric,
   MetricLoggerUnit,
   SwapOptions,
@@ -115,7 +116,7 @@ export class FallbackTenderlySimulator extends Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     // Make call to eth estimate gas if possible
     // For erc20s, we must check if the token allowance is sufficient
@@ -218,7 +219,7 @@ export class TenderlySimulator extends Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
@@ -518,6 +519,7 @@ export class TenderlySimulator extends Simulator {
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
+      estimatedGasUsedGasToken,
       quoteGasAdjusted,
     } = await calculateGasUsed(
       chainId,
@@ -538,7 +540,8 @@ export class TenderlySimulator extends Simulator {
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
-        swapOptions
+        swapOptions,
+        estimatedGasUsedGasToken
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };

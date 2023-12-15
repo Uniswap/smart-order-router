@@ -3,7 +3,7 @@ import { ChainId, TradeType } from '@uniswap/sdk-core';
 import { PERMIT2_ADDRESS } from '@uniswap/universal-router-sdk';
 import { BigNumber } from 'ethers/lib/ethers';
 
-import { SwapOptions, SwapRoute, SwapType } from '../routers';
+import { GasModelProviderConfig, SwapOptions, SwapRoute, SwapType } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { CurrencyAmount, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
@@ -60,7 +60,7 @@ export abstract class Simulator {
     amount: CurrencyAmount,
     quote: CurrencyAmount,
     l2GasData?: OptimismGasData | ArbitrumGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     const neededBalance =
       swapRoute.trade.tradeType == TradeType.EXACT_INPUT ? amount : quote;
@@ -105,7 +105,7 @@ export abstract class Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute>;
 
   protected async userHasSufficientBalance(
