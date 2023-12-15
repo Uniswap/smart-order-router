@@ -35,7 +35,6 @@ import {
 
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { IPortionProvider } from './portion-provider';
-import { ProviderConfig } from './provider';
 import {
   SimulationResult,
   SimulationStatus,
