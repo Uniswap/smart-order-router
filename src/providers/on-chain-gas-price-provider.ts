@@ -27,11 +27,11 @@ export class OnChainGasPriceProvider extends IGasPriceProvider {
     super();
   }
 
-  public override async getGasPrice(requestBlockNumber: number): Promise<GasPrice> {
+  public override async getGasPrice(latestBlockNumber: number, requestBlockNumber?: number): Promise<GasPrice> {
     if (this.eipChains.includes(this.chainId)) {
-      return this.eip1559GasPriceProvider.getGasPrice(requestBlockNumber);
+      return this.eip1559GasPriceProvider.getGasPrice(latestBlockNumber, requestBlockNumber);
     }
 
-    return this.legacyGasPriceProvider.getGasPrice(requestBlockNumber);
+    return this.legacyGasPriceProvider.getGasPrice(latestBlockNumber, requestBlockNumber);
   }
 }
