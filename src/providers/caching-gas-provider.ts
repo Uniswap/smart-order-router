@@ -28,8 +28,11 @@ export class CachingGasStationProvider extends IGasPriceProvider {
     super();
   }
 
-  public override async getGasPrice(requestBlockNumber: number): Promise<GasPrice> {
-    const cachedGasPrice = await this.cache.get(this.GAS_KEY(this.chainId, requestBlockNumber));
+  public override async getGasPrice(latestBlockNumber: number, requestBlockNumber?: number): Promise<GasPrice> {
+    // If block number is specified in the request, we have to use that block number find any potential cache hits.
+    // Otherwise, we can use the latest block number.
+    const targetBlockNumber = requestBlockNumber ?? latestBlockNumber;
+    const cachedGasPrice = await this.cache.get(this.GAS_KEY(this.chainId, targetBlockNumber));
 
     if (cachedGasPrice) {
       log.info(
@@ -40,9 +43,8 @@ export class CachingGasStationProvider extends IGasPriceProvider {
       return cachedGasPrice;
     }
 
-    log.info('Gas station price local cache miss.');
-    const gasPrice = await this.gasPriceProvider.getGasPrice(requestBlockNumber);
-    await this.cache.set(this.GAS_KEY(this.chainId, requestBlockNumber), gasPrice);
+    const gasPrice = await this.gasPriceProvider.getGasPrice(latestBlockNumber, requestBlockNumber);
+    await this.cache.set(this.GAS_KEY(this.chainId, targetBlockNumber), gasPrice);
 
     return gasPrice;
   }
