@@ -53,7 +53,7 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
       // If the block number is not specified, we have to send hardcoded 'latest' to infura RPC
       // because Infura node pool is eventually consistent and may not have the latest block from our block number.
       // See https://uniswapteam.slack.com/archives/C023A7JDTJP/p1702485038251449?thread_ts=1702471203.519869&cid=C023A7JDTJP
-      requestBlockNumber ?? 'latest',
+      requestBlockNumber ? BigNumber.from(requestBlockNumber).toHexString().replace('0x0', '0x') : 'latest',
       [this.priorityFeePercentile],
     ])) as RawFeeHistoryResponse;
 
