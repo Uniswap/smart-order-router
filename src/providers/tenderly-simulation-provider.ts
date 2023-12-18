@@ -339,7 +339,13 @@ export class TenderlySimulator extends Simulator {
           url,
           body,
           opts
-        );
+        ).finally(() => {
+          metric.putMetric(
+            'TenderlySimulationLatencies',
+            Date.now() - before,
+            MetricLoggerUnit.Milliseconds
+          );
+        });
 
       const latencies = Date.now() - before;
       log.info(
