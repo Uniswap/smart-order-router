@@ -30,7 +30,6 @@ export class ETHGasStationInfoProvider extends IGasPriceProvider {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override async getGasPrice(_latestBlockNumber: number, _requestBlockNumber?: number): Promise<GasPrice> {
-    log.info(`About to get gas prices from gas station ${this.url}`);
     const response = await retry(
       async () => {
         return axios.get<ETHGasStationResponse>(this.url);

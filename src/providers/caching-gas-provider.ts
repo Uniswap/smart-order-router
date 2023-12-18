@@ -43,7 +43,6 @@ export class CachingGasStationProvider extends IGasPriceProvider {
       return cachedGasPrice;
     }
 
-    log.info('Gas station price local cache miss.');
     const gasPrice = await this.gasPriceProvider.getGasPrice(latestBlockNumber, requestBlockNumber);
     await this.cache.set(this.GAS_KEY(this.chainId, targetBlockNumber), gasPrice);
 
