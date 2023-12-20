@@ -28,7 +28,6 @@ export class ETHGasStationInfoProvider extends IGasPriceProvider {
     this.url = url;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override async getGasPrice(
     _latestBlockNumber: number,
     _requestBlockNumber?: number
