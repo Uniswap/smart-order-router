@@ -1084,7 +1084,10 @@ export class AlphaRouter
       log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
     }
 
-    const gasPriceWei = await this.getGasPriceWei(await blockNumber, await partialRoutingConfig.blockNumber);
+    const gasPriceWei = await this.getGasPriceWei(
+      await blockNumber,
+      await partialRoutingConfig.blockNumber
+    );
 
     const quoteToken = quoteCurrency.wrapped;
     // const gasTokenAccessor = await this.tokenProvider.getTokens([routingConfig.gasToken!]);
@@ -1970,12 +1973,18 @@ export class AlphaRouter
     }
   }
 
-  private async getGasPriceWei(latestBlockNumber: number, requestBlockNumber?: number): Promise<BigNumber> {
+  private async getGasPriceWei(
+    latestBlockNumber: number,
+    requestBlockNumber?: number
+  ): Promise<BigNumber> {
     // Track how long it takes to resolve this async call.
     const beforeGasTimestamp = Date.now();
 
     // Get an estimate of the gas price to use when estimating gas cost of different routes.
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice(latestBlockNumber, requestBlockNumber);
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice(
+      latestBlockNumber,
+      requestBlockNumber
+    );
 
     metric.putMetric(
       'GasPriceLoad',
@@ -2009,7 +2018,9 @@ export class AlphaRouter
           providerConfig
         )
       : Promise.resolve(null);
-    const nativeAndAmountTokenV3PoolPromise = !amountToken.equals(nativeCurrency)
+    const nativeAndAmountTokenV3PoolPromise = !amountToken.equals(
+      nativeCurrency
+    )
       ? getHighestLiquidityV3NativePool(
           amountToken,
           this.v3PoolProvider,

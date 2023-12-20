@@ -2,7 +2,12 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
-import { GasModelProviderConfig, SwapOptions, SwapRoute, SwapType } from '../routers';
+import {
+  GasModelProviderConfig,
+  SwapOptions,
+  SwapRoute,
+  SwapType,
+} from '../routers';
 import { BEACON_CHAIN_DEPOSIT_ADDRESS, log } from '../util';
 import {
   calculateGasUsed,

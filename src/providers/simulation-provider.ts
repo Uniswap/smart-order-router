@@ -3,7 +3,12 @@ import { ChainId, TradeType } from '@uniswap/sdk-core';
 import { PERMIT2_ADDRESS } from '@uniswap/universal-router-sdk';
 import { BigNumber } from 'ethers/lib/ethers';
 
-import { GasModelProviderConfig, SwapOptions, SwapRoute, SwapType } from '../routers';
+import {
+  GasModelProviderConfig,
+  SwapOptions,
+  SwapRoute,
+  SwapType,
+} from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { CurrencyAmount, log, SWAP_ROUTER_02_ADDRESSES } from '../util';

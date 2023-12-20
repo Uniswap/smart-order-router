@@ -335,17 +335,15 @@ export class TenderlySimulator extends Simulator {
       const before = Date.now();
 
       const { data: resp, status: httpStatus } =
-        await this.tenderlyServiceInstance.post<TenderlyResponseUniversalRouter>(
-          url,
-          body,
-          opts
-        ).finally(() => {
-          metric.putMetric(
-            'TenderlySimulationLatencies',
-            Date.now() - before,
-            MetricLoggerUnit.Milliseconds
-          );
-        });
+        await this.tenderlyServiceInstance
+          .post<TenderlyResponseUniversalRouter>(url, body, opts)
+          .finally(() => {
+            metric.putMetric(
+              'TenderlySimulationLatencies',
+              Date.now() - before,
+              MetricLoggerUnit.Milliseconds
+            );
+          });
 
       const latencies = Date.now() - before;
       log.info(

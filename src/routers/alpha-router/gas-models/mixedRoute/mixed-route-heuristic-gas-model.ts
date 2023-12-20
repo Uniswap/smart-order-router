@@ -102,7 +102,8 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       );
 
       /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
-      const nativeAndSpecifiedGasTokenPool: Pool | null = pools.nativeAndSpecifiedGasTokenV3Pool;
+      const nativeAndSpecifiedGasTokenPool: Pool | null =
+        pools.nativeAndSpecifiedGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
       if (nativeAndSpecifiedGasTokenPool) {
         gasCostInTermsOfGasToken = getQuoteThroughNativePool(

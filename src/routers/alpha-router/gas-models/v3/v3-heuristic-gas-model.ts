@@ -190,7 +190,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       );
 
       /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
-      const nativeAndSpecifiedGasTokenPool: Pool | null = pools.nativeAndSpecifiedGasTokenV3Pool;
+      const nativeAndSpecifiedGasTokenPool: Pool | null =
+        pools.nativeAndSpecifiedGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
       // we don't want to fetch the gasToken pool if the gasToken is the native currency
       if (nativeAndSpecifiedGasTokenPool) {
@@ -219,7 +220,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
 
       // Since the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
       // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-      const nativeAndQuoteTokenPool: Pool | null = pools.nativeAndQuoteTokenV3Pool;
+      const nativeAndQuoteTokenPool: Pool | null =
+        pools.nativeAndQuoteTokenV3Pool;
 
       let gasCostInTermsOfQuoteToken: CurrencyAmount | null = null;
       if (nativeAndQuoteTokenPool) {
@@ -277,7 +279,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         ) {
           log.info(
             {
-              nativeAndAmountTokenPrice: nativeAndAmountTokenPrice.toSignificant(6),
+              nativeAndAmountTokenPrice:
+                nativeAndAmountTokenPrice.toSignificant(6),
               gasCostInTermsOfQuoteToken: gasCostInTermsOfQuoteToken
                 ? gasCostInTermsOfQuoteToken.toExact()
                 : 0,
