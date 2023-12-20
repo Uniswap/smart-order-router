@@ -120,9 +120,9 @@ export type BuildV2GasModelFactoryType = {
 
 export type LiquidityCalculationPools = {
   usdPool: Pool;
-  nativeQuoteTokenV3Pool: Pool | null;
-  nativeAmountTokenV3Pool: Pool | null;
-  nativeGasTokenV3Pool: Pool | null;
+  nativeAndQuoteTokenV3Pool: Pool | null;
+  nativeAndAmountTokenV3Pool: Pool | null;
+  nativeAndSpecifiedGasTokenV3Pool: Pool | null;
 };
 
 /**

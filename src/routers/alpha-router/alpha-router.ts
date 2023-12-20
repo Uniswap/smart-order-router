@@ -2002,14 +2002,14 @@ export class AlphaRouter
       providerConfig
     );
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
-    const nativeQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
+    const nativeAndQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
           quoteToken,
           this.v3PoolProvider,
           providerConfig
         )
       : Promise.resolve(null);
-    const nativeAmountTokenV3PoolPromise = !amountToken.equals(nativeCurrency)
+    const nativeAndAmountTokenV3PoolPromise = !amountToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
           amountToken,
           this.v3PoolProvider,
@@ -2017,7 +2017,9 @@ export class AlphaRouter
         )
       : Promise.resolve(null);
 
-    const nativeGasTokenV3PoolPromise =
+    // If a specific gas token is specified in the provider config
+    // fetch the highest liq V3 pool with it and the native currency
+    const nativeAndSpecifiedGasTokenV3PoolPromise =
       providerConfig?.gasToken &&
       !providerConfig?.gasToken.equals(nativeCurrency)
         ? getHighestLiquidityV3NativePool(
@@ -2029,21 +2031,21 @@ export class AlphaRouter
 
     const [
       usdPool,
-      nativeQuoteTokenV3Pool,
-      nativeAmountTokenV3Pool,
-      nativeGasTokenV3Pool,
+      nativeAndQuoteTokenV3Pool,
+      nativeAndAmountTokenV3Pool,
+      nativeAndSpecifiedGasTokenV3Pool,
     ] = await Promise.all([
       usdPoolPromise,
-      nativeQuoteTokenV3PoolPromise,
-      nativeAmountTokenV3PoolPromise,
-      nativeGasTokenV3PoolPromise,
+      nativeAndQuoteTokenV3PoolPromise,
+      nativeAndAmountTokenV3PoolPromise,
+      nativeAndSpecifiedGasTokenV3PoolPromise,
     ]);
 
     const pools: LiquidityCalculationPools = {
       usdPool: usdPool,
-      nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
-      nativeAmountTokenV3Pool: nativeAmountTokenV3Pool,
-      nativeGasTokenV3Pool: nativeGasTokenV3Pool,
+      nativeAndQuoteTokenV3Pool: nativeAndQuoteTokenV3Pool,
+      nativeAndAmountTokenV3Pool: nativeAndAmountTokenV3Pool,
+      nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({

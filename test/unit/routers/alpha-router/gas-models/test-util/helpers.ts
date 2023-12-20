@@ -25,39 +25,39 @@ export async function getPools(
       providerConfig
     );
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
-    const nativeQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
+    const nativeAndQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
           quoteToken,
           v3PoolProvider,
           providerConfig
         )
       : Promise.resolve(null);
-    const nativeAmountTokenV3PoolPromise = !amountToken.equals(nativeCurrency)
+    const nativeAndAmountTokenV3PoolPromise = !amountToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
           amountToken,
           v3PoolProvider,
           providerConfig
         )
       : Promise.resolve(null);
-    const nativeGasTokenV3PoolPromise = gasToken ? getHighestLiquidityV3NativePool(
+    const nativeAndSpecifiedGasTokenV3PoolPromise = gasToken ? getHighestLiquidityV3NativePool(
         gasToken,
         v3PoolProvider,
         providerConfig
       ) : Promise.resolve(null);
 
-    const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool, nativeGasTokenV3Pool] =
+    const [usdPool, nativeAndQuoteTokenV3Pool, nativeAndAmountTokenV3Pool, nativeAndSpecifiedGasTokenV3Pool] =
       await Promise.all([
         usdPoolPromise,
-        nativeQuoteTokenV3PoolPromise,
-        nativeAmountTokenV3PoolPromise,
-        nativeGasTokenV3PoolPromise
+        nativeAndQuoteTokenV3PoolPromise,
+        nativeAndAmountTokenV3PoolPromise,
+        nativeAndSpecifiedGasTokenV3PoolPromise
       ]);
 
     const pools: LiquidityCalculationPools = {
       usdPool: usdPool,
-      nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
-      nativeAmountTokenV3Pool: nativeAmountTokenV3Pool,
-      nativeGasTokenV3Pool: nativeGasTokenV3Pool
+      nativeAndQuoteTokenV3Pool: nativeAndQuoteTokenV3Pool,
+      nativeAndAmountTokenV3Pool: nativeAndAmountTokenV3Pool,
+      nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool
     };
     return pools;
   }

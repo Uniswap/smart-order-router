@@ -59,7 +59,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     );
 
     // Only fetch the native gasToken pool if specified by the config AND the gas token is not the native currency.
-    const nativeGasTokenPoolPromise =
+    const nativeAndSpecifiedGasTokenPoolPromise =
       providerConfig?.gasToken &&
       !providerConfig?.gasToken.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)
         ? this.getEthPool(
@@ -70,9 +70,9 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           )
         : Promise.resolve(null);
 
-    const [usdPool, nativeGasTokenPool] = await Promise.all([
+    const [usdPool, nativeAndSpecifiedGasTokenPool] = await Promise.all([
       usdPoolPromise,
-      nativeGasTokenPoolPromise,
+      nativeAndSpecifiedGasTokenPoolPromise,
     ]);
 
     let ethPool: Pair | null = null;
@@ -108,11 +108,11 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
         /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
         let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
-        if (nativeGasTokenPool) {
+        if (nativeAndSpecifiedGasTokenPool) {
           gasCostInTermsOfGasToken = getQuoteThroughNativePool(
             chainId,
             gasCostInEth,
-            nativeGasTokenPool
+            nativeAndSpecifiedGasTokenPool
           );
         }
         // if the gasToken is the native currency, we can just use the gasCostInEth

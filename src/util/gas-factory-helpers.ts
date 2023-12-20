@@ -296,16 +296,16 @@ export async function calculateGasUsed(
     if (providerConfig.gasToken.equals(nativeCurrency)) {
       gasCostInTermsOfGasToken = costNativeCurrency;
     } else {
-      const nativeGasTokenPool = await getHighestLiquidityV3NativePool(
+      const nativeAndSpecifiedGasTokenPool = await getHighestLiquidityV3NativePool(
         providerConfig.gasToken,
         v3PoolProvider,
         providerConfig
       );
-      if (nativeGasTokenPool) {
+      if (nativeAndSpecifiedGasTokenPool) {
         gasCostInTermsOfGasToken = getQuoteThroughNativePool(
           chainId,
           costNativeCurrency,
-          nativeGasTokenPool
+          nativeAndSpecifiedGasTokenPool
         );
       } else {
         log.info(

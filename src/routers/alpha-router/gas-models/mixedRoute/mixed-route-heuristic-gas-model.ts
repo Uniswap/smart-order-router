@@ -102,13 +102,13 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       );
 
       /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
-      const nativeGasTokenPool: Pool | null = pools.nativeGasTokenV3Pool;
+      const nativeAndSpecifiedGasTokenPool: Pool | null = pools.nativeAndSpecifiedGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
-      if (nativeGasTokenPool) {
+      if (nativeAndSpecifiedGasTokenPool) {
         gasCostInTermsOfGasToken = getQuoteThroughNativePool(
           chainId,
           totalGasCostNativeCurrency,
-          nativeGasTokenPool
+          nativeAndSpecifiedGasTokenPool
         );
       }
       // if the gasToken is the native currency, we can just use the totalGasCostNativeCurrency
@@ -130,7 +130,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
 
       // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
       // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-      const nativeV3Pool: Pool | null = pools.nativeQuoteTokenV3Pool;
+      const nativeV3Pool: Pool | null = pools.nativeAndQuoteTokenV3Pool;
 
       if (!nativeV3Pool && !nativeV2Pool) {
         log.info(

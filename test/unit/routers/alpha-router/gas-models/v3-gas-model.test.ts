@@ -280,7 +280,7 @@ describe('v3 gas model tests', () => {
       gasToken
     );
 
-    expect(pools.nativeGasTokenV3Pool).toStrictEqual(UNI_WETH_MEDIUM);
+    expect(pools.nativeAndSpecifiedGasTokenV3Pool).toStrictEqual(UNI_WETH_MEDIUM);
 
     const v3GasModel = await v3GasModelFactory.buildGasModel({
       chainId: chainId,
@@ -336,7 +336,7 @@ describe('v3 gas model tests', () => {
       gasToken
     );
 
-    expect(pools.nativeGasTokenV3Pool).toStrictEqual(DAI_WETH_MEDIUM);
+    expect(pools.nativeAndSpecifiedGasTokenV3Pool).toStrictEqual(DAI_WETH_MEDIUM);
 
     const v3GasModel = await v3GasModelFactory.buildGasModel({
       chainId: chainId,
