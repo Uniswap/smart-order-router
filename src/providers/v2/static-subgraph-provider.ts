@@ -32,6 +32,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.ARBITRUM_ONE]: [],
   [ChainId.ARBITRUM_GOERLI]: [],
   [ChainId.OPTIMISM_GOERLI]: [],
+  [ChainId.OPTIMISM_SEPOLIA]: [],
   [ChainId.POLYGON]: [],
   [ChainId.POLYGON_MUMBAI]: [],
   [ChainId.CELO]: [],
