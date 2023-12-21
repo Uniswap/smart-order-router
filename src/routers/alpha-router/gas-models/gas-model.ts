@@ -1,5 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  CurrencyAmount as CurrencyAmountRaw,
+  Token,
+} from '@uniswap/sdk-core';
+import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 
 import { ProviderConfig } from '../../../providers/provider';
@@ -42,6 +47,7 @@ import {
   IL2GasDataProvider,
   OptimismGasData,
 } from '../../../providers/v3/gas-data-provider';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import {
   MixedRouteWithValidQuote,
@@ -82,6 +88,15 @@ export type L1ToL2GasCosts = {
   gasCostL1QuoteToken: CurrencyAmount;
 };
 
+export type GasModelProviderConfig = ProviderConfig & {
+  /*
+   * Any additional overhead to add to the gas estimate
+   */
+  additionalGasOverhead?: BigNumber;
+
+  gasToken?: Token;
+};
+
 export type BuildOnChainGasModelFactoryType = {
   chainId: ChainId;
   gasPriceWei: BigNumber;
@@ -92,7 +107,7 @@ export type BuildOnChainGasModelFactoryType = {
   l2GasDataProvider?:
     | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
-  providerConfig?: ProviderConfig;
+  providerConfig?: GasModelProviderConfig;
 };
 
 export type BuildV2GasModelFactoryType = {
@@ -100,13 +115,14 @@ export type BuildV2GasModelFactoryType = {
   gasPriceWei: BigNumber;
   poolProvider: IV2PoolProvider;
   token: Token;
-  providerConfig?: ProviderConfig;
+  providerConfig?: GasModelProviderConfig;
 };
 
 export type LiquidityCalculationPools = {
   usdPool: Pool;
-  nativeQuoteTokenV3Pool: Pool | null;
-  nativeAmountTokenV3Pool: Pool | null;
+  nativeAndQuoteTokenV3Pool: Pool | null;
+  nativeAndAmountTokenV3Pool: Pool | null;
+  nativeAndSpecifiedGasTokenV3Pool: Pool | null;
 };
 
 /**
@@ -130,6 +146,7 @@ export type IGasModel<TRouteWithValidQuote extends RouteWithValidQuote> = {
     gasEstimate: BigNumber;
     gasCostInToken: CurrencyAmount;
     gasCostInUSD: CurrencyAmount;
+    gasCostInGasToken?: CurrencyAmount;
   };
   calculateL1GasFees?(routes: TRouteWithValidQuote[]): Promise<L1ToL2GasCosts>;
 };
@@ -170,13 +187,31 @@ export abstract class IOnChainGasModelFactory {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,
-    pools: LiquidityCalculationPools,
+    pools,
     amountToken,
     quoteToken,
-    v2poolProvider: V2poolProvider,
+    v2poolProvider,
     l2GasDataProvider,
     providerConfig,
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
   >;
 }
+
+// Determines if native currency is token0
+// Gets the native price of the pool, dependent on 0 or 1
+// quotes across the pool
+export const getQuoteThroughNativePool = (
+  chainId: ChainId,
+  nativeTokenAmount: CurrencyAmountRaw<Token>,
+  nativeTokenPool: Pool | Pair
+): CurrencyAmount => {
+  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+  const isToken0 = nativeTokenPool.token0.equals(nativeCurrency);
+  // returns mid price in terms of the native currency (the ratio of token/nativeToken)
+  const nativeTokenPrice = isToken0
+    ? nativeTokenPool.token0Price
+    : nativeTokenPool.token1Price;
+  // return gas cost in terms of the non native currency
+  return nativeTokenPrice.quote(nativeTokenAmount) as CurrencyAmount;
+};

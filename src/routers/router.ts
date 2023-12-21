@@ -71,6 +71,11 @@ export type SwapRoute = {
    */
   estimatedGasUsedUSD: CurrencyAmount;
   /**
+   * The estimate of the gas used by the swap in terms of the gas token if specified.
+   * will be undefined if no gas token is specified in the AlphaRouter config
+   */
+  estimatedGasUsedGasToken?: CurrencyAmount;
+  /*
    * The gas price used when computing quoteGasAdjusted, estimatedGasUsedQuoteToken, etc.
    */
   gasPriceWei: BigNumber;

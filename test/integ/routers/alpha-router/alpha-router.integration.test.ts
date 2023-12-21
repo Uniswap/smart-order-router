@@ -78,7 +78,8 @@ import {
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
-  WNATIVE_ON
+  WNATIVE_ON,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
@@ -1546,6 +1547,99 @@ describe('alpha router integration', () => {
             100
           );
         });
+
+        it('erc20 -> erc20 gas token specified', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+  
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              gasToken: DAI_MAINNET.address
+            }
+          );
+  
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+  
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken } = swap!;
+  
+          expect(estimatedGasUsedGasToken).toBeDefined();
+          expect(estimatedGasUsedGasToken?.currency.equals(DAI_MAINNET)).toBe(true);
+  
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+  
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100
+          );
+        });
+  
+        it('erc20 -> eth gas token as weth', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = Ether.onChain(1) as Currency;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1000000', tokenIn)
+              : parseAmount('10', tokenOut);
+  
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              gasToken: WRAPPED_NATIVE_CURRENCY[1]!.address
+            }
+          );
+  
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+  
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken } = swap!;
+  
+          expect(estimatedGasUsedGasToken).toBeDefined();
+          expect(estimatedGasUsedGasToken?.currency.equals(WRAPPED_NATIVE_CURRENCY[1]!)).toBe(true);
+  
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+  
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            1000000
+          );
+        });
       });
 
       if (isTenderlyEnvironmentSet()) {
@@ -2412,6 +2506,105 @@ describe('alpha router integration', () => {
             expect(methodParameters).not.toBeUndefined();
 
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+          });
+
+          it('erc20 -> erc20 gas token specified', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+    
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                gasToken: DAI_MAINNET.address
+              }
+            );
+    
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+    
+            const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken, simulationStatus } = swap!;
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+            expect(estimatedGasUsedGasToken).toBeDefined();
+            expect(estimatedGasUsedGasToken?.currency.equals(DAI_MAINNET)).toBe(true);
+    
+            await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+    
+            await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
+            );
+          });
+    
+          it('erc20 -> eth gas token as weth', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = Ether.onChain(1) as Currency;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1000000', tokenIn)
+                : parseAmount('10', tokenOut);
+    
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                gasToken: WRAPPED_NATIVE_CURRENCY[1]!.address
+              }
+            );
+    
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+    
+            const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken, simulationStatus } = swap!;
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+            expect(estimatedGasUsedGasToken).toBeDefined();
+            expect(estimatedGasUsedGasToken?.currency.equals(WRAPPED_NATIVE_CURRENCY[1]!)).toBe(true);
+    
+            await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+    
+            await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              1000000
+            );
           });
 
           GREENLIST_TOKEN_PAIRS.forEach(([tokenIn, tokenOut]) => {

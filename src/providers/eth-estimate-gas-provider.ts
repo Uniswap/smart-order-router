@@ -2,7 +2,12 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
-import { SwapOptions, SwapRoute, SwapType } from '../routers';
+import {
+  GasModelProviderConfig,
+  SwapOptions,
+  SwapRoute,
+  SwapType,
+} from '../routers';
 import { BEACON_CHAIN_DEPOSIT_ADDRESS, log } from '../util';
 import {
   calculateGasUsed,
@@ -107,6 +112,7 @@ export class EthEstimateGasSimulator extends Simulator {
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
+      estimatedGasUsedGasToken,
       quoteGasAdjusted,
     } = await calculateGasUsed(
       route.quote.currency.chainId,
@@ -127,7 +133,8 @@ export class EthEstimateGasSimulator extends Simulator {
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
-        swapOptions
+        swapOptions,
+        estimatedGasUsedGasToken
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };
@@ -150,8 +157,7 @@ export class EthEstimateGasSimulator extends Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData | undefined,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _providerConfig?: ProviderConfig | undefined
+    _providerConfig?: GasModelProviderConfig | undefined
   ): Promise<SwapRoute> {
     const inputAmount = swapRoute.trade.inputAmount;
     if (

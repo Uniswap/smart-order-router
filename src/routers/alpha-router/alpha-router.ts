@@ -60,7 +60,6 @@ import {
   IPortionProvider,
   PortionProvider,
 } from '../../providers/portion-provider';
-import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
@@ -138,6 +137,7 @@ import {
   V3CandidatePools,
 } from './functions/get-candidate-pools';
 import {
+  GasModelProviderConfig,
   IGasModel,
   IOnChainGasModelFactory,
   IV2GasModelFactory,
@@ -419,6 +419,11 @@ export type AlphaRouterConfig = {
    * we need this as a pass-through flag to enable/disable this feature.
    */
   saveTenderlySimulationIfFailed?: boolean;
+  /**
+   * Include an additional response field specifying the swap gas estimation in terms of a specific gas token.
+   * This requires a suitable Native/GasToken pool to exist on V3. If one does not exist this field will return null.
+   */
+  gasToken?: string;
 };
 
 export class AlphaRouter
@@ -1079,10 +1084,20 @@ export class AlphaRouter
       log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
     }
 
-    const gasPriceWei = await this.getGasPriceWei(await blockNumber, await partialRoutingConfig.blockNumber);
+    const gasPriceWei = await this.getGasPriceWei(
+      await blockNumber,
+      await partialRoutingConfig.blockNumber
+    );
 
     const quoteToken = quoteCurrency.wrapped;
-    const providerConfig: ProviderConfig = {
+    // const gasTokenAccessor = await this.tokenProvider.getTokens([routingConfig.gasToken!]);
+    const gasToken = routingConfig.gasToken
+      ? (
+          await this.tokenProvider.getTokens([routingConfig.gasToken])
+        ).getTokenByAddress(routingConfig.gasToken)
+      : undefined;
+
+    const providerConfig: GasModelProviderConfig = {
       ...routingConfig,
       blockNumber,
       additionalGasOverhead: NATIVE_OVERHEAD(
@@ -1090,6 +1105,7 @@ export class AlphaRouter
         amount.currency,
         quoteCurrency
       ),
+      gasToken,
     };
 
     const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
@@ -1320,6 +1336,7 @@ export class AlphaRouter
       routes: routeAmounts,
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,
+      estimatedGasUsedGasToken,
     } = swapRouteRaw;
 
     if (
@@ -1447,6 +1464,7 @@ export class AlphaRouter
       estimatedGasUsed,
       estimatedGasUsedQuoteToken,
       estimatedGasUsedUSD,
+      estimatedGasUsedGasToken,
       gasPriceWei,
       route: routeAmounts,
       trade,
@@ -1467,7 +1485,14 @@ export class AlphaRouter
         throw new Error('Simulator not initialized!');
       }
 
-      log.info(JSON.stringify({ swapConfig, methodParameters, providerConfig }, null, 2), `Starting simulation`);
+      log.info(
+        JSON.stringify(
+          { swapConfig, methodParameters, providerConfig },
+          null,
+          2
+        ),
+        `Starting simulation`
+      );
       const fromAddress = swapConfig.simulate.fromAddress;
       const beforeSimulate = Date.now();
       const swapRouteWithSimulation = await this.simulator.simulate(
@@ -1948,12 +1973,18 @@ export class AlphaRouter
     }
   }
 
-  private async getGasPriceWei(latestBlockNumber: number, requestBlockNumber?: number): Promise<BigNumber> {
+  private async getGasPriceWei(
+    latestBlockNumber: number,
+    requestBlockNumber?: number
+  ): Promise<BigNumber> {
     // Track how long it takes to resolve this async call.
     const beforeGasTimestamp = Date.now();
 
     // Get an estimate of the gas price to use when estimating gas cost of different routes.
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice(latestBlockNumber, requestBlockNumber);
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice(
+      latestBlockNumber,
+      requestBlockNumber
+    );
 
     metric.putMetric(
       'GasPriceLoad',
@@ -1968,7 +1999,7 @@ export class AlphaRouter
     gasPriceWei: BigNumber,
     amountToken: Token,
     quoteToken: Token,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<
     [IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
   > {
@@ -1980,14 +2011,16 @@ export class AlphaRouter
       providerConfig
     );
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
-    const nativeQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
+    const nativeAndQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
           quoteToken,
           this.v3PoolProvider,
           providerConfig
         )
       : Promise.resolve(null);
-    const nativeAmountTokenV3PoolPromise = !amountToken.equals(nativeCurrency)
+    const nativeAndAmountTokenV3PoolPromise = !amountToken.equals(
+      nativeCurrency
+    )
       ? getHighestLiquidityV3NativePool(
           amountToken,
           this.v3PoolProvider,
@@ -1995,17 +2028,35 @@ export class AlphaRouter
         )
       : Promise.resolve(null);
 
-    const [usdPool, nativeQuoteTokenV3Pool, nativeAmountTokenV3Pool] =
-      await Promise.all([
-        usdPoolPromise,
-        nativeQuoteTokenV3PoolPromise,
-        nativeAmountTokenV3PoolPromise,
-      ]);
+    // If a specific gas token is specified in the provider config
+    // fetch the highest liq V3 pool with it and the native currency
+    const nativeAndSpecifiedGasTokenV3PoolPromise =
+      providerConfig?.gasToken &&
+      !providerConfig?.gasToken.equals(nativeCurrency)
+        ? getHighestLiquidityV3NativePool(
+            providerConfig?.gasToken,
+            this.v3PoolProvider,
+            providerConfig
+          )
+        : Promise.resolve(null);
+
+    const [
+      usdPool,
+      nativeAndQuoteTokenV3Pool,
+      nativeAndAmountTokenV3Pool,
+      nativeAndSpecifiedGasTokenV3Pool,
+    ] = await Promise.all([
+      usdPoolPromise,
+      nativeAndQuoteTokenV3PoolPromise,
+      nativeAndAmountTokenV3PoolPromise,
+      nativeAndSpecifiedGasTokenV3PoolPromise,
+    ]);
 
     const pools: LiquidityCalculationPools = {
       usdPool: usdPool,
-      nativeQuoteTokenV3Pool: nativeQuoteTokenV3Pool,
-      nativeAmountTokenV3Pool: nativeAmountTokenV3Pool,
+      nativeAndQuoteTokenV3Pool: nativeAndQuoteTokenV3Pool,
+      nativeAndAmountTokenV3Pool: nativeAndAmountTokenV3Pool,
+      nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
