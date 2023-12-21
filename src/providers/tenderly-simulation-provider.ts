@@ -12,6 +12,7 @@ import axios, { AxiosRequestConfig } from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
 import {
+  GasModelProviderConfig,
   metric,
   MetricLoggerUnit,
   SwapOptions,
@@ -34,7 +35,6 @@ import {
 
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { IPortionProvider } from './portion-provider';
-import { ProviderConfig } from './provider';
 import {
   SimulationResult,
   SimulationStatus,
@@ -115,7 +115,7 @@ export class FallbackTenderlySimulator extends Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     // Make call to eth estimate gas if possible
     // For erc20s, we must check if the token allowance is sufficient
@@ -162,7 +162,11 @@ export class FallbackTenderlySimulator extends Simulator {
       log.error({ err: err }, 'Failed to simulate via Tenderly');
 
       if (err instanceof Error && err.message.includes('timeout')) {
-        metric.putMetric('TenderlySimulationTimeouts', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          'TenderlySimulationTimeouts',
+          1,
+          MetricLoggerUnit.Count
+        );
       }
       return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
     }
@@ -214,7 +218,7 @@ export class TenderlySimulator extends Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: ArbitrumGasData | OptimismGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
@@ -331,21 +335,23 @@ export class TenderlySimulator extends Simulator {
       const before = Date.now();
 
       const { data: resp, status: httpStatus } =
-        await this.tenderlyServiceInstance.post<TenderlyResponseUniversalRouter>(
-          url,
-          body,
-          opts
-        ).finally(() => {
-          metric.putMetric(
-            'TenderlySimulationLatencies',
-            Date.now() - before,
-            MetricLoggerUnit.Milliseconds
-          );
-        });
+        await this.tenderlyServiceInstance
+          .post<TenderlyResponseUniversalRouter>(url, body, opts)
+          .finally(() => {
+            metric.putMetric(
+              'TenderlySimulationLatencies',
+              Date.now() - before,
+              MetricLoggerUnit.Milliseconds
+            );
+          });
 
       const latencies = Date.now() - before;
       log.info(
-        `Tenderly simulation universal router request body: ${JSON.stringify(body, null, 2)}, having latencies ${latencies} in milliseconds.`
+        `Tenderly simulation universal router request body: ${JSON.stringify(
+          body,
+          null,
+          2
+        )}, having latencies ${latencies} in milliseconds.`
       );
       metric.putMetric(
         'TenderlySimulationUniversalRouterLatencies',
@@ -516,6 +522,7 @@ export class TenderlySimulator extends Simulator {
     const {
       estimatedGasUsedUSD,
       estimatedGasUsedQuoteToken,
+      estimatedGasUsedGasToken,
       quoteGasAdjusted,
     } = await calculateGasUsed(
       chainId,
@@ -536,7 +543,8 @@ export class TenderlySimulator extends Simulator {
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
-        swapOptions
+        swapOptions,
+        estimatedGasUsedGasToken
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };

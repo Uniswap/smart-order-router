@@ -8,5 +8,8 @@ export type GasPrice = {
  * Provider for getting gas prices.
  */
 export abstract class IGasPriceProvider {
-  public abstract getGasPrice(latestBlockNumber: number, requestBlockNumber?: number): Promise<GasPrice>;
+  public abstract getGasPrice(
+    latestBlockNumber: number,
+    requestBlockNumber?: number
+  ): Promise<GasPrice>;
 }
