@@ -23,6 +23,7 @@ export const V2_SUPPORTED = [
   ChainId.MAINNET,
   ChainId.GOERLI,
   ChainId.SEPOLIA,
+  ChainId.OPTIMISM
 ];
 
 export const HAS_L1_FEE = [

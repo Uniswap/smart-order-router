@@ -6,9 +6,14 @@ import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import {
   DAI_MAINNET,
+  DAI_OPTIMISM,
+  OP_OPTIMISM,
   USDC_MAINNET,
+  USDC_OPTIMISM,
   USDT_MAINNET,
-  WBTC_MAINNET
+  USDT_OPTIMISM,
+  WBTC_MAINNET,
+  WBTC_OPTIMISM
 } from '../token-provider';
 
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
@@ -27,8 +32,15 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
   [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
-  //v2 not deployed on [optimism, arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
-  [ChainId.OPTIMISM]: [],
+  //v2 not deployed on [arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
+  [ChainId.OPTIMISM]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!,
+    USDC_OPTIMISM,
+    DAI_OPTIMISM,
+    USDT_OPTIMISM,
+    WBTC_OPTIMISM,
+    OP_OPTIMISM
+  ],
   [ChainId.ARBITRUM_ONE]: [],
   [ChainId.ARBITRUM_GOERLI]: [],
   [ChainId.OPTIMISM_GOERLI]: [],
