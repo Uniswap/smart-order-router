@@ -121,9 +121,10 @@ export class ArbitrumGasDataProvider
       this.provider
     );
     const gasData = await gasDataContract.getPricesInWei();
+    const perL1CalldataByte = gasData[1];
     return {
       perL2TxFee: gasData[0],
-      perL1CalldataFee: gasData[1],
+      perL1CalldataFee: perL1CalldataByte.div(16),
       perArbGasTotal: gasData[5],
     };
   }
