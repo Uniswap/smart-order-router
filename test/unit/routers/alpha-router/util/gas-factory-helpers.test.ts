@@ -30,6 +30,7 @@ import { TradeType } from '@uniswap/sdk-core';
 import { Trade } from '@uniswap/router-sdk';
 import { Route } from '@uniswap/v3-sdk';
 import { getPools } from '../gas-models/test-util/helpers';
+import { ArbitrumGasData } from '../../../../../src/providers/v3/gas-data-provider';
 
 const mockUSDCNativePools = [
   USDC_WETH_LOW_LIQ_LOW,
@@ -120,7 +121,7 @@ describe('gas factory helpers tests', () => {
         mockPoolProvider,
         providerConfig,
         gasToken
-      );  
+      );
 
       const v3GasModel = await (new V3HeuristicGasModelFactory()).buildGasModel({
         chainId: chainId,
@@ -189,6 +190,25 @@ describe('gas factory helpers tests', () => {
       expect(estimatedGasUsedGasToken?.currency.equals(gasToken)).toBe(true);
       expect(estimatedGasUsedGasToken?.toExact()).not.toEqual('0');
       expect(quoteGasAdjusted.lessThan(mockSwapRoute.quote)).toBe(true);
+
+      const arbGasData: ArbitrumGasData = {
+        perL2TxFee: BigNumber.from(1_000_000),
+        perL1CalldataFee: BigNumber.from(1_000),
+        perArbGasTotal: BigNumber.from(1_000_000_000),
+      }
+
+      const {
+        estimatedGasUsedQuoteToken: estimatedGasUsedQuoteTokenArb,
+        estimatedGasUsedUSD: estimatedGasUsedUSDArb,
+        estimatedGasUsedGasToken: estimatedGasUsedGasTokenArb,
+        quoteGasAdjusted: quoteGasAdjustedArb
+      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, arbGasData, providerConfig);
+
+      // Arbitrum gas data should not affect the quote gas or USD amounts
+      expect(estimatedGasUsedQuoteTokenArb.currency.equals(quoteToken)).toBe(true);
+      expect(estimatedGasUsedUSDArb.equalTo(estimatedGasUsedUSD)).toBe(true);
+      expect(estimatedGasUsedGasTokenArb?.currency.equals(gasToken)).toBe(true);
+      expect(quoteGasAdjustedArb.equalTo(quoteGasAdjusted)).toBe(true);
     })
   })
 });

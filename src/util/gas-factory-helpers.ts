@@ -250,12 +250,9 @@ export async function calculateGasUsed(
   const gasPriceWei = route.gasPriceWei;
   // calculate L2 to L1 security fee if relevant
   let l2toL1FeeInWei = BigNumber.from(0);
-  if ([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_GOERLI].includes(chainId)) {
-    l2toL1FeeInWei = calculateArbitrumToL1FeeFromCalldata(
-      route.methodParameters!.calldata,
-      l2GasData as ArbitrumGasData
-    )[1];
-  } else if (
+  // Arbitrum charges L2 gas for L1 calldata posting costs.
+  // See https://github.com/Uniswap/smart-order-router/pull/464/files#r1441376802
+  if (
     [
       ChainId.OPTIMISM,
       ChainId.OPTIMISM_GOERLI,
