@@ -13,7 +13,10 @@ import {
   OptimismGasData,
 } from '../../../../providers/v3/gas-data-provider';
 import { CurrencyAmount } from '../../../../util/amounts';
-import { getL2ToL1GasUsed } from '../../../../util/gas-factory-helpers';
+import {
+  calculateArbitrumToL1FeeFromCalldata,
+  getL2ToL1GasUsed
+} from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
 import {
   buildSwapMethodParameters,
@@ -419,7 +422,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     swapConfig: SwapOptionsUniversalRouter,
     gasData: ArbitrumGasData
   ): [BigNumber, BigNumber] {
-    const { perL2TxFee, perL1CalldataFee } = gasData;
 
     const route: V3RouteWithValidQuote = routes[0]!;
 
@@ -439,11 +441,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       swapConfig,
       ChainId.ARBITRUM_ONE
     ).calldata;
-    // calculates gas amounts based on bytes of calldata, use 0 as overhead.
-    const l1GasUsed = getL2ToL1GasUsed(data, BigNumber.from(0));
-    // multiply by the fee per calldata and add the flat l2 fee
-    let l1Fee = l1GasUsed.mul(perL1CalldataFee);
-    l1Fee = l1Fee.add(perL2TxFee);
-    return [l1GasUsed, l1Fee];
+    return calculateArbitrumToL1FeeFromCalldata(data, gasData);
   }
 }
