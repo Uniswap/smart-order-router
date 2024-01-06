@@ -3,6 +3,7 @@ import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk/dist/entities';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import brotli from 'brotli';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
@@ -10,7 +11,7 @@ import { IV2PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
 import {
   ArbitrumGasData,
-  OptimismGasData,
+  OptimismGasData
 } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
@@ -22,9 +23,13 @@ import {
   SwapRoute,
   usdGasTokensByChain,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote,
+  V3RouteWithValidQuote
 } from '../routers';
-import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import {
+  CurrencyAmount,
+  log,
+  WRAPPED_NATIVE_CURRENCY
+} from '../util';
 
 import { buildTrade } from './methodParameters';
 
@@ -184,26 +189,43 @@ export function getGasCostInNativeCurrency(
   return costNativeCurrency;
 }
 
+export function getArbitrumBytes(data: string): BigNumber {
+  if (data == "") return BigNumber.from(0);
+  const compressed = brotli.compress(Buffer.from(data.replace('0x', ''), 'hex'), {
+    mode: 0,
+    quality: 1,
+    lgwin: 22,
+  });
+  // TODO: This is a rough estimate of the compressed size
+  // Brotli 0 should be used, but this brotli library doesn't support it
+  // https://github.com/foliojs/brotli.js/issues/38
+  // There are other brotli libraries that do support it, but require async
+  // We workaround by using Brotli 1 with a 20% bump in size
+  return BigNumber.from(compressed.length).mul(120).div(100)
+}
+
 export function calculateArbitrumToL1FeeFromCalldata(
   calldata: string,
-  gasData: ArbitrumGasData
-): [BigNumber, BigNumber] {
-  const { perL2TxFee, perL1CalldataFee } = gasData;
+  gasData: ArbitrumGasData,
+  chainId: ChainId
+): [BigNumber, BigNumber, BigNumber] {
+  const { perL2TxFee, perL1CalldataFee, perArbGasTotal } = gasData;
   // calculates gas amounts based on bytes of calldata, use 0 as overhead.
-  const l1GasUsed = getL2ToL1GasUsed(calldata, BigNumber.from(0));
+  const l1GasUsed = getL2ToL1GasUsed(calldata, BigNumber.from(0), chainId);
   // multiply by the fee per calldata and add the flat l2 fee
-  let l1Fee = l1GasUsed.mul(perL1CalldataFee);
-  l1Fee = l1Fee.add(perL2TxFee);
-  return [l1GasUsed, l1Fee];
+  const l1Fee = l1GasUsed.mul(perL1CalldataFee).add(perL2TxFee);
+  const gasUsedL1OnL2 = l1Fee.div(perArbGasTotal);
+  return [l1GasUsed, l1Fee, gasUsedL1OnL2];
 }
 
 export function calculateOptimismToL1FeeFromCalldata(
   calldata: string,
-  gasData: OptimismGasData
+  gasData: OptimismGasData,
+  chainId: ChainId
 ): [BigNumber, BigNumber] {
   const { l1BaseFee, scalar, decimals, overhead } = gasData;
 
-  const l1GasUsed = getL2ToL1GasUsed(calldata, overhead);
+  const l1GasUsed = getL2ToL1GasUsed(calldata, overhead, chainId);
   // l1BaseFee is L1 Gas Price on etherscan
   const l1Fee = l1GasUsed.mul(l1BaseFee);
   const unscaled = l1Fee.mul(scalar);
@@ -213,23 +235,38 @@ export function calculateOptimismToL1FeeFromCalldata(
   return [l1GasUsed, scaled];
 }
 
-// based on the code from the optimism OVM_GasPriceOracle contract
-export function getL2ToL1GasUsed(data: string, overhead: BigNumber): BigNumber {
-  // data is hex encoded
-  const dataArr: string[] = data.slice(2).match(/.{1,2}/g)!;
-  const numBytes = dataArr.length;
-  let count = 0;
-  for (let i = 0; i < numBytes; i += 1) {
-    const byte = parseInt(dataArr[i]!, 16);
-    if (byte == 0) {
-      count += 4;
-    } else {
-      count += 16;
+export function getL2ToL1GasUsed(data: string, overhead: BigNumber, chainId: ChainId): BigNumber {
+  switch (chainId) {
+    case ChainId.ARBITRUM_ONE:
+    case ChainId.ARBITRUM_GOERLI: {
+      // calculates bytes of compressed calldata
+      const l1ByteUsed = getArbitrumBytes(data);
+      return l1ByteUsed.mul(16);
     }
+    case ChainId.OPTIMISM:
+    case ChainId.OPTIMISM_GOERLI:
+    case ChainId.BASE:
+    case ChainId.BASE_GOERLI: {
+      // based on the code from the optimism OVM_GasPriceOracle contract
+      // data is hex encoded
+      const dataArr: string[] = data.slice(2).match(/.{1,2}/g)!;
+      const numBytes = dataArr.length;
+      let count = 0;
+      for (let i = 0; i < numBytes; i += 1) {
+        const byte = parseInt(dataArr[i]!, 16);
+        if (byte == 0) {
+          count += 4;
+        } else {
+          count += 16;
+        }
+      }
+      const unsigned = overhead.add(count);
+      const signedConversion = 68 * 16;
+      return unsigned.add(signedConversion);
+    }
+    default:
+      return BigNumber.from(0);
   }
-  const unsigned = overhead.add(count);
-  const signedConversion = 68 * 16;
-  return unsigned.add(signedConversion);
 }
 
 export async function calculateGasUsed(
@@ -262,7 +299,8 @@ export async function calculateGasUsed(
   ) {
     l2toL1FeeInWei = calculateOptimismToL1FeeFromCalldata(
       route.methodParameters!.calldata,
-      l2GasData as OptimismGasData
+      l2GasData as OptimismGasData,
+      chainId
     )[1];
   }
 

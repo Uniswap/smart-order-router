@@ -50,6 +50,7 @@ export class OptimismGasDataProvider
    * scalar, decimals, and overhead values.
    */
   public async getGasData(): Promise<OptimismGasData> {
+    // TODO: Also get the gasPrice from GasPriceOracle.sol
     const funcNames = ['l1BaseFee', 'scalar', 'decimals', 'overhead'];
     const tx =
       await this.multicall2Provider.callMultipleFunctionsOnSameContract<
