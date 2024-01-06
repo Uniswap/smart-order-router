@@ -75,7 +75,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     IGasModel<V3RouteWithValidQuote>
   > {
     const l2GasData = l2GasDataProvider
-      ? await l2GasDataProvider.getGasData()
+      ? await l2GasDataProvider.getGasData(providerConfig)
       : undefined;
 
     const usdPool: Pool = pools.usdPool;
