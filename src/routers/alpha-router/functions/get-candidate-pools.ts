@@ -445,12 +445,12 @@ export async function getV3CandidatePools({
         ? subgraphPool.token1.id
         : subgraphPool.token0.id;
     })
+    .filter((secondHopId: string) => !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()))
     .flatMap((secondHopId: string) => {
       return _(subgraphPoolsSorted)
         .filter((subgraphPool) => {
           return (
             !poolAddressesSoFar.has(subgraphPool.id) &&
-            !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()) &&
             (subgraphPool.token0.id == secondHopId ||
               subgraphPool.token1.id == secondHopId)
           );
@@ -472,13 +472,13 @@ export async function getV3CandidatePools({
         ? subgraphPool.token1.id
         : subgraphPool.token0.id;
     })
+    .filter((secondHopId: string) => !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()))
     .flatMap((secondHopId: string) => {
       return _(subgraphPoolsSorted)
         .filter((subgraphPool) => {
           return (
-            !poolAddressesSoFar.has(subgraphPool.id) &&
-            !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()) &&
-            (subgraphPool.token0.id == secondHopId ||
+            !poolAddressesSoFar.has(subgraphPool.id) 
+            && (subgraphPool.token0.id == secondHopId ||
               subgraphPool.token1.id == secondHopId)
           );
         })
