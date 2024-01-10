@@ -10,6 +10,7 @@ import {
   ITokenProvider,
   USDC_AVAX,
   USDC_BASE,
+  USDC_BASE_GOERLI,
   USDC_BNB,
   USDC_MAINNET,
   USDT_BNB,
@@ -65,7 +66,10 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       DAI_AVAX,
     ],
     [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE]!, USDC_BASE],
-    [ChainId.BASE_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]!],
+    [ChainId.BASE_GOERLI]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]!,
+      USDC_BASE_GOERLI,
+    ],
   };
 };
 
