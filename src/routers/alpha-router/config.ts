@@ -1,6 +1,6 @@
 import { ChainId } from '@uniswap/sdk-core';
 
-import { AlphaRouterConfig } from './alpha-router';
+import { AlphaRouterConfig, LowerCaseStringArray } from './alpha-router';
 
 export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
   chainId: ChainId
@@ -71,6 +71,9 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
           topNDirectSwaps: 1,
           topNTokenInOut: 5,
           topNSecondHop: 2,
+          tokensToAvoidOnSecondHops: new LowerCaseStringArray(
+            '0xd46ba6d942050d489dbd938a2c909a5d5039a161' // AMPL on Mainnet
+          ),
           topNWithEachBaseToken: 2,
           topNWithBaseToken: 6,
         },

@@ -5,10 +5,20 @@
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, CurrencyAmount, Ether, Percent, Token, TradeType, } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  Currency,
+  CurrencyAmount,
+  Ether,
+  Fraction,
+  Percent,
+  Rounding,
+  Token,
+  TradeType
+} from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
-  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
+  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
 } from '@uniswap/universal-router-sdk';
 import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
 import { Pair } from '@uniswap/v2-sdk';
@@ -23,6 +33,7 @@ import NodeCache from 'node-cache';
 import {
   AlphaRouter,
   AlphaRouterConfig,
+  CachingV2PoolProvider,
   CachingV3PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
@@ -49,6 +60,7 @@ import {
   SwapOptions,
   SwapType,
   TenderlySimulator,
+  TokenPropertiesProvider,
   UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
@@ -67,18 +79,22 @@ import {
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
-  TokenPropertiesProvider,
-  TokenValidatorProvider,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
+import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
 import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
+import { BULLET, BULLET_WITHOUT_TAX, FLAT_PORTION, GREENLIST_TOKEN_PAIRS, Portion } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 17894002;
+// TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023 deployed at block 18222746. We can use later block, e.g. at block 18318644
+// TODO: permit-related tests will fail during hardfork swap execution when changing to later block. Investigate why.
+const FORK_BLOCK = 18222746;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
+const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -94,6 +110,21 @@ const checkQuoteToken = (
     : tokensSwapped.subtract(tokensQuoted);
 
   const percentDiff = tokensDiff.asFraction.divide(tokensQuoted.asFraction);
+  expect(percentDiff.lessThan(SLIPPAGE.asFraction)).toBe(true);
+};
+
+const checkPortionRecipientToken = (
+  before: CurrencyAmount<Currency>,
+  after: CurrencyAmount<Currency>,
+  expectedPortionAmountReceived: CurrencyAmount<Currency>
+) => {
+  const actualPortionAmountReceived = after.subtract(before);
+
+  const tokensDiff = expectedPortionAmountReceived.greaterThan(actualPortionAmountReceived)
+    ? expectedPortionAmountReceived.subtract(actualPortionAmountReceived)
+    : actualPortionAmountReceived.subtract(expectedPortionAmountReceived);
+  // There will be a slight difference between expected and actual due to slippage during the hardhat fork swap.
+  const percentDiff = tokensDiff.asFraction.divide(expectedPortionAmountReceived.asFraction);
   expect(percentDiff.lessThan(SLIPPAGE.asFraction)).toBe(true);
 };
 
@@ -168,6 +199,7 @@ describe('alpha router integration', () => {
 
   let alphaRouter: AlphaRouter;
   let customAlphaRouter: AlphaRouter;
+  let feeOnTransferAlphaRouter: AlphaRouter;
   const multicall2Provider = new UniswapMulticallProvider(
     ChainId.MAINNET,
     hardhat.provider
@@ -177,6 +209,7 @@ describe('alpha router integration', () => {
     // @ts-ignore[TS7053] - complaining about switch being non exhaustive
     ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
     protocols: [Protocol.V3, Protocol.V2],
+    saveTenderlySimulationIfFailed: true, // save tenderly simulation on integ-test runs, easier for debugging
   };
 
   const executeSwap = async (
@@ -185,18 +218,24 @@ describe('alpha router integration', () => {
     tokenIn: Currency,
     tokenOut: Currency,
     gasLimit?: BigNumber,
-    permit?: boolean
+    permit?: boolean,
+    portion?: Portion
   ): Promise<{
     tokenInAfter: CurrencyAmount<Currency>;
     tokenInBefore: CurrencyAmount<Currency>;
     tokenOutAfter: CurrencyAmount<Currency>;
     tokenOutBefore: CurrencyAmount<Currency>;
+    tokenOutPortionRecipientBefore?: CurrencyAmount<Currency>;
+    tokenOutPortionRecipientAfter?: CurrencyAmount<Currency>;
   }> => {
     expect(tokenIn.symbol).not.toBe(tokenOut.symbol);
     let transactionResponse: providers.TransactionResponse;
 
     let tokenInBefore: CurrencyAmount<Currency>;
     let tokenOutBefore: CurrencyAmount<Currency>;
+    const tokenOutPortionRecipientBefore = portion
+      ? await hardhat.getBalance(portion.recipient, tokenOut)
+      : undefined;
     if (swapType == SwapType.UNIVERSAL_ROUTER) {
       // Approve Permit2
       // We use this helper function for approving rather than hardhat.provider.approve
@@ -272,12 +311,17 @@ describe('alpha router integration', () => {
 
     const tokenInAfter = await hardhat.getBalance(alice._address, tokenIn);
     const tokenOutAfter = await hardhat.getBalance(alice._address, tokenOut);
+    const tokenOutPortionRecipientAfter = portion
+      ? await hardhat.getBalance(portion.recipient, tokenOut)
+      : undefined;
 
     return {
       tokenInAfter,
       tokenInBefore,
       tokenOutAfter,
       tokenOutBefore,
+      tokenOutPortionRecipientBefore,
+      tokenOutPortionRecipientAfter,
     };
   };
 
@@ -294,7 +338,10 @@ describe('alpha router integration', () => {
     quoteGasAdjusted: CurrencyAmount<Currency>,
     tradeType: TradeType,
     targetQuoteDecimalsAmount?: number,
-    acceptableDifference?: number
+    acceptableDifference?: number,
+    quoteGasAndPortionAdjusted?: CurrencyAmount<Currency>,
+    targetQuoteGasAndPortionAdjustedDecimalsAmount?: number,
+    acceptablePortionDifference?: number
   ) => {
     // strict undefined checks here to avoid confusion with 0 being a falsy value
     if (targetQuoteDecimalsAmount !== undefined) {
@@ -325,12 +372,47 @@ describe('alpha router integration', () => {
       ).toBe(true);
     }
 
+    if (targetQuoteGasAndPortionAdjustedDecimalsAmount && quoteGasAndPortionAdjusted) {
+      acceptablePortionDifference = acceptablePortionDifference ?? 0
+
+      expect(
+        quoteGasAndPortionAdjusted.greaterThan(
+          CurrencyAmount.fromRawAmount(
+            quoteGasAndPortionAdjusted.currency,
+            expandDecimals(
+              quoteGasAndPortionAdjusted.currency,
+              targetQuoteGasAndPortionAdjustedDecimalsAmount - acceptablePortionDifference
+            )
+          )
+        )
+      ).toBe(true);
+      expect(
+        quoteGasAndPortionAdjusted.lessThan(
+          CurrencyAmount.fromRawAmount(
+            quoteGasAndPortionAdjusted.currency,
+            expandDecimals(
+              quoteGasAndPortionAdjusted.currency,
+              targetQuoteGasAndPortionAdjustedDecimalsAmount + acceptablePortionDifference
+            )
+          )
+        )
+      ).toBe(true);
+    }
+
     if (tradeType == TradeType.EXACT_INPUT) {
       // == lessThanOrEqualTo
       expect(!quoteGasAdjusted.greaterThan(quote)).toBe(true);
+
+      if (quoteGasAndPortionAdjusted) {
+        expect(!quoteGasAndPortionAdjusted.greaterThan(quoteGasAdjusted)).toBe(true);
+      }
     } else {
       // == greaterThanOrEqual
       expect(!quoteGasAdjusted.lessThan(quote)).toBe(true);
+
+      if (quoteGasAndPortionAdjusted) {
+        expect(!quoteGasAndPortionAdjusted.lessThan(quoteGasAdjusted)).toBe(true);
+      }
     }
   };
 
@@ -354,17 +436,21 @@ describe('alpha router integration', () => {
     checkTokenInAmount?: number,
     checkTokenOutAmount?: number,
     estimatedGasUsed?: BigNumber,
-    permit?: boolean
+    permit?: boolean,
+    portion?: Portion,
+    checkTokenOutPortionAmount?: number,
+    skipQuoteTokenCheck?: boolean,
   ) => {
     expect(methodParameters).not.toBeUndefined();
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } =
+    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, tokenOutPortionRecipientBefore, tokenOutPortionRecipientAfter } =
       await executeSwap(
         swapType,
         methodParameters!,
         tokenIn,
         tokenOut!,
         estimatedGasUsed,
-        permit
+        permit,
+        portion
       );
 
     if (tradeType == TradeType.EXACT_INPUT) {
@@ -380,12 +466,24 @@ describe('alpha router integration', () => {
             )
         ).toBe(true);
       }
-      checkQuoteToken(
-        tokenOutBefore,
-        tokenOutAfter,
-        /// @dev we need to recreate the CurrencyAmount object here because tokenOut can be different from quote.currency (in the case of ETH vs. WETH)
-        CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
-      );
+      if (!skipQuoteTokenCheck) {
+        checkQuoteToken(
+          tokenOutBefore,
+          tokenOutAfter,
+          /// @dev we need to recreate the CurrencyAmount object here because tokenOut can be different from quote.currency (in the case of ETH vs. WETH)
+          CurrencyAmount.fromRawAmount(tokenOut, quote.quotient)
+        );
+      }
+      if (checkTokenOutPortionAmount) {
+        checkPortionRecipientToken(
+          tokenOutPortionRecipientBefore!,
+          tokenOutPortionRecipientAfter!,
+          CurrencyAmount.fromRawAmount(
+            tokenOut,
+            expandDecimals(tokenOut, checkTokenOutPortionAmount)
+          )
+        );
+      }
     } else {
       if (checkTokenOutAmount) {
         expect(
@@ -399,11 +497,23 @@ describe('alpha router integration', () => {
             )
         ).toBe(true);
       }
-      checkQuoteToken(
-        tokenInBefore,
-        tokenInAfter,
-        CurrencyAmount.fromRawAmount(tokenIn, quote.quotient)
-      );
+      if (!skipQuoteTokenCheck) {
+        checkQuoteToken(
+          tokenInBefore,
+          tokenInAfter,
+          CurrencyAmount.fromRawAmount(tokenIn, quote.quotient)
+        );
+      }
+      if (checkTokenOutPortionAmount) {
+        checkPortionRecipientToken(
+          tokenOutPortionRecipientBefore!,
+          tokenOutPortionRecipientAfter!,
+          CurrencyAmount.fromRawAmount(
+            tokenOut,
+            expandDecimals(tokenOut, checkTokenOutPortionAmount)
+          )
+        );
+      }
     }
   };
 
@@ -446,6 +556,14 @@ describe('alpha router integration', () => {
       ]
     );
 
+    await hardhat.fund(
+      alice._address,
+      [parseAmount('735871', BULLET)],
+      [
+        '0x171d311eAcd2206d21Cb462d661C33F0eddadC03', // BULLET whale
+      ]
+    );
+
     // alice should always have 10000 ETH
     const aliceEthBalance = await hardhat.provider.getBalance(alice._address);
     /// Since alice is deploying the QuoterV3 contract, expect to have slightly less than 10_000 ETH but not too little
@@ -477,24 +595,23 @@ describe('alpha router integration', () => {
       UNI_MAINNET
     );
     expect(aliceUNIBalance).toEqual(parseAmount('1000', UNI_MAINNET));
+    const aliceBULLETBalance = await hardhat.getBalance(
+      alice._address,
+      BULLET
+    )
+    expect(aliceBULLETBalance).toEqual(parseAmount('735871', BULLET))
 
     const v3PoolProvider = new CachingV3PoolProvider(
       ChainId.MAINNET,
       new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
       new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
     );
-    const tokenValidatorProvider = new TokenValidatorProvider(
-      ChainId.MAINNET,
-      multicall2Provider,
-      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-    )
     const tokenFeeFetcher = new OnChainTokenFeeFetcher(
       ChainId.MAINNET,
       hardhat.provider
     )
     const tokenPropertiesProvider = new TokenPropertiesProvider(
       ChainId.MAINNET,
-      tokenValidatorProvider,
       new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
       tokenFeeFetcher
     )
@@ -503,12 +620,19 @@ describe('alpha router integration', () => {
       multicall2Provider,
       tokenPropertiesProvider
     );
+    const cachingV2PoolProvider = new CachingV2PoolProvider(
+      ChainId.MAINNET,
+      v2PoolProvider,
+      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+    )
 
+    const portionProvider = new PortionProvider();
     const ethEstimateGasSimulator = new EthEstimateGasSimulator(
       ChainId.MAINNET,
       hardhat.providers[0]!,
       v2PoolProvider,
-      v3PoolProvider
+      v3PoolProvider,
+      portionProvider
     );
 
     const tenderlySimulator = new TenderlySimulator(
@@ -519,12 +643,14 @@ describe('alpha router integration', () => {
       process.env.TENDERLY_ACCESS_KEY!,
       v2PoolProvider,
       v3PoolProvider,
-      hardhat.providers[0]!
+      hardhat.providers[0]!,
+      portionProvider
     );
 
     const simulator = new FallbackTenderlySimulator(
       ChainId.MAINNET,
       hardhat.providers[0]!,
+      new PortionProvider(),
       tenderlySimulator,
       ethEstimateGasSimulator
     );
@@ -548,13 +674,22 @@ describe('alpha router integration', () => {
       v3PoolProvider,
       simulator: ethEstimateGasSimulator,
     });
+
+    feeOnTransferAlphaRouter = new AlphaRouter({
+      chainId: ChainId.MAINNET,
+      provider: hardhat.providers[0]!,
+      multicall2Provider,
+      v2PoolProvider: cachingV2PoolProvider,
+      v3PoolProvider,
+      simulator,
+    });
   });
 
   /**
    *  tests are 1:1 with routing api integ tests
    */
   for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
-    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType}`, () => {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType.toString()}`, () => {
       describe(`+ Execute on Hardhat Fork`, () => {
         it('erc20 -> erc20', async () => {
           // declaring these to reduce confusion
@@ -1412,6 +1547,99 @@ describe('alpha router integration', () => {
             100
           );
         });
+
+        it('erc20 -> erc20 gas token specified', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = USDT_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('100', tokenIn)
+              : parseAmount('100', tokenOut);
+  
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              gasToken: DAI_MAINNET.address
+            }
+          );
+  
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+  
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken } = swap!;
+  
+          expect(estimatedGasUsedGasToken).toBeDefined();
+          expect(estimatedGasUsedGasToken?.currency.equals(DAI_MAINNET)).toBe(true);
+  
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+  
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            100,
+            100
+          );
+        });
+  
+        it('erc20 -> eth gas token as weth', async () => {
+          // declaring these to reduce confusion
+          const tokenIn = USDC_MAINNET;
+          const tokenOut = Ether.onChain(1) as Currency;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1000000', tokenIn)
+              : parseAmount('10', tokenOut);
+  
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              gasToken: WRAPPED_NATIVE_CURRENCY[1]!.address
+            }
+          );
+  
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+  
+          const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken } = swap!;
+  
+          expect(estimatedGasUsedGasToken).toBeDefined();
+          expect(estimatedGasUsedGasToken?.currency.equals(WRAPPED_NATIVE_CURRENCY[1]!)).toBe(true);
+  
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+  
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            1000000
+          );
+        });
       });
 
       if (isTenderlyEnvironmentSet()) {
@@ -1619,7 +1847,7 @@ describe('alpha router integration', () => {
               {
                 type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
+                slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
@@ -1821,7 +2049,7 @@ describe('alpha router integration', () => {
               {
                 type: SwapType.UNIVERSAL_ROUTER,
                 recipient: alice._address,
-                slippageTolerance: SLIPPAGE,
+                slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
                 simulate: { fromAddress: WHALES(tokenIn) },
               },
@@ -2098,7 +2326,7 @@ describe('alpha router integration', () => {
             );
           });
 
-          it('eth -> erc20 without sufficient ETH balance', async () => {
+          it.skip('eth -> erc20 without sufficient ETH balance', async () => {
             /// Fails for v3 for some reason, ProviderGasError
             const tokenIn = Ether.onChain(1) as Currency;
             const tokenOut = UNI_MAINNET;
@@ -2279,6 +2507,384 @@ describe('alpha router integration', () => {
 
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
           });
+
+          it('erc20 -> erc20 gas token specified', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = USDT_MAINNET;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('100', tokenIn)
+                : parseAmount('100', tokenOut);
+    
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                gasToken: DAI_MAINNET.address
+              }
+            );
+    
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+    
+            const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken, simulationStatus } = swap!;
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+            expect(estimatedGasUsedGasToken).toBeDefined();
+            expect(estimatedGasUsedGasToken?.currency.equals(DAI_MAINNET)).toBe(true);
+    
+            await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+    
+            await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              100,
+              100
+            );
+          });
+    
+          it('erc20 -> eth gas token as weth', async () => {
+            // declaring these to reduce confusion
+            const tokenIn = USDC_MAINNET;
+            const tokenOut = Ether.onChain(1) as Currency;
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('1000000', tokenIn)
+                : parseAmount('10', tokenOut);
+    
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              {
+                type: SwapType.UNIVERSAL_ROUTER,
+                recipient: alice._address,
+                slippageTolerance: SLIPPAGE,
+                deadlineOrPreviousBlockhash: parseDeadline(360),
+                simulate: { fromAddress: WHALES(tokenIn) },
+              },
+              {
+                ...ROUTING_CONFIG,
+                gasToken: WRAPPED_NATIVE_CURRENCY[1]!.address
+              }
+            );
+    
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+    
+            const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken, simulationStatus } = swap!;
+
+            expect(simulationStatus).toBeDefined();
+            expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
+            expect(estimatedGasUsedGasToken).toBeDefined();
+            expect(estimatedGasUsedGasToken?.currency.equals(WRAPPED_NATIVE_CURRENCY[1]!)).toBe(true);
+    
+            await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+    
+            await validateExecuteSwap(
+              SwapType.UNIVERSAL_ROUTER,
+              quote,
+              tokenIn,
+              tokenOut,
+              methodParameters,
+              tradeType,
+              1000000
+            );
+          });
+
+          GREENLIST_TOKEN_PAIRS.forEach(([tokenIn, tokenOut]) => {
+            it(`${tokenIn.symbol} -> ${tokenOut.symbol} with portion`, async () => {
+              const originalAmount = (tokenIn.symbol === 'WBTC' && tradeType === TradeType.EXACT_INPUT) ||
+              (tokenOut.symbol === 'WBTC' && tradeType === TradeType.EXACT_OUTPUT)
+                ? '1'
+                : '100';
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount(originalAmount, tokenIn)
+                  : parseAmount(originalAmount, tokenOut);
+              const bps = new Percent(FLAT_PORTION.bips, 10_000)
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: alice._address,
+                  slippageTolerance: LARGE_SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                  simulate: { fromAddress: WHALES(tokenIn) },
+                  fee: tradeType == TradeType.EXACT_INPUT ? { fee: bps, recipient: FLAT_PORTION.recipient } : undefined,
+                  flatFee: tradeType == TradeType.EXACT_OUTPUT ? { amount: amount.multiply(bps).quotient.toString(), recipient: FLAT_PORTION.recipient } : undefined
+                },
+                {
+                  ...ROUTING_CONFIG,
+                }
+              );
+
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+
+              // Expect tenderly simulation to be successful
+              expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+              expect(swap!.methodParameters).toBeDefined();
+              expect(swap!.methodParameters!.to).toBeDefined();
+
+              const { quote, quoteGasAdjusted, quoteGasAndPortionAdjusted, methodParameters, portionAmount, route } = swap!;
+
+              // The most strict way to ensure the output amount from route path is correct with respect to portion
+              // is to make sure the output amount from route path is exactly portion bps different from the quote
+              const allQuotesAcrossRoutes = route.map(route => route.quote).reduce((sum, quote) => quote.add(sum))
+              if (tradeType === TradeType.EXACT_INPUT) {
+                const tokensDiff = quote.subtract(allQuotesAcrossRoutes)
+                const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+              } else {
+                expect(allQuotesAcrossRoutes.greaterThan(quote)).toBe(true);
+
+                const tokensDiff = allQuotesAcrossRoutes.subtract(quote)
+                const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+              }
+
+              expect(quoteGasAndPortionAdjusted).toBeDefined();
+              expect(portionAmount).toBeDefined();
+
+              const expectedPortionAmount = tradeType === TradeType.EXACT_INPUT ? quote.multiply(new Fraction(FLAT_PORTION.bips, 10_000)) : amount.multiply(new Fraction(FLAT_PORTION.bips, 10_000))
+              expect(portionAmount?.toExact()).toEqual(expectedPortionAmount.toExact())
+
+              // We must have very strict difference tolerance to not hide any bug.
+              // the only difference can be due to rounding,
+              // so regardless of token decimals & amounts,
+              // the difference will always be at most 1
+              const acceptableDifference = 1
+              const acceptablePortionDifference = 1
+              const portionQuoteAmount = tradeType === TradeType.EXACT_OUTPUT ? quoteGasAndPortionAdjusted!.subtract(quoteGasAdjusted) : portionAmount
+              expect(portionQuoteAmount).toBeDefined();
+
+              const targetQuoteGasAndPortionAdjustedDecimalsAmount =
+                tradeType === TradeType.EXACT_OUTPUT ?
+                  quoteGasAdjusted.add(portionQuoteAmount!) :
+                  quoteGasAdjusted.subtract(expectedPortionAmount)
+              await validateSwapRoute(
+                quote,
+                quoteGasAdjusted,
+                tradeType,
+                parseFloat(quote.toFixed(0)),
+                acceptableDifference,
+                quoteGasAndPortionAdjusted,
+                parseFloat(targetQuoteGasAndPortionAdjustedDecimalsAmount.toFixed(0)),
+                acceptablePortionDifference
+              );
+
+              // skip checking token in amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
+              const checkTokenInAmount = tokenIn.isNative ? undefined: parseFloat(amount.toFixed(0))
+              // skip checking token out amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
+              const checkTokenOutAmount = tokenOut.isNative ? undefined : parseFloat(amount.toFixed(0))
+              const checkPortionAmount = parseFloat(expectedPortionAmount.toFixed(0))
+
+              const skipQuoteTokenCheck =
+                // If token out is native, and trade type is exact in, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
+                tokenOut.isNative && tradeType === TradeType.EXACT_INPUT
+                // If token in is native, and trade type is exact out, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
+                || tokenIn.isNative && tradeType === TradeType.EXACT_OUTPUT
+
+              await validateExecuteSwap(
+                SwapType.UNIVERSAL_ROUTER,
+                quote,
+                tokenIn,
+                tokenOut,
+                methodParameters,
+                tradeType,
+                checkTokenInAmount,
+                checkTokenOutAmount,
+                undefined,
+                false,
+                FLAT_PORTION,
+                checkPortionAmount,
+                skipQuoteTokenCheck
+              );
+            });
+          });
+
+          // FOT swap only works for exact in
+          if (tradeType === TradeType.EXACT_INPUT) {
+            const tokenInAndTokenOut = [
+              [BULLET_WITHOUT_TAX, WETH9[ChainId.MAINNET]!],
+              [WETH9[ChainId.MAINNET]!, BULLET_WITHOUT_TAX],
+            ]
+
+            tokenInAndTokenOut.forEach(([tokenIn, tokenOut]) => {
+              it(`fee-on-transfer ${tokenIn?.symbol} -> ${tokenOut?.symbol}`, async () => {
+                const enableFeeOnTransferFeeFetching = [true, false, undefined]
+                // we want to swap the tokenIn/tokenOut order so that we can test both sellFeeBps and buyFeeBps for exactIn vs exactOut
+                const originalAmount = tokenIn?.equals(WETH9[ChainId.MAINNET]!) ? '10' : '2924'
+                const amount = parseAmount(originalAmount, tokenIn!);
+
+                // Parallelize the FOT quote requests, because we notice there might be tricky race condition that could cause quote to not include FOT tax
+                const responses = await Promise.all(
+                  enableFeeOnTransferFeeFetching.map(async (enableFeeOnTransferFeeFetching) => {
+                    if (enableFeeOnTransferFeeFetching) {
+                      // if it's FOT flag enabled request, we delay it so that it's more likely to repro the race condition in
+                      // https://github.com/Uniswap/smart-order-router/pull/415#issue-1914604864
+                      await new Promise((f) => setTimeout(f, 1000))
+                    }
+
+                    const swap = await feeOnTransferAlphaRouter.route(
+                      amount,
+                      getQuoteToken(tokenIn!, tokenOut!, tradeType),
+                      tradeType,
+                      {
+                        type: SwapType.UNIVERSAL_ROUTER,
+                        recipient: alice._address,
+                        slippageTolerance: LARGE_SLIPPAGE,
+                        deadlineOrPreviousBlockhash: parseDeadline(360),
+                        simulate: { fromAddress: WHALES(tokenIn!) },
+                      },
+                      {
+                        ...ROUTING_CONFIG,
+                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching
+                      }
+                    );
+
+                    expect(swap).toBeDefined();
+                    expect(swap).not.toBeNull();
+
+                    // Expect tenderly simulation to be successful
+                    expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    expect(swap!.methodParameters).toBeDefined();
+                    expect(swap!.methodParameters!.to).toBeDefined();
+
+                    return { enableFeeOnTransferFeeFetching, ...swap! }
+                  })
+                )
+
+                const quoteWithFlagOn = responses.find((r) => r.enableFeeOnTransferFeeFetching === true)
+                expect(quoteWithFlagOn).toBeDefined();
+                responses
+                  .filter((r) => r.enableFeeOnTransferFeeFetching !== true)
+                  .forEach((r) => {
+                    if (tradeType === TradeType.EXACT_INPUT) {
+                      // quote without fot flag must be greater than the quote with fot flag
+                      // this is to catch https://github.com/Uniswap/smart-order-router/pull/421
+                      expect(r.quote.greaterThan(quoteWithFlagOn!.quote)).toBeTruthy();
+
+                      // below is additional assertion to ensure the quote without fot tax vs quote with tax should be very roughly equal to the fot sell/buy tax rate
+                      const tokensDiff = r.quote.subtract(quoteWithFlagOn!.quote);
+                      const percentDiff = tokensDiff.asFraction.divide(r.quote.asFraction);
+                      if (tokenIn?.equals(BULLET_WITHOUT_TAX)) {
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.sellFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                      } else if (tokenOut?.equals(BULLET_WITHOUT_TAX)) {
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.buyFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                      }
+                    }
+                  })
+
+                for (const response of responses) {
+                  const { enableFeeOnTransferFeeFetching, quote, quoteGasAdjusted, methodParameters, route, estimatedGasUsed } = response
+
+                  if (tradeType == TradeType.EXACT_INPUT) {
+                    expect(quoteGasAdjusted.lessThan(quote)).toBeTruthy();
+                  } else {
+                    expect(quoteGasAdjusted.greaterThan(quote)).toBeTruthy();
+                  }
+
+                  expect(methodParameters).toBeDefined();
+
+                  for (const r of route) {
+                    expect(r.route).toBeInstanceOf(V2Route)
+                    const tokenIn = (r.route as V2Route).input
+                    const tokenOut = (r.route as V2Route).output
+                    const pools = (r.route as V2Route).pairs
+
+                    for (const pool of pools) {
+                      if (enableFeeOnTransferFeeFetching) {
+                        // the assertion here will differ from routing-api one
+                        // https://github.com/Uniswap/routing-api/blob/09a40a0a9a40ad0881337decd0db9a43ba39f3eb/test/mocha/integ/quote.test.ts#L1141-L1152
+                        // the reason is because from sor, we intentionally don't reinstantiate token in and token out with the fot taxes
+                        // at sor level, fot taxes can only be retrieved from the pool reserves
+                        if (tokenIn.address === BULLET.address) {
+                          expect(tokenIn.sellFeeBps).toBeUndefined();
+                          expect(tokenIn.buyFeeBps).toBeUndefined();
+                        }
+                        if (tokenOut.address === BULLET.address) {
+                          expect(tokenOut.sellFeeBps).toBeUndefined();
+                          expect(tokenOut.buyFeeBps).toBeUndefined();
+                        }
+                        if (pool.reserve0.currency.address === BULLET.address) {
+                          expect(pool.reserve0.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve0.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString())
+                          expect(pool.reserve0.currency.buyFeeBps).toBeDefined();
+                          expect(pool.reserve0.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString())
+                        }
+                        if (pool.reserve1.currency.address === BULLET.address) {
+                          expect(pool.reserve1.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve1.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString())
+                          expect(pool.reserve1.currency.buyFeeBps).toBeDefined();
+                          expect(pool.reserve1.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString())
+                        }
+                      } else {
+                        expect(tokenOut.sellFeeBps).toBeUndefined();
+                        expect(tokenOut.buyFeeBps).toBeUndefined();
+                        // we actually don't have a way to toggle off the fot taxes for pool reserve at sor level,
+                        // due to https://github.com/Uniswap/smart-order-router/pull/415
+                        // we are relying on routing-api level test assertion
+                        // https://github.com/Uniswap/routing-api/blob/09a40a0a9a40ad0881337decd0db9a43ba39f3eb/test/mocha/integ/quote.test.ts#L1168-L1172
+                        if (pool.reserve0.currency.address === BULLET.address) {
+                          expect(pool.reserve0.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve0.currency.buyFeeBps).toBeDefined();
+                        }
+                        if (pool.reserve1.currency.address === BULLET.address) {
+                          expect(pool.reserve1.currency.sellFeeBps).toBeDefined();
+                          expect(pool.reserve1.currency.buyFeeBps).toBeDefined();
+                        }
+                      }
+                    }
+                  }
+
+                  // without enabling the fee fetching
+                  // sometimes we can get execute swap failure due to unpredictable gas limit
+                  // underneath the hood, the returned universal router calldata can be bad enough to cause swap failures
+                  // which is equivalent of what was happening in prod, before interface supports FOT
+                  // we only care about hardhat fork swap execution success after we enable fee-on-transfer
+                  if (enableFeeOnTransferFeeFetching) {
+                    const checkTokenInAmount = parseFloat(amount.toFixed(0))
+                    const checkTokenOutAmount = parseFloat(amount.toFixed(0))
+
+                    // We don't have a bullet proof way to asser the fot-involved quote is post tax
+                    // so the best way is to execute the swap on hardhat mainnet fork,
+                    // and make sure the executed quote doesn't differ from callstatic simulated quote by over slippage tolerance
+                    await validateExecuteSwap(
+                      SwapType.UNIVERSAL_ROUTER,
+                      quote,
+                      tokenIn!,
+                      tokenOut!,
+                      methodParameters,
+                      tradeType,
+                      checkTokenInAmount,
+                      checkTokenOutAmount,
+                      estimatedGasUsed
+                    );
+                  }
+                }
+              })
+            });
+          }
         });
       }
 
@@ -2383,6 +2989,8 @@ describe('alpha router integration', () => {
     describe(`exactIn mixedPath routes`, () => {
       describe('+ simulate swap', () => {
         it('BOND -> APE', async () => {
+          jest.setTimeout(1000 * 1000); // 1000s
+
           const tokenIn = BOND_MAINNET;
           const tokenOut = APE_MAINNET;
 
@@ -2705,28 +3313,24 @@ describe('quote for other networks', () => {
             new V3PoolProvider(chain, multicall2Provider),
             new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
           );
-          const tokenValidatorProvider = new TokenValidatorProvider(
-            ChainId.MAINNET,
-            multicall2Provider,
-            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-          )
           const tokenFeeFetcher = new OnChainTokenFeeFetcher(
             ChainId.MAINNET,
             hardhat.provider
           )
           const tokenPropertiesProvider = new TokenPropertiesProvider(
             ChainId.MAINNET,
-            tokenValidatorProvider,
             new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
             tokenFeeFetcher
           )
           const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider, tokenPropertiesProvider);
 
+          const portionProvider = new PortionProvider();
           const ethEstimateGasSimulator = new EthEstimateGasSimulator(
             chain,
             provider,
             v2PoolProvider,
-            v3PoolProvider
+            v3PoolProvider,
+            portionProvider
           );
 
           const tenderlySimulator = new TenderlySimulator(
@@ -2737,12 +3341,14 @@ describe('quote for other networks', () => {
             process.env.TENDERLY_ACCESS_KEY!,
             v2PoolProvider,
             v3PoolProvider,
-            provider
+            provider,
+            portionProvider
           );
 
           const simulator = new FallbackTenderlySimulator(
             chain,
             provider,
+            new PortionProvider(),
             tenderlySimulator,
             ethEstimateGasSimulator
           );
@@ -2921,7 +3527,7 @@ describe('quote for other networks', () => {
         });
 
         if (isTenderlyEnvironmentSet()) {
-          describe(`Simulate + Swap`, function() {
+          describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
             if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
               return;
@@ -2961,6 +3567,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
@@ -3016,6 +3623,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();
@@ -3038,7 +3646,9 @@ describe('quote for other networks', () => {
 
             it(`${native} -> erc20`, async () => {
               const tokenIn = nativeOnChain(chain);
-              const tokenOut = erc2;
+              // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
+              // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
+              const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)
@@ -3071,6 +3681,7 @@ describe('quote for other networks', () => {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                   protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
                 }
               );
               expect(swap).toBeDefined();

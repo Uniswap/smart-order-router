@@ -5,7 +5,11 @@ import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 
 export class StaticGasPriceProvider implements IGasPriceProvider {
   constructor(private gasPriceWei: BigNumber) {}
-  async getGasPrice(): Promise<GasPrice> {
+
+  async getGasPrice(
+    _latestBlockNumber: number,
+    _requestBlockNumber?: number
+  ): Promise<GasPrice> {
     return { gasPriceWei: this.gasPriceWei };
   }
 }

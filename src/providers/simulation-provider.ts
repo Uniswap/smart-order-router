@@ -3,20 +3,26 @@ import { ChainId, TradeType } from '@uniswap/sdk-core';
 import { PERMIT2_ADDRESS } from '@uniswap/universal-router-sdk';
 import { BigNumber } from 'ethers/lib/ethers';
 
-import { SwapOptions, SwapRoute, SwapType } from '../routers';
+import {
+  GasModelProviderConfig,
+  SwapOptions,
+  SwapRoute,
+  SwapType,
+} from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
-import {
-  CurrencyAmount,
-  log,
-  SWAP_ROUTER_02_ADDRESSES,
-} from '../util';
+import { CurrencyAmount, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
 
-import { ProviderConfig } from './provider';
+import { IPortionProvider } from './portion-provider';
 import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 
 export type SimulationResult = {
-  transaction: { hash: string; gas_used: number; gas: number; error_message: string };
+  transaction: {
+    hash: string;
+    gas_used: number;
+    gas: number;
+    error_message: string;
+  };
   simulation: { state_overrides: Record<string, unknown> };
 };
 
@@ -36,13 +42,19 @@ export enum SimulationStatus {
  */
 export abstract class Simulator {
   protected provider: JsonRpcProvider;
+  protected portionProvider: IPortionProvider;
 
   /**
    * Returns a new SwapRoute with simulated gas estimates
    * @returns SwapRoute
    */
-  constructor(provider: JsonRpcProvider, protected chainId: ChainId) {
+  constructor(
+    provider: JsonRpcProvider,
+    portionProvider: IPortionProvider,
+    protected chainId: ChainId
+  ) {
     this.provider = provider;
+    this.portionProvider = portionProvider;
   }
 
   public async simulate(
@@ -52,15 +64,18 @@ export abstract class Simulator {
     amount: CurrencyAmount,
     quote: CurrencyAmount,
     l2GasData?: OptimismGasData | ArbitrumGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
+    const neededBalance =
+      swapRoute.trade.tradeType == TradeType.EXACT_INPUT ? amount : quote;
     if (
-      await this.userHasSufficientBalance(
+      (neededBalance.currency.isNative && this.chainId == ChainId.MAINNET) ||
+      (await this.userHasSufficientBalance(
         fromAddress,
         swapRoute.trade.tradeType,
         amount,
         quote
-      )
+      ))
     ) {
       log.info(
         'User has sufficient balance to simulate. Simulating transaction.'
@@ -94,7 +109,7 @@ export abstract class Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     l2GasData?: OptimismGasData | ArbitrumGasData,
-    providerConfig?: ProviderConfig
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute>;
 
   protected async userHasSufficientBalance(

@@ -1,45 +1,45 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import {
-  ChainId,
-  Currency,
-  CurrencyAmount,
-  Token,
-  TradeType,
-} from '@uniswap/sdk-core';
+import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk/dist/entities';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { IV2PoolProvider } from '../providers';
-import { ProviderConfig } from '../providers/provider';
+import { IPortionProvider } from '../providers/portion-provider';
 import {
   ArbitrumGasData,
   OptimismGasData,
 } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
+  GasModelProviderConfig,
+  getQuoteThroughNativePool,
   MethodParameters,
   MixedRouteWithValidQuote,
+  SwapOptions,
   SwapRoute,
   usdGasTokensByChain,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '../routers';
-import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { buildTrade } from './methodParameters';
 
 export async function getV2NativePool(
   token: Token,
   poolProvider: IV2PoolProvider,
-  providerConfig?: ProviderConfig,
+  providerConfig?: GasModelProviderConfig
 ): Promise<Pair | null> {
   const chainId = token.chainId as ChainId;
   const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
 
-  const poolAccessor = await poolProvider.getPools([[weth, token]], providerConfig);
+  const poolAccessor = await poolProvider.getPools(
+    [[weth, token]],
+    providerConfig
+  );
   const pool = poolAccessor.getPool(weth, token);
 
   if (!pool || pool.reserve0.equalTo(0) || pool.reserve1.equalTo(0)) {
@@ -62,7 +62,7 @@ export async function getV2NativePool(
 export async function getHighestLiquidityV3NativePool(
   token: Token,
   poolProvider: IV3PoolProvider,
-  providerConfig?: ProviderConfig
+  providerConfig?: GasModelProviderConfig
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
@@ -110,7 +110,7 @@ export async function getHighestLiquidityV3NativePool(
 export async function getHighestLiquidityV3USDPool(
   chainId: ChainId,
   poolProvider: IV3PoolProvider,
-  providerConfig?: ProviderConfig
+  providerConfig?: GasModelProviderConfig
 ): Promise<Pool> {
   const usdTokens = usdGasTokensByChain[chainId];
   const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -172,21 +172,6 @@ export async function getHighestLiquidityV3USDPool(
   return maxPool;
 }
 
-export function getGasCostInUSD(
-  usdPool: Pool,
-  costNativeCurrency: CurrencyAmount<Token>
-) {
-  const nativeCurrency = costNativeCurrency.currency;
-  // convert fee into usd
-  const nativeTokenPrice =
-    usdPool.token0.address == nativeCurrency.address
-      ? usdPool.token0Price
-      : usdPool.token1Price;
-
-  const gasCostUSD = nativeTokenPrice.quote(costNativeCurrency);
-  return gasCostUSD;
-}
-
 export function getGasCostInNativeCurrency(
   nativeCurrency: Token,
   gasCostInWei: BigNumber
@@ -197,19 +182,6 @@ export function getGasCostInNativeCurrency(
     gasCostInWei.toString()
   );
   return costNativeCurrency;
-}
-
-export async function getGasCostInQuoteToken(
-  quoteToken: Token,
-  nativePool: Pool | Pair,
-  costNativeCurrency: CurrencyAmount<Token>
-) {
-  const nativeTokenPrice =
-    nativePool.token0.address == quoteToken.address
-      ? nativePool.token1Price
-      : nativePool.token0Price;
-  const gasCostQuoteToken = nativeTokenPrice.quote(costNativeCurrency);
-  return gasCostQuoteToken;
 }
 
 export function calculateArbitrumToL1FeeFromCalldata(
@@ -267,18 +239,20 @@ export async function calculateGasUsed(
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
   l2GasData?: ArbitrumGasData | OptimismGasData,
-  providerConfig?: ProviderConfig
-) {
+  providerConfig?: GasModelProviderConfig
+): Promise<{
+  estimatedGasUsedUSD: CurrencyAmount;
+  estimatedGasUsedQuoteToken: CurrencyAmount;
+  estimatedGasUsedGasToken?: CurrencyAmount;
+  quoteGasAdjusted: CurrencyAmount;
+}> {
   const quoteToken = route.quote.currency.wrapped;
   const gasPriceWei = route.gasPriceWei;
   // calculate L2 to L1 security fee if relevant
   let l2toL1FeeInWei = BigNumber.from(0);
-  if ([ChainId.ARBITRUM_ONE, ChainId.ARBITRUM_GOERLI].includes(chainId)) {
-    l2toL1FeeInWei = calculateArbitrumToL1FeeFromCalldata(
-      route.methodParameters!.calldata,
-      l2GasData as ArbitrumGasData
-    )[1];
-  } else if (
+  // Arbitrum charges L2 gas for L1 calldata posting costs.
+  // See https://github.com/Uniswap/smart-order-router/pull/464/files#r1441376802
+  if (
     [
       ChainId.OPTIMISM,
       ChainId.OPTIMISM_GOERLI,
@@ -306,11 +280,47 @@ export async function calculateGasUsed(
     providerConfig
   );
 
-  const gasCostUSD = await getGasCostInUSD(usdPool, costNativeCurrency);
+  /** ------ MARK: USD logic  -------- */
+  const gasCostUSD = getQuoteThroughNativePool(
+    chainId,
+    costNativeCurrency,
+    usdPool
+  );
 
-  let gasCostQuoteToken = costNativeCurrency;
+  /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
+  let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
+  if (providerConfig?.gasToken) {
+    if (providerConfig.gasToken.equals(nativeCurrency)) {
+      gasCostInTermsOfGasToken = costNativeCurrency;
+    } else {
+      const nativeAndSpecifiedGasTokenPool =
+        await getHighestLiquidityV3NativePool(
+          providerConfig.gasToken,
+          v3PoolProvider,
+          providerConfig
+        );
+      if (nativeAndSpecifiedGasTokenPool) {
+        gasCostInTermsOfGasToken = getQuoteThroughNativePool(
+          chainId,
+          costNativeCurrency,
+          nativeAndSpecifiedGasTokenPool
+        );
+      } else {
+        log.info(
+          `Could not find a V3 pool for gas token ${providerConfig.gasToken.symbol}`
+        );
+      }
+    }
+  }
+
+  /** ------ MARK: Main gas logic in terms of quote token -------- */
+  let gasCostQuoteToken: CurrencyAmount | undefined = undefined;
+  // shortcut if quote token is native currency
+  if (quoteToken.equals(nativeCurrency)) {
+    gasCostQuoteToken = costNativeCurrency;
+  }
   // get fee in terms of quote token
-  if (!quoteToken.equals(nativeCurrency)) {
+  else {
     const nativePools = await Promise.all([
       getHighestLiquidityV3NativePool(
         quoteToken,
@@ -327,10 +337,10 @@ export async function calculateGasUsed(
       );
       gasCostQuoteToken = CurrencyAmount.fromRawAmount(quoteToken, 0);
     } else {
-      gasCostQuoteToken = await getGasCostInQuoteToken(
-        quoteToken,
-        nativePool,
-        costNativeCurrency
+      gasCostQuoteToken = getQuoteThroughNativePool(
+        chainId,
+        costNativeCurrency,
+        nativePool
       );
     }
   }
@@ -348,6 +358,7 @@ export async function calculateGasUsed(
   return {
     estimatedGasUsedUSD: gasCostUSD,
     estimatedGasUsedQuoteToken: gasCostQuoteToken,
+    estimatedGasUsedGasToken: gasCostInTermsOfGasToken,
     quoteGasAdjusted: quoteGasAdjusted,
   };
 }
@@ -356,10 +367,13 @@ export function initSwapRouteFromExisting(
   swapRoute: SwapRoute,
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
-  quoteGasAdjusted: CurrencyAmount<Currency>,
+  portionProvider: IPortionProvider,
+  quoteGasAdjusted: CurrencyAmount,
   estimatedGasUsed: BigNumber,
-  estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
-  estimatedGasUsedUSD: CurrencyAmount<Currency>
+  estimatedGasUsedQuoteToken: CurrencyAmount,
+  estimatedGasUsedUSD: CurrencyAmount,
+  swapOptions: SwapOptions,
+  estimatedGasUsedGasToken?: CurrencyAmount
 ): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
@@ -450,15 +464,32 @@ export function initSwapRouteFromExisting(
     tradeType,
     routesWithValidQuote
   );
+
+  const quoteGasAndPortionAdjusted = swapRoute.portionAmount
+    ? portionProvider.getQuoteGasAndPortionAdjusted(
+        swapRoute.trade.tradeType,
+        quoteGasAdjusted,
+        swapRoute.portionAmount
+      )
+    : undefined;
+  const routesWithValidQuotePortionAdjusted =
+    portionProvider.getRouteWithQuotePortionAdjusted(
+      swapRoute.trade.tradeType,
+      routesWithValidQuote,
+      swapOptions
+    );
+
   return {
     quote: swapRoute.quote,
     quoteGasAdjusted,
+    quoteGasAndPortionAdjusted,
     estimatedGasUsed,
     estimatedGasUsedQuoteToken,
+    estimatedGasUsedGasToken,
     estimatedGasUsedUSD,
     gasPriceWei: BigNumber.from(swapRoute.gasPriceWei),
     trade,
-    route: routesWithValidQuote,
+    route: routesWithValidQuotePortionAdjusted,
     blockNumber: BigNumber.from(swapRoute.blockNumber),
     methodParameters: swapRoute.methodParameters
       ? ({
@@ -468,5 +499,6 @@ export function initSwapRouteFromExisting(
         } as MethodParameters)
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
+    portionAmount: swapRoute.portionAmount,
   };
 }

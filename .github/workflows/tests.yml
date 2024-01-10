@@ -41,8 +41,8 @@ jobs:
           JSON_RPC_PROVIDER_ARBITRUM_ONE: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_ONE }}
           JSON_RPC_PROVIDER_POLYGON: ${{ secrets.JSON_RPC_PROVIDER_POLYGON }}
 
-  integration-tests-alpha-router-integration-mainnet-alpha-0:
-    name: Integration Tests - Alpha Router Integration Mainnet Alpha 0
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_input-erc20-to-erc20:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_INPUT ERC20 -> ERC20
     runs-on: ubuntu-latest
 
     steps:
@@ -67,12 +67,16 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'mainnet alpha - 0'
+        run: npm run integ-test  -- -t 'mainnet alpha - 0 * erc20 -> erc20'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
-  integration-tests-alpha-router-integration-mainnet-alpha-1:
-    name: Integration Tests - Alpha Router Integration Mainnet Alpha 1
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_input-hardhat:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_INPUT Execute On Hardhat Fork
     runs-on: ubuntu-latest
 
     steps:
@@ -97,9 +101,149 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'mainnet alpha - 1'
+        run: npm run integ-test  -- -t 'mainnet alpha - 0 * \+ Execute on Hardhat fork'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_input-tenderly-hardhat:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_INPUT Simulate On Tenderly Execute On Hardhat Fork
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'mainnet alpha - 0 * \+ Simulate on Tenderly \+ Execute on Hardhat fork'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_output-erc20-to-erc20:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_OUTPUT ERC20 -> ERC20
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'mainnet alpha - 1 * erc20 -> erc20'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_output-hardhat:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_OUTPUT Execute On Hardhat Fork
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'mainnet alpha - 1 * \+ Execute on Hardhat fork'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+
+  integration-tests-alpha-router-integration-mainnet-alpha-exact_output-tenderly-hardhat:
+    name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_OUTPUT Simulate On Tenderly Execute On Hardhat Fork
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'mainnet alpha - 1 * \+ Simulate on Tenderly \+ Execute on Hardhat fork'
+        env:
+          JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
   integration-tests-alpha-router-integration-mixed-routes:
     name: Integration Tests - Alpha Router Integration Mixed Routes
@@ -130,6 +274,10 @@ jobs:
         run: npm run integ-test  -- -t 'Mixed routes'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
   integration-tests-external-class-tests:
     name: Integration Tests - External Class Tests
@@ -160,6 +308,10 @@ jobs:
         run: npm run integ-test  -- -t 'external class tests'
         env:
           JSON_RPC_PROVIDER: ${{ secrets.JSON_RPC_PROVIDER }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
   integration-tests-quote-for-other-networks:
     name: Integration Tests - Quote For Other Networks
@@ -202,3 +354,7 @@ jobs:
           JSON_RPC_PROVIDER_BNB: ${{ secrets.JSON_RPC_PROVIDER_BNB }}
           JSON_RPC_PROVIDER_AVALANCHE: ${{ secrets.JSON_RPC_PROVIDER_AVALANCHE }}
           JSON_RPC_PROVIDER_BASE: ${{ secrets.JSON_RPC_PROVIDER_BASE }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}

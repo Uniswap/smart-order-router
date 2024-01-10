@@ -15,11 +15,12 @@ import {
   WETH9,
   WNATIVE_ON,
 } from '../../src';
+import { BULLET, BULLET_WITHOUT_TAX } from './mock-data';
 
 export const WHALES = (token: Currency): string => {
   switch (token) {
     case Ether.onChain(ChainId.MAINNET) as Currency:
-      return '0x0716a17FBAeE714f1E6aB0f9d59edbC5f09815C0';
+      return '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
     case ExtendedEther.onChain(ChainId.MAINNET):
       return '0x0716a17FBAeE714f1E6aB0f9d59edbC5f09815C0';
     case ExtendedEther.onChain(ChainId.ARBITRUM_ONE):
@@ -28,8 +29,16 @@ export const WHALES = (token: Currency): string => {
       return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245';
     case nativeOnChain(ChainId.GOERLI):
       return '0x08505F42D5666225d5d73B842dAdB87CCA44d1AE';
+    case nativeOnChain(ChainId.BASE):
+      return '0x428ab2ba90eba0a4be7af34c9ac451ab061ac010';
+    case nativeOnChain(ChainId.AVALANCHE):
+      return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
+    case nativeOnChain(ChainId.BNB):
+      return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
+    case nativeOnChain(ChainId.OPTIMISM):
+      return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
     case WETH9[1]:
-      return '0x06920c9fc643de77b99cb7670a944ad31eaaa260';
+      return '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3';
     case WNATIVE_ON(ChainId.MAINNET):
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
     case WNATIVE_ON(ChainId.ARBITRUM_ONE):
@@ -39,7 +48,13 @@ export const WHALES = (token: Currency): string => {
     case WNATIVE_ON(ChainId.POLYGON):
       return '0x369582d2010b6ed950b571f4101e3bb9b554876f';
     case WNATIVE_ON(ChainId.BASE):
-      return '0x755554f1716d2241d6af94ea1d7dbb1631af9a40';
+      return '0x4bb6b2efe7036020ba6f02a05602546c9f25bf28';
+    case WNATIVE_ON(ChainId.OPTIMISM):
+      return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
+    case WNATIVE_ON(ChainId.BNB):
+      return '0x59d779BED4dB1E734D3fDa3172d45bc3063eCD69';
+    case WNATIVE_ON(ChainId.AVALANCHE):
+      return '0xba12222222228d8ba445958a75a0704d566bf2c8';
     case USDC_MAINNET:
       return '0x8eb8a3b98659cce290402893d0123abb75e3ab28';
     case UNI_MAINNET:
@@ -64,8 +79,10 @@ export const WHALES = (token: Currency): string => {
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
     case USDC_ON(ChainId.AVALANCHE):
       return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
+    case USDC_ON(ChainId.BNB):
+      return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case USDC_ON(ChainId.BASE):
-      return '0x389bfa91ad0d143e8cb26c15cb52d942ee9651f7';
+      return '0x4a3636608d7bc5776cb19eb72caa36ebb9ea683b';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):
@@ -88,6 +105,8 @@ export const WHALES = (token: Currency): string => {
       return '0x6cC083Aed9e3ebe302A6336dBC7c921C9f03349E';
     case CUSD_CELO:
       return '0xC32cBaf3D44dA6fbC761289b871af1A30cc7f993';
+    case BULLET_WITHOUT_TAX || BULLET:
+      return '0x171d311eAcd2206d21Cb462d661C33F0eddadC03';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

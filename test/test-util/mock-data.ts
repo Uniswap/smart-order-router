@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Ether, Token } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
@@ -9,6 +9,7 @@ import {
   CurrencyAmount,
   DAI_MAINNET as DAI,
   TokenAccessor,
+  UNI_MAINNET,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
   V2SubgraphPool,
@@ -17,7 +18,7 @@ import {
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../src';
-import { V2PoolAccessor } from '../../src/providers/v2/pool-provider';
+import { V2PoolAccessor } from '../../src';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
@@ -162,6 +163,14 @@ export const DAI_USDT_MEDIUM = new Pool(
   10,
   0
 );
+export const DAI_WETH_MEDIUM = new Pool(
+  DAI,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
 export const WBTC_USDT_MEDIUM = new Pool(
   USDT,
   WBTC,
@@ -178,11 +187,24 @@ export const WBTC_WETH_MEDIUM = new Pool(
   500,
   0
 );
+export const UNI_WETH_MEDIUM = new Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  UNI_MAINNET,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
 
 // Mock V2 Pools
 export const DAI_USDT = new Pair(
   CurrencyAmount.fromRawAmount(DAI, 10000000000),
   CurrencyAmount.fromRawAmount(USDT, 10000000000)
+);
+
+export const DAI_WETH = new Pair(
+  CurrencyAmount.fromRawAmount(DAI, 10000000000),
+  CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
 );
 
 export const USDC_WETH = new Pair(
@@ -361,3 +383,95 @@ export const mockTokenList: TokenList = {
     },
   ],
 };
+
+export const BLAST_WITHOUT_TAX = new Token(
+    ChainId.MAINNET,
+    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+    18,
+    'BLAST',
+    'BLAST',
+)
+export const BLAST = new Token(
+    ChainId.MAINNET,
+    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+    18,
+    'BLAST',
+    'BLAST',
+    false,
+    BigNumber.from(400),
+    BigNumber.from(10000)
+)
+export const BULLET_WITHOUT_TAX = new Token(
+    ChainId.MAINNET,
+    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+    8,
+    'BULLET',
+    'Bullet Game Betting Token',
+    false
+)
+export const BULLET = new Token(
+    ChainId.MAINNET,
+    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+    8,
+    'BULLET',
+    'Bullet Game Betting Token',
+    false,
+    BigNumber.from(500),
+    BigNumber.from(500)
+)
+export const STETH_WITHOUT_TAX = new Token(
+    ChainId.MAINNET,
+    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+    18,
+    'stETH',
+    'stETH',
+    false
+)
+// stETH is a special case (rebase token), that would make the token include buyFeeBps and sellFeeBps of 0 as always
+export const STETH = new Token(
+    ChainId.MAINNET,
+    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+    18,
+    'stETH',
+    'stETH',
+    false,
+    BigNumber.from(0),
+    BigNumber.from(0)
+)
+export const BITBOY = new Token(
+  ChainId.MAINNET,
+  '0x4a500ed6add5994569e66426588168705fcc9767',
+  8,
+  'BITBOY',
+  'BitBoy Fund',
+  false,
+  BigNumber.from(300),
+  BigNumber.from(300)
+)
+
+export const PORTION_BIPS = 12
+export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
+export const PORTION_TYPE = 'flat'
+
+export type Portion = {
+  bips: number,
+  recipient: string,
+  type: string,
+}
+
+export const FLAT_PORTION: Portion = {
+  bips: PORTION_BIPS,
+  recipient: PORTION_RECIPIENT,
+  type: PORTION_TYPE,
+}
+
+export const GREENLIST_TOKEN_PAIRS: Array<[Currency, Currency]> = [
+  [Ether.onChain(ChainId.MAINNET), USDC],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], USDT],
+  [DAI, WBTC],
+];
+
+export const GREENLIST_CARVEOUT_PAIRS: Array<[Currency, Currency]> = [
+  [USDC, DAI],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], Ether.onChain(ChainId.MAINNET)],
+];

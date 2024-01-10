@@ -22,8 +22,12 @@ export class NodeJSCache<T> implements ICache<T> {
     return result;
   }
 
-  async set(key: string, value: T): Promise<boolean> {
-    return this.nodeCache.set(key, value);
+  async set(key: string, value: T, ttl?: number): Promise<boolean> {
+    if (ttl) {
+      return this.nodeCache.set(key, value, ttl);
+    } else {
+      return this.nodeCache.set(key, value);
+    }
   }
 
   async has(key: string): Promise<boolean> {

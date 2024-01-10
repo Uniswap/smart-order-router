@@ -31,8 +31,7 @@ export class CachingV2PoolProvider implements IV2PoolProvider {
     // we compute quotes off-chain.
     // If no block is specified in the call to getPools we just return whatever is in the cache.
     private cache: ICache<{ pair: Pair; block?: number }>
-  ) {
-  }
+  ) {}
 
   public async getPools(
     tokenPairs: [Token, Token][],
@@ -96,7 +95,10 @@ export class CachingV2PoolProvider implements IV2PoolProvider {
     if (poolsToGetAddresses.length > 0) {
       const poolAccessor = await this.poolProvider.getPools(
         poolsToGetTokenPairs,
-        providerConfig
+        {
+          ...providerConfig,
+          enableFeeOnTransferFeeFetching: true,
+        }
       );
       for (const address of poolsToGetAddresses) {
         const pool = poolAccessor.getPoolByAddress(address);

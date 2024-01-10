@@ -41,7 +41,6 @@ import {
   TenderlySimulator,
   TokenPropertiesProvider,
   TokenProvider,
-  TokenValidatorProvider,
   UniswapMulticallProvider,
   V2PoolProvider,
   V3PoolProvider,
@@ -49,6 +48,7 @@ import {
 } from '../src';
 import { LegacyGasPriceProvider } from '../src/providers/legacy-gas-price-provider';
 import { OnChainGasPriceProvider } from '../src/providers/on-chain-gas-price-provider';
+import { PortionProvider } from '../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../src/providers/token-fee-fetcher';
 
 export abstract class BaseCommand extends Command {
@@ -287,32 +287,28 @@ export abstract class BaseCommand extends Command {
         new V3PoolProvider(chainId, multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
       );
-      const tokenValidatorProvider = new TokenValidatorProvider(
-        chainId,
-        multicall2Provider,
-        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-      )
       const tokenFeeFetcher = new OnChainTokenFeeFetcher(
         chainId,
         provider
       )
       const tokenPropertiesProvider = new TokenPropertiesProvider(
         chainId,
-        tokenValidatorProvider,
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
         tokenFeeFetcher
       )
       const v2PoolProvider = new V2PoolProvider(chainId, multicall2Provider, tokenPropertiesProvider);
 
+      const portionProvider = new PortionProvider();
       const tenderlySimulator = new TenderlySimulator(
         chainId,
-        'http://api.tenderly.co',
+        'https://api.tenderly.co',
         process.env.TENDERLY_USER!,
         process.env.TENDERLY_PROJECT!,
         process.env.TENDERLY_ACCESS_KEY!,
         v2PoolProvider,
         v3PoolProvider,
         provider,
+        portionProvider,
         { [ChainId.ARBITRUM_ONE]: 1 }
       );
 
@@ -320,12 +316,14 @@ export abstract class BaseCommand extends Command {
         chainId,
         provider,
         v2PoolProvider,
-        v3PoolProvider
+        v3PoolProvider,
+        portionProvider
       );
 
       const simulator = new FallbackTenderlySimulator(
         chainId,
         provider,
+        portionProvider,
         tenderlySimulator,
         ethEstimateGasSimulator
       );
@@ -357,11 +355,12 @@ export abstract class BaseCommand extends Command {
     quoteGasAdjusted: CurrencyAmount<Currency>,
     estimatedGasUsedQuoteToken: CurrencyAmount<Currency>,
     estimatedGasUsedUSD: CurrencyAmount<Currency>,
+    estimatedGasUsedGasToken: CurrencyAmount<Currency> | undefined,
     methodParameters: MethodParameters | undefined,
     blockNumber: BigNumber,
     estimatedGasUsed: BigNumber,
     gasPriceWei: BigNumber,
-    simulationStatus?: SimulationStatus
+    simulationStatus?: SimulationStatus,
   ) {
     this.logger.info(`Best Route:`);
     this.logger.info(`${routeAmountsToString(routeAmounts)}`);
@@ -387,6 +386,13 @@ export abstract class BaseCommand extends Command {
         Math.min(estimatedGasUsedUSD.currency.decimals, 6)
       )}`
     );
+    if(estimatedGasUsedGasToken) {
+      this.logger.info(
+        `Gas Used gas token: ${estimatedGasUsedGasToken.toFixed(
+          Math.min(estimatedGasUsedGasToken.currency.decimals, 6)
+        )}`
+      );
+    }
     this.logger.info(`Calldata: ${methodParameters?.calldata}`);
     this.logger.info(`Value: ${methodParameters?.value}`);
     this.logger.info({
