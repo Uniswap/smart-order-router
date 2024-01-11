@@ -644,7 +644,12 @@ describe('alpha router integration', () => {
       v2PoolProvider,
       v3PoolProvider,
       hardhat.providers[0]!,
-      portionProvider
+      portionProvider,
+      {
+        // Tenderly team has fixed all the nuances post Arbitrum nitro update,
+        // so we can use the gas limits returned from Tenderly for more accurate L2 gas estimate assertions.
+        [ChainId.ARBITRUM_ONE]: 1
+      },
     );
 
     const simulator = new FallbackTenderlySimulator(
@@ -3573,7 +3578,7 @@ describe('quote for other networks', () => {
               expect(swapWithSimulation).toBeDefined();
               expect(swapWithSimulation).not.toBeNull();
 
-              // TODO: We need to fix L1 gas estimate one by one.
+              // TODO: We need to fix L2 -> L1 calldata posting gas estimate one by one.
               //       We started by fixing Arbitrum gas estimate https://github.com/Uniswap/smart-order-router/pull/468.
               //       Before the fix, the non-simulated gas estimate is 131000, meanwhile simulated gas estimate is 6573602.
               //       After the fix, the non-simulated gas estimate is now 3414207.
@@ -3608,6 +3613,11 @@ describe('quote for other networks', () => {
                   ? swapWithSimulation!.estimatedGasUsed.sub(swap!.estimatedGasUsed)
                   : swap!.estimatedGasUsed.sub(swapWithSimulation!.estimatedGasUsed);
 
+                // We will rely on Tenderly gas estimate as source of truth against SOR non-simulated gas estimate accuracy.
+                // This is the only reliable and long-term feasible test assertion approach.
+                // For example, in the near future, after EIP-4844, we expect the gas estimate to drop by (3 / 16)
+                // due to gas cost per compressed calldata byte dropping from 16 to 3.
+                // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
                 const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
                 expect(percentDiff.lte(BigNumber.from(50))).toBe(true);
               }
