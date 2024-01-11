@@ -15,7 +15,7 @@ import {
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
   calculateArbitrumToL1FeeFromCalldata,
-  getL2ToL1GasUsed
+  getL2ToL1GasUsed,
 } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
 import {
@@ -114,12 +114,13 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         chainId == ChainId.ARBITRUM_ONE ||
         chainId == ChainId.ARBITRUM_GOERLI
       ) {
-        [l1Used, l1FeeInWei, gasUsedL1OnL2] = this.calculateArbitrumToL1SecurityFee(
-          route,
-          swapOptions,
-          l2GasData as ArbitrumGasData,
-          chainId
-        );
+        [l1Used, l1FeeInWei, gasUsedL1OnL2] =
+          this.calculateArbitrumToL1SecurityFee(
+            route,
+            swapOptions,
+            l2GasData as ArbitrumGasData,
+            chainId
+          );
       }
 
       // wrap fee to native currency
@@ -430,7 +431,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     gasData: ArbitrumGasData,
     chainId: ChainId
   ): [BigNumber, BigNumber, BigNumber] {
-
     const route: V3RouteWithValidQuote = routes[0]!;
 
     const amountToken =

@@ -11,7 +11,7 @@ import { IV2PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
 import {
   ArbitrumGasData,
-  OptimismGasData
+  OptimismGasData,
 } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
@@ -23,13 +23,9 @@ import {
   SwapRoute,
   usdGasTokensByChain,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote
+  V3RouteWithValidQuote,
 } from '../routers';
-import {
-  CurrencyAmount,
-  log,
-  WRAPPED_NATIVE_CURRENCY
-} from '../util';
+import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { buildTrade } from './methodParameters';
 
@@ -190,18 +186,21 @@ export function getGasCostInNativeCurrency(
 }
 
 export function getArbitrumBytes(data: string): BigNumber {
-  if (data == "") return BigNumber.from(0);
-  const compressed = brotli.compress(Buffer.from(data.replace('0x', ''), 'hex'), {
-    mode: 0,
-    quality: 1,
-    lgwin: 22,
-  });
+  if (data == '') return BigNumber.from(0);
+  const compressed = brotli.compress(
+    Buffer.from(data.replace('0x', ''), 'hex'),
+    {
+      mode: 0,
+      quality: 1,
+      lgwin: 22,
+    }
+  );
   // TODO: This is a rough estimate of the compressed size
   // Brotli 0 should be used, but this brotli library doesn't support it
   // https://github.com/foliojs/brotli.js/issues/38
   // There are other brotli libraries that do support it, but require async
   // We workaround by using Brotli 1 with a 20% bump in size
-  return BigNumber.from(compressed.length).mul(120).div(100)
+  return BigNumber.from(compressed.length).mul(120).div(100);
 }
 
 export function calculateArbitrumToL1FeeFromCalldata(
@@ -235,7 +234,11 @@ export function calculateOptimismToL1FeeFromCalldata(
   return [l1GasUsed, scaled];
 }
 
-export function getL2ToL1GasUsed(data: string, overhead: BigNumber, chainId: ChainId): BigNumber {
+export function getL2ToL1GasUsed(
+  data: string,
+  overhead: BigNumber,
+  chainId: ChainId
+): BigNumber {
   switch (chainId) {
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI: {

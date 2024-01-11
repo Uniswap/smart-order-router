@@ -50,7 +50,9 @@ export class OptimismGasDataProvider
    * @returns An OptimismGasData object that includes the l1BaseFee,
    * scalar, decimals, and overhead values.
    */
-  public async getGasData(providerConfig?: ProviderConfig): Promise<OptimismGasData> {
+  public async getGasData(
+    providerConfig?: ProviderConfig
+  ): Promise<OptimismGasData> {
     // TODO: Also get the gasPrice from GasPriceOracle.sol
     const funcNames = ['l1BaseFee', 'scalar', 'decimals', 'overhead'];
     const tx =
@@ -61,7 +63,7 @@ export class OptimismGasDataProvider
         address: this.gasOracleAddress,
         contractInterface: GasPriceOracle__factory.createInterface(),
         functionNames: funcNames,
-        providerConfig: providerConfig
+        providerConfig: providerConfig,
       });
 
     if (
@@ -123,11 +125,9 @@ export class ArbitrumGasDataProvider
       this.gasFeesAddress,
       this.provider
     );
-    const gasData = await gasDataContract.getPricesInWei(
-      {
-        blockTag: providerConfig?.blockNumber,
-      }
-    );
+    const gasData = await gasDataContract.getPricesInWei({
+      blockTag: providerConfig?.blockNumber,
+    });
     const perL1CalldataByte = gasData[1];
     return {
       perL2TxFee: gasData[0],
