@@ -9,12 +9,14 @@ import {
   V3PoolProvider,
   V3Route,
   V3RouteWithValidQuote,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../../../src';
 import {
   calculateGasUsed,
+  getArbitrumBytes,
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
+  getL2ToL1GasUsed,
 } from '../../../../../src/util/gas-factory-helpers';
 import {
   buildMockV3PoolAccessor,
@@ -26,7 +28,7 @@ import {
 } from '../../../../test-util/mock-data';
 import { BigNumber } from 'ethers';
 import { getMockedV2PoolProvider, getMockedV3PoolProvider } from '../gas-models/test-util/mocked-dependencies';
-import { TradeType } from '@uniswap/sdk-core';
+import { ChainId, TradeType } from '@uniswap/sdk-core';
 import { Trade } from '@uniswap/router-sdk';
 import { Route } from '@uniswap/v3-sdk';
 import { getPools } from '../gas-models/test-util/helpers';
@@ -210,5 +212,16 @@ describe('gas factory helpers tests', () => {
       expect(estimatedGasUsedGasTokenArb?.currency.equals(gasToken)).toBe(true);
       expect(quoteGasAdjustedArb.equalTo(quoteGasAdjusted)).toBe(true);
     })
+  })
+
+  describe('getL2ToL1GasUsed', () => {
+    for (const chainId of [ChainId.ARBITRUM_ONE]) {
+      it('should return the gas costs for the compressed bytes', async () => {
+        const calldata = '0x24856bc30000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000020b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000de0b6b3a764000000000000000000000000000000000000000000000000003fc10e65473c5939c700000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b82af49447d8a07e3bd95bd0d56f35241523fbab1000bb8912ce59144191c1204e64559fe8253a0e49e6548000000000000000000000000000000000000000000';
+        const compressedBytes = getArbitrumBytes(calldata);
+        const gasUsed = getL2ToL1GasUsed(calldata, BigNumber.from(0), chainId);
+        expect(gasUsed).toEqual(compressedBytes.mul(16));
+      });
+    }
   })
 });

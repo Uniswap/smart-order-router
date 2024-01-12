@@ -84,6 +84,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
 
 export type L1ToL2GasCosts = {
   gasUsedL1: BigNumber;
+  gasUsedL1OnL2: BigNumber;
   gasCostL1USD: CurrencyAmount;
   gasCostL1QuoteToken: CurrencyAmount;
 };
