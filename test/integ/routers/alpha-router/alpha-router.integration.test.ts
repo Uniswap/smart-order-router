@@ -644,7 +644,12 @@ describe('alpha router integration', () => {
       v2PoolProvider,
       v3PoolProvider,
       hardhat.providers[0]!,
-      portionProvider
+      portionProvider,
+      {
+        // Tenderly team has fixed all the nuances post Arbitrum nitro update,
+        // so we can use the gas limits returned from Tenderly for more accurate L2 gas estimate assertions.
+        [ChainId.ARBITRUM_ONE]: 1
+      },
     );
 
     const simulator = new FallbackTenderlySimulator(
@@ -1556,7 +1561,7 @@ describe('alpha router integration', () => {
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('100', tokenIn)
               : parseAmount('100', tokenOut);
-  
+
           const swap = await alphaRouter.route(
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -1572,17 +1577,17 @@ describe('alpha router integration', () => {
               gasToken: DAI_MAINNET.address
             }
           );
-  
+
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
-  
+
           const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken } = swap!;
-  
+
           expect(estimatedGasUsedGasToken).toBeDefined();
           expect(estimatedGasUsedGasToken?.currency.equals(DAI_MAINNET)).toBe(true);
-  
+
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
-  
+
           await validateExecuteSwap(
             SwapType.UNIVERSAL_ROUTER,
             quote,
@@ -1594,7 +1599,7 @@ describe('alpha router integration', () => {
             100
           );
         });
-  
+
         it('erc20 -> eth gas token as weth', async () => {
           // declaring these to reduce confusion
           const tokenIn = USDC_MAINNET;
@@ -1603,7 +1608,7 @@ describe('alpha router integration', () => {
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('1000000', tokenIn)
               : parseAmount('10', tokenOut);
-  
+
           const swap = await alphaRouter.route(
             amount,
             getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -1619,17 +1624,17 @@ describe('alpha router integration', () => {
               gasToken: WRAPPED_NATIVE_CURRENCY[1]!.address
             }
           );
-  
+
           expect(swap).toBeDefined();
           expect(swap).not.toBeNull();
-  
+
           const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken } = swap!;
-  
+
           expect(estimatedGasUsedGasToken).toBeDefined();
           expect(estimatedGasUsedGasToken?.currency.equals(WRAPPED_NATIVE_CURRENCY[1]!)).toBe(true);
-  
+
           await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
-  
+
           await validateExecuteSwap(
             SwapType.UNIVERSAL_ROUTER,
             quote,
@@ -2516,7 +2521,7 @@ describe('alpha router integration', () => {
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
                 : parseAmount('100', tokenOut);
-    
+
             const swap = await alphaRouter.route(
               amount,
               getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -2533,19 +2538,19 @@ describe('alpha router integration', () => {
                 gasToken: DAI_MAINNET.address
               }
             );
-    
+
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
-    
+
             const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken, simulationStatus } = swap!;
 
             expect(simulationStatus).toBeDefined();
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
             expect(estimatedGasUsedGasToken).toBeDefined();
             expect(estimatedGasUsedGasToken?.currency.equals(DAI_MAINNET)).toBe(true);
-    
+
             await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
-    
+
             await validateExecuteSwap(
               SwapType.UNIVERSAL_ROUTER,
               quote,
@@ -2557,7 +2562,7 @@ describe('alpha router integration', () => {
               100
             );
           });
-    
+
           it('erc20 -> eth gas token as weth', async () => {
             // declaring these to reduce confusion
             const tokenIn = USDC_MAINNET;
@@ -2566,7 +2571,7 @@ describe('alpha router integration', () => {
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1000000', tokenIn)
                 : parseAmount('10', tokenOut);
-    
+
             const swap = await alphaRouter.route(
               amount,
               getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -2583,19 +2588,19 @@ describe('alpha router integration', () => {
                 gasToken: WRAPPED_NATIVE_CURRENCY[1]!.address
               }
             );
-    
+
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
-    
+
             const { quote, quoteGasAdjusted, methodParameters, estimatedGasUsedGasToken, simulationStatus } = swap!;
 
             expect(simulationStatus).toBeDefined();
             expect(simulationStatus).toEqual(SimulationStatus.Succeeded);
             expect(estimatedGasUsedGasToken).toBeDefined();
             expect(estimatedGasUsedGasToken?.currency.equals(WRAPPED_NATIVE_CURRENCY[1]!)).toBe(true);
-    
+
             await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
-    
+
             await validateExecuteSwap(
               SwapType.UNIVERSAL_ROUTER,
               quote,
@@ -3541,7 +3546,7 @@ describe('quote for other networks', () => {
                   : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
-              const swapOptions: SwapOptions =
+              const swapWithSimulationOptions: SwapOptions =
                 chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
@@ -3558,11 +3563,11 @@ describe('quote for other networks', () => {
                     simulate: { fromAddress: WHALES(tokenIn) },
                   };
 
-              const swap = await alphaRouter.route(
+              const swapWithSimulation = await alphaRouter.route(
                 amount,
                 getQuoteToken(tokenIn, tokenOut, tradeType),
                 tradeType,
-                swapOptions,
+                swapWithSimulationOptions,
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
@@ -3570,17 +3575,62 @@ describe('quote for other networks', () => {
                   saveTenderlySimulationIfFailed: true,
                 }
               );
-              expect(swap).toBeDefined();
-              expect(swap).not.toBeNull();
-              if (swap) {
+              expect(swapWithSimulation).toBeDefined();
+              expect(swapWithSimulation).not.toBeNull();
+
+              // TODO: We need to fix L2 -> L1 calldata posting gas estimate one by one.
+              //       We started by fixing Arbitrum gas estimate https://github.com/Uniswap/smart-order-router/pull/468.
+              //       Before the fix, the non-simulated gas estimate is 131000, meanwhile simulated gas estimate is 6573602.
+              //       After the fix, the non-simulated gas estimate is now 3414207.
+              //       We assert the non-simulated gas estimate is within 50% error margin of simulated gas estimate range, e.g. between 6573602 - 6573602 / 2 and 6573602 + 6573602 / 2
+              if (chain === ChainId.ARBITRUM_ONE) {
+                // Universal Router is not deployed on Gorli.
+                const swapOptions: SwapOptions =
+                  {
+                    type: SwapType.UNIVERSAL_ROUTER,
+                    recipient: WHALES(tokenIn),
+                    slippageTolerance: SLIPPAGE,
+                    deadlineOrPreviousBlockhash: parseDeadline(360),
+                  };
+
+                const swap = await alphaRouter.route(
+                  amount,
+                  getQuoteToken(tokenIn, tokenOut, tradeType),
+                  tradeType,
+                  swapOptions,
+                  {
+                    // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                    ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                    protocols: [Protocol.V3, Protocol.V2],
+                    saveTenderlySimulationIfFailed: true,
+                  }
+                );
+
+                expect(swap).toBeDefined();
+                expect(swap).not.toBeNull();
+
+                const gasEstimateDiff = swapWithSimulation!.estimatedGasUsed.gt(swap!.estimatedGasUsed)
+                  ? swapWithSimulation!.estimatedGasUsed.sub(swap!.estimatedGasUsed)
+                  : swap!.estimatedGasUsed.sub(swapWithSimulation!.estimatedGasUsed);
+
+                // We will rely on Tenderly gas estimate as source of truth against SOR non-simulated gas estimate accuracy.
+                // This is the only reliable and long-term feasible test assertion approach.
+                // For example, in the near future, after EIP-4844, we expect the gas estimate to drop by (3 / 16)
+                // due to gas cost per compressed calldata byte dropping from 16 to 3.
+                // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
+                const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+                expect(percentDiff.lte(BigNumber.from(50))).toBe(true);
+              }
+
+              if (swapWithSimulation) {
                 expect(
-                  swap.quoteGasAdjusted
-                    .subtract(swap.quote)
-                    .equalTo(swap.estimatedGasUsedQuoteToken)
+                  swapWithSimulation.quoteGasAdjusted
+                    .subtract(swapWithSimulation.quote)
+                    .equalTo(swapWithSimulation.estimatedGasUsedQuoteToken)
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationStatus).toEqual(
+                expect(swapWithSimulation.simulationStatus).toEqual(
                   SimulationStatus.Succeeded
                 );
               }

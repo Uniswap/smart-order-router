@@ -441,6 +441,7 @@ export async function getBestSwapRouteBy(
   // if on L2, calculate the L1 security fee
   let gasCostsL1ToL2: L1ToL2GasCosts = {
     gasUsedL1: BigNumber.from(0),
+    gasUsedL1OnL2: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
     gasCostL1QuoteToken: CurrencyAmount.fromRawAmount(
       // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
@@ -463,7 +464,7 @@ export async function getBestSwapRouteBy(
     }
   }
 
-  const { gasCostL1USD, gasCostL1QuoteToken } = gasCostsL1ToL2;
+  const { gasUsedL1OnL2, gasCostL1USD, gasCostL1QuoteToken } = gasCostsL1ToL2;
 
   // For each gas estimate, normalize decimals to that of the chosen usd token.
   const estimatedGasUsedUSDs = _(bestSwap)
@@ -580,7 +581,7 @@ export async function getBestSwapRouteBy(
   return {
     quote,
     quoteGasAdjusted,
-    estimatedGasUsed,
+    estimatedGasUsed: estimatedGasUsed.add(gasUsedL1OnL2),
     estimatedGasUsedUSD,
     estimatedGasUsedQuoteToken,
     estimatedGasUsedGasToken,
