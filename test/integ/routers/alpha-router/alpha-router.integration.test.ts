@@ -3250,6 +3250,7 @@ describe('quote for other networks', () => {
     [ChainId.GOERLI]: () => UNI_GOERLI,
     [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_SEPOLIA]: () => DAI_ON(ChainId.OPTIMISM_SEPOLIA),
     [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.ARBITRUM_ONE]: () => USDC_ON(ChainId.ARBITRUM_ONE),
     [ChainId.ARBITRUM_GOERLI]: () => USDC_ON(ChainId.ARBITRUM_GOERLI),
@@ -3269,6 +3270,7 @@ describe('quote for other networks', () => {
     [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM_SEPOLIA]: () => DAI_ON(ChainId.OPTIMISM_SEPOLIA),
     [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.ARBITRUM_ONE]: () => DAI_ON(ChainId.ARBITRUM_ONE),
     [ChainId.ARBITRUM_GOERLI]: () => DAI_ON(ChainId.ARBITRUM_GOERLI),
@@ -3289,6 +3291,7 @@ describe('quote for other networks', () => {
     SUPPORTED_CHAINS,
     (c) =>
       c != ChainId.OPTIMISM_GOERLI &&
+      c != ChainId.OPTIMISM_SEPOLIA &&
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_GOERLI &&
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
