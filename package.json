@@ -44,7 +44,6 @@
     "@uniswap/v3-sdk": "^3.10.1",
     "async-retry": "^1.3.1",
     "await-timeout": "^1.1.1",
-    "await-timeout": "^1.1.1",
     "axios": "^0.21.1",
     "brotli": "^1.3.3",
     "bunyan": "^1.8.15",
