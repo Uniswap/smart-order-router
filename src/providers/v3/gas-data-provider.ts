@@ -6,6 +6,7 @@ import { GasDataArbitrum__factory } from '../../types/other/factories/GasDataArb
 import { GasPriceOracle__factory } from '../../types/other/factories/GasPriceOracle__factory';
 import { ARB_GASINFO_ADDRESS, log, OVM_GASPRICE_ADDRESS } from '../../util';
 import { IMulticallProvider } from '../multicall-provider';
+import { ProviderConfig } from '../provider';
 
 /**
  * Provider for getting gas constants on L2s.
@@ -18,7 +19,7 @@ export interface IL2GasDataProvider<T> {
    * Gets the data constants needed to calculate the l1 security fee on L2s like arbitrum and optimism.
    * @returns An object that includes the data necessary for the off chain estimations.
    */
-  getGasData(): Promise<T>;
+  getGasData(providerConfig?: ProviderConfig): Promise<T>;
 }
 
 export type OptimismGasData = {
@@ -49,7 +50,10 @@ export class OptimismGasDataProvider
    * @returns An OptimismGasData object that includes the l1BaseFee,
    * scalar, decimals, and overhead values.
    */
-  public async getGasData(): Promise<OptimismGasData> {
+  public async getGasData(
+    providerConfig?: ProviderConfig
+  ): Promise<OptimismGasData> {
+    // TODO: Also get the gasPrice from GasPriceOracle.sol
     const funcNames = ['l1BaseFee', 'scalar', 'decimals', 'overhead'];
     const tx =
       await this.multicall2Provider.callMultipleFunctionsOnSameContract<
@@ -59,6 +63,7 @@ export class OptimismGasDataProvider
         address: this.gasOracleAddress,
         contractInterface: GasPriceOracle__factory.createInterface(),
         functionNames: funcNames,
+        providerConfig: providerConfig,
       });
 
     if (
@@ -115,12 +120,14 @@ export class ArbitrumGasDataProvider
     this.gasFeesAddress = gasDataAddress ? gasDataAddress : ARB_GASINFO_ADDRESS;
   }
 
-  public async getGasData() {
+  public async getGasData(providerConfig?: ProviderConfig) {
     const gasDataContract = GasDataArbitrum__factory.connect(
       this.gasFeesAddress,
       this.provider
     );
-    const gasData = await gasDataContract.getPricesInWei();
+    const gasData = await gasDataContract.getPricesInWei({
+      blockTag: providerConfig?.blockNumber,
+    });
     const perL1CalldataByte = gasData[1];
     return {
       perL2TxFee: gasData[0],
