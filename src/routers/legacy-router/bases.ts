@@ -7,13 +7,11 @@ import {
   DAI_AVAX,
   DAI_BNB,
   DAI_MAINNET,
-  DAI_UNREAL,
   ITokenProvider,
   USDC_AVAX,
   USDC_BASE,
   USDC_BNB,
   USDC_MAINNET,
-  USDC_UNREAL,
   USDT_BNB,
   USDT_MAINNET,
   WBTC_MAINNET,
@@ -74,11 +72,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     [ChainId.ARBITRUM_SEPOLIA]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_SEPOLIA]!,
     ],
-    [ChainId.UNREAL]: [
-      WRAPPED_NATIVE_CURRENCY[ChainId.UNREAL]!,
-      DAI_UNREAL,
-      USDC_UNREAL,
-    ],
+    [ChainId.UNREAL]: [WRAPPED_NATIVE_CURRENCY[ChainId.UNREAL]!],
   };
 };
 

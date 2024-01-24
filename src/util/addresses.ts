@@ -29,7 +29,8 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BASE_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].v3CoreFactoryAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v3CoreFactoryAddress,
-  [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].v3CoreFactoryAddress,
+  // [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].v3CoreFactoryAddress,
+  [ChainId.UNREAL]: '0x3d147153f2Ee6202eE56CBE6da95B9910A814063',
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -48,7 +49,8 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.BASE_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].quoterAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].quoterAddress,
-  [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].quoterAddress,
+  // [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].quoterAddress,
+  [ChainId.UNREAL]: '0x90124fb4Ce3A09EC0ffE3753b3dDC8731fb022b6',
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -75,7 +77,8 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BASE_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].multicallAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].multicallAddress,
-  [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].multicallAddress,
+  // [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].multicallAddress,
+  [ChainId.UNREAL]: '0x92D676A4917aF4c19fF0450c90471D454Ac423fc',
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -98,7 +101,7 @@ export const NONFUNGIBLE_POSITION_MANAGER_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].nonfungiblePositionManagerAddress;
 export const V3_MIGRATOR_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v3MigratorAddress;
-export const MULTICALL2_ADDRESS = '0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696';
+export const MULTICALL2_ADDRESS = '0x92D676A4917aF4c19fF0450c90471D454Ac423fc';
 
 export type AddressMap = { [chainId: number]: string | undefined };
 

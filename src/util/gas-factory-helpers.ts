@@ -70,6 +70,7 @@ export async function getHighestLiquidityV3NativePool(
   const nativePools = _([
     FeeAmount.HIGH,
     FeeAmount.MEDIUM,
+    FeeAmount.STABLE,
     FeeAmount.LOW,
     FeeAmount.LOWEST,
   ])
@@ -83,6 +84,7 @@ export async function getHighestLiquidityV3NativePool(
   const pools = _([
     FeeAmount.HIGH,
     FeeAmount.MEDIUM,
+    FeeAmount.STABLE,
     FeeAmount.LOW,
     FeeAmount.LOWEST,
   ])
@@ -125,6 +127,7 @@ export async function getHighestLiquidityV3USDPool(
   const usdPools = _([
     FeeAmount.HIGH,
     FeeAmount.MEDIUM,
+    FeeAmount.STABLE,
     FeeAmount.LOW,
     FeeAmount.LOWEST,
   ])
@@ -142,6 +145,7 @@ export async function getHighestLiquidityV3USDPool(
   const pools = _([
     FeeAmount.HIGH,
     FeeAmount.MEDIUM,
+    FeeAmount.STABLE,
     FeeAmount.LOW,
     FeeAmount.LOWEST,
   ])

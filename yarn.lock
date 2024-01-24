@@ -1661,9 +1661,9 @@
   integrity sha512-hov8bUuiLiyFPGyFPE1lwWhmzYbirOXQNNo40+y3zow8aFVTeyn3VWL0VFFfdNddA8S4Vf0Tc062rzyNr7Paag==
 
 "@types/node@*":
-  version "20.11.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.11.5.tgz#be10c622ca7fcaa3cf226cf80166abc31389d86e"
-  integrity sha512-g557vgQjUUfN76MZAN/dt1z3dzcUsimuysco0KeluHgrPdJXkP/XdAURgyO2W9fZWHRtRBiVKzKn8vyOAwlG+w==
+  version "20.11.6"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.11.6.tgz#6adf4241460e28be53836529c033a41985f85b6e"
+  integrity sha512-+EOokTnksGVgip2PbYbr3xnR7kZigh4LbybAfBAw5BpnQ+FqBYUsvCEjYd70IXKlbohQ64mzEYmMtlWUY8q//Q==
   dependencies:
     undici-types "~5.26.4"
 
@@ -1852,12 +1852,12 @@
 
 "@uniswap/router-sdk@github:Pearl-Finance/router-sdk":
   version "1.7.1"
-  resolved "https://codeload.github.com/Pearl-Finance/router-sdk/tar.gz/135b2f15925035a698c0e4072112161fb42b0459"
+  resolved "https://codeload.github.com/Pearl-Finance/router-sdk/tar.gz/a1e716173c424c9a93f428bfa944887c4d974b1a"
   dependencies:
     "@ethersproject/abi" "^5.5.0"
     "@uniswap/sdk-core" "github:Pearl-Finance/sdk-core"
     "@uniswap/swap-router-contracts" "^1.1.0"
-    "@uniswap/v2-sdk" "^3.2.0"
+    "@uniswap/v2-sdk" "github:Pearl-Finance/v2-sdk"
     "@uniswap/v3-sdk" "github:Pearl-Finance/v3-sdk"
 
 "@uniswap/sdk-core@^4", "@uniswap/sdk-core@^4.0.7", "@uniswap/sdk-core@github:Pearl-Finance/sdk-core":
@@ -1890,13 +1890,13 @@
 
 "@uniswap/universal-router-sdk@github:Pearl-Finance/universal-router-sdk":
   version "1.6.0"
-  resolved "https://codeload.github.com/Pearl-Finance/universal-router-sdk/tar.gz/3e335ccb443e17a38c5b8760af644c2d3a0a3533"
+  resolved "https://codeload.github.com/Pearl-Finance/universal-router-sdk/tar.gz/0e4366a6928033aa2200e1b937cf24eb98207cbc"
   dependencies:
     "@uniswap/permit2-sdk" "^1.2.0"
     "@uniswap/router-sdk" "github:Pearl-Finance/router-sdk"
     "@uniswap/sdk-core" "github:Pearl-Finance/sdk-core"
     "@uniswap/universal-router" "1.6.0"
-    "@uniswap/v2-sdk" "^3.2.0"
+    "@uniswap/v2-sdk" "github:Pearl-Finance/v2-sdk"
     "@uniswap/v3-sdk" "github:Pearl-Finance/v3-sdk"
     bignumber.js "^9.0.2"
     ethers "^5.3.1"
@@ -1928,10 +1928,9 @@
     "@uniswap/lib" "1.1.1"
     "@uniswap/v2-core" "1.0.0"
 
-"@uniswap/v2-sdk@^3.2.0", "@uniswap/v2-sdk@^3.2.3":
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/@uniswap/v2-sdk/-/v2-sdk-3.3.0.tgz#76c95d234fe73ca6ad34ba9509f7451955ee0ce7"
-  integrity sha512-cf5PjoNQN5tNELIOVJsqV4/VeuDtxFw6Zl8oFmFJ6PNoQ8sx+XnGoO0aGKTB/o5II3oQ7820xtY3k47UsXgd6A==
+"@uniswap/v2-sdk@github:Pearl-Finance/v2-sdk":
+  version "4.0.0"
+  resolved "https://codeload.github.com/Pearl-Finance/v2-sdk/tar.gz/524c3cf9b226371773cfc1c67ab91ac8b9f04d32"
   dependencies:
     "@ethersproject/address" "^5.0.0"
     "@ethersproject/solidity" "^5.0.0"
@@ -1962,7 +1961,7 @@
 
 "@uniswap/v3-sdk@github:Pearl-Finance/v3-sdk":
   version "3.10.0"
-  resolved "https://codeload.github.com/Pearl-Finance/v3-sdk/tar.gz/3fbb9859f4a49c72d02c2186f055f596b364bdeb"
+  resolved "https://codeload.github.com/Pearl-Finance/v3-sdk/tar.gz/1caf1107ce5be90b19a6de24c57bbdbca0355730"
   dependencies:
     "@ethersproject/abi" "^5.0.12"
     "@ethersproject/solidity" "^5.0.9"

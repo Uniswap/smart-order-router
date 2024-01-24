@@ -22,6 +22,8 @@ export function parseFeeAmount(feeAmountStr: string) {
       return FeeAmount.HIGH;
     case '3000':
       return FeeAmount.MEDIUM;
+    case '1000':
+      return FeeAmount.STABLE;
     case '500':
       return FeeAmount.LOW;
     case '100':
@@ -37,6 +39,8 @@ export function unparseFeeAmount(feeAmount: FeeAmount) {
       return '10000';
     case FeeAmount.MEDIUM:
       return '3000';
+    case FeeAmount.STABLE:
+      return '1000';
     case FeeAmount.LOW:
       return '500';
     case FeeAmount.LOWEST:
