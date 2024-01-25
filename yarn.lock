@@ -1862,7 +1862,7 @@
 
 "@uniswap/sdk-core@^4", "@uniswap/sdk-core@^4.0.7", "@uniswap/sdk-core@github:Pearl-Finance/sdk-core":
   version "4.0.10"
-  resolved "https://codeload.github.com/Pearl-Finance/sdk-core/tar.gz/9ce3311ca2cf8fa8970351f37696cc14ac13b605"
+  resolved "https://codeload.github.com/Pearl-Finance/sdk-core/tar.gz/1b9b925f365453cc228e7774badb1163f0816c34"
   dependencies:
     "@ethersproject/address" "^5.0.2"
     big.js "^5.2.2"
@@ -1890,7 +1890,7 @@
 
 "@uniswap/universal-router-sdk@github:Pearl-Finance/universal-router-sdk":
   version "1.6.0"
-  resolved "https://codeload.github.com/Pearl-Finance/universal-router-sdk/tar.gz/0e4366a6928033aa2200e1b937cf24eb98207cbc"
+  resolved "https://codeload.github.com/Pearl-Finance/universal-router-sdk/tar.gz/9e6be0adb7783bc87f2109d39c609c6518f59433"
   dependencies:
     "@uniswap/permit2-sdk" "^1.2.0"
     "@uniswap/router-sdk" "github:Pearl-Finance/router-sdk"
@@ -1930,7 +1930,7 @@
 
 "@uniswap/v2-sdk@github:Pearl-Finance/v2-sdk":
   version "4.0.0"
-  resolved "https://codeload.github.com/Pearl-Finance/v2-sdk/tar.gz/524c3cf9b226371773cfc1c67ab91ac8b9f04d32"
+  resolved "https://codeload.github.com/Pearl-Finance/v2-sdk/tar.gz/10fa86a9742c54058883dbceb719aa8ed88552fe"
   dependencies:
     "@ethersproject/address" "^5.0.0"
     "@ethersproject/solidity" "^5.0.0"
@@ -1961,7 +1961,7 @@
 
 "@uniswap/v3-sdk@github:Pearl-Finance/v3-sdk":
   version "3.10.0"
-  resolved "https://codeload.github.com/Pearl-Finance/v3-sdk/tar.gz/1caf1107ce5be90b19a6de24c57bbdbca0355730"
+  resolved "https://codeload.github.com/Pearl-Finance/v3-sdk/tar.gz/58232586365561af0bdb7b093a2d1dcb81b2e9a2"
   dependencies:
     "@ethersproject/abi" "^5.0.12"
     "@ethersproject/solidity" "^5.0.9"
@@ -2575,9 +2575,9 @@ camelcase@^6.0.0, camelcase@^6.2.0:
   integrity sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==
 
 caniuse-lite@^1.0.30001565:
-  version "1.0.30001579"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001579.tgz#45c065216110f46d6274311a4b3fcf6278e0852a"
-  integrity sha512-u5AUVkixruKHJjw/pj9wISlcMpgFWzSrczLZbrqBSxukQixmg0SJ5sZTpvaFvxU0HoQKd4yoyAogyrAz9pzJnA==
+  version "1.0.30001580"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001580.tgz#e3c76bc6fe020d9007647044278954ff8cd17d1e"
+  integrity sha512-mtj5ur2FFPZcCEpXFy8ADXbDACuNFXg6mxVDqp7tqooX6l3zwm+d8EPoeOSIFRDvHs8qu7/SLFOGniULkcH2iA==
 
 case@^1.6.3:
   version "1.6.3"
@@ -3018,9 +3018,9 @@ dtrace-provider@~0.8:
     nan "^2.14.0"
 
 electron-to-chromium@^1.4.601:
-  version "1.4.643"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.643.tgz#081a20c5534db91e66ef094f68624960f674768f"
-  integrity sha512-QHscvvS7gt155PtoRC0dR2ilhL8E9LHhfTQEq1uD5AL0524rBLAwpAREFH06f87/e45B9XkR6Ki5dbhbCsVEIg==
+  version "1.4.645"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.645.tgz#117f964252eb2f0ff00fc7360cb3080e2cf66e3c"
+  integrity sha512-EeS1oQDCmnYsRDRy2zTeC336a/4LZ6WKqvSaM1jLocEk5ZuyszkQtCpsqvuvaIXGOUjwtvF6LTcS8WueibXvSw==
 
 elliptic@6.5.4, elliptic@^6.5.2, elliptic@^6.5.4:
   version "6.5.4"
@@ -6304,9 +6304,9 @@ spdx-correct@^3.0.0:
     spdx-license-ids "^3.0.0"
 
 spdx-exceptions@^2.1.0:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/spdx-exceptions/-/spdx-exceptions-2.3.0.tgz#3f28ce1a77a00372683eade4a433183527a2163d"
-  integrity sha512-/tTrYOC7PPI1nUAgx34hUpqXuyJG+DTHJTnIULG4rDygi4xu/tfgmq1e1cIRwRzwZgo4NLySi+ricLkZkw4i5A==
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/spdx-exceptions/-/spdx-exceptions-2.4.0.tgz#c07a4ede25b16e4f78e6707bbd84b15a45c19c1b"
+  integrity sha512-hcjppoJ68fhxA/cjbN4T8N6uCUejN8yFw69ttpqtBeCbF3u13n7mb31NB9jKwGTTWWnt9IbRA/mf1FprYS8wfw==
 
 spdx-expression-parse@^3.0.0:
   version "3.0.1"

@@ -29,8 +29,7 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BASE_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].v3CoreFactoryAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v3CoreFactoryAddress,
-  // [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].v3CoreFactoryAddress,
-  [ChainId.UNREAL]: '0x3d147153f2Ee6202eE56CBE6da95B9910A814063',
+  [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -49,8 +48,7 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.BASE_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].quoterAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].quoterAddress,
-  // [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].quoterAddress,
-  [ChainId.UNREAL]: '0x90124fb4Ce3A09EC0ffE3753b3dDC8731fb022b6',
+  [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -77,8 +75,7 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BASE_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].multicallAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].multicallAddress,
-  // [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].multicallAddress,
-  [ChainId.UNREAL]: '0x92D676A4917aF4c19fF0450c90471D454Ac423fc',
+  [ChainId.UNREAL]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNREAL].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -86,7 +83,7 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
   if (chainId == ChainId.BNB) {
     return BNB_SWAP_ROUTER_02_ADDRESS;
   } else if (chainId === ChainId.UNREAL) {
-    return '0x3dB6Ae1179Cd6aC794Fa795b300013b231deF301';
+    return '0xc4330B6fb035F75107F29bf741B945167f2f5330';
   }
 
   return '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
