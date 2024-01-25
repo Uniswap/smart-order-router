@@ -1930,7 +1930,7 @@
 
 "@uniswap/v2-sdk@github:Pearl-Finance/v2-sdk":
   version "4.0.0"
-  resolved "https://codeload.github.com/Pearl-Finance/v2-sdk/tar.gz/10fa86a9742c54058883dbceb719aa8ed88552fe"
+  resolved "https://codeload.github.com/Pearl-Finance/v2-sdk/tar.gz/0c05985b0ce14e85c49b4491fe73719ef7da0ea3"
   dependencies:
     "@ethersproject/address" "^5.0.0"
     "@ethersproject/solidity" "^5.0.0"
@@ -1961,7 +1961,7 @@
 
 "@uniswap/v3-sdk@github:Pearl-Finance/v3-sdk":
   version "3.10.0"
-  resolved "https://codeload.github.com/Pearl-Finance/v3-sdk/tar.gz/58232586365561af0bdb7b093a2d1dcb81b2e9a2"
+  resolved "https://codeload.github.com/Pearl-Finance/v3-sdk/tar.gz/02b5ab5c0e2c25526587e746723f9a30925fb742"
   dependencies:
     "@ethersproject/abi" "^5.0.12"
     "@ethersproject/solidity" "^5.0.9"

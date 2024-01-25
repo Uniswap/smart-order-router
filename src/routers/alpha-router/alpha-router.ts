@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
-import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
+// import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade, ZERO } from '@uniswap/router-sdk';
 import {
   ChainId,
@@ -82,6 +82,7 @@ import {
   V3PoolProvider,
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
+import DEFAULT_TOKEN_LIST from '../../tokenList.json';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
@@ -702,6 +703,24 @@ export class AlphaRouter
 
     const chainName = ID_TO_NETWORK_NAME(chainId);
 
+    // @TODO: Testing only approach
+
+    const getSubgraphV2Url = (): string => {
+      // if (chainId === ChainId.UNREAL) {
+      //   return 'https://yellow-convinced-barracuda-669.mypinata.cloud/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH';
+      // }
+
+      return `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`;
+    };
+
+    const getSubgraphV3Url = (): string => {
+      // if (chainId === ChainId.UNREAL) {
+      //   return 'https://yellow-convinced-barracuda-669.mypinata.cloud/ipfs/QmbJWAESqCsf4RFCqEY7jecCashj8usXiyDNfKtZCwwzGb';
+      // }
+
+      return `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`;
+    };
+
     // ipfs urls in the following format: `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/${protocol}/${chainName}.json`;
     if (v2SubgraphProvider) {
       this.v2SubgraphProvider = v2SubgraphProvider;
@@ -709,12 +728,7 @@ export class AlphaRouter
       this.v2SubgraphProvider = new V2SubgraphProviderWithFallBacks([
         new CachingV2SubgraphProvider(
           chainId,
-          new URISubgraphProvider(
-            chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v2/${chainName}.json`,
-            undefined,
-            0
-          ),
+          new URISubgraphProvider(chainId, getSubgraphV2Url(), undefined, 0),
           new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
         ),
         new StaticV2SubgraphProvider(chainId),
@@ -727,12 +741,7 @@ export class AlphaRouter
       this.v3SubgraphProvider = new V3SubgraphProviderWithFallBacks([
         new CachingV3SubgraphProvider(
           chainId,
-          new URISubgraphProvider(
-            chainId,
-            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v3/${chainName}.json`,
-            undefined,
-            0
-          ),
+          new URISubgraphProvider(chainId, getSubgraphV3Url(), undefined, 0),
           new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
         ),
         new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),

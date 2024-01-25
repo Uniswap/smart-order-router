@@ -64,7 +64,7 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.BASE]:
     'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
   [ChainId.UNREAL]:
-    'https://api.goldsky.com/api/public/project_clrpcv6yrbv7901vg2s0p1rk7/subgraphs/pearlv2-univ3-subgraph/1.0.0/gn',
+    'https://api.goldsky.com/api/public/project_clrpcv6yrbv7901vg2s0p1rk7/subgraphs/pearlv2-univ3-subgraph/1.0.2/gn',
 };
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
