@@ -158,6 +158,11 @@ Total ticks crossed: 7
 
 ```
 
+```
+./bin/cli quote --tokenIn 0x7F5c764cBc14f9669B88837ca1490cCa17c31607 --tokenOut 0x4200000000000000000000000000000000000042 --amount 1 --exactIn --minSplits 1 --protocols v2 --router alpha --chainId 10
+```
+
+
 ## Optimism-Goerli
 
 ```
