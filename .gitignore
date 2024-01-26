@@ -2,7 +2,7 @@
 .yalc
 yalc.lock
 .nyc_output
-build
+#build
 node_modules
 src/**.js
 coverage

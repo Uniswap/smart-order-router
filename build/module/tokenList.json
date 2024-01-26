@@ -1,0 +1,160 @@
+{
+    "name": "Pearl token list",
+    "version": {
+        "major": 1,
+        "minor": 0,
+        "patch": 0
+    },
+    "timestamp": "2024-01-25T12:36:38.158Z",
+    "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/PEARL.png",
+    "keywords": [
+        "pearl",
+        "default"
+    ],
+    "tokens": [
+        {
+            "name": "WETH",
+            "symbol": "WETH",
+            "address": "0x9801EEB848987c0A8d6443912827bD36C288F8FB",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/ETH.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0x9801EEB848987c0A8d6443912827bD36C288F8FB"
+                    }
+                }
+            }
+        },
+        {
+            "name": "PEARL",
+            "symbol": "PEARL",
+            "address": "0xCE1581d7b4bA40176f0e219b2CaC30088Ad50C7A",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/PEARL.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0xCE1581d7b4bA40176f0e219b2CaC30088Ad50C7A"
+                    }
+                }
+            }
+        },
+        {
+            "name": "DAI",
+            "symbol": "DAI",
+            "address": "0x665D4921fe931C0eA1390Ca4e0C422ba34d26169",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/DAI.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0x665D4921fe931C0eA1390Ca4e0C422ba34d26169"
+                    }
+                }
+            }
+        },
+        {
+            "name": "USDC",
+            "symbol": "USDC",
+            "address": "0xabAa4C39cf3dF55480292BBDd471E88de8Cc3C97",
+            "chainId": 18231,
+            "decimals": 6,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/USDC.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0xabAa4C39cf3dF55480292BBDd471E88de8Cc3C97"
+                    }
+                }
+            }
+        },
+        {
+            "name": "CAVIAR",
+            "symbol": "CVR",
+            "address": "0xC0Fd0e8d5c3Bdc2C06b2Ee9FfE81ceCbE1B59364",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/CVR.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0xC0Fd0e8d5c3Bdc2C06b2Ee9FfE81ceCbE1B59364"
+                    }
+                }
+            }
+        },
+        {
+            "name": "USTB",
+            "symbol": "USTB",
+            "address": "0xd856A706eF29a9170F624907f576f60f432131Ae",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/USTB.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0xd856A706eF29a9170F624907f576f60f432131Ae"
+                    }
+                }
+            }
+        },
+        {
+            "name": "TNGBL",
+            "symbol": "TNGBL",
+            "address": "0x86254FfaA70910447578E4aC37d51624409aeae3",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/TNGBL.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0x86254FfaA70910447578E4aC37d51624409aeae3"
+                    }
+                }
+            }
+        },
+        {
+            "name": "MORE",
+            "symbol": "MORE",
+            "address": "0x3CD7AB62b0A96CC5c23490d0893084b58A98A1Dc",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/MORE.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0x3CD7AB62b0A96CC5c23490d0893084b58A98A1Dc"
+                    }
+                }
+            }
+        },
+        {
+            "name": "RWA",
+            "symbol": "RWA",
+            "address": "0xC9f2381e3f22e912e34033734977B58544518BFA",
+            "chainId": 18231,
+            "decimals": 18,
+            "logoURI": "https://main.d3dqte3uibpwtt.amplifyapp.com/tokens/unknown.png",
+            "price": 1,
+            "extensions": {
+                "bridgeInfo": {
+                    "18231": {
+                        "tokenAddress": "0xC9f2381e3f22e912e34033734977B58544518BFA"
+                    }
+                }
+            }
+        }
+    ]
+}
