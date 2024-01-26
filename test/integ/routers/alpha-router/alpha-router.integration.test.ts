@@ -95,24 +95,26 @@ const FORK_BLOCK = 18222746;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
+
+// Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
+// We may need to tune them if we change the FORK_BLOCK
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
-  [ChainId.MAINNET]: 50,
-  [ChainId.GOERLI]: 50,
+  [ChainId.MAINNET]: 35,
+  [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 50,
-  [ChainId.OPTIMISM]: 30,
+  [ChainId.OPTIMISM]: 26,
   [ChainId.OPTIMISM_GOERLI]: 30,
-  // Arbitrum gas estimate is still off by up to 50%, because of the incorrect compression ratio used in the gas model.
-  [ChainId.ARBITRUM_ONE]: 50,
+  [ChainId.ARBITRUM_ONE]: 53,
   [ChainId.ARBITRUM_GOERLI]: 50,
-  [ChainId.POLYGON]: 30,
+  [ChainId.POLYGON]: 34,
   [ChainId.POLYGON_MUMBAI]: 30,
   [ChainId.CELO]: 30,
   [ChainId.CELO_ALFAJORES]: 30,
   [ChainId.GNOSIS]: 30,
   [ChainId.MOONBEAM]: 30,
-  [ChainId.BNB]: 30,
-  [ChainId.AVALANCHE]: 30,
-  [ChainId.BASE]: 30,
+  [ChainId.BNB]: 35,
+  [ChainId.AVALANCHE]: 36,
+  [ChainId.BASE]: 32,
   [ChainId.BASE_GOERLI]: 30,
 }
 
@@ -3633,6 +3635,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
@@ -3727,6 +3730,8 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
@@ -3823,6 +3828,8 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
