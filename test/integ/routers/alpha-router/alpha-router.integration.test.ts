@@ -96,6 +96,28 @@ const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 
+// Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
+// We may need to tune them if we change the FORK_BLOCK
+const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
+  [ChainId.MAINNET]: 35,
+  [ChainId.GOERLI]: 62,
+  [ChainId.SEPOLIA]: 50,
+  [ChainId.OPTIMISM]: 26,
+  [ChainId.OPTIMISM_GOERLI]: 30,
+  [ChainId.ARBITRUM_ONE]: 53,
+  [ChainId.ARBITRUM_GOERLI]: 50,
+  [ChainId.POLYGON]: 34,
+  [ChainId.POLYGON_MUMBAI]: 30,
+  [ChainId.CELO]: 30,
+  [ChainId.CELO_ALFAJORES]: 30,
+  [ChainId.GNOSIS]: 30,
+  [ChainId.MOONBEAM]: 30,
+  [ChainId.BNB]: 35,
+  [ChainId.AVALANCHE]: 36,
+  [ChainId.BASE]: 32,
+  [ChainId.BASE_GOERLI]: 30,
+}
+
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
   after: CurrencyAmount<Currency>,
@@ -3578,49 +3600,43 @@ describe('quote for other networks', () => {
               expect(swapWithSimulation).toBeDefined();
               expect(swapWithSimulation).not.toBeNull();
 
-              // TODO: We need to fix L2 -> L1 calldata posting gas estimate one by one.
-              //       We started by fixing Arbitrum gas estimate https://github.com/Uniswap/smart-order-router/pull/468.
-              //       Before the fix, the non-simulated gas estimate is 131000, meanwhile simulated gas estimate is 6573602.
-              //       After the fix, the non-simulated gas estimate is now 3414207.
-              //       We assert the non-simulated gas estimate is within 50% error margin of simulated gas estimate range, e.g. between 6573602 - 6573602 / 2 and 6573602 + 6573602 / 2
-              if (chain === ChainId.ARBITRUM_ONE) {
-                // Universal Router is not deployed on Gorli.
-                const swapOptions: SwapOptions =
-                  {
-                    type: SwapType.UNIVERSAL_ROUTER,
-                    recipient: WHALES(tokenIn),
-                    slippageTolerance: SLIPPAGE,
-                    deadlineOrPreviousBlockhash: parseDeadline(360),
-                  };
+              // Universal Router is not deployed on Gorli.
+              const swapOptions: SwapOptions =
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: WHALES(tokenIn),
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                };
 
-                const swap = await alphaRouter.route(
-                  amount,
-                  getQuoteToken(tokenIn, tokenOut, tradeType),
-                  tradeType,
-                  swapOptions,
-                  {
-                    // @ts-ignore[TS7053] - complaining about switch being non exhaustive
-                    ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                    protocols: [Protocol.V3, Protocol.V2],
-                    saveTenderlySimulationIfFailed: true,
-                  }
-                );
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                swapOptions,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
+                }
+              );
 
-                expect(swap).toBeDefined();
-                expect(swap).not.toBeNull();
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
 
-                const gasEstimateDiff = swapWithSimulation!.estimatedGasUsed.gt(swap!.estimatedGasUsed)
-                  ? swapWithSimulation!.estimatedGasUsed.sub(swap!.estimatedGasUsed)
-                  : swap!.estimatedGasUsed.sub(swapWithSimulation!.estimatedGasUsed);
+              const gasEstimateDiff = swapWithSimulation!.estimatedGasUsed.gt(swap!.estimatedGasUsed)
+                ? swapWithSimulation!.estimatedGasUsed.sub(swap!.estimatedGasUsed)
+                : swap!.estimatedGasUsed.sub(swapWithSimulation!.estimatedGasUsed);
 
-                // We will rely on Tenderly gas estimate as source of truth against SOR non-simulated gas estimate accuracy.
-                // This is the only reliable and long-term feasible test assertion approach.
-                // For example, in the near future, after EIP-4844, we expect the gas estimate to drop by (3 / 16)
-                // due to gas cost per compressed calldata byte dropping from 16 to 3.
-                // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
-                const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-                expect(percentDiff.lte(BigNumber.from(50))).toBe(true);
-              }
+              // We will rely on Tenderly gas estimate as source of truth against SOR non-simulated gas estimate accuracy.
+              // This is the only reliable and long-term feasible test assertion approach.
+              // For example, in the near future, after EIP-4844, we expect the gas estimate to drop by (3 / 16)
+              // due to gas cost per compressed calldata byte dropping from 16 to 3.
+              // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
+              const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+              expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
                 expect(
@@ -3647,7 +3663,7 @@ describe('quote for other networks', () => {
                   : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
-              const swapOptions: SwapOptions =
+              const swapWithSimulationOptions: SwapOptions =
                 chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
@@ -3664,6 +3680,30 @@ describe('quote for other networks', () => {
                     simulate: { fromAddress: WHALES(tokenIn) },
                   };
 
+              const swapWithSimulation = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                swapWithSimulationOptions,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
+                }
+              );
+              expect(swapWithSimulation).toBeDefined();
+              expect(swapWithSimulation).not.toBeNull();
+
+              // Universal Router is not deployed on Gorli.
+              const swapOptions: SwapOptions =
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: WHALES(tokenIn),
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                };
+
               const swap = await alphaRouter.route(
                 amount,
                 getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -3676,17 +3716,33 @@ describe('quote for other networks', () => {
                   saveTenderlySimulationIfFailed: true,
                 }
               );
+
               expect(swap).toBeDefined();
               expect(swap).not.toBeNull();
-              if (swap) {
+
+              const gasEstimateDiff = swapWithSimulation!.estimatedGasUsed.gt(swap!.estimatedGasUsed)
+                ? swapWithSimulation!.estimatedGasUsed.sub(swap!.estimatedGasUsed)
+                : swap!.estimatedGasUsed.sub(swapWithSimulation!.estimatedGasUsed);
+
+              // We will rely on Tenderly gas estimate as source of truth against SOR non-simulated gas estimate accuracy.
+              // This is the only reliable and long-term feasible test assertion approach.
+              // For example, in the near future, after EIP-4844, we expect the gas estimate to drop by (3 / 16)
+              // due to gas cost per compressed calldata byte dropping from 16 to 3.
+              // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
+              const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+
+              expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
+
+              if (swapWithSimulation) {
                 expect(
-                  swap.quoteGasAdjusted
-                    .subtract(swap.quote)
-                    .equalTo(swap.estimatedGasUsedQuoteToken)
+                  swapWithSimulation.quoteGasAdjusted
+                    .subtract(swapWithSimulation.quote)
+                    .equalTo(swapWithSimulation.estimatedGasUsedQuoteToken)
                 );
 
                 // Expect tenderly simulation to be successful
-                expect(swap.simulationStatus).toEqual(
+                expect(swapWithSimulation.simulationStatus).toEqual(
                   SimulationStatus.Succeeded
                 );
               }
@@ -3705,7 +3761,7 @@ describe('quote for other networks', () => {
                   : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
-              const swapOptions: SwapOptions =
+              const swapWithSimulationOptions: SwapOptions =
                 chain == ChainId.GOERLI
                   ? {
                     type: SwapType.SWAP_ROUTER_02,
@@ -3722,6 +3778,30 @@ describe('quote for other networks', () => {
                     simulate: { fromAddress: WHALES(tokenIn) },
                   };
 
+              const swapWithSimulation = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                swapWithSimulationOptions,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
+                }
+              );
+              expect(swapWithSimulation).toBeDefined();
+              expect(swapWithSimulation).not.toBeNull();
+
+              // Universal Router is not deployed on Gorli.
+              const swapOptions: SwapOptions =
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: WHALES(tokenIn),
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                };
+
               const swap = await alphaRouter.route(
                 amount,
                 getQuoteToken(tokenIn, tokenOut, tradeType),
@@ -3734,17 +3814,33 @@ describe('quote for other networks', () => {
                   saveTenderlySimulationIfFailed: true,
                 }
               );
+
               expect(swap).toBeDefined();
               expect(swap).not.toBeNull();
-              if (swap) {
+
+              const gasEstimateDiff = swapWithSimulation!.estimatedGasUsed.gt(swap!.estimatedGasUsed)
+                ? swapWithSimulation!.estimatedGasUsed.sub(swap!.estimatedGasUsed)
+                : swap!.estimatedGasUsed.sub(swapWithSimulation!.estimatedGasUsed);
+
+              // We will rely on Tenderly gas estimate as source of truth against SOR non-simulated gas estimate accuracy.
+              // This is the only reliable and long-term feasible test assertion approach.
+              // For example, in the near future, after EIP-4844, we expect the gas estimate to drop by (3 / 16)
+              // due to gas cost per compressed calldata byte dropping from 16 to 3.
+              // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
+              const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+
+              expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
+
+              if (swapWithSimulation) {
                 expect(
-                  swap.quoteGasAdjusted
-                    .subtract(swap.quote)
-                    .equalTo(swap.estimatedGasUsedQuoteToken)
+                  swapWithSimulation.quoteGasAdjusted
+                    .subtract(swapWithSimulation.quote)
+                    .equalTo(swapWithSimulation.estimatedGasUsedQuoteToken)
                 );
 
                 // Expect Eth Estimate Gas to succeed
-                expect(swap.simulationStatus).toEqual(
+                expect(swapWithSimulation.simulationStatus).toEqual(
                   SimulationStatus.Succeeded
                 );
               }
