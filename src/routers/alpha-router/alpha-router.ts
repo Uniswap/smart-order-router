@@ -259,6 +259,11 @@ export type AlphaRouterParams = {
    * A provider for computing the portion-related data for routes and quotes.
    */
   portionProvider?: IPortionProvider;
+
+  /**
+   * All the supported v2 chains configuration
+   */
+  v2Supported?: ChainId[];
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -458,6 +463,7 @@ export class AlphaRouter
   protected routeCachingProvider?: IRouteCachingProvider;
   protected tokenPropertiesProvider: ITokenPropertiesProvider;
   protected portionProvider: IPortionProvider;
+  protected v2Supported?: ChainId[];
 
   constructor({
     chainId,
@@ -483,6 +489,7 @@ export class AlphaRouter
     routeCachingProvider,
     tokenPropertiesProvider,
     portionProvider,
+    v2Supported,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -820,6 +827,8 @@ export class AlphaRouter
       this.blockedTokenListProvider,
       this.tokenValidatorProvider
     );
+
+    this.v2Supported = v2Supported ?? V2_SUPPORTED;
   }
 
   public async routeToRatio(
@@ -1716,7 +1725,7 @@ export class AlphaRouter
     const noProtocolsSpecified = protocols.length === 0;
     const v3ProtocolSpecified = protocols.includes(Protocol.V3);
     const v2ProtocolSpecified = protocols.includes(Protocol.V2);
-    const v2SupportedInChain = V2_SUPPORTED.includes(this.chainId);
+    const v2SupportedInChain = this.v2Supported?.includes(this.chainId);
     const shouldQueryMixedProtocol =
       protocols.includes(Protocol.MIXED) ||
       (noProtocolsSpecified && v2SupportedInChain);

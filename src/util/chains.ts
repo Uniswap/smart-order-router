@@ -30,7 +30,6 @@ export const V2_SUPPORTED = [
   ChainId.GOERLI,
   ChainId.SEPOLIA,
   ChainId.OPTIMISM,
-  ChainId.ARBITRUM_ONE,
   ChainId.POLYGON,
   ChainId.BNB,
   ChainId.AVALANCHE,
