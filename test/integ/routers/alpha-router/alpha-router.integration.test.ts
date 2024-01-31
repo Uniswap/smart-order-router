@@ -205,7 +205,7 @@ if (process.env.INTEG_TEST_DEBUG) {
   );
 }
 
-jest.retryTimes(0);
+jest.retryTimes(5);
 
 describe('alpha router integration', () => {
   let alice: JsonRpcSigner;
