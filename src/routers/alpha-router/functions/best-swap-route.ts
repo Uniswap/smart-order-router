@@ -361,12 +361,17 @@ export async function getBestSwapRouteBy(
               throw new Error("Can't compute L1 gas fees.");
             } else {
               const v2Routes = curRoutesNew.filter((routes) => routes.protocol === Protocol.V2);
-              const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
+              if (v2Routes.length > 0) {
+                const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
+                gasCostL1QuoteToken = gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
+              }
               const v3Routes = curRoutesNew.filter((routes) => routes.protocol === Protocol.V3);
-              const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
-                v3Routes as V3RouteWithValidQuote[]
-              );
-              gasCostL1QuoteToken = v2GasCostL1.gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
+              if (v3Routes.length > 0) {
+                const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
+                  v3Routes as V3RouteWithValidQuote[]
+                );
+                gasCostL1QuoteToken = gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
+              }
             }
           }
 
