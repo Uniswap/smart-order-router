@@ -123,8 +123,8 @@ import {
 } from './config';
 import {
   MixedRouteWithValidQuote,
-  RouteWithValidQuote,
-  V3RouteWithValidQuote,
+  RouteWithValidQuote, V2RouteWithValidQuote,
+  V3RouteWithValidQuote
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
@@ -1118,7 +1118,7 @@ export class AlphaRouter
       gasToken,
     };
 
-    const [v3GasModel, mixedRouteGasModel] = await this.getGasModels(
+    const [v2GasModel, v3GasModel, mixedRouteGasModel] = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
       quoteToken,
@@ -1226,6 +1226,7 @@ export class AlphaRouter
         quoteToken,
         tradeType,
         routingConfig,
+        v2GasModel,
         v3GasModel,
         mixedRouteGasModel,
         gasPriceWei,
@@ -1244,6 +1245,7 @@ export class AlphaRouter
         quoteToken,
         tradeType,
         routingConfig,
+        v2GasModel,
         v3GasModel,
         mixedRouteGasModel,
         gasPriceWei,
@@ -1536,6 +1538,7 @@ export class AlphaRouter
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
+    v2GasModel: IGasModel<V2RouteWithValidQuote>,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber,
@@ -1697,6 +1700,7 @@ export class AlphaRouter
       this.chainId,
       routingConfig,
       this.portionProvider,
+      v2GasModel,
       v3GasModel,
       swapConfig
     );
@@ -1710,6 +1714,7 @@ export class AlphaRouter
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
+    v2GasModel: IGasModel<V2RouteWithValidQuote>,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber,
@@ -1857,7 +1862,7 @@ export class AlphaRouter
               v2CandidatePools!,
               tradeType,
               routingConfig,
-              undefined,
+              v2GasModel,
               gasPriceWei
             )
             .then((result) => {
@@ -1940,6 +1945,7 @@ export class AlphaRouter
       this.chainId,
       routingConfig,
       this.portionProvider,
+      v2GasModel,
       v3GasModel,
       swapConfig
     );
@@ -2011,7 +2017,7 @@ export class AlphaRouter
     quoteToken: Token,
     providerConfig?: GasModelProviderConfig
   ): Promise<
-    [IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
+    [IGasModel<V2RouteWithValidQuote>, IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
   > {
     const beforeGasModel = Date.now();
 
@@ -2069,6 +2075,14 @@ export class AlphaRouter
       nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
+    const v2GasModelPromise = this.v2GasModelFactory.buildGasModel({
+      chainId: this.chainId,
+      gasPriceWei,
+      poolProvider: this.v2PoolProvider,
+      token: quoteToken,
+      providerConfig: providerConfig,
+    });
+
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
       chainId: this.chainId,
       gasPriceWei,
@@ -2091,7 +2105,8 @@ export class AlphaRouter
         providerConfig: providerConfig,
       });
 
-    const [v3GasModel, mixedRouteGasModel] = await Promise.all([
+    const [v2GasModel, v3GasModel, mixedRouteGasModel] = await Promise.all([
+      v2GasModelPromise,
       v3GasModelPromise,
       mixedRouteGasModelPromise,
     ]);
@@ -2102,7 +2117,7 @@ export class AlphaRouter
       MetricLoggerUnit.Milliseconds
     );
 
-    return [v3GasModel, mixedRouteGasModel];
+    return [v2GasModel, v3GasModel, mixedRouteGasModel];
   }
 
   // Note multiplications here can result in a loss of precision in the amounts (e.g. taking 50% of 101)

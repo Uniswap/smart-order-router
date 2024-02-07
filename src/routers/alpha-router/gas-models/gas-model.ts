@@ -114,6 +114,9 @@ export type BuildV2GasModelFactoryType = {
   gasPriceWei: BigNumber;
   poolProvider: IV2PoolProvider;
   token: Token;
+  l2GasDataProvider?:
+    | IL2GasDataProvider<OptimismGasData>
+    | IL2GasDataProvider<ArbitrumGasData>;
   providerConfig?: GasModelProviderConfig;
 };
 

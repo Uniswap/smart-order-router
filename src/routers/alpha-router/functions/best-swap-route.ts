@@ -17,8 +17,8 @@ import { AlphaRouterConfig } from '../alpha-router';
 import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 
 import {
-  RouteWithValidQuote,
-  V3RouteWithValidQuote,
+  RouteWithValidQuote, V2RouteWithValidQuote,
+  V3RouteWithValidQuote
 } from './../entities/route-with-valid-quote';
 
 export type BestSwapRoute = {
@@ -39,7 +39,8 @@ export async function getBestSwapRoute(
   chainId: ChainId,
   routingConfig: AlphaRouterConfig,
   portionProvider: IPortionProvider,
-  gasModel?: IGasModel<V3RouteWithValidQuote>,
+  v2GasModel?: IGasModel<V2RouteWithValidQuote>,
+  v3GasModel?: IGasModel<V3RouteWithValidQuote>,
   swapConfig?: SwapOptions
 ): Promise<BestSwapRoute | null> {
   const now = Date.now();
@@ -87,7 +88,8 @@ export async function getBestSwapRoute(
     (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas,
     routingConfig,
     portionProvider,
-    gasModel,
+    v2GasModel,
+    v3GasModel,
     swapConfig
   );
 
@@ -151,7 +153,8 @@ export async function getBestSwapRouteBy(
   by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
   routingConfig: AlphaRouterConfig,
   portionProvider: IPortionProvider,
-  gasModel?: IGasModel<V3RouteWithValidQuote>,
+  v2GasModel?: IGasModel<V2RouteWithValidQuote>,
+  v3GasModel?: IGasModel<V3RouteWithValidQuote>,
   swapConfig?: SwapOptions
 ): Promise<BestSwapRoute | undefined> {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
@@ -354,17 +357,16 @@ export async function getBestSwapRouteBy(
           );
 
           if (HAS_L1_FEE.includes(chainId)) {
-            const onlyV3Routes = curRoutesNew.every(
-              (route) => route.protocol == Protocol.V3
-            );
-
-            if (gasModel == undefined || !onlyV3Routes) {
+            if (v2GasModel == undefined || v3GasModel == undefined) {
               throw new Error("Can't compute L1 gas fees.");
             } else {
-              const gasCostL1 = await gasModel.calculateL1GasFees!(
-                curRoutesNew as V3RouteWithValidQuote[]
+              const v2Routes = curRoutesNew.filter((routes) => routes.protocol === Protocol.V2);
+              const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
+              const v3Routes = curRoutesNew.filter((routes) => routes.protocol === Protocol.V3);
+              const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
+                v3Routes as V3RouteWithValidQuote[]
               );
-              gasCostL1QuoteToken = gasCostL1.gasCostL1QuoteToken;
+              gasCostL1QuoteToken = v2GasCostL1.gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
             }
           }
 
@@ -455,10 +457,10 @@ export async function getBestSwapRouteBy(
     const onlyV3Routes = bestSwap.every(
       (route) => route.protocol == Protocol.V3
     );
-    if (gasModel == undefined || !onlyV3Routes) {
+    if (v3GasModel == undefined || !onlyV3Routes) {
       throw new Error("Can't compute L1 gas fees.");
     } else {
-      gasCostsL1ToL2 = await gasModel.calculateL1GasFees!(
+      gasCostsL1ToL2 = await v3GasModel.calculateL1GasFees!(
         bestSwap as V3RouteWithValidQuote[]
       );
     }
