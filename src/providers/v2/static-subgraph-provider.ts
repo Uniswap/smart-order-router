@@ -25,7 +25,7 @@ import {
   USDC_BASE,
   USDC_BNB,
   USDC_MAINNET,
-  USDC_MOONBEAM,
+  USDC_MOONBEAM, USDC_NATIVE_ARBITRUM,
   USDC_OPTIMISM,
   USDC_POLYGON,
   USDT_ARBITRUM,
@@ -37,7 +37,7 @@ import {
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WETH_POLYGON,
-  WMATIC_POLYGON,
+  WMATIC_POLYGON
 } from '../token-provider';
 
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
@@ -70,6 +70,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WBTC_ARBITRUM,
     DAI_ARBITRUM,
     USDC_ARBITRUM,
+    USDC_NATIVE_ARBITRUM,
     USDT_ARBITRUM,
     ARB_ARBITRUM,
   ],

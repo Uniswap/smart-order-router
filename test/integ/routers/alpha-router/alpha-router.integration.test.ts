@@ -79,7 +79,8 @@ import {
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
+  USDC_NATIVE_ARBITRUM
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
@@ -118,6 +119,10 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.BASE]: 32,
   [ChainId.BASE_GOERLI]: 30,
 }
+
+const V2_SUPPORTED_PAIRS = [
+  [WETH9[ChainId.ARBITRUM_ONE], USDC_NATIVE_ARBITRUM],
+];
 
 const checkQuoteToken = (
   before: CurrencyAmount<Currency>,
@@ -3275,7 +3280,7 @@ describe('quote for other networks', () => {
     [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
-    [ChainId.ARBITRUM_ONE]: () => USDC_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_ONE]: () => USDC_NATIVE_ARBITRUM,
     [ChainId.ARBITRUM_GOERLI]: () => USDC_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: () => USDC_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: () => USDC_ON(ChainId.POLYGON_MUMBAI),
@@ -3416,6 +3421,36 @@ describe('quote for other networks', () => {
             expect(swap).not.toBeNull();
 
             // Scope limited for non mainnet network tests to validating the swap
+          });
+
+          it(`${wrappedNative.symbol} -> erc20 v2 only`, async () => {
+            const tokenIn = wrappedNative;
+            const tokenOut = erc1;
+
+            const isV2PairRoutable = V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
+
+            if (!isV2PairRoutable) {
+              return;
+            }
+
+            const amount =
+              tradeType == TradeType.EXACT_INPUT
+                ? parseAmount('0.1', tokenIn)
+                : parseAmount('0.1', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: [Protocol.V2],
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
           });
 
           it(`erc20 -> erc20`, async () => {
