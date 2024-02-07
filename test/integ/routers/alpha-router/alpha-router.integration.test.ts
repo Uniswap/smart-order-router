@@ -3423,7 +3423,7 @@ describe('quote for other networks', () => {
             // Scope limited for non mainnet network tests to validating the swap
           });
 
-          it(`${wrappedNative.symbol} -> erc20 v2 only`, async () => {
+          it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
 

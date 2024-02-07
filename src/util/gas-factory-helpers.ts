@@ -558,6 +558,8 @@ export const calculateL1GasFeesHelper = async (
   gasCostL1USD: CurrencyAmount;
   gasCostL1QuoteToken: CurrencyAmount;
 }> => {
+  console.log(`l2GasData ${JSON.stringify(l2GasData)}`)
+
   const swapOptions: SwapOptionsUniversalRouter = {
     type: SwapType.UNIVERSAL_ROUTER,
     recipient: '0x0000000000000000000000000000000000000001',

@@ -128,7 +128,9 @@ export class ArbitrumGasDataProvider
     const gasData = await gasDataContract.getPricesInWei({
       blockTag: providerConfig?.blockNumber,
     });
+    console.log(`arb gas data ${JSON.stringify(gasData)}`)
     const perL1CalldataByte = gasData[1];
+    console.log(`perL2TxFee ${JSON.stringify(gasData[0])}`)
     return {
       perL2TxFee: gasData[0],
       perL1CalldataFee: perL1CalldataByte.div(16),

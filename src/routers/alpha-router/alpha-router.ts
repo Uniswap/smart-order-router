@@ -804,7 +804,8 @@ export class AlphaRouter
       this.tokenProvider,
       this.chainId,
       this.blockedTokenListProvider,
-      this.tokenValidatorProvider
+      this.tokenValidatorProvider,
+      this.l2GasDataProvider
     );
 
     this.v3Quoter = new V3Quoter(
@@ -2080,6 +2081,7 @@ export class AlphaRouter
       gasPriceWei,
       poolProvider: this.v2PoolProvider,
       token: quoteToken,
+      l2GasDataProvider: this.l2GasDataProvider,
       providerConfig: providerConfig,
     });
 

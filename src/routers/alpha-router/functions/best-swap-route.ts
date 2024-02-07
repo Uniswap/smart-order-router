@@ -7,7 +7,7 @@ import FixedReverseHeap from 'mnemonist/fixed-reverse-heap';
 import Queue from 'mnemonist/queue';
 
 import { IPortionProvider } from '../../../providers/portion-provider';
-import { HAS_L1_FEE } from '../../../util';
+import { HAS_L1_FEE, V2_SUPPORTED } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -361,7 +361,7 @@ export async function getBestSwapRouteBy(
               throw new Error("Can't compute L1 gas fees.");
             } else {
               const v2Routes = curRoutesNew.filter((routes) => routes.protocol === Protocol.V2);
-              if (v2Routes.length > 0) {
+              if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId)) {
                 const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
                 gasCostL1QuoteToken = gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
               }
@@ -446,7 +446,7 @@ export async function getBestSwapRouteBy(
   const usdTokenDecimals = usdToken.decimals;
 
   // if on L2, calculate the L1 security fee
-  const gasCostsL1ToL2: L1ToL2GasCosts = {
+  let gasCostsL1ToL2: L1ToL2GasCosts = {
     gasUsedL1: BigNumber.from(0),
     gasUsedL1OnL2: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
@@ -462,22 +462,16 @@ export async function getBestSwapRouteBy(
       throw new Error("Can't compute L1 gas fees.");
     } else {
       const v2Routes = bestSwap.filter((routes) => routes.protocol === Protocol.V2);
-      if (v2Routes.length > 0) {
+      if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId)) {
         const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
-        gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v2GasCostL1.gasUsedL1);
-        gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v2GasCostL1.gasUsedL1OnL2);
-        gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v2GasCostL1.gasCostL1USD);
-        gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
+        gasCostsL1ToL2 = v2GasCostL1;
       }
       const v3Routes = bestSwap.filter((routes) => routes.protocol === Protocol.V3);
       if (v3Routes.length > 0) {
         const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
           v3Routes as V3RouteWithValidQuote[]
         );
-        gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v3GasCostL1.gasUsedL1);
-        gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v3GasCostL1.gasUsedL1OnL2);
-        gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v3GasCostL1.gasCostL1USD);
-        gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
+        gasCostsL1ToL2 = v3GasCostL1;
       }
     }
   }

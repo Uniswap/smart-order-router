@@ -33,12 +33,19 @@ import { NATIVE_OVERHEAD } from '../gas-models/v3/gas-costs';
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
+import {
+  ArbitrumGasData,
+  IL2GasDataProvider,
+  OptimismGasData
+} from '../../../providers/v3/gas-data-provider';
 
 export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
   protected v2GasModelFactory: IV2GasModelFactory;
+  protected l2GasDataProvider?: IL2GasDataProvider<OptimismGasData>
+    | IL2GasDataProvider<ArbitrumGasData>;
 
   constructor(
     v2SubgraphProvider: IV2SubgraphProvider,
@@ -48,7 +55,9 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     tokenProvider: ITokenProvider,
     chainId: ChainId,
     blockedTokenListProvider?: ITokenListProvider,
-    tokenValidatorProvider?: ITokenValidatorProvider
+    tokenValidatorProvider?: ITokenValidatorProvider,
+    l2GasDataProvider?: IL2GasDataProvider<OptimismGasData>
+      | IL2GasDataProvider<ArbitrumGasData>
   ) {
     super(
       tokenProvider,
@@ -61,6 +70,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     this.v2PoolProvider = v2PoolProvider;
     this.v2QuoteProvider = v2QuoteProvider;
     this.v2GasModelFactory = v2GasModelFactory;
+    this.l2GasDataProvider = l2GasDataProvider;
   }
 
   protected async getRoutes(
@@ -180,6 +190,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
       gasPriceWei,
       poolProvider: this.v2PoolProvider,
       token: quoteToken,
+      l2GasDataProvider: this.l2GasDataProvider,
       providerConfig: {
         ..._routingConfig,
         additionalGasOverhead: NATIVE_OVERHEAD(
