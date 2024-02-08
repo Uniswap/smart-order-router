@@ -515,6 +515,7 @@ describe('alpha router', () => {
           gasPriceWei: mockGasPriceWeiBN,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
+          l2GasDataProvider: sinon.match.any,
           providerConfig: sinon.match.any,
         })
       ).toBeTruthy();
@@ -917,6 +918,7 @@ describe('alpha router', () => {
         mockV2GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
+          l2GasDataProvider: sinon.match.any,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
           providerConfig: sinon.match.any,
@@ -1103,6 +1105,7 @@ describe('alpha router', () => {
         mockV2GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
+          l2GasDataProvider: sinon.match.any,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
           providerConfig: sinon.match.any,
@@ -1513,6 +1516,7 @@ describe('alpha router', () => {
         mockV2GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
+          l2GasDataProvider: sinon.match.any,
           poolProvider: sinon.match.any,
           token: WRAPPED_NATIVE_CURRENCY[1],
           providerConfig: sinon.match.any,
@@ -1886,6 +1890,7 @@ describe('alpha router', () => {
         mockV2GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
+          l2GasDataProvider: sinon.match.any,
           poolProvider: sinon.match.any,
           token: USDC,
           providerConfig: sinon.match.any,
@@ -2049,6 +2054,7 @@ describe('alpha router', () => {
         mockV2GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
+          l2GasDataProvider: sinon.match.any,
           poolProvider: sinon.match.any,
           token: USDC,
           providerConfig: sinon.match.any,
@@ -2129,6 +2135,7 @@ describe('alpha router', () => {
         mockV2GasModelFactory.buildGasModel.calledWith({
           chainId: 1,
           gasPriceWei: mockGasPriceWeiBN,
+          l2GasDataProvider: sinon.match.any,
           poolProvider: sinon.match.any,
           token: USDC,
           providerConfig: sinon.match.any,

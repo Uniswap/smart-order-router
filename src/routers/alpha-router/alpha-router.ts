@@ -123,7 +123,8 @@ import {
 } from './config';
 import {
   MixedRouteWithValidQuote,
-  RouteWithValidQuote, V2RouteWithValidQuote,
+  RouteWithValidQuote,
+  V2RouteWithValidQuote,
   V3RouteWithValidQuote
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';

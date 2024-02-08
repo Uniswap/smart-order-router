@@ -269,9 +269,6 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     ]);
     const poolAccessor = await poolProvider.getPools(usdPools, providerConfig);
     const poolsRaw = poolAccessor.getAllPools();
-    console.log(`poolsRaw ${JSON.stringify(poolsRaw)} reserve0
-    ${JSON.stringify(poolsRaw.map(pool => pool.reserve1.greaterThan(0)))}`)
-
     const pools = _.filter(
       poolsRaw,
       (pool) =>
@@ -287,8 +284,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         { pools },
         `Could not find a USD/WETH pool for computing gas costs.`
       );
-      const error = new Error(`InnerError`);
-      throw new Error(`Can't find USD/WETH pool for computing gas costs. ${JSON.stringify(poolsRaw)} ${error.stack}`);
+      throw new Error(`Can't find USD/WETH pool for computing gas costs.`);
     }
 
     const maxPool = _.maxBy(pools, (pool) => {

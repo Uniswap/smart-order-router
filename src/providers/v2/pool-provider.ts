@@ -103,8 +103,6 @@ export class V2PoolProvider implements IV2PoolProvider {
         tokenB
       );
 
-      console.log(`poolAddress ${poolAddress} token0 ${token0.address} token1 ${token1.address}`)
-
       if (poolAddressSet.has(poolAddress)) {
         continue;
       }
