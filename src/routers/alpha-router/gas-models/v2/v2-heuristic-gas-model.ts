@@ -114,7 +114,8 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         chainId,
         usdPool,
         token,
-        await getV2NativePool(token, poolProvider, providerConfig),
+        !token.equals(WRAPPED_NATIVE_CURRENCY[chainId]) ?
+          await getV2NativePool(token, poolProvider, providerConfig) : null,
         l2GasData
       );
     };
