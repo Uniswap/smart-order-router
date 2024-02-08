@@ -260,7 +260,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         `Could not find a USD token for computing gas costs on ${chainId}`
       );
     }
-    
+
     const usdPools = _.map<Token, [Token, Token]>(usdTokens, (usdToken) => [
       usdToken,
       WRAPPED_NATIVE_CURRENCY[chainId]!,

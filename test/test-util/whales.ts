@@ -10,6 +10,7 @@ import {
   UNI_GOERLI,
   UNI_MAINNET,
   USDC_MAINNET,
+  USDC_NATIVE_ARBITRUM,
   USDC_ON,
   USDT_MAINNET,
   WETH9,
@@ -69,6 +70,8 @@ export const WHALES = (token: Currency): string => {
       return '0x4cb0645e92a3b5872ae54e5704e03c09ca0ea220';
     case USDC_ON(ChainId.ARBITRUM_ONE):
       return '0xf89d7b9c864f589bbf53a82105107622b35eaa40';
+    case USDC_NATIVE_ARBITRUM:
+      return '0xa656f7d2a93a6f5878aa768f24eb38ec8c827fe2';
     case USDC_ON(ChainId.ARBITRUM_GOERLI):
       return '0x7e3114fcbc1d529fd96de61d65d4a03071609c56';
     case USDC_ON(ChainId.SEPOLIA):
