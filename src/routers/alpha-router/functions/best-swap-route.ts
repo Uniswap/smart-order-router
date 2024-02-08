@@ -466,8 +466,11 @@ export async function getBestSwapRouteBy(
         const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
         gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v2GasCostL1.gasUsedL1);
         gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v2GasCostL1.gasUsedL1OnL2);
-        gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v2GasCostL1.gasCostL1USD);
-
+        if (gasCostsL1ToL2.gasCostL1USD.currency.equals(v2GasCostL1.gasCostL1USD.currency)) {
+          gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v2GasCostL1.gasCostL1USD);
+        } else {
+          gasCostsL1ToL2.gasCostL1USD = v2GasCostL1.gasCostL1USD;
+        }
         if (gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(v2GasCostL1.gasCostL1QuoteToken.currency)) {
           gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
         } else {
@@ -481,8 +484,11 @@ export async function getBestSwapRouteBy(
         );
         gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v3GasCostL1.gasUsedL1);
         gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v3GasCostL1.gasUsedL1OnL2);
-        gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v3GasCostL1.gasCostL1USD);
-
+        if (gasCostsL1ToL2.gasCostL1USD.currency.equals(v3GasCostL1.gasCostL1USD.currency)) {
+          gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v3GasCostL1.gasCostL1USD);
+        } else {
+          gasCostsL1ToL2.gasCostL1USD = v3GasCostL1.gasCostL1USD;
+        }
         if (gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(v3GasCostL1.gasCostL1QuoteToken.currency)) {
           gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
         } else {
