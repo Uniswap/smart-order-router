@@ -1227,10 +1227,10 @@ export class AlphaRouter
         quoteToken,
         tradeType,
         routingConfig,
-        v2GasModel,
         v3GasModel,
         mixedRouteGasModel,
         gasPriceWei,
+        v2GasModel,
         swapConfig
       );
     }
@@ -1246,10 +1246,10 @@ export class AlphaRouter
         quoteToken,
         tradeType,
         routingConfig,
-        v2GasModel,
         v3GasModel,
         mixedRouteGasModel,
         gasPriceWei,
+        v2GasModel,
         swapConfig
       );
     }
@@ -1539,10 +1539,10 @@ export class AlphaRouter
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    v2GasModel: IGasModel<V2RouteWithValidQuote>,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber,
+    v2GasModel?: IGasModel<V2RouteWithValidQuote>,
     swapConfig?: SwapOptions
   ): Promise<BestSwapRoute | null> {
     log.info(
@@ -1715,10 +1715,10 @@ export class AlphaRouter
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    v2GasModel: IGasModel<V2RouteWithValidQuote>,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber,
+    v2GasModel?: IGasModel<V2RouteWithValidQuote>,
     swapConfig?: SwapOptions
   ): Promise<BestSwapRoute | null> {
     // Generate our distribution of amounts, i.e. fractions of the input amount.
@@ -2018,7 +2018,7 @@ export class AlphaRouter
     quoteToken: Token,
     providerConfig?: GasModelProviderConfig
   ): Promise<
-    [IGasModel<V2RouteWithValidQuote>, IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
+    [IGasModel<V2RouteWithValidQuote> | undefined, IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
   > {
     const beforeGasModel = Date.now();
 
@@ -2076,14 +2076,14 @@ export class AlphaRouter
       nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
-    const v2GasModelPromise = this.v2GasModelFactory.buildGasModel({
+    const v2GasModelPromise = V2_SUPPORTED.includes(this.chainId) ? this.v2GasModelFactory.buildGasModel({
       chainId: this.chainId,
       gasPriceWei,
       poolProvider: this.v2PoolProvider,
       token: quoteToken,
       l2GasDataProvider: this.l2GasDataProvider,
       providerConfig: providerConfig,
-    });
+    }) : Promise.resolve(undefined);
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
       chainId: this.chainId,

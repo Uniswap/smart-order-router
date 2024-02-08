@@ -446,7 +446,7 @@ export async function getBestSwapRouteBy(
   const usdTokenDecimals = usdToken.decimals;
 
   // if on L2, calculate the L1 security fee
-  let gasCostsL1ToL2: L1ToL2GasCosts = {
+  const gasCostsL1ToL2: L1ToL2GasCosts = {
     gasUsedL1: BigNumber.from(0),
     gasUsedL1OnL2: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
@@ -464,14 +464,30 @@ export async function getBestSwapRouteBy(
       const v2Routes = bestSwap.filter((routes) => routes.protocol === Protocol.V2);
       if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId)) {
         const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
-        gasCostsL1ToL2 = v2GasCostL1;
+        gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v2GasCostL1.gasUsedL1);
+        gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v2GasCostL1.gasUsedL1OnL2);
+        gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v2GasCostL1.gasCostL1USD);
+
+        if (gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(v2GasCostL1.gasCostL1QuoteToken.currency)) {
+          gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
+        } else {
+          gasCostsL1ToL2.gasCostL1QuoteToken = v2GasCostL1.gasCostL1QuoteToken;
+        }
       }
       const v3Routes = bestSwap.filter((routes) => routes.protocol === Protocol.V3);
       if (v3Routes.length > 0) {
         const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
           v3Routes as V3RouteWithValidQuote[]
         );
-        gasCostsL1ToL2 = v3GasCostL1;
+        gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v3GasCostL1.gasUsedL1);
+        gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v3GasCostL1.gasUsedL1OnL2);
+        gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v3GasCostL1.gasCostL1USD);
+
+        if (gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(v3GasCostL1.gasCostL1QuoteToken.currency)) {
+          gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
+        } else {
+          gasCostsL1ToL2.gasCostL1QuoteToken = v3GasCostL1.gasCostL1QuoteToken;
+        }
       }
     }
   }
