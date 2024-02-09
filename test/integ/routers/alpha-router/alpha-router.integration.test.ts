@@ -3693,6 +3693,108 @@ describe('quote for other networks', () => {
               // Scope limited for non mainnet network tests to validating the swap
             });
 
+            it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
+              const tokenIn = wrappedNative;
+              const tokenOut = erc1;
+
+              const isV2PairRoutable = V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
+
+              if (!isV2PairRoutable) {
+                return;
+              }
+
+              const amount =
+                tradeType == TradeType.EXACT_INPUT
+                  ? parseAmount('0.1', tokenIn)
+                  : parseAmount('0.1', tokenOut);
+
+              // Universal Router is not deployed on Gorli.
+              const swapWithSimulationOptions: SwapOptions =
+                chain == ChainId.GOERLI
+                  ? {
+                    type: SwapType.SWAP_ROUTER_02,
+                    recipient: WHALES(tokenIn),
+                    slippageTolerance: SLIPPAGE,
+                    deadline: parseDeadline(360),
+                    simulate: { fromAddress: WHALES(tokenIn) },
+                  }
+                  : {
+                    type: SwapType.UNIVERSAL_ROUTER,
+                    recipient: WHALES(tokenIn),
+                    slippageTolerance: SLIPPAGE,
+                    deadlineOrPreviousBlockhash: parseDeadline(360),
+                    simulate: { fromAddress: WHALES(tokenIn) },
+                  };
+
+              const swapWithSimulation = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                swapWithSimulationOptions,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
+                }
+              );
+              expect(swapWithSimulation).toBeDefined();
+              expect(swapWithSimulation).not.toBeNull();
+
+              // Universal Router is not deployed on Gorli.
+              const swapOptions: SwapOptions =
+                {
+                  type: SwapType.UNIVERSAL_ROUTER,
+                  recipient: WHALES(tokenIn),
+                  slippageTolerance: SLIPPAGE,
+                  deadlineOrPreviousBlockhash: parseDeadline(360),
+                };
+
+              const swap = await alphaRouter.route(
+                amount,
+                getQuoteToken(tokenIn, tokenOut, tradeType),
+                tradeType,
+                swapOptions,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V3, Protocol.V2],
+                  saveTenderlySimulationIfFailed: true,
+                }
+              );
+
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+
+              const gasEstimateDiff = swapWithSimulation!.estimatedGasUsed.gt(swap!.estimatedGasUsed)
+                ? swapWithSimulation!.estimatedGasUsed.sub(swap!.estimatedGasUsed)
+                : swap!.estimatedGasUsed.sub(swapWithSimulation!.estimatedGasUsed);
+
+              // We will rely on Tenderly gas estimate as source of truth against SOR non-simulated gas estimate accuracy.
+              // This is the only reliable and long-term feasible test assertion approach.
+              // For example, in the near future, after EIP-4844, we expect the gas estimate to drop by (3 / 16)
+              // due to gas cost per compressed calldata byte dropping from 16 to 3.
+              // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
+              const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+              expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
+
+              if (swapWithSimulation) {
+                expect(
+                  swapWithSimulation.quoteGasAdjusted
+                    .subtract(swapWithSimulation.quote)
+                    .equalTo(swapWithSimulation.estimatedGasUsedQuoteToken)
+                );
+
+                // Expect tenderly simulation to be successful
+                expect(swapWithSimulation.simulationStatus).toEqual(
+                  SimulationStatus.Succeeded
+                );
+              }
+
+              // Scope limited for non mainnet network tests to validating the swap
+            });
+
             it(`erc20 -> erc20`, async () => {
               const tokenIn = erc1;
               const tokenOut = erc2;
