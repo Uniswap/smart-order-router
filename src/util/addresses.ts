@@ -19,6 +19,8 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_ALFAJORES].v3CoreFactoryAddress,
   [ChainId.OPTIMISM_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM_GOERLI].v3CoreFactoryAddress,
+  [ChainId.OPTIMISM_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM_SEPOLIA].v3CoreFactoryAddress,
   [ChainId.SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v3CoreFactoryAddress,
   [ChainId.ARBITRUM_GOERLI]:
@@ -39,6 +41,8 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_ALFAJORES].quoterAddress,
   [ChainId.OPTIMISM_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM_GOERLI].quoterAddress,
+  [ChainId.OPTIMISM_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM_SEPOLIA].quoterAddress,
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].quoterAddress,
   [ChainId.ARBITRUM_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_GOERLI].quoterAddress,
@@ -64,6 +68,8 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_ALFAJORES].multicallAddress,
   [ChainId.OPTIMISM_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM_GOERLI].multicallAddress,
+  [ChainId.OPTIMISM_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM_SEPOLIA].multicallAddress,
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].multicallAddress,
   [ChainId.ARBITRUM_GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_GOERLI].multicallAddress,
@@ -153,6 +159,13 @@ export const WETH9: {
   ),
   [ChainId.OPTIMISM_GOERLI]: new Token(
     ChainId.OPTIMISM_GOERLI,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.OPTIMISM_SEPOLIA]: new Token(
+    ChainId.OPTIMISM_SEPOLIA,
     '0x4200000000000000000000000000000000000006',
     18,
     'WETH',

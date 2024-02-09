@@ -211,6 +211,35 @@ export const DAI_OPTIMISM_GOERLI = new Token(
   'Dai Stablecoin'
 );
 
+export const USDC_OPTIMISM_SEPOLIA = new Token(
+  ChainId.OPTIMISM_SEPOLIA,
+  '0x7E07E15D2a87A24492740D16f5bdF58c16db0c4E',
+  6,
+  'USDC',
+  'USD//C'
+);
+export const USDT_OPTIMISM_SEPOLIA = new Token(
+  ChainId.OPTIMISM_SEPOLIA,
+  '0x853eb4bA5D0Ba2B77a0A5329Fd2110d5CE149ECE',
+  6,
+  'USDT',
+  'Tether USD'
+);
+export const WBTC_OPTIMISM_SEPOLIA = new Token(
+  ChainId.OPTIMISM_SEPOLIA,
+  '0xe0a592353e81a94Db6E3226fD4A99F881751776a',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+export const DAI_OPTIMISM_SEPOLIA = new Token(
+  ChainId.OPTIMISM_SEPOLIA,
+  '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 export const USDC_ARBITRUM = new Token(
   ChainId.ARBITRUM_ONE,
   '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
@@ -721,6 +750,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_OPTIMISM;
     case ChainId.OPTIMISM_GOERLI:
       return DAI_OPTIMISM_GOERLI;
+    case ChainId.OPTIMISM_SEPOLIA:
+      return DAI_OPTIMISM_SEPOLIA;
     case ChainId.ARBITRUM_ONE:
       return DAI_ARBITRUM;
     case ChainId.ARBITRUM_GOERLI:
@@ -754,6 +785,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_OPTIMISM;
     case ChainId.OPTIMISM_GOERLI:
       return USDT_OPTIMISM_GOERLI;
+    case ChainId.OPTIMISM_SEPOLIA:
+      return USDT_OPTIMISM_SEPOLIA;
     case ChainId.ARBITRUM_ONE:
       return USDT_ARBITRUM;
     case ChainId.BNB:
@@ -775,6 +808,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_OPTIMISM;
     case ChainId.OPTIMISM_GOERLI:
       return USDC_OPTIMISM_GOERLI;
+    case ChainId.OPTIMISM_SEPOLIA:
+      return USDC_OPTIMISM_SEPOLIA;
     case ChainId.ARBITRUM_ONE:
       return USDC_ARBITRUM;
     case ChainId.ARBITRUM_GOERLI:

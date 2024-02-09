@@ -100,6 +100,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       const opStackChains = [
         ChainId.OPTIMISM,
         ChainId.OPTIMISM_GOERLI,
+        ChainId.OPTIMISM_SEPOLIA,
         ChainId.BASE,
         ChainId.BASE_GOERLI,
       ];

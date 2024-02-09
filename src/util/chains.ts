@@ -11,6 +11,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.MAINNET,
   ChainId.OPTIMISM,
   ChainId.OPTIMISM_GOERLI,
+  ChainId.OPTIMISM_SEPOLIA,
   ChainId.ARBITRUM_ONE,
   ChainId.ARBITRUM_GOERLI,
   ChainId.POLYGON,
@@ -39,6 +40,7 @@ export const V2_SUPPORTED = [
 export const HAS_L1_FEE = [
   ChainId.OPTIMISM,
   ChainId.OPTIMISM_GOERLI,
+  ChainId.OPTIMISM_SEPOLIA,
   ChainId.ARBITRUM_ONE,
   ChainId.ARBITRUM_GOERLI,
   ChainId.BASE,
@@ -68,6 +70,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.OPTIMISM;
     case 420:
       return ChainId.OPTIMISM_GOERLI;
+    case 11155420:
+      return ChainId.OPTIMISM_SEPOLIA;
     case 42161:
       return ChainId.ARBITRUM_ONE;
     case 421613:
@@ -101,6 +105,7 @@ export enum ChainName {
   SEPOLIA = 'sepolia',
   OPTIMISM = 'optimism-mainnet',
   OPTIMISM_GOERLI = 'optimism-goerli',
+  OPTIMISM_SEPOLIA = 'op-sepolia',
   ARBITRUM_ONE = 'arbitrum-mainnet',
   ARBITRUM_GOERLI = 'arbitrum-goerli',
   POLYGON = 'polygon-mainnet',
@@ -152,6 +157,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.OPTIMISM_SEPOLIA]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
   [ChainId.ARBITRUM_ONE]: [
     'ETH',
     'ETHER',
@@ -190,6 +200,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.OPTIMISM]: NativeCurrencyName.ETHER,
   [ChainId.OPTIMISM_GOERLI]: NativeCurrencyName.ETHER,
+  [ChainId.OPTIMISM_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_ONE]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_GOERLI]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
@@ -217,6 +228,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.OPTIMISM;
     case 420:
       return ChainName.OPTIMISM_GOERLI;
+    case 11155420:
+      return ChainName.OPTIMISM_SEPOLIA;
     case 42161:
       return ChainName.ARBITRUM_ONE;
     case 421613:
@@ -260,6 +273,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_OPTIMISM!;
     case ChainId.OPTIMISM_GOERLI:
       return process.env.JSON_RPC_PROVIDER_OPTIMISM_GOERLI!;
+    case ChainId.OPTIMISM_SEPOLIA:
+      return process.env.JSON_RPC_PROVIDER_OPTIMISM_SEPOLIA!;
     case ChainId.ARBITRUM_ONE:
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE!;
     case ChainId.ARBITRUM_GOERLI:
@@ -321,6 +336,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.OPTIMISM_GOERLI]: new Token(
     ChainId.OPTIMISM_GOERLI,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.OPTIMISM_SEPOLIA]: new Token(
+    ChainId.OPTIMISM_SEPOLIA,
     '0x4200000000000000000000000000000000000006',
     18,
     'WETH',
