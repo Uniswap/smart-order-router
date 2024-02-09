@@ -3314,6 +3314,7 @@ describe('quote for other networks', () => {
     SUPPORTED_CHAINS,
     (c) =>
       c != ChainId.OPTIMISM_GOERLI &&
+      c != ChainId.OPTIMISM_SEPOLIA &&
       c != ChainId.POLYGON_MUMBAI &&
       c != ChainId.ARBITRUM_GOERLI &&
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
