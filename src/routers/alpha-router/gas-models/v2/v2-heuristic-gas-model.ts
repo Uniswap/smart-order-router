@@ -109,13 +109,15 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       gasCostL1USD: CurrencyAmount;
       gasCostL1QuoteToken: CurrencyAmount;
     }> => {
+      const nativePool = !token.equals(WRAPPED_NATIVE_CURRENCY[chainId]) ?
+        await getV2NativePool(token, poolProvider, providerConfig) : null;
+
       return await calculateL1GasFeesHelper(
         route,
         chainId,
         usdPool,
         token,
-        !token.equals(WRAPPED_NATIVE_CURRENCY[chainId]) ?
-          await getV2NativePool(token, poolProvider, providerConfig) : null,
+        nativePool,
         l2GasData
       );
     };

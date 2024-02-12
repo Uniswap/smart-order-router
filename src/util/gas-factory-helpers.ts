@@ -28,6 +28,7 @@ import {
 } from '../routers';
 import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
+import { opStackChains } from './l2FeeChains';
 import { buildSwapMethodParameters, buildTrade } from './methodParameters';
 
 export async function getV2NativePool(
@@ -564,18 +565,11 @@ export const calculateL1GasFeesHelper = async (
     deadlineOrPreviousBlockhash: 100,
     slippageTolerance: new Percent(5, 10_000),
   };
-  let l1Used = BigNumber.from(0);
-  let l1FeeInWei = BigNumber.from(0);
+  let mainnetGasUsed = BigNumber.from(0);
+  let mainnetFeeInWei = BigNumber.from(0);
   let gasUsedL1OnL2 = BigNumber.from(0);
-  const opStackChains = [
-    ChainId.OPTIMISM,
-    ChainId.OPTIMISM_GOERLI,
-    ChainId.OPTIMISM_SEPOLIA,
-    ChainId.BASE,
-    ChainId.BASE_GOERLI,
-  ];
   if (opStackChains.includes(chainId)) {
-    [l1Used, l1FeeInWei] = calculateOptimismToL1SecurityFee(
+    [mainnetGasUsed, mainnetFeeInWei] = calculateOptimismToL1SecurityFee(
       route,
       swapOptions,
       l2GasData as OptimismGasData,
@@ -585,7 +579,7 @@ export const calculateL1GasFeesHelper = async (
     chainId == ChainId.ARBITRUM_ONE ||
     chainId == ChainId.ARBITRUM_GOERLI
   ) {
-    [l1Used, l1FeeInWei, gasUsedL1OnL2] =
+    [mainnetGasUsed, mainnetFeeInWei, gasUsedL1OnL2] =
       calculateArbitrumToL1SecurityFee(
         route,
         swapOptions,
@@ -598,17 +592,15 @@ export const calculateL1GasFeesHelper = async (
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
   const costNativeCurrency = CurrencyAmount.fromRawAmount(
     nativeCurrency,
-    l1FeeInWei.toString()
+    mainnetFeeInWei.toString()
   );
 
   // convert fee into usd
-  const nativeTokenPrice =
-    usdPool.token0.address == nativeCurrency.address
-      ? usdPool.token0Price
-      : usdPool.token1Price;
-
-  const gasCostL1USD: CurrencyAmount =
-    nativeTokenPrice.quote(costNativeCurrency);
+  const gasCostL1USD: CurrencyAmount = getQuoteThroughNativePool(
+    chainId,
+    costNativeCurrency,
+    usdPool
+  );
 
   let gasCostL1QuoteToken = costNativeCurrency;
   // if the inputted token is not in the native currency, quote a native/quote token pool to get the gas cost in terms of the quote token
@@ -629,7 +621,7 @@ export const calculateL1GasFeesHelper = async (
   // gasUsedL1 is the gas units used calculated from the bytes of the calldata
   // gasCostL1USD and gasCostL1QuoteToken is the cost of gas in each of those tokens
   return {
-    gasUsedL1: l1Used,
+    gasUsedL1: mainnetGasUsed,
     gasUsedL1OnL2,
     gasCostL1USD,
     gasCostL1QuoteToken,
@@ -671,7 +663,6 @@ function calculateOptimismToL1SecurityFee(
     // scaled = unscaled / (10 ** decimals)
     const scaledConversion = BigNumber.from(10).pow(decimals);
     const scaled = unscaled.div(scaledConversion);
-    // TODO: also return the gasUsedL1OnL2 because the final estimateGasUsed should include L1 calldata posting fee
     return [l1GasUsed, scaled];
   }
 

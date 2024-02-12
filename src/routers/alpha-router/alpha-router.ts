@@ -138,11 +138,11 @@ import {
   V3CandidatePools,
 } from './functions/get-candidate-pools';
 import {
-  GasModelProviderConfig,
+  GasModelProviderConfig, GasModelType,
   IGasModel,
   IOnChainGasModelFactory,
   IV2GasModelFactory,
-  LiquidityCalculationPools,
+  LiquidityCalculationPools
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
@@ -1120,7 +1120,10 @@ export class AlphaRouter
       gasToken,
     };
 
-    const [v2GasModel, v3GasModel, mixedRouteGasModel] = await this.getGasModels(
+    const {
+      v2GasModel: v2GasModel,
+      v3GasModel: v3GasModel,
+      mixedRouteGasModel: mixedRouteGasModel} = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
       quoteToken,
@@ -2018,9 +2021,7 @@ export class AlphaRouter
     amountToken: Token,
     quoteToken: Token,
     providerConfig?: GasModelProviderConfig
-  ): Promise<
-    [IGasModel<V2RouteWithValidQuote> | undefined, IGasModel<V3RouteWithValidQuote>, IGasModel<MixedRouteWithValidQuote>]
-  > {
+  ): Promise<GasModelType> {
     const beforeGasModel = Date.now();
 
     const usdPoolPromise = getHighestLiquidityV3USDPool(
@@ -2120,7 +2121,7 @@ export class AlphaRouter
       MetricLoggerUnit.Milliseconds
     );
 
-    return [v2GasModel, v3GasModel, mixedRouteGasModel];
+    return { v2GasModel: v2GasModel, v3GasModel: v3GasModel, mixedRouteGasModel: mixedRouteGasModel } as GasModelType;
   }
 
   // Note multiplications here can result in a loss of precision in the amounts (e.g. taking 50% of 101)
