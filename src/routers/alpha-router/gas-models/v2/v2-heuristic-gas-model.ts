@@ -7,6 +7,10 @@ import { ProviderConfig } from '../../../../providers/provider';
 import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
+import {
+  calculateL1GasFeesHelper,
+  getV2NativePool,
+} from '../../../../util/gas-factory-helpers';
 import { V2RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildV2GasModelFactoryType,
@@ -50,8 +54,13 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     gasPriceWei,
     poolProvider,
     token,
+    l2GasDataProvider,
     providerConfig,
   }: BuildV2GasModelFactoryType): Promise<IGasModel<V2RouteWithValidQuote>> {
+    const l2GasData = l2GasDataProvider
+      ? await l2GasDataProvider.getGasData(providerConfig)
+      : undefined;
+
     const usdPoolPromise: Promise<Pair> = this.getHighestLiquidityUSDPool(
       chainId,
       poolProvider,
@@ -89,6 +98,28 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       usdPool.token0.address == WRAPPED_NATIVE_CURRENCY[chainId]!.address
         ? usdPool.token1
         : usdPool.token0;
+
+    const calculateL1GasFees = async (
+      route: V2RouteWithValidQuote[]
+    ): Promise<{
+      gasUsedL1: BigNumber;
+      gasUsedL1OnL2: BigNumber;
+      gasCostL1USD: CurrencyAmount;
+      gasCostL1QuoteToken: CurrencyAmount;
+    }> => {
+      const nativePool = !token.equals(WRAPPED_NATIVE_CURRENCY[chainId])
+        ? await getV2NativePool(token, poolProvider, providerConfig)
+        : null;
+
+      return await calculateL1GasFeesHelper(
+        route,
+        chainId,
+        usdPool,
+        token,
+        nativePool,
+        l2GasData
+      );
+    };
 
     return {
       estimateGasCost: (routeWithValidQuote: V2RouteWithValidQuote) => {
@@ -158,6 +189,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           gasCostInGasToken: gasCostInTermsOfGasToken,
         };
       },
+      calculateL1GasFees,
     };
   }
 

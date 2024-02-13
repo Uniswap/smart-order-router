@@ -151,6 +151,13 @@ export const USDC_OPTIMISM = new Token(
   '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
   6,
   'USDC',
+  'USD//C.e'
+);
+export const USDC_NATIVE_OPTIMISM = new Token(
+  ChainId.OPTIMISM,
+  '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+  6,
+  'USDC',
   'USD//C'
 );
 export const USDT_OPTIMISM = new Token(
@@ -245,6 +252,13 @@ export const USDC_ARBITRUM = new Token(
   '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
   6,
   'USDC',
+  'USD//C.e'
+);
+export const USDC_NATIVE_ARBITRUM = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+  6,
+  'USDC',
   'USD//C'
 );
 export const USDT_ARBITRUM = new Token(
@@ -314,6 +328,13 @@ export const WETH_POLYGON = new Token(
 export const USDC_POLYGON = new Token(
   ChainId.POLYGON,
   '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
+  6,
+  'USDC',
+  'USD//C.e'
+);
+export const USDC_NATIVE_POLYGON = new Token(
+  ChainId.POLYGON,
+  '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
   6,
   'USDC',
   'USD//C'
@@ -433,6 +454,27 @@ export const CUSD_CELO = new Token(
   'CUSD',
   'Celo Dollar Stablecoin'
 );
+export const USDC_CELO = new Token(
+  ChainId.CELO,
+  '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664',
+  18,
+  'USDC',
+  'USD//C.e'
+);
+export const USDC_WORMHOLE_CELO = new Token(
+  ChainId.CELO,
+  '0x37f750B7cC259A2f741AF45294f6a16572CF5cAd',
+  18,
+  'USDC',
+  'USD//C.e'
+);
+export const USDC_NATIVE_CELO = new Token(
+  ChainId.CELO,
+  '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+  18,
+  'USDC',
+  'USD//C'
+);
 
 export const CEUR_CELO = new Token(
   ChainId.CELO,
@@ -490,11 +532,32 @@ export const USDC_AVAX = new Token(
   'USDC',
   'USDC Token'
 );
+export const USDC_BRIDGED_AVAX = new Token(
+  ChainId.AVALANCHE,
+  '0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664',
+  6,
+  'USDC',
+  'USDC Token'
+);
+export const USDC_NATIVE_AVAX = new Token(
+  ChainId.AVALANCHE,
+  '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e',
+  6,
+  'USDC',
+  'USDC Token'
+);
 
 // Base Tokens
 export const USDC_BASE = new Token(
   ChainId.BASE,
   '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+  6,
+  'USDbC',
+  'USD Base Coin'
+);
+export const USDC_NATIVE_BASE = new Token(
+  ChainId.BASE,
+  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   6,
   'USDbC',
   'USD Base Coin'
