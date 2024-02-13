@@ -50,7 +50,7 @@ import {
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
   USDT_OPTIMISM_SEPOLIA,
-  WBTC_GOERLI
+  WBTC_GOERLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import {
@@ -72,10 +72,28 @@ import {
 // DAI_AVAX has 18 decimals and comes before USDC_AVAX which has 6 decimals.
 export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MAINNET]: [DAI_MAINNET, USDC_MAINNET, USDT_MAINNET],
-  [ChainId.ARBITRUM_ONE]: [DAI_ARBITRUM, USDC_ARBITRUM, USDC_NATIVE_ARBITRUM, USDT_ARBITRUM],
-  [ChainId.OPTIMISM]: [DAI_OPTIMISM, USDC_OPTIMISM, USDC_NATIVE_OPTIMISM, USDT_OPTIMISM],
-  [ChainId.OPTIMISM_GOERLI]: [DAI_OPTIMISM_GOERLI, USDC_OPTIMISM_GOERLI, USDT_OPTIMISM_GOERLI],
-  [ChainId.OPTIMISM_SEPOLIA]: [DAI_OPTIMISM_SEPOLIA, USDC_OPTIMISM_SEPOLIA, USDT_OPTIMISM_SEPOLIA],
+  [ChainId.ARBITRUM_ONE]: [
+    DAI_ARBITRUM,
+    USDC_ARBITRUM,
+    USDC_NATIVE_ARBITRUM,
+    USDT_ARBITRUM,
+  ],
+  [ChainId.OPTIMISM]: [
+    DAI_OPTIMISM,
+    USDC_OPTIMISM,
+    USDC_NATIVE_OPTIMISM,
+    USDT_OPTIMISM,
+  ],
+  [ChainId.OPTIMISM_GOERLI]: [
+    DAI_OPTIMISM_GOERLI,
+    USDC_OPTIMISM_GOERLI,
+    USDT_OPTIMISM_GOERLI,
+  ],
+  [ChainId.OPTIMISM_SEPOLIA]: [
+    DAI_OPTIMISM_SEPOLIA,
+    USDC_OPTIMISM_SEPOLIA,
+    USDT_OPTIMISM_SEPOLIA,
+  ],
   [ChainId.ARBITRUM_GOERLI]: [USDC_ARBITRUM_GOERLI],
   [ChainId.GOERLI]: [DAI_GOERLI, USDC_GOERLI, USDT_GOERLI, WBTC_GOERLI],
   [ChainId.SEPOLIA]: [USDC_SEPOLIA, DAI_SEPOLIA],
@@ -86,7 +104,12 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],
   [ChainId.BNB]: [USDT_BNB, USDC_BNB, DAI_BNB],
-  [ChainId.AVALANCHE]: [DAI_AVAX, USDC_AVAX, USDC_NATIVE_AVAX, USDC_BRIDGED_AVAX],
+  [ChainId.AVALANCHE]: [
+    DAI_AVAX,
+    USDC_AVAX,
+    USDC_NATIVE_AVAX,
+    USDC_BRIDGED_AVAX,
+  ],
   [ChainId.BASE]: [USDC_BASE, USDC_NATIVE_BASE],
 };
 
@@ -138,10 +161,10 @@ export type LiquidityCalculationPools = {
 };
 
 export type GasModelType = {
-  v2GasModel?: IGasModel<V2RouteWithValidQuote>,
-  v3GasModel: IGasModel<V3RouteWithValidQuote>,
-  mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
-}
+  v2GasModel?: IGasModel<V2RouteWithValidQuote>;
+  v3GasModel: IGasModel<V3RouteWithValidQuote>;
+  mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>;
+};
 
 /**
  * Contains functions for generating gas estimates for given routes.

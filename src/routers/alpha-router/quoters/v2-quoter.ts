@@ -30,21 +30,22 @@ import {
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
 import { NATIVE_OVERHEAD } from '../gas-models/v3/gas-costs';
 
-import { BaseQuoter } from './base-quoter';
-import { GetQuotesResult } from './model/results/get-quotes-result';
-import { GetRoutesResult } from './model/results/get-routes-result';
 import {
   ArbitrumGasData,
   IL2GasDataProvider,
-  OptimismGasData
+  OptimismGasData,
 } from '../../../providers/v3/gas-data-provider';
+import { BaseQuoter } from './base-quoter';
+import { GetQuotesResult } from './model/results/get-quotes-result';
+import { GetRoutesResult } from './model/results/get-routes-result';
 
 export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
   protected v2GasModelFactory: IV2GasModelFactory;
-  protected l2GasDataProvider?: IL2GasDataProvider<OptimismGasData>
+  protected l2GasDataProvider?:
+    | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
 
   constructor(
@@ -56,7 +57,8 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     chainId: ChainId,
     blockedTokenListProvider?: ITokenListProvider,
     tokenValidatorProvider?: ITokenValidatorProvider,
-    l2GasDataProvider?: IL2GasDataProvider<OptimismGasData>
+    l2GasDataProvider?:
+      | IL2GasDataProvider<OptimismGasData>
       | IL2GasDataProvider<ArbitrumGasData>
   ) {
     super(

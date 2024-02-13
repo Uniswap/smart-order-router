@@ -19,7 +19,7 @@ import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote
+  V3RouteWithValidQuote,
 } from './../entities/route-with-valid-quote';
 
 export type BestSwapRoute = {
@@ -361,20 +361,30 @@ export async function getBestSwapRouteBy(
             if (v2GasModel == undefined && v3GasModel == undefined) {
               throw new Error("Can't compute L1 gas fees.");
             } else {
-              const v2Routes = curRoutesNew.filter((routes) => routes.protocol === Protocol.V2);
+              const v2Routes = curRoutesNew.filter(
+                (routes) => routes.protocol === Protocol.V2
+              );
               if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId)) {
                 if (v2GasModel) {
-                  const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
-                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
+                  const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(
+                    v2Routes as V2RouteWithValidQuote[]
+                  );
+                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(
+                    v2GasCostL1.gasCostL1QuoteToken
+                  );
                 }
               }
-              const v3Routes = curRoutesNew.filter((routes) => routes.protocol === Protocol.V3);
+              const v3Routes = curRoutesNew.filter(
+                (routes) => routes.protocol === Protocol.V3
+              );
               if (v3Routes.length > 0) {
                 if (v3GasModel) {
                   const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
                     v3Routes as V3RouteWithValidQuote[]
                   );
-                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
+                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(
+                    v3GasCostL1.gasCostL1QuoteToken
+                  );
                 }
               }
             }
@@ -468,45 +478,87 @@ export async function getBestSwapRouteBy(
     } else {
       // Now after v2 deploy everywhere, it's possible to to have v2 and v3 routes on L2 swap.
       // So that we need to add both gas cost one by one
-      const v2Routes = bestSwap.filter((routes) => routes.protocol === Protocol.V2);
+      const v2Routes = bestSwap.filter(
+        (routes) => routes.protocol === Protocol.V2
+      );
       if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId)) {
         if (v2GasModel) {
-          const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(v2Routes as V2RouteWithValidQuote[]);
-          gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v2GasCostL1.gasUsedL1);
-          gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v2GasCostL1.gasUsedL1OnL2);
+          const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(
+            v2Routes as V2RouteWithValidQuote[]
+          );
+          gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(
+            v2GasCostL1.gasUsedL1
+          );
+          gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(
+            v2GasCostL1.gasUsedL1OnL2
+          );
           // It's possible that the gasCostL1USD currency is different from gasCostL1USD
           // (https://github.com/Uniswap/smart-order-router/blob/b970aedfec8a9509f9e22f14cc5c11be54d47b35/src/routers/alpha-router/gas-models/gas-model.ts#L62)
           // so we need to make sure they are the same.
           // If they are different, the best we can do is to re-assign the gasCostL1USD to gasCostL1USD
-          if (gasCostsL1ToL2.gasCostL1USD.currency.equals(v2GasCostL1.gasCostL1USD.currency)) {
-            gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v2GasCostL1.gasCostL1USD);
+          if (
+            gasCostsL1ToL2.gasCostL1USD.currency.equals(
+              v2GasCostL1.gasCostL1USD.currency
+            )
+          ) {
+            gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(
+              v2GasCostL1.gasCostL1USD
+            );
           } else {
             gasCostsL1ToL2.gasCostL1USD = v2GasCostL1.gasCostL1USD;
           }
-          if (gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(v2GasCostL1.gasCostL1QuoteToken.currency)) {
-            gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
+          if (
+            gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(
+              v2GasCostL1.gasCostL1QuoteToken.currency
+            )
+          ) {
+            gasCostsL1ToL2.gasCostL1QuoteToken =
+              gasCostsL1ToL2.gasCostL1QuoteToken.add(
+                v2GasCostL1.gasCostL1QuoteToken
+              );
           } else {
-            gasCostsL1ToL2.gasCostL1QuoteToken = v2GasCostL1.gasCostL1QuoteToken;
+            gasCostsL1ToL2.gasCostL1QuoteToken =
+              v2GasCostL1.gasCostL1QuoteToken;
           }
         }
       }
-      const v3Routes = bestSwap.filter((routes) => routes.protocol === Protocol.V3);
+      const v3Routes = bestSwap.filter(
+        (routes) => routes.protocol === Protocol.V3
+      );
       if (v3Routes.length > 0) {
         if (v3GasModel) {
           const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
             v3Routes as V3RouteWithValidQuote[]
           );
-          gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(v3GasCostL1.gasUsedL1);
-          gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(v3GasCostL1.gasUsedL1OnL2);
-          if (gasCostsL1ToL2.gasCostL1USD.currency.equals(v3GasCostL1.gasCostL1USD.currency)) {
-            gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(v3GasCostL1.gasCostL1USD);
+          gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(
+            v3GasCostL1.gasUsedL1
+          );
+          gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(
+            v3GasCostL1.gasUsedL1OnL2
+          );
+          if (
+            gasCostsL1ToL2.gasCostL1USD.currency.equals(
+              v3GasCostL1.gasCostL1USD.currency
+            )
+          ) {
+            gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(
+              v3GasCostL1.gasCostL1USD
+            );
           } else {
             gasCostsL1ToL2.gasCostL1USD = v3GasCostL1.gasCostL1USD;
           }
-          if (gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(v3GasCostL1.gasCostL1QuoteToken.currency)) {
-            gasCostsL1ToL2.gasCostL1QuoteToken = gasCostsL1ToL2.gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
+          if (
+            gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(
+              v3GasCostL1.gasCostL1QuoteToken.currency
+            )
+          ) {
+            gasCostsL1ToL2.gasCostL1QuoteToken =
+              gasCostsL1ToL2.gasCostL1QuoteToken.add(
+                v3GasCostL1.gasCostL1QuoteToken
+              );
           } else {
-            gasCostsL1ToL2.gasCostL1QuoteToken = v3GasCostL1.gasCostL1QuoteToken;
+            gasCostsL1ToL2.gasCostL1QuoteToken =
+              v3GasCostL1.gasCostL1QuoteToken;
           }
         }
       }

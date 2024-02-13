@@ -3,13 +3,9 @@ import { ChainId, Price } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import {
-  WRAPPED_NATIVE_CURRENCY,
-} from '../../../..';
+import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { CurrencyAmount } from '../../../../util/amounts';
-import {
-  calculateL1GasFeesHelper,
-} from '../../../../util/gas-factory-helpers';
+import { calculateL1GasFeesHelper } from '../../../../util/gas-factory-helpers';
 import { log } from '../../../../util/log';
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
@@ -68,7 +64,6 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
       : undefined;
 
     const usdPool: Pool = pools.usdPool;
-
 
     const calculateL1GasFees = async (
       route: V3RouteWithValidQuote[]

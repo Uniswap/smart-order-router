@@ -9,11 +9,9 @@ import { log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import {
   calculateL1GasFeesHelper,
-  getV2NativePool
+  getV2NativePool,
 } from '../../../../util/gas-factory-helpers';
-import {
-  V2RouteWithValidQuote,
-} from '../../entities/route-with-valid-quote';
+import { V2RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
   BuildV2GasModelFactoryType,
   GasModelProviderConfig,
@@ -109,8 +107,9 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
       gasCostL1USD: CurrencyAmount;
       gasCostL1QuoteToken: CurrencyAmount;
     }> => {
-      const nativePool = !token.equals(WRAPPED_NATIVE_CURRENCY[chainId]) ?
-        await getV2NativePool(token, poolProvider, providerConfig) : null;
+      const nativePool = !token.equals(WRAPPED_NATIVE_CURRENCY[chainId])
+        ? await getV2NativePool(token, poolProvider, providerConfig)
+        : null;
 
       return await calculateL1GasFeesHelper(
         route,
@@ -190,7 +189,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
           gasCostInGasToken: gasCostInTermsOfGasToken,
         };
       },
-      calculateL1GasFees
+      calculateL1GasFees,
     };
   }
 

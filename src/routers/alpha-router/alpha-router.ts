@@ -125,7 +125,7 @@ import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote
+  V3RouteWithValidQuote,
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
@@ -138,11 +138,12 @@ import {
   V3CandidatePools,
 } from './functions/get-candidate-pools';
 import {
-  GasModelProviderConfig, GasModelType,
+  GasModelProviderConfig,
+  GasModelType,
   IGasModel,
   IOnChainGasModelFactory,
   IV2GasModelFactory,
-  LiquidityCalculationPools
+  LiquidityCalculationPools,
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
@@ -1123,7 +1124,8 @@ export class AlphaRouter
     const {
       v2GasModel: v2GasModel,
       v3GasModel: v3GasModel,
-      mixedRouteGasModel: mixedRouteGasModel} = await this.getGasModels(
+      mixedRouteGasModel: mixedRouteGasModel,
+    } = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
       quoteToken,
@@ -2078,14 +2080,16 @@ export class AlphaRouter
       nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
-    const v2GasModelPromise = V2_SUPPORTED.includes(this.chainId) ? this.v2GasModelFactory.buildGasModel({
-      chainId: this.chainId,
-      gasPriceWei,
-      poolProvider: this.v2PoolProvider,
-      token: quoteToken,
-      l2GasDataProvider: this.l2GasDataProvider,
-      providerConfig: providerConfig,
-    }) : Promise.resolve(undefined);
+    const v2GasModelPromise = V2_SUPPORTED.includes(this.chainId)
+      ? this.v2GasModelFactory.buildGasModel({
+          chainId: this.chainId,
+          gasPriceWei,
+          poolProvider: this.v2PoolProvider,
+          token: quoteToken,
+          l2GasDataProvider: this.l2GasDataProvider,
+          providerConfig: providerConfig,
+        })
+      : Promise.resolve(undefined);
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
       chainId: this.chainId,
@@ -2121,7 +2125,11 @@ export class AlphaRouter
       MetricLoggerUnit.Milliseconds
     );
 
-    return { v2GasModel: v2GasModel, v3GasModel: v3GasModel, mixedRouteGasModel: mixedRouteGasModel } as GasModelType;
+    return {
+      v2GasModel: v2GasModel,
+      v3GasModel: v3GasModel,
+      mixedRouteGasModel: mixedRouteGasModel,
+    } as GasModelType;
   }
 
   // Note multiplications here can result in a loss of precision in the amounts (e.g. taking 50% of 101)

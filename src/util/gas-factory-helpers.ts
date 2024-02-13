@@ -20,11 +20,13 @@ import {
   MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
-  SwapOptions, SwapOptionsUniversalRouter,
-  SwapRoute, SwapType,
+  SwapOptions,
+  SwapOptionsUniversalRouter,
+  SwapRoute,
+  SwapType,
   usdGasTokensByChain,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote
+  V3RouteWithValidQuote,
 } from '../routers';
 import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
@@ -631,12 +633,12 @@ export const calculateL1GasFeesHelper = async (
    * To avoid having a call to optimism's L1 security fee contract for every route and amount combination,
    * we replicate the gas cost accounting here.
    */
-function calculateOptimismToL1SecurityFee(
+  function calculateOptimismToL1SecurityFee(
     routes: RouteWithValidQuote[],
     swapConfig: SwapOptionsUniversalRouter,
     gasData: OptimismGasData,
     chainId: ChainId
-): [BigNumber, BigNumber] {
+  ): [BigNumber, BigNumber] {
     const { l1BaseFee, scalar, decimals, overhead } = gasData;
 
     const route: RouteWithValidQuote = routes[0]!;
@@ -666,12 +668,12 @@ function calculateOptimismToL1SecurityFee(
     return [l1GasUsed, scaled];
   }
 
-function calculateArbitrumToL1SecurityFee(
+  function calculateArbitrumToL1SecurityFee(
     routes: RouteWithValidQuote[],
     swapConfig: SwapOptionsUniversalRouter,
     gasData: ArbitrumGasData,
     chainId: ChainId
-): [BigNumber, BigNumber, BigNumber] {
+  ): [BigNumber, BigNumber, BigNumber] {
     const route: RouteWithValidQuote = routes[0]!;
 
     const amountToken =
