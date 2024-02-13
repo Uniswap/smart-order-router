@@ -461,6 +461,13 @@ export const USDC_CELO = new Token(
   'USDC',
   'USD//C.e'
 );
+export const USDC_WORMHOLE_CELO = new Token(
+  ChainId.CELO,
+  '0x37f750B7cC259A2f741AF45294f6a16572CF5cAd',
+  18,
+  'USDC',
+  'USD//C.e'
+);
 export const USDC_NATIVE_CELO = new Token(
   ChainId.CELO,
   '0x765DE816845861e75A25fCA122bb6898B8B1282a',

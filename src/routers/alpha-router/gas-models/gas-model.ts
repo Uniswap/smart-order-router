@@ -43,6 +43,7 @@ import {
   USDC_OPTIMISM_SEPOLIA,
   USDC_POLYGON,
   USDC_SEPOLIA,
+  USDC_WORMHOLE_CELO,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -50,7 +51,7 @@ import {
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
   USDT_OPTIMISM_SEPOLIA,
-  WBTC_GOERLI,
+  WBTC_GOERLI
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import {
@@ -99,7 +100,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.SEPOLIA]: [USDC_SEPOLIA, DAI_SEPOLIA],
   [ChainId.POLYGON]: [USDC_POLYGON, USDC_NATIVE_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
-  [ChainId.CELO]: [CUSD_CELO, USDC_CELO, USDC_NATIVE_CELO],
+  [ChainId.CELO]: [CUSD_CELO, USDC_CELO, USDC_NATIVE_CELO, USDC_WORMHOLE_CELO],
   [ChainId.CELO_ALFAJORES]: [CUSD_CELO_ALFAJORES],
   [ChainId.GNOSIS]: [USDC_ETHEREUM_GNOSIS],
   [ChainId.MOONBEAM]: [USDC_MOONBEAM],

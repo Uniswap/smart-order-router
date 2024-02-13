@@ -476,8 +476,11 @@ export async function getBestSwapRouteBy(
     if (v2GasModel == undefined && v3GasModel == undefined) {
       throw new Error("Can't compute L1 gas fees.");
     } else {
-      // Now after v2 deploy everywhere, it's possible to to have v2 and v3 routes on L2 swap.
-      // So that we need to add both gas cost one by one
+      // Before v2 deploy everywhere, a quote on L2 can only go through v3 protocol,
+      // so a split between v2 and v3 is not possible.
+      // After v2 deploy everywhere, a quote on L2 can go through v2 AND v3 protocol.
+      // Since a split is possible now, the gas cost will be the summation of both v2 and v3 gas models.
+      // So as long as any route contains v2/v3 protocol, we will calculate the gas cost accumulatively.
       const v2Routes = bestSwap.filter(
         (routes) => routes.protocol === Protocol.V2
       );
@@ -492,10 +495,6 @@ export async function getBestSwapRouteBy(
           gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(
             v2GasCostL1.gasUsedL1OnL2
           );
-          // It's possible that the gasCostL1USD currency is different from gasCostL1USD
-          // (https://github.com/Uniswap/smart-order-router/blob/b970aedfec8a9509f9e22f14cc5c11be54d47b35/src/routers/alpha-router/gas-models/gas-model.ts#L62)
-          // so we need to make sure they are the same.
-          // If they are different, the best we can do is to re-assign the gasCostL1USD to gasCostL1USD
           if (
             gasCostsL1ToL2.gasCostL1USD.currency.equals(
               v2GasCostL1.gasCostL1USD.currency
@@ -505,21 +504,27 @@ export async function getBestSwapRouteBy(
               v2GasCostL1.gasCostL1USD
             );
           } else {
+            // This is to handle the case where gasCostsL1ToL2.gasCostL1USD and v2GasCostL1.gasCostL1USD have different currencies.
+            //
+            // gasCostsL1ToL2.gasCostL1USD was initially hardcoded to CurrencyAmount.fromRawAmount(usdGasTokensByChain[chainId]![0]!, 0)
+            // (https://github.com/Uniswap/smart-order-router/blob/main/src/routers/alpha-router/functions/best-swap-route.ts#L438)
+            // , where usdGasTokensByChain is coded in the descending order of decimals per chain,
+            // e.g. Arbitrum_one DAI (18 decimals), USDC bridged (6 decimals), USDC native (6 decimals)
+            // so gasCostsL1ToL2.gasCostL1USD will have DAI as currency.
+            //
+            // For v2GasCostL1.gasCostL1USD, it's calculated within getHighestLiquidityUSDPool among usdGasTokensByChain[chainId]!,
+            // (https://github.com/Uniswap/smart-order-router/blob/b970aedfec8a9509f9e22f14cc5c11be54d47b35/src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model.ts#L220)
+            // , so the code will actually see which USD pool has the highest liquidity, if any.
+            // e.g. Arbitrum_one on v2 only has liquidity on USDC native
+            // so v2GasCostL1.gasCostL1USD will have USDC native as currency.
+            //
+            // We will re-assign gasCostsL1ToL2.gasCostL1USD to v2GasCostL1.gasCostL1USD in this case.
             gasCostsL1ToL2.gasCostL1USD = v2GasCostL1.gasCostL1USD;
           }
-          if (
-            gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(
-              v2GasCostL1.gasCostL1QuoteToken.currency
-            )
-          ) {
-            gasCostsL1ToL2.gasCostL1QuoteToken =
+          gasCostsL1ToL2.gasCostL1QuoteToken =
               gasCostsL1ToL2.gasCostL1QuoteToken.add(
                 v2GasCostL1.gasCostL1QuoteToken
               );
-          } else {
-            gasCostsL1ToL2.gasCostL1QuoteToken =
-              v2GasCostL1.gasCostL1QuoteToken;
-          }
         }
       }
       const v3Routes = bestSwap.filter(
@@ -545,21 +550,27 @@ export async function getBestSwapRouteBy(
               v3GasCostL1.gasCostL1USD
             );
           } else {
+            // This is to handle the case where gasCostsL1ToL2.gasCostL1USD and v3GasCostL1.gasCostL1USD have different currencies.
+            //
+            // gasCostsL1ToL2.gasCostL1USD was initially hardcoded to CurrencyAmount.fromRawAmount(usdGasTokensByChain[chainId]![0]!, 0)
+            // (https://github.com/Uniswap/smart-order-router/blob/main/src/routers/alpha-router/functions/best-swap-route.ts#L438)
+            // , where usdGasTokensByChain is coded in the descending order of decimals per chain,
+            // e.g. Arbitrum_one DAI (18 decimals), USDC bridged (6 decimals), USDC native (6 decimals)
+            // so gasCostsL1ToL2.gasCostL1USD will have DAI as currency.
+            //
+            // For v3GasCostL1.gasCostL1USD, it's calculated within getHighestLiquidityV3USDPool among usdGasTokensByChain[chainId]!,
+            // (https://github.com/Uniswap/smart-order-router/blob/1c93e133c46af545f8a3d8af7fca3f1f2dcf597d/src/util/gas-factory-helpers.ts#L110)
+            // , so the code will actually see which USD pool has the highest liquidity, if any.
+            // e.g. Arbitrum_one on v3 has highest liquidity on USDC native
+            // so v3GasCostL1.gasCostL1USD will have USDC native as currency.
+            //
+            // We will re-assign gasCostsL1ToL2.gasCostL1USD to v3GasCostL1.gasCostL1USD in this case.
             gasCostsL1ToL2.gasCostL1USD = v3GasCostL1.gasCostL1USD;
           }
-          if (
-            gasCostsL1ToL2.gasCostL1QuoteToken.currency.equals(
-              v3GasCostL1.gasCostL1QuoteToken.currency
-            )
-          ) {
-            gasCostsL1ToL2.gasCostL1QuoteToken =
-              gasCostsL1ToL2.gasCostL1QuoteToken.add(
-                v3GasCostL1.gasCostL1QuoteToken
-              );
-          } else {
-            gasCostsL1ToL2.gasCostL1QuoteToken =
-              v3GasCostL1.gasCostL1QuoteToken;
-          }
+          gasCostsL1ToL2.gasCostL1QuoteToken =
+            gasCostsL1ToL2.gasCostL1QuoteToken.add(
+              v3GasCostL1.gasCostL1QuoteToken
+            );
         }
       }
     }

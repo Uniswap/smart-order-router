@@ -26,7 +26,7 @@ import {
   SwapType,
   usdGasTokensByChain,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote,
+  V3RouteWithValidQuote
 } from '../routers';
 import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
