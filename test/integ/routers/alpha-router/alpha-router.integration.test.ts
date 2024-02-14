@@ -67,6 +67,8 @@ import {
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
+  USDC_NATIVE_ARBITRUM,
+  USDC_NATIVE_OPTIMISM,
   USDC_ON,
   USDT_BNB,
   USDT_MAINNET,
@@ -80,15 +82,27 @@ import {
   WETH9,
   WNATIVE_ON,
   WRAPPED_NATIVE_CURRENCY,
-  USDC_NATIVE_ARBITRUM,
-  USDC_NATIVE_OPTIMISM
+  USDC_NATIVE_POLYGON,
+  USDC_NATIVE_BASE
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
-import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
-import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
-import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
+import {
+  OnChainTokenFeeFetcher
+} from '../../../../src/providers/token-fee-fetcher';
+import {
+  DEFAULT_ROUTING_CONFIG_BY_CHAIN
+} from '../../../../src/routers/alpha-router/config';
+import {
+  Permit2__factory
+} from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
-import { BULLET, BULLET_WITHOUT_TAX, FLAT_PORTION, GREENLIST_TOKEN_PAIRS, Portion } from '../../../test-util/mock-data';
+import {
+  BULLET,
+  BULLET_WITHOUT_TAX,
+  FLAT_PORTION,
+  GREENLIST_TOKEN_PAIRS,
+  Portion
+} from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
 // TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023 deployed at block 18222746. We can use later block, e.g. at block 18318644
@@ -124,6 +138,8 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
 const V2_SUPPORTED_PAIRS = [
   [WETH9[ChainId.ARBITRUM_ONE], USDC_NATIVE_ARBITRUM],
   [WETH9[ChainId.OPTIMISM], USDC_NATIVE_OPTIMISM],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.POLYGON], USDC_NATIVE_POLYGON],
+  [WETH9[ChainId.BASE], USDC_NATIVE_BASE],
 ];
 
 const checkQuoteToken = (
@@ -3287,6 +3303,7 @@ describe('quote for other networks', () => {
     [ChainId.ARBITRUM_ONE]: () => USDC_NATIVE_ARBITRUM,
     [ChainId.ARBITRUM_GOERLI]: () => USDC_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: () => USDC_ON(ChainId.POLYGON),
+    [ChainId.POLYGON]: () => USDC_NATIVE_POLYGON,
     [ChainId.POLYGON_MUMBAI]: () => USDC_ON(ChainId.POLYGON_MUMBAI),
     [ChainId.CELO]: () => CUSD_CELO,
     [ChainId.CELO_ALFAJORES]: () => CUSD_CELO_ALFAJORES,
@@ -3295,6 +3312,7 @@ describe('quote for other networks', () => {
     [ChainId.BNB]: () => USDC_BNB,
     [ChainId.AVALANCHE]: () => USDC_ON(ChainId.AVALANCHE),
     [ChainId.BASE]: () => USDC_ON(ChainId.BASE),
+    [ChainId.BASE]: () => USDC_NATIVE_BASE,
     [ChainId.BASE_GOERLI]: () => USDC_ON(ChainId.BASE_GOERLI),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
