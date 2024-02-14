@@ -83,7 +83,8 @@ import {
   WNATIVE_ON,
   WRAPPED_NATIVE_CURRENCY,
   USDC_NATIVE_POLYGON,
-  USDC_NATIVE_BASE
+  USDC_NATIVE_BASE,
+  USDC_NATIVE_AVAX
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -140,6 +141,8 @@ const V2_SUPPORTED_PAIRS = [
   [WETH9[ChainId.OPTIMISM], USDC_NATIVE_OPTIMISM],
   [WRAPPED_NATIVE_CURRENCY[ChainId.POLYGON], USDC_NATIVE_POLYGON],
   [WETH9[ChainId.BASE], USDC_NATIVE_BASE],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.BNB], USDC_BNB],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE], USDC_NATIVE_AVAX],
 ];
 
 const checkQuoteToken = (
@@ -3311,6 +3314,7 @@ describe('quote for other networks', () => {
     [ChainId.MOONBEAM]: () => WBTC_MOONBEAM,
     [ChainId.BNB]: () => USDC_BNB,
     [ChainId.AVALANCHE]: () => USDC_ON(ChainId.AVALANCHE),
+    [ChainId.AVALANCHE]: () => USDC_NATIVE_AVAX,
     [ChainId.BASE]: () => USDC_ON(ChainId.BASE),
     [ChainId.BASE]: () => USDC_NATIVE_BASE,
     [ChainId.BASE_GOERLI]: () => USDC_ON(ChainId.BASE_GOERLI),
