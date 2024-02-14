@@ -119,6 +119,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             });
           }
         } catch (err) {
+          log.error({ err }, `Failed to get quote for V2 route`);
           // Can fail to get quotes, e.g. throws InsufficientReservesError or InsufficientInputAmountError.
           if (err instanceof InsufficientInputAmountError) {
             insufficientInputAmountErrorCount =
