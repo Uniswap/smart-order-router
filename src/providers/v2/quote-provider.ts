@@ -92,6 +92,8 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             let outputAmount = amount.wrapped;
 
             for (const pair of route.pairs) {
+              console.log(`pair reserve0 ${JSON.stringify(pair.reserve0.toExact())}
+               reserve1 ${JSON.stringify(pair.reserve1.toExact())}`);
               [outputAmount] = pair.getOutputAmount(
                 outputAmount,
                 providerConfig.enableFeeOnTransferFeeFetching === true
@@ -119,7 +121,7 @@ export class V2QuoteProvider implements IV2QuoteProvider {
             });
           }
         } catch (err) {
-          log.error({ err }, `Failed to get quote for V2 route`);
+          console.log({ err }, `Failed to get quote for V2 route`);
           // Can fail to get quotes, e.g. throws InsufficientReservesError or InsufficientInputAmountError.
           if (err instanceof InsufficientInputAmountError) {
             insufficientInputAmountErrorCount =
