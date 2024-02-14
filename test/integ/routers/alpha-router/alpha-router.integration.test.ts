@@ -80,7 +80,8 @@ import {
   WETH9,
   WNATIVE_ON,
   WRAPPED_NATIVE_CURRENCY,
-  USDC_NATIVE_ARBITRUM
+  USDC_NATIVE_ARBITRUM,
+  USDC_NATIVE_OPTIMISM
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
@@ -122,6 +123,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
 
 const V2_SUPPORTED_PAIRS = [
   [WETH9[ChainId.ARBITRUM_ONE], USDC_NATIVE_ARBITRUM],
+  [WETH9[ChainId.OPTIMISM], USDC_NATIVE_OPTIMISM],
 ];
 
 const checkQuoteToken = (
@@ -3278,9 +3280,11 @@ describe('quote for other networks', () => {
     [ChainId.GOERLI]: () => UNI_GOERLI,
     [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM]: () => WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!,
     [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
-    [ChainId.ARBITRUM_ONE]: () => USDC_NATIVE_ARBITRUM,
+    [ChainId.ARBITRUM_ONE]: () => USDC_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_ONE]: () => WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_ONE]!,
     [ChainId.ARBITRUM_GOERLI]: () => USDC_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: () => USDC_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: () => USDC_ON(ChainId.POLYGON_MUMBAI),
@@ -3298,9 +3302,11 @@ describe('quote for other networks', () => {
     [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
+    [ChainId.OPTIMISM]: () => USDC_NATIVE_OPTIMISM,
     [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
     [ChainId.ARBITRUM_ONE]: () => DAI_ON(ChainId.ARBITRUM_ONE),
+    [ChainId.ARBITRUM_ONE]: () => USDC_NATIVE_ARBITRUM,
     [ChainId.ARBITRUM_GOERLI]: () => DAI_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: () => DAI_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: () => DAI_ON(ChainId.POLYGON_MUMBAI),
@@ -3423,11 +3429,12 @@ describe('quote for other networks', () => {
             // Scope limited for non mainnet network tests to validating the swap
           });
 
-          it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
-            const tokenIn = wrappedNative;
-            const tokenOut = erc1;
+          it(`${erc1.symbol} -> ${erc2.symbol} v2 only`, async () => {
+            const tokenIn = erc1;
+            const tokenOut = erc2;
 
-            const isV2PairRoutable = V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
+            const isV2PairRoutable =
+              V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
 
             if (!isV2PairRoutable) {
               return;
@@ -3693,11 +3700,12 @@ describe('quote for other networks', () => {
               // Scope limited for non mainnet network tests to validating the swap
             });
 
-            it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
-              const tokenIn = wrappedNative;
-              const tokenOut = erc1;
+            it(`${erc1.symbol} -> ${erc2.symbol} v2 only`, async () => {
+              const tokenIn = erc1;
+              const tokenOut = erc2;
 
-              const isV2PairRoutable = V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
+              const isV2PairRoutable =
+                V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
 
               if (!isV2PairRoutable) {
                 return;
