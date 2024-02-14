@@ -3280,11 +3280,11 @@ describe('quote for other networks', () => {
     [ChainId.GOERLI]: () => UNI_GOERLI,
     [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM]: () => WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!,
+    [ChainId.OPTIMISM]: () => USDC_NATIVE_OPTIMISM,
     [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
     [ChainId.ARBITRUM_ONE]: () => USDC_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_ONE]: () => WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_ONE]!,
+    [ChainId.ARBITRUM_ONE]: () => USDC_NATIVE_ARBITRUM,
     [ChainId.ARBITRUM_GOERLI]: () => USDC_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: () => USDC_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: () => USDC_ON(ChainId.POLYGON_MUMBAI),
@@ -3302,11 +3302,9 @@ describe('quote for other networks', () => {
     [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISM]: () => USDC_NATIVE_OPTIMISM,
     [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
     [ChainId.ARBITRUM_ONE]: () => DAI_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_ONE]: () => USDC_NATIVE_ARBITRUM,
     [ChainId.ARBITRUM_GOERLI]: () => DAI_ON(ChainId.ARBITRUM_GOERLI),
     [ChainId.POLYGON]: () => DAI_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: () => DAI_ON(ChainId.POLYGON_MUMBAI),
@@ -3429,9 +3427,9 @@ describe('quote for other networks', () => {
             // Scope limited for non mainnet network tests to validating the swap
           });
 
-          it(`${erc1.symbol} -> ${erc2.symbol} v2 only`, async () => {
-            const tokenIn = erc1;
-            const tokenOut = erc2;
+          it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
+            const tokenIn = wrappedNative;
+            const tokenOut = erc1;
 
             const isV2PairRoutable =
               V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
@@ -3700,9 +3698,9 @@ describe('quote for other networks', () => {
               // Scope limited for non mainnet network tests to validating the swap
             });
 
-            it(`${erc1.symbol} -> ${erc2.symbol} v2 only`, async () => {
-              const tokenIn = erc1;
-              const tokenOut = erc2;
+            it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
+              const tokenIn = wrappedNative;
+              const tokenOut = erc1;
 
               const isV2PairRoutable =
                 V2_SUPPORTED_PAIRS.find((pair) => pair[0]!.equals(tokenIn) && pair[1]!.equals(tokenOut));
