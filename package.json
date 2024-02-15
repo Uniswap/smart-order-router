@@ -25,7 +25,7 @@
     "fix:lint": "eslint src --ext .ts --fix",
     "prepare-release": "run-s cov:check doc:html version doc:publish",
     "test": "jest test/unit",
-    "integ-test": "TS_NODE=true jest test/integ"
+    "integ-test": "TS_NODE=true jest test/integ --testRunner='jest-circus/runner'"
   },
   "engines": {
     "node": ">=10"
@@ -87,6 +87,7 @@
     "eslint-plugin-import": "^2.22.0",
     "hardhat": "^2.12.2",
     "jest": "^27.0.6",
+    "jest-circus": "^27.5.1",
     "jest-environment-hardhat": "^1.1.8",
     "jest-expect-message": "^1.0.2",
     "jest-mock": "^27.0.6",
