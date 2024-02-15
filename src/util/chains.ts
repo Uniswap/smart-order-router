@@ -14,6 +14,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.OPTIMISM_SEPOLIA,
   ChainId.ARBITRUM_ONE,
   ChainId.ARBITRUM_GOERLI,
+  ChainId.ARBITRUM_SEPOLIA,
   ChainId.POLYGON,
   ChainId.POLYGON_MUMBAI,
   ChainId.GOERLI,
@@ -44,6 +45,7 @@ export const HAS_L1_FEE = [
   ChainId.OPTIMISM_SEPOLIA,
   ChainId.ARBITRUM_ONE,
   ChainId.ARBITRUM_GOERLI,
+  ChainId.ARBITRUM_SEPOLIA,
   ChainId.BASE,
   ChainId.BASE_GOERLI,
 ];
@@ -77,6 +79,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.ARBITRUM_ONE;
     case 421613:
       return ChainId.ARBITRUM_GOERLI;
+    case 421614:
+      return ChainId.ARBITRUM_SEPOLIA;
     case 137:
       return ChainId.POLYGON;
     case 80001:
@@ -106,9 +110,10 @@ export enum ChainName {
   SEPOLIA = 'sepolia',
   OPTIMISM = 'optimism-mainnet',
   OPTIMISM_GOERLI = 'optimism-goerli',
-  OPTIMISM_SEPOLIA = 'op-sepolia',
+  OPTIMISM_SEPOLIA = 'optimism-sepolia',
   ARBITRUM_ONE = 'arbitrum-mainnet',
   ARBITRUM_GOERLI = 'arbitrum-goerli',
+  ARBITRUM_SEPOLIA = 'arbitrum-sepolia',
   POLYGON = 'polygon-mainnet',
   POLYGON_MUMBAI = 'polygon-mumbai',
   CELO = 'celo-mainnet',
@@ -173,6 +178,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.ARBITRUM_SEPOLIA]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
   [ChainId.POLYGON]: ['MATIC', '0x0000000000000000000000000000000000001010'],
   [ChainId.POLYGON_MUMBAI]: [
     'MATIC',
@@ -204,6 +214,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.OPTIMISM_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_ONE]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_GOERLI]: NativeCurrencyName.ETHER,
+  [ChainId.ARBITRUM_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.POLYGON]: NativeCurrencyName.MATIC,
   [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
   [ChainId.CELO]: NativeCurrencyName.CELO,
@@ -235,6 +246,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.ARBITRUM_ONE;
     case 421613:
       return ChainName.ARBITRUM_GOERLI;
+    case 421614:
+      return ChainName.ARBITRUM_SEPOLIA;
     case 137:
       return ChainName.POLYGON;
     case 80001:
@@ -280,6 +293,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE!;
     case ChainId.ARBITRUM_GOERLI:
       return process.env.JSON_RPC_PROVIDER_ARBITRUM_GOERLI!;
+    case ChainId.ARBITRUM_SEPOLIA:
+      return process.env.JSON_RPC_PROVIDER_ARBITRUM_SEPOLIA!;
     case ChainId.POLYGON:
       return process.env.JSON_RPC_PROVIDER_POLYGON!;
     case ChainId.POLYGON_MUMBAI:
@@ -359,6 +374,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   [ChainId.ARBITRUM_GOERLI]: new Token(
     ChainId.ARBITRUM_GOERLI,
     '0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ARBITRUM_SEPOLIA]: new Token(
+    ChainId.ARBITRUM_SEPOLIA,
+    '0xc556bAe1e86B2aE9c22eA5E036b07E55E7596074',
     18,
     'WETH',
     'Wrapped Ether'

@@ -522,9 +522,9 @@ export async function getBestSwapRouteBy(
             gasCostsL1ToL2.gasCostL1USD = v2GasCostL1.gasCostL1USD;
           }
           gasCostsL1ToL2.gasCostL1QuoteToken =
-              gasCostsL1ToL2.gasCostL1QuoteToken.add(
-                v2GasCostL1.gasCostL1QuoteToken
-              );
+            gasCostsL1ToL2.gasCostL1QuoteToken.add(
+              v2GasCostL1.gasCostL1QuoteToken
+            );
         }
       }
       const v3Routes = bestSwap.filter(
