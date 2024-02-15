@@ -837,7 +837,7 @@ export const DAI_ON = (chainId: ChainId): Token => {
     case ChainId.ARBITRUM_GOERLI:
       return DAI_ARBITRUM_GOERLI;
     case ChainId.ARBITRUM_SEPOLIA:
-
+      return DAI_ARBITRUM_SEPOLIA;
     case ChainId.POLYGON:
       return DAI_POLYGON;
     case ChainId.POLYGON_MUMBAI:
