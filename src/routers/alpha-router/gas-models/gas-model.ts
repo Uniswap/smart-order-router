@@ -22,7 +22,8 @@ import {
   DAI_POLYGON_MUMBAI,
   DAI_SEPOLIA,
   USDC_ARBITRUM,
-  USDC_ARBITRUM_GOERLI, USDC_ARBITRUM_SEPOLIA,
+  USDC_ARBITRUM_GOERLI,
+  USDC_ARBITRUM_SEPOLIA,
   USDC_AVAX,
   USDC_BASE,
   USDC_BNB,
@@ -51,7 +52,7 @@ import {
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
   USDT_OPTIMISM_SEPOLIA,
-  WBTC_GOERLI
+  WBTC_GOERLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import {

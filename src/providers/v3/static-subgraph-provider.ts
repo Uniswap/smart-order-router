@@ -96,7 +96,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   // todo: once subgraph is created
   [ChainId.OPTIMISM_SEPOLIA]: [
-  //   WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM_SEPOLIA]!,
+    //   WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM_SEPOLIA]!,
   ],
   [ChainId.ARBITRUM_ONE]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.ARBITRUM_ONE]!,
