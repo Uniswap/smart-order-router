@@ -124,7 +124,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.OPTIMISM_SEPOLIA]: 30,
   [ChainId.ARBITRUM_ONE]: 53,
   [ChainId.ARBITRUM_GOERLI]: 50,
-  [ChainId.POLYGON]: 34,
+  [ChainId.POLYGON]: 38,
   [ChainId.POLYGON_MUMBAI]: 30,
   [ChainId.CELO]: 30,
   [ChainId.CELO_ALFAJORES]: 30,
