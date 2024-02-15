@@ -299,10 +299,27 @@ export const DAI_ARBITRUM_GOERLI = new Token(
   'Dai Stablecoin'
 );
 
+export const DAI_ARBITRUM_SEPOLIA = new Token(
+  ChainId.ARBITRUM_SEPOLIA,
+  '0xc3826E277485c33F3D99C9e0CBbf8449513210EE',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 // Bridged version of official Goerli USDC
 export const USDC_ARBITRUM_GOERLI = new Token(
   ChainId.ARBITRUM_GOERLI,
   '0x8FB1E3fC51F3b789dED7557E680551d93Ea9d892',
+  6,
+  'USDC',
+  'USD//C'
+);
+
+// Bridged version of official Sepolia USDC
+export const USDC_ARBITRUM_SEPOLIA = new Token(
+  ChainId.ARBITRUM_SEPOLIA,
+  '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d',
   6,
   'USDC',
   'USD//C'
@@ -819,6 +836,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_ARBITRUM;
     case ChainId.ARBITRUM_GOERLI:
       return DAI_ARBITRUM_GOERLI;
+    case ChainId.ARBITRUM_SEPOLIA:
+
     case ChainId.POLYGON:
       return DAI_POLYGON;
     case ChainId.POLYGON_MUMBAI:
@@ -877,6 +896,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ARBITRUM;
     case ChainId.ARBITRUM_GOERLI:
       return USDC_ARBITRUM_GOERLI;
+    case ChainId.ARBITRUM_SEPOLIA:
+      return USDC_ARBITRUM_SEPOLIA;
     case ChainId.POLYGON:
       return USDC_POLYGON;
     case ChainId.POLYGON_MUMBAI:
