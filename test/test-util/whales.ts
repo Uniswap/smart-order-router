@@ -11,10 +11,14 @@ import {
   UNI_MAINNET,
   USDC_MAINNET,
   USDC_NATIVE_ARBITRUM,
+  USDC_NATIVE_AVAX,
+  USDC_NATIVE_BASE,
+  USDC_NATIVE_OPTIMISM,
+  USDC_NATIVE_POLYGON,
   USDC_ON,
   USDT_MAINNET,
   WETH9,
-  WNATIVE_ON,
+  WNATIVE_ON
 } from '../../src';
 import { BULLET, BULLET_WITHOUT_TAX } from './mock-data';
 
@@ -66,6 +70,8 @@ export const WHALES = (token: Currency): string => {
       return '0x41653c7d61609d856f29355e404f310ec4142cfb';
     case USDC_ON(ChainId.OPTIMISM):
       return '0xad7b4c162707e0b2b5f6fddbd3f8538a5fba0d60';
+    case USDC_NATIVE_OPTIMISM:
+      return '0xf491d040110384dbcf7f241ffe2a546513fd873d';
     case USDC_ON(ChainId.OPTIMISM_GOERLI):
       return '0x4cb0645e92a3b5872ae54e5704e03c09ca0ea220';
     case USDC_ON(ChainId.ARBITRUM_ONE):
@@ -78,14 +84,20 @@ export const WHALES = (token: Currency): string => {
       return '0xe2a3422f3168149AD2d11b4dE2B97b05f1ebF76e';
     case USDC_ON(ChainId.POLYGON):
       return '0xe7804c37c13166ff0b37f5ae0bb07a3aebb6e245';
+    case USDC_NATIVE_POLYGON:
+      return '0x2C2301FDB0bfA06EAABaA0122CbCEb2265337C25';
     case USDC_ON(ChainId.POLYGON_MUMBAI):
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
     case USDC_ON(ChainId.AVALANCHE):
       return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
+    case USDC_NATIVE_AVAX:
+      return '0x3A2434c698f8D79af1f5A9e43013157ca8B11a66';
     case USDC_ON(ChainId.BNB):
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case USDC_ON(ChainId.BASE):
       return '0x4a3636608d7bc5776cb19eb72caa36ebb9ea683b';
+    case USDC_NATIVE_BASE:
+      return '0x20fe51a9229eef2cf8ad9e89d91cab9312cf3b7a';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):

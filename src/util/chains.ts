@@ -31,6 +31,11 @@ export const V2_SUPPORTED = [
   ChainId.GOERLI,
   ChainId.SEPOLIA,
   ChainId.ARBITRUM_ONE,
+  ChainId.OPTIMISM,
+  ChainId.POLYGON,
+  ChainId.BASE,
+  ChainId.BNB,
+  ChainId.AVALANCHE,
 ];
 
 export const HAS_L1_FEE = [
