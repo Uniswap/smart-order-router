@@ -6,6 +6,7 @@ import {
   ChainId,
   Currency,
   Fraction,
+  SWAP_ROUTER_02_ADDRESSES,
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
@@ -83,7 +84,7 @@ import {
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
-import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,

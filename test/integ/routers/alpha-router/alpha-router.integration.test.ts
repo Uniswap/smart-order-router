@@ -13,6 +13,7 @@ import {
   Fraction,
   Percent,
   Rounding,
+  SWAP_ROUTER_02_ADDRESSES,
   Token,
   TradeType
 } from '@uniswap/sdk-core';
@@ -56,7 +57,6 @@ import {
   SimulationStatus,
   StaticGasPriceProvider,
   SUPPORTED_CHAINS,
-  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
   TenderlySimulator,
