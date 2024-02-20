@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Logger } from '@ethersproject/logger';
 import { SwapRouter, Trade } from '@uniswap/router-sdk';
-import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, SWAP_ROUTER_02_ADDRESSES, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount, MethodParameters, Pool, Route } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
@@ -13,7 +13,6 @@ import {
   USDC_MAINNET,
 } from '../../providers/token-provider';
 import { IV3PoolProvider } from '../../providers/v3/pool-provider';
-import { SWAP_ROUTER_02_ADDRESSES } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import { log } from '../../util/log';
 import { routeToString } from '../../util/routes';

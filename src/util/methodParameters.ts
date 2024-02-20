@@ -4,7 +4,7 @@ import {
   SwapRouter as SwapRouter02,
   Trade,
 } from '@uniswap/router-sdk';
-import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, SWAP_ROUTER_02_ADDRESSES, TradeType } from '@uniswap/sdk-core';
 import {
   SwapRouter as UniversalRouter,
   UNIVERSAL_ROUTER_ADDRESS,
@@ -20,7 +20,6 @@ import {
   RouteWithValidQuote,
   SwapOptions,
   SwapType,
-  SWAP_ROUTER_02_ADDRESSES,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';
