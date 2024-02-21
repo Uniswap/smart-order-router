@@ -585,7 +585,7 @@ export async function getBestSwapRouteBy(
       const decimalsDiff =
         usdTokenDecimals - routeWithValidQuote.gasCostInUSD.currency.decimals;
 
-      if (decimalsDiff == 0) {
+      if (decimalsDiff <= 0) {
         return CurrencyAmount.fromRawAmount(
           usdToken,
           routeWithValidQuote.gasCostInUSD.quotient
