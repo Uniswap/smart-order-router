@@ -3952,7 +3952,7 @@ describe('quote for other networks', () => {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
-              
+
               const tokenIn = nativeOnChain(chain);
               // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
               // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
