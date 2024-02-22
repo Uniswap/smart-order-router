@@ -43,7 +43,7 @@ describe('TokenPropertiesProvider', () => {
   })
 
   describe('get token fees by address', () => {
-    it.skip('succeeds to get token fee and updates cache', async () => {
+    it('succeeds to get token fee and updates cache', async () => {
       const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
       const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
       const tokenPropertiesProvider = new TokenPropertiesProvider(
@@ -68,7 +68,7 @@ describe('TokenPropertiesProvider', () => {
       expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase())) ?? 0) / 1000)).toEqual(currentEpochTimeInSeconds + POSITIVE_CACHE_ENTRY_TTL);
     })
 
-    it.skip('succeeds to get token fee cache hit and second token fee fetcher call is skipped', async function () {
+    it('succeeds to get token fee cache hit and second token fee fetcher call is skipped', async function() {
       const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
       const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
       const tokenPropertiesProvider = new TokenPropertiesProvider(
@@ -95,7 +95,7 @@ describe('TokenPropertiesProvider', () => {
       expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase())) ?? 0) / 1000)).toEqual(currentEpochTimeInSeconds + POSITIVE_CACHE_ENTRY_TTL);
     });
 
-    it.skip('succeeds to get token allowlist with no on-chain calls nor caching', async function () {
+    it('succeeds to get token allowlist with no on-chain calls nor caching', async function() {
       const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
       const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
       const tokenPropertiesProvider = new TokenPropertiesProvider(
@@ -114,7 +114,7 @@ describe('TokenPropertiesProvider', () => {
       expect(await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, allowListToken.address.toLowerCase()))).toBeUndefined();
     });
 
-    it.skip('succeeds to get token properties in a single batch', async function () {
+    it('succeeds to get token properties in a single batch', async function() {
       const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
       const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
       const tokenPropertiesProvider = new TokenPropertiesProvider(
@@ -161,7 +161,7 @@ describe('TokenPropertiesProvider', () => {
       }
     });
 
-    it.skip('all token fee fetch failed', async function () {
+    it('all token fee fetch failed', async function() {
       const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
       const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
       const tokenPropertiesProvider = new TokenPropertiesProvider(
@@ -197,7 +197,7 @@ describe('TokenPropertiesProvider', () => {
       }
     });
 
-    it.skip('real ETH and BITBOY token fee fetch, only BITBOY fetched', async function () {
+    it('real ETH and BITBOY token fee fetch, only BITBOY fetched', async function() {
       const chain = ChainId.MAINNET;
       const chainProvider = ID_TO_PROVIDER(chain);
       const provider = new JsonRpcProvider(chainProvider, chain);
