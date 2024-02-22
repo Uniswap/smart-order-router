@@ -3,7 +3,7 @@ import https from 'https';
 
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { ChainId, SWAP_ROUTER_02_ADDRESSES } from '@uniswap/sdk-core';
+import { ChainId } from '@uniswap/sdk-core';
 import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS,
@@ -25,6 +25,7 @@ import {
   BEACON_CHAIN_DEPOSIT_ADDRESS,
   log,
   MAX_UINT160,
+  SWAP_ROUTER_02_ADDRESSES,
 } from '../util';
 import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
