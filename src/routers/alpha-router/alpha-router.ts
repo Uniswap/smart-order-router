@@ -2081,7 +2081,7 @@ export class AlphaRouter
       nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
-    const v2GasModelPromise = V2_SUPPORTED.includes(this.chainId)
+    const v2GasModelPromise = this.v2Supported?.includes(this.chainId)
       ? this.v2GasModelFactory.buildGasModel({
           chainId: this.chainId,
           gasPriceWei,
