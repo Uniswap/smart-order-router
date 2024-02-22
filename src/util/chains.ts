@@ -29,8 +29,6 @@ export const SUPPORTED_CHAINS: ChainId[] = [
 
 export const V2_SUPPORTED = [
   ChainId.MAINNET,
-  ChainId.GOERLI,
-  ChainId.SEPOLIA,
   ChainId.ARBITRUM_ONE,
   ChainId.OPTIMISM,
   ChainId.POLYGON,
