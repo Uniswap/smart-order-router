@@ -13,7 +13,6 @@ import {
   Fraction,
   Percent,
   Rounding,
-  SWAP_ROUTER_02_ADDRESSES,
   Token,
   TradeType
 } from '@uniswap/sdk-core';
@@ -57,6 +56,7 @@ import {
   SimulationStatus,
   StaticGasPriceProvider,
   SUPPORTED_CHAINS,
+  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
   TenderlySimulator,
@@ -116,7 +116,7 @@ const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
-  [ChainId.MAINNET]: 35,
+  [ChainId.MAINNET]: 40,
   [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 50,
   [ChainId.OPTIMISM]: 35,

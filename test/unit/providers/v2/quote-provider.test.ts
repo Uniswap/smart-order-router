@@ -5,13 +5,7 @@ import JSBI from 'jsbi';
 import { V2QuoteProvider, V2Route, WETH9 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import { computeAllV2Routes } from '../../../../src/routers/alpha-router/functions/compute-all-routes';
-import {
-  BLAST,
-  BLAST_WITHOUT_TAX,
-  BULLET,
-  BULLET_WITHOUT_TAX,
-  STETH,
-} from '../../../test-util/mock-data';
+import { BLAST, BLAST_WITHOUT_TAX, BULLET, BULLET_WITHOUT_TAX, STETH, } from '../../../test-util/mock-data';
 
 const tokenIn = BULLET_WITHOUT_TAX;
 const tokenOut = BLAST_WITHOUT_TAX;
@@ -134,7 +128,7 @@ describe('QuoteProvider', () => {
                 expect(pair.reserve1.currency.buyFeeBps).toBeDefined();
               }
 
-              const [outputAmount] = pair.getOutputAmount(currentInputAmount, enableFeeOnTransferFeeFetching);
+              const [outputAmount] = pair.getOutputAmount(currentInputAmount, enableFeeOnTransferFeeFetching === true);
               currentInputAmount = outputAmount;
 
               if (enableFeeOnTransferFeeFetching) {
