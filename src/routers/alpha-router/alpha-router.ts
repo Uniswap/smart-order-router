@@ -2089,7 +2089,7 @@ export class AlphaRouter
           token: quoteToken,
           l2GasDataProvider: this.l2GasDataProvider,
           providerConfig: providerConfig,
-        })
+        }).catch(_ => undefined) // If v2 model throws uncaught exception, we return undefined v2 gas model, so there's a chance v3 route can go through
       : Promise.resolve(undefined);
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
