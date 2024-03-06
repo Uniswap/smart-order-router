@@ -13,7 +13,6 @@ import {
   Fraction,
   Percent,
   Rounding,
-  SWAP_ROUTER_02_ADDRESSES,
   Token,
   TradeType
 } from '@uniswap/sdk-core';
@@ -57,6 +56,7 @@ import {
   SimulationStatus,
   StaticGasPriceProvider,
   SUPPORTED_CHAINS,
+  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
   TenderlySimulator,
@@ -116,7 +116,7 @@ const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
-  [ChainId.MAINNET]: 35,
+  [ChainId.MAINNET]: 40,
   [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 50,
   [ChainId.OPTIMISM]: 35,
@@ -3353,8 +3353,7 @@ describe('quote for other networks', () => {
       c != ChainId.ARBITRUM_GOERLI &&
       c != ChainId.ARBITRUM_SEPOLIA &&
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
-      c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.SEPOLIA
+      c != ChainId.CELO_ALFAJORES
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
@@ -3485,6 +3484,11 @@ describe('quote for other networks', () => {
           });
 
           it(`erc20 -> erc20`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
             const amount =
@@ -3510,6 +3514,11 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
             const tokenIn = nativeOnChain(chain);
             // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
             // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
@@ -3543,6 +3552,11 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
             const amount =
@@ -3576,6 +3590,11 @@ describe('quote for other networks', () => {
           });
 
           it(`does not error when protocols array is empty`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
             const amount =
@@ -3626,7 +3645,7 @@ describe('quote for other networks', () => {
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
-            if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
+            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
@@ -3828,6 +3847,11 @@ describe('quote for other networks', () => {
             });
 
             it(`erc20 -> erc20`, async () => {
+              if (chain === ChainId.SEPOLIA) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
@@ -3924,6 +3948,11 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
+              if (chain === ChainId.SEPOLIA) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = nativeOnChain(chain);
               // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
               // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7

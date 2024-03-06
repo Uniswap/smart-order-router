@@ -6,7 +6,6 @@ import {
   ChainId,
   Currency,
   Fraction,
-  SWAP_ROUTER_02_ADDRESSES,
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
@@ -84,7 +83,7 @@ import {
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
-import { WRAPPED_NATIVE_CURRENCY } from '../../util';
+import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,
@@ -2082,7 +2081,7 @@ export class AlphaRouter
       nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
-    const v2GasModelPromise = V2_SUPPORTED.includes(this.chainId)
+    const v2GasModelPromise = this.v2Supported?.includes(this.chainId)
       ? this.v2GasModelFactory.buildGasModel({
           chainId: this.chainId,
           gasPriceWei,
@@ -2090,7 +2089,7 @@ export class AlphaRouter
           token: quoteToken,
           l2GasDataProvider: this.l2GasDataProvider,
           providerConfig: providerConfig,
-        })
+        }).catch(_ => undefined) // If v2 model throws uncaught exception, we return undefined v2 gas model, so there's a chance v3 route can go through
       : Promise.resolve(undefined);
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
