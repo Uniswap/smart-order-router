@@ -19,7 +19,7 @@ import {
   DAI_MOONBEAM,
   DAI_OPTIMISM,
   ETH_BNB,
-  OP_OPTIMISM,
+  OP_OPTIMISM, USDB_BLAST,
   USDC_ARBITRUM,
   USDC_AVAX,
   USDC_BASE,
@@ -38,7 +38,7 @@ import {
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WETH_POLYGON,
-  WMATIC_POLYGON,
+  WMATIC_POLYGON
 } from '../token-provider';
 
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
@@ -106,6 +106,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   ],
   [ChainId.BASE_GOERLI]: [],
   [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE], USDC_BASE],
+  [ChainId.BLAST]: [WRAPPED_NATIVE_CURRENCY[ChainId.BLAST], USDB_BLAST],
 };
 
 /**

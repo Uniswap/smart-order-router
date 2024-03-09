@@ -647,6 +647,15 @@ export const WBTC_MOONBEAM = new Token(
   'Wrapped BTC bridged using Multichain'
 );
 
+// Blast Tokens
+export const USDB_BLAST = new Token(
+  ChainId.BLAST,
+  '0x4300000000000000000000000000000000000003',
+  18,
+  'USDB',
+  'USDB'
+)
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,

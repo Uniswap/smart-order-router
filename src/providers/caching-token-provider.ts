@@ -26,7 +26,7 @@ import {
   DAI_POLYGON_MUMBAI,
   ETH_BNB,
   ITokenProvider,
-  TokenAccessor,
+  TokenAccessor, USDB_BLAST,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
@@ -54,7 +54,7 @@ import {
   WBTC_OPTIMISM_GOERLI,
   WBTC_OPTIMISM_SEPOLIA,
   WMATIC_POLYGON,
-  WMATIC_POLYGON_MUMBAI,
+  WMATIC_POLYGON_MUMBAI
 } from './token-provider';
 
 // These tokens will added to the Token cache on initialization.
@@ -159,6 +159,10 @@ export const CACHE_SEED_TOKENS: {
   [ChainId.BASE]: {
     USDC: USDC_BASE,
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.BASE],
+  },
+  [ChainId.BLAST]: {
+    USDB: USDB_BLAST,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.BLAST],
   },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };

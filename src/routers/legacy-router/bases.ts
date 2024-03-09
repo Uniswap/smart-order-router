@@ -7,7 +7,7 @@ import {
   DAI_AVAX,
   DAI_BNB,
   DAI_MAINNET,
-  ITokenProvider,
+  ITokenProvider, USDB_BLAST,
   USDC_AVAX,
   USDC_BASE,
   USDC_BNB,
@@ -16,7 +16,7 @@ import {
   USDT_MAINNET,
   WBTC_MAINNET,
   WMATIC_POLYGON,
-  WMATIC_POLYGON_MUMBAI,
+  WMATIC_POLYGON_MUMBAI
 } from '../../providers/token-provider';
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
@@ -72,6 +72,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     ],
     [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE]!, USDC_BASE],
     [ChainId.BASE_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]!],
+    [CHainId.BLAST]: [WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!, USDB_BLAST],
   };
 };
 

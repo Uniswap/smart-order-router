@@ -67,6 +67,8 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.thegraph.com/subgraphs/name/lynnshaoyu/uniswap-v3-avax',
   [ChainId.BASE]:
     'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
+  // TODO DAT-303 - Add subgraph for BLAST
+  [ChainId.BLAST]: '',
 };
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
