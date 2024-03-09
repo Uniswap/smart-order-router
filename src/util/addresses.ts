@@ -133,6 +133,10 @@ export const WETH9: {
     | ChainId.MOONBEAM
     | ChainId.BNB
     | ChainId.AVALANCHE
+    // TODO: remove ROOTSTOCK, ZORA and ZORA_SEPOLIA once we support both at the routing level
+    | ChainId.ROOTSTOCK
+    | ChainId.ZORA
+    | ChainId.ZORA_SEPOLIA
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(

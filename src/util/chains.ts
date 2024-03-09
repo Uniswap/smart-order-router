@@ -24,7 +24,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.BNB,
   ChainId.AVALANCHE,
   ChainId.BASE,
-  CHainId.BLAST,
+  ChainId.BLAST,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -459,6 +459,27 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.BASE_GOERLI]: new Token(
     ChainId.BASE_GOERLI,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ROOTSTOCK]: new Token(
+    ChainId.ROOTSTOCK,
+    '0x542fDA317318eBF1d3DEAf76E0b632741A7e677d',
+    18,
+    'WRBTC',
+    'Wrapped BTC'
+  ),
+  [ChainId.ZORA]: new Token(
+    ChainId.ZORA,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ZORA_SEPOLIA]: new Token(
+    ChainId.ZORA_SEPOLIA,
     '0x4200000000000000000000000000000000000006',
     18,
     'WETH',
