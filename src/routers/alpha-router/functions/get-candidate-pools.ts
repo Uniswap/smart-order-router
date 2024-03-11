@@ -186,7 +186,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BNB]: [DAI_BNB, USDC_BNB, USDT_BNB],
   [ChainId.AVALANCHE]: [DAI_AVAX, USDC_AVAX],
   [ChainId.BASE]: [USDC_BASE],
-  [ChainId.BLAST]: [USDB_BLAST, WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!],
+  [ChainId.BLAST]: [WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!, USDB_BLAST],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {
