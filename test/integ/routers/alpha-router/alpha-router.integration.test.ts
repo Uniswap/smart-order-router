@@ -84,7 +84,8 @@ import {
   WRAPPED_NATIVE_CURRENCY,
   USDC_NATIVE_POLYGON,
   USDC_NATIVE_BASE,
-  USDC_NATIVE_AVAX
+  USDC_NATIVE_AVAX,
+  USDB_BLAST
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -3327,7 +3328,7 @@ describe('quote for other networks', () => {
     [ChainId.ZORA]: () => USDC_ON(ChainId.ZORA),
     [ChainId.ZORA_SEPOLIA]: () => USDC_ON(ChainId.ZORA_SEPOLIA),
     [ChainId.ROOTSTOCK]: () => USDC_ON(ChainId.ROOTSTOCK),
-    [ChainId.BLAST]: () => USDC_ON(ChainId.BLAST),
+    [ChainId.BLAST]: () => USDB_BLAST,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3368,8 +3369,7 @@ describe('quote for other networks', () => {
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA &&
       c != ChainId.ZORA_SEPOLIA &&
-      c != ChainId.ROOTSTOCK &&
-      c != ChainId.BLAST
+      c != ChainId.ROOTSTOCK
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
