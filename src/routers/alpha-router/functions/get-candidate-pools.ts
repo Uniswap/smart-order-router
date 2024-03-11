@@ -6,7 +6,8 @@ import _ from 'lodash';
 import {
   DAI_OPTIMISM_SEPOLIA,
   ITokenListProvider,
-  IV2SubgraphProvider, USDB_BLAST,
+  IV2SubgraphProvider,
+  USDB_BLAST,
   USDC_ARBITRUM_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
   USDT_OPTIMISM_SEPOLIA,
@@ -185,7 +186,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BNB]: [DAI_BNB, USDC_BNB, USDT_BNB],
   [ChainId.AVALANCHE]: [DAI_AVAX, USDC_AVAX],
   [ChainId.BASE]: [USDC_BASE],
-  [ChainId.BLAST]: [USDB_BLAST],
+  [ChainId.BLAST]: [USDB_BLAST, WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {

@@ -653,7 +653,7 @@ export const USDB_BLAST = new Token(
   '0x4300000000000000000000000000000000000003',
   18,
   'USDB',
-  'USDB'
+  'USD Blast'
 )
 
 export class TokenProvider implements ITokenProvider {
