@@ -718,7 +718,7 @@ jobs:
 
       # This is to capture any new networks added into the integ-test suite
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|goerli|sepolia|celo|bnb|avalanche|base))'
+        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|goerli|sepolia|celo|bnb|avalanche|base|blast))'
         env:
           # We don't know which new networks will be added, so we have no way to provider RPC URL ahead of time
           # This will make remaining networks integ-test suite to fail, and dev is expected to manually add RPC URL for the new network

@@ -20,7 +20,9 @@ import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
 } from '@uniswap/universal-router-sdk';
-import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
+import {
+  Permit2Permit
+} from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
@@ -64,11 +66,15 @@ import {
   UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
+  USDB_BLAST,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_NATIVE_ARBITRUM,
+  USDC_NATIVE_AVAX,
+  USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
+  USDC_NATIVE_POLYGON,
   USDC_ON,
   USDT_BNB,
   USDT_MAINNET,
@@ -81,11 +87,7 @@ import {
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY,
-  USDC_NATIVE_POLYGON,
-  USDC_NATIVE_BASE,
-  USDC_NATIVE_AVAX,
-  USDB_BLAST
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -3507,10 +3509,13 @@ describe('quote for other networks', () => {
 
             const tokenIn = erc1;
             const tokenOut = erc2;
+
+            // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
+            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
-                : parseAmount('1', tokenOut);
+                : parseAmount(exactOutAmount, tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3580,10 +3585,13 @@ describe('quote for other networks', () => {
 
             const tokenIn = erc1;
             const tokenOut = erc2;
+
+            // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
+            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
-                : parseAmount('1', tokenOut);
+                : parseAmount(exactOutAmount, tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3618,10 +3626,13 @@ describe('quote for other networks', () => {
 
             const tokenIn = erc1;
             const tokenOut = erc2;
+
+            // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
+            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
-                : parseAmount('1', tokenOut);
+                : parseAmount(exactOutAmount, tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
