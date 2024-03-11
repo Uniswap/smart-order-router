@@ -3535,6 +3535,11 @@ describe('quote for other networks', () => {
               return;
             }
 
+            if (chain == ChainId.BLAST) {
+              // Blast doesn't have DAI or USDC yet
+              return;
+            }
+
             const tokenIn = nativeOnChain(chain);
             // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
             // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
@@ -3661,7 +3666,7 @@ describe('quote for other networks', () => {
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
-            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA].includes(chain)) {
+            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA, ChainId.BLAST].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
