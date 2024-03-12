@@ -548,6 +548,7 @@ export class AlphaRouter
           );
           break;
         case ChainId.BASE:
+        case ChainId.BLAST:
         case ChainId.BASE_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
