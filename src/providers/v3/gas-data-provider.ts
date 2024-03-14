@@ -54,7 +54,7 @@ export class OptimismGasDataProvider
     providerConfig?: ProviderConfig
   ): Promise<OptimismGasData> {
     // TODO: Also get the gasPrice from GasPriceOracle.sol
-    const funcNames = ['l1BaseFee', 'scalar', 'decimals', 'overhead'];
+    const funcNames = ['l1BaseFee', 'decimals'];
     const tx =
       await this.multicall2Provider.callMultipleFunctionsOnSameContract<
         undefined,
@@ -68,9 +68,7 @@ export class OptimismGasDataProvider
 
     if (
       !tx.results[0]?.success ||
-      !tx.results[1]?.success ||
-      !tx.results[2]?.success ||
-      !tx.results[3]?.success
+      !tx.results[1]?.success
     ) {
       log.info(
         { results: tx.results },
@@ -81,10 +79,11 @@ export class OptimismGasDataProvider
       );
     }
 
+    // TODO: replace the hardcoded scalar and overhead with op gas estimate sdk
     const { result: l1BaseFee } = tx.results![0];
-    const { result: scalar } = tx.results![1];
-    const { result: decimals } = tx.results![2];
-    const { result: overhead } = tx.results![3];
+    const { result: scalar } = [1];
+    const { result: decimals } = tx.results![1];
+    const { result: overhead } = [0];
 
     return {
       l1BaseFee: l1BaseFee[0],
