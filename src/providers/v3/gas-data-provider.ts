@@ -81,15 +81,15 @@ export class OptimismGasDataProvider
 
     // TODO: replace the hardcoded scalar and overhead with op gas estimate sdk
     const { result: l1BaseFee } = tx.results![0];
-    const scalar = [1];
+    const scalar = 1;
     const { result: decimals } = tx.results![1];
-    const overhead = [0];
+    const overhead = 0;
 
     return {
       l1BaseFee: l1BaseFee[0],
-      scalar: scalar[0],
+      scalar: scalar,
       decimals: decimals[0],
-      overhead: overhead[0],
+      overhead: overhead,
     };
   }
 }
