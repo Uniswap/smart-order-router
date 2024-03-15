@@ -58,7 +58,6 @@ import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
   IL2GasDataProvider,
-  OptimismGasData,
 } from '../../../providers/v3/gas-data-provider';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
@@ -140,9 +139,7 @@ export type BuildOnChainGasModelFactoryType = {
   amountToken: Token;
   quoteToken: Token;
   v2poolProvider: IV2PoolProvider;
-  l2GasDataProvider?:
-    | IL2GasDataProvider<OptimismGasData>
-    | IL2GasDataProvider<ArbitrumGasData>;
+  l2GasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
   providerConfig?: GasModelProviderConfig;
 };
 
@@ -151,9 +148,7 @@ export type BuildV2GasModelFactoryType = {
   gasPriceWei: BigNumber;
   poolProvider: IV2PoolProvider;
   token: Token;
-  l2GasDataProvider?:
-    | IL2GasDataProvider<OptimismGasData>
-    | IL2GasDataProvider<ArbitrumGasData>;
+  l2GasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
   providerConfig?: GasModelProviderConfig;
 };
 

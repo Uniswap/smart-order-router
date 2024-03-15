@@ -3,7 +3,6 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
 import {
-  GasModelProviderConfig,
   SwapOptions,
   SwapRoute,
   SwapType,
@@ -18,7 +17,6 @@ import { IPortionProvider } from './portion-provider';
 import { ProviderConfig } from './provider';
 import { SimulationStatus, Simulator } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
-import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
 
 // We multiply eth estimate gas by this to add a buffer for gas limits
@@ -47,7 +45,6 @@ export class EthEstimateGasSimulator extends Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     route: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData,
     providerConfig?: ProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = route.trade.inputAmount.currency;
@@ -114,15 +111,7 @@ export class EthEstimateGasSimulator extends Simulator {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedGasToken,
       quoteGasAdjusted,
-    } = await calculateGasUsed(
-      route.quote.currency.chainId,
-      route,
-      estimatedGasUsed,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      l2GasData,
-      providerConfig
-    );
+    } = await calculateGasUsed(route.quote.currency.chainId, route, estimatedGasUsed, this.v2PoolProvider, this.v3PoolProvider, this.provider, providerConfig);
     return {
       ...initSwapRouteFromExisting(
         route,
@@ -155,9 +144,7 @@ export class EthEstimateGasSimulator extends Simulator {
   protected async simulateTransaction(
     fromAddress: string,
     swapOptions: SwapOptions,
-    swapRoute: SwapRoute,
-    l2GasData?: OptimismGasData | ArbitrumGasData | undefined,
-    _providerConfig?: GasModelProviderConfig | undefined
+    swapRoute: SwapRoute
   ): Promise<SwapRoute> {
     const inputAmount = swapRoute.trade.inputAmount;
     if (
@@ -169,12 +156,7 @@ export class EthEstimateGasSimulator extends Simulator {
         this.provider
       ))
     ) {
-      return await this.ethEstimateGas(
-        fromAddress,
-        swapOptions,
-        swapRoute,
-        l2GasData
-      );
+      return await this.ethEstimateGas(fromAddress, swapOptions, swapRoute);
     } else {
       log.info('Token not approved, skipping simulation');
       return {

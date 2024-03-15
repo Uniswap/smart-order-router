@@ -74,8 +74,6 @@ import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
   IL2GasDataProvider,
-  OptimismGasData,
-  OptimismGasDataProvider,
 } from '../../providers/v3/gas-data-provider';
 import {
   IV3PoolProvider,
@@ -226,11 +224,6 @@ export type AlphaRouterParams = {
    * LP position tokens.
    */
   swapRouterProvider?: ISwapRouterProvider;
-
-  /**
-   * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
-   */
-  optimismGasDataProvider?: IL2GasDataProvider<OptimismGasData>;
 
   /**
    * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
@@ -456,7 +449,6 @@ export class AlphaRouter
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
-    | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
   protected simulator?: Simulator;
   protected v2Quoter: V2Quoter;
@@ -484,7 +476,6 @@ export class AlphaRouter
     v2GasModelFactory,
     mixedRouteGasModelFactory,
     swapRouterProvider,
-    optimismGasDataProvider,
     tokenValidatorProvider,
     arbitrumGasDataProvider,
     simulator,
@@ -774,9 +765,9 @@ export class AlphaRouter
         )
       );
     this.v3GasModelFactory =
-      v3GasModelFactory ?? new V3HeuristicGasModelFactory();
+      v3GasModelFactory ?? new V3HeuristicGasModelFactory(this.provider);
     this.v2GasModelFactory =
-      v2GasModelFactory ?? new V2HeuristicGasModelFactory();
+      v2GasModelFactory ?? new V2HeuristicGasModelFactory(this.provider);
     this.mixedRouteGasModelFactory =
       mixedRouteGasModelFactory ?? new MixedRouteHeuristicGasModelFactory();
 
@@ -784,11 +775,6 @@ export class AlphaRouter
       swapRouterProvider ??
       new SwapRouterProvider(this.multicall2Provider, this.chainId);
 
-    if (chainId === ChainId.OPTIMISM || chainId === ChainId.BASE) {
-      this.l2GasDataProvider =
-        optimismGasDataProvider ??
-        new OptimismGasDataProvider(chainId, this.multicall2Provider);
-    }
     if (
       chainId === ChainId.ARBITRUM_ONE ||
       chainId === ChainId.ARBITRUM_GOERLI
@@ -1523,11 +1509,7 @@ export class AlphaRouter
         amount,
         // Quote will be in WETH even if quoteCurrency is ETH
         // So we init a new CurrencyAmount object here
-        CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
-        this.l2GasDataProvider
-          ? await this.l2GasDataProvider!.getGasData(providerConfig)
-          : undefined,
-        providerConfig
+        CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString())
       );
       metric.putMetric(
         'SimulateTransaction',
