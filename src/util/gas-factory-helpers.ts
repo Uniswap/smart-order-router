@@ -230,6 +230,7 @@ export async function calculateOptimismToL1FeeFromCalldata(
   const tx: TransactionRequest = {
     data: calldata,
     chainId: chainId,
+    type: 2 // sign the transaction as EIP-1559, otherwise it will fail at maxFeePerGas
   }
   const [l1GasUsed, l1GasCost] = await Promise.all([estimateL1Gas(provider, tx), estimateL1GasCost(provider, tx)]);
   return [l1GasUsed, l1GasCost];
