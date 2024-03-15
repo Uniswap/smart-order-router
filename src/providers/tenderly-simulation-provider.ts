@@ -143,7 +143,7 @@ export class FallbackTenderlySimulator extends Simulator {
     }
 
     try {
-      return await this.tenderlySimulator.simulateTransaction(fromAddress, swapOptions, swapRoute);
+      return await this.tenderlySimulator.simulateTransaction(fromAddress, swapOptions, swapRoute, providerConfig);
     } catch (err) {
       log.error({ err: err }, 'Failed to simulate via Tenderly');
 

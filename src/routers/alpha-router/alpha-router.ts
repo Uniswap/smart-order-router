@@ -1509,7 +1509,8 @@ export class AlphaRouter
         amount,
         // Quote will be in WETH even if quoteCurrency is ETH
         // So we init a new CurrencyAmount object here
-        CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString())
+        CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
+        providerConfig
       );
       metric.putMetric(
         'SimulateTransaction',

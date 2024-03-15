@@ -184,7 +184,7 @@ describe('gas factory helpers tests', () => {
         estimatedGasUsedUSD,
         estimatedGasUsedGasToken,
         quoteGasAdjusted
-      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), undefined);
+      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), providerConfig);
 
       expect(estimatedGasUsedQuoteToken.currency.equals(quoteToken)).toBe(true);
       expect(estimatedGasUsedQuoteToken.toExact()).not.toEqual('0');
@@ -198,7 +198,7 @@ describe('gas factory helpers tests', () => {
         estimatedGasUsedUSD: estimatedGasUsedUSDArb,
         estimatedGasUsedGasToken: estimatedGasUsedGasTokenArb,
         quoteGasAdjusted: quoteGasAdjustedArb
-      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider));
+      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), providerConfig);
 
       // Arbitrum gas data should not affect the quote gas or USD amounts
       expect(estimatedGasUsedQuoteTokenArb.currency.equals(quoteToken)).toBe(true);

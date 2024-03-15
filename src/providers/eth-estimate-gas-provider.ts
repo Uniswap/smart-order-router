@@ -3,6 +3,7 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
 import {
+  GasModelProviderConfig,
   SwapOptions,
   SwapRoute,
   SwapType,
@@ -144,7 +145,8 @@ export class EthEstimateGasSimulator extends Simulator {
   protected async simulateTransaction(
     fromAddress: string,
     swapOptions: SwapOptions,
-    swapRoute: SwapRoute
+    swapRoute: SwapRoute,
+    _providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     const inputAmount = swapRoute.trade.inputAmount;
     if (
@@ -156,7 +158,7 @@ export class EthEstimateGasSimulator extends Simulator {
         this.provider
       ))
     ) {
-      return await this.ethEstimateGas(fromAddress, swapOptions, swapRoute);
+      return await this.ethEstimateGas(fromAddress, swapOptions, swapRoute, _providerConfig);
     } else {
       log.info('Token not approved, skipping simulation');
       return {

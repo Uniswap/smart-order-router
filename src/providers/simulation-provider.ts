@@ -61,7 +61,8 @@ export abstract class Simulator {
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
     amount: CurrencyAmount,
-    quote: CurrencyAmount
+    quote: CurrencyAmount,
+    providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     const neededBalance =
       swapRoute.trade.tradeType == TradeType.EXACT_INPUT ? amount : quote;
@@ -78,7 +79,7 @@ export abstract class Simulator {
         'User has sufficient balance to simulate. Simulating transaction.'
       );
       try {
-        return this.simulateTransaction(fromAddress, swapOptions, swapRoute);
+        return this.simulateTransaction(fromAddress, swapOptions, swapRoute, providerConfig);
       } catch (e) {
         log.error({ e }, 'Error simulating transaction');
         return {
