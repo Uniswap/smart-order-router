@@ -452,40 +452,6 @@ jobs:
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
-  integration-tests-quote-for-other-networks-goerli:
-    name: Integration Tests - Quote For Other Networks Goerli
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 18.x
-          registry-url: https://registry.npmjs.org
-
-      - uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install dependencies
-        run: npm install
-
-      # This is required separately from yarn test because it generates the typechain definitions
-      - name: Compile
-        run: npm run build
-
-      - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * goerli'
-        env:
-          JSON_RPC_PROVIDER_GORLI: ${{ secrets.JSON_RPC_PROVIDER_GORLI }}
-          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
-          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
-          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
-          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
-
   integration-tests-quote-for-other-networks-sepolia:
     name: Integration Tests - Quote For Other Networks Sepolia
     runs-on: ubuntu-latest
@@ -718,7 +684,7 @@ jobs:
 
       # This is to capture any new networks added into the integ-test suite
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|goerli|sepolia|celo|bnb|avalanche|base|blast))'
+        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|sepolia|celo|bnb|avalanche|base|blast))'
         env:
           # We don't know which new networks will be added, so we have no way to provider RPC URL ahead of time
           # This will make remaining networks integ-test suite to fail, and dev is expected to manually add RPC URL for the new network
