@@ -17,7 +17,7 @@ import {
   MetricLoggerUnit,
   SwapOptions,
   SwapRoute,
-  SwapType,
+  SwapType
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
@@ -41,7 +41,6 @@ import {
   Simulator,
 } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
-import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
 
 export type TenderlyResponseUniversalRouter = {
@@ -114,7 +113,6 @@ export class FallbackTenderlySimulator extends Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData,
     providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     // Make call to eth estimate gas if possible
@@ -136,13 +134,7 @@ export class FallbackTenderlySimulator extends Simulator {
 
       try {
         const swapRouteWithGasEstimate =
-          await this.ethEstimateGasSimulator.ethEstimateGas(
-            fromAddress,
-            swapOptions,
-            swapRoute,
-            l2GasData,
-            providerConfig
-          );
+          await this.ethEstimateGasSimulator.ethEstimateGas(fromAddress, swapOptions, swapRoute, providerConfig);
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
@@ -151,13 +143,7 @@ export class FallbackTenderlySimulator extends Simulator {
     }
 
     try {
-      return await this.tenderlySimulator.simulateTransaction(
-        fromAddress,
-        swapOptions,
-        swapRoute,
-        l2GasData,
-        providerConfig
-      );
+      return await this.tenderlySimulator.simulateTransaction(fromAddress, swapOptions, swapRoute, providerConfig);
     } catch (err) {
       log.error({ err: err }, 'Failed to simulate via Tenderly');
 
@@ -217,7 +203,6 @@ export class TenderlySimulator extends Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
-    l2GasData?: ArbitrumGasData | OptimismGasData,
     providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
@@ -524,15 +509,7 @@ export class TenderlySimulator extends Simulator {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedGasToken,
       quoteGasAdjusted,
-    } = await calculateGasUsed(
-      chainId,
-      swapRoute,
-      estimatedGasUsed,
-      this.v2PoolProvider,
-      this.v3PoolProvider,
-      l2GasData,
-      providerConfig
-    );
+    } = await calculateGasUsed(chainId, swapRoute, estimatedGasUsed, this.v2PoolProvider, this.v3PoolProvider, this.provider, providerConfig);
     return {
       ...initSwapRouteFromExisting(
         swapRoute,

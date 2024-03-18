@@ -32,7 +32,7 @@ import { ChainId, TradeType } from '@uniswap/sdk-core';
 import { Trade } from '@uniswap/router-sdk';
 import { Route } from '@uniswap/v3-sdk';
 import { getPools } from '../gas-models/test-util/helpers';
-import { ArbitrumGasData } from '../../../../../src/providers/v3/gas-data-provider';
+import { BaseProvider } from '@ethersproject/providers';
 
 const mockUSDCNativePools = [
   USDC_WETH_LOW_LIQ_LOW,
@@ -125,7 +125,7 @@ describe('gas factory helpers tests', () => {
         gasToken
       );
 
-      const v3GasModel = await (new V3HeuristicGasModelFactory()).buildGasModel({
+      const v3GasModel = await (new V3HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider))).buildGasModel({
         chainId: chainId,
         gasPriceWei,
         pools,
@@ -184,7 +184,7 @@ describe('gas factory helpers tests', () => {
         estimatedGasUsedUSD,
         estimatedGasUsedGasToken,
         quoteGasAdjusted
-      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, undefined, providerConfig);
+      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), providerConfig);
 
       expect(estimatedGasUsedQuoteToken.currency.equals(quoteToken)).toBe(true);
       expect(estimatedGasUsedQuoteToken.toExact()).not.toEqual('0');
@@ -193,18 +193,12 @@ describe('gas factory helpers tests', () => {
       expect(estimatedGasUsedGasToken?.toExact()).not.toEqual('0');
       expect(quoteGasAdjusted.lessThan(mockSwapRoute.quote)).toBe(true);
 
-      const arbGasData: ArbitrumGasData = {
-        perL2TxFee: BigNumber.from(1_000_000),
-        perL1CalldataFee: BigNumber.from(1_000),
-        perArbGasTotal: BigNumber.from(1_000_000_000),
-      }
-
       const {
         estimatedGasUsedQuoteToken: estimatedGasUsedQuoteTokenArb,
         estimatedGasUsedUSD: estimatedGasUsedUSDArb,
         estimatedGasUsedGasToken: estimatedGasUsedGasTokenArb,
         quoteGasAdjusted: quoteGasAdjustedArb
-      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, arbGasData, providerConfig);
+      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), providerConfig);
 
       // Arbitrum gas data should not affect the quote gas or USD amounts
       expect(estimatedGasUsedQuoteTokenArb.currency.equals(quoteToken)).toBe(true);
@@ -219,7 +213,7 @@ describe('gas factory helpers tests', () => {
       it('should return the gas costs for the compressed bytes', async () => {
         const calldata = '0x24856bc30000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000020b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000de0b6b3a764000000000000000000000000000000000000000000000000003fc10e65473c5939c700000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b82af49447d8a07e3bd95bd0d56f35241523fbab1000bb8912ce59144191c1204e64559fe8253a0e49e6548000000000000000000000000000000000000000000';
         const compressedBytes = getArbitrumBytes(calldata);
-        const gasUsed = getL2ToL1GasUsed(calldata, BigNumber.from(0), chainId);
+        const gasUsed = getL2ToL1GasUsed(calldata, chainId);
         expect(gasUsed).toEqual(compressedBytes.mul(16));
       });
     }
