@@ -20,6 +20,10 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
     case ChainId.AVALANCHE:
     case ChainId.BASE:
     case ChainId.BASE_GOERLI:
+    case ChainId.ZORA:
+    case ChainId.ZORA_SEPOLIA:
+    case ChainId.ROOTSTOCK:
+    case ChainId.BLAST:
       return BigNumber.from(2000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
@@ -53,6 +57,10 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
     case ChainId.OPTIMISM_SEPOLIA:
     case ChainId.BASE:
     case ChainId.BASE_GOERLI:
+    case ChainId.ZORA:
+    case ChainId.ZORA_SEPOLIA:
+    case ChainId.ROOTSTOCK:
+    case ChainId.BLAST:
       return BigNumber.from(31000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
@@ -83,6 +91,10 @@ export const COST_PER_HOP = (id: ChainId): BigNumber => {
     case ChainId.AVALANCHE:
     case ChainId.BASE:
     case ChainId.BASE_GOERLI:
+    case ChainId.ZORA:
+    case ChainId.ZORA_SEPOLIA:
+    case ChainId.ROOTSTOCK:
+    case ChainId.BLAST:
       return BigNumber.from(80000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
