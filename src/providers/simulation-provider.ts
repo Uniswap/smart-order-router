@@ -7,14 +7,13 @@ import {
   GasModelProviderConfig,
   SwapOptions,
   SwapRoute,
-  SwapType,
+  SwapType
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { CurrencyAmount, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
 
 import { IPortionProvider } from './portion-provider';
-import { ArbitrumGasData, OptimismGasData } from './v3/gas-data-provider';
 
 export type SimulationResult = {
   transaction: {
@@ -63,7 +62,6 @@ export abstract class Simulator {
     swapRoute: SwapRoute,
     amount: CurrencyAmount,
     quote: CurrencyAmount,
-    l2GasData?: OptimismGasData | ArbitrumGasData,
     providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
     const neededBalance =
@@ -81,13 +79,7 @@ export abstract class Simulator {
         'User has sufficient balance to simulate. Simulating transaction.'
       );
       try {
-        return this.simulateTransaction(
-          fromAddress,
-          swapOptions,
-          swapRoute,
-          l2GasData,
-          providerConfig
-        );
+        return this.simulateTransaction(fromAddress, swapOptions, swapRoute, providerConfig);
       } catch (e) {
         log.error({ e }, 'Error simulating transaction');
         return {
@@ -108,7 +100,6 @@ export abstract class Simulator {
     fromAddress: string,
     swapOptions: SwapOptions,
     swapRoute: SwapRoute,
-    l2GasData?: OptimismGasData | ArbitrumGasData,
     providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute>;
 
