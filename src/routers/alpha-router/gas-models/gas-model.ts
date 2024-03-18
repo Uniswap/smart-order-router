@@ -43,6 +43,9 @@ import {
   USDC_OPTIMISM_GOERLI,
   USDC_OPTIMISM_SEPOLIA,
   USDC_POLYGON,
+  USDC_ROOTSTOCK,
+  USDT_ROOTSTOCK,
+  DAI_ROOTSTOCK,
   USDC_SEPOLIA,
   USDC_WORMHOLE_CELO,
   USDT_ARBITRUM,
@@ -115,6 +118,11 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   ],
   [ChainId.BASE]: [USDC_BASE, USDC_NATIVE_BASE],
   [ChainId.BLAST]: [USDB_BLAST],
+  [ChainId.ROOTSTOCK]: [ 
+    USDC_ROOTSTOCK,
+    USDT_ROOTSTOCK,
+    DAI_ROOTSTOCK,
+  ],
 };
 
 export type L1ToL2GasCosts = {

@@ -609,6 +609,31 @@ export class AlphaRouter
             }
           );
           break;
+        case ChainId.ROOTSTOCK:
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            {
+              multicallChunk: 200,
+              gasLimitPerCall: 6_800_000,
+              quoteMinSuccessRate: 0.1,
+            },
+            {
+              gasLimitOverride: 7_800_000,
+              multicallChunk: 100,
+            },
+            {
+              gasLimitOverride: 7_800_000,
+              multicallChunk: 100,
+            }
+          );
+          break;   
         case ChainId.CELO:
         case ChainId.CELO_ALFAJORES:
           this.onChainQuoteProvider = new OnChainQuoteProvider(

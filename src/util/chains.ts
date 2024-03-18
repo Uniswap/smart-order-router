@@ -25,6 +25,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.AVALANCHE,
   ChainId.BASE,
   ChainId.BLAST,
+  ChainId.ROOTSTOCK,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -102,6 +103,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.BASE_GOERLI;
     case 81457:
       return ChainId.BLAST;
+    case 30:
+      return ChainId.ROOTSTOCK;  
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -128,6 +131,7 @@ export enum ChainName {
   BASE = 'base-mainnet',
   BASE_GOERLI = 'base-goerli',
   BLAST = 'blast-mainnet',
+  ROOTSTOCK = 'rootstock',
 }
 
 export enum NativeCurrencyName {
@@ -139,6 +143,7 @@ export enum NativeCurrencyName {
   MOONBEAM = 'GLMR',
   BNB = 'BNB',
   AVALANCHE = 'AVAX',
+  ROOTSTOCK = 'RBTC',
 }
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
@@ -212,6 +217,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.ROOTSTOCK]: [
+    'RBTC',
+    'RBTC',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -234,6 +244,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.AVALANCHE]: NativeCurrencyName.AVALANCHE,
   [ChainId.BASE]: NativeCurrencyName.ETHER,
   [ChainId.BLAST]: NativeCurrencyName.ETHER,
+  [ChainId.ROOTSTOCK]: NativeCurrencyName.ROOTSTOCK,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -278,6 +289,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.BASE_GOERLI;
     case 81457:
       return ChainName.BLAST;
+    case 30:
+      return ChainName.ROOTSTOCK;   
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -323,6 +336,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_BASE!;
     case ChainId.BLAST:
       return process.env.JSON_RPC_PROVIDER_BLAST!;
+    case ChainId.ROOTSTOCK:
+      return process.env.JSON_RPC_PROVIDER_ROOTSTOCK!;      
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
