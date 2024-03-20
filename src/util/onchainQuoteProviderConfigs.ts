@@ -4,6 +4,7 @@ import {
   BatchParams,
   BlockNumberConfig,
   FailureOverrides,
+  OnChainQuoteProvider,
   QuoteRetryOptions,
 } from '../providers';
 
@@ -21,7 +22,7 @@ export function constructSameRetryOptionsMap<T extends QuoteRetryOptions>(
   }, {});
 }
 
-const DEFAULT_RETRY_OPTIONS: QuoteRetryOptions = {
+export const DEFAULT_RETRY_OPTIONS: QuoteRetryOptions = {
   retries: 2,
   minTimeout: 100,
   maxTimeout: 1000,
@@ -45,7 +46,7 @@ export function constructSameBatchParamsMap<T extends BatchParams>(
   }, {});
 }
 
-const DEFAULT_BATCH_PARAMS: BatchParams = {
+export const DEFAULT_BATCH_PARAMS: BatchParams = {
   multicallChunk: 210,
   gasLimitPerCall: 705_000,
   quoteMinSuccessRate: 0.15,
@@ -73,7 +74,7 @@ export function constructSameGasErrorFailureOverridesMap<
   }, {});
 }
 
-const DEFAULT_GAS_ERROR_FAILURE_OVERRIDES: FailureOverrides = {
+export const DEFAULT_GAS_ERROR_FAILURE_OVERRIDES: FailureOverrides = {
   gasLimitOverride: 2_000_000,
   multicallChunk: 70,
 };
@@ -104,14 +105,9 @@ export function constructSameSuccessRateFailureOverridesMap<
   }, {});
 }
 
-const DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES: FailureOverrides = {
-  gasLimitOverride: 1_300_000,
-  multicallChunk: 110,
-};
-
 export const SUCCESS_RATE_FAILURE_OVERRIDES = {
   ...constructSameSuccessRateFailureOverridesMap(
-    DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES
+    OnChainQuoteProvider.DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES
   ),
 };
 
@@ -131,11 +127,8 @@ export function constructSameBlockNumberConfigsMap<T extends BlockNumberConfig>(
   }, {});
 }
 
-const DEFAULT_BLOCK_NUMBER_CONFIGS: BlockNumberConfig = {
-  baseBlockOffset: 0,
-  rollback: { enabled: false },
-};
-
 export const BLOCK_NUMBER_CONFIGS = {
-  ...constructSameBlockNumberConfigsMap(DEFAULT_BLOCK_NUMBER_CONFIGS),
+  ...constructSameBlockNumberConfigsMap(
+    OnChainQuoteProvider.DEFAULT_BLOCK_NUMBER_CONFIGS
+  ),
 };

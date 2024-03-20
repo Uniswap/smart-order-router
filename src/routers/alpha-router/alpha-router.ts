@@ -101,9 +101,12 @@ import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
   BATCH_PARAMS,
   BLOCK_NUMBER_CONFIGS,
+  DEFAULT_BATCH_PARAMS,
+  DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
+  DEFAULT_RETRY_OPTIONS,
   GAS_ERROR_FAILURE_OVERRIDES,
   RETRY_OPTIONS,
-  SUCCESS_RATE_FAILURE_OVERRIDES,
+  SUCCESS_RATE_FAILURE_OVERRIDES
 } from '../../util/onchainQuoteProviderConfigs';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
@@ -650,20 +653,9 @@ export class AlphaRouter
             chainId,
             provider,
             this.multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 210,
-              gasLimitPerCall: 705_000,
-              quoteMinSuccessRate: 0.15,
-            },
-            {
-              gasLimitOverride: 2_000_000,
-              multicallChunk: 70,
-            }
+            DEFAULT_RETRY_OPTIONS,
+            DEFAULT_BATCH_PARAMS,
+            DEFAULT_GAS_ERROR_FAILURE_OVERRIDES
           );
           break;
       }
