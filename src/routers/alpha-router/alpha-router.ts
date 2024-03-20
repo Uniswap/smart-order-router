@@ -98,6 +98,13 @@ import {
   buildTrade,
 } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
+import {
+  BATCH_PARAMS,
+  BLOCK_NUMBER_CONFIGS,
+  GAS_ERROR_FAILURE_OVERRIDES,
+  RETRY_OPTIONS,
+  SUCCESS_RATE_FAILURE_OVERRIDES,
+} from '../../util/onchainQuoteProviderConfigs';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
@@ -624,6 +631,18 @@ export class AlphaRouter
               gasLimitOverride: 6_250_000,
               multicallChunk: 4,
             }
+          );
+          break;
+        case ChainId.POLYGON:
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            RETRY_OPTIONS[chainId],
+            BATCH_PARAMS[chainId],
+            GAS_ERROR_FAILURE_OVERRIDES[chainId],
+            SUCCESS_RATE_FAILURE_OVERRIDES[chainId],
+            BLOCK_NUMBER_CONFIGS[chainId]
           );
           break;
         default:

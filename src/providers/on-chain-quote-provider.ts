@@ -294,7 +294,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       rollback: { enabled: false },
     },
     protected quoterAddressOverride?: string,
-    protected metricsPrefix?: string,
+    protected metricsPrefix?: string
   ) {}
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
@@ -422,9 +422,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       } and block number: ${await providerConfig.blockNumber} [Original before offset: ${originalBlockNumber}].`
     );
 
-    metric.putMetric(`${this.metricsPrefix}_QuoteBatchSize`, inputs.length, MetricLoggerUnit.Count);
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
+      `${this.metricsPrefix}_QuoteBatchSize`,
+      inputs.length,
+      MetricLoggerUnit.Count
+    );
+    metric.putMetric(
+      `${this.metricsPrefix}_QuoteBatchSize_${ID_TO_NETWORK_NAME(
+        this.chainId
+      )}`,
       inputs.length,
       MetricLoggerUnit.Count
     );

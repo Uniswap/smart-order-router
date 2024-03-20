@@ -60,6 +60,11 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
+export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap('0x61fFE014bA17989E743c5F6cB21bF9697530B21e'),
+  [ChainId.POLYGON]: '0x4A7b5Da61326A6379179b40d00F57E5bbDC962c2',
+};
+
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
   [ChainId.MAINNET]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v1MixedRouteQuoterAddress,
