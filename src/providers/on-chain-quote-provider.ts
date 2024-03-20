@@ -264,6 +264,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
    * @param successRateFailureOverrides The parameters for retries when we fail to get quotes.
    * @param blockNumberConfig Parameters for adjusting which block we get quotes from, and how to handle block header not found errors.
    * @param [quoterAddressOverride] Overrides the address of the quoter contract to use.
+   * @param metricsPrefix metrics prefix to differentiate between different instances of the quote provider.
    */
   constructor(
     protected chainId: ChainId,
@@ -292,7 +293,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       baseBlockOffset: 0,
       rollback: { enabled: false },
     },
-    protected quoterAddressOverride?: string
+    protected quoterAddressOverride?: string,
+    protected metricsPrefix?: string,
   ) {}
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
@@ -420,9 +422,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       } and block number: ${await providerConfig.blockNumber} [Original before offset: ${originalBlockNumber}].`
     );
 
-    metric.putMetric('QuoteBatchSize', inputs.length, MetricLoggerUnit.Count);
+    metric.putMetric(`${this.metricsPrefix}_QuoteBatchSize`, inputs.length, MetricLoggerUnit.Count);
     metric.putMetric(
-      `QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
+      `${this.metricsPrefix}_QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
       inputs.length,
       MetricLoggerUnit.Count
     );
@@ -593,7 +595,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             if (error instanceof BlockConflictError) {
               if (!haveRetriedForBlockConflictError) {
                 metric.putMetric(
-                  'QuoteBlockConflictErrorRetry',
+                  `${this.metricsPrefix}_QuoteBlockConflictErrorRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -604,7 +606,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderBlockHeaderError) {
               if (!haveRetriedForBlockHeader) {
                 metric.putMetric(
-                  'QuoteBlockHeaderNotFoundRetry',
+                  `${this.metricsPrefix}_QuoteBlockHeaderNotFoundRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -644,7 +646,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderTimeoutError) {
               if (!haveRetriedForTimeout) {
                 metric.putMetric(
-                  'QuoteTimeoutRetry',
+                  `${this.metricsPrefix}_QuoteTimeoutRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -653,7 +655,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderGasError) {
               if (!haveRetriedForOutOfGas) {
                 metric.putMetric(
-                  'QuoteOutOfGasExceptionRetry',
+                  `${this.metricsPrefix}_QuoteOutOfGasExceptionRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -665,7 +667,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {
                 metric.putMetric(
-                  'QuoteSuccessRateRetry',
+                  `${this.metricsPrefix}_QuoteSuccessRateRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -681,7 +683,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else {
               if (!haveRetriedForUnknownReason) {
                 metric.putMetric(
-                  'QuoteUnknownReasonRetry',
+                  `${this.metricsPrefix}_QuoteUnknownReasonRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -770,31 +772,31 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
 
     metric.putMetric(
-      'QuoteApproxGasUsedPerSuccessfulCall',
+      `${this.metricsPrefix}_QuoteApproxGasUsedPerSuccessfulCall`,
       approxGasUsedPerSuccessCall,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      'QuoteNumRetryLoops',
+      `${this.metricsPrefix}_QuoteNumRetryLoops`,
       finalAttemptNumber - 1,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      'QuoteTotalCallsToProvider',
+      `${this.metricsPrefix}_QuoteTotalCallsToProvider`,
       totalCallsMade,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      'QuoteExpectedCallsToProvider',
+      `${this.metricsPrefix}_QuoteExpectedCallsToProvider`,
       expectedCallsMade,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      'QuoteNumRetriedCalls',
+      `${this.metricsPrefix}_QuoteNumRetriedCalls`,
       totalCallsMade - expectedCallsMade,
       MetricLoggerUnit.Count
     );
