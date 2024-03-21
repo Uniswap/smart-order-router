@@ -4,8 +4,7 @@ import {
   BatchParams,
   BlockNumberConfig,
   FailureOverrides,
-  OnChainQuoteProvider,
-  QuoteRetryOptions,
+  QuoteRetryOptions
 } from '../providers';
 
 export const NETWORKS_WITH_SAME_RETRY_OPTIONS = [ChainId.POLYGON];
@@ -105,9 +104,15 @@ export function constructSameSuccessRateFailureOverridesMap<
   }, {});
 }
 
+export const DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES: FailureOverrides =
+{
+  gasLimitOverride: 1_300_000,
+  multicallChunk: 110,
+};
+
 export const SUCCESS_RATE_FAILURE_OVERRIDES = {
   ...constructSameSuccessRateFailureOverridesMap(
-    OnChainQuoteProvider.DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES
+    DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES
   ),
 };
 
@@ -127,8 +132,13 @@ export function constructSameBlockNumberConfigsMap<T extends BlockNumberConfig>(
   }, {});
 }
 
+export const DEFAULT_BLOCK_NUMBER_CONFIGS: BlockNumberConfig = {
+  baseBlockOffset: 0,
+  rollback: { enabled: false },
+};
+
 export const BLOCK_NUMBER_CONFIGS = {
   ...constructSameBlockNumberConfigsMap(
-    OnChainQuoteProvider.DEFAULT_BLOCK_NUMBER_CONFIGS
+    DEFAULT_BLOCK_NUMBER_CONFIGS
   ),
 };

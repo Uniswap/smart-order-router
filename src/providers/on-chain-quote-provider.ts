@@ -251,17 +251,6 @@ const DEFAULT_BATCH_RETRIES = 2;
  * @class OnChainQuoteProvider
  */
 export class OnChainQuoteProvider implements IOnChainQuoteProvider {
-  public static readonly DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES: FailureOverrides =
-    {
-      gasLimitOverride: 1_300_000,
-      multicallChunk: 110,
-    };
-
-  public static readonly DEFAULT_BLOCK_NUMBER_CONFIGS: BlockNumberConfig = {
-    baseBlockOffset: 0,
-    rollback: { enabled: false },
-  };
-
   /**
    * Creates an instance of OnChainQuoteProvider.
    *
@@ -296,8 +285,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       gasLimitOverride: 1_500_000,
       multicallChunk: 100,
     },
-    protected successRateFailureOverrides: FailureOverrides = OnChainQuoteProvider.DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
-    protected blockNumberConfig: BlockNumberConfig = OnChainQuoteProvider.DEFAULT_BLOCK_NUMBER_CONFIGS,
+    protected successRateFailureOverrides: FailureOverrides = {
+      gasLimitOverride: 1_300_000,
+      multicallChunk: 110,
+    },
+    protected blockNumberConfig: BlockNumberConfig = {
+      baseBlockOffset: 0,
+      rollback: { enabled: false },
+    },
     protected quoterAddressOverride?: string,
     protected metricsPrefix?: string
   ) {}
