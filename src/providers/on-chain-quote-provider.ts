@@ -23,6 +23,10 @@ import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import { routeToString } from '../util/routes';
 
+import {
+  DEFAULT_BLOCK_NUMBER_CONFIGS,
+  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+} from '../util/onchainQuoteProviderConfigs';
 import { Result } from './multicall-provider';
 import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
@@ -271,6 +275,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected provider: BaseProvider,
     // Only supports Uniswap Multicall as it needs the gas limitting functionality.
     protected multicall2Provider: UniswapMulticallProvider,
+    // retryOptions, batchParams, and gasErrorFailureOverride are always override in alpha-router
+    // so below default values are always not going to be picked up in prod.
+    // So we will not extract out below default values into constants.
     protected retryOptions: QuoteRetryOptions = {
       retries: DEFAULT_BATCH_RETRIES,
       minTimeout: 25,
@@ -285,14 +292,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       gasLimitOverride: 1_500_000,
       multicallChunk: 100,
     },
-    protected successRateFailureOverrides: FailureOverrides = {
-      gasLimitOverride: 1_300_000,
-      multicallChunk: 110,
-    },
-    protected blockNumberConfig: BlockNumberConfig = {
-      baseBlockOffset: 0,
-      rollback: { enabled: false },
-    },
+    // successRateFailureOverrides and blockNumberConfig are not always override in alpha-router.
+    // So we will extract out below default values into constants.
+    // In alpha-router default case, we will also define the constants with same values as below.
+    protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+    protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
     protected quoterAddressOverride?: string,
     protected metricsPrefix?: string
   ) {}
@@ -428,9 +432,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       MetricLoggerUnit.Count
     );
     metric.putMetric(
-      `${this.metricsPrefix}QuoteBatchSize_${ID_TO_NETWORK_NAME(
-        this.chainId
-      )}`,
+      `${this.metricsPrefix}QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
       inputs.length,
       MetricLoggerUnit.Count
     );
