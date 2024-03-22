@@ -423,12 +423,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteBatchSize`,
+      `${this.metricsPrefix}QuoteBatchSize`,
       inputs.length,
       MetricLoggerUnit.Count
     );
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteBatchSize_${ID_TO_NETWORK_NAME(
+      `${this.metricsPrefix}QuoteBatchSize_${ID_TO_NETWORK_NAME(
         this.chainId
       )}`,
       inputs.length,
@@ -601,7 +601,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             if (error instanceof BlockConflictError) {
               if (!haveRetriedForBlockConflictError) {
                 metric.putMetric(
-                  `${this.metricsPrefix}_QuoteBlockConflictErrorRetry`,
+                  `${this.metricsPrefix}QuoteBlockConflictErrorRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -612,7 +612,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderBlockHeaderError) {
               if (!haveRetriedForBlockHeader) {
                 metric.putMetric(
-                  `${this.metricsPrefix}_QuoteBlockHeaderNotFoundRetry`,
+                  `${this.metricsPrefix}QuoteBlockHeaderNotFoundRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -652,7 +652,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderTimeoutError) {
               if (!haveRetriedForTimeout) {
                 metric.putMetric(
-                  `${this.metricsPrefix}_QuoteTimeoutRetry`,
+                  `${this.metricsPrefix}QuoteTimeoutRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -661,7 +661,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderGasError) {
               if (!haveRetriedForOutOfGas) {
                 metric.putMetric(
-                  `${this.metricsPrefix}_QuoteOutOfGasExceptionRetry`,
+                  `${this.metricsPrefix}QuoteOutOfGasExceptionRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -673,7 +673,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {
                 metric.putMetric(
-                  `${this.metricsPrefix}_QuoteSuccessRateRetry`,
+                  `${this.metricsPrefix}QuoteSuccessRateRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -689,7 +689,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else {
               if (!haveRetriedForUnknownReason) {
                 metric.putMetric(
-                  `${this.metricsPrefix}_QuoteUnknownReasonRetry`,
+                  `${this.metricsPrefix}QuoteUnknownReasonRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -778,31 +778,31 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteApproxGasUsedPerSuccessfulCall`,
+      `${this.metricsPrefix}QuoteApproxGasUsedPerSuccessfulCall`,
       approxGasUsedPerSuccessCall,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteNumRetryLoops`,
+      `${this.metricsPrefix}QuoteNumRetryLoops`,
       finalAttemptNumber - 1,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteTotalCallsToProvider`,
+      `${this.metricsPrefix}QuoteTotalCallsToProvider`,
       totalCallsMade,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteExpectedCallsToProvider`,
+      `${this.metricsPrefix}QuoteExpectedCallsToProvider`,
       expectedCallsMade,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}_QuoteNumRetriedCalls`,
+      `${this.metricsPrefix}QuoteNumRetriedCalls`,
       totalCallsMade - expectedCallsMade,
       MetricLoggerUnit.Count
     );
