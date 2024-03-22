@@ -21,12 +21,12 @@ import {
 } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
-import { routeToString } from '../util/routes';
-
 import {
   DEFAULT_BLOCK_NUMBER_CONFIGS,
   DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
 } from '../util/onchainQuoteProviderConfigs';
+import { routeToString } from '../util/routes';
+
 import { Result } from './multicall-provider';
 import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
@@ -96,6 +96,14 @@ export type RouteWithQuotes<TRoute extends V3Route | V2Route | MixedRoute> = [
   AmountQuote[]
 ];
 
+/**
+ * Final consolidated return type of all on-chain quotes.
+ */
+export type OnChainQuotes<TRoute extends V3Route | V2Route | MixedRoute> = {
+  routesWithQuotes: RouteWithQuotes<TRoute>[];
+  blockNumber: BigNumber;
+};
+
 type QuoteBatchSuccess = {
   status: 'success';
   inputs: [string, string][];
@@ -145,10 +153,7 @@ export interface IOnChainQuoteProvider {
     amountIns: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
-  ): Promise<{
-    routesWithQuotes: RouteWithQuotes<TRoute>[];
-    blockNumber: BigNumber;
-  }>;
+  ): Promise<OnChainQuotes<TRoute>>;
 
   /**
    * For every route, gets ane exactOut quote for every amount provided.
@@ -164,10 +169,7 @@ export interface IOnChainQuoteProvider {
     amountOuts: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
-  ): Promise<{
-    routesWithQuotes: RouteWithQuotes<TRoute>[];
-    blockNumber: BigNumber;
-  }>;
+  ): Promise<OnChainQuotes<TRoute>>;
 }
 
 /**
@@ -323,10 +325,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     amountIns: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
-  ): Promise<{
-    routesWithQuotes: RouteWithQuotes<TRoute>[];
-    blockNumber: BigNumber;
-  }> {
+  ): Promise<OnChainQuotes<TRoute>> {
     return this.getQuotesManyData(
       amountIns,
       routes,
@@ -339,10 +338,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     amountOuts: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
-  ): Promise<{
-    routesWithQuotes: RouteWithQuotes<TRoute>[];
-    blockNumber: BigNumber;
-  }> {
+  ): Promise<OnChainQuotes<TRoute>> {
     return this.getQuotesManyData(
       amountOuts,
       routes,
@@ -358,10 +354,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     routes: TRoute[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
     _providerConfig?: ProviderConfig
-  ): Promise<{
-    routesWithQuotes: RouteWithQuotes<TRoute>[];
-    blockNumber: BigNumber;
-  }> {
+  ): Promise<OnChainQuotes<TRoute>> {
     const useMixedRouteQuoter =
       routes.some((route) => route.protocol === Protocol.V2) ||
       routes.some((route) => route.protocol === Protocol.MIXED);
@@ -822,7 +815,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       } attempt loops. Total calls made to provider: ${totalCallsMade}. Have retried for timeout: ${haveRetriedForTimeout}`
     );
 
-    return { routesWithQuotes: routesQuotes, blockNumber };
+    return {
+      routesWithQuotes: routesQuotes,
+      blockNumber,
+    } as OnChainQuotes<TRoute>;
   }
 
   private partitionQuotes(
