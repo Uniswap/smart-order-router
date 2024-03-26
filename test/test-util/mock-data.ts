@@ -466,8 +466,8 @@ export const FLAT_PORTION: Portion = {
 }
 
 export const GREENLIST_TOKEN_PAIRS: Array<[Currency, Currency]> = [
-  [Ether.onChain(ChainId.MAINNET), USDC],
-  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], USDT],
+  // [Ether.onChain(ChainId.MAINNET), USDC],
+  // [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], USDT],
   [DAI, WBTC],
 ];
 

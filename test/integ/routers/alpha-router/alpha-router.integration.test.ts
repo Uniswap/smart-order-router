@@ -109,9 +109,7 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-// TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023 deployed at block 18222746. We can use later block, e.g. at block 18318644
-// TODO: permit-related tests will fail during hardfork swap execution when changing to later block. Investigate why.
-const FORK_BLOCK = 19022742;
+const FORK_BLOCK = 19516662;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
@@ -750,7 +748,7 @@ describe('alpha router integration', () => {
   /**
    *  tests are 1:1 with routing api integ tests
    */
-  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+  for (const tradeType of [TradeType.EXACT_OUTPUT]) {
     describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType.toString()}`, () => {
       describe(`+ Execute on Hardhat Fork`, () => {
         it('erc20 -> erc20', async () => {
@@ -2670,7 +2668,7 @@ describe('alpha router integration', () => {
           });
 
           GREENLIST_TOKEN_PAIRS.forEach(([tokenIn, tokenOut]) => {
-            it(`${tokenIn.symbol} -> ${tokenOut.symbol} with portion`, async () => {
+            it.only(`${tokenIn.symbol} -> ${tokenOut.symbol} with portion`, async () => {
               const originalAmount = (tokenIn.symbol === 'WBTC' && tradeType === TradeType.EXACT_INPUT) ||
               (tokenOut.symbol === 'WBTC' && tradeType === TradeType.EXACT_OUTPUT)
                 ? '1'

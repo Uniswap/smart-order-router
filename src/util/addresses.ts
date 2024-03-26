@@ -39,6 +39,8 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x61fFE014bA17989E743c5F6cB21bF9697530B21e'),
+  [ChainId.MAINNET]: '0x4Dd5336F3C0D70893A7a86c6aEBe9B953E87c891', // local anvil buggy austin quoter
+  // [ChainId.MAINNET]: '0x91A1EeE63f300B8f41AE6AF67eDEa2e2ed8c3f79', // local anvil fixed austin quoter
   [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].quoterAddress,
   [ChainId.CELO_ALFAJORES]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_ALFAJORES].quoterAddress,
@@ -148,7 +150,7 @@ export const WETH9: {
   ),
   [ChainId.GOERLI]: new Token(
     ChainId.GOERLI,
-    '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
+     '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
     18,
     'WETH',
     'Wrapped Ether'

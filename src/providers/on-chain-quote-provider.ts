@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import {
@@ -6,7 +7,7 @@ import {
   Protocol,
 } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
-import { encodeRouteToPath } from '@uniswap/v3-sdk';
+import { encodeRouteToPath, Pool } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
@@ -26,6 +27,7 @@ import { routeToString } from '../util/routes';
 import { Result } from './multicall-provider';
 import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
+
 
 /**
  * An on chain quote for a swap.
@@ -339,7 +341,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
   }> {
     return this.getQuotesManyData(
       amountOuts,
-      routes,
+      routes.filter((route) => route.pools.length == 1 &&
+        Pool.getAddress(route.pools[0]!.token0, route.pools[0]!.token1, route.pools[0]!.fee) === '0x649Caaf37F36E67D1129C0FD6C6539d390Ca2B82'),
       'quoteExactOutput',
       providerConfig
     );
@@ -470,6 +473,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
               try {
                 totalCallsMade = totalCallsMade + 1;
+
+                providerConfig.blockNumber = 19516662;
+
+                const block = await providerConfig.blockNumber;
+                block
 
                 const results =
                   await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<

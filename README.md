@@ -265,3 +265,27 @@ This total amount of gas each `eth_call` can consume is equal to the `multicallC
 If you are running your own node, we recommend you configure start your node with a higher gas limit per call. For example, on Geth you can use the command line argument `--rpc.gascap 150000000` to raise the limit to 150m, which is enough to run the default configuration of this package.
 
 If you are using Hardhat mainnet forking, you should add `blockGasLimit: 150_000_000` to your Hardhat config to use the default package configuration.
+
+### Test a new contract integration in local fork
+
+Take austin quoter as example:
+
+1. use Foundry Anvil fork
+
+anvil --fork-url https://mainnet.infura.io/v3/1251f92fb3044883b08bd8913471ba6e --port 6545
+
+https://app.warp.dev/block/crsazizPYJUUtOUSVN8XXm
+
+(I tested with tenderly fork, hardhat fork and foundry anvil fork. Only Anvil fork works on my local E2E with SOR contract integration.)
+
+2. deploy austin quoter contract to local fork
+
+forge script --broadcast \
+--rpc-url http://127.0.0.1:7545/ \
+script/Quoter.s.sol:MyScript
+
+https://app.warp.dev/block/KUoqkknR7AtdCKFRaMsy1O
+
+3. in integ-test, update the FORK_BLOCK to the deployed contract block from 2
+
+4. in the relevant contract call, hardcode the block number. This is because I notice SOR providerConfig.blockNumber can be bigger than the latest mined block from local fork.

@@ -91,7 +91,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
         maxSwapsPerPath: 3,
         minSplits: 1,
         maxSplits: 7,
-        distributionPercent: 5,
+        distributionPercent: 100,
         forceCrossProtocol: false,
       };
   }
