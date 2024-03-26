@@ -1,10 +1,7 @@
 name: Tests
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
+# Disable tests in fork by only enabling them to run manually
+on: workflow_dispatch
 
 jobs:
   unit-tests:

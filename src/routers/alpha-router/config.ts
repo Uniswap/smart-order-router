@@ -7,6 +7,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
 ): AlphaRouterConfig => {
   switch (chainId) {
     // Optimism
+    case ChainId.HEMI_SEPOLIA:
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
     case ChainId.OPTIMISM_SEPOLIA:

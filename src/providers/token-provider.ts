@@ -247,6 +247,22 @@ export const DAI_OPTIMISM_SEPOLIA = new Token(
   'Dai Stablecoin'
 );
 
+export const TESNET_DAI_HEMI_SEPOLIA = new Token(
+  ChainId.HEMI_SEPOLIA,
+  '0xec46e0efb2ea8152da0327a5eb3ff9a43956f13e',
+  18,
+  'thDAI',
+  'Testnet Hemi DAI'
+);
+
+export const WETH_HEMI_SEPOLIA = new Token(
+  ChainId.HEMI_SEPOLIA,
+  '0x0C8aFD1b58aa2A5bAd2414B861D8A7fF898eDC3A',
+  18,
+  'WETH',
+  'Wrapped Ether'
+);
+
 export const USDC_ARBITRUM = new Token(
   ChainId.ARBITRUM_ONE,
   '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
@@ -861,6 +877,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_BNB;
     case ChainId.AVALANCHE:
       return DAI_AVAX;
+    case ChainId.HEMI_SEPOLIA:
+      return TESNET_DAI_HEMI_SEPOLIA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

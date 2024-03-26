@@ -31,6 +31,7 @@ import {
   DAI_SEPOLIA,
   FEI_MAINNET,
   ITokenProvider,
+  TESNET_DAI_HEMI_SEPOLIA,
   USDB_BLAST,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
@@ -187,6 +188,10 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.AVALANCHE]: [DAI_AVAX, USDC_AVAX],
   [ChainId.BASE]: [USDC_BASE],
   [ChainId.BLAST]: [WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!, USDB_BLAST],
+  [ChainId.HEMI_SEPOLIA]: [
+    TESNET_DAI_HEMI_SEPOLIA,
+    WRAPPED_NATIVE_CURRENCY[ChainId.HEMI_SEPOLIA],
+  ],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {

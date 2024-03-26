@@ -34,6 +34,8 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].v3CoreFactoryAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v3CoreFactoryAddress,
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v3CoreFactoryAddress,
+  [ChainId.HEMI_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.HEMI_SEPOLIA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -57,6 +59,8 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].quoterAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].quoterAddress,
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].quoterAddress,
+  [ChainId.HEMI_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.HEMI_SEPOLIA].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -88,6 +92,8 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_GOERLI].multicallAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].multicallAddress,
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].multicallAddress,
+  [ChainId.HEMI_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.HEMI_SEPOLIA].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -219,6 +225,13 @@ export const WETH9: {
   [ChainId.BLAST]: new Token(
     ChainId.BLAST,
     '0x4300000000000000000000000000000000000004',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.HEMI_SEPOLIA]: new Token(
+    ChainId.HEMI_SEPOLIA,
+    '0x0C8aFD1b58aa2A5bAd2414B861D8A7fF898eDC3A',
     18,
     'WETH',
     'Wrapped Ether'
