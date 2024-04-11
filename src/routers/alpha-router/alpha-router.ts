@@ -637,7 +637,8 @@ export class AlphaRouter
             }
           );
           break;
-        case ChainId.POLYGON:
+        case ChainId.POLYGON_MUMBAI:
+        case ChainId.SEPOLIA:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
