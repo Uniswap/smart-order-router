@@ -109,9 +109,7 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-// TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023 deployed at block 18222746. We can use later block, e.g. at block 18318644
-// TODO: permit-related tests will fail during hardfork swap execution when changing to later block. Investigate why.
-const FORK_BLOCK = 19022742;
+const FORK_BLOCK = 19472074;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?

@@ -98,6 +98,17 @@ import {
   buildTrade,
 } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
+import {
+  BATCH_PARAMS,
+  BLOCK_NUMBER_CONFIGS,
+  DEFAULT_BATCH_PARAMS, DEFAULT_BLOCK_NUMBER_CONFIGS,
+  DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
+  DEFAULT_RETRY_OPTIONS,
+  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+  GAS_ERROR_FAILURE_OVERRIDES,
+  RETRY_OPTIONS,
+  SUCCESS_RATE_FAILURE_OVERRIDES
+} from '../../util/onchainQuoteProviderConfigs';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
@@ -626,25 +637,29 @@ export class AlphaRouter
             }
           );
           break;
+        case ChainId.POLYGON_MUMBAI:
+        case ChainId.SEPOLIA:
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            RETRY_OPTIONS[chainId],
+            BATCH_PARAMS[chainId],
+            GAS_ERROR_FAILURE_OVERRIDES[chainId],
+            SUCCESS_RATE_FAILURE_OVERRIDES[chainId],
+            BLOCK_NUMBER_CONFIGS[chainId]
+          );
+          break;
         default:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 210,
-              gasLimitPerCall: 705_000,
-              quoteMinSuccessRate: 0.15,
-            },
-            {
-              gasLimitOverride: 2_000_000,
-              multicallChunk: 70,
-            }
+            DEFAULT_RETRY_OPTIONS,
+            DEFAULT_BATCH_PARAMS,
+            DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
+            DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+            DEFAULT_BLOCK_NUMBER_CONFIGS,
           );
           break;
       }
