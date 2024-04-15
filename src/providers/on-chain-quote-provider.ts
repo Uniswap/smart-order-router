@@ -300,7 +300,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
     protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
     protected quoterAddressOverride?: string,
-    protected metricsPrefix?: string
+    protected metricsPrefix: string = '' // default metric prefix to be empty string
   ) {}
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
@@ -429,6 +429,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       inputs.length,
       MetricLoggerUnit.Count
     );
+
+    const startTime = Date.now();
 
     let haveRetriedForSuccessRate = false;
     let haveRetriedForBlockHeader = false;
@@ -771,6 +773,13 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       routes,
       amounts
     );
+
+    const endTime = Date.now();
+    metric.putMetric(
+      `${this.metricsPrefix}QuoteLatency`,
+      endTime - startTime,
+      MetricLoggerUnit.Milliseconds
+    )
 
     metric.putMetric(
       `${this.metricsPrefix}QuoteApproxGasUsedPerSuccessfulCall`,
