@@ -639,6 +639,7 @@ export class AlphaRouter
           break;
         case ChainId.POLYGON_MUMBAI:
         case ChainId.SEPOLIA:
+        case ChainId.MAINNET:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
