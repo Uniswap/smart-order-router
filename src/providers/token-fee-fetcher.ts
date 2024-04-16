@@ -38,7 +38,7 @@ const FEE_DETECTOR_ADDRESS = (chainId: ChainId) => {
     case ChainId.OPTIMISM:
       return '0xa7c17505B43955A474fb6AFE61E093907a7567c9';
     case ChainId.BNB:
-      return '0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6';
+      return '0x331f6D0AAB4A1F039f0d75A613a7F1593DbDE1BB';
     case ChainId.POLYGON:
       return '0x92bCCCb6c8c199AAcA38408621E38Ab6dBfA00B5';
     case ChainId.BASE:
