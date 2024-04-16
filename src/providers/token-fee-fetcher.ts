@@ -34,7 +34,23 @@ export type TokenFeeMap = Record<Address, TokenFeeResult>;
 const FEE_DETECTOR_ADDRESS = (chainId: ChainId) => {
   switch (chainId) {
     case ChainId.MAINNET:
+      return '0x19C97dc2a25845C7f9d1d519c8C2d4809c58b43f';
+    case ChainId.OPTIMISM:
+      return '0xa7c17505B43955A474fb6AFE61E093907a7567c9';
+    case ChainId.BNB:
+      return '0x331f6D0AAB4A1F039f0d75A613a7F1593DbDE1BB';
+    case ChainId.POLYGON:
+      return '0x92bCCCb6c8c199AAcA38408621E38Ab6dBfA00B5';
+    case ChainId.BASE:
+      return '0x331f6D0AAB4A1F039f0d75A613a7F1593DbDE1BB';
+    case ChainId.ARBITRUM_ONE:
+      return '0x64CF365CC5CCf5E64380bc05Acd5df7D0618c118';
+    case ChainId.CELO:
+      return '0x3dfF0145E68a5880EAbE8F56b6Bc30C4AdCF3413';
+    case ChainId.AVALANCHE:
+      return '0xBF2B9F6A6eCc4541b31ab2dCF8156D33644Ca3F3';
     default:
+      // just default to mainnet contract
       return '0x19C97dc2a25845C7f9d1d519c8C2d4809c58b43f';
   }
 };
