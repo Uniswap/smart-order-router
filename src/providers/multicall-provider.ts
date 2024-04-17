@@ -47,6 +47,7 @@ export type SuccessResult<TReturn> = {
 export type FailResult = {
   success: false;
   returnData: string;
+  gasUsed?: BigNumber;
 };
 
 export type Result<TReturn> = SuccessResult<TReturn> | FailResult;

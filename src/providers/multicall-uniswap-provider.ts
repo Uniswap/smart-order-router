@@ -191,11 +191,12 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
       if (!success || returnData.length <= 2) {
         log.debug(
           { result: aggregateResults[i] },
-          `Invalid result calling ${functionName} with params ${functionParams[i]}`
+          `Invalid result calling ${functionName} address ${address} with params ${functionParams[i]}`
         );
         results.push({
           success: false,
           returnData,
+          gasUsed,
         });
         continue;
       }
