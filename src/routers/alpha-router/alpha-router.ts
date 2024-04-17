@@ -640,6 +640,7 @@ export class AlphaRouter
         case ChainId.POLYGON_MUMBAI:
         case ChainId.SEPOLIA:
         case ChainId.MAINNET:
+        case ChainId.POLYGON:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
