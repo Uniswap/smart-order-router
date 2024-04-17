@@ -54,6 +54,10 @@ export type AmountQuote = {
    * depending on if the slot has already been loaded in the call.
    */
   gasEstimate: BigNumber | null;
+  /**
+   * Final attempted gas limit set by the on-chain quote provider
+   */
+  gasLimit: BigNumber | null;
 };
 
 export class BlockConflictError extends Error {
@@ -771,7 +775,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const routesQuotes = this.processQuoteResults(
       quoteResults,
       routes,
-      amounts
+      amounts,
+      BigNumber.from(gasLimitOverride)
     );
 
     const endTime = Date.now();
@@ -866,7 +871,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
   private processQuoteResults<TRoute extends V3Route | V2Route | MixedRoute>(
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     routes: TRoute[],
-    amounts: CurrencyAmount[]
+    amounts: CurrencyAmount[],
+    gasLimit: BigNumber
   ): RouteWithQuotes<TRoute>[] {
     const routesQuotes: RouteWithQuotes<TRoute>[] = [];
 
@@ -906,6 +912,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               quote: null,
               sqrtPriceX96AfterList: null,
               gasEstimate: quoteResult.gasUsed ?? null,
+              gasLimit: gasLimit,
               initializedTicksCrossedList: null,
             };
           }
@@ -916,6 +923,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             sqrtPriceX96AfterList: quoteResult.result[1],
             initializedTicksCrossedList: quoteResult.result[2],
             gasEstimate: quoteResult.result[3],
+            gasLimit: gasLimit,
           };
         }
       );
