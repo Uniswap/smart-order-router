@@ -905,7 +905,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               amount,
               quote: null,
               sqrtPriceX96AfterList: null,
-              gasEstimate: quoteResult.gasUsed,
+              gasEstimate: quoteResult.gasUsed ?? null,
               initializedTicksCrossedList: null,
             };
           }
