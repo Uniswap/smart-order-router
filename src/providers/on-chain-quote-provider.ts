@@ -779,7 +779,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix}QuoteLatency`,
       endTime - startTime,
       MetricLoggerUnit.Milliseconds
-    )
+    );
 
     metric.putMetric(
       `${this.metricsPrefix}QuoteApproxGasUsedPerSuccessfulCall`,
@@ -905,7 +905,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               amount,
               quote: null,
               sqrtPriceX96AfterList: null,
-              gasEstimate: null,
+              gasEstimate: quoteResult.gasUsed,
               initializedTicksCrossedList: null,
             };
           }

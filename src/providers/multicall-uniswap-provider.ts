@@ -196,6 +196,7 @@ export class UniswapMulticallProvider extends IMulticallProvider<UniswapMultical
         results.push({
           success: false,
           returnData,
+          gasUsed,
         });
         continue;
       }
