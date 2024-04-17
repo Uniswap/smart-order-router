@@ -13,11 +13,13 @@ import {
 import { WETH_DAI } from '../../../../test-util/mock-data';
 import { getV2RouteWithValidQuoteStub } from '../../../providers/caching/route/test-util/mocked-dependencies';
 import { getMockedV2PoolProvider } from './test-util/mocked-dependencies';
+import sinon from 'sinon';
+import { BaseProvider } from '@ethersproject/providers';
 
 describe('v2 gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
   const chainId = 1;
-  const v2GasModelFactory = new V2HeuristicGasModelFactory();
+  const v2GasModelFactory = new V2HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider));
 
   const mockedV2PoolProvider = getMockedV2PoolProvider();
 

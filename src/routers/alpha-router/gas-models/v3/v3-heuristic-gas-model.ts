@@ -24,6 +24,7 @@ import {
   SINGLE_HOP_OVERHEAD,
   TOKEN_OVERHEAD,
 } from './gas-costs';
+import { BaseProvider } from '@ethersproject/providers';
 
 /**
  * Computes a gas estimate for a V3 swap using heuristics.
@@ -44,8 +45,11 @@ import {
  * @class V3HeuristicGasModelFactory
  */
 export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
-  constructor() {
+  private provider: BaseProvider;
+
+  constructor(provider: BaseProvider) {
     super();
+    this.provider = provider;
   }
 
   public async buildGasModel({
@@ -79,6 +83,7 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         usdPool,
         quoteToken,
         pools.nativeAndQuoteTokenV3Pool,
+        this.provider,
         l2GasData
       );
     };

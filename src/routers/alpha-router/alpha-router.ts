@@ -74,8 +74,6 @@ import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
   IL2GasDataProvider,
-  OptimismGasData,
-  OptimismGasDataProvider,
 } from '../../providers/v3/gas-data-provider';
 import {
   IV3PoolProvider,
@@ -100,6 +98,17 @@ import {
   buildTrade,
 } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
+import {
+  BATCH_PARAMS,
+  BLOCK_NUMBER_CONFIGS,
+  DEFAULT_BATCH_PARAMS, DEFAULT_BLOCK_NUMBER_CONFIGS,
+  DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
+  DEFAULT_RETRY_OPTIONS,
+  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+  GAS_ERROR_FAILURE_OVERRIDES,
+  RETRY_OPTIONS,
+  SUCCESS_RATE_FAILURE_OVERRIDES
+} from '../../util/onchainQuoteProviderConfigs';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
   IRouter,
@@ -226,11 +235,6 @@ export type AlphaRouterParams = {
    * LP position tokens.
    */
   swapRouterProvider?: ISwapRouterProvider;
-
-  /**
-   * Calls the optimism gas oracle contract to fetch constants for calculating the l1 security fee.
-   */
-  optimismGasDataProvider?: IL2GasDataProvider<OptimismGasData>;
 
   /**
    * A token validator for detecting fee-on-transfer tokens or tokens that can't be transferred.
@@ -456,7 +460,6 @@ export class AlphaRouter
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
-    | IL2GasDataProvider<OptimismGasData>
     | IL2GasDataProvider<ArbitrumGasData>;
   protected simulator?: Simulator;
   protected v2Quoter: V2Quoter;
@@ -484,7 +487,6 @@ export class AlphaRouter
     v2GasModelFactory,
     mixedRouteGasModelFactory,
     swapRouterProvider,
-    optimismGasDataProvider,
     tokenValidatorProvider,
     arbitrumGasDataProvider,
     simulator,
@@ -548,6 +550,7 @@ export class AlphaRouter
           );
           break;
         case ChainId.BASE:
+        case ChainId.BLAST:
         case ChainId.BASE_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
@@ -634,25 +637,30 @@ export class AlphaRouter
             }
           );
           break;
+        case ChainId.POLYGON_MUMBAI:
+        case ChainId.SEPOLIA:
+        case ChainId.MAINNET:
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            RETRY_OPTIONS[chainId],
+            BATCH_PARAMS[chainId],
+            GAS_ERROR_FAILURE_OVERRIDES[chainId],
+            SUCCESS_RATE_FAILURE_OVERRIDES[chainId],
+            BLOCK_NUMBER_CONFIGS[chainId]
+          );
+          break;
         default:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
             this.multicall2Provider,
-            {
-              retries: 2,
-              minTimeout: 100,
-              maxTimeout: 1000,
-            },
-            {
-              multicallChunk: 210,
-              gasLimitPerCall: 705_000,
-              quoteMinSuccessRate: 0.15,
-            },
-            {
-              gasLimitOverride: 2_000_000,
-              multicallChunk: 70,
-            }
+            DEFAULT_RETRY_OPTIONS,
+            DEFAULT_BATCH_PARAMS,
+            DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
+            DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+            DEFAULT_BLOCK_NUMBER_CONFIGS,
           );
           break;
       }
@@ -773,9 +781,9 @@ export class AlphaRouter
         )
       );
     this.v3GasModelFactory =
-      v3GasModelFactory ?? new V3HeuristicGasModelFactory();
+      v3GasModelFactory ?? new V3HeuristicGasModelFactory(this.provider);
     this.v2GasModelFactory =
-      v2GasModelFactory ?? new V2HeuristicGasModelFactory();
+      v2GasModelFactory ?? new V2HeuristicGasModelFactory(this.provider);
     this.mixedRouteGasModelFactory =
       mixedRouteGasModelFactory ?? new MixedRouteHeuristicGasModelFactory();
 
@@ -783,11 +791,6 @@ export class AlphaRouter
       swapRouterProvider ??
       new SwapRouterProvider(this.multicall2Provider, this.chainId);
 
-    if (chainId === ChainId.OPTIMISM || chainId === ChainId.BASE) {
-      this.l2GasDataProvider =
-        optimismGasDataProvider ??
-        new OptimismGasDataProvider(chainId, this.multicall2Provider);
-    }
     if (
       chainId === ChainId.ARBITRUM_ONE ||
       chainId === ChainId.ARBITRUM_GOERLI
@@ -1523,9 +1526,6 @@ export class AlphaRouter
         // Quote will be in WETH even if quoteCurrency is ETH
         // So we init a new CurrencyAmount object here
         CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
-        this.l2GasDataProvider
-          ? await this.l2GasDataProvider!.getGasData(providerConfig)
-          : undefined,
         providerConfig
       );
       metric.putMetric(
@@ -2081,7 +2081,7 @@ export class AlphaRouter
       nativeAndSpecifiedGasTokenV3Pool: nativeAndSpecifiedGasTokenV3Pool,
     };
 
-    const v2GasModelPromise = V2_SUPPORTED.includes(this.chainId)
+    const v2GasModelPromise = this.v2Supported?.includes(this.chainId)
       ? this.v2GasModelFactory.buildGasModel({
           chainId: this.chainId,
           gasPriceWei,
@@ -2089,7 +2089,7 @@ export class AlphaRouter
           token: quoteToken,
           l2GasDataProvider: this.l2GasDataProvider,
           providerConfig: providerConfig,
-        })
+        }).catch(_ => undefined) // If v2 model throws uncaught exception, we return undefined v2 gas model, so there's a chance v3 route can go through
       : Promise.resolve(undefined);
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({

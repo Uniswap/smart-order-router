@@ -20,6 +20,7 @@ import {
   IV2GasModelFactory,
   usdGasTokensByChain,
 } from '../gas-model';
+import { BaseProvider } from '@ethersproject/providers';
 
 // Constant cost for doing any swap regardless of pools.
 export const BASE_SWAP_COST = BigNumber.from(135000); // 115000, bumped up by 20_000 @eric 7/8/2022
@@ -45,8 +46,11 @@ export const COST_PER_EXTRA_HOP = BigNumber.from(50000); // 20000, bumped up by 
  * @class V2HeuristicGasModelFactory
  */
 export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
-  constructor() {
+  private provider: BaseProvider;
+
+  constructor(provider: BaseProvider) {
     super();
+    this.provider = provider;
   }
 
   public async buildGasModel({
@@ -117,6 +121,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         usdPool,
         token,
         nativePool,
+        this.provider,
         l2GasData
       );
     };

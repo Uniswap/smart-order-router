@@ -20,7 +20,9 @@ import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
 } from '@uniswap/universal-router-sdk';
-import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
+import {
+  Permit2Permit
+} from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
@@ -64,11 +66,15 @@ import {
   UNI_GOERLI,
   UNI_MAINNET,
   UniswapMulticallProvider,
+  USDB_BLAST,
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
   USDC_NATIVE_ARBITRUM,
+  USDC_NATIVE_AVAX,
+  USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
+  USDC_NATIVE_POLYGON,
   USDC_ON,
   USDT_BNB,
   USDT_MAINNET,
@@ -81,10 +87,7 @@ import {
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY,
-  USDC_NATIVE_POLYGON,
-  USDC_NATIVE_BASE,
-  USDC_NATIVE_AVAX
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -106,9 +109,7 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-// TODO: this should be at a later block that's aware of universal router v1.3 0x3F6328669a86bef431Dc6F9201A5B90F7975a023 deployed at block 18222746. We can use later block, e.g. at block 18318644
-// TODO: permit-related tests will fail during hardfork swap execution when changing to later block. Investigate why.
-const FORK_BLOCK = 19022742;
+const FORK_BLOCK = 19472074;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
@@ -116,7 +117,7 @@ const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
-  [ChainId.MAINNET]: 35,
+  [ChainId.MAINNET]: 40,
   [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 50,
   [ChainId.OPTIMISM]: 35,
@@ -135,6 +136,10 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.AVALANCHE]: 36,
   [ChainId.BASE]: 34,
   [ChainId.BASE_GOERLI]: 30,
+  [ChainId.ZORA]: 30,
+  [ChainId.ZORA_SEPOLIA]: 30,
+  [ChainId.ROOTSTOCK]: 30,
+  [ChainId.BLAST]: 34,
 }
 
 const V2_SUPPORTED_PAIRS = [
@@ -3320,6 +3325,10 @@ describe('quote for other networks', () => {
     [ChainId.BASE]: () => USDC_ON(ChainId.BASE),
     [ChainId.BASE]: () => USDC_NATIVE_BASE,
     [ChainId.BASE_GOERLI]: () => USDC_ON(ChainId.BASE_GOERLI),
+    [ChainId.ZORA]: () => USDC_ON(ChainId.ZORA),
+    [ChainId.ZORA_SEPOLIA]: () => USDC_ON(ChainId.ZORA_SEPOLIA),
+    [ChainId.ROOTSTOCK]: () => USDC_ON(ChainId.ROOTSTOCK),
+    [ChainId.BLAST]: () => USDB_BLAST,
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3341,6 +3350,10 @@ describe('quote for other networks', () => {
     [ChainId.AVALANCHE]: () => DAI_ON(ChainId.AVALANCHE),
     [ChainId.BASE]: () => WNATIVE_ON(ChainId.BASE),
     [ChainId.BASE_GOERLI]: () => WNATIVE_ON(ChainId.BASE_GOERLI),
+    [ChainId.ZORA]: () => WNATIVE_ON(ChainId.ZORA),
+    [ChainId.ZORA_SEPOLIA]: () => WNATIVE_ON(ChainId.ZORA_SEPOLIA),
+    [ChainId.ROOTSTOCK]: () => WNATIVE_ON(ChainId.ROOTSTOCK),
+    [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3354,7 +3367,9 @@ describe('quote for other networks', () => {
       c != ChainId.ARBITRUM_SEPOLIA &&
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.SEPOLIA
+      c != ChainId.ZORA &&
+      c != ChainId.ZORA_SEPOLIA &&
+      c != ChainId.ROOTSTOCK
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
@@ -3485,12 +3500,20 @@ describe('quote for other networks', () => {
           });
 
           it(`erc20 -> erc20`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
+
+            // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
+            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
-                : parseAmount('1', tokenOut);
+                : parseAmount(exactOutAmount, tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3510,6 +3533,16 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
+            if (chain == ChainId.BLAST) {
+              // Blast doesn't have DAI or USDC yet
+              return;
+            }
+
             const tokenIn = nativeOnChain(chain);
             // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
             // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
@@ -3543,12 +3576,20 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
+
+            // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
+            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
-                : parseAmount('1', tokenOut);
+                : parseAmount(exactOutAmount, tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3576,12 +3617,20 @@ describe('quote for other networks', () => {
           });
 
           it(`does not error when protocols array is empty`, async () => {
+            if (chain === ChainId.SEPOLIA) {
+              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
+
+            // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
+            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
-                : parseAmount('1', tokenOut);
+                : parseAmount(exactOutAmount, tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3626,7 +3675,7 @@ describe('quote for other networks', () => {
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
-            if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chain)) {
+            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA, ChainId.BLAST].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
@@ -3828,6 +3877,11 @@ describe('quote for other networks', () => {
             });
 
             it(`erc20 -> erc20`, async () => {
+              if (chain === ChainId.SEPOLIA) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
@@ -3924,6 +3978,11 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
+              if (chain === ChainId.SEPOLIA) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = nativeOnChain(chain);
               // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
               // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
