@@ -66,6 +66,7 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.SEPOLIA]: '0x6650ab818c0a7efa72fc1404a878fef1fec8e058',
   [ChainId.MAINNET]: '0x5e55C9e631FAE526cd4B0526C4818D6e0a9eF0e3',
   [ChainId.POLYGON]: '0x5e55c9e631fae526cd4b0526c4818d6e0a9ef0e3',
+  [ChainId.BASE]: '0xf0c802dcb0cf1c4f7b953756b49d940eed190221',
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
