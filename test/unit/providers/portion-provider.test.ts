@@ -181,6 +181,41 @@ describe('portion provider', () => {
           .toBe(actualCorrectedQuoteGasAdjustedAmount.quotient.toString());
       }
     });
+
+    describe('TokenOutHasFot flag is true', () => {
+
+      GREENLIST_TOKEN_PAIRS.forEach((pair) => {
+        const token1: Currency | Token = pair[0].isNative ? (pair[0] as Currency) : pair[0].wrapped;
+        const token2: Currency | Token = pair[1].isNative ? (pair[1] as Currency) : pair[1].wrapped;
+        const tokenAddress1 = token1.wrapped.address;
+        const tokenAddress2 = token2.wrapped.address;
+
+        it(
+          `token address ${tokenAddress1} to token address ${tokenAddress2} within the list, but tokenOut has FOT, should not have portion`,
+          async () => {
+            const quoteAmount = parseAmount(expectedQuote, token2);
+
+            const swapConfig: SwapOptions = {
+              type: SwapType.UNIVERSAL_ROUTER,
+              slippageTolerance: new Percent(5),
+              recipient: '0x123',
+              fee: {
+                fee: new Percent(expectedPortion.bips, 10_000),
+                recipient: expectedPortion.recipient,
+              }
+            };
+            const portionAmount = portionProvider.getPortionAmount(
+              quoteAmount,
+              TradeType.EXACT_INPUT,
+              true,
+              swapConfig
+            );
+
+            expect(portionAmount).toBeUndefined();
+          }
+        );
+      });
+    });
   });
 
   describe('getRouteWithQuotePortionAdjusted test', () => {
