@@ -1039,10 +1039,31 @@ export class AlphaRouter
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
     const originalAmount = amount;
+
+    const { currencyIn, currencyOut } =
+      this.determineCurrencyInOutFromTradeType(
+        tradeType,
+        amount,
+        quoteCurrency
+      );
+
+    const tokenIn = currencyIn.wrapped;
+    const tokenOut = currencyOut.wrapped;
+
+    const tokenOutProperties =
+      await this.tokenPropertiesProvider.getTokensProperties(
+        [tokenOut],
+        partialRoutingConfig
+      );
+    const tokenOutHasFot =
+      tokenOutProperties[tokenOut.address]?.tokenFeeResult?.buyFeeBps &&
+      tokenOutProperties[tokenOut.address]?.tokenFeeResult?.buyFeeBps?.gt(0);
+
     if (tradeType === TradeType.EXACT_OUTPUT) {
       const portionAmount = this.portionProvider.getPortionAmount(
         amount,
         tradeType,
+        tokenOutHasFot,
         swapConfig
       );
       if (portionAmount && portionAmount.greaterThan(ZERO)) {
@@ -1055,16 +1076,6 @@ export class AlphaRouter
         amount = amount.add(portionAmount);
       }
     }
-
-    const { currencyIn, currencyOut } =
-      this.determineCurrencyInOutFromTradeType(
-        tradeType,
-        amount,
-        quoteCurrency
-      );
-
-    const tokenIn = currencyIn.wrapped;
-    const tokenOut = currencyOut.wrapped;
 
     metric.setProperty('chainId', this.chainId);
     metric.setProperty('pair', `${tokenIn.symbol}/${tokenOut.symbol}`);
@@ -1455,6 +1466,7 @@ export class AlphaRouter
     const portionAmount = this.portionProvider.getPortionAmount(
       tokenOutAmount,
       tradeType,
+      tokenOutHasFot,
       swapConfig
     );
     const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(
