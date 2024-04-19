@@ -2815,6 +2815,10 @@ describe('alpha router integration', () => {
                         slippageTolerance: LARGE_SLIPPAGE,
                         deadlineOrPreviousBlockhash: parseDeadline(360),
                         simulate: { fromAddress: WHALES(tokenIn!) },
+                        fee: {
+                          fee: new Percent(FLAT_PORTION.bips, 10_000),
+                          recipient: FLAT_PORTION.recipient
+                        }
                       },
                       {
                         ...ROUTING_CONFIG,
@@ -2829,6 +2833,12 @@ describe('alpha router integration', () => {
                     expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
                     expect(swap!.methodParameters).toBeDefined();
                     expect(swap!.methodParameters!.to).toBeDefined();
+
+                    if (tokenOut.address === BULLET_WITHOUT_TAX.address) {
+                      expect(swap?.portionAmount?.quotient.toString()).toEqual("0");
+                    } else {
+                      expect(swap?.portionAmount?.quotient.toString()).not.toEqual("0");
+                    }
 
                     return { enableFeeOnTransferFeeFetching, ...swap! }
                   })
