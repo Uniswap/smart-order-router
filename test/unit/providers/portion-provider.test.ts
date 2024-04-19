@@ -1,13 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { Currency, CurrencyAmount, Fraction, Percent, Token, TradeType, } from '@uniswap/sdk-core';
 import {
-  Currency,
-  CurrencyAmount,
-  Fraction,
-  Percent,
-  Token,
-  TradeType,
-} from '@uniswap/sdk-core';
-import { parseAmount, RouteWithValidQuote, SwapOptions, SwapType, V2RouteWithValidQuote, V3RouteWithValidQuote } from '../../../src';
+  parseAmount,
+  RouteWithValidQuote,
+  SwapOptions,
+  SwapType,
+  V2RouteWithValidQuote,
+  V3RouteWithValidQuote
+} from '../../../src';
 import { PortionProvider } from '../../../src/providers/portion-provider';
 import { FLAT_PORTION, GREENLIST_TOKEN_PAIRS } from '../../test-util/mock-data';
 import {
@@ -20,7 +20,7 @@ describe('portion provider', () => {
   const expectedRequestAmount = '1.01';
   const expectedQuote = '1605.56';
   const expectedGas = '2.35';
-  const expectedPortion = FLAT_PORTION
+  const expectedPortion = FLAT_PORTION;
   const portionProvider = new PortionProvider();
 
   describe('getPortion test', () => {
@@ -34,13 +34,19 @@ describe('portion provider', () => {
         const tokenAddress1 = token1.wrapped.address;
         const tokenAddress2 = token2.wrapped.address;
 
-        it(`token address ${tokenAddress1} to token address ${tokenAddress2} within the list, should have portion`, async () => {
-          await exactInGetPortionAndAssert(token2);
-        });
+        it(
+          `token address ${tokenAddress1} to token address ${tokenAddress2} within the list, should have portion`,
+          async () => {
+            await exactInGetPortionAndAssert(token2);
+          }
+        );
 
-        it(`token symbol ${tokenSymbol1} to token symbol ${tokenSymbol2} within the list, should have portion`, async () => {
-          await exactInGetPortionAndAssert(token2);
-        });
+        it(
+          `token symbol ${tokenSymbol1} to token symbol ${tokenSymbol2} within the list, should have portion`,
+          async () => {
+            await exactInGetPortionAndAssert(token2);
+          }
+        );
       });
 
       async function exactInGetPortionAndAssert(
@@ -57,13 +63,18 @@ describe('portion provider', () => {
             fee: new Percent(expectedPortion.bips, 10_000),
             recipient: expectedPortion.recipient,
           }
-        }
+        };
         const portionAmount = portionProvider.getPortionAmount(
           quoteAmount,
           TradeType.EXACT_INPUT,
+          undefined,
           swapConfig
         );
-        const portionAdjustedQuote = portionProvider.getQuoteGasAndPortionAdjusted(TradeType.EXACT_INPUT, quoteGasAdjustedAmount, portionAmount);
+        const portionAdjustedQuote = portionProvider.getQuoteGasAndPortionAdjusted(
+          TradeType.EXACT_INPUT,
+          quoteGasAdjustedAmount,
+          portionAmount
+        );
 
         // 1605.56 * 10^8 * 5 / 10000 = 80278000
         const expectedPortionAmount = quoteAmount.multiply(new Fraction(expectedPortion.bips, 10_000));
@@ -89,15 +100,21 @@ describe('portion provider', () => {
         const tokenAddress1 = token1.wrapped.address;
         const tokenAddress2 = token2.wrapped.address;
 
-        it(`token address ${tokenAddress1} to token address ${tokenAddress2} within the list, should have portion`, async () => {
-          const amount = parseAmount(expectedRequestAmount, token2);
-          await exactOutGetPortionAndAssert(amount, token1);
-        });
+        it(
+          `token address ${tokenAddress1} to token address ${tokenAddress2} within the list, should have portion`,
+          async () => {
+            const amount = parseAmount(expectedRequestAmount, token2);
+            await exactOutGetPortionAndAssert(amount, token1);
+          }
+        );
 
-        it(`token symbol ${tokenSymbol1} to token symbol ${tokenSymbol2} within the list, should have portion`, async () => {
-          const amount = parseAmount(expectedRequestAmount, token2);
-          await exactOutGetPortionAndAssert(amount, token1);
-        });
+        it(
+          `token symbol ${tokenSymbol1} to token symbol ${tokenSymbol2} within the list, should have portion`,
+          async () => {
+            const amount = parseAmount(expectedRequestAmount, token2);
+            await exactOutGetPortionAndAssert(amount, token1);
+          }
+        );
       });
 
       async function exactOutGetPortionAndAssert(
@@ -116,8 +133,8 @@ describe('portion provider', () => {
             amount: expectedPortionAmount.quotient.toString(),
             recipient: expectedPortion.recipient,
           }
-        }
-        const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, swapConfig);
+        };
+        const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, false, swapConfig);
         expect(portionAmount).toBeDefined();
 
         // 1.01 * 10^8 * 12 / 10000 = 121200
@@ -132,22 +149,36 @@ describe('portion provider', () => {
         );
         expect(actualPortionQuoteAmount).toBeDefined();
 
-        const expectedPortionQuoteAmount = portionAmount!.divide(portionAmount!.add(amount)).multiply(quoteAmount)
+        const expectedPortionQuoteAmount = portionAmount!.divide(portionAmount!.add(amount)).multiply(quoteAmount);
         expect(actualPortionQuoteAmount!.quotient.toString()).toBe(expectedPortionQuoteAmount.quotient.toString());
 
-        const actualCorrectedQuoteAmount = portionProvider.getQuote(TradeType.EXACT_OUTPUT, quoteAmount, actualPortionQuoteAmount);
+        const actualCorrectedQuoteAmount = portionProvider.getQuote(
+          TradeType.EXACT_OUTPUT,
+          quoteAmount,
+          actualPortionQuoteAmount
+        );
         const expectedCorrectedQuoteAmount = quoteAmount.subtract(actualPortionQuoteAmount!);
         expect(actualCorrectedQuoteAmount?.quotient.toString()).toBe(expectedCorrectedQuoteAmount.quotient.toString());
 
-        const actualCorrectedQuoteGasAdjustedAmount = portionProvider.getQuoteGasAdjusted(TradeType.EXACT_OUTPUT, quoteGasAdjustedAmount, actualPortionQuoteAmount);
+        const actualCorrectedQuoteGasAdjustedAmount = portionProvider.getQuoteGasAdjusted(
+          TradeType.EXACT_OUTPUT,
+          quoteGasAdjustedAmount,
+          actualPortionQuoteAmount
+        );
         const expectedCorrectedQuoteGasAdjustedAmount = quoteGasAdjustedAmount.subtract(actualPortionQuoteAmount!);
-        expect(actualCorrectedQuoteGasAdjustedAmount?.quotient.toString()).toBe(expectedCorrectedQuoteGasAdjustedAmount.quotient.toString())
+        expect(actualCorrectedQuoteGasAdjustedAmount?.quotient.toString())
+          .toBe(expectedCorrectedQuoteGasAdjustedAmount.quotient.toString());
 
-        const actualCorrectedQuoteGasAndPortionAdjustedAmount = portionProvider.getQuoteGasAndPortionAdjusted(TradeType.EXACT_OUTPUT, actualCorrectedQuoteGasAdjustedAmount, portionAmount);
+        const actualCorrectedQuoteGasAndPortionAdjustedAmount = portionProvider.getQuoteGasAndPortionAdjusted(
+          TradeType.EXACT_OUTPUT,
+          actualCorrectedQuoteGasAdjustedAmount,
+          portionAmount
+        );
         // 1605.56 * 10^18 + 121200 / (1.01 * 10^8 + 121200) * 1605.56 * 10^18 = 1.6074867e+21
         // (exact in quote gas adjusted amount) * (ETH decimal scale) + (portion amount) / (exact out requested amount + portion amount) * (exact in quote amount) * (ETH decimal scale)
         // = (quote gas and portion adjusted amount)
-        expect(actualCorrectedQuoteGasAndPortionAdjustedAmount?.quotient.toString()).toBe(actualCorrectedQuoteGasAdjustedAmount.quotient.toString());
+        expect(actualCorrectedQuoteGasAndPortionAdjustedAmount?.quotient.toString())
+          .toBe(actualCorrectedQuoteGasAdjustedAmount.quotient.toString());
       }
     });
   });
@@ -170,7 +201,7 @@ describe('portion provider', () => {
         v2RouteWithQuote,
         v3RouteWithQuote,
         mixedRouteWithQuote
-      ]
+      ];
       const swapParams: SwapOptions = {
         type: SwapType.UNIVERSAL_ROUTER,
         deadlineOrPreviousBlockhash: undefined,
@@ -180,24 +211,40 @@ describe('portion provider', () => {
           fee: new Percent(FLAT_PORTION.bips, 10_000),
           recipient: FLAT_PORTION.recipient
         }
-      }
+      };
       const oneHundredPercent = new Percent(1);
 
-      const routesWithQuotePortionAdjusted = portionProvider.getRouteWithQuotePortionAdjusted(TradeType.EXACT_INPUT, routesWithValidQuotes, swapParams);
+      const routesWithQuotePortionAdjusted = portionProvider.getRouteWithQuotePortionAdjusted(
+        TradeType.EXACT_INPUT,
+        routesWithValidQuotes,
+        swapParams
+      );
 
       routesWithQuotePortionAdjusted.forEach((routeWithQuotePortionAdjusted) => {
         if (routeWithQuotePortionAdjusted instanceof V2RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000)).multiply(20).quotient.toString())
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString())
+            .toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000))
+              .multiply(20)
+              .quotient
+              .toString());
         }
 
         if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.toExact()).toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000)).multiply(50).quotient.toString())
+          expect(routeWithQuotePortionAdjusted.quote.toExact())
+            .toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000))
+              .multiply(50)
+              .quotient
+              .toString());
         }
 
         if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.toExact()).toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000)).multiply(60).quotient.toString())
+          expect(routeWithQuotePortionAdjusted.quote.toExact())
+            .toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000))
+              .multiply(60)
+              .quotient
+              .toString());
         }
-      })
+      });
     });
 
     it('exact out test', () => {
@@ -217,7 +264,7 @@ describe('portion provider', () => {
         v2RouteWithQuote,
         v3RouteWithQuote,
         mixedRouteWithQuote
-      ]
+      ];
       const swapParams: SwapOptions = {
         type: SwapType.UNIVERSAL_ROUTER,
         deadlineOrPreviousBlockhash: undefined,
@@ -227,23 +274,27 @@ describe('portion provider', () => {
           fee: new Percent(FLAT_PORTION.bips, 10_000),
           recipient: FLAT_PORTION.recipient
         }
-      }
+      };
 
-      const routesWithQuotePortionAdjusted = portionProvider.getRouteWithQuotePortionAdjusted(TradeType.EXACT_OUTPUT, routesWithValidQuotes, swapParams);
+      const routesWithQuotePortionAdjusted = portionProvider.getRouteWithQuotePortionAdjusted(
+        TradeType.EXACT_OUTPUT,
+        routesWithValidQuotes,
+        swapParams
+      );
 
       routesWithQuotePortionAdjusted.forEach((routeWithQuotePortionAdjusted) => {
         if (routeWithQuotePortionAdjusted instanceof V2RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('20')
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('20');
         }
 
         if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('50')
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('50');
         }
 
         if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('30')
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('30');
         }
-      })
+      });
     });
   });
 });
