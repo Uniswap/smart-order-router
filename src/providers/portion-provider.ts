@@ -22,6 +22,7 @@ export interface IPortionProvider {
   getPortionAmount(
     tokenOutAmount: CurrencyAmount,
     tradeType: TradeType,
+    tokenOutHasFot?: boolean,
     swapConfig?: SwapOptions
   ): CurrencyAmount | undefined;
 
@@ -116,9 +117,10 @@ export class PortionProvider implements IPortionProvider {
   getPortionAmount(
     tokenOutAmount: CurrencyAmount,
     tradeType: TradeType,
+    tokenOutHasFot?: boolean,
     swapConfig?: SwapOptions
   ): CurrencyAmount | undefined {
-    if (swapConfig?.type !== SwapType.UNIVERSAL_ROUTER) {
+    if (tokenOutHasFot || swapConfig?.type !== SwapType.UNIVERSAL_ROUTER) {
       return undefined;
     }
 
@@ -202,9 +204,14 @@ export class PortionProvider implements IPortionProvider {
     }
 
     return routeWithQuotes.map((routeWithQuote) => {
+      const tokenOut =
+        routeWithQuote.tokenPath[routeWithQuote.tokenPath.length - 1];
+      const tokenOutHasFot =
+        tokenOut && tokenOut.buyFeeBps && tokenOut.buyFeeBps.gt(0);
       const portionAmount = this.getPortionAmount(
         routeWithQuote.quote,
         tradeType,
+        tokenOutHasFot,
         swapConfig
       );
 
