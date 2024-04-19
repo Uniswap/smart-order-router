@@ -63,7 +63,8 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
 export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x5e55C9e631FAE526cd4B0526C4818D6e0a9eF0e3'),
   [ChainId.POLYGON_MUMBAI]: '0x60e06b92bC94a665036C26feC5FF2A92E2d04c5f',
-  [ChainId.BASE]: '0xf0c802dcb0cf1c4f7b953756b49d940eed190221',
+  [ChainId.BASE]: '0x222cA98F00eD15B1faE10B61c277703a194cf5d2',
+  [ChainId.BLAST]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
