@@ -2834,10 +2834,10 @@ describe('alpha router integration', () => {
                     expect(swap!.methodParameters).toBeDefined();
                     expect(swap!.methodParameters!.to).toBeDefined();
 
-                    if (tokenOut.address === BULLET_WITHOUT_TAX.address) {
-                      expect(swap?.portionAmount?.quotient.toString()).toEqual("0");
+                    if (tokenOut?.address === BULLET_WITHOUT_TAX.address) {
+                      expect(swap?.portionAmount?.quotient?.toString()).toEqual("0");
                     } else {
-                      expect(swap?.portionAmount?.quotient.toString()).not.toEqual("0");
+                      expect(swap?.portionAmount?.quotient?.toString()).not.toEqual("0");
                     }
 
                     return { enableFeeOnTransferFeeFetching, ...swap! }
