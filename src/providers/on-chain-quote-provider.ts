@@ -8,7 +8,7 @@ import {
 import { ChainId } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import _ from 'lodash';
+import _, { chain } from 'lodash';
 import stats from 'stats-lite';
 
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
@@ -310,7 +310,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     ) => string = (chainId, useMixedRouteQuoter) =>
       useMixedRouteQuoter
         ? `ChainId_${chainId}_MixedQuoter`
-        : 'ChainId_${chainId}_V3Quoter'
+        : `ChainId_${chainId}_V3Quoter`
   ) {}
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
