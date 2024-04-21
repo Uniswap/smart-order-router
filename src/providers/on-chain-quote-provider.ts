@@ -8,7 +8,7 @@ import {
 import { ChainId } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import _, from 'lodash';
+import _ from 'lodash';
 import stats from 'stats-lite';
 
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
