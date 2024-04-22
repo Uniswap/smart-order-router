@@ -7,7 +7,7 @@ import {
   QuoteRetryOptions
 } from '../providers';
 
-export const NETWORKS_WITH_SAME_RETRY_OPTIONS = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_RETRY_OPTIONS = Object.values(ChainId) as ChainId[];
 
 export function constructSameRetryOptionsMap<T extends QuoteRetryOptions>(
   retryOptions: T,
