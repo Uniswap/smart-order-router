@@ -31,7 +31,7 @@ export const RETRY_OPTIONS = {
   ...constructSameRetryOptionsMap(DEFAULT_RETRY_OPTIONS),
 };
 
-export const NETWORKS_WITH_SAME_BATCH_PARAMS = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_BATCH_PARAMS = Object.values(ChainId) as ChainId[];
 
 export function constructSameBatchParamsMap<T extends BatchParams>(
   batchParams: T,
@@ -55,7 +55,7 @@ export const BATCH_PARAMS = {
   ...constructSameBatchParamsMap(DEFAULT_BATCH_PARAMS),
 };
 
-export const NETWORKS_WITH_SAME_GAS_ERROR_FAILURE_OVERRIDES = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_GAS_ERROR_FAILURE_OVERRIDES = Object.values(ChainId) as ChainId[];
 
 export function constructSameGasErrorFailureOverridesMap<
   T extends FailureOverrides
@@ -116,7 +116,7 @@ export const SUCCESS_RATE_FAILURE_OVERRIDES = {
   ),
 };
 
-export const NETWORKS_WITH_SAME_BLOCK_NUMBER_CONFIGS = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_BLOCK_NUMBER_CONFIGS = Object.values(ChainId) as ChainId[];
 
 export function constructSameBlockNumberConfigsMap<T extends BlockNumberConfig>(
   blockNumberConfigs: T,
