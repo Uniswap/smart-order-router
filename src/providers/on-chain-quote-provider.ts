@@ -303,13 +303,26 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     // In alpha-router default case, we will also define the constants with same values as below.
     protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
     protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
-    protected quoterAddressOverride?: string,
-    protected metricsPrefix: string = '' // default metric prefix to be empty string
+    protected quoterAddressOverride?: (useMixedRouteQuoter: boolean) => string | undefined,
+    protected metricsPrefix: (
+      chainId: ChainId,
+      useMixedRouteQuoter: boolean
+    ) => string = (chainId, useMixedRouteQuoter) =>
+      useMixedRouteQuoter
+        ? `ChainId_${chainId}_MixedQuoter`
+        : `ChainId_${chainId}_V3Quoter`
   ) {}
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
     if (this.quoterAddressOverride) {
-      return this.quoterAddressOverride;
+      const quoterAddress = this.quoterAddressOverride(useMixedRouteQuoter);
+
+      if (!quoterAddress) {
+        throw new Error(
+          `No address for the quoter contract on chain id: ${this.chainId}`
+        );
+      }
+      return quoterAddress;
     }
     const quoterAddress = useMixedRouteQuoter
       ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
@@ -424,12 +437,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}QuoteBatchSize`,
+      `${this.metricsPrefix(this.chainId, useMixedRouteQuoter)}QuoteBatchSize`,
       inputs.length,
       MetricLoggerUnit.Count
     );
     metric.putMetric(
-      `${this.metricsPrefix}QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter
+      )}QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
       inputs.length,
       MetricLoggerUnit.Count
     );
@@ -602,7 +618,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             if (error instanceof BlockConflictError) {
               if (!haveRetriedForBlockConflictError) {
                 metric.putMetric(
-                  `${this.metricsPrefix}QuoteBlockConflictErrorRetry`,
+                  `${this.metricsPrefix(
+                    this.chainId,
+                    useMixedRouteQuoter
+                  )}QuoteBlockConflictErrorRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -613,7 +632,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderBlockHeaderError) {
               if (!haveRetriedForBlockHeader) {
                 metric.putMetric(
-                  `${this.metricsPrefix}QuoteBlockHeaderNotFoundRetry`,
+                  `${this.metricsPrefix(
+                    this.chainId,
+                    useMixedRouteQuoter
+                  )}QuoteBlockHeaderNotFoundRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -653,7 +675,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderTimeoutError) {
               if (!haveRetriedForTimeout) {
                 metric.putMetric(
-                  `${this.metricsPrefix}QuoteTimeoutRetry`,
+                  `${this.metricsPrefix(
+                    this.chainId,
+                    useMixedRouteQuoter
+                  )}QuoteTimeoutRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -662,7 +687,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof ProviderGasError) {
               if (!haveRetriedForOutOfGas) {
                 metric.putMetric(
-                  `${this.metricsPrefix}QuoteOutOfGasExceptionRetry`,
+                  `${this.metricsPrefix(
+                    this.chainId,
+                    useMixedRouteQuoter
+                  )}QuoteOutOfGasExceptionRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -674,7 +702,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {
                 metric.putMetric(
-                  `${this.metricsPrefix}QuoteSuccessRateRetry`,
+                  `${this.metricsPrefix(
+                    this.chainId,
+                    useMixedRouteQuoter
+                  )}QuoteSuccessRateRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -690,7 +721,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             } else {
               if (!haveRetriedForUnknownReason) {
                 metric.putMetric(
-                  `${this.metricsPrefix}QuoteUnknownReasonRetry`,
+                  `${this.metricsPrefix(
+                    this.chainId,
+                    useMixedRouteQuoter
+                  )}QuoteUnknownReasonRetry`,
                   1,
                   MetricLoggerUnit.Count
                 );
@@ -781,37 +815,52 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const endTime = Date.now();
     metric.putMetric(
-      `${this.metricsPrefix}QuoteLatency`,
+      `${this.metricsPrefix(this.chainId, useMixedRouteQuoter)}QuoteLatency`,
       endTime - startTime,
       MetricLoggerUnit.Milliseconds
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}QuoteApproxGasUsedPerSuccessfulCall`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter
+      )}QuoteApproxGasUsedPerSuccessfulCall`,
       approxGasUsedPerSuccessCall,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}QuoteNumRetryLoops`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter
+      )}QuoteNumRetryLoops`,
       finalAttemptNumber - 1,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}QuoteTotalCallsToProvider`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter
+      )}QuoteTotalCallsToProvider`,
       totalCallsMade,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}QuoteExpectedCallsToProvider`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter
+      )}QuoteExpectedCallsToProvider`,
       expectedCallsMade,
       MetricLoggerUnit.Count
     );
 
     metric.putMetric(
-      `${this.metricsPrefix}QuoteNumRetriedCalls`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter
+      )}QuoteNumRetriedCalls`,
       totalCallsMade - expectedCallsMade,
       MetricLoggerUnit.Count
     );
