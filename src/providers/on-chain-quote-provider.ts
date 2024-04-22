@@ -303,7 +303,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     // In alpha-router default case, we will also define the constants with same values as below.
     protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
     protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
-    protected quoterAddressOverride?: (useMixedRouteQuoter: boolean) => string,
+    protected quoterAddressOverride?: (useMixedRouteQuoter: boolean) => string | undefined,
     protected metricsPrefix: (
       chainId: ChainId,
       useMixedRouteQuoter: boolean
@@ -315,7 +315,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
     if (this.quoterAddressOverride) {
-      return this.quoterAddressOverride(useMixedRouteQuoter);
+      const quoterAddress = this.quoterAddressOverride(useMixedRouteQuoter);
+
+      if (!quoterAddress) {
+        throw new Error(
+          `No address for the quoter contract on chain id: ${this.chainId}`
+        );
+      }
+      return quoterAddress;
     }
     const quoterAddress = useMixedRouteQuoter
       ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
