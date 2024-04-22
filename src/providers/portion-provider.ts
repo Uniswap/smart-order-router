@@ -206,8 +206,7 @@ export class PortionProvider implements IPortionProvider {
     return routeWithQuotes.map((routeWithQuote) => {
       const tokenOut =
         routeWithQuote.tokenPath[routeWithQuote.tokenPath.length - 1];
-      const tokenOutHasFot =
-        tokenOut && tokenOut.buyFeeBps && tokenOut.buyFeeBps.gt(0);
+      const tokenOutHasFot = tokenOut && tokenOut.buyFeeBps?.gt(0);
       const portionAmount = this.getPortionAmount(
         routeWithQuote.quote,
         tradeType,
