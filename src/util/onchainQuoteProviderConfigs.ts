@@ -4,10 +4,12 @@ import {
   BatchParams,
   BlockNumberConfig,
   FailureOverrides,
-  QuoteRetryOptions
+  QuoteRetryOptions,
 } from '../providers';
 
-export const NETWORKS_WITH_SAME_RETRY_OPTIONS = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_RETRY_OPTIONS = Object.values(
+  ChainId
+) as ChainId[];
 
 export function constructSameRetryOptionsMap<T extends QuoteRetryOptions>(
   retryOptions: T,
@@ -31,7 +33,9 @@ export const RETRY_OPTIONS = {
   ...constructSameRetryOptionsMap(DEFAULT_RETRY_OPTIONS),
 };
 
-export const NETWORKS_WITH_SAME_BATCH_PARAMS = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_BATCH_PARAMS = Object.values(
+  ChainId
+) as ChainId[];
 
 export function constructSameBatchParamsMap<T extends BatchParams>(
   batchParams: T,
@@ -55,7 +59,9 @@ export const BATCH_PARAMS = {
   ...constructSameBatchParamsMap(DEFAULT_BATCH_PARAMS),
 };
 
-export const NETWORKS_WITH_SAME_GAS_ERROR_FAILURE_OVERRIDES = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_GAS_ERROR_FAILURE_OVERRIDES = Object.values(
+  ChainId
+) as ChainId[];
 
 export function constructSameGasErrorFailureOverridesMap<
   T extends FailureOverrides
@@ -104,8 +110,7 @@ export function constructSameSuccessRateFailureOverridesMap<
   }, {});
 }
 
-export const DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES: FailureOverrides =
-{
+export const DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES: FailureOverrides = {
   gasLimitOverride: 1_300_000,
   multicallChunk: 110,
 };
@@ -116,7 +121,9 @@ export const SUCCESS_RATE_FAILURE_OVERRIDES = {
   ),
 };
 
-export const NETWORKS_WITH_SAME_BLOCK_NUMBER_CONFIGS = [ChainId.POLYGON];
+export const NETWORKS_WITH_SAME_BLOCK_NUMBER_CONFIGS = Object.values(
+  ChainId
+) as ChainId[];
 
 export function constructSameBlockNumberConfigsMap<T extends BlockNumberConfig>(
   blockNumberConfigs: T,
@@ -138,7 +145,5 @@ export const DEFAULT_BLOCK_NUMBER_CONFIGS: BlockNumberConfig = {
 };
 
 export const BLOCK_NUMBER_CONFIGS = {
-  ...constructSameBlockNumberConfigsMap(
-    DEFAULT_BLOCK_NUMBER_CONFIGS
-  ),
+  ...constructSameBlockNumberConfigsMap(DEFAULT_BLOCK_NUMBER_CONFIGS),
 };
