@@ -1055,9 +1055,8 @@ export class AlphaRouter
         [tokenOut],
         partialRoutingConfig
       );
-    const tokenOutHasFot =
-      tokenOutProperties[tokenOut.address]?.tokenFeeResult?.buyFeeBps &&
-      tokenOutProperties[tokenOut.address]?.tokenFeeResult?.buyFeeBps?.gt(0);
+      const buyFeeBps = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps;
+      const tokenOutHasFot = buyFeeBps && buyFeeBps.gt(0);
 
     if (tradeType === TradeType.EXACT_OUTPUT) {
       const portionAmount = this.portionProvider.getPortionAmount(
