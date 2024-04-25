@@ -5,6 +5,7 @@ import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
 import { log } from '../../util/log';
+import { metric } from '../../util/metric';
 import { ProviderConfig } from '../provider';
 
 export interface V2SubgraphPool {
@@ -80,6 +81,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V2SubgraphPool[]> {
+    metric.putMetric('V2SubgraphProvider.getPools', 1);
+
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
@@ -121,24 +124,32 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           let pairsPage: RawV2SubgraphPool[] = [];
 
           do {
+            metric.putMetric('V2SubgraphProvider.getPools.paginate', 1);
+
             await retry(
               async () => {
+                const before = Date.now();
                 const poolsResult = await this.client.request<{
                   pairs: RawV2SubgraphPool[];
                 }>(query2, {
                   pageSize: this.pageSize,
                   id: lastId,
                 });
+                metric.putMetric('V2SubgraphProvider.getPools.paginate.latency', Date.now() - before);
 
                 pairsPage = poolsResult.pairs;
 
                 pairs = pairs.concat(pairsPage);
                 lastId = pairs[pairs.length - 1]!.id;
+
+                metric.putMetric('V2SubgraphProvider.getPools.pageSize', pairsPage.length);
               },
               {
                 retries: this.retries,
                 onRetry: (err, retry) => {
                   pools = [];
+                  metric.putMetric('V2SubgraphProvider.getPools.retry', 1);
+                  metric.putMetric('V2SubgraphProvider.getPools.retryAttempt', retry);
                   log.info(
                     { err },
                     `Failed request for page of pools from subgraph. Retry attempt: ${retry}`
@@ -147,6 +158,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
               }
             );
           } while (pairsPage.length > 0);
+
+          metric.putMetric('V2SubgraphProvider.getPools.pairs.length', pairs.length);
 
           return pairs;
         };
@@ -176,11 +189,13 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             blockNumber &&
             _.includes(err.message, 'indexed up to')
           ) {
+            metric.putMetric('V2SubgraphProvider.getPools.indexError', 1);
             blockNumber = blockNumber - 10;
             log.info(
               `Detected subgraph indexing error. Rolled back block number to: ${blockNumber}`
             );
           }
+          metric.putMetric('V2SubgraphProvider.getPools.timeout', 1);
           pools = [];
           log.info(
             { err },
@@ -198,6 +213,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
     const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
 
+    const before = Date.now();
     const poolsSanitized: V2SubgraphPool[] = pools
       .filter((pool) => {
         return (
@@ -221,6 +237,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           reserveUSD: parseFloat(pool.reserveUSD),
         };
       });
+
+    metric.putMetric('V2SubgraphProvider.getPools.filter.latency', Date.now() - before);
 
     log.info(
       `Got ${pools.length} V2 pools from the subgraph. ${poolsSanitized.length} after filtering`
