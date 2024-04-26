@@ -120,7 +120,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.MAINNET]: 40,
   [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 50,
-  [ChainId.OPTIMISM]: 35,
+  [ChainId.OPTIMISM]: 61,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
   [ChainId.ARBITRUM_ONE]: 53,
