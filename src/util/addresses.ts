@@ -81,11 +81,11 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
   [ChainId.MAINNET]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v1MixedRouteQuoterAddress,
+    CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].mixedRouteQuoterV1Address,
   [ChainId.GOERLI]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].v1MixedRouteQuoterAddress,
+    CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV1Address,
   [ChainId.BASE]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v1MixedRouteQuoterAddress,
+    CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].mixedRouteQuoterV1Address,
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
