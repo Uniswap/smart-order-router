@@ -113,6 +113,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       }.`
     );
 
+    let outerRetries = 0;
     await retry(
       async () => {
         const timeout = new Timeout();
@@ -138,14 +139,20 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                   pageSize: this.pageSize,
                   id: lastId,
                 });
-                metric.putMetric('V2SubgraphProvider.getPools.paginate.latency', Date.now() - before);
+                metric.putMetric(
+                  `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.latency`,
+                  Date.now() - before
+                );
 
                 pairsPage = poolsResult.pairs;
 
                 pairs = pairs.concat(pairsPage);
                 lastId = pairs[pairs.length - 1]!.id;
 
-                metric.putMetric('V2SubgraphProvider.getPools.paginate.pageSize', pairsPage.length);
+                metric.putMetric(
+                  `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.pageSize`,
+                  pairsPage.length
+                );
               },
               {
                 retries: this.retries,
@@ -161,9 +168,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             );
           } while (pairsPage.length > 0);
 
-          metric.putMetric('V2SubgraphProvider.getPools.paginate', totalPages);
-          metric.putMetric('V2SubgraphProvider.getPools.pairs.length', pairs.length);
-          metric.putMetric('V2SubgraphProvider.getPools.paginate.retries', retries);
+          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.paginate`, totalPages);
+          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.pairs.length`, pairs.length);
+          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.retries`, retries);
 
           return pairs;
         };
@@ -188,18 +195,19 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       {
         retries: this.retries,
         onRetry: (err, retry) => {
+          outerRetries += 1;
           if (
             this.rollback &&
             blockNumber &&
             _.includes(err.message, 'indexed up to')
           ) {
-            metric.putMetric('V2SubgraphProvider.getPools.indexError', 1);
+            metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.indexError`, 1);
             blockNumber = blockNumber - 10;
             log.info(
               `Detected subgraph indexing error. Rolled back block number to: ${blockNumber}`
             );
           }
-          metric.putMetric('V2SubgraphProvider.getPools.timeout', 1);
+          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.timeout`, 1);
           pools = [];
           log.info(
             { err },
@@ -208,6 +216,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         },
       }
     );
+
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.retries`, outerRetries);
 
     // Filter pools that have tracked reserve ETH less than threshold.
     // trackedReserveETH filters pools that do not involve a pool from this allowlist:
@@ -241,10 +251,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           reserveUSD: parseFloat(pool.reserveUSD),
         };
       });
-    metric.putMetric('V2SubgraphProvider.getPools.filter.latency', Date.now() - beforeFilter);
 
-    metric.putMetric('V2SubgraphProvider.getPools', 1);
-    metric.putMetric('V2SubgraphProvider.getPools.latency', Date.now() - beforeAll);
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`, Date.now() - beforeFilter);
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools`, 1);
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.latency`, Date.now() - beforeAll);
 
     log.info(
       `Got ${pools.length} V2 pools from the subgraph. ${poolsSanitized.length} after filtering`

@@ -4,7 +4,7 @@ import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-import { log } from '../../util';
+import { log, metric } from '../../util';
 import { ProviderConfig } from '../provider';
 import { V2SubgraphPool } from '../v2/subgraph-provider';
 
@@ -107,6 +107,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V3SubgraphPool[]> {
+    const beforeAll = Date.now();
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
@@ -145,6 +146,8 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       }.`
     );
 
+    let retries = 0;
+
     await retry(
       async () => {
         const timeout = new Timeout();
@@ -154,7 +157,12 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           let pools: RawV3SubgraphPool[] = [];
           let poolsPage: RawV3SubgraphPool[] = [];
 
+          // metrics variables
+          let totalPages = 0;
+
           do {
+            totalPages += 1;
+
             const poolsResult = await this.client.request<{
               pools: RawV3SubgraphPool[];
             }>(query, {
@@ -167,7 +175,12 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
             pools = pools.concat(poolsPage);
 
             lastId = pools[pools.length - 1]!.id;
+            metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.paginate.pageSize`, poolsPage.length);
+
           } while (poolsPage.length > 0);
+
+          metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.paginate`, totalPages);
+          metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.pools.length`, pools.length);
 
           return pools;
         };
@@ -192,16 +205,19 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       {
         retries: this.retries,
         onRetry: (err, retry) => {
+          retries += 1;
           if (
             this.rollback &&
             blockNumber &&
             _.includes(err.message, 'indexed up to')
           ) {
+            metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.indexError`, 1);
             blockNumber = blockNumber - 10;
             log.info(
               `Detected subgraph indexing error. Rolled back block number to: ${blockNumber}`
             );
           }
+          metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.timeout`, 1);
           pools = [];
           log.info(
             { err },
@@ -211,6 +227,9 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       }
     );
 
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.retries`, retries);
+
+    const beforeFilter = Date.now();
     const poolsSanitized = pools
       .filter(
         (pool) =>
@@ -233,6 +252,11 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           tvlUSD: parseFloat(totalValueLockedUSD),
         };
       });
+
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`, Date.now() - beforeFilter);
+
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools`, 1);
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.latency`, Date.now() - beforeAll);
 
     log.info(
       `Got ${pools.length} V3 pools from the subgraph. ${poolsSanitized.length} after filtering`
