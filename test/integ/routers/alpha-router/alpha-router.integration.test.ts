@@ -134,7 +134,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.MOONBEAM]: 30,
   [ChainId.BNB]: 44,
   [ChainId.AVALANCHE]: 36,
-  [ChainId.BASE]: 34,
+  [ChainId.BASE]: 39,
   [ChainId.BASE_GOERLI]: 30,
   [ChainId.ZORA]: 30,
   [ChainId.ZORA_SEPOLIA]: 30,
