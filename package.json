@@ -1,5 +1,5 @@
 {
-  "name": "@sfwdv/up-smart-order-router",
+  "name": "up-smart-order-router",
   "version": "3.28.7",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
