@@ -4,16 +4,16 @@ import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import {
-  DAI_OPTIMISM_SEPOLIA,
   ITokenListProvider,
   IV2SubgraphProvider,
+  V2SubgraphPool,
+} from '../../../providers';
+import {
+  DAI_OPTIMISM_SEPOLIA,
   USDC_ARBITRUM_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
   USDT_OPTIMISM_SEPOLIA,
-  V2SubgraphPool,
-  WBTC_OPTIMISM_SEPOLIA
-} from '../../../providers';
-import {
+  WBTC_OPTIMISM_SEPOLIA,
   CELO,
   CELO_ALFAJORES,
   CEUR_CELO,
