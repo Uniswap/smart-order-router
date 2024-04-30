@@ -25,7 +25,8 @@
     "fix:lint": "eslint src --ext .ts --fix",
     "prepare-release": "run-s cov:check doc:html version doc:publish",
     "test": "jest test/unit",
-    "integ-test": "TS_NODE=true jest test/integ --testRunner='jest-circus/runner'"
+    "integ-test": "TS_NODE=true jest test/integ --testRunner='jest-circus/runner'",
+    "prepare": "npm run build"
   },
   "engines": {
     "node": ">=10"
