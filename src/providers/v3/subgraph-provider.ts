@@ -93,9 +93,10 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     private chainId: ChainId,
     private retries = 2,
     private timeout = 30000,
-    private rollback = true
+    private rollback = true,
+    private subgraphUrlOverride?: string
   ) {
-    const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
+    const subgraphUrl = this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
