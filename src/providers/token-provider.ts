@@ -251,7 +251,7 @@ export const TESNET_DAI_HEMI_SEPOLIA = new Token(
   ChainId.HEMI_SEPOLIA,
   '0xec46e0efb2ea8152da0327a5eb3ff9a43956f13e',
   18,
-  'thDAI',
+  'DAI',
   'Testnet Hemi DAI'
 );
 
