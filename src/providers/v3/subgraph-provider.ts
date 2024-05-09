@@ -238,17 +238,18 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           parseFloat(pool.totalValueLockedETH) > 0.01
       )
       .map((pool) => {
-        const { totalValueLockedETH, totalValueLockedUSD, ...rest } = pool;
+        const { totalValueLockedETH, totalValueLockedUSD } = pool;
 
         return {
-          ...rest,
           id: pool.id.toLowerCase(),
+          feeTier: pool.feeTier,
           token0: {
             id: pool.token0.id.toLowerCase(),
           },
           token1: {
             id: pool.token1.id.toLowerCase(),
           },
+          liquidity: pool.liquidity,
           tvlETH: parseFloat(totalValueLockedETH),
           tvlUSD: parseFloat(totalValueLockedUSD),
         };

@@ -239,7 +239,6 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       })
       .map((pool) => {
         return {
-          ...pool,
           id: pool.id.toLowerCase(),
           token0: {
             id: pool.token0.id.toLowerCase(),
