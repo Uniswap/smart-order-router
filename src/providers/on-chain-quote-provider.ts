@@ -515,7 +515,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
                 const successRateError = this.validateSuccessRate(
                   results.results,
-                  haveRetriedForSuccessRate
+                  haveRetriedForSuccessRate,
+                  useMixedRouteQuoter
                 );
 
                 if (successRateError) {
@@ -1046,7 +1047,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
   protected validateSuccessRate(
     allResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
-    haveRetriedForSuccessRate: boolean
+    haveRetriedForSuccessRate: boolean,
+    useMixedRouteQuoter: boolean
   ): void | SuccessRateError {
     const numResults = allResults.length;
     const numSuccessResults = allResults.filter(
@@ -1061,9 +1063,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         log.info(
           `Quote success rate still below threshold despite retry. Continuing. ${quoteMinSuccessRate}: ${successRate}`
         );
+        metric.putMetric(`${this.metricsPrefix(this.chainId, useMixedRouteQuoter)}QuoteRetriedSuccessRateLow`, successRate, MetricLoggerUnit.Percent);
+
         return;
       }
 
+      metric.putMetric(`${this.metricsPrefix(this.chainId, useMixedRouteQuoter)}QuoteSuccessRateLow`, successRate, MetricLoggerUnit.Percent);
       return new SuccessRateError(
         `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
       );
