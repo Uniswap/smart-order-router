@@ -313,8 +313,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       optimisticCachedRoutes: boolean
     ) => string = (chainId, useMixedRouteQuoter, optimisticCachedRoutes) =>
       useMixedRouteQuoter
-        ? `ChainId_${chainId}_MixedQuoter_OptimisticCachedRoutes${optimisticCachedRoutes}`
-        : `ChainId_${chainId}_V3Quoter_OptimisticCachedRoutes${optimisticCachedRoutes}`
+        ? `ChainId_${chainId}_MixedQuoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
+        : `ChainId_${chainId}_V3Quoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
   ) {}
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
