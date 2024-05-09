@@ -17,7 +17,7 @@ import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { ID_TO_NETWORK_NAME, metric, MetricLoggerUnit } from '../util';
 import {
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
-  QUOTER_V2_ADDRESSES,
+  NEW_QUOTER_V2_ADDRESSES,
 } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
@@ -326,7 +326,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     }
     const quoterAddress = useMixedRouteQuoter
       ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
-      : QUOTER_V2_ADDRESSES[this.chainId];
+      : NEW_QUOTER_V2_ADDRESSES[this.chainId];
 
     if (!quoterAddress) {
       throw new Error(
