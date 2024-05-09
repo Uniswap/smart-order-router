@@ -304,7 +304,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     // In alpha-router default case, we will also define the constants with same values as below.
     protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
     protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
-    protected quoterAddressOverride?: (useMixedRouteQuoter: boolean) => string | undefined,
+    protected quoterAddressOverride?: (
+      useMixedRouteQuoter: boolean
+    ) => string | undefined,
     protected metricsPrefix: (
       chainId: ChainId,
       useMixedRouteQuoter: boolean,
@@ -377,7 +379,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const useMixedRouteQuoter =
       routes.some((route) => route.protocol === Protocol.V2) ||
       routes.some((route) => route.protocol === Protocol.MIXED);
-    const optimisticCachedRoutes = _routingConfig?.optimisticCachedRoutes ?? false;
+    const optimisticCachedRoutes =
+      _routingConfig?.optimisticCachedRoutes ?? false;
 
     /// Validate that there are no incorrect routes / function combinations
     this.validateRoutes(routes, functionName, useMixedRouteQuoter);
@@ -440,7 +443,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
 
     metric.putMetric(
-      `${this.metricsPrefix(this.chainId, useMixedRouteQuoter, optimisticCachedRoutes)}QuoteBatchSize`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
+      )}QuoteBatchSize`,
       inputs.length,
       MetricLoggerUnit.Count
     );
@@ -827,7 +834,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const endTime = Date.now();
     metric.putMetric(
-      `${this.metricsPrefix(this.chainId, useMixedRouteQuoter, optimisticCachedRoutes)}QuoteLatency`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
+      )}QuoteLatency`,
       endTime - startTime,
       MetricLoggerUnit.Milliseconds
     );
@@ -1080,12 +1091,28 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         log.info(
           `Quote success rate still below threshold despite retry. Continuing. ${quoteMinSuccessRate}: ${successRate}`
         );
-        metric.putMetric(`${this.metricsPrefix(this.chainId, useMixedRouteQuoter, optimisticCachedRoutes)}QuoteRetriedSuccessRateLow`, successRate, MetricLoggerUnit.Percent);
+        metric.putMetric(
+          `${this.metricsPrefix(
+            this.chainId,
+            useMixedRouteQuoter,
+            optimisticCachedRoutes
+          )}QuoteRetriedSuccessRateLow`,
+          successRate,
+          MetricLoggerUnit.Percent
+        );
 
         return;
       }
 
-      metric.putMetric(`${this.metricsPrefix(this.chainId, useMixedRouteQuoter, optimisticCachedRoutes)}QuoteSuccessRateLow`, successRate, MetricLoggerUnit.Percent);
+      metric.putMetric(
+        `${this.metricsPrefix(
+          this.chainId,
+          useMixedRouteQuoter,
+          optimisticCachedRoutes
+        )}QuoteSuccessRateLow`,
+        successRate,
+        MetricLoggerUnit.Percent
+      );
       return new SuccessRateError(
         `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
       );
