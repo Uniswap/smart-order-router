@@ -67,9 +67,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     private retries = 2,
     private timeout = 360000,
     private rollback = true,
-    private pageSize = PAGE_SIZE
+    private pageSize = PAGE_SIZE,
+    private subgraphUrlOverride?: string
   ) {
-    const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
+    const subgraphUrl = this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
