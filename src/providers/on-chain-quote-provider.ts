@@ -11,7 +11,6 @@ import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
 
-import { AlphaRouterConfig } from '../routers/alpha-router/alpha-router';
 import { MixedRoute, V2Route, V3Route } from '../routers/router';
 import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
@@ -150,14 +149,14 @@ export interface IOnChainQuoteProvider {
    *
    * @param amountIns The amounts to get quotes for.
    * @param routes The routes to get quotes for.
-   * @param routingConfig Alpha router config.
+   * @param [providerConfig] The provider config.
    * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
   getQuotesManyExactIn<TRoute extends V3Route | V2Route | MixedRoute>(
     amountIns: CurrencyAmount[],
     routes: TRoute[],
-    routingConfig?: AlphaRouterConfig
+    providerConfig?: ProviderConfig
   ): Promise<OnChainQuotes<TRoute>>;
 
   /**
@@ -166,14 +165,14 @@ export interface IOnChainQuoteProvider {
    *
    * @param amountOuts The amounts to get quotes for.
    * @param routes The routes to get quotes for.
-   * @param routingConfig Alpha router config.
+   * @param [providerConfig] The provider config.
    * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
   getQuotesManyExactOut<TRoute extends V3Route>(
     amountOuts: CurrencyAmount[],
     routes: TRoute[],
-    routingConfig?: AlphaRouterConfig
+    providerConfig?: ProviderConfig
   ): Promise<OnChainQuotes<TRoute>>;
 }
 
@@ -345,26 +344,26 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
   >(
     amountIns: CurrencyAmount[],
     routes: TRoute[],
-    routingConfig?: AlphaRouterConfig
+    providerConfig?: ProviderConfig
   ): Promise<OnChainQuotes<TRoute>> {
     return this.getQuotesManyData(
       amountIns,
       routes,
       'quoteExactInput',
-      routingConfig
+      providerConfig
     );
   }
 
   public async getQuotesManyExactOut<TRoute extends V3Route>(
     amountOuts: CurrencyAmount[],
     routes: TRoute[],
-    routingConfig?: AlphaRouterConfig
+    providerConfig?: ProviderConfig
   ): Promise<OnChainQuotes<TRoute>> {
     return this.getQuotesManyData(
       amountOuts,
       routes,
       'quoteExactOutput',
-      routingConfig
+      providerConfig
     );
   }
 
@@ -374,13 +373,13 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     amounts: CurrencyAmount[],
     routes: TRoute[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
-    _routingConfig?: AlphaRouterConfig
+    _providerConfig?: ProviderConfig
   ): Promise<OnChainQuotes<TRoute>> {
     const useMixedRouteQuoter =
       routes.some((route) => route.protocol === Protocol.V2) ||
       routes.some((route) => route.protocol === Protocol.MIXED);
     const optimisticCachedRoutes =
-      _routingConfig?.optimisticCachedRoutes ?? false;
+      _providerConfig?.optimisticCachedRoutes ?? false;
 
     /// Validate that there are no incorrect routes / function combinations
     this.validateRoutes(routes, functionName, useMixedRouteQuoter);
@@ -392,9 +391,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     // Apply the base block offset if provided
     const originalBlockNumber = await this.provider.getBlockNumber();
     const providerConfig: ProviderConfig = {
-      ..._routingConfig,
+      ..._providerConfig,
       blockNumber:
-        _routingConfig?.blockNumber ?? originalBlockNumber + baseBlockOffset,
+        _providerConfig?.blockNumber ?? originalBlockNumber + baseBlockOffset,
     };
 
     const inputs: [string, string][] = _(routes)
