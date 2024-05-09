@@ -189,9 +189,7 @@ export class MixedQuoter extends BaseQuoter<
       `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
 
-    const { routesWithQuotes } = await quoteFn<MixedRoute>(amounts, routes, {
-      blockNumber: routingConfig.blockNumber,
-    });
+    const { routesWithQuotes } = await quoteFn<MixedRoute>(amounts, routes, routingConfig);
 
     metric.putMetric(
       'MixedQuotesLoad',
