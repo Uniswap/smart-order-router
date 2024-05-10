@@ -289,10 +289,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       minTimeout: 25,
       maxTimeout: 250,
     },
-    protected batchParams: BatchParams = {
-      multicallChunk: 150,
-      gasLimitPerCall: 1_000_000,
-      quoteMinSuccessRate: 0.2,
+    protected batchParams: (optimisticCachedRoutes: boolean) => BatchParams = (
+      _
+    ) => {
+      return {
+        multicallChunk: 150,
+        gasLimitPerCall: 1_000_000,
+        quoteMinSuccessRate: 0.2,
+      };
     },
     protected gasErrorFailureOverride: FailureOverrides = {
       gasLimitOverride: 1_500_000,
@@ -384,8 +388,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     /// Validate that there are no incorrect routes / function combinations
     this.validateRoutes(routes, functionName, useMixedRouteQuoter);
 
-    let multicallChunk = this.batchParams.multicallChunk;
-    let gasLimitOverride = this.batchParams.gasLimitPerCall;
+    let multicallChunk = this.batchParams(
+      optimisticCachedRoutes
+    ).multicallChunk;
+    let gasLimitOverride = this.batchParams(
+      optimisticCachedRoutes
+    ).gasLimitPerCall;
     const { baseBlockOffset, rollback } = this.blockNumberConfig;
 
     // Apply the base block offset if provided
@@ -1084,7 +1092,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const successRate = (1.0 * numSuccessResults) / numResults;
 
-    const { quoteMinSuccessRate } = this.batchParams;
+    const { quoteMinSuccessRate } = this.batchParams(optimisticCachedRoutes);
     if (successRate < quoteMinSuccessRate) {
       if (haveRetriedForSuccessRate) {
         log.info(
