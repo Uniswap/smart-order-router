@@ -254,6 +254,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
 
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`, Date.now() - beforeFilter);
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.length`, poolsSanitized.length);
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
+      (poolsSanitized.length / pools.length) * 100
+    );
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools`, 1);
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.latency`, Date.now() - beforeAll);
 
