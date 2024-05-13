@@ -71,8 +71,7 @@ import {
   V2PoolProvider,
 } from '../../providers/v2/pool-provider';
 import {
-  ArbitrumGasData,
-  ArbitrumGasDataProvider,
+  GasData,
   IL2GasDataProvider,
 } from '../../providers/v3/gas-data-provider';
 import {
@@ -233,7 +232,7 @@ export type AlphaRouterParams = {
   /**
    * Calls the arbitrum gas data contract to fetch constants for calculating the l1 fee.
    */
-  arbitrumGasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
+  arbitrumGasDataProvider?: IL2GasDataProvider<GasData>;
 
   /**
    * Simulates swaps and returns new SwapRoute with updated gas estimates.
@@ -449,7 +448,7 @@ export class AlphaRouter
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?:
-    | IL2GasDataProvider<ArbitrumGasData>;
+    | IL2GasDataProvider<GasData>;
   protected simulator?: Simulator;
   protected v2Quoter: V2Quoter;
   protected v3Quoter: V3Quoter;
@@ -477,7 +476,6 @@ export class AlphaRouter
     mixedRouteGasModelFactory,
     swapRouterProvider,
     tokenValidatorProvider,
-    arbitrumGasDataProvider,
     simulator,
     routeCachingProvider,
     tokenPropertiesProvider,
@@ -774,15 +772,6 @@ export class AlphaRouter
     this.swapRouterProvider =
       swapRouterProvider ??
       new SwapRouterProvider(this.multicall2Provider, this.chainId);
-
-    if (
-      chainId === ChainId.ARBITRUM_ONE ||
-      chainId === ChainId.ARBITRUM_GOERLI
-    ) {
-      this.l2GasDataProvider =
-        arbitrumGasDataProvider ??
-        new ArbitrumGasDataProvider(chainId, this.provider);
-    }
 
     // Initialize the Quoters.
     // Quoters are an abstraction encapsulating the business logic of fetching routes and quotes.

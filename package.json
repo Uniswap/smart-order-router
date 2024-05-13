@@ -1,6 +1,6 @@
 {
   "name": "@hemilabs/smart-order-router",
-  "version": "3.26.1-beta.3",
+  "version": "3.26.1-beta.4",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
