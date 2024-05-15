@@ -36,6 +36,7 @@ type RawV3SubgraphPool = {
   };
   totalValueLockedUSD: string;
   totalValueLockedETH: string;
+  totalValueLockedUSDUntracked: string;
 };
 
 export const printV3SubgraphPool = (s: V3SubgraphPool) =>
@@ -94,6 +95,8 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     private retries = 2,
     private timeout = 30000,
     private rollback = true,
+    private trackedEthThreshold = 0.01,
+    private untrackedUsdThreshold = Number.MAX_VALUE,
     private subgraphUrlOverride?: string
   ) {
     const subgraphUrl = this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
@@ -133,6 +136,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           liquidity
           totalValueLockedUSD
           totalValueLockedETH
+          totalValueLockedUSDUntracked
         }
       }
     `;
@@ -230,12 +234,19 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
 
     metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.retries`, retries);
 
+    const untrackedPools = pools.filter(pool => parseFloat(pool.totalValueLockedUSDUntracked) > this.untrackedUsdThreshold);
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, untrackedPools.length);
+    metric.putMetric(
+      `V3SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
+      (untrackedPools.length / pools.length) * 100
+    );
+
     const beforeFilter = Date.now();
     const poolsSanitized = pools
       .filter(
         (pool) =>
           parseInt(pool.liquidity) > 0 ||
-          parseFloat(pool.totalValueLockedETH) > 0.01
+          parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
       )
       .map((pool) => {
         const { totalValueLockedETH, totalValueLockedUSD } = pool;
