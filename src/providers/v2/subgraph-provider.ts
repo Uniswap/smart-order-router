@@ -229,7 +229,13 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
     const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
 
-    const untrackedPools = pools.filter(pool => parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold);
+    const untrackedPools = pools.filter(pool =>
+      pool.token0.id == FEI ||
+      pool.token1.id == FEI ||
+      parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
+      parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
+    );
+
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, untrackedPools.length);
     metric.putMetric(
       `V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,

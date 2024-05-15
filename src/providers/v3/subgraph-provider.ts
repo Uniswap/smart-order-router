@@ -234,7 +234,11 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
 
     metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.retries`, retries);
 
-    const untrackedPools = pools.filter(pool => parseFloat(pool.totalValueLockedUSDUntracked) > this.untrackedUsdThreshold);
+    const untrackedPools = pools.filter(pool =>
+      parseInt(pool.liquidity) > 0 ||
+      parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
+      parseFloat(pool.totalValueLockedUSDUntracked) > this.untrackedUsdThreshold
+    );
     metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, untrackedPools.length);
     metric.putMetric(
       `V3SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
