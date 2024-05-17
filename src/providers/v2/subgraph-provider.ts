@@ -229,17 +229,16 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
     const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
 
-    const untrackedPools = pools.filter(pool =>
+    const tracked = pools.filter(pool =>
       pool.token0.id == FEI ||
       pool.token1.id == FEI ||
-      parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
-      parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
+      parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
-    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, untrackedPools.length);
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.length`, tracked.length);
     metric.putMetric(
-      `V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
-      (untrackedPools.length / pools.length) * 100
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
+      (tracked.length / pools.length) * 100
     );
 
     const beforeFilter = Date.now();
@@ -248,7 +247,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
-          parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
+          parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
+          parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
       })
       .map((pool) => {
@@ -267,9 +267,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       });
 
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`, Date.now() - beforeFilter);
-    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.length`, poolsSanitized.length);
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, poolsSanitized.length);
     metric.putMetric(
-      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
       (poolsSanitized.length / pools.length) * 100
     );
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools`, 1);
