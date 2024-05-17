@@ -656,6 +656,32 @@ export const USDB_BLAST = new Token(
   'USD Blast'
 )
 
+// Rootstock Tokens
+export const DAI_ROOTSTOCK = new Token(
+  ChainId.ROOTSTOCK,
+  '0x6B1a73d547F4009A26B8485b63D7015D248AD406',
+  18,
+  'rDAI',
+  'Dai Stablecoin on RSK'
+);
+
+export const USDT_ROOTSTOCK = new Token(
+  ChainId.ROOTSTOCK,
+  '0xEf213441a85DF4d7acBdAe0Cf78004E1e486BB96',
+  18,
+  'rUSDT',
+  'Tether USD on ROOTSTOCK'
+);
+
+export const USDC_ROOTSTOCK = new Token(
+  ChainId.ROOTSTOCK,
+  '0x1BDa44fda023F2af8280a16FD1b01D1A493BA6c4',
+  18,
+  'rUSDC',
+  'USDC on ROOTSTOCK'
+);
+
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -861,6 +887,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_BNB;
     case ChainId.AVALANCHE:
       return DAI_AVAX;
+    case ChainId.ROOTSTOCK:
+      return DAI_ROOTSTOCK;      
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -882,6 +910,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_ARBITRUM;
     case ChainId.BNB:
       return USDT_BNB;
+    case ChainId.ROOTSTOCK:
+      return USDT_ROOTSTOCK;      
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -923,6 +953,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_BASE;
     case ChainId.BASE_GOERLI:
       return USDC_BASE_GOERLI;
+    case ChainId.ROOTSTOCK:
+      return USDC_ROOTSTOCK;       
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
