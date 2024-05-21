@@ -16,6 +16,7 @@ import {
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
   USDC_ON,
+  USDC_ZORA,
   USDT_MAINNET,
   WETH9,
   WNATIVE_ON
@@ -42,6 +43,8 @@ export const WHALES = (token: Currency): string => {
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case nativeOnChain(ChainId.OPTIMISM):
       return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
+    case nativeOnChain(ChainId.ZORA):
+      return '0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9';
     case WETH9[1]:
       return '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3';
     case WNATIVE_ON(ChainId.MAINNET):
@@ -98,7 +101,7 @@ export const WHALES = (token: Currency): string => {
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case USDC_ON(ChainId.BASE):
       return '0x4a3636608d7bc5776cb19eb72caa36ebb9ea683b';
-    case USDC_ON(ChainId.ZORA):
+    case USDC_ZORA:
       return '0x26eF03A20AaeDA8aaFCeE4E146DC6B328195947C';
     case USDC_NATIVE_BASE:
       return '0x20fe51a9229eef2cf8ad9e89d91cab9312cf3b7a';
