@@ -55,7 +55,7 @@ import {
   WBTC_OPTIMISM_GOERLI,
   WBTC_OPTIMISM_SEPOLIA,
   WMATIC_POLYGON,
-  WMATIC_POLYGON_MUMBAI
+  WMATIC_POLYGON_MUMBAI,
 } from './token-provider';
 
 // These tokens will added to the Token cache on initialization.

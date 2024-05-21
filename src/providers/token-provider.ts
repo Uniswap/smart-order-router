@@ -654,7 +654,7 @@ export const USDB_BLAST = new Token(
   18,
   'USDB',
   'USD Blast'
-)
+);
 
 export const USDC_ZORA = new Token(
   ChainId.ZORA,
