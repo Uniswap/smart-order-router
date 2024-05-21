@@ -61,7 +61,7 @@ import {
   WETH_POLYGON,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-  WXDAI_GNOSIS
+  WXDAI_GNOSIS,
 } from '../token-provider';
 
 import { IV3PoolProvider } from './pool-provider';

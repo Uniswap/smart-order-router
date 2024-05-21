@@ -45,6 +45,7 @@ import {
   USDC_POLYGON,
   USDC_SEPOLIA,
   USDC_WORMHOLE_CELO,
+  USDC_ZORA,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -114,6 +115,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   ],
   [ChainId.BASE]: [USDC_BASE, USDC_NATIVE_BASE],
   [ChainId.BLAST]: [USDB_BLAST],
+  [ChainId.ZORA]: [USDC_ZORA],
 };
 
 export type L1ToL2GasCosts = {

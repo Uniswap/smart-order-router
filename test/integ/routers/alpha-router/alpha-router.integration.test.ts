@@ -136,7 +136,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.AVALANCHE]: 36,
   [ChainId.BASE]: 39,
   [ChainId.BASE_GOERLI]: 30,
-  [ChainId.ZORA]: 30,
+  [ChainId.ZORA]: 40,
   [ChainId.ZORA_SEPOLIA]: 30,
   [ChainId.ROOTSTOCK]: 30,
   [ChainId.BLAST]: 34,
@@ -3377,7 +3377,6 @@ describe('quote for other networks', () => {
       c != ChainId.ARBITRUM_SEPOLIA &&
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.ZORA &&
       c != ChainId.ZORA_SEPOLIA &&
       c != ChainId.ROOTSTOCK
   )) {
@@ -3519,7 +3518,7 @@ describe('quote for other networks', () => {
             const tokenOut = erc2;
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
-            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
+            const exactOutAmount = chain === ChainId.BLAST || chain === ChainId.ZORA ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
@@ -3548,8 +3547,9 @@ describe('quote for other networks', () => {
               return;
             }
 
-            if (chain == ChainId.BLAST) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA) {
               // Blast doesn't have DAI or USDC yet
+              // Zora doesn't have DAI
               return;
             }
 
@@ -3693,7 +3693,7 @@ describe('quote for other networks', () => {
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('10', tokenIn)
+                  ? parseAmount(chain === ChainId.ZORA ? '0.1': '10', tokenIn)
                   : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -3896,8 +3896,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('1', tokenIn)
-                  : parseAmount('1', tokenOut);
+                  ? parseAmount(chain === ChainId.ZORA ? '0.1': '1', tokenIn)
+                  : parseAmount(chain === ChainId.ZORA ? '0.1': '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -3996,7 +3996,7 @@ describe('quote for other networks', () => {
               const tokenIn = nativeOnChain(chain);
               // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
               // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
-              const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
+              const tokenOut = chain == ChainId.BASE || chain == ChainId.ZORA ? USDC_ON(chain) : erc2
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)
