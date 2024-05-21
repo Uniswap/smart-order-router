@@ -3377,7 +3377,6 @@ describe('quote for other networks', () => {
       c != ChainId.ARBITRUM_SEPOLIA &&
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.ZORA &&
       c != ChainId.ZORA_SEPOLIA &&
       c != ChainId.ROOTSTOCK
   )) {

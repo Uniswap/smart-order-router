@@ -165,6 +165,9 @@ export const CACHE_SEED_TOKENS: {
     USDB: USDB_BLAST,
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.BLAST],
   },
+  [ChainId.ZORA]: {
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.ZORA],
+  },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };
 
