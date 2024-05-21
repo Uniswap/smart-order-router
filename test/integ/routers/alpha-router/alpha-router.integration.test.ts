@@ -3547,8 +3547,9 @@ describe('quote for other networks', () => {
               return;
             }
 
-            if (chain == ChainId.BLAST) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA) {
               // Blast doesn't have DAI or USDC yet
+              // Zora doesn't have DAI
               return;
             }
 
