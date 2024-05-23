@@ -501,7 +501,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.BLAST]: new Token(
     ChainId.BLAST,
-    '0x4200000000000000000000000000000000000006',
+    '0x4300000000000000000000000000000000000004',
     18,
     'WETH',
     'Wrapped Ether'
