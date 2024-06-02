@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { ChainId } from '@uniswap/sdk-core';
+import { ChainId } from '@nizaglobal/sdk-core';
 
 import {
   GasModelProviderConfig,

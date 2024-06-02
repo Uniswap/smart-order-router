@@ -1,8 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { ChainId } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { partitionMixedRouteByProtocol } from '@nizaglobal/router-sdk';
+import { ChainId } from '@nizaglobal/sdk-core';
+import { Pair } from '@nizaglobal/v2-sdk';
+import { Pool } from '@nizaglobal/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
@@ -148,7 +148,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       /// can use ! here because we return above if v3Pool and v2Pool are null
       const nativePool =
         (!nativeV3Pool || JSBI.equal(nativeV3Pool.liquidity, JSBI.BigInt(0))) &&
-        nativeV2Pool
+          nativeV2Pool
           ? nativeV2Pool
           : nativeV3Pool!;
 

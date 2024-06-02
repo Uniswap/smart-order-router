@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Currency, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token } from '@nizaglobal/sdk-core';
 
 import { AAVE_MAINNET, LIDO_MAINNET } from '../../../../providers';
 import { V3Route } from '../../../router';
@@ -23,6 +23,8 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
     case ChainId.ZORA:
     case ChainId.ZORA_SEPOLIA:
     case ChainId.ROOTSTOCK:
+    case ChainId.NIZA_TESTNET:
+    case ChainId.NIZA_LIVENET:
     case ChainId.BLAST:
       return BigNumber.from(2000);
     case ChainId.ARBITRUM_ONE:
@@ -51,6 +53,8 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
     case ChainId.SEPOLIA:
     case ChainId.BNB:
     case ChainId.AVALANCHE:
+    case ChainId.NIZA_TESTNET:
+    case ChainId.NIZA_LIVENET:
       return BigNumber.from(31000);
     case ChainId.OPTIMISM:
     case ChainId.OPTIMISM_GOERLI:
@@ -95,6 +99,8 @@ export const COST_PER_HOP = (id: ChainId): BigNumber => {
     case ChainId.ZORA_SEPOLIA:
     case ChainId.ROOTSTOCK:
     case ChainId.BLAST:
+    case ChainId.NIZA_TESTNET:
+    case ChainId.NIZA_LIVENET:
       return BigNumber.from(80000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:

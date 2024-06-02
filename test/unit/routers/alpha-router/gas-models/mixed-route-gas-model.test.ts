@@ -1,7 +1,7 @@
-import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Ether } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { partitionMixedRouteByProtocol } from '@nizaglobal/router-sdk';
+import { Currency, CurrencyAmount, Ether } from '@nizaglobal/sdk-core';
+import { Pair } from '@nizaglobal/v2-sdk';
+import { Pool } from '@nizaglobal/v3-sdk';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import {

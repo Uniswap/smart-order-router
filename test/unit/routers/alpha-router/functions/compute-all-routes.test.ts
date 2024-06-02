@@ -1,5 +1,5 @@
-import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Pair } from '@nizaglobal/v2-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool } from '@nizaglobal/v3-sdk';
 import {
   CurrencyAmount,
   DAI_MAINNET as DAI,

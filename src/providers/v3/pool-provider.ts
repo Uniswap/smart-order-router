@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { ChainId, Token } from '@nizaglobal/sdk-core';
+import { computePoolAddress, FeeAmount, Pool } from '@nizaglobal/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 
@@ -88,7 +88,7 @@ export class V3PoolProvider implements IV3PoolProvider {
       minTimeout: 50,
       maxTimeout: 500,
     }
-  ) {}
+  ) { }
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][],
@@ -130,10 +130,9 @@ export class V3PoolProvider implements IV3PoolProvider {
     ]);
 
     log.info(
-      `Got liquidity and slot0s for ${poolAddressSet.size} pools ${
-        providerConfig?.blockNumber
-          ? `as of block: ${providerConfig?.blockNumber}.`
-          : ``
+      `Got liquidity and slot0s for ${poolAddressSet.size} pools ${providerConfig?.blockNumber
+        ? `as of block: ${providerConfig?.blockNumber}.`
+        : ``
       }`
     );
 

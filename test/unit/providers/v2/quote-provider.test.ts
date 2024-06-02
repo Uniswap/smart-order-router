@@ -1,5 +1,5 @@
-import { ChainId, CurrencyAmount, Fraction, Token } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
+import { ChainId, CurrencyAmount, Fraction, Token } from '@nizaglobal/sdk-core';
+import { Pair } from '@nizaglobal/v2-sdk';
 import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import { V2QuoteProvider, V2Route, WETH9 } from '../../../../src';

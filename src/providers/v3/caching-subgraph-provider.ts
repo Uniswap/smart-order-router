@@ -1,4 +1,4 @@
-import { ChainId } from '@uniswap/sdk-core';
+import { ChainId } from '@nizaglobal/sdk-core';
 
 import { ICache } from './../cache';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
@@ -22,7 +22,7 @@ export class CachingV3SubgraphProvider implements IV3SubgraphProvider {
     private chainId: ChainId,
     protected subgraphProvider: IV3SubgraphProvider,
     private cache: ICache<V3SubgraphPool[]>
-  ) {}
+  ) { }
 
   public async getPools(): Promise<V3SubgraphPool[]> {
     const cachedPools = await this.cache.get(this.SUBGRAPH_KEY(this.chainId));

@@ -1,4 +1,4 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@nizaglobal/sdk-core';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
@@ -108,10 +108,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     let pools: RawV2SubgraphPool[] = [];
 
     log.info(
-      `Getting V2 pools from the subgraph with page size ${this.pageSize}${
-        providerConfig?.blockNumber
-          ? ` as of block ${providerConfig?.blockNumber}`
-          : ''
+      `Getting V2 pools from the subgraph with page size ${this.pageSize}${providerConfig?.blockNumber
+        ? ` as of block ${providerConfig?.blockNumber}`
+        : ''
       }.`
     );
 

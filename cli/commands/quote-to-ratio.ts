@@ -1,7 +1,7 @@
 import { Logger } from '@ethersproject/logger';
 import { flags } from '@oclif/command';
-import { Currency, Ether, Fraction, Percent } from '@uniswap/sdk-core';
-import { Position } from '@uniswap/v3-sdk';
+import { Currency, Ether, Fraction, Percent } from '@nizaglobal/sdk-core';
+import { Position } from '@nizaglobal/v3-sdk';
 import dotenv from 'dotenv';
 import {
   ID_TO_CHAIN_ID,
@@ -91,8 +91,7 @@ export class QuoteToRatio extends BaseCommand {
     );
     if (!pool) {
       log.error(
-        `Could not find pool. ${
-          debug ? '' : 'Run in debug mode for more info'
+        `Could not find pool. ${debug ? '' : 'Run in debug mode for more info'
         }.`
       );
       return;
@@ -169,8 +168,7 @@ export class QuoteToRatio extends BaseCommand {
       return;
     } else if (swapRoutes.status === SwapToRatioStatus.NO_ROUTE_FOUND) {
       log.error(
-        `${swapRoutes.error}. ${
-          debug ? '' : 'Run in debug mode for more info'
+        `${swapRoutes.error}. ${debug ? '' : 'Run in debug mode for more info'
         }.`
       );
       return;

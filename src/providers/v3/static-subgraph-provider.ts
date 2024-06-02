@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { ChainId, Token } from '@nizaglobal/sdk-core';
+import { FeeAmount, Pool } from '@nizaglobal/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
@@ -166,6 +166,8 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.ZORA_SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZORA_SEPOLIA]!],
   [ChainId.ROOTSTOCK]: [WRAPPED_NATIVE_CURRENCY[ChainId.ROOTSTOCK]!],
   [ChainId.BLAST]: [WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!, USDB_BLAST],
+  [ChainId.NIZA_TESTNET]: [WRAPPED_NATIVE_CURRENCY[ChainId.NIZA_TESTNET]!],
+  [ChainId.NIZA_LIVENET]: [WRAPPED_NATIVE_CURRENCY[ChainId.NIZA_LIVENET]!],
 };
 
 /**
@@ -183,7 +185,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private poolProvider: IV3PoolProvider
-  ) {}
+  ) { }
 
   public async getPools(
     tokenIn?: Token,

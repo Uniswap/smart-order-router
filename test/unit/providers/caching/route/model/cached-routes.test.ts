@@ -1,5 +1,5 @@
-import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, TradeType } from '@uniswap/sdk-core';
+import { Protocol } from '@nizaglobal/router-sdk';
+import { ChainId, TradeType } from '@nizaglobal/sdk-core';
 import { V3RouteWithValidQuote } from '../../../../../../build/main';
 import { CachedRoutes, DAI_MAINNET as DAI, USDC_MAINNET as USDC } from '../../../../../../src';
 import { getV3RouteWithValidQuoteStub } from '../test-util/mocked-dependencies';

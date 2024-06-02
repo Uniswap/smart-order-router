@@ -1,4 +1,4 @@
-import { Token } from '@uniswap/sdk-core';
+import { Token } from '@nizaglobal/sdk-core';
 
 import { log } from '../../util';
 import { ProviderConfig } from '../provider';
@@ -17,7 +17,7 @@ export class V2SubgraphProviderWithFallBacks implements IV2SubgraphProvider {
    * Creates an instance of V2SubgraphProviderWithFallBacks.
    * @param fallbacks Ordered list of `IV2SubgraphProvider` to try to get pools from.
    */
-  constructor(private fallbacks: IV2SubgraphProvider[]) {}
+  constructor(private fallbacks: IV2SubgraphProvider[]) { }
 
   public async getPools(
     tokenIn?: Token,

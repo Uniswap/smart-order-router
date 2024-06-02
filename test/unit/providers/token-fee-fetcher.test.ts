@@ -1,6 +1,6 @@
 import { ID_TO_PROVIDER } from '../../../src';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { ChainId, WETH9 } from '@uniswap/sdk-core';
+import { ChainId, WETH9 } from '@nizaglobal/sdk-core';
 import {
   ITokenFeeFetcher,
   OnChainTokenFeeFetcher

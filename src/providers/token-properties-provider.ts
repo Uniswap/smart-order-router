@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@nizaglobal/sdk-core';
 
 import { log, metric, MetricLoggerUnit } from '../util';
 
@@ -47,7 +47,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     private allowList = DEFAULT_ALLOWLIST,
     private positiveCacheEntryTTL = POSITIVE_CACHE_ENTRY_TTL,
     private negativeCacheEntryTTL = NEGATIVE_CACHE_ENTRY_TTL
-  ) {}
+  ) { }
 
   public async getTokensProperties(
     tokens: Token[],

@@ -4,22 +4,22 @@ import {
   MixedRouteSDK,
   Protocol,
   Trade,
-} from '@uniswap/router-sdk';
+} from '@nizaglobal/router-sdk';
 import {
   Currency,
   Fraction,
   Percent,
   Token,
   TradeType,
-} from '@uniswap/sdk-core';
-import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
-import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
+} from '@nizaglobal/sdk-core';
+import { SwapOptions as UniversalRouterSwapOptions } from '@nizaglobal/universal-router-sdk';
+import { Route as V2RouteRaw } from '@nizaglobal/v2-sdk';
 import {
   MethodParameters as SDKMethodParameters,
   Pool,
   Position,
   Route as V3RouteRaw,
-} from '@uniswap/v3-sdk';
+} from '@nizaglobal/v3-sdk';
 
 import { SimulationStatus } from '../providers';
 import { CurrencyAmount } from '../util/amounts';
@@ -169,13 +169,13 @@ export type SwapOptionsSwapRouter02 = {
     s: string;
   } & (
     | {
-        amount: string;
-        deadline: string;
-      }
+      amount: string;
+      deadline: string;
+    }
     | {
-        nonce: string;
-        expiry: string;
-      }
+      nonce: string;
+      expiry: string;
+    }
   );
 };
 

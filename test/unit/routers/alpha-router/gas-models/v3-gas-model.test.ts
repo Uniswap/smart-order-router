@@ -1,4 +1,4 @@
-import { Currency, CurrencyAmount, Ether } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount, Ether } from '@nizaglobal/sdk-core';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import {

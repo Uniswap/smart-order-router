@@ -2,11 +2,11 @@ import { parseUnits } from '@ethersproject/units';
 import {
   Currency,
   CurrencyAmount as CurrencyAmountRaw,
-} from '@uniswap/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+} from '@nizaglobal/sdk-core';
+import { FeeAmount } from '@nizaglobal/v3-sdk';
 import JSBI from 'jsbi';
 
-export class CurrencyAmount extends CurrencyAmountRaw<Currency> {}
+export class CurrencyAmount extends CurrencyAmountRaw<Currency> { }
 
 export const MAX_UINT160 = '0xffffffffffffffffffffffffffffffffffffffff';
 

@@ -1,5 +1,5 @@
 import { JsonRpcSigner } from '@ethersproject/providers';
-import { Currency, CurrencyAmount } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount } from '@nizaglobal/sdk-core';
 import { constants } from 'ethers';
 import { Erc20 } from '../../src/types/other/Erc20';
 import { Erc20__factory } from '../../src/types/other/factories/Erc20__factory';

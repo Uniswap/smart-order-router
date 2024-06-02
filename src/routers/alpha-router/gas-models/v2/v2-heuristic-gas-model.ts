@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
+import { ChainId, Token } from '@nizaglobal/sdk-core';
+import { Pair } from '@nizaglobal/v2-sdk';
 import _ from 'lodash';
 
 import { ProviderConfig } from '../../../../providers/provider';
@@ -74,13 +74,13 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     // Only fetch the native gasToken pool if specified by the config AND the gas token is not the native currency.
     const nativeAndSpecifiedGasTokenPoolPromise =
       providerConfig?.gasToken &&
-      !providerConfig?.gasToken.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)
+        !providerConfig?.gasToken.equals(WRAPPED_NATIVE_CURRENCY[chainId]!)
         ? this.getEthPool(
-            chainId,
-            providerConfig.gasToken,
-            poolProvider,
-            providerConfig
-          )
+          chainId,
+          providerConfig.gasToken,
+          poolProvider,
+          providerConfig
+        )
         : Promise.resolve(null);
 
     const [usdPool, nativeAndSpecifiedGasTokenPool] = await Promise.all([

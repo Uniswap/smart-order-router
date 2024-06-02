@@ -1,4 +1,4 @@
-import { ChainId, Currency, Ether } from '@uniswap/sdk-core';
+import { ChainId, Currency, Ether } from '@nizaglobal/sdk-core';
 import {
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,

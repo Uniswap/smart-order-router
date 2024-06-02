@@ -1,5 +1,5 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
+import { ChainId, Token } from '@nizaglobal/sdk-core';
+import { Pair } from '@nizaglobal/v2-sdk';
 import _ from 'lodash';
 
 import { log } from '../../util/log';
@@ -31,7 +31,7 @@ export class CachingV2PoolProvider implements IV2PoolProvider {
     // we compute quotes off-chain.
     // If no block is specified in the call to getPools we just return whatever is in the cache.
     private cache: ICache<{ pair: Pair; block?: number }>
-  ) {}
+  ) { }
 
   public async getPools(
     tokenPairs: [Token, Token][],
@@ -85,10 +85,8 @@ export class CachingV2PoolProvider implements IV2PoolProvider {
           (t) => t[0].symbol + ' ' + t[1].symbol
         ),
       },
-      `Found ${
-        Object.keys(poolAddressToPool).length
-      } V2 pools already in local cache for block ${blockNumber}. About to get reserves for ${
-        poolsToGetTokenPairs.length
+      `Found ${Object.keys(poolAddressToPool).length
+      } V2 pools already in local cache for block ${blockNumber}. About to get reserves for ${poolsToGetTokenPairs.length
       } pools.`
     );
 

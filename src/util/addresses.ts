@@ -3,8 +3,8 @@ import {
   CHAIN_TO_ADDRESSES_MAP,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
-} from '@uniswap/sdk-core';
-import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
+} from '@nizaglobal/sdk-core';
+import { FACTORY_ADDRESS } from '@nizaglobal/v3-sdk';
 
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
@@ -114,7 +114,7 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
-export const SWAP_ROUTER_02_ADDRESSES= (chainId: number): string => {
+export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
   return SWAP_ROUTER_02_ADDRESSES_HELPER(chainId) ?? '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 };
 
@@ -257,6 +257,20 @@ export const WETH9: {
     18,
     'WETH',
     'Wrapped Ether'
+  ),
+  [ChainId.NIZA_TESTNET]: new Token(
+    ChainId.NIZA_TESTNET,
+    '0xF8003dac552b56050531cDFF25CCd5fCF6A81FCE',
+    18,
+    'NIZA',
+    'Niza Global'
+  ),
+  [ChainId.NIZA_LIVENET]: new Token(
+    ChainId.NIZA_LIVENET,
+    '0xCF5c11f4e1e0035fd163A9F2EE02c6D6C65D313D',
+    18,
+    'NIZA',
+    'Niza Global'
   ),
 };
 
