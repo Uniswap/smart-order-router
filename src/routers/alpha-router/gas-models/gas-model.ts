@@ -50,6 +50,7 @@ import {
   USDT_BNB,
   USDT_GOERLI,
   USDT_MAINNET,
+  USDT_NIZA_MAINNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
   USDT_OPTIMISM_SEPOLIA,
@@ -116,6 +117,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BASE]: [USDC_BASE, USDC_NATIVE_BASE],
   [ChainId.BLAST]: [USDB_BLAST],
   [ChainId.ZORA]: [USDC_ZORA],
+  [ChainId.NIZA_LIVENET]: [USDT_NIZA_MAINNET]
 };
 
 export type L1ToL2GasCosts = {

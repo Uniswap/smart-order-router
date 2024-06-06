@@ -62,9 +62,7 @@ export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
   ChainId.OPTIMISM,
   ChainId.ARBITRUM_ONE,
   ChainId.POLYGON,
-  ChainId.POLYGON_MUMBAI,
-  ChainId.NIZA_TESTNET,
-  ChainId.NIZA_LIVENET,
+  ChainId.POLYGON_MUMBAI
 ];
 
 export const ID_TO_CHAIN_ID = (id: number): ChainId => {

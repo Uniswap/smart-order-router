@@ -51,6 +51,15 @@ export const USDT_MAINNET = new Token(
   'USDT',
   'Tether USD'
 );
+
+export const USDT_NIZA_MAINNET = new Token(
+  ChainId.NIZA_LIVENET,
+  '0xCF5c11f4e1e0035fd163A9F2EE02c6D6C65D313D',
+  18,
+  'NIZA',
+  'Niza Global'
+);
+
 export const WBTC_MAINNET = new Token(
   ChainId.MAINNET,
   '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
@@ -947,6 +956,10 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_BASE_GOERLI;
     case ChainId.ZORA:
       return USDC_ZORA;
+    case ChainId.NIZA_TESTNET:
+      return NIZA_TESTNET;
+    case ChainId.NIZA_LIVENET:
+      return NIZA_LIVENET;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

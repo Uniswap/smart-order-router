@@ -143,7 +143,7 @@ export async function getHighestLiquidityV3USDPool(
     .value();
 
   const poolAccessor = await poolProvider.getPools(usdPools, providerConfig);
-
+  console.log("Gas factory usdTokens", usdTokens)
   const pools = _([
     FeeAmount.HIGH,
     FeeAmount.MEDIUM,
@@ -152,7 +152,7 @@ export async function getHighestLiquidityV3USDPool(
   ])
     .flatMap((feeAmount) => {
       const pools = [];
-
+      console.log("Getting pool for fee amount", feeAmount)
       for (const usdToken of usdTokens) {
         const pool = poolAccessor.getPool(wrappedCurrency, usdToken, feeAmount);
         if (pool) {
@@ -166,8 +166,8 @@ export async function getHighestLiquidityV3USDPool(
     .value();
 
   if (pools.length == 0) {
-    const message = `Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`;
-    log.error({ pools }, message);
+    const message = `HELPERS: Could not find a USD/${wrappedCurrency.symbol} pool for computing gas costs.`;
+    console.trace({ pools }, message);
     throw new Error(message);
   }
 

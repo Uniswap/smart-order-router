@@ -4,7 +4,7 @@ import {
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
 } from '@nizaglobal/sdk-core';
-import { FACTORY_ADDRESS } from '@nizaglobal/v3-sdk';
+// import { FACTORY_ADDRESS } from '@nizaglobal/v3-sdk';
 
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
@@ -18,7 +18,7 @@ export const BNB_V3_MIGRATOR_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].v3MigratorAddress;
 
 export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
-  ...constructSameAddressMap(FACTORY_ADDRESS),
+  ...constructSameAddressMap("0x1F98431c8aD98523631AE4a59f267346ea31F984"),
   [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].v3CoreFactoryAddress,
   [ChainId.CELO_ALFAJORES]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.CELO_ALFAJORES].v3CoreFactoryAddress,
@@ -40,9 +40,11 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v3CoreFactoryAddress,
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v3CoreFactoryAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].v3CoreFactoryAddress,
+  [ChainId.NIZA_TESTNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_TESTNET].v3CoreFactoryAddress,
+  [ChainId.NIZA_LIVENET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_LIVENET].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
-
+console.log("V3 core faktory addresses", V3_CORE_FACTORY_ADDRESSES)
 export const QUOTER_V2_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x61fFE014bA17989E743c5F6cB21bF9697530B21e'),
   [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].quoterAddress,
@@ -111,6 +113,8 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].multicallAddress,
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].multicallAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].multicallAddress,
+  [ChainId.NIZA_TESTNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_TESTNET].multicallAddress,
+  [ChainId.NIZA_LIVENET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_LIVENET].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 

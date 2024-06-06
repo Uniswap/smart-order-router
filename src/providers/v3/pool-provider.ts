@@ -97,7 +97,7 @@ export class V3PoolProvider implements IV3PoolProvider {
     const poolAddressSet: Set<string> = new Set<string>();
     const sortedTokenPairs: Array<[Token, Token, FeeAmount]> = [];
     const sortedPoolAddresses: string[] = [];
-
+    console.log("Called get pools with provider config", providerConfig)
     for (const tokenPair of tokenPairs) {
       const [tokenA, tokenB, feeAmount] = tokenPair;
 
@@ -106,7 +106,7 @@ export class V3PoolProvider implements IV3PoolProvider {
         tokenB,
         feeAmount
       );
-
+      console.log("GetPoolAddress", poolAddress)
       if (poolAddressSet.has(poolAddress)) {
         continue;
       }
@@ -116,7 +116,7 @@ export class V3PoolProvider implements IV3PoolProvider {
       sortedPoolAddresses.push(poolAddress);
     }
 
-    log.debug(
+    console.log(
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
     );
 
@@ -129,7 +129,7 @@ export class V3PoolProvider implements IV3PoolProvider {
       ),
     ]);
 
-    log.info(
+    console.log(
       `Got liquidity and slot0s for ${poolAddressSet.size} pools ${providerConfig?.blockNumber
         ? `as of block: ${providerConfig?.blockNumber}.`
         : ``
@@ -189,7 +189,7 @@ export class V3PoolProvider implements IV3PoolProvider {
 
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
-    log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
+    console.log({ poolStrs }, `Found ${poolStrs.length} valid pools`);
 
     return {
       getPool: (
@@ -197,7 +197,9 @@ export class V3PoolProvider implements IV3PoolProvider {
         tokenB: Token,
         feeAmount: FeeAmount
       ): Pool | undefined => {
+        console.log('Get pool address', tokenA, tokenB, feeAmount)
         const { poolAddress } = this.getPoolAddress(tokenA, tokenB, feeAmount);
+        console.log("pool address result", poolAddress)
         return poolAddressToPool[poolAddress];
       },
       getPoolByAddress: (address: string): Pool | undefined =>
@@ -252,7 +254,7 @@ export class V3PoolProvider implements IV3PoolProvider {
       });
     }, this.retryOptions);
 
-    log.debug(`Pool data fetched as of block ${blockNumber}`);
+    console.log(`Pool data fetched as of block ${blockNumber}`, results);
 
     return results;
   }

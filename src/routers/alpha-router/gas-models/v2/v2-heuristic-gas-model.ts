@@ -284,7 +284,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     );
 
     if (pools.length == 0) {
-      log.error(
+      log.trace(
         { pools },
         `Could not find a USD/WETH pool for computing gas costs.`
       );

@@ -101,7 +101,7 @@ describe('gas factory helpers tests', () => {
           mockPoolProvider as unknown as V3PoolProvider
         )
       ).rejects.toThrowError(
-        `Could not find a USD/${WRAPPED_NATIVE_CURRENCY[1].symbol} pool for computing gas costs.`
+        `TEST. Could not find a USD/${WRAPPED_NATIVE_CURRENCY[1].symbol} pool for computing gas costs.`
       );
     });
   });
