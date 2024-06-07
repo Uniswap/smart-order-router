@@ -672,6 +672,22 @@ export const USDC_ZKSYNC = new Token(
   'USDC'
 );
 
+export const USDCE_ZKSYNC = new Token(
+  ChainId.ZKSYNC,
+  '0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4',
+  6,
+  'USDC.e',
+  'Bridged USDC (zkSync)'
+);
+
+export const DAI_ZKSYNC = new Token(
+  ChainId.ZKSYNC,
+  '0x4B9eb6c0b6ea15176BBF62841C6B2A8a398cb656',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -877,6 +893,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_BNB;
     case ChainId.AVALANCHE:
       return DAI_AVAX;
+    case ChainId.ZKSYNC:
+      return DAI_ZKSYNC;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -942,7 +960,7 @@ export const USDC_ON = (chainId: ChainId): Token => {
     case ChainId.ZORA:
       return USDC_ZORA;
     case ChainId.ZKSYNC:
-      return USDC_ZKSYNC;
+      return USDCE_ZKSYNC;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

@@ -3367,7 +3367,7 @@ describe('quote for other networks', () => {
     [ChainId.ZORA_SEPOLIA]: () => WNATIVE_ON(ChainId.ZORA_SEPOLIA),
     [ChainId.ROOTSTOCK]: () => WNATIVE_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
-    [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
+    [ChainId.ZKSYNC]: () => DAI_ON(ChainId.ZKSYNC),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
