@@ -114,7 +114,7 @@ type TenderlyNodeEstimateGasBundleBody = {
   id: number;
   jsonrpc: string;
   method: string;
-  params: Array<EthJsonRpcRequestBody | blockNumber>;
+  params: Array<Array<EthJsonRpcRequestBody> | blockNumber>;
 };
 
 const TENDERLY_BATCH_SIMULATE_API = (
@@ -684,18 +684,24 @@ export class TenderlySimulator extends Simulator {
         jsonrpc: '2.0',
         method: 'tenderly_estimateGasBundle',
         params: [
-          {
-            from: approvePermit2.from,
-            to: approvePermit2.to,
-            data: approvePermit2.input,
-          },
-          {
-            from: approveUniversalRouter.from,
-            to: approveUniversalRouter.to,
-            data: approveUniversalRouter.input,
-          },
-          { from: swap.from, to: swap.to, data: swap.input },
-          swap.block_number ?? 'latest',
+          [
+            {
+              from: approvePermit2.from,
+              to: approvePermit2.to,
+              data: approvePermit2.input,
+            },
+            {
+              from: approveUniversalRouter.from,
+              to: approveUniversalRouter.to,
+              data: approveUniversalRouter.input,
+            },
+            { from: swap.from, to: swap.to, data: swap.input },
+          ],
+          swap.block_number
+            ? BigNumber.from(swap.block_number)
+                .toHexString()
+                .replace('0x0', '0x')
+            : 'latest',
         ],
       };
 
