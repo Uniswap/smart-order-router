@@ -782,7 +782,7 @@ export class TenderlySimulator extends Simulator {
               { gatewayGas, nodeGas }
             );
             metric.putMetric(
-              'TenderlyNodeGasEstimateBundleGasMismatch',
+              `TenderlyNodeGasEstimateBundleGasMismatch${i}`,
               1,
               MetricLoggerUnit.Count
             );
@@ -795,7 +795,7 @@ export class TenderlySimulator extends Simulator {
               { gatewayGasUsed, nodeGasUsed }
             );
             metric.putMetric(
-              'TenderlyNodeGasEstimateBundleGasUsedMismatch',
+              `TenderlyNodeGasEstimateBundleGasUsedMismatch${i}`,
               1,
               MetricLoggerUnit.Count
             );
