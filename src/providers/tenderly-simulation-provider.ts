@@ -707,11 +707,7 @@ export class TenderlySimulator extends Simulator {
             },
             { from: swap.from, to: swap.to, data: swap.input },
           ],
-          swap.block_number
-            ? BigNumber.from(swap.block_number)
-                .toHexString()
-                .replace('0x0', '0x')
-            : 'latest',
+          swap.block_number ?? 'latest',
         ],
       };
 
