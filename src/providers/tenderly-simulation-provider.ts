@@ -66,7 +66,7 @@ export type GasBody = {
   gasUsed: string;
 };
 
-export type TenderlyResponseEstigateGasBundle = {
+export type TenderlyResponseEstimateGasBundle = {
   id: number;
   jsonrpc: string;
   result: GasBody[];
@@ -728,7 +728,7 @@ export class TenderlySimulator extends Simulator {
       try {
         // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
         const { data: resp, status: httpStatus } =
-          await this.tenderlyServiceInstance.post<TenderlyResponseEstigateGasBundle>(
+          await this.tenderlyServiceInstance.post<TenderlyResponseEstimateGasBundle>(
             nodeEndpoint,
             body
           );
