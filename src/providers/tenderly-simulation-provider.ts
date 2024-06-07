@@ -695,15 +695,22 @@ export class TenderlySimulator extends Simulator {
       const before = Date.now();
 
       // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
-      await this.tenderlyServiceInstance
-        .post(nodeEndpoint, body)
-        .finally(() => {
-          metric.putMetric(
-            'TenderlyNodeGasEstimateBundleLatencies',
-            Date.now() - before,
-            MetricLoggerUnit.Milliseconds
-          );
-        });
+      await this.tenderlyServiceInstance.post(nodeEndpoint, body);
+
+      const latencies = Date.now() - before;
+      metric.putMetric(
+        'TenderlyNodeGasEstimateBundleLatencies',
+        latencies,
+        MetricLoggerUnit.Milliseconds
+      );
+
+      log.info(
+        `Tenderly estimate gas bundle  request body: ${JSON.stringify(
+          body,
+          null,
+          2
+        )}, having latencies ${latencies} in milliseconds.`
+      );
     }
   }
 }
