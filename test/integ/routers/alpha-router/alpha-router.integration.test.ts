@@ -140,6 +140,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.ZORA_SEPOLIA]: 30,
   [ChainId.ROOTSTOCK]: 30,
   [ChainId.BLAST]: 34,
+  [ChainId.ZKSYNC]: 40,
 }
 
 const V2_SUPPORTED_PAIRS = [
@@ -3340,6 +3341,7 @@ describe('quote for other networks', () => {
     [ChainId.ZORA_SEPOLIA]: () => USDC_ON(ChainId.ZORA_SEPOLIA),
     [ChainId.ROOTSTOCK]: () => USDC_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => USDB_BLAST,
+    [ChainId.ZKSYNC]: () => USDC_ON(ChainId.ZKSYNC),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3365,6 +3367,7 @@ describe('quote for other networks', () => {
     [ChainId.ZORA_SEPOLIA]: () => WNATIVE_ON(ChainId.ZORA_SEPOLIA),
     [ChainId.ROOTSTOCK]: () => WNATIVE_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
+    [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.

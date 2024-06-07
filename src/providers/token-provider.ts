@@ -664,6 +664,14 @@ export const USDC_ZORA = new Token(
   'USD Coin (Bridged from Ethereum)'
 );
 
+export const USDC_ZKSYNC = new Token(
+  ChainId.ZKSYNC,
+  '0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4',
+  6,
+  'USDC',
+  'USDC'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -933,6 +941,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_BASE_GOERLI;
     case ChainId.ZORA:
       return USDC_ZORA;
+    case ChainId.ZKSYNC:
+      return USDC_ZKSYNC;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
