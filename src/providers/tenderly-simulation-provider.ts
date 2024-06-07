@@ -61,6 +61,17 @@ export type TenderlyResponseSwapRouter02 = {
   simulation_results: [SimulationResult, SimulationResult];
 };
 
+export type GasBody = {
+  gas: string;
+  gas_used: string;
+};
+
+export type TenderlyResponseEstigateGasBundle = {
+  id: number;
+  jsonrpc: string;
+  result: GasBody[];
+};
+
 enum TenderlySimulationType {
   QUICK = 'quick',
   FULL = 'full',
@@ -385,10 +396,6 @@ export class TenderlySimulator extends Simulator {
       // fire tenderly node endpoint sampling and forget
       this.sampleNodeEndpoint(approvePermit2, approveUniversalRouter, swap);
 
-      await this.tenderlyServiceInstance.post(
-        TENDERLY_NODE_API(chainId, this.tenderlyNodeApiKey)
-      );
-
       const latencies = Date.now() - before;
       log.info(
         `Tenderly simulation universal router request body: ${JSON.stringify(
@@ -692,16 +699,48 @@ export class TenderlySimulator extends Simulator {
         ],
       };
 
-      log.info(`About to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
+      log.info(
+        `About to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
           body,
           null,
           2
-        )}.`);
+        )}.`
+      );
 
       const before = Date.now();
 
-      // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
-      await this.tenderlyServiceInstance.post(nodeEndpoint, body).catch((err) => {
+      try {
+        // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
+        const { data: resp, status: httpStatus } =
+          await this.tenderlyServiceInstance.post<TenderlyResponseEstigateGasBundle>(
+            nodeEndpoint,
+            body
+          );
+
+        const latencies = Date.now() - before;
+        metric.putMetric(
+          'TenderlyNodeGasEstimateBundleLatencies',
+          latencies,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
+          'TenderlyNodeGasEstimateBundleSuccess',
+          1,
+          MetricLoggerUnit.Count
+        );
+
+        log.info(
+          `Tenderly estimate gas bundle request body: ${JSON.stringify(
+            body,
+            null,
+            2
+          )} with http status ${httpStatus} result ${JSON.stringify(
+            resp,
+            null,
+            2
+          )}, having latencies ${latencies} in milliseconds.`
+        );
+      } catch (err) {
         log.error(
           `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
             body,
@@ -715,27 +754,7 @@ export class TenderlySimulator extends Simulator {
           1,
           MetricLoggerUnit.Count
         );
-      });
-
-      const latencies = Date.now() - before;
-      metric.putMetric(
-        'TenderlyNodeGasEstimateBundleLatencies',
-        latencies,
-        MetricLoggerUnit.Milliseconds
-      );
-      metric.putMetric(
-        'TenderlyNodeGasEstimateBundleSuccess',
-        1,
-        MetricLoggerUnit.Count
-      );
-
-      log.info(
-        `Tenderly estimate gas bundle request body: ${JSON.stringify(
-          body,
-          null,
-          2
-        )}, having latencies ${latencies} in milliseconds.`
-      );
+      }
     }
   }
 }
