@@ -63,7 +63,7 @@ export type TenderlyResponseSwapRouter02 = {
 
 export type GasBody = {
   gas: string;
-  gas_used: string;
+  gasUsed: string;
 };
 
 export type TenderlyResponseEstigateGasBundle = {
@@ -394,12 +394,21 @@ export class TenderlySimulator extends Simulator {
           });
 
       // fire tenderly node endpoint sampling and forget
-      this.sampleNodeEndpoint(approvePermit2, approveUniversalRouter, swap);
+      this.sampleNodeEndpoint(
+        approvePermit2,
+        approveUniversalRouter,
+        swap,
+        resp
+      );
 
       const latencies = Date.now() - before;
       log.info(
         `Tenderly simulation universal router request body: ${JSON.stringify(
           body,
+          null,
+          2
+        )} with result ${JSON.stringify(
+          resp,
           null,
           2
         )}, having latencies ${latencies} in milliseconds.`
@@ -667,7 +676,8 @@ export class TenderlySimulator extends Simulator {
   private async sampleNodeEndpoint(
     approvePermit2: TenderlySimulationRequest,
     approveUniversalRouter: TenderlySimulationRequest,
-    swap: TenderlySimulationRequest
+    swap: TenderlySimulationRequest,
+    gatewayResp: TenderlyResponseUniversalRouter
   ): Promise<void> {
     if (
       Math.random() * 100 < (this.tenderlyNodeApiSamplingPercent ?? 0) &&
@@ -746,6 +756,64 @@ export class TenderlySimulator extends Simulator {
             2
           )}, having latencies ${latencies} in milliseconds.`
         );
+
+        if (gatewayResp.simulation_results.length !== resp.result.length) {
+          metric.putMetric(
+            'TenderlyNodeGasEstimateBundleLengthMismatch',
+            1,
+            MetricLoggerUnit.Count
+          );
+          return;
+        }
+
+        let gasEstimateMismatch = false;
+
+        for (
+          let i = 0;
+          i <
+          Math.min(gatewayResp.simulation_results.length, resp.result.length);
+          i++
+        ) {
+          const gatewayGas = gatewayResp.simulation_results[i]!.transaction.gas;
+          const nodeGas = Number(resp.result[i]!.gas);
+          const gatewayGasUsed =
+            gatewayResp.simulation_results[i]!.transaction.gas_used;
+          const nodeGasUsed = Number(resp.result[i]!.gasUsed);
+
+          if (gatewayGas !== nodeGas) {
+            log.error(
+              `Gateway gas and node gas estimates do not match for index ${i}`,
+              { gatewayGas, nodeGas }
+            );
+            metric.putMetric(
+              'TenderlyNodeGasEstimateBundleGasMismatch',
+              1,
+              MetricLoggerUnit.Count
+            );
+            gasEstimateMismatch = true;
+          }
+
+          if (gatewayGasUsed !== nodeGasUsed) {
+            log.error(
+              `Gateway gas and node gas used estimates do not match for index ${i}`,
+              { gatewayGasUsed, nodeGasUsed }
+            );
+            metric.putMetric(
+              'TenderlyNodeGasEstimateBundleGasUsedMismatch',
+              1,
+              MetricLoggerUnit.Count
+            );
+            gasEstimateMismatch = true;
+          }
+        }
+
+        if (!gasEstimateMismatch) {
+          metric.putMetric(
+            'TenderlyNodeGasEstimateBundleMatch',
+            1,
+            MetricLoggerUnit.Count
+          );
+        }
       } catch (err) {
         log.error(
           `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
