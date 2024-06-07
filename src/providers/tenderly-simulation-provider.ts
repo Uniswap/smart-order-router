@@ -17,7 +17,7 @@ import {
   MetricLoggerUnit,
   SwapOptions,
   SwapRoute,
-  SwapType
+  SwapType,
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
@@ -84,12 +84,45 @@ type TenderlySimulationBody = {
   estimate_gas: boolean;
 };
 
+type EthJsonRpcRequestBody = {
+  from: string;
+  to: string;
+  data: string;
+};
+
+type blockNumber =
+  | number
+  | string
+  | 'latest'
+  | 'pending'
+  | 'earliest'
+  | 'finalized'
+  | 'safe';
+
+type TenderlyNodeEstimateGasBundleBody = {
+  id: number;
+  jsonrpc: string;
+  method: string;
+  params: Array<EthJsonRpcRequestBody | blockNumber>;
+};
+
 const TENDERLY_BATCH_SIMULATE_API = (
   tenderlyBaseUrl: string,
   tenderlyUser: string,
   tenderlyProject: string
 ) =>
   `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`;
+
+const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
+  switch (chainId) {
+    case ChainId.MAINNET:
+      return `https://mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    default:
+      throw new Error(
+        `ChainId ${chainId} does not correspond to a tenderly node endpoint`
+      );
+  }
+};
 
 // We multiply tenderly gas limit by this to overestimate gas limit
 const DEFAULT_ESTIMATE_MULTIPLIER = 1.3;
@@ -134,7 +167,12 @@ export class FallbackTenderlySimulator extends Simulator {
 
       try {
         const swapRouteWithGasEstimate =
-          await this.ethEstimateGasSimulator.ethEstimateGas(fromAddress, swapOptions, swapRoute, providerConfig);
+          await this.ethEstimateGasSimulator.ethEstimateGas(
+            fromAddress,
+            swapOptions,
+            swapRoute,
+            providerConfig
+          );
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
@@ -143,7 +181,12 @@ export class FallbackTenderlySimulator extends Simulator {
     }
 
     try {
-      return await this.tenderlySimulator.simulateTransaction(fromAddress, swapOptions, swapRoute, providerConfig);
+      return await this.tenderlySimulator.simulateTransaction(
+        fromAddress,
+        swapOptions,
+        swapRoute,
+        providerConfig
+      );
     } catch (err) {
       log.error({ err: err }, 'Failed to simulate via Tenderly');
 
@@ -164,10 +207,13 @@ export class TenderlySimulator extends Simulator {
   private tenderlyUser: string;
   private tenderlyProject: string;
   private tenderlyAccessKey: string;
+  private tenderlyNodeApiKey: string;
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
   private tenderlyRequestTimeout?: number;
+  private tenderlyNodeApiSamplingPercent?: number;
+  private tenderlyNodeApiEnabledChains?: ChainId[] = [];
   private tenderlyServiceInstance = axios.create({
     // keep connections alive,
     // maxSockets default is Infinity, so Infinity is read as 50 sockets
@@ -181,22 +227,28 @@ export class TenderlySimulator extends Simulator {
     tenderlyUser: string,
     tenderlyProject: string,
     tenderlyAccessKey: string,
+    tenderlyNodeApiKey: string,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
     provider: JsonRpcProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
-    tenderlyRequestTimeout?: number
+    tenderlyRequestTimeout?: number,
+    tenderlyNodeApiSamplingPercent?: number,
+    tenderlyNodeApiEnabledChains?: ChainId[]
   ) {
     super(provider, portionProvider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
     this.tenderlyUser = tenderlyUser;
     this.tenderlyProject = tenderlyProject;
     this.tenderlyAccessKey = tenderlyAccessKey;
+    this.tenderlyNodeApiKey = tenderlyNodeApiKey;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
     this.tenderlyRequestTimeout = tenderlyRequestTimeout;
+    this.tenderlyNodeApiSamplingPercent = tenderlyNodeApiSamplingPercent;
+    this.tenderlyNodeApiEnabledChains = tenderlyNodeApiEnabledChains;
   }
 
   public async simulateTransaction(
@@ -329,6 +381,13 @@ export class TenderlySimulator extends Simulator {
               MetricLoggerUnit.Milliseconds
             );
           });
+
+      // fire tenderly node endpoint sampling and forget
+      this.sampleNodeEndpoint(approvePermit2, approveUniversalRouter, swap);
+
+      await this.tenderlyServiceInstance.post(
+        TENDERLY_NODE_API(chainId, this.tenderlyNodeApiKey)
+      );
 
       const latencies = Date.now() - before;
       log.info(
@@ -509,7 +568,15 @@ export class TenderlySimulator extends Simulator {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedGasToken,
       quoteGasAdjusted,
-    } = await calculateGasUsed(chainId, swapRoute, estimatedGasUsed, this.v2PoolProvider, this.v3PoolProvider, this.provider, providerConfig);
+    } = await calculateGasUsed(
+      chainId,
+      swapRoute,
+      estimatedGasUsed,
+      this.v2PoolProvider,
+      this.v3PoolProvider,
+      this.provider,
+      providerConfig
+    );
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
@@ -588,5 +655,55 @@ export class TenderlySimulator extends Simulator {
       },
       'Failed to Simulate on Tenderly #3 Simulation'
     );
+  }
+
+  private async sampleNodeEndpoint(
+    approvePermit2: TenderlySimulationRequest,
+    approveUniversalRouter: TenderlySimulationRequest,
+    swap: TenderlySimulationRequest
+  ): Promise<void> {
+    if (
+      Math.random() * 100 < (this.tenderlyNodeApiSamplingPercent ?? 0) &&
+      (this.tenderlyNodeApiEnabledChains ?? []).find(
+        (chainId) => chainId === this.chainId
+      )
+    ) {
+      const nodeEndpoint = TENDERLY_NODE_API(
+        this.chainId,
+        this.tenderlyNodeApiKey
+      );
+      const body: TenderlyNodeEstimateGasBundleBody = {
+        id: 1,
+        jsonrpc: '2.0',
+        method: 'tenderly_estimateGasBundle',
+        params: [
+          {
+            from: approvePermit2.from,
+            to: approvePermit2.to,
+            data: approvePermit2.input,
+          },
+          {
+            from: approveUniversalRouter.from,
+            to: approveUniversalRouter.to,
+            data: approveUniversalRouter.input,
+          },
+          { from: swap.from, to: swap.to, data: swap.input },
+          swap.block_number ?? 'latest',
+        ],
+      };
+
+      const before = Date.now();
+
+      // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
+      await this.tenderlyServiceInstance
+        .post(nodeEndpoint, body)
+        .finally(() => {
+          metric.putMetric(
+            'TenderlyNodeGasEstimateBundleLatencies',
+            Date.now() - before,
+            MetricLoggerUnit.Milliseconds
+          );
+        });
+    }
   }
 }
