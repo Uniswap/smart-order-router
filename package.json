@@ -10,6 +10,9 @@
     "url": "https://github.com/nizaglobal/smart-order-router.git"
   },
   "license": "GPL",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [],
   "scripts": {
     "compile-v3-types": "npx typechain --target ethers-v5 --out-dir src/types/v3 './node_modules/@uniswap/?(v3-core|v3-periphery)/artifacts/contracts/**/*.json'",
