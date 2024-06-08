@@ -554,7 +554,6 @@ export class AlphaRouter
         case ChainId.BASE:
         case ChainId.BLAST:
         case ChainId.ZORA:
-        case ChainId.ZKSYNC:
         case ChainId.BASE_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
@@ -579,6 +578,41 @@ export class AlphaRouter
             {
               gasLimitOverride: 3_000_000,
               multicallChunk: 45,
+            },
+            {
+              baseBlockOffset: -10,
+              rollback: {
+                enabled: true,
+                attemptsBeforeRollback: 1,
+                rollbackBlockOffset: -10,
+              },
+            }
+          );
+          break;
+        case ChainId.ZKSYNC:
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            (_) => {
+              return {
+                multicallChunk: 27,
+                gasLimitPerCall: 3_000_000,
+                quoteMinSuccessRate: 0.1,
+              }
+            },
+            {
+              gasLimitOverride: 6_000_000,
+              multicallChunk: 13,
+            },
+            {
+              gasLimitOverride: 6_000_000,
+              multicallChunk: 13,
             },
             {
               baseBlockOffset: -10,
