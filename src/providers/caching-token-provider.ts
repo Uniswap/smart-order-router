@@ -168,6 +168,9 @@ export const CACHE_SEED_TOKENS: {
   [ChainId.ZORA]: {
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.ZORA],
   },
+  [ChainId.ZKSYNC]: {
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.ZKSYNC],
+  },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };
 
