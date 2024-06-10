@@ -3367,7 +3367,7 @@ describe('quote for other networks', () => {
     [ChainId.ZORA_SEPOLIA]: () => WNATIVE_ON(ChainId.ZORA_SEPOLIA),
     [ChainId.ROOTSTOCK]: () => WNATIVE_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
-    [ChainId.ZKSYNC]: () => DAI_ON(ChainId.ZKSYNC),
+    [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3552,9 +3552,10 @@ describe('quote for other networks', () => {
               return;
             }
 
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
+              // Zksync doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -3690,7 +3691,7 @@ describe('quote for other networks', () => {
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
-            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA, ChainId.BLAST].includes(chain)) {
+            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA, ChainId.BLAST, ChainId.ZKSYNC].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
