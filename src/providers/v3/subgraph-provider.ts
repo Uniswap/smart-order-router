@@ -4,7 +4,7 @@ import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-import { log } from '../../util';
+import { log, metric } from '../../util';
 import { ProviderConfig } from '../provider';
 import { V2SubgraphPool } from '../v2/subgraph-provider';
 
@@ -36,6 +36,7 @@ type RawV3SubgraphPool = {
   };
   totalValueLockedUSD: string;
   totalValueLockedETH: string;
+  totalValueLockedUSDUntracked: string;
 };
 
 export const printV3SubgraphPool = (s: V3SubgraphPool) =>
@@ -93,9 +94,12 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     private chainId: ChainId,
     private retries = 2,
     private timeout = 30000,
-    private rollback = true
+    private rollback = true,
+    private trackedEthThreshold = 0.01,
+    private untrackedUsdThreshold = Number.MAX_VALUE,
+    private subgraphUrlOverride?: string
   ) {
-    const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
+    const subgraphUrl = this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
@@ -107,6 +111,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V3SubgraphPool[]> {
+    const beforeAll = Date.now();
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
@@ -131,6 +136,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           liquidity
           totalValueLockedUSD
           totalValueLockedETH
+          totalValueLockedUSDUntracked
         }
       }
     `;
@@ -145,6 +151,8 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       }.`
     );
 
+    let retries = 0;
+
     await retry(
       async () => {
         const timeout = new Timeout();
@@ -154,7 +162,12 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           let pools: RawV3SubgraphPool[] = [];
           let poolsPage: RawV3SubgraphPool[] = [];
 
+          // metrics variables
+          let totalPages = 0;
+
           do {
+            totalPages += 1;
+
             const poolsResult = await this.client.request<{
               pools: RawV3SubgraphPool[];
             }>(query, {
@@ -167,7 +180,12 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
             pools = pools.concat(poolsPage);
 
             lastId = pools[pools.length - 1]!.id;
+            metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.paginate.pageSize`, poolsPage.length);
+
           } while (poolsPage.length > 0);
+
+          metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.paginate`, totalPages);
+          metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.pools.length`, pools.length);
 
           return pools;
         };
@@ -192,16 +210,19 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       {
         retries: this.retries,
         onRetry: (err, retry) => {
+          retries += 1;
           if (
             this.rollback &&
             blockNumber &&
             _.includes(err.message, 'indexed up to')
           ) {
+            metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.indexError`, 1);
             blockNumber = blockNumber - 10;
             log.info(
               `Detected subgraph indexing error. Rolled back block number to: ${blockNumber}`
             );
           }
+          metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.timeout`, 1);
           pools = [];
           log.info(
             { err },
@@ -211,28 +232,52 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
       }
     );
 
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.retries`, retries);
+
+    const untrackedPools = pools.filter(pool =>
+      parseInt(pool.liquidity) > 0 ||
+      parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
+      parseFloat(pool.totalValueLockedUSDUntracked) > this.untrackedUsdThreshold
+    );
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, untrackedPools.length);
+    metric.putMetric(
+      `V3SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
+      (untrackedPools.length / pools.length) * 100
+    );
+
+    const beforeFilter = Date.now();
     const poolsSanitized = pools
       .filter(
         (pool) =>
           parseInt(pool.liquidity) > 0 ||
-          parseFloat(pool.totalValueLockedETH) > 0.01
+          parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
       )
       .map((pool) => {
-        const { totalValueLockedETH, totalValueLockedUSD, ...rest } = pool;
+        const { totalValueLockedETH, totalValueLockedUSD } = pool;
 
         return {
-          ...rest,
           id: pool.id.toLowerCase(),
+          feeTier: pool.feeTier,
           token0: {
             id: pool.token0.id.toLowerCase(),
           },
           token1: {
             id: pool.token1.id.toLowerCase(),
           },
+          liquidity: pool.liquidity,
           tvlETH: parseFloat(totalValueLockedETH),
           tvlUSD: parseFloat(totalValueLockedUSD),
         };
       });
+
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`, Date.now() - beforeFilter);
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.filter.length`, poolsSanitized.length);
+    metric.putMetric(
+      `V3SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
+      (poolsSanitized.length / pools.length) * 100
+    );
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools`, 1);
+    metric.putMetric(`V3SubgraphProvider.chain_${this.chainId}.getPools.latency`, Date.now() - beforeAll);
 
     log.info(
       `Got ${pools.length} V3 pools from the subgraph. ${poolsSanitized.length} after filtering`

@@ -17,7 +17,7 @@ import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import { ID_TO_NETWORK_NAME, metric, MetricLoggerUnit } from '../util';
 import {
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
-  QUOTER_V2_ADDRESSES,
+  NEW_QUOTER_V2_ADDRESSES,
 } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
@@ -289,10 +289,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       minTimeout: 25,
       maxTimeout: 250,
     },
-    protected batchParams: BatchParams = {
-      multicallChunk: 150,
-      gasLimitPerCall: 1_000_000,
-      quoteMinSuccessRate: 0.2,
+    protected batchParams: (
+      optimisticCachedRoutes: boolean,
+      useMixedRouteQuoter: boolean
+    ) => BatchParams = (_optimisticCachedRoutes, _useMixedRouteQuoter) => {
+      return {
+        multicallChunk: 150,
+        gasLimitPerCall: 1_000_000,
+        quoteMinSuccessRate: 0.2,
+      };
     },
     protected gasErrorFailureOverride: FailureOverrides = {
       gasLimitOverride: 1_500_000,
@@ -303,14 +308,17 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     // In alpha-router default case, we will also define the constants with same values as below.
     protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
     protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
-    protected quoterAddressOverride?: (useMixedRouteQuoter: boolean) => string | undefined,
+    protected quoterAddressOverride?: (
+      useMixedRouteQuoter: boolean
+    ) => string | undefined,
     protected metricsPrefix: (
       chainId: ChainId,
-      useMixedRouteQuoter: boolean
-    ) => string = (chainId, useMixedRouteQuoter) =>
+      useMixedRouteQuoter: boolean,
+      optimisticCachedRoutes: boolean
+    ) => string = (chainId, useMixedRouteQuoter, optimisticCachedRoutes) =>
       useMixedRouteQuoter
-        ? `ChainId_${chainId}_MixedQuoter`
-        : `ChainId_${chainId}_V3Quoter`
+        ? `ChainId_${chainId}_MixedQuoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
+        : `ChainId_${chainId}_V3Quoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
   ) {}
 
   private getQuoterAddress(useMixedRouteQuoter: boolean): string {
@@ -326,7 +334,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     }
     const quoterAddress = useMixedRouteQuoter
       ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
-      : QUOTER_V2_ADDRESSES[this.chainId];
+      : NEW_QUOTER_V2_ADDRESSES[this.chainId];
 
     if (!quoterAddress) {
       throw new Error(
@@ -375,12 +383,20 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const useMixedRouteQuoter =
       routes.some((route) => route.protocol === Protocol.V2) ||
       routes.some((route) => route.protocol === Protocol.MIXED);
+    const optimisticCachedRoutes =
+      _providerConfig?.optimisticCachedRoutes ?? false;
 
     /// Validate that there are no incorrect routes / function combinations
     this.validateRoutes(routes, functionName, useMixedRouteQuoter);
 
-    let multicallChunk = this.batchParams.multicallChunk;
-    let gasLimitOverride = this.batchParams.gasLimitPerCall;
+    let multicallChunk = this.batchParams(
+      optimisticCachedRoutes,
+      useMixedRouteQuoter
+    ).multicallChunk;
+    let gasLimitOverride = this.batchParams(
+      optimisticCachedRoutes,
+      useMixedRouteQuoter
+    ).gasLimitPerCall;
     const { baseBlockOffset, rollback } = this.blockNumberConfig;
 
     // Apply the base block offset if provided
@@ -437,14 +453,19 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
 
     metric.putMetric(
-      `${this.metricsPrefix(this.chainId, useMixedRouteQuoter)}QuoteBatchSize`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
+      )}QuoteBatchSize`,
       inputs.length,
       MetricLoggerUnit.Count
     );
     metric.putMetric(
       `${this.metricsPrefix(
         this.chainId,
-        useMixedRouteQuoter
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
       )}QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
       inputs.length,
       MetricLoggerUnit.Count
@@ -515,7 +536,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
                 const successRateError = this.validateSuccessRate(
                   results.results,
-                  haveRetriedForSuccessRate
+                  haveRetriedForSuccessRate,
+                  useMixedRouteQuoter,
+                  optimisticCachedRoutes
                 );
 
                 if (successRateError) {
@@ -620,7 +643,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 metric.putMetric(
                   `${this.metricsPrefix(
                     this.chainId,
-                    useMixedRouteQuoter
+                    useMixedRouteQuoter,
+                    optimisticCachedRoutes
                   )}QuoteBlockConflictErrorRetry`,
                   1,
                   MetricLoggerUnit.Count
@@ -634,7 +658,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 metric.putMetric(
                   `${this.metricsPrefix(
                     this.chainId,
-                    useMixedRouteQuoter
+                    useMixedRouteQuoter,
+                    optimisticCachedRoutes
                   )}QuoteBlockHeaderNotFoundRetry`,
                   1,
                   MetricLoggerUnit.Count
@@ -677,7 +702,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 metric.putMetric(
                   `${this.metricsPrefix(
                     this.chainId,
-                    useMixedRouteQuoter
+                    useMixedRouteQuoter,
+                    optimisticCachedRoutes
                   )}QuoteTimeoutRetry`,
                   1,
                   MetricLoggerUnit.Count
@@ -689,7 +715,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 metric.putMetric(
                   `${this.metricsPrefix(
                     this.chainId,
-                    useMixedRouteQuoter
+                    useMixedRouteQuoter,
+                    optimisticCachedRoutes
                   )}QuoteOutOfGasExceptionRetry`,
                   1,
                   MetricLoggerUnit.Count
@@ -704,7 +731,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 metric.putMetric(
                   `${this.metricsPrefix(
                     this.chainId,
-                    useMixedRouteQuoter
+                    useMixedRouteQuoter,
+                    optimisticCachedRoutes
                   )}QuoteSuccessRateRetry`,
                   1,
                   MetricLoggerUnit.Count
@@ -723,7 +751,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 metric.putMetric(
                   `${this.metricsPrefix(
                     this.chainId,
-                    useMixedRouteQuoter
+                    useMixedRouteQuoter,
+                    optimisticCachedRoutes
                   )}QuoteUnknownReasonRetry`,
                   1,
                   MetricLoggerUnit.Count
@@ -815,7 +844,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const endTime = Date.now();
     metric.putMetric(
-      `${this.metricsPrefix(this.chainId, useMixedRouteQuoter)}QuoteLatency`,
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
+      )}QuoteLatency`,
       endTime - startTime,
       MetricLoggerUnit.Milliseconds
     );
@@ -823,7 +856,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     metric.putMetric(
       `${this.metricsPrefix(
         this.chainId,
-        useMixedRouteQuoter
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
       )}QuoteApproxGasUsedPerSuccessfulCall`,
       approxGasUsedPerSuccessCall,
       MetricLoggerUnit.Count
@@ -832,7 +866,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     metric.putMetric(
       `${this.metricsPrefix(
         this.chainId,
-        useMixedRouteQuoter
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
       )}QuoteNumRetryLoops`,
       finalAttemptNumber - 1,
       MetricLoggerUnit.Count
@@ -841,7 +876,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     metric.putMetric(
       `${this.metricsPrefix(
         this.chainId,
-        useMixedRouteQuoter
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
       )}QuoteTotalCallsToProvider`,
       totalCallsMade,
       MetricLoggerUnit.Count
@@ -850,7 +886,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     metric.putMetric(
       `${this.metricsPrefix(
         this.chainId,
-        useMixedRouteQuoter
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
       )}QuoteExpectedCallsToProvider`,
       expectedCallsMade,
       MetricLoggerUnit.Count
@@ -859,7 +896,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     metric.putMetric(
       `${this.metricsPrefix(
         this.chainId,
-        useMixedRouteQuoter
+        useMixedRouteQuoter,
+        optimisticCachedRoutes
       )}QuoteNumRetriedCalls`,
       totalCallsMade - expectedCallsMade,
       MetricLoggerUnit.Count
@@ -1046,7 +1084,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
   protected validateSuccessRate(
     allResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
-    haveRetriedForSuccessRate: boolean
+    haveRetriedForSuccessRate: boolean,
+    useMixedRouteQuoter: boolean,
+    optimisticCachedRoutes: boolean
   ): void | SuccessRateError {
     const numResults = allResults.length;
     const numSuccessResults = allResults.filter(
@@ -1055,15 +1095,37 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const successRate = (1.0 * numSuccessResults) / numResults;
 
-    const { quoteMinSuccessRate } = this.batchParams;
+    const { quoteMinSuccessRate } = this.batchParams(
+      optimisticCachedRoutes,
+      useMixedRouteQuoter
+    );
     if (successRate < quoteMinSuccessRate) {
       if (haveRetriedForSuccessRate) {
         log.info(
           `Quote success rate still below threshold despite retry. Continuing. ${quoteMinSuccessRate}: ${successRate}`
         );
+        metric.putMetric(
+          `${this.metricsPrefix(
+            this.chainId,
+            useMixedRouteQuoter,
+            optimisticCachedRoutes
+          )}QuoteRetriedSuccessRateLow`,
+          successRate,
+          MetricLoggerUnit.Percent
+        );
+
         return;
       }
 
+      metric.putMetric(
+        `${this.metricsPrefix(
+          this.chainId,
+          useMixedRouteQuoter,
+          optimisticCachedRoutes
+        )}QuoteSuccessRateLow`,
+        successRate,
+        MetricLoggerUnit.Percent
+      );
       return new SuccessRateError(
         `Quote success rate below threshold of ${quoteMinSuccessRate}: ${successRate}`
       );

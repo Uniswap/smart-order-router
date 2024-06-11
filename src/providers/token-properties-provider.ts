@@ -64,14 +64,15 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
 
     const addressesToFetchFeesOnchain: string[] = [];
     const addressesRaw = this.buildAddressesRaw(tokens);
+    const addressesCacheKeys = this.buildAddressesCacheKeys(tokens);
 
     const tokenProperties = await this.tokenPropertiesCache.batchGet(
-      addressesRaw
+      addressesCacheKeys
     );
 
     // Check if we have cached token validation results for any tokens.
     for (const address of addressesRaw) {
-      const cachedValue = tokenProperties[address];
+      const cachedValue = tokenProperties[this.CACHE_KEY(this.chainId, address.toLowerCase())];
       if (cachedValue) {
         metric.putMetric(
           'TokenPropertiesProviderBatchGetCacheHit',
@@ -195,5 +196,18 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     }
 
     return addressesRaw;
+  }
+
+  private buildAddressesCacheKeys(tokens: Token[]): Set<string> {
+    const addressesCacheKeys = new Set<string>();
+
+    for (const token of tokens) {
+      const addressCacheKey = this.CACHE_KEY(this.chainId, token.address.toLowerCase());
+      if (!addressesCacheKeys.has(addressCacheKey)) {
+        addressesCacheKeys.add(addressCacheKey);
+      }
+    }
+
+    return addressesCacheKeys;
   }
 }
