@@ -1,8 +1,6 @@
 name: Release
 
-on:
-  release:
-    types: [published]
+on: workflow_dispatch # TODO set this on a deploy schedule
 
 jobs:
   release:
