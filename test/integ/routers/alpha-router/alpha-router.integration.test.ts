@@ -109,7 +109,7 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 19472074;
+const FORK_BLOCK = 20071566;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
