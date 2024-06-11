@@ -88,7 +88,10 @@ describe('TokenPropertiesProvider', () => {
 
       const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
       expect(cachedTokenProperties).toBeDefined();
-      assertExpectedTokenProperties(cachedTokenProperties, BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
+
+      // Second call to get token properties should not call token fee fetcher
+      const tokenPropertiesMapFromSecondCall = await tokenPropertiesProvider.getTokensProperties([token], { enableFeeOnTransferFeeFetching: true });
+      assertExpectedTokenProperties(tokenPropertiesMapFromSecondCall[token.address.toLowerCase()], BigNumber.from(213), BigNumber.from(800), TokenValidationResult.FOT);
       sinon.assert.calledOnce(mockTokenFeeFetcher.fetchFees)
 
       underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
