@@ -164,6 +164,168 @@ describe('TokenPropertiesProvider', () => {
       }
     });
 
+
+    it('succeeds to get token properties in a single batch when main fetcher fails but fallback succeeds', async function() {
+
+      let mockTokenFeeFetcherFallback: sinon.SinonStubbedInstance<ITokenFeeFetcher>
+      mockTokenFeeFetcherFallback = sinon.createStubInstance(OnChainTokenFeeFetcher)
+
+      const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
+      const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
+      const tokenPropertiesProvider = new TokenPropertiesProvider(
+        ChainId.MAINNET,
+        tokenPropertiesResultCache,
+        mockTokenFeeFetcher,
+        mockTokenFeeFetcherFallback
+      )
+      const currentEpochTimeInSeconds = Math.floor(Date.now() / 1000);
+
+      const token1 = new Token(1, '0x0000000000000000000000000000000000000012', 18);
+      const token2 = new Token(1, '0x0000000000000000000000000000000000000034', 18);
+      const token3 = new Token(1, '0x0000000000000000000000000000000000000056', 18);
+
+      const tokens = [token1, token2, token3]
+
+      mockTokenFeeFetcher.fetchFees.callsFake(async (_) => {
+        throw new Error("Something went wrong")
+      });
+
+      mockTokenFeeFetcherFallback.fetchFees.callsFake(async (addresses) => {
+        const tokenToResult: TokenFeeMap = {};
+        addresses.forEach((address) => {
+          tokenToResult[address] = {
+            buyFeeBps: BigNumber.from(parseInt(address[address.length - 2]!)),
+            sellFeeBps: BigNumber.from(parseInt(address[address.length - 1]!))
+          }
+        });
+
+        return tokenToResult
+      });
+
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
+
+      for (const token of tokens) {
+        const address = token.address.toLowerCase()
+        expect(tokenPropertiesMap[address]).toBeDefined();
+        expect(tokenPropertiesMap[address]?.tokenFeeResult).toBeDefined();
+        const expectedBuyFeeBps = tokenPropertiesMap[address]?.tokenFeeResult?.buyFeeBps
+        const expectedSellFeeBps = tokenPropertiesMap[address]?.tokenFeeResult?.sellFeeBps
+        assertExpectedTokenProperties(tokenPropertiesMap[address], expectedBuyFeeBps, expectedSellFeeBps, TokenValidationResult.FOT);
+
+        const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(cachedTokenProperties).toBeDefined();
+        assertExpectedTokenProperties(cachedTokenProperties, expectedBuyFeeBps, expectedSellFeeBps, TokenValidationResult.FOT);
+
+        underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase())) ?? 0) / 1000)).toEqual(currentEpochTimeInSeconds + POSITIVE_CACHE_ENTRY_TTL);
+      }
+    });
+
+
+    it('succeeds to get token properties, some from primary fetcher, some from secondary fetcher', async function() {
+
+      let mockTokenFeeFetcherFallback: sinon.SinonStubbedInstance<ITokenFeeFetcher>
+      mockTokenFeeFetcherFallback = sinon.createStubInstance(OnChainTokenFeeFetcher)
+
+      const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
+      const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
+      const tokenPropertiesProvider = new TokenPropertiesProvider(
+        ChainId.MAINNET,
+        tokenPropertiesResultCache,
+        mockTokenFeeFetcher,
+        mockTokenFeeFetcherFallback
+      )
+      const currentEpochTimeInSeconds = Math.floor(Date.now() / 1000);
+
+      const token1 = new Token(1, '0x0000000000000000000000000000000000000012', 18);
+      const token2 = new Token(1, '0x0000000000000000000000000000000000000034', 18);
+      const token3 = new Token(1, '0x0000000000000000000000000000000000000056', 18);
+
+      const tokens = [token1, token2, token3]
+
+      mockTokenFeeFetcher.fetchFees.callsFake(async (_) => {
+        return {
+            '0x0000000000000000000000000000000000000012': {
+              'buyFeeBps': BigNumber.from(213),
+              'sellFeeBps': BigNumber.from(800)
+            },
+            '0x0000000000000000000000000000000000000034': {
+              'buyFeeBps': BigNumber.from(213),
+              'sellFeeBps': BigNumber.from(800)
+            }
+          }
+      });
+
+      mockTokenFeeFetcherFallback.fetchFees.callsFake(async (_) => {
+        return {
+          '0x0000000000000000000000000000000000000056': {
+            'buyFeeBps': BigNumber.from(213),
+            'sellFeeBps': BigNumber.from(800)
+          }
+        }
+      });
+
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
+
+      for (const token of tokens) {
+        const address = token.address.toLowerCase()
+        expect(tokenPropertiesMap[address]).toBeDefined();
+        expect(tokenPropertiesMap[address]?.tokenFeeResult).toBeDefined();
+        const expectedBuyFeeBps = tokenPropertiesMap[address]?.tokenFeeResult?.buyFeeBps
+        const expectedSellFeeBps = tokenPropertiesMap[address]?.tokenFeeResult?.sellFeeBps
+        assertExpectedTokenProperties(tokenPropertiesMap[address], expectedBuyFeeBps, expectedSellFeeBps, TokenValidationResult.FOT);
+
+        const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(cachedTokenProperties).toBeDefined();
+        assertExpectedTokenProperties(cachedTokenProperties, expectedBuyFeeBps, expectedSellFeeBps, TokenValidationResult.FOT);
+
+        underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase())) ?? 0) / 1000)).toEqual(currentEpochTimeInSeconds + POSITIVE_CACHE_ENTRY_TTL);
+      }
+    });
+
+
+    it('all token fee fetch failed for primary and fallback fetcher', async function() {
+      let mockTokenFeeFetcherFallback: sinon.SinonStubbedInstance<ITokenFeeFetcher>
+      mockTokenFeeFetcherFallback = sinon.createStubInstance(OnChainTokenFeeFetcher)
+
+      const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
+      const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);
+      const tokenPropertiesProvider = new TokenPropertiesProvider(
+        ChainId.MAINNET,
+        tokenPropertiesResultCache,
+        mockTokenFeeFetcher,
+        mockTokenFeeFetcherFallback
+      )
+      const currentEpochTimeInSeconds = Math.floor(Date.now() / 1000);
+
+      const token1 = new Token(1, '0x0000000000000000000000000000000000000012', 18);
+      const token2 = new Token(1, '0x0000000000000000000000000000000000000034', 18);
+      const token3 = new Token(1, '0x0000000000000000000000000000000000000056', 18);
+
+      const tokens = [token1, token2, token3]
+
+      mockTokenFeeFetcher.fetchFees.withArgs(tokens.map(token => token.address)).throws(new Error('Failed to fetch fees for token 1'));
+      mockTokenFeeFetcherFallback.fetchFees.withArgs(tokens.map(token => token.address)).throws(new Error('Failed to fetch fees for token 1'));
+
+      const tokenPropertiesMap = await tokenPropertiesProvider.getTokensProperties(tokens, { enableFeeOnTransferFeeFetching: true });
+
+      for (const token of tokens) {
+        const address = token.address.toLowerCase()
+        expect(tokenPropertiesMap[address]).toBeDefined();
+        expect(tokenPropertiesMap[address]?.tokenFeeResult).toBeUndefined();
+        expect(tokenPropertiesMap[address]?.tokenValidationResult).toBeUndefined();
+
+        const cachedTokenProperties = await tokenPropertiesResultCache.get(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(cachedTokenProperties).toBeDefined();
+        expect(cachedTokenProperties?.tokenFeeResult).toBeUndefined();
+        expect(cachedTokenProperties?.tokenValidationResult).toBeUndefined();
+
+        underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase()))
+        expect(Math.floor((underlyingCache.getTtl(CACHE_KEY(ChainId.MAINNET, token.address.toLowerCase())) ?? 0) / 1000)).toEqual(currentEpochTimeInSeconds + NEGATIVE_CACHE_ENTRY_TTL);
+      }
+    });
+
     it('all token fee fetch failed', async function() {
       const underlyingCache: NodeCache = new NodeCache({ stdTTL: 3600, useClones: false })
       const tokenPropertiesResultCache: NodeJSCache<TokenPropertiesResult> = new NodeJSCache(underlyingCache);

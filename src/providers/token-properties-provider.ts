@@ -44,6 +44,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     private chainId: ChainId,
     private tokenPropertiesCache: ICache<TokenPropertiesResult>,
     private tokenFeeFetcher: ITokenFeeFetcher,
+    private tokenFeeFetcherFallback: ITokenFeeFetcher | undefined = undefined,
     private allowList = DEFAULT_ALLOWLIST,
     private positiveCacheEntryTTL = POSITIVE_CACHE_ENTRY_TTL,
     private negativeCacheEntryTTL = NEGATIVE_CACHE_ENTRY_TTL
@@ -55,6 +56,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
   ): Promise<TokenPropertiesMap> {
     const tokenToResult: TokenPropertiesMap = {};
 
+    // Note: Before enabling more ChainIds, make sure that provided tokenFeeFetchers supports them.
     if (
       !providerConfig?.enableFeeOnTransferFeeFetching ||
       this.chainId !== ChainId.MAINNET
@@ -62,7 +64,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       return tokenToResult;
     }
 
-    const addressesToFetchFeesOnchain: string[] = [];
+    const addressesToFetchFees: string[] = [];
     const addressesRaw = this.buildAddressesRaw(tokens);
     const addressesCacheKeys = this.buildAddressesCacheKeys(tokens);
 
@@ -103,27 +105,51 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
           tokenValidationResult: TokenValidationResult.UNKN,
         };
       } else {
-        addressesToFetchFeesOnchain.push(address);
+        addressesToFetchFees.push(address);
       }
     }
 
-    if (addressesToFetchFeesOnchain.length > 0) {
+    if (addressesToFetchFees.length > 0) {
       let tokenFeeMap: TokenFeeMap = {};
 
       try {
         tokenFeeMap = await this.tokenFeeFetcher.fetchFees(
-          addressesToFetchFeesOnchain,
+          addressesToFetchFees,
           providerConfig
         );
       } catch (err) {
         log.error(
           { err },
-          `Error fetching fees for tokens ${addressesToFetchFeesOnchain}`
+          `Error fetching fees for tokens ${addressesToFetchFees}`
         );
       }
 
+      if (this.tokenFeeFetcherFallback) {
+        // If a fallback fetcher is provided, we will use it to fetch fees for tokens that were not fetched by the primary fetcher.
+        const addressesToFetchFeesWithFallbackFetcher = addressesToFetchFees.filter(
+          (address) => !tokenFeeMap[address]
+        );
+        if (addressesToFetchFeesWithFallbackFetcher.length > 0) {
+          try {
+            const tokenFeeMapFromFallback = await this.tokenFeeFetcherFallback.fetchFees(
+              addressesToFetchFeesWithFallbackFetcher,
+              providerConfig
+            );
+            tokenFeeMap = {
+              ...tokenFeeMap,
+              ...tokenFeeMapFromFallback,
+            };
+          } catch (err) {
+            log.error(
+              { err },
+              `Error fetching fees for tokens ${addressesToFetchFeesWithFallbackFetcher} using fallback`
+            );
+          }
+        }
+      }
+
       await Promise.all(
-        addressesToFetchFeesOnchain.map((address) => {
+        addressesToFetchFees.map((address) => {
           const tokenFee = tokenFeeMap[address];
           const tokenFeeResultExists: BigNumber | undefined =
             tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps);
