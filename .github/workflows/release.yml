@@ -33,8 +33,10 @@ jobs:
           # Defaults to the user or organization that owns the workflow file
           scope: '@uniswap'
       
-      - name: Build
+      - name: Set up ci
         run: npm ci 
+        
+      - name: Build
         run: npm run build
       
       - name: Publish
