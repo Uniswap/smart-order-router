@@ -685,7 +685,7 @@ jobs:
       - name: Run Integration tests
         run: npm run integ-test  -- -t 'quote for other networks * zora'
         env:
-          JSON_RPC_PROVIDER_BLAST: ${{ secrets.JSON_RPC_PROVIDER_ZORA }}
+          JSON_RPC_PROVIDER_ZORA: ${{ secrets.JSON_RPC_PROVIDER_ZORA }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
@@ -718,7 +718,7 @@ jobs:
       - name: Run Integration tests
         run: npm run integ-test  -- -t 'quote for other networks * zksync'
         env:
-          JSON_RPC_PROVIDER_BLAST: ${{ secrets.JSON_RPC_PROVIDER_ZKSYNC }}
+          JSON_RPC_PROVIDER_ZKSYNC: ${{ secrets.JSON_RPC_PROVIDER_ZKSYNC }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
