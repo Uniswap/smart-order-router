@@ -1,0 +1,44 @@
+name: Release
+
+on: workflow_dispatch # TODO set this on a deploy schedule
+
+jobs:
+  release:
+    name: Release
+    environment:
+      name: release
+    runs-on:
+      group: npm-deploy
+    steps:
+      - name: Load Secrets
+        uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0
+        with:
+          # Export loaded secrets as environment variables
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          NPM_TOKEN: op://sdk-npm-deploys/npm-runner-token/secret
+      
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: "true"
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: 'https://registry.npmjs.org'
+          # Defaults to the user or organization that owns the workflow file
+          scope: '@uniswap'
+      
+      - name: Build
+        run: npm ci 
+        run: npm run build
+      
+      - name: Publish
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+
