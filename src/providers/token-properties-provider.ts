@@ -19,8 +19,8 @@ import {
 export const DEFAULT_TOKEN_PROPERTIES_RESULT: TokenPropertiesResult = {
   tokenFeeResult: DEFAULT_TOKEN_FEE_RESULT,
 };
-export const POSITIVE_CACHE_ENTRY_TTL = 600; // 10 minutes in seconds
-export const NEGATIVE_CACHE_ENTRY_TTL = 600; // 10 minutes in seconds
+export const POSITIVE_CACHE_ENTRY_TTL = 1200; // 20 minutes in seconds
+export const NEGATIVE_CACHE_ENTRY_TTL = 1200; // 20 minutes in seconds
 
 type Address = string;
 export type TokenPropertiesResult = {
