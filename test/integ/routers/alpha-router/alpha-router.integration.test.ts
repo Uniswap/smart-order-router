@@ -3,7 +3,11 @@
  */
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
-import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
+import {
+  AllowanceTransfer,
+  permit2Address,
+  PermitSingle
+} from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
 import {
   ChainId,
@@ -17,7 +21,6 @@ import {
   TradeType
 } from '@uniswap/sdk-core';
 import {
-  PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
 } from '@uniswap/universal-router-sdk';
 import {
@@ -298,14 +301,14 @@ describe('alpha router integration', () => {
       // because there is custom logic built in for handling USDT and other checks
       tokenInBefore = await getBalanceAndApprove(
         alice,
-        PERMIT2_ADDRESS,
+        permit2Address(ChainId.MAINNET),
         tokenIn
       );
       const MAX_UINT160 = '0xffffffffffffffffffffffffffffffffffffffff';
 
       // If not using permit do a regular approval allowing narwhal max balance.
       if (!permit) {
-        const aliceP2 = Permit2__factory.connect(PERMIT2_ADDRESS, alice);
+        const aliceP2 = Permit2__factory.connect(permit2Address(ChainId.MAINNET), alice);
         const approveNarwhal = await aliceP2.approve(
           tokenIn.wrapped.address,
           UNIVERSAL_ROUTER_ADDRESS,
@@ -914,7 +917,7 @@ describe('alpha router integration', () => {
 
           const { domain, types, values } = AllowanceTransfer.getPermitData(
             permit,
-            PERMIT2_ADDRESS,
+            permit2Address(ChainId.MAINNET),
             1
           );
 
@@ -990,7 +993,7 @@ describe('alpha router integration', () => {
 
           const { domain, types, values } = AllowanceTransfer.getPermitData(
             permit,
-            PERMIT2_ADDRESS,
+            permit2Address(ChainId.MAINNET),
             1
           );
 
@@ -1200,7 +1203,7 @@ describe('alpha router integration', () => {
 
           const { domain, types, values } = AllowanceTransfer.getPermitData(
             permit,
-            PERMIT2_ADDRESS,
+            permit2Address(ChainId.MAINNET),
             1
           );
 
@@ -1862,7 +1865,7 @@ describe('alpha router integration', () => {
 
               const { domain, types, values } = AllowanceTransfer.getPermitData(
                 permit,
-                PERMIT2_ADDRESS,
+                permit2Address(ChainId.MAINNET),
                 1
               );
 

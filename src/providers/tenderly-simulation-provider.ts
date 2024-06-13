@@ -5,7 +5,6 @@ import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 import {
-  PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS,
 } from '@uniswap/universal-router-sdk';
 import axios, { AxiosRequestConfig } from 'axios';
@@ -42,6 +41,7 @@ import {
 } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
+import { permit2Address } from '@uniswap/permit2-sdk';
 
 export type TenderlyResponseUniversalRouter = {
   config: {
@@ -310,7 +310,7 @@ export class TenderlySimulator extends Simulator {
       const erc20Interface = Erc20__factory.createInterface();
       const approvePermit2Calldata = erc20Interface.encodeFunctionData(
         'approve',
-        [PERMIT2_ADDRESS, MaxUint256]
+        [permit2Address(this.chainId), MaxUint256]
       );
 
       // We are unsure if the users calldata contains a permit or not. We just
@@ -339,7 +339,7 @@ export class TenderlySimulator extends Simulator {
         network_id: chainId,
         estimate_gas: true,
         input: approveUniversalRouterCallData,
-        to: PERMIT2_ADDRESS,
+        to: permit2Address(this.chainId),
         value: '0',
         from: fromAddress,
         simulation_type: TenderlySimulationType.QUICK,
