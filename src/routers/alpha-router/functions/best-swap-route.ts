@@ -592,6 +592,12 @@ export async function getBestSwapRouteBy(
         );
       }
 
+      if (decimalsDiff < 0 && chainId === 324) {
+          log.error(`Decimals diff is negative for ZkSync. This should not happen.
+          usdTokenDecimals ${usdTokenDecimals} routeWithValidQuote.gasCostInUSD.currency.decimals
+          ${routeWithValidQuote.gasCostInUSD.currency.decimals} ${JSON.stringify(routeWithValidQuote)}`);
+      }
+
       return CurrencyAmount.fromRawAmount(
         usdToken,
         JSBI.multiply(
