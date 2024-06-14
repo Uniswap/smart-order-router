@@ -117,7 +117,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BASE]: [USDC_BASE, USDC_NATIVE_BASE],
   [ChainId.BLAST]: [USDB_BLAST],
   [ChainId.ZORA]: [USDC_ZORA],
-  [ChainId.ZKSYNC]: [USDCE_ZKSYNC, USDC_ZKSYNC, DAI_ZKSYNC],
+  [ChainId.ZKSYNC]: [DAI_ZKSYNC, USDCE_ZKSYNC, USDC_ZKSYNC],
 };
 
 export type L1ToL2GasCosts = {
