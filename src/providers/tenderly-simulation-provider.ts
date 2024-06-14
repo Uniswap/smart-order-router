@@ -43,7 +43,6 @@ import {
 import { IV2PoolProvider } from './v2/pool-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
 
-
 export type TenderlyResponseUniversalRouter = {
   config: {
     url: string;
@@ -786,7 +785,11 @@ export class TenderlySimulator extends Simulator {
           if (gatewayGas !== nodeGas) {
             log.error(
               `Gateway gas and node gas estimates do not match for index ${i}
-              gateway request body ${JSON.stringify(gatewayReq.simulations[i], null, 2)}
+              gateway request body ${JSON.stringify(
+                gatewayReq.simulations[i],
+                null,
+                2
+              )}
               node request body ${JSON.stringify(body.params[i], null, 2)}`,
               { gatewayGas, nodeGas }
             );
@@ -801,7 +804,11 @@ export class TenderlySimulator extends Simulator {
           if (gatewayGasUsed !== nodeGasUsed) {
             log.error(
               `Gateway gas and node gas used estimates do not match for index ${i}
-              gateway request body ${JSON.stringify(gatewayReq.simulations[i], null, 2)}
+              gateway request body ${JSON.stringify(
+                gatewayReq.simulations[i],
+                null,
+                2
+              )}
               node request body ${JSON.stringify(body.params[i], null, 2)}`,
               { gatewayGasUsed, nodeGasUsed }
             );
