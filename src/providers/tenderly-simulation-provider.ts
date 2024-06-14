@@ -3,6 +3,7 @@ import https from 'https';
 
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { permit2Address } from '@uniswap/permit2-sdk';
 import { ChainId } from '@uniswap/sdk-core';
 import {
   UNIVERSAL_ROUTER_ADDRESS,
@@ -41,7 +42,6 @@ import {
 } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
-import { permit2Address } from '@uniswap/permit2-sdk';
 
 export type TenderlyResponseUniversalRouter = {
   config: {
@@ -398,6 +398,7 @@ export class TenderlySimulator extends Simulator {
         approvePermit2,
         approveUniversalRouter,
         swap,
+        body,
         resp
       );
 
@@ -677,6 +678,7 @@ export class TenderlySimulator extends Simulator {
     approvePermit2: TenderlySimulationRequest,
     approveUniversalRouter: TenderlySimulationRequest,
     swap: TenderlySimulationRequest,
+    gatewayReq: TenderlySimulationBody,
     gatewayResp: TenderlyResponseUniversalRouter
   ): Promise<void> {
     if (
@@ -782,7 +784,13 @@ export class TenderlySimulator extends Simulator {
 
           if (gatewayGas !== nodeGas) {
             log.error(
-              `Gateway gas and node gas estimates do not match for index ${i}`,
+              `Gateway gas and node gas estimates do not match for index ${i}
+              gateway request body ${JSON.stringify(
+                gatewayReq.simulations[i],
+                null,
+                2
+              )}
+              node request body ${JSON.stringify(body.params[i], null, 2)}`,
               { gatewayGas, nodeGas }
             );
             metric.putMetric(
@@ -795,7 +803,13 @@ export class TenderlySimulator extends Simulator {
 
           if (gatewayGasUsed !== nodeGasUsed) {
             log.error(
-              `Gateway gas and node gas used estimates do not match for index ${i}`,
+              `Gateway gas and node gas used estimates do not match for index ${i}
+              gateway request body ${JSON.stringify(
+                gatewayReq.simulations[i],
+                null,
+                2
+              )}
+              node request body ${JSON.stringify(body.params[i], null, 2)}`,
               { gatewayGasUsed, nodeGasUsed }
             );
             metric.putMetric(
