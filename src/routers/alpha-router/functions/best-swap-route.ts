@@ -585,7 +585,7 @@ export async function getBestSwapRouteBy(
       const decimalsDiff =
         usdTokenDecimals - routeWithValidQuote.gasCostInUSD.currency.decimals;
 
-      if (decimalsDiff == 0) {
+      if (decimalsDiff <= 0) {
         return CurrencyAmount.fromRawAmount(
           usdToken,
           routeWithValidQuote.gasCostInUSD.quotient
@@ -594,7 +594,7 @@ export async function getBestSwapRouteBy(
 
       if (decimalsDiff < 0 && chainId === 324) {
           log.error(`Decimals diff is negative for ZkSync. This should not happen.
-          usdTokenDecimals ${usdTokenDecimals} routeWithValidQuote.gasCostInUSD.currency.decimals
+          usdToken ${JSON.stringify(usdToken)} usdTokenDecimals ${usdTokenDecimals} routeWithValidQuote.gasCostInUSD.currency.decimals
           ${routeWithValidQuote.gasCostInUSD.currency.decimals} ${JSON.stringify(routeWithValidQuote)}`);
       }
 
