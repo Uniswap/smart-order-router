@@ -3,9 +3,9 @@ import https from 'https';
 
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { permit2Address } from '@uniswap/permit2-sdk';
 import { ChainId } from '@uniswap/sdk-core';
 import {
-  PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS,
 } from '@uniswap/universal-router-sdk';
 import axios, { AxiosRequestConfig } from 'axios';
@@ -310,7 +310,7 @@ export class TenderlySimulator extends Simulator {
       const erc20Interface = Erc20__factory.createInterface();
       const approvePermit2Calldata = erc20Interface.encodeFunctionData(
         'approve',
-        [PERMIT2_ADDRESS, MaxUint256]
+        [permit2Address(this.chainId), MaxUint256]
       );
 
       // We are unsure if the users calldata contains a permit or not. We just
@@ -339,7 +339,7 @@ export class TenderlySimulator extends Simulator {
         network_id: chainId,
         estimate_gas: true,
         input: approveUniversalRouterCallData,
-        to: PERMIT2_ADDRESS,
+        to: permit2Address(this.chainId),
         value: '0',
         from: fromAddress,
         simulation_type: TenderlySimulationType.QUICK,
@@ -398,6 +398,7 @@ export class TenderlySimulator extends Simulator {
         approvePermit2,
         approveUniversalRouter,
         swap,
+        body,
         resp
       );
 
@@ -677,6 +678,7 @@ export class TenderlySimulator extends Simulator {
     approvePermit2: TenderlySimulationRequest,
     approveUniversalRouter: TenderlySimulationRequest,
     swap: TenderlySimulationRequest,
+    gatewayReq: TenderlySimulationBody,
     gatewayResp: TenderlyResponseUniversalRouter
   ): Promise<void> {
     if (
@@ -782,7 +784,13 @@ export class TenderlySimulator extends Simulator {
 
           if (gatewayGas !== nodeGas) {
             log.error(
-              `Gateway gas and node gas estimates do not match for index ${i}`,
+              `Gateway gas and node gas estimates do not match for index ${i}
+              gateway request body ${JSON.stringify(
+                gatewayReq.simulations[i],
+                null,
+                2
+              )}
+              node request body ${JSON.stringify(body.params[i], null, 2)}`,
               { gatewayGas, nodeGas }
             );
             metric.putMetric(
@@ -795,7 +803,13 @@ export class TenderlySimulator extends Simulator {
 
           if (gatewayGasUsed !== nodeGasUsed) {
             log.error(
-              `Gateway gas and node gas used estimates do not match for index ${i}`,
+              `Gateway gas and node gas used estimates do not match for index ${i}
+              gateway request body ${JSON.stringify(
+                gatewayReq.simulations[i],
+                null,
+                2
+              )}
+              node request body ${JSON.stringify(body.params[i], null, 2)}`,
               { gatewayGasUsed, nodeGasUsed }
             );
             metric.putMetric(
