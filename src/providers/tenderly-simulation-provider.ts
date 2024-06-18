@@ -135,6 +135,8 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
   }
 };
 
+export const TENDERLY_NOT_SUPPORTED_CHAINS = [ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.ZKSYNC]
+
 // We multiply tenderly gas limit by this to overestimate gas limit
 const DEFAULT_ESTIMATE_MULTIPLIER = 1.3;
 
@@ -271,8 +273,9 @@ export class TenderlySimulator extends Simulator {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
     const chainId = this.chainId;
-    if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.ZKSYNC].includes(chainId)) {
-      const msg = 'Celo not supported by Tenderly!';
+
+    if (TENDERLY_NOT_SUPPORTED_CHAINS.includes(chainId)) {
+      const msg = `${TENDERLY_NOT_SUPPORTED_CHAINS.toString()} not supported by Tenderly!`;
       log.info(msg);
       return { ...swapRoute, simulationStatus: SimulationStatus.NotSupported };
     }
