@@ -402,7 +402,8 @@ export class TenderlySimulator extends Simulator {
         approveUniversalRouter,
         swap,
         body,
-        resp
+        resp,
+        blockNumber
       );
 
       const latencies = Date.now() - before;
@@ -682,7 +683,8 @@ export class TenderlySimulator extends Simulator {
     approveUniversalRouter: TenderlySimulationRequest,
     swap: TenderlySimulationRequest,
     gatewayReq: TenderlySimulationBody,
-    gatewayResp: TenderlyResponseUniversalRouter
+    gatewayResp: TenderlyResponseUniversalRouter,
+    blockNumber?: number
   ): Promise<void> {
     if (
       Math.random() * 100 < (this.tenderlyNodeApiSamplingPercent ?? 0) &&
@@ -712,11 +714,7 @@ export class TenderlySimulator extends Simulator {
             },
             { from: swap.from, to: swap.to, data: swap.input },
           ],
-          swap.block_number
-            ? BigNumber.from(swap.block_number)
-              .toHexString()
-              .replace('0x0', '0x')
-            : 'latest',
+          blockNumber ?? 'latest',
         ],
       };
 
@@ -793,7 +791,7 @@ export class TenderlySimulator extends Simulator {
                 null,
                 2
               )}
-              node request body ${JSON.stringify(body.params[i], null, 2)}`,
+              node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[0], null, 2)}`,
               { gatewayGas, nodeGas }
             );
             metric.putMetric(
@@ -812,7 +810,7 @@ export class TenderlySimulator extends Simulator {
                 null,
                 2
               )}
-              node request body ${JSON.stringify(body.params[i], null, 2)}`,
+              node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[0], null, 2)}`,
               { gatewayGasUsed, nodeGasUsed }
             );
             metric.putMetric(
