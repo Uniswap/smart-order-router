@@ -5,9 +5,7 @@ import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { permit2Address } from '@uniswap/permit2-sdk';
 import { ChainId } from '@uniswap/sdk-core';
-import {
-  UNIVERSAL_ROUTER_ADDRESS,
-} from '@uniswap/universal-router-sdk';
+import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
 import axios, { AxiosRequestConfig } from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
@@ -135,7 +133,11 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
   }
 };
 
-export const TENDERLY_NOT_SUPPORTED_CHAINS = [ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.ZKSYNC]
+export const TENDERLY_NOT_SUPPORTED_CHAINS = [
+  ChainId.CELO,
+  ChainId.CELO_ALFAJORES,
+  ChainId.ZKSYNC,
+];
 
 // We multiply tenderly gas limit by this to overestimate gas limit
 const DEFAULT_ESTIMATE_MULTIPLIER = 1.3;
@@ -694,6 +696,9 @@ export class TenderlySimulator extends Simulator {
         this.chainId,
         this.tenderlyNodeApiKey
       );
+      const blockNumber = swap.block_number
+        ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
+        : 'latest';
       const body: TenderlyNodeEstimateGasBundleBody = {
         id: 1,
         jsonrpc: '2.0',
@@ -712,11 +717,7 @@ export class TenderlySimulator extends Simulator {
             },
             { from: swap.from, to: swap.to, data: swap.input },
           ],
-          swap.block_number
-            ? BigNumber.from(swap.block_number)
-              .toHexString()
-              .replace('0x0', '0x')
-            : 'latest',
+          blockNumber,
         ],
       };
 
@@ -787,14 +788,8 @@ export class TenderlySimulator extends Simulator {
 
           if (gatewayGas !== nodeGas) {
             log.error(
-              `Gateway gas and node gas estimates do not match for index ${i}
-              gateway request body ${JSON.stringify(
-                gatewayReq.simulations[i],
-                null,
-                2
-              )}
-              node request body ${JSON.stringify(body.params[i], null, 2)}`,
-              { gatewayGas, nodeGas }
+              `Gateway gas and node gas estimates do not match for index ${i}`,
+              { gatewayGas, nodeGas, blockNumber }
             );
             metric.putMetric(
               `TenderlyNodeGasEstimateBundleGasMismatch${i}`,
@@ -806,14 +801,8 @@ export class TenderlySimulator extends Simulator {
 
           if (gatewayGasUsed !== nodeGasUsed) {
             log.error(
-              `Gateway gas and node gas used estimates do not match for index ${i}
-              gateway request body ${JSON.stringify(
-                gatewayReq.simulations[i],
-                null,
-                2
-              )}
-              node request body ${JSON.stringify(body.params[i], null, 2)}`,
-              { gatewayGasUsed, nodeGasUsed }
+              `Gateway gas and node gas used estimates do not match for index ${i}`,
+              { gatewayGas, nodeGas, blockNumber }
             );
             metric.putMetric(
               `TenderlyNodeGasEstimateBundleGasUsedMismatch${i}`,
@@ -829,6 +818,12 @@ export class TenderlySimulator extends Simulator {
             'TenderlyNodeGasEstimateBundleMatch',
             1,
             MetricLoggerUnit.Count
+          );
+        } else {
+          log.error(
+            `Gateway gas and node gas estimates do not match
+              gateway request body ${JSON.stringify(gatewayReq, null, 2)}
+              node request body ${JSON.stringify(body, null, 2)}`
           );
         }
       } catch (err) {
