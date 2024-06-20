@@ -402,8 +402,7 @@ export class TenderlySimulator extends Simulator {
         approveUniversalRouter,
         swap,
         body,
-        resp,
-        blockNumber
+        resp
       );
 
       const latencies = Date.now() - before;
@@ -684,7 +683,6 @@ export class TenderlySimulator extends Simulator {
     swap: TenderlySimulationRequest,
     gatewayReq: TenderlySimulationBody,
     gatewayResp: TenderlyResponseUniversalRouter,
-    blockNumber?: number
   ): Promise<void> {
     if (
       Math.random() * 100 < (this.tenderlyNodeApiSamplingPercent ?? 0) &&
@@ -714,7 +712,11 @@ export class TenderlySimulator extends Simulator {
             },
             { from: swap.from, to: swap.to, data: swap.input },
           ],
-          blockNumber ?? 'latest',
+          swap.block_number
+            ? BigNumber.from(swap.block_number)
+              .toHexString()
+              .replace('0x0', '0x')
+            : 'latest',
         ],
       };
 
