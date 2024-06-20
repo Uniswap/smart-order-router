@@ -694,6 +694,11 @@ export class TenderlySimulator extends Simulator {
         this.chainId,
         this.tenderlyNodeApiKey
       );
+      const blockNumber = swap.block_number
+        ? BigNumber.from(swap.block_number)
+          .toHexString()
+          .replace('0x0', '0x')
+        : 'latest'
       const body: TenderlyNodeEstimateGasBundleBody = {
         id: 1,
         jsonrpc: '2.0',
@@ -712,11 +717,7 @@ export class TenderlySimulator extends Simulator {
             },
             { from: swap.from, to: swap.to, data: swap.input },
           ],
-          swap.block_number
-            ? BigNumber.from(swap.block_number)
-              .toHexString()
-              .replace('0x0', '0x')
-            : 'latest',
+          blockNumber,
         ],
       };
 
@@ -794,7 +795,7 @@ export class TenderlySimulator extends Simulator {
                 2
               )}
               node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[i], null, 2)}`,
-              { gatewayGas, nodeGas }
+              { gatewayGas, nodeGas, blockNumber }
             );
             metric.putMetric(
               `TenderlyNodeGasEstimateBundleGasMismatch${i}`,
@@ -813,7 +814,7 @@ export class TenderlySimulator extends Simulator {
                 2
               )}
               node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[i], null, 2)}`,
-              { gatewayGasUsed, nodeGasUsed }
+              { gatewayGasUsed, nodeGasUsed, blockNumber }
             );
             metric.putMetric(
               `TenderlyNodeGasEstimateBundleGasUsedMismatch${i}`,
