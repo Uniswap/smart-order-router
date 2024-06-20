@@ -793,7 +793,7 @@ export class TenderlySimulator extends Simulator {
                 null,
                 2
               )}
-              node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[0], null, 2)}`,
+              node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[i], null, 2)}`,
               { gatewayGas, nodeGas }
             );
             metric.putMetric(
@@ -812,7 +812,7 @@ export class TenderlySimulator extends Simulator {
                 null,
                 2
               )}
-              node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[0], null, 2)}`,
+              node request body ${JSON.stringify((body.params[0]! as Array<EthJsonRpcRequestBody>)[i], null, 2)}`,
               { gatewayGasUsed, nodeGasUsed }
             );
             metric.putMetric(
