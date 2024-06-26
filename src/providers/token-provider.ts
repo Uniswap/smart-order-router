@@ -673,13 +673,54 @@ export const USDC_ZORA = new Token(
   'USD Coin (Bridged from Ethereum)'
 );
 
+// niza testnet
 export const NIZA_TESTNET = new Token(
   ChainId.NIZA_TESTNET,
-  '0xF8003dac552b56050531cDFF25CCd5fCF6A81FCE',
+  '0x8d8DCc9dA14B68204bF6B931EB219b749A4ADcc6',
+  9,
+  'WNiza',
+  'Wrapped Niza'
+);
+
+export const NIZA_TESTNET_USDC = new Token(
+  ChainId.NIZA_TESTNET,
+  '0xe53f67F2e96987b0189e4b121C4beCB1726C8d2D',
+  6,
+  'USDCMock',
+  'USD Coin Mock'
+);
+
+export const NIZA_TESTNET_USDT = new Token(
+  ChainId.NIZA_TESTNET,
+  '0x789c2De7da048978318AF2E191cC1310663e32B9',
+  6,
+  'USDTMock',
+  'Tethered Mock'
+);
+
+export const NIZA_TESTNET_WBTC = new Token(
+  ChainId.NIZA_TESTNET,
+  '0x8eB17Bc48c3BFD80383739a96d95dDA7277cd5f8',
+  8,
+  'WBTCMock',
+  'Wrapped Bitcoin Mock'
+);
+
+export const NIZA_TESTNET_DAI = new Token(
+  ChainId.NIZA_TESTNET,
+  '0x938e10A948b0f2eE40E0FA963A6Fcb3c39fedCc9',
   18,
-  'NIZA',
-  'Niza Global'
-)
+  'DAIMock',
+  'Dai Mock'
+);
+
+export const NIZA_TESTNET_WETH = new Token(
+  ChainId.NIZA_TESTNET,
+  '0x5C7920ADFDEf939F282C9c72456E2129bD266CfD',
+  18,
+  'WETHMock',
+  'Wrapped Ether Mock'
+);
 
 export const NIZA_LIVENET = new Token(
   ChainId.NIZA_LIVENET,
@@ -687,13 +728,13 @@ export const NIZA_LIVENET = new Token(
   18,
   'NIZA',
   'Niza Global'
-)
+);
 
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) { }
+  ) {}
 
   private async getTokenSymbol(
     addresses: string[],
@@ -838,8 +879,10 @@ export class TokenProvider implements ITokenProvider {
       }
 
       log.info(
-        `Got token symbol and decimals for ${Object.values(addressToToken).length
-        } out of ${addresses.length} tokens on-chain ${providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
+        `Got token symbol and decimals for ${
+          Object.values(addressToToken).length
+        } out of ${addresses.length} tokens on-chain ${
+          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
         }`
       );
     }

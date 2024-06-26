@@ -591,6 +591,7 @@ export class AlphaRouter
         case ChainId.ARBITRUM_ONE:
         case ChainId.ARBITRUM_GOERLI:
         case ChainId.ARBITRUM_SEPOLIA:
+          case ChainId.NIZA_TESTNET:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,

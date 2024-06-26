@@ -140,7 +140,7 @@ export enum ChainName {
   BASE_GOERLI = 'base-goerli',
   BLAST = 'blast-mainnet',
   ZORA = 'zora-mainnet',
-  NIZA_TESTNET = 'niza_testnet',
+  NIZA_TESTNET = 'nizaTestnet',
   NIZA_LIVENET = 'niza_livenet',
 }
 
@@ -532,10 +532,10 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.NIZA_TESTNET]: new Token(
     ChainId.NIZA_TESTNET,
-    '0xF8003dac552b56050531cDFF25CCd5fCF6A81FCE',
-    18,
-    'NIZA',
-    'Niza Global'
+    '0x8d8DCc9dA14B68204bF6B931EB219b749A4ADcc6',
+    9,
+    'WNiza',
+    'Wrapped Niza'
   ),
   [ChainId.NIZA_LIVENET]: new Token(
     ChainId.NIZA_LIVENET,
