@@ -64,10 +64,19 @@ export type GasBody = {
   gasUsed: string;
 };
 
+// Standard JSON RPC error response https://www.jsonrpc.org/specification#error_object
+export type JsonRpcError = {
+  error: {
+    code: number;
+    message: string;
+    data: string;
+  };
+};
+
 export type TenderlyResponseEstimateGasBundle = {
   id: number;
   jsonrpc: string;
-  result: GasBody[];
+  result: Array<JsonRpcError | GasBody>;
 };
 
 enum TenderlySimulationType {
@@ -780,36 +789,55 @@ export class TenderlySimulator extends Simulator {
           Math.min(gatewayResp.simulation_results.length, resp.result.length);
           i++
         ) {
-          const gatewayGas = gatewayResp.simulation_results[i]!.transaction.gas;
-          const nodeGas = Number(resp.result[i]!.gas);
-          const gatewayGasUsed =
-            gatewayResp.simulation_results[i]!.transaction.gas_used;
-          const nodeGasUsed = Number(resp.result[i]!.gasUsed);
+          const singleNodeResp = resp.result[i];
+          const singleGatewayResp = gatewayResp.simulation_results[i];
+          if (
+            (singleNodeResp as GasBody).gas &&
+            (singleNodeResp as GasBody).gasUsed
+          ) {
+            const gatewayGas = singleGatewayResp?.transaction.gas;
+            const nodeGas = Number((singleNodeResp as GasBody).gas);
+            const gatewayGasUsed = singleGatewayResp?.transaction.gas_used;
+            const nodeGasUsed = Number((singleNodeResp as GasBody).gasUsed);
 
-          if (gatewayGas !== nodeGas) {
-            log.error(
-              `Gateway gas and node gas estimates do not match for index ${i}`,
-              { gatewayGas, nodeGas, blockNumber }
-            );
-            metric.putMetric(
-              `TenderlyNodeGasEstimateBundleGasMismatch${i}`,
-              1,
-              MetricLoggerUnit.Count
-            );
-            gasEstimateMismatch = true;
-          }
+            if (gatewayGas !== nodeGas) {
+              log.error(
+                `Gateway gas and node gas estimates do not match for index ${i}`,
+                { gatewayGas, nodeGas, blockNumber }
+              );
+              metric.putMetric(
+                `TenderlyNodeGasEstimateBundleGasMismatch${i}`,
+                1,
+                MetricLoggerUnit.Count
+              );
+              gasEstimateMismatch = true;
+            }
 
-          if (gatewayGasUsed !== nodeGasUsed) {
-            log.error(
-              `Gateway gas and node gas used estimates do not match for index ${i}`,
-              { gatewayGas, nodeGas, blockNumber }
-            );
-            metric.putMetric(
-              `TenderlyNodeGasEstimateBundleGasUsedMismatch${i}`,
-              1,
-              MetricLoggerUnit.Count
-            );
-            gasEstimateMismatch = true;
+            if (gatewayGasUsed !== nodeGasUsed) {
+              log.error(
+                `Gateway gas and node gas used estimates do not match for index ${i}`,
+                { gatewayGas, nodeGas, blockNumber }
+              );
+              metric.putMetric(
+                `TenderlyNodeGasEstimateBundleGasUsedMismatch${i}`,
+                1,
+                MetricLoggerUnit.Count
+              );
+              gasEstimateMismatch = true;
+            }
+          } else if ((singleNodeResp as JsonRpcError).error) {
+            if (!singleGatewayResp?.transaction.error_message) {
+              log.error(
+                `Gateway and node error messages do not match for index ${i}`,
+                { blockNumber }
+              );
+              metric.putMetric(
+                `TenderlyNodeGasEstimateBundleErrorMismatch${i}`,
+                1,
+                MetricLoggerUnit.Count
+              );
+              gasEstimateMismatch = true;
+            }
           }
         }
 
@@ -828,6 +856,7 @@ export class TenderlySimulator extends Simulator {
         }
       } catch (err) {
         log.error(
+          { err },
           `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
             body,
             null,
