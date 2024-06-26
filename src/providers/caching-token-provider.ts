@@ -26,6 +26,10 @@ import {
   DAI_POLYGON_MUMBAI,
   ETH_BNB,
   ITokenProvider,
+  NIZA_TESTNET_DAI,
+  NIZA_TESTNET_USDC,
+  NIZA_TESTNET_USDT,
+  NIZA_TESTNET_WBTC,
   TokenAccessor,
   USDB_BLAST,
   USDC_ARBITRUM,
@@ -167,6 +171,13 @@ export const CACHE_SEED_TOKENS: {
   },
   [ChainId.ZORA]: {
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.ZORA],
+  },
+  [ChainId.NIZA_TESTNET]: {
+    USDC: NIZA_TESTNET_USDC,
+    USDT: NIZA_TESTNET_USDT,
+    WBTC: NIZA_TESTNET_WBTC,
+    DAI: NIZA_TESTNET_DAI,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.NIZA_TESTNET],
   },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };
