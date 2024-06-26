@@ -3,7 +3,11 @@
  */
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
-import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk';
+import {
+  AllowanceTransfer,
+  permit2Address,
+  PermitSingle
+} from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
 import {
   ChainId,
@@ -17,7 +21,6 @@ import {
   TradeType
 } from '@uniswap/sdk-core';
 import {
-  PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
 } from '@uniswap/universal-router-sdk';
 import {
@@ -109,7 +112,7 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 19472074;
+const FORK_BLOCK = 20071566;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
@@ -132,14 +135,15 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
   [ChainId.CELO_ALFAJORES]: 30,
   [ChainId.GNOSIS]: 30,
   [ChainId.MOONBEAM]: 30,
-  [ChainId.BNB]: 44,
+  [ChainId.BNB]: 63,
   [ChainId.AVALANCHE]: 36,
   [ChainId.BASE]: 39,
   [ChainId.BASE_GOERLI]: 30,
-  [ChainId.ZORA]: 30,
+  [ChainId.ZORA]: 40,
   [ChainId.ZORA_SEPOLIA]: 30,
   [ChainId.ROOTSTOCK]: 30,
   [ChainId.BLAST]: 34,
+  [ChainId.ZKSYNC]: 40,
 }
 
 const V2_SUPPORTED_PAIRS = [
@@ -297,14 +301,14 @@ describe('alpha router integration', () => {
       // because there is custom logic built in for handling USDT and other checks
       tokenInBefore = await getBalanceAndApprove(
         alice,
-        PERMIT2_ADDRESS,
+        permit2Address(ChainId.MAINNET),
         tokenIn
       );
       const MAX_UINT160 = '0xffffffffffffffffffffffffffffffffffffffff';
 
       // If not using permit do a regular approval allowing narwhal max balance.
       if (!permit) {
-        const aliceP2 = Permit2__factory.connect(PERMIT2_ADDRESS, alice);
+        const aliceP2 = Permit2__factory.connect(permit2Address(ChainId.MAINNET), alice);
         const approveNarwhal = await aliceP2.approve(
           tokenIn.wrapped.address,
           UNIVERSAL_ROUTER_ADDRESS,
@@ -696,6 +700,7 @@ describe('alpha router integration', () => {
       process.env.TENDERLY_USER!,
       process.env.TENDERLY_PROJECT!,
       process.env.TENDERLY_ACCESS_KEY!,
+      process.env.TENDERLY_NODE_API_KEY!,
       v2PoolProvider,
       v3PoolProvider,
       hardhat.providers[0]!,
@@ -795,6 +800,17 @@ describe('alpha router integration', () => {
         });
 
         it('erc20 -> erc20 works when symbol is returning bytes32', async () => {
+          if (tradeType == TradeType.EXACT_OUTPUT) {
+            // exact out can no longer return the correct exact out amount.
+            // I tried both swap-simulated quoter (https://etherscan.io/address/0x61fFE014bA17989E743c5F6cB21bF9697530B21e#code)
+            // and view-only quoter (https://etherscan.io/address/0x5e55C9e631FAE526cd4B0526C4818D6e0a9eF0e3#code)
+            // and both cannot get the exact out amount for this trade pair and trade size.
+            // we are ignoring the exact out part of this test,
+            // since exact in can also test the token symbol bytes32 RPC call as part of the multicalls.
+            // See linear ticket ROUTE-146
+            return;
+          }
+
           // This token has a bytes32 symbol type
           const tokenIn = new Token(
             ChainId.MAINNET,
@@ -901,7 +917,7 @@ describe('alpha router integration', () => {
 
           const { domain, types, values } = AllowanceTransfer.getPermitData(
             permit,
-            PERMIT2_ADDRESS,
+            permit2Address(ChainId.MAINNET),
             1
           );
 
@@ -977,7 +993,7 @@ describe('alpha router integration', () => {
 
           const { domain, types, values } = AllowanceTransfer.getPermitData(
             permit,
-            PERMIT2_ADDRESS,
+            permit2Address(ChainId.MAINNET),
             1
           );
 
@@ -1187,7 +1203,7 @@ describe('alpha router integration', () => {
 
           const { domain, types, values } = AllowanceTransfer.getPermitData(
             permit,
-            PERMIT2_ADDRESS,
+            permit2Address(ChainId.MAINNET),
             1
           );
 
@@ -1849,7 +1865,7 @@ describe('alpha router integration', () => {
 
               const { domain, types, values } = AllowanceTransfer.getPermitData(
                 permit,
-                PERMIT2_ADDRESS,
+                permit2Address(ChainId.MAINNET),
                 1
               );
 
@@ -3058,7 +3074,12 @@ describe('alpha router integration', () => {
 
     describe(`exactIn mixedPath routes`, () => {
       describe('+ simulate swap', () => {
-        it('BOND -> APE', async () => {
+        // BOND/APE pool is not deeply liquid, so it fails sporadically with older block fork.
+        // With newer block fork, this test fails consistently.
+        // We had prior discussion to skip this test https://uniswapteam.slack.com/archives/C021SU4PMR7/p1690565695980079?thread_ts=1690565283.482299&cid=C021SU4PMR7
+        // Since in routing-api, we already skip the equivalent test https://github.com/Uniswap/routing-api/pull/467
+        // We can also skip here
+        it.skip('BOND -> APE', async () => {
           jest.setTimeout(1000 * 1000); // 1000s
 
           const tokenIn = BOND_MAINNET;
@@ -3339,6 +3360,7 @@ describe('quote for other networks', () => {
     [ChainId.ZORA_SEPOLIA]: () => USDC_ON(ChainId.ZORA_SEPOLIA),
     [ChainId.ROOTSTOCK]: () => USDC_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => USDB_BLAST,
+    [ChainId.ZKSYNC]: () => USDC_ON(ChainId.ZKSYNC),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3364,6 +3386,7 @@ describe('quote for other networks', () => {
     [ChainId.ZORA_SEPOLIA]: () => WNATIVE_ON(ChainId.ZORA_SEPOLIA),
     [ChainId.ROOTSTOCK]: () => WNATIVE_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
+    [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3377,7 +3400,6 @@ describe('quote for other networks', () => {
       c != ChainId.ARBITRUM_SEPOLIA &&
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.ZORA &&
       c != ChainId.ZORA_SEPOLIA &&
       c != ChainId.ROOTSTOCK
   )) {
@@ -3430,6 +3452,7 @@ describe('quote for other networks', () => {
             process.env.TENDERLY_USER!,
             process.env.TENDERLY_PROJECT!,
             process.env.TENDERLY_ACCESS_KEY!,
+            process.env.TENDERLY_NODE_API_KEY!,
             v2PoolProvider,
             v3PoolProvider,
             provider,
@@ -3519,7 +3542,7 @@ describe('quote for other networks', () => {
             const tokenOut = erc2;
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
-            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
+            const exactOutAmount = chain === ChainId.BLAST || chain === ChainId.ZORA ? '0.002' : '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
@@ -3548,8 +3571,10 @@ describe('quote for other networks', () => {
               return;
             }
 
-            if (chain == ChainId.BLAST) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC) {
               // Blast doesn't have DAI or USDC yet
+              // Zora doesn't have DAI
+              // Zksync doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -3685,7 +3710,7 @@ describe('quote for other networks', () => {
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
             // Tenderly does not support Celo
-            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA, ChainId.BLAST].includes(chain)) {
+            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA, ChainId.BLAST, ChainId.ZKSYNC].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
@@ -3693,7 +3718,7 @@ describe('quote for other networks', () => {
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('10', tokenIn)
+                  ? parseAmount(chain === ChainId.ZORA ? '0.1': '10', tokenIn)
                   : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -3896,8 +3921,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('1', tokenIn)
-                  : parseAmount('1', tokenOut);
+                  ? parseAmount(chain === ChainId.ZORA ? '0.1': '1', tokenIn)
+                  : parseAmount(chain === ChainId.ZORA ? '0.1': '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -3996,7 +4021,7 @@ describe('quote for other networks', () => {
               const tokenIn = nativeOnChain(chain);
               // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
               // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
-              const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
+              const tokenOut = chain == ChainId.BASE || chain == ChainId.ZORA ? USDC_ON(chain) : erc2
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)

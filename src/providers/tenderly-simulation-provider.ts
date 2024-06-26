@@ -3,11 +3,9 @@ import https from 'https';
 
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { permit2Address } from '@uniswap/permit2-sdk';
 import { ChainId } from '@uniswap/sdk-core';
-import {
-  PERMIT2_ADDRESS,
-  UNIVERSAL_ROUTER_ADDRESS,
-} from '@uniswap/universal-router-sdk';
+import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
 import axios, { AxiosRequestConfig } from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
@@ -17,7 +15,7 @@ import {
   MetricLoggerUnit,
   SwapOptions,
   SwapRoute,
-  SwapType
+  SwapType,
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
@@ -61,6 +59,17 @@ export type TenderlyResponseSwapRouter02 = {
   simulation_results: [SimulationResult, SimulationResult];
 };
 
+export type GasBody = {
+  gas: string;
+  gasUsed: string;
+};
+
+export type TenderlyResponseEstimateGasBundle = {
+  id: number;
+  jsonrpc: string;
+  result: GasBody[];
+};
+
 enum TenderlySimulationType {
   QUICK = 'quick',
   FULL = 'full',
@@ -84,12 +93,51 @@ type TenderlySimulationBody = {
   estimate_gas: boolean;
 };
 
+type EthJsonRpcRequestBody = {
+  from: string;
+  to: string;
+  data: string;
+};
+
+type blockNumber =
+  | number
+  | string
+  | 'latest'
+  | 'pending'
+  | 'earliest'
+  | 'finalized'
+  | 'safe';
+
+type TenderlyNodeEstimateGasBundleBody = {
+  id: number;
+  jsonrpc: string;
+  method: string;
+  params: Array<Array<EthJsonRpcRequestBody> | blockNumber>;
+};
+
 const TENDERLY_BATCH_SIMULATE_API = (
   tenderlyBaseUrl: string,
   tenderlyUser: string,
   tenderlyProject: string
 ) =>
   `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`;
+
+const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
+  switch (chainId) {
+    case ChainId.MAINNET:
+      return `https://mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    default:
+      throw new Error(
+        `ChainId ${chainId} does not correspond to a tenderly node endpoint`
+      );
+  }
+};
+
+export const TENDERLY_NOT_SUPPORTED_CHAINS = [
+  ChainId.CELO,
+  ChainId.CELO_ALFAJORES,
+  ChainId.ZKSYNC,
+];
 
 // We multiply tenderly gas limit by this to overestimate gas limit
 const DEFAULT_ESTIMATE_MULTIPLIER = 1.3;
@@ -134,7 +182,12 @@ export class FallbackTenderlySimulator extends Simulator {
 
       try {
         const swapRouteWithGasEstimate =
-          await this.ethEstimateGasSimulator.ethEstimateGas(fromAddress, swapOptions, swapRoute, providerConfig);
+          await this.ethEstimateGasSimulator.ethEstimateGas(
+            fromAddress,
+            swapOptions,
+            swapRoute,
+            providerConfig
+          );
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
@@ -143,7 +196,12 @@ export class FallbackTenderlySimulator extends Simulator {
     }
 
     try {
-      return await this.tenderlySimulator.simulateTransaction(fromAddress, swapOptions, swapRoute, providerConfig);
+      return await this.tenderlySimulator.simulateTransaction(
+        fromAddress,
+        swapOptions,
+        swapRoute,
+        providerConfig
+      );
     } catch (err) {
       log.error({ err: err }, 'Failed to simulate via Tenderly');
 
@@ -164,10 +222,13 @@ export class TenderlySimulator extends Simulator {
   private tenderlyUser: string;
   private tenderlyProject: string;
   private tenderlyAccessKey: string;
+  private tenderlyNodeApiKey: string;
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
   private tenderlyRequestTimeout?: number;
+  private tenderlyNodeApiSamplingPercent?: number;
+  private tenderlyNodeApiEnabledChains?: ChainId[] = [];
   private tenderlyServiceInstance = axios.create({
     // keep connections alive,
     // maxSockets default is Infinity, so Infinity is read as 50 sockets
@@ -181,22 +242,28 @@ export class TenderlySimulator extends Simulator {
     tenderlyUser: string,
     tenderlyProject: string,
     tenderlyAccessKey: string,
+    tenderlyNodeApiKey: string,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
     provider: JsonRpcProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
-    tenderlyRequestTimeout?: number
+    tenderlyRequestTimeout?: number,
+    tenderlyNodeApiSamplingPercent?: number,
+    tenderlyNodeApiEnabledChains?: ChainId[]
   ) {
     super(provider, portionProvider, chainId);
     this.tenderlyBaseUrl = tenderlyBaseUrl;
     this.tenderlyUser = tenderlyUser;
     this.tenderlyProject = tenderlyProject;
     this.tenderlyAccessKey = tenderlyAccessKey;
+    this.tenderlyNodeApiKey = tenderlyNodeApiKey;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
     this.tenderlyRequestTimeout = tenderlyRequestTimeout;
+    this.tenderlyNodeApiSamplingPercent = tenderlyNodeApiSamplingPercent;
+    this.tenderlyNodeApiEnabledChains = tenderlyNodeApiEnabledChains;
   }
 
   public async simulateTransaction(
@@ -208,8 +275,9 @@ export class TenderlySimulator extends Simulator {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
     const chainId = this.chainId;
-    if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
-      const msg = 'Celo not supported by Tenderly!';
+
+    if (TENDERLY_NOT_SUPPORTED_CHAINS.includes(chainId)) {
+      const msg = `${TENDERLY_NOT_SUPPORTED_CHAINS.toString()} not supported by Tenderly!`;
       log.info(msg);
       return { ...swapRoute, simulationStatus: SimulationStatus.NotSupported };
     }
@@ -247,7 +315,7 @@ export class TenderlySimulator extends Simulator {
       const erc20Interface = Erc20__factory.createInterface();
       const approvePermit2Calldata = erc20Interface.encodeFunctionData(
         'approve',
-        [PERMIT2_ADDRESS, MaxUint256]
+        [permit2Address(this.chainId), MaxUint256]
       );
 
       // We are unsure if the users calldata contains a permit or not. We just
@@ -276,7 +344,7 @@ export class TenderlySimulator extends Simulator {
         network_id: chainId,
         estimate_gas: true,
         input: approveUniversalRouterCallData,
-        to: PERMIT2_ADDRESS,
+        to: permit2Address(this.chainId),
         value: '0',
         from: fromAddress,
         simulation_type: TenderlySimulationType.QUICK,
@@ -330,10 +398,23 @@ export class TenderlySimulator extends Simulator {
             );
           });
 
+      // fire tenderly node endpoint sampling and forget
+      this.sampleNodeEndpoint(
+        approvePermit2,
+        approveUniversalRouter,
+        swap,
+        body,
+        resp
+      );
+
       const latencies = Date.now() - before;
       log.info(
         `Tenderly simulation universal router request body: ${JSON.stringify(
           body,
+          null,
+          2
+        )} with result ${JSON.stringify(
+          resp,
           null,
           2
         )}, having latencies ${latencies} in milliseconds.`
@@ -509,7 +590,15 @@ export class TenderlySimulator extends Simulator {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedGasToken,
       quoteGasAdjusted,
-    } = await calculateGasUsed(chainId, swapRoute, estimatedGasUsed, this.v2PoolProvider, this.v3PoolProvider, this.provider, providerConfig);
+    } = await calculateGasUsed(
+      chainId,
+      swapRoute,
+      estimatedGasUsed,
+      this.v2PoolProvider,
+      this.v3PoolProvider,
+      this.provider,
+      providerConfig
+    );
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
@@ -588,5 +677,170 @@ export class TenderlySimulator extends Simulator {
       },
       'Failed to Simulate on Tenderly #3 Simulation'
     );
+  }
+
+  private async sampleNodeEndpoint(
+    approvePermit2: TenderlySimulationRequest,
+    approveUniversalRouter: TenderlySimulationRequest,
+    swap: TenderlySimulationRequest,
+    gatewayReq: TenderlySimulationBody,
+    gatewayResp: TenderlyResponseUniversalRouter
+  ): Promise<void> {
+    if (
+      Math.random() * 100 < (this.tenderlyNodeApiSamplingPercent ?? 0) &&
+      (this.tenderlyNodeApiEnabledChains ?? []).find(
+        (chainId) => chainId === this.chainId
+      )
+    ) {
+      const nodeEndpoint = TENDERLY_NODE_API(
+        this.chainId,
+        this.tenderlyNodeApiKey
+      );
+      const blockNumber = swap.block_number
+        ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
+        : 'latest';
+      const body: TenderlyNodeEstimateGasBundleBody = {
+        id: 1,
+        jsonrpc: '2.0',
+        method: 'tenderly_estimateGasBundle',
+        params: [
+          [
+            {
+              from: approvePermit2.from,
+              to: approvePermit2.to,
+              data: approvePermit2.input,
+            },
+            {
+              from: approveUniversalRouter.from,
+              to: approveUniversalRouter.to,
+              data: approveUniversalRouter.input,
+            },
+            { from: swap.from, to: swap.to, data: swap.input },
+          ],
+          blockNumber,
+        ],
+      };
+
+      log.info(
+        `About to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
+          body,
+          null,
+          2
+        )}.`
+      );
+
+      const before = Date.now();
+
+      try {
+        // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
+        const { data: resp, status: httpStatus } =
+          await this.tenderlyServiceInstance.post<TenderlyResponseEstimateGasBundle>(
+            nodeEndpoint,
+            body
+          );
+
+        const latencies = Date.now() - before;
+        metric.putMetric(
+          'TenderlyNodeGasEstimateBundleLatencies',
+          latencies,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
+          'TenderlyNodeGasEstimateBundleSuccess',
+          1,
+          MetricLoggerUnit.Count
+        );
+
+        log.info(
+          `Tenderly estimate gas bundle request body: ${JSON.stringify(
+            body,
+            null,
+            2
+          )} with http status ${httpStatus} result ${JSON.stringify(
+            resp,
+            null,
+            2
+          )}, having latencies ${latencies} in milliseconds.`
+        );
+
+        if (gatewayResp.simulation_results.length !== resp.result.length) {
+          metric.putMetric(
+            'TenderlyNodeGasEstimateBundleLengthMismatch',
+            1,
+            MetricLoggerUnit.Count
+          );
+          return;
+        }
+
+        let gasEstimateMismatch = false;
+
+        for (
+          let i = 0;
+          i <
+          Math.min(gatewayResp.simulation_results.length, resp.result.length);
+          i++
+        ) {
+          const gatewayGas = gatewayResp.simulation_results[i]!.transaction.gas;
+          const nodeGas = Number(resp.result[i]!.gas);
+          const gatewayGasUsed =
+            gatewayResp.simulation_results[i]!.transaction.gas_used;
+          const nodeGasUsed = Number(resp.result[i]!.gasUsed);
+
+          if (gatewayGas !== nodeGas) {
+            log.error(
+              `Gateway gas and node gas estimates do not match for index ${i}`,
+              { gatewayGas, nodeGas, blockNumber }
+            );
+            metric.putMetric(
+              `TenderlyNodeGasEstimateBundleGasMismatch${i}`,
+              1,
+              MetricLoggerUnit.Count
+            );
+            gasEstimateMismatch = true;
+          }
+
+          if (gatewayGasUsed !== nodeGasUsed) {
+            log.error(
+              `Gateway gas and node gas used estimates do not match for index ${i}`,
+              { gatewayGas, nodeGas, blockNumber }
+            );
+            metric.putMetric(
+              `TenderlyNodeGasEstimateBundleGasUsedMismatch${i}`,
+              1,
+              MetricLoggerUnit.Count
+            );
+            gasEstimateMismatch = true;
+          }
+        }
+
+        if (!gasEstimateMismatch) {
+          metric.putMetric(
+            'TenderlyNodeGasEstimateBundleMatch',
+            1,
+            MetricLoggerUnit.Count
+          );
+        } else {
+          log.error(
+            `Gateway gas and node gas estimates do not match
+              gateway request body ${JSON.stringify(gatewayReq, null, 2)}
+              node request body ${JSON.stringify(body, null, 2)}`
+          );
+        }
+      } catch (err) {
+        log.error(
+          `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
+            body,
+            null,
+            2
+          )}. Error: ${err}`
+        );
+
+        metric.putMetric(
+          'TenderlyNodeGasEstimateBundleFailure',
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+    }
   }
 }

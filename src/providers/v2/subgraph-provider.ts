@@ -41,8 +41,6 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-dev',
 };
 
-const threshold = 0.025;
-
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 
 /**
@@ -67,9 +65,12 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     private retries = 2,
     private timeout = 360000,
     private rollback = true,
-    private pageSize = PAGE_SIZE
+    private pageSize = PAGE_SIZE,
+    private trackedEthThreshold = 0.025,
+    private untrackedUsdThreshold = Number.MAX_VALUE,
+    private subgraphUrlOverride?: string
   ) {
-    const subgraphUrl = SUBGRAPH_URL_BY_CHAIN[this.chainId];
+    const subgraphUrl = this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
@@ -98,6 +99,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                 token1 { id, symbol }
                 totalSupply
                 trackedReserveETH
+                reserveETH
                 reserveUSD
             }
         }
@@ -227,18 +229,30 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
     const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
 
+    const tracked = pools.filter(pool =>
+      pool.token0.id == FEI ||
+      pool.token1.id == FEI ||
+      parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
+    );
+
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.length`, tracked.length);
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
+      (tracked.length / pools.length) * 100
+    );
+
     const beforeFilter = Date.now();
     const poolsSanitized: V2SubgraphPool[] = pools
       .filter((pool) => {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
-          parseFloat(pool.trackedReserveETH) > threshold
+          parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
+          parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
       })
       .map((pool) => {
         return {
-          ...pool,
           id: pool.id.toLowerCase(),
           token0: {
             id: pool.token0.id.toLowerCase(),
@@ -253,6 +267,11 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       });
 
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`, Date.now() - beforeFilter);
+    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, poolsSanitized.length);
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
+      (poolsSanitized.length / pools.length) * 100
+    );
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools`, 1);
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.latency`, Date.now() - beforeAll);
 

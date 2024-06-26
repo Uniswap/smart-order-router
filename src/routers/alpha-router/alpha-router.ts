@@ -526,10 +526,12 @@ export class AlphaRouter
               minTimeout: 100,
               maxTimeout: 1000,
             },
-            {
-              multicallChunk: 110,
-              gasLimitPerCall: 1_200_000,
-              quoteMinSuccessRate: 0.1,
+            (_) => {
+              return {
+                multicallChunk: 110,
+                gasLimitPerCall: 1_200_000,
+                quoteMinSuccessRate: 0.1,
+              }
             },
             {
               gasLimitOverride: 3_000_000,
@@ -551,6 +553,7 @@ export class AlphaRouter
           break;
         case ChainId.BASE:
         case ChainId.BLAST:
+        case ChainId.ZORA:
         case ChainId.BASE_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
@@ -561,10 +564,12 @@ export class AlphaRouter
               minTimeout: 100,
               maxTimeout: 1000,
             },
-            {
-              multicallChunk: 80,
-              gasLimitPerCall: 1_200_000,
-              quoteMinSuccessRate: 0.1,
+            (_) => {
+              return {
+                multicallChunk: 80,
+                gasLimitPerCall: 1_200_000,
+                quoteMinSuccessRate: 0.1,
+              }
             },
             {
               gasLimitOverride: 3_000_000,
@@ -573,6 +578,41 @@ export class AlphaRouter
             {
               gasLimitOverride: 3_000_000,
               multicallChunk: 45,
+            },
+            {
+              baseBlockOffset: -10,
+              rollback: {
+                enabled: true,
+                attemptsBeforeRollback: 1,
+                rollbackBlockOffset: -10,
+              },
+            }
+          );
+          break;
+        case ChainId.ZKSYNC:
+          this.onChainQuoteProvider = new OnChainQuoteProvider(
+            chainId,
+            provider,
+            this.multicall2Provider,
+            {
+              retries: 2,
+              minTimeout: 100,
+              maxTimeout: 1000,
+            },
+            (_) => {
+              return {
+                multicallChunk: 27,
+                gasLimitPerCall: 3_000_000,
+                quoteMinSuccessRate: 0.1,
+              }
+            },
+            {
+              gasLimitOverride: 6_000_000,
+              multicallChunk: 13,
+            },
+            {
+              gasLimitOverride: 6_000_000,
+              multicallChunk: 13,
             },
             {
               baseBlockOffset: -10,
@@ -596,10 +636,12 @@ export class AlphaRouter
               minTimeout: 100,
               maxTimeout: 1000,
             },
-            {
-              multicallChunk: 10,
-              gasLimitPerCall: 12_000_000,
-              quoteMinSuccessRate: 0.1,
+            (_) => {
+              return {
+                multicallChunk: 10,
+                gasLimitPerCall: 12_000_000,
+                quoteMinSuccessRate: 0.1,
+              }
             },
             {
               gasLimitOverride: 30_000_000,
@@ -622,10 +664,12 @@ export class AlphaRouter
               minTimeout: 100,
               maxTimeout: 1000,
             },
-            {
-              multicallChunk: 10,
-              gasLimitPerCall: 5_000_000,
-              quoteMinSuccessRate: 0.1,
+            (_) => {
+              return {
+                multicallChunk: 10,
+                gasLimitPerCall: 5_000_000,
+                quoteMinSuccessRate: 0.1,
+              }
             },
             {
               gasLimitOverride: 5_000_000,
@@ -646,7 +690,7 @@ export class AlphaRouter
             provider,
             this.multicall2Provider,
             RETRY_OPTIONS[chainId],
-            BATCH_PARAMS[chainId],
+            (_) => BATCH_PARAMS[chainId]!,
             GAS_ERROR_FAILURE_OVERRIDES[chainId],
             SUCCESS_RATE_FAILURE_OVERRIDES[chainId],
             BLOCK_NUMBER_CONFIGS[chainId]
@@ -658,7 +702,7 @@ export class AlphaRouter
             provider,
             this.multicall2Provider,
             DEFAULT_RETRY_OPTIONS,
-            DEFAULT_BATCH_PARAMS,
+            (_) => DEFAULT_BATCH_PARAMS,
             DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
             DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
             DEFAULT_BLOCK_NUMBER_CONFIGS,
