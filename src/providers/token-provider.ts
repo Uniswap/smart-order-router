@@ -673,14 +673,14 @@ export const USDC_ZORA = new Token(
   'USD Coin (Bridged from Ethereum)'
 );
 
-// niza testnet 
+// niza testnet
 export const NIZA_TESTNET = new Token(
   ChainId.NIZA_TESTNET,
   '0x8d8DCc9dA14B68204bF6B931EB219b749A4ADcc6',
   9,
   'WNiza',
   'Wrapped Niza'
-)
+);
 
 export const NIZA_TESTNET_USDC = new Token(
   ChainId.NIZA_TESTNET,
@@ -688,7 +688,7 @@ export const NIZA_TESTNET_USDC = new Token(
   6,
   'USDCMock',
   'USD Coin Mock'
-)
+);
 
 export const NIZA_TESTNET_USDT = new Token(
   ChainId.NIZA_TESTNET,
@@ -696,7 +696,7 @@ export const NIZA_TESTNET_USDT = new Token(
   6,
   'USDTMock',
   'Tethered Mock'
-)
+);
 
 export const NIZA_TESTNET_WBTC = new Token(
   ChainId.NIZA_TESTNET,
@@ -704,15 +704,15 @@ export const NIZA_TESTNET_WBTC = new Token(
   8,
   'WBTCMock',
   'Wrapped Bitcoin Mock'
-)
+);
 
 export const NIZA_TESTNET_DAI = new Token(
   ChainId.NIZA_TESTNET,
-  '0xF8003dac552b56050531cDFF25CCd5fCF6A81FCE',
+  '0x938e10A948b0f2eE40E0FA963A6Fcb3c39fedCc9',
   18,
   'DAIMock',
   'Dai Mock'
-)
+);
 
 export const NIZA_TESTNET_WETH = new Token(
   ChainId.NIZA_TESTNET,
@@ -720,7 +720,7 @@ export const NIZA_TESTNET_WETH = new Token(
   18,
   'WETHMock',
   'Wrapped Ether Mock'
-)
+);
 
 export const NIZA_LIVENET = new Token(
   ChainId.NIZA_LIVENET,
@@ -728,13 +728,13 @@ export const NIZA_LIVENET = new Token(
   18,
   'NIZA',
   'Niza Global'
-)
+);
 
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) { }
+  ) {}
 
   private async getTokenSymbol(
     addresses: string[],
@@ -879,8 +879,10 @@ export class TokenProvider implements ITokenProvider {
       }
 
       log.info(
-        `Got token symbol and decimals for ${Object.values(addressToToken).length
-        } out of ${addresses.length} tokens on-chain ${providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
+        `Got token symbol and decimals for ${
+          Object.values(addressToToken).length
+        } out of ${addresses.length} tokens on-chain ${
+          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
         }`
       );
     }
