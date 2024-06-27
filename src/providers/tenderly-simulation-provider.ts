@@ -772,6 +772,18 @@ export class TenderlySimulator extends Simulator {
           )}, having latencies ${latencies} in milliseconds.`
         );
 
+        if (httpStatus !== 200) {
+          log.error(
+            `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
+              body,
+              null,
+              2
+            )}. HTTP Status: ${httpStatus}`,
+            { resp }
+          );
+          return;
+        }
+
         if (gatewayResp.simulation_results.length !== resp.result.length) {
           metric.putMetric(
             'TenderlyNodeGasEstimateBundleLengthMismatch',
