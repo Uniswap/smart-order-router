@@ -14,8 +14,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Use npm audit fix
         uses: ybiquitous/npm-audit-fix-action@e7e5e66fe613cd5e556db66eef24156b4bfa6134
-          with: 
-            commit_title: "chore(deps): update npm dependencies"
-            default_branch: "main"
-            description: "Run npm audit fix"
-            branch: "fix/npm-audit-fix"
+        with: 
+          commit_title: "chore(deps): update npm dependencies"
+          default_branch: "main"
+          description: "Run npm audit fix"
+          branch: "fix/npm-audit-fix"
