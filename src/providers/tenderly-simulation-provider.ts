@@ -345,6 +345,7 @@ export class TenderlySimulator extends Simulator {
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
         save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
@@ -356,6 +357,7 @@ export class TenderlySimulator extends Simulator {
         to: permit2Address(this.chainId),
         value: '0',
         from: fromAddress,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
         save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
