@@ -310,6 +310,7 @@ export class TenderlySimulator extends Simulator {
       'Simulating transaction on Tenderly'
     );
 
+    // tenderly API simulates at the beginning of the block
     const blockNumber = await providerConfig?.blockNumber;
     let estimatedGasUsed: BigNumber;
     const estimateMultiplier =
@@ -708,7 +709,8 @@ export class TenderlySimulator extends Simulator {
         this.tenderlyNodeApiKey
       );
       const blockNumber = swap.block_number
-        ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
+        // tenderly node simulates at the end of the block, so we need to simulate at the end of the previous block
+        ? BigNumber.from(swap.block_number - 1).toHexString().replace('0x0', '0x')
         : 'latest';
       const body: TenderlyNodeEstimateGasBundleBody = {
         id: 1,
