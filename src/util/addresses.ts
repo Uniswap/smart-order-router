@@ -41,7 +41,7 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v3CoreFactoryAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].v3CoreFactoryAddress,
   [ChainId.NIZA_TESTNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_TESTNET].v3CoreFactoryAddress,
-  [ChainId.NIZA_LIVENET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_LIVENET].v3CoreFactoryAddress,
+  [ChainId.NIZA]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 console.log("V3 core faktory addresses", V3_CORE_FACTORY_ADDRESSES)
@@ -114,7 +114,7 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].multicallAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].multicallAddress,
   [ChainId.NIZA_TESTNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_TESTNET].multicallAddress,
-  [ChainId.NIZA_LIVENET]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA_LIVENET].multicallAddress,
+  [ChainId.NIZA]: CHAIN_TO_ADDRESSES_MAP[ChainId.NIZA].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 

@@ -11,6 +11,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     case ChainId.OPTIMISM_GOERLI:
     case ChainId.OPTIMISM_SEPOLIA:
     case ChainId.NIZA_TESTNET:
+    case ChainId.NIZA:
     case ChainId.BASE:
     case ChainId.BASE_GOERLI:
     case ChainId.BLAST:

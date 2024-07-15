@@ -26,7 +26,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.BLAST,
   ChainId.ZORA,
   ChainId.NIZA_TESTNET,
-  ChainId.NIZA_LIVENET,
+  ChainId.NIZA,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -53,7 +53,7 @@ export const HAS_L1_FEE = [
   ChainId.BLAST,
   ChainId.ZORA,
   ChainId.NIZA_TESTNET,
-  ChainId.NIZA_LIVENET,
+  ChainId.NIZA,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -112,7 +112,7 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
     case 20073:
       return ChainId.NIZA_TESTNET;
     case 20041:
-      return ChainId.NIZA_LIVENET;
+      return ChainId.NIZA;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -141,7 +141,7 @@ export enum ChainName {
   BLAST = 'blast-mainnet',
   ZORA = 'zora-mainnet',
   NIZA_TESTNET = 'nizaTestnet',
-  NIZA_LIVENET = 'niza_livenet',
+  NIZA = 'niza',
 }
 
 export enum NativeCurrencyName {
@@ -154,7 +154,7 @@ export enum NativeCurrencyName {
   BNB = 'BNB',
   AVALANCHE = 'AVAX',
   NIZA_TESTNET = 'NIZA',
-  NIZA_LIVENET = 'NIZA',
+  NIZA = 'NIZA',
 }
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
@@ -234,7 +234,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
   [ChainId.NIZA_TESTNET]: ['NIZA'],
-  [ChainId.NIZA_LIVENET]: ['NIZA'],
+  [ChainId.NIZA]: ['NIZA'],
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -259,7 +259,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.BLAST]: NativeCurrencyName.ETHER,
   [ChainId.ZORA]: NativeCurrencyName.ETHER,
   [ChainId.NIZA_TESTNET]: NativeCurrencyName.NIZA_TESTNET,
-  [ChainId.NIZA_LIVENET]: NativeCurrencyName.NIZA_LIVENET,
+  [ChainId.NIZA]: NativeCurrencyName.NIZA,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -309,7 +309,7 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
     case 20073:
       return ChainName.NIZA_TESTNET;
     case 20041:
-      return ChainName.NIZA_LIVENET;
+      return ChainName.NIZA;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -359,8 +359,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ZORA!;
     case ChainId.NIZA_TESTNET:
       return process.env.JSON_RPC_PROVIDER_NIZA_TESTNET!;
-    case ChainId.NIZA_LIVENET:
-      return process.env.JSON_RPC_PROVIDER_NIZA_LIVENET!;
+    case ChainId.NIZA:
+      return process.env.JSON_RPC_PROVIDER_NIZA!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -537,12 +537,12 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WNiza',
     'Wrapped Niza'
   ),
-  [ChainId.NIZA_LIVENET]: new Token(
-    ChainId.NIZA_LIVENET,
-    '0xCF5c11f4e1e0035fd163A9F2EE02c6D6C65D313D',
+  [ChainId.NIZA]: new Token(
+    ChainId.NIZA,
+    '0x1643F3680992334756912dF244540e7bf46f10f9',
     18,
-    'NIZA',
-    'Niza Global'
+    'WNIZA',
+    'Wrapped Niza'
   ),
 };
 
@@ -694,8 +694,8 @@ class AvalancheNativeCurrency extends NativeCurrency {
   }
 }
 
-function isNiza(chainId: number): chainId is ChainId.NIZA_TESTNET | ChainId.NIZA_LIVENET {
-  return chainId === ChainId.AVALANCHE;
+function isNiza(chainId: number): chainId is ChainId.NIZA_TESTNET | ChainId.NIZA {
+  return chainId === ChainId.NIZA;
 }
 
 class NizaNativeCurrency extends NativeCurrency {

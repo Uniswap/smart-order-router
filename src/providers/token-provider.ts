@@ -52,14 +52,6 @@ export const USDT_MAINNET = new Token(
   'Tether USD'
 );
 
-export const USDT_NIZA_MAINNET = new Token(
-  ChainId.NIZA_LIVENET,
-  '0xCF5c11f4e1e0035fd163A9F2EE02c6D6C65D313D',
-  18,
-  'NIZA',
-  'Niza Global'
-);
-
 export const WBTC_MAINNET = new Token(
   ChainId.MAINNET,
   '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
@@ -673,6 +665,31 @@ export const USDC_ZORA = new Token(
   'USD Coin (Bridged from Ethereum)'
 );
 
+// Niza Tokens 
+export const USDT_NIZA = new Token(
+  ChainId.NIZA,
+  '0x6A04ed570925e383a5D2274D45D2a9971893a14B',
+  18,
+  'USDT',
+  'Tether USD'
+);
+
+export const USDC_NIZA = new Token(
+  ChainId.NIZA,
+  '0x31A77dbC23DCDB601bAA50d1f108273C8E04841a',
+  18,
+  'USDC',
+  'USDC on Niza'
+);
+
+export const DAI_NIZA = new Token(
+  ChainId.NIZA,
+  '0x31A77dbC23DCDB601bAA50d1f108273C8E04841a',
+  18,
+  'DAI',
+  'Dai Stablecoin on Niza'
+);
+
 // niza testnet
 export const NIZA_TESTNET = new Token(
   ChainId.NIZA_TESTNET,
@@ -722,13 +739,7 @@ export const NIZA_TESTNET_WETH = new Token(
   'Wrapped Ether Mock'
 );
 
-export const NIZA_LIVENET = new Token(
-  ChainId.NIZA_LIVENET,
-  '0xCF5c11f4e1e0035fd163A9F2EE02c6D6C65D313D',
-  18,
-  'NIZA',
-  'Niza Global'
-);
+
 
 export class TokenProvider implements ITokenProvider {
   constructor(
@@ -935,6 +946,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_BNB;
     case ChainId.AVALANCHE:
       return DAI_AVAX;
+    case ChainId.NIZA:
+     return DAI_NIZA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -956,6 +969,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_ARBITRUM;
     case ChainId.BNB:
       return USDT_BNB;
+    case ChainId.NIZA:
+      return USDT_NIZA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -1001,8 +1016,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ZORA;
     case ChainId.NIZA_TESTNET:
       return NIZA_TESTNET;
-    case ChainId.NIZA_LIVENET:
-      return NIZA_LIVENET;
+    case ChainId.NIZA:
+      return USDC_NIZA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

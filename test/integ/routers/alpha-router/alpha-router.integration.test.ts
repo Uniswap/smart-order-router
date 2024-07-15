@@ -133,7 +133,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.ROOTSTOCK]: 30,
   [ChainId.BLAST]: 34,
   [ChainId.NIZA_TESTNET]: 30,
-  [ChainId.NIZA_LIVENET]: 30,
+  [ChainId.NIZAT]: 30,
 };
 
 const V2_SUPPORTED_PAIRS = [

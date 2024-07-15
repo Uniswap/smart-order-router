@@ -70,6 +70,7 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.studio.thegraph.com/query/48211/uniswap-v3-base/version/latest',
   [ChainId.BLAST]: 'https://gateway-arbitrum.network.thegraph.com/api/0ae45f0bf40ae2e73119b44ccd755967/subgraphs/id/2LHovKznvo8YmKC9ZprPjsYAZDCc4K5q4AYz8s3cnQn1',
   [ChainId.NIZA_TESTNET]: 'http://127.0.0.1:8000/subgraphs/name/uniswaptest',
+  [ChainId.NIZA]: 'http://18.192.62.73:8000/subgraphs/name/dexNiza',
 };
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
