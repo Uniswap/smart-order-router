@@ -458,6 +458,16 @@ export const BOYS = new Token(
   BigNumber.from(0),
   BigNumber.from(200),
 )
+export const DFNDR = new Token(
+  ChainId.MAINNET,
+  '0x3f57c35633cb29834bb7577ba8052eab90f52a02',
+  18,
+  'DFNDR',
+  'Defender Bot',
+  false,
+  BigNumber.from(500),
+  BigNumber.from(500)
+)
 
 export const PORTION_BIPS = 12
 export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'

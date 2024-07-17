@@ -143,14 +143,14 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
           // in case of FOT token fee fetch failure, we return null
           // so that they won't get returned from the token-fee-fetcher
           // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
-          return { address, buyFeeBps: undefined, sellFeeBps: undefined };
+          return { address, buyFeeBps: undefined, sellFeeBps: undefined, feeTakenOnTransfer: false, externalTransferFailed: false, sellReverted: false  };
         }
       })
     );
 
-    results.forEach(({ address, buyFeeBps, sellFeeBps }) => {
+    results.forEach(({ address, buyFeeBps, sellFeeBps, feeTakenOnTransfer, externalTransferFailed, sellReverted }) => {
       if (buyFeeBps || sellFeeBps) {
-        tokenToResult[address] = { buyFeeBps, sellFeeBps };
+        tokenToResult[address] = { buyFeeBps, sellFeeBps, feeTakenOnTransfer, externalTransferFailed, sellReverted };
       }
     });
 
