@@ -124,7 +124,8 @@ export class EthEstimateGasSimulator extends Simulator {
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
         swapOptions,
-        estimatedGasUsedGasToken
+        estimatedGasUsedGasToken,
+        providerConfig
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };

@@ -33,6 +33,7 @@ import { opStackChains } from './l2FeeChains';
 import { buildSwapMethodParameters, buildTrade } from './methodParameters';
 import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
+import { ProviderConfig } from '../providers/provider';
 
 export async function getV2NativePool(
   token: Token,
@@ -387,7 +388,8 @@ export function initSwapRouteFromExisting(
   estimatedGasUsedQuoteToken: CurrencyAmount,
   estimatedGasUsedUSD: CurrencyAmount,
   swapOptions: SwapOptions,
-  estimatedGasUsedGasToken?: CurrencyAmount
+  estimatedGasUsedGasToken?: CurrencyAmount,
+  providerConfig?: ProviderConfig
 ): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
@@ -490,7 +492,8 @@ export function initSwapRouteFromExisting(
     portionProvider.getRouteWithQuotePortionAdjusted(
       swapRoute.trade.tradeType,
       routesWithValidQuote,
-      swapOptions
+      swapOptions,
+      providerConfig
     );
 
   return {
