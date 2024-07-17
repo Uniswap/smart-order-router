@@ -135,7 +135,7 @@ describe('portion provider', () => {
             recipient: expectedPortion.recipient,
           }
         };
-        const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, false, undefined, swapConfig);
+        const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, false, false, swapConfig);
         expect(portionAmount).toBeDefined();
 
         // 1.01 * 10^8 * 12 / 10000 = 121200
@@ -210,6 +210,32 @@ describe('portion provider', () => {
               TradeType.EXACT_INPUT,
               true,
               false,
+              swapConfig
+            );
+
+            expect(portionAmount).toBeUndefined();
+          }
+        );
+
+        it(
+          `token address ${tokenAddress1} to token address ${tokenAddress2} within the list, but tokenOut has FOT with double fee, should not have portion`,
+          async () => {
+            const quoteAmount = parseAmount(expectedQuote, token2);
+
+            const swapConfig: SwapOptions = {
+              type: SwapType.UNIVERSAL_ROUTER,
+              slippageTolerance: new Percent(5),
+              recipient: '0x123',
+              fee: {
+                fee: new Percent(expectedPortion.bips, 10_000),
+                recipient: expectedPortion.recipient,
+              }
+            };
+            const portionAmount = portionProvider.getPortionAmount(
+              quoteAmount,
+              TradeType.EXACT_INPUT,
+              false,
+              true,
               swapConfig
             );
 
