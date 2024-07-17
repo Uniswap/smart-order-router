@@ -68,6 +68,7 @@ describe('portion provider', () => {
           quoteAmount,
           TradeType.EXACT_INPUT,
           undefined,
+          undefined,
           swapConfig
         );
         const portionAdjustedQuote = portionProvider.getQuoteGasAndPortionAdjusted(
@@ -134,7 +135,7 @@ describe('portion provider', () => {
             recipient: expectedPortion.recipient,
           }
         };
-        const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, false, swapConfig);
+        const portionAmount = portionProvider.getPortionAmount(amount, TradeType.EXACT_OUTPUT, false, undefined, swapConfig);
         expect(portionAmount).toBeDefined();
 
         // 1.01 * 10^8 * 12 / 10000 = 121200
@@ -191,7 +192,7 @@ describe('portion provider', () => {
         const tokenAddress2 = token2.wrapped.address;
 
         it(
-          `token address ${tokenAddress1} to token address ${tokenAddress2} within the list, but tokenOut has FOT, should not have portion`,
+          `token address ${tokenAddress1} to token address ${tokenAddress2} within the list, but tokenOut has FOT with external transfer failed, should not have portion`,
           async () => {
             const quoteAmount = parseAmount(expectedQuote, token2);
 
@@ -208,6 +209,7 @@ describe('portion provider', () => {
               quoteAmount,
               TradeType.EXACT_INPUT,
               true,
+              false,
               swapConfig
             );
 
