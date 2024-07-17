@@ -448,6 +448,16 @@ export const BITBOY = new Token(
   BigNumber.from(300),
   BigNumber.from(300)
 )
+export const BOYS = new Token(
+  ChainId.BASE,
+  '0x4d58608EFf50b691A3B76189aF2a7A123dF1e9ba',
+  9,
+  'BOYS',
+  'Boysclub',
+  false,
+  BigNumber.from(0),
+  BigNumber.from(200),
+)
 
 export const PORTION_BIPS = 12
 export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
