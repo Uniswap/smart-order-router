@@ -106,6 +106,7 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import {
   BULLET,
   BULLET_WITHOUT_TAX,
+  DFNDR_WITHOUT_TAX,
   FLAT_PORTION,
   GREENLIST_TOKEN_PAIRS,
   Portion
@@ -2803,6 +2804,7 @@ describe('alpha router integration', () => {
             const tokenInAndTokenOut = [
               [BULLET_WITHOUT_TAX, WETH9[ChainId.MAINNET]!],
               [WETH9[ChainId.MAINNET]!, BULLET_WITHOUT_TAX],
+              [WETH9[ChainId.MAINNET]!, DFNDR_WITHOUT_TAX],
             ]
 
             tokenInAndTokenOut.forEach(([tokenIn, tokenOut]) => {
@@ -2839,6 +2841,7 @@ describe('alpha router integration', () => {
                       {
                         ...ROUTING_CONFIG,
                         enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching,
+                        saveTenderlySimulationIfFailed: true
                       }
                     );
 
@@ -2850,7 +2853,12 @@ describe('alpha router integration', () => {
                     expect(swap!.methodParameters).toBeDefined();
                     expect(swap!.methodParameters!.to).toBeDefined();
 
-                    expect(swap?.portionAmount?.quotient?.toString()).not.toEqual("0");
+                    // DFNDR fails with feeTakenOnTransfer, so we cannot take portion/fee
+                    if (enableFeeOnTransferFeeFetching && tokenOut?.address === DFNDR_WITHOUT_TAX.address) {
+                      expect(swap?.portionAmount?.quotient).toBeUndefined();
+                    } else {
+                      expect(swap?.portionAmount?.quotient?.toString()).not.toEqual("0");
+                    }
 
                     return { enableFeeOnTransferFeeFetching, ...swap! }
                   })
