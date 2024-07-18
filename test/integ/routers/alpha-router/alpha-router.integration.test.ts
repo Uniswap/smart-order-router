@@ -2838,7 +2838,7 @@ describe('alpha router integration', () => {
                       },
                       {
                         ...ROUTING_CONFIG,
-                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching
+                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching,
                       }
                     );
 
@@ -2850,11 +2850,7 @@ describe('alpha router integration', () => {
                     expect(swap!.methodParameters).toBeDefined();
                     expect(swap!.methodParameters!.to).toBeDefined();
 
-                    if (enableFeeOnTransferFeeFetching && tokenOut?.address === BULLET_WITHOUT_TAX.address) {
-                      expect(swap?.portionAmount?.quotient).toBeUndefined();
-                    } else {
-                      expect(swap?.portionAmount?.quotient?.toString()).not.toEqual("0");
-                    }
+                    expect(swap?.portionAmount?.quotient?.toString()).not.toEqual("0");
 
                     return { enableFeeOnTransferFeeFetching, ...swap! }
                   })
