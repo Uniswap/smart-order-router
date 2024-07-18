@@ -1101,8 +1101,18 @@ export class AlphaRouter
         [tokenOut],
         partialRoutingConfig
       );
-      const feeTakenOnTransfer = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.feeTakenOnTransfer;
-      const externalTransferFailed = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.externalTransferFailed;
+    const feeTakenOnTransfer = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.feeTakenOnTransfer;
+    const externalTransferFailed = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.externalTransferFailed;
+
+    // We want to log the fee on transfer output tokens that we are taking fee or not
+    // Ideally the trade size (normalized in USD) would be ideal to log here, but we don't have spot price of output tokens here.
+    if (tokenOutProperties[tokenOut.address.toLowerCase()]) {
+      if (feeTakenOnTransfer || externalTransferFailed) {
+        metric.putMetric('TokenOutFeeOnTransferTakingFee', 1, MetricLoggerUnit.Count);
+      } else {
+        metric.putMetric('TokenOutFeeOnTransferNotTakingFee', 1, MetricLoggerUnit.Count);
+      }
+    }
 
     if (tradeType === TradeType.EXACT_OUTPUT) {
       const portionAmount = this.portionProvider.getPortionAmount(
