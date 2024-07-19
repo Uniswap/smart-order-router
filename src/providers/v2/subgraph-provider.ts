@@ -162,8 +162,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                   pools = [];
                   retries += 1;
                   log.info(
-                    { err },
-                    `Failed request for page of pools from subgraph. Retry attempt: ${retry}`
+                    { err, lastId },
+                    `Failed request for page of pools from subgraph. Retry attempt: ${retry}. LastId: ${lastId}`
                   );
                 },
               }
@@ -188,6 +188,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           pools = await Promise.race([getPoolsPromise, timerPromise]);
           return;
         } catch (err) {
+          log.error({ err }, 'Error fetching V2 Subgraph Pools.');
           throw err;
         } finally {
           timeout.clear();

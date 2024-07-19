@@ -201,6 +201,7 @@ export class V3SubgraphProvider implements IV3SubgraphProvider {
           pools = await Promise.race([getPoolsPromise, timerPromise]);
           return;
         } catch (err) {
+          log.error({ err }, 'Error fetching V3 Subgraph Pools.');
           throw err;
         } finally {
           timeout.clear();
