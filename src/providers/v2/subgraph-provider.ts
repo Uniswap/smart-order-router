@@ -161,7 +161,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                 onRetry: (err, retry) => {
                   pools = [];
                   retries += 1;
-                  log.info(
+                  log.error(
                     { err, lastId },
                     `Failed request for page of pools from subgraph. Retry attempt: ${retry}. LastId: ${lastId}`
                   );
