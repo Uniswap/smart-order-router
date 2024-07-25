@@ -61,7 +61,8 @@ import {
   WETH_POLYGON,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-  WXDAI_GNOSIS
+  WXDAI_GNOSIS,
+  WSTETH_MAINNET
 } from '../token-provider';
 
 import { IV3PoolProvider } from './pool-provider';
@@ -78,6 +79,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDC_MAINNET,
     USDT_MAINNET,
     WBTC_MAINNET,
+    WSTETH_MAINNET,
   ],
   [ChainId.GOERLI]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!,

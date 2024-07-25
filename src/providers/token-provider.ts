@@ -96,6 +96,14 @@ export const LIDO_MAINNET = new Token(
   'Lido DAO Token'
 );
 
+export const WSTETH_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+  18,
+  'wstETH',
+  'Wrapped liquid staked Ether'
+);
+
 export const USDC_SEPOLIA = new Token(
   ChainId.SEPOLIA,
   '0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5',
