@@ -59,6 +59,7 @@ import {
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
   WXDAI_GNOSIS,
+  WSTETH_MAINNET,
 } from '../../../providers/token-provider';
 import {
   IV2PoolProvider,
@@ -140,6 +141,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     DAI_MAINNET,
     WRAPPED_NATIVE_CURRENCY[1]!,
     FEI_MAINNET,
+    WSTETH_MAINNET,
   ],
   [ChainId.OPTIMISM]: [
     DAI_OPTIMISM,

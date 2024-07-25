@@ -40,7 +40,8 @@ import {
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WETH_POLYGON,
-  WMATIC_POLYGON
+  WMATIC_POLYGON,
+  WSTETH_MAINNET
 } from '../token-provider';
 
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
@@ -56,6 +57,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDC_MAINNET,
     USDT_MAINNET,
     WBTC_MAINNET,
+    WSTETH_MAINNET,
   ],
   [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
   [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!],
