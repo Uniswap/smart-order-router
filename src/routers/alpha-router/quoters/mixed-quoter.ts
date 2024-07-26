@@ -12,8 +12,6 @@ import {
   IV3PoolProvider,
   IV3SubgraphProvider,
   TokenValidationResult,
-  V2SubgraphPool,
-  V3SubgraphPool,
 } from '../../../providers';
 import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString, } from '../../../util';
 import { MixedRoute } from '../../router';
@@ -163,7 +161,7 @@ export class MixedQuoter extends BaseQuoter<
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool>,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
     gasModel?: IGasModel<MixedRouteWithValidQuote>
   ): Promise<GetQuotesResult> {
     const beforeGetQuotes = Date.now();

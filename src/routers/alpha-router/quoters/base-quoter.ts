@@ -100,7 +100,7 @@ export abstract class BaseQuoter<
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria<any>,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
     gasModel?: IGasModel<RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult>;

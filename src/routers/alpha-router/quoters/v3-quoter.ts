@@ -10,7 +10,6 @@ import {
   IV3PoolProvider,
   IV3SubgraphProvider,
   TokenValidationResult,
-  V3SubgraphPool,
 } from '../../../providers';
 import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString, } from '../../../util';
 import { V3Route } from '../../router';
@@ -123,7 +122,7 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route> {
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria<V3SubgraphPool>,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
     gasModel?: IGasModel<V3RouteWithValidQuote>
   ): Promise<GetQuotesResult> {
     const beforeGetQuotes = Date.now();

@@ -39,9 +39,7 @@ import {
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
-  V2SubgraphPool,
   V2SubgraphProviderWithFallBacks,
-  V3SubgraphPool,
   V3SubgraphProviderWithFallBacks,
 } from '../../providers';
 import { CachingTokenListProvider, ITokenListProvider, } from '../../providers/caching-token-list-provider';
@@ -1960,7 +1958,7 @@ export class AlphaRouter
     const getQuotesResults = await Promise.all(quotePromises);
 
     const allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
-    const allCandidatePools: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool>[] = [];
+    const allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
     getQuotesResults.forEach((getQuoteResult) => {
       allRoutesWithValidQuotes.push(...getQuoteResult.routesWithValidQuotes);
       if (getQuoteResult.candidatePools) {
@@ -2232,14 +2230,14 @@ export class AlphaRouter
     };
   }
 
-  private emitPoolSelectionMetrics<SubgraphPool extends V2SubgraphPool | V3SubgraphPool>(
+  private emitPoolSelectionMetrics(
     swapRouteRaw: {
       quote: CurrencyAmount;
       quoteGasAdjusted: CurrencyAmount;
       routes: RouteWithValidQuote[];
       estimatedGasUsed: BigNumber;
     },
-    allPoolsBySelection: CandidatePoolsBySelectionCriteria<SubgraphPool>[]
+    allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
   ) {
     const poolAddressesUsed = new Set<string>();
     const { routes: routeAmounts } = swapRouteRaw;

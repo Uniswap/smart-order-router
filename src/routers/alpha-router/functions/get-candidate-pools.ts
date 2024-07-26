@@ -70,14 +70,14 @@ import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
 
-export type PoolId = { id: string };
-export type CandidatePoolsBySelectionCriteria<SubgraphPool> = {
+export type SubgraphPool = V2SubgraphPool | V3SubgraphPool;
+export type CandidatePoolsBySelectionCriteria = {
   protocol: Protocol;
-  selections: CandidatePoolsSelections<SubgraphPool>;
+  selections: CandidatePoolsSelections;
 };
 
 /// Utility type for allowing us to use `keyof CandidatePoolsSelections` to map
-export type CandidatePoolsSelections<SubgraphPool> = {
+export type CandidatePoolsSelections = {
   topByBaseWithTokenIn: SubgraphPool[];
   topByBaseWithTokenOut: SubgraphPool[];
   topByDirectSwapPool: SubgraphPool[];
@@ -334,7 +334,7 @@ export async function getMixedCrossLiquidityCandidatePools({
 
 export type V3CandidatePools = {
   poolAccessor: V3PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria<V3SubgraphPool>;
+  candidatePools: CandidatePoolsBySelectionCriteria;
   subgraphPools: V3SubgraphPool[];
 };
 
@@ -741,7 +741,7 @@ export async function getV3CandidatePools({
     MetricLoggerUnit.Milliseconds
   );
 
-  const poolsBySelection: CandidatePoolsBySelectionCriteria<V3SubgraphPool> = {
+  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
     protocol: Protocol.V3,
     selections: {
       topByBaseWithTokenIn,
@@ -761,7 +761,7 @@ export async function getV3CandidatePools({
 
 export type V2CandidatePools = {
   poolAccessor: V2PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria<V2SubgraphPool>;
+  candidatePools: CandidatePoolsBySelectionCriteria;
   subgraphPools: V2SubgraphPool[];
 };
 
@@ -1346,7 +1346,7 @@ export async function getV2CandidatePools({
     MetricLoggerUnit.Milliseconds
   );
 
-  const poolsBySelection: CandidatePoolsBySelectionCriteria<V2SubgraphPool> = {
+  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
     protocol: Protocol.V2,
     selections: {
       topByBaseWithTokenIn,
@@ -1367,8 +1367,8 @@ export async function getV2CandidatePools({
 export type MixedCandidatePools = {
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool>;
-  subgraphPools: (V2SubgraphPool | V3SubgraphPool)[];
+  candidatePools: CandidatePoolsBySelectionCriteria;
+  subgraphPools: SubgraphPool[];
 };
 
 export async function getMixedRouteCandidatePools({
@@ -1560,7 +1560,7 @@ export async function getMixedRouteCandidatePools({
 
   /// @dev a bit tricky here since the original V2CandidateSelections object included pools that we may have dropped
   /// as part of the heuristic. We need to reconstruct a new object with the v3 pools too.
-  const buildPoolsBySelection = (key: keyof CandidatePoolsSelections<V2SubgraphPool | V3SubgraphPool>) => {
+  const buildPoolsBySelection = (key: keyof CandidatePoolsSelections) => {
     return [
       ...buildV2Pools.filter((pool) =>
         V2candidatePools.selections[key].map((p) => p.id).includes(pool.id)
@@ -1569,7 +1569,7 @@ export async function getMixedRouteCandidatePools({
     ];
   };
 
-  const poolsBySelection: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool> = {
+  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
     protocol: Protocol.MIXED,
     selections: {
       topByBaseWithTokenIn: buildPoolsBySelection('topByBaseWithTokenIn'),

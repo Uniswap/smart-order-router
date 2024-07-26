@@ -11,7 +11,6 @@ import {
   IV2QuoteProvider,
   IV2SubgraphProvider,
   TokenValidationResult,
-  V2SubgraphPool,
 } from '../../../providers';
 import { ArbitrumGasData, IL2GasDataProvider, } from '../../../providers/v3/gas-data-provider';
 import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString, } from '../../../util';
@@ -128,7 +127,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     quoteToken: Token,
     tradeType: TradeType,
     _routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria<V2SubgraphPool>,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
     _gasModel?: IGasModel<V2RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
