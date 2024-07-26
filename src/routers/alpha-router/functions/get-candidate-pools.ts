@@ -232,15 +232,6 @@ export async function getMixedCrossLiquidityCandidatePools({
     blockNumber,
   })).sort((a, b) => b.tvlUSD - a.tvlUSD);
 
-  for (const pool of v2Pools) {
-    pool.token0.id = pool.token0.id.toLowerCase();
-    pool.token1.id = pool.token1.id.toLowerCase();
-  }
-  for (const pool of v3Pools) {
-    pool.token0.id = pool.token0.id.toLowerCase();
-    pool.token1.id = pool.token1.id.toLowerCase();
-  }
-
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
 
