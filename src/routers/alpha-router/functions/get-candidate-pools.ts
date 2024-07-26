@@ -126,7 +126,7 @@ export type V2GetCandidatePoolsParams = {
 export type MixedRouteGetCandidatePoolsParams = {
   v3CandidatePools: V3CandidatePools;
   v2CandidatePools: V2CandidatePools;
-  crossLiquidityPools: CrossedLiquidityCandidatePools;
+  crossLiquidityPools: CrossLiquidityCandidatePools;
   routingConfig: AlphaRouterConfig;
   tokenProvider: ITokenProvider;
   v2poolProvider: IV2PoolProvider;
@@ -207,7 +207,7 @@ class SubcategorySelectionPools<SubgraphPool> {
   }
 }
 
-export type CrossedLiquidityCandidatePools = {
+export type CrossLiquidityCandidatePools = {
   v2Pools: V2SubgraphPool[];
   v3Pools: V3SubgraphPool[];
 }
@@ -229,7 +229,7 @@ export async function getMixedCrossLiquidityCandidatePools({
   v3SubgraphProvider,
   v2Candidates,
   v3Candidates,
-}: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossedLiquidityCandidatePools> {
+}: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossLiquidityCandidatePools> {
   const blockNumber = routingConfig.blockNumber;
 
   const v2Pools = (await v2SubgraphProvider.getPools(tokenIn, tokenOut, {

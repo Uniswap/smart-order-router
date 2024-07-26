@@ -17,7 +17,7 @@ import { AlphaRouterConfig } from '../alpha-router';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 import {
   CandidatePoolsBySelectionCriteria,
-  CrossedLiquidityCandidatePools,
+  CrossLiquidityCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
 } from '../functions/get-candidate-pools';
@@ -36,7 +36,7 @@ import { GetQuotesResult, GetRoutesResult } from './model/results';
 export abstract class BaseQuoter<
   CandidatePools extends | V2CandidatePools
     | V3CandidatePools
-    | [V3CandidatePools, V2CandidatePools, CrossedLiquidityCandidatePools],
+    | [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
   Route extends V2Route | V3Route | MixedRoute
 > {
   protected tokenProvider: ITokenProvider;

@@ -20,7 +20,7 @@ import { MixedRouteWithValidQuote } from '../entities';
 import { computeAllMixedRoutes } from '../functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
-  CrossedLiquidityCandidatePools,
+  CrossLiquidityCandidatePools,
   getMixedRouteCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
@@ -31,7 +31,7 @@ import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
 
 export class MixedQuoter extends BaseQuoter<
-  [V3CandidatePools, V2CandidatePools, CrossedLiquidityCandidatePools],
+  [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
   MixedRoute
 > {
   protected v3SubgraphProvider: IV3SubgraphProvider;
@@ -68,7 +68,7 @@ export class MixedQuoter extends BaseQuoter<
   protected async getRoutes(
     tokenIn: Token,
     tokenOut: Token,
-    v3v2candidatePools: [V3CandidatePools, V2CandidatePools, CrossedLiquidityCandidatePools],
+    v3v2candidatePools: [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<MixedRoute>> {
