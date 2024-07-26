@@ -259,7 +259,7 @@ describe('Fallback Tenderly simulator', () => {
       SimulationStatus.Failed
     );
   });
-  test('when eth estimate gas simulator throws', async () => {
+  test('when eth estimate gas simulator throws, try tenderly anyway', async () => {
     tokenContract = {
       balanceOf: async () => {
         return BigNumber.from(325);
@@ -278,7 +278,7 @@ describe('Fallback Tenderly simulator', () => {
     );
     expect(ethEstimateGasSimulator.ethEstimateGas.called).toBeTruthy();
     expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
-      SimulationStatus.Failed
+      SimulationStatus.Succeeded
     );
   });
 });
