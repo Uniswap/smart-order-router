@@ -293,10 +293,10 @@ function findCrossProtocolMissingPools<
   } = {};
   const previouslySelectedPools = new Set(candidatesInProtocolToSearch?.subgraphPools.map(pool => pool.id) ?? []);
 
-  const crossTokenAgainstV3TokenOut = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase() === tokenOutAddress ?
+  const crossTokenAgainstTokenOut = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase() === tokenOutAddress ?
     candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token1.id.toLowerCase() :
     candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase();
-  const crossTokenAgainstV3TokenIn = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase() === tokenInAddress ?
+  const crossTokenAgainstTokenIn = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase() === tokenInAddress ?
     candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token1.id.toLowerCase() :
     candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase();
 
@@ -311,8 +311,8 @@ function findCrossProtocolMissingPools<
 
     if (
       selectedPools.forTokenIn === undefined && (
-        (pool.token0.id.toLowerCase() === tokenOutAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV3TokenIn) ||
-        (pool.token1.id.toLowerCase() === tokenOutAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV3TokenIn)
+        (pool.token0.id.toLowerCase() === tokenOutAddress && pool.token1.id.toLowerCase() === crossTokenAgainstTokenIn) ||
+        (pool.token1.id.toLowerCase() === tokenOutAddress && pool.token0.id.toLowerCase() === crossTokenAgainstTokenIn)
       )
     ) {
       selectedPools.forTokenIn = pool;
@@ -320,8 +320,8 @@ function findCrossProtocolMissingPools<
 
     if (
       selectedPools.forTokenOut === undefined && (
-        (pool.token0.id.toLowerCase() === tokenInAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV3TokenOut) ||
-        (pool.token1.id.toLowerCase() === tokenInAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV3TokenOut)
+        (pool.token0.id.toLowerCase() === tokenInAddress && pool.token1.id.toLowerCase() === crossTokenAgainstTokenOut) ||
+        (pool.token1.id.toLowerCase() === tokenInAddress && pool.token0.id.toLowerCase() === crossTokenAgainstTokenOut)
       )
     ) {
       selectedPools.forTokenOut = pool;
