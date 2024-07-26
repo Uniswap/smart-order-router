@@ -177,7 +177,7 @@ export class FallbackTenderlySimulator extends Simulator {
     const inputAmount = swapRoute.trade.inputAmount;
 
     if (
-      (inputAmount.currency.isNative && this.chainId == ChainId.MAINNET) ||
+      (inputAmount.currency.isNative) ||
       (await this.checkTokenApproved(
         fromAddress,
         inputAmount,
@@ -200,7 +200,8 @@ export class FallbackTenderlySimulator extends Simulator {
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
-        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+        // If it fails, we should still try to simulate using Tenderly
+        // return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
     }
 
