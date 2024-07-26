@@ -2,13 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { Protocol, SwapRouter, Trade, ZERO } from '@uniswap/router-sdk';
-import {
-  ChainId,
-  Currency,
-  Fraction,
-  Token,
-  TradeType,
-} from '@uniswap/sdk-core';
+import { ChainId, Currency, Fraction, Token, TradeType, } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
@@ -45,63 +39,34 @@ import {
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
+  V2SubgraphPool,
   V2SubgraphProviderWithFallBacks,
+  V3SubgraphPool,
   V3SubgraphProviderWithFallBacks,
 } from '../../providers';
-import {
-  CachingTokenListProvider,
-  ITokenListProvider,
-} from '../../providers/caching-token-list-provider';
-import {
-  GasPrice,
-  IGasPriceProvider,
-} from '../../providers/gas-price-provider';
-import {
-  IPortionProvider,
-  PortionProvider,
-} from '../../providers/portion-provider';
+import { CachingTokenListProvider, ITokenListProvider, } from '../../providers/caching-token-list-provider';
+import { GasPrice, IGasPriceProvider, } from '../../providers/gas-price-provider';
+import { IPortionProvider, PortionProvider, } from '../../providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
-import {
-  ITokenValidatorProvider,
-  TokenValidatorProvider,
-} from '../../providers/token-validator-provider';
-import {
-  IV2PoolProvider,
-  V2PoolProvider,
-} from '../../providers/v2/pool-provider';
-import {
-  ArbitrumGasData,
-  ArbitrumGasDataProvider,
-  IL2GasDataProvider,
-} from '../../providers/v3/gas-data-provider';
-import {
-  IV3PoolProvider,
-  V3PoolProvider,
-} from '../../providers/v3/pool-provider';
+import { ITokenValidatorProvider, TokenValidatorProvider, } from '../../providers/token-validator-provider';
+import { IV2PoolProvider, V2PoolProvider, } from '../../providers/v2/pool-provider';
+import { ArbitrumGasData, ArbitrumGasDataProvider, IL2GasDataProvider, } from '../../providers/v3/gas-data-provider';
+import { IV3PoolProvider, V3PoolProvider, } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
-import {
-  ID_TO_CHAIN_ID,
-  ID_TO_NETWORK_NAME,
-  V2_SUPPORTED,
-} from '../../util/chains';
-import {
-  getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
-} from '../../util/gas-factory-helpers';
+import { ID_TO_CHAIN_ID, ID_TO_NETWORK_NAME, V2_SUPPORTED, } from '../../util/chains';
+import { getHighestLiquidityV3NativePool, getHighestLiquidityV3USDPool, } from '../../util/gas-factory-helpers';
 import { log } from '../../util/log';
-import {
-  buildSwapMethodParameters,
-  buildTrade,
-} from '../../util/methodParameters';
+import { buildSwapMethodParameters, buildTrade, } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
   BATCH_PARAMS,
   BLOCK_NUMBER_CONFIGS,
-  DEFAULT_BATCH_PARAMS, DEFAULT_BLOCK_NUMBER_CONFIGS,
+  DEFAULT_BATCH_PARAMS,
+  DEFAULT_BLOCK_NUMBER_CONFIGS,
   DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
   DEFAULT_RETRY_OPTIONS,
   DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
@@ -126,10 +91,7 @@ import {
   V3Route,
 } from '../router';
 
-import {
-  DEFAULT_ROUTING_CONFIG_BY_CHAIN,
-  ETH_GAS_STATION_API_URL,
-} from './config';
+import { DEFAULT_ROUTING_CONFIG_BY_CHAIN, ETH_GAS_STATION_API_URL, } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
@@ -140,9 +102,9 @@ import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
   CandidatePoolsBySelectionCriteria,
+  getMixedCrossLiquidityCandidatePools,
   getV2CandidatePools,
   getV3CandidatePools,
-  PoolId,
   V2CandidatePools,
   V3CandidatePools,
 } from './functions/get-candidate-pools';
@@ -438,10 +400,8 @@ export type AlphaRouterConfig = {
 };
 
 export class AlphaRouter
-  implements
-    IRouter<AlphaRouterConfig>,
-    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
-{
+  implements IRouter<AlphaRouterConfig>,
+    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig> {
   protected chainId: ChainId;
   protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
@@ -531,7 +491,7 @@ export class AlphaRouter
                 multicallChunk: 110,
                 gasLimitPerCall: 1_200_000,
                 quoteMinSuccessRate: 0.1,
-              }
+              };
             },
             {
               gasLimitOverride: 3_000_000,
@@ -569,7 +529,7 @@ export class AlphaRouter
                 multicallChunk: 80,
                 gasLimitPerCall: 1_200_000,
                 quoteMinSuccessRate: 0.1,
-              }
+              };
             },
             {
               gasLimitOverride: 3_000_000,
@@ -604,7 +564,7 @@ export class AlphaRouter
                 multicallChunk: 27,
                 gasLimitPerCall: 3_000_000,
                 quoteMinSuccessRate: 0.1,
-              }
+              };
             },
             {
               gasLimitOverride: 6_000_000,
@@ -641,7 +601,7 @@ export class AlphaRouter
                 multicallChunk: 10,
                 gasLimitPerCall: 12_000_000,
                 quoteMinSuccessRate: 0.1,
-              }
+              };
             },
             {
               gasLimitOverride: 30_000_000,
@@ -669,7 +629,7 @@ export class AlphaRouter
                 multicallChunk: 10,
                 gasLimitPerCall: 5_000_000,
                 quoteMinSuccessRate: 0.1,
-              }
+              };
             },
             {
               gasLimitOverride: 5_000_000,
@@ -1099,8 +1059,8 @@ export class AlphaRouter
         [tokenOut],
         partialRoutingConfig
       );
-      const buyFeeBps = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps;
-      const tokenOutHasFot = buyFeeBps && buyFeeBps.gt(0);
+    const buyFeeBps = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps;
+    const tokenOutHasFot = buyFeeBps && buyFeeBps.gt(0);
 
     if (tradeType === TradeType.EXACT_OUTPUT) {
       const portionAmount = this.portionProvider.getPortionAmount(
@@ -1165,8 +1125,8 @@ export class AlphaRouter
     // const gasTokenAccessor = await this.tokenProvider.getTokens([routingConfig.gasToken!]);
     const gasToken = routingConfig.gasToken
       ? (
-          await this.tokenProvider.getTokens([routingConfig.gasToken])
-        ).getTokenByAddress(routingConfig.gasToken)
+        await this.tokenProvider.getTokens([routingConfig.gasToken])
+      ).getTokenByAddress(routingConfig.gasToken)
       : undefined;
 
     const providerConfig: GasModelProviderConfig = {
@@ -1957,8 +1917,11 @@ export class AlphaRouter
 
       quotePromises.push(
         Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(
-          ([v3CandidatePools, v2CandidatePools]) =>
-            this.mixedQuoter
+          ([v3CandidatePools, v2CandidatePools]) => {
+            v3CandidatePools?.candidatePools.selections.topByTVLUsingTokenIn[0];
+            const mixedCandidatePools = getMixedCrossLiquidityCandidatePools({});
+
+            return this.mixedQuoter
               .getRoutesThenQuotes(
                 tokenIn,
                 tokenOut,
@@ -1979,7 +1942,8 @@ export class AlphaRouter
                 );
 
                 return result;
-              })
+              });
+          }
         )
       );
     }
@@ -1987,7 +1951,7 @@ export class AlphaRouter
     const getQuotesResults = await Promise.all(quotePromises);
 
     const allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
-    const allCandidatePools: CandidatePoolsBySelectionCriteria[] = [];
+    const allCandidatePools: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool>[] = [];
     getQuotesResults.forEach((getQuoteResult) => {
       allRoutesWithValidQuotes.push(...getQuoteResult.routesWithValidQuotes);
       if (getQuoteResult.candidatePools) {
@@ -2091,19 +2055,19 @@ export class AlphaRouter
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
     const nativeAndQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
-          quoteToken,
-          this.v3PoolProvider,
-          providerConfig
-        )
+        quoteToken,
+        this.v3PoolProvider,
+        providerConfig
+      )
       : Promise.resolve(null);
     const nativeAndAmountTokenV3PoolPromise = !amountToken.equals(
       nativeCurrency
     )
       ? getHighestLiquidityV3NativePool(
-          amountToken,
-          this.v3PoolProvider,
-          providerConfig
-        )
+        amountToken,
+        this.v3PoolProvider,
+        providerConfig
+      )
       : Promise.resolve(null);
 
     // If a specific gas token is specified in the provider config
@@ -2112,10 +2076,10 @@ export class AlphaRouter
       providerConfig?.gasToken &&
       !providerConfig?.gasToken.equals(nativeCurrency)
         ? getHighestLiquidityV3NativePool(
-            providerConfig?.gasToken,
-            this.v3PoolProvider,
-            providerConfig
-          )
+          providerConfig?.gasToken,
+          this.v3PoolProvider,
+          providerConfig
+        )
         : Promise.resolve(null);
 
     const [
@@ -2139,13 +2103,13 @@ export class AlphaRouter
 
     const v2GasModelPromise = this.v2Supported?.includes(this.chainId)
       ? this.v2GasModelFactory.buildGasModel({
-          chainId: this.chainId,
-          gasPriceWei,
-          poolProvider: this.v2PoolProvider,
-          token: quoteToken,
-          l2GasDataProvider: this.l2GasDataProvider,
-          providerConfig: providerConfig,
-        }).catch(_ => undefined) // If v2 model throws uncaught exception, we return undefined v2 gas model, so there's a chance v3 route can go through
+        chainId: this.chainId,
+        gasPriceWei,
+        poolProvider: this.v2PoolProvider,
+        token: quoteToken,
+        l2GasDataProvider: this.l2GasDataProvider,
+        providerConfig: providerConfig,
+      }).catch(_ => undefined) // If v2 model throws uncaught exception, we return undefined v2 gas model, so there's a chance v3 route can go through
       : Promise.resolve(undefined);
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
@@ -2259,14 +2223,14 @@ export class AlphaRouter
     };
   }
 
-  private emitPoolSelectionMetrics(
+  private emitPoolSelectionMetrics<SubgraphPool extends V2SubgraphPool | V3SubgraphPool>(
     swapRouteRaw: {
       quote: CurrencyAmount;
       quoteGasAdjusted: CurrencyAmount;
       routes: RouteWithValidQuote[];
       estimatedGasUsed: BigNumber;
     },
-    allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
+    allPoolsBySelection: CandidatePoolsBySelectionCriteria<SubgraphPool>[]
   ) {
     const poolAddressesUsed = new Set<string>();
     const { routes: routeAmounts } = swapRouteRaw;
@@ -2283,7 +2247,7 @@ export class AlphaRouter
       const { protocol } = poolsBySelection;
       _.forIn(
         poolsBySelection.selections,
-        (pools: PoolId[], topNSelection: string) => {
+        (pools: SubgraphPool[], topNSelection: string) => {
           const topNUsed =
             _.findLastIndex(pools, (pool) =>
               poolAddressesUsed.has(pool.id.toLowerCase())

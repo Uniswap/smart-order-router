@@ -58,21 +58,12 @@ import {
   WGLMR_MOONBEAM,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-  WXDAI_GNOSIS,
   WSTETH_MAINNET,
+  WXDAI_GNOSIS,
 } from '../../../providers/token-provider';
-import {
-  IV2PoolProvider,
-  V2PoolAccessor,
-} from '../../../providers/v2/pool-provider';
-import {
-  IV3PoolProvider,
-  V3PoolAccessor,
-} from '../../../providers/v3/pool-provider';
-import {
-  IV3SubgraphProvider,
-  V3SubgraphPool,
-} from '../../../providers/v3/subgraph-provider';
+import { IV2PoolProvider, V2PoolAccessor, } from '../../../providers/v2/pool-provider';
+import { IV3PoolProvider, V3PoolAccessor, } from '../../../providers/v3/pool-provider';
+import { IV3SubgraphProvider, V3SubgraphPool, } from '../../../providers/v3/subgraph-provider';
 import { unparseFeeAmount, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -80,22 +71,36 @@ import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
 
 export type PoolId = { id: string };
-export type CandidatePoolsBySelectionCriteria = {
+export type CandidatePoolsBySelectionCriteria<SubgraphPool> = {
   protocol: Protocol;
-  selections: CandidatePoolsSelections;
+  selections: CandidatePoolsSelections<SubgraphPool>;
 };
 
 /// Utility type for allowing us to use `keyof CandidatePoolsSelections` to map
-export type CandidatePoolsSelections = {
-  topByBaseWithTokenIn: PoolId[];
-  topByBaseWithTokenOut: PoolId[];
-  topByDirectSwapPool: PoolId[];
-  topByEthQuoteTokenPool: PoolId[];
-  topByTVL: PoolId[];
-  topByTVLUsingTokenIn: PoolId[];
-  topByTVLUsingTokenOut: PoolId[];
-  topByTVLUsingTokenInSecondHops: PoolId[];
-  topByTVLUsingTokenOutSecondHops: PoolId[];
+export type CandidatePoolsSelections<SubgraphPool> = {
+  topByBaseWithTokenIn: SubgraphPool[];
+  topByBaseWithTokenOut: SubgraphPool[];
+  topByDirectSwapPool: SubgraphPool[];
+  topByEthQuoteTokenPool: SubgraphPool[];
+  topByTVL: SubgraphPool[];
+  topByTVLUsingTokenIn: SubgraphPool[];
+  topByTVLUsingTokenOut: SubgraphPool[];
+  topByTVLUsingTokenInSecondHops: SubgraphPool[];
+  topByTVLUsingTokenOutSecondHops: SubgraphPool[];
+};
+
+export type MixedCrossLiquidityCandidatePoolsParams = {
+  tokenIn: Token;
+  tokenOut: Token;
+  routeType: TradeType;
+  routingConfig: AlphaRouterConfig;
+  v2SubgraphProvider: IV2SubgraphProvider;
+  v3SubgraphProvider: IV3SubgraphProvider;
+  tokenProvider: ITokenProvider;
+  v2PoolProvider: IV2PoolProvider;
+  v3PoolProvider: IV3PoolProvider;
+  blockedTokenListProvider?: ITokenListProvider;
+  chainId: ChainId;
 };
 
 export type V3GetCandidatePoolsParams = {
@@ -197,16 +202,44 @@ class SubcategorySelectionPools<SubgraphPool> {
   constructor(
     public pools: SubgraphPool[],
     public readonly poolsNeeded: number
-  ) {}
+  ) {
+  }
 
   public hasEnoughPools(): boolean {
     return this.pools.length >= this.poolsNeeded;
   }
 }
 
+export type TopMixedCandidatePools = {
+  v2Pools: V2SubgraphPool[];
+  v3Pools: V3SubgraphPool[];
+}
+
+export async function getMixedCrossLiquidityCandidatePools({
+  tokenIn,
+  tokenOut,
+  routeType,
+  routingConfig,
+  v2SubgraphProvider,
+  v3SubgraphProvider,
+  tokenProvider,
+  v2PoolProvider,
+  v3PoolProvider,
+  blockedTokenListProvider,
+  chainId,
+}: MixedCrossLiquidityCandidatePoolsParams): Promise<TopMixedCandidatePools> {
+  const { blockNumber } = routingConfig;
+  const tokenInAddress = tokenIn.address.toLowerCase();
+  const tokenOutAddress = tokenOut.address.toLowerCase();
+
+  const beforeSubgraphPools = Date.now();
+
+  const topV2ByTvlWithTokenIn;
+}
+
 export type V3CandidatePools = {
   poolAccessor: V3PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria;
+  candidatePools: CandidatePoolsBySelectionCriteria<V3SubgraphPool>;
   subgraphPools: V3SubgraphPool[];
 };
 
@@ -342,7 +375,7 @@ export async function getV3CandidatePools({
       return (
         !poolAddressesSoFar.has(subgraphPool.id) &&
         ((subgraphPool.token0.id == tokenInAddress &&
-          subgraphPool.token1.id == tokenOutAddress) ||
+            subgraphPool.token1.id == tokenOutAddress) ||
           (subgraphPool.token1.id == tokenInAddress &&
             subgraphPool.token0.id == tokenOutAddress))
       );
@@ -613,7 +646,7 @@ export async function getV3CandidatePools({
     MetricLoggerUnit.Milliseconds
   );
 
-  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
+  const poolsBySelection: CandidatePoolsBySelectionCriteria<V3SubgraphPool> = {
     protocol: Protocol.V3,
     selections: {
       topByBaseWithTokenIn,
@@ -633,7 +666,7 @@ export async function getV3CandidatePools({
 
 export type V2CandidatePools = {
   poolAccessor: V2PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria;
+  candidatePools: CandidatePoolsBySelectionCriteria<V2SubgraphPool>;
   subgraphPools: V2SubgraphPool[];
 };
 
@@ -903,13 +936,13 @@ export async function getV2CandidatePools({
     if (
       topByEthQuoteTokenPool.length < topNEthQuoteToken &&
       ((routeType === TradeType.EXACT_INPUT &&
-        ((subgraphPool.token0.id == wethAddress &&
-          subgraphPool.token1.id == tokenOutAddress) ||
-          (subgraphPool.token1.id == wethAddress &&
-            subgraphPool.token0.id == tokenOutAddress))) ||
+          ((subgraphPool.token0.id == wethAddress &&
+              subgraphPool.token1.id == tokenOutAddress) ||
+            (subgraphPool.token1.id == wethAddress &&
+              subgraphPool.token0.id == tokenOutAddress))) ||
         (routeType === TradeType.EXACT_OUTPUT &&
           ((subgraphPool.token0.id == wethAddress &&
-            subgraphPool.token1.id == tokenInAddress) ||
+              subgraphPool.token1.id == tokenInAddress) ||
             (subgraphPool.token1.id == wethAddress &&
               subgraphPool.token0.id == tokenInAddress))))
     ) {
@@ -1218,7 +1251,7 @@ export async function getV2CandidatePools({
     MetricLoggerUnit.Milliseconds
   );
 
-  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
+  const poolsBySelection: CandidatePoolsBySelectionCriteria<V2SubgraphPool> = {
     protocol: Protocol.V2,
     selections: {
       topByBaseWithTokenIn,
@@ -1239,7 +1272,7 @@ export async function getV2CandidatePools({
 export type MixedCandidatePools = {
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
-  candidatePools: CandidatePoolsBySelectionCriteria;
+  candidatePools: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool>;
   subgraphPools: (V2SubgraphPool | V3SubgraphPool)[];
 };
 
@@ -1270,19 +1303,19 @@ export async function getMixedRouteCandidatePools({
    *
    * This way we can reduce calls to our provider since it's possible to generate a lot of mixed routes
    */
-  /// We only really care about pools involving the tokenIn or tokenOut explictly,
-  /// since there's no way a long tail token in V2 would be routed through as an intermediary
+    /// We only really care about pools involving the tokenIn or tokenOut explictly,
+    /// since there's no way a long tail token in V2 would be routed through as an intermediary
   const V2topByTVLPoolIds = new Set(
-    [
-      ...V2candidatePools.selections.topByTVLUsingTokenIn,
-      ...V2candidatePools.selections.topByBaseWithTokenIn,
-      /// tokenOut:
-      ...V2candidatePools.selections.topByTVLUsingTokenOut,
-      ...V2candidatePools.selections.topByBaseWithTokenOut,
-      /// Direct swap:
-      ...V2candidatePools.selections.topByDirectSwapPool,
-    ].map((poolId) => poolId.id)
-  );
+      [
+        ...V2candidatePools.selections.topByTVLUsingTokenIn,
+        ...V2candidatePools.selections.topByBaseWithTokenIn,
+        /// tokenOut:
+        ...V2candidatePools.selections.topByTVLUsingTokenOut,
+        ...V2candidatePools.selections.topByBaseWithTokenOut,
+        /// Direct swap:
+        ...V2candidatePools.selections.topByDirectSwapPool,
+      ].map((poolId) => poolId.id)
+    );
 
   const V2topByTVLSortedPools = _(V2subgraphPools)
     .filter((pool) => V2topByTVLPoolIds.has(pool.id))
@@ -1426,7 +1459,7 @@ export async function getMixedRouteCandidatePools({
 
   /// @dev a bit tricky here since the original V2CandidateSelections object included pools that we may have dropped
   /// as part of the heuristic. We need to reconstruct a new object with the v3 pools too.
-  const buildPoolsBySelection = (key: keyof CandidatePoolsSelections) => {
+  const buildPoolsBySelection = (key: keyof CandidatePoolsSelections<V2SubgraphPool | V3SubgraphPool>) => {
     return [
       ...buildV2Pools.filter((pool) =>
         V2candidatePools.selections[key].map((p) => p.id).includes(pool.id)
@@ -1435,7 +1468,7 @@ export async function getMixedRouteCandidatePools({
     ];
   };
 
-  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
+  const poolsBySelection: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool> = {
     protocol: Protocol.MIXED,
     selections: {
       topByBaseWithTokenIn: buildPoolsBySelection('topByBaseWithTokenIn'),
