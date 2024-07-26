@@ -92,11 +92,11 @@ export type CandidatePoolsSelections = {
 export type MixedCrossLiquidityCandidatePoolsParams = {
   tokenIn: Token;
   tokenOut: Token;
-  routingConfig: AlphaRouterConfig;
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
+  blockNumber?: number | Promise<number>;
 };
 
 export type V3GetCandidatePoolsParams = {
@@ -224,14 +224,12 @@ export type CrossLiquidityCandidatePools = {
 export async function getMixedCrossLiquidityCandidatePools({
   tokenIn,
   tokenOut,
-  routingConfig,
+  blockNumber,
   v2SubgraphProvider,
   v3SubgraphProvider,
   v2Candidates,
   v3Candidates,
 }: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossLiquidityCandidatePools> {
-  const blockNumber = routingConfig.blockNumber;
-
   const v2Pools = (await v2SubgraphProvider.getPools(tokenIn, tokenOut, {
     blockNumber,
   })).sort((a, b) => b.reserve - a.reserve);

@@ -9,21 +9,34 @@ import {
   TokenProvider,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
+  V2PoolProvider,
+  V2SubgraphPool,
+  V2SubgraphProvider,
   V3PoolProvider,
   V3SubgraphPool,
   V3SubgraphProvider,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
-import { getV3CandidatePools } from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
+import {
+  getMixedCrossLiquidityCandidatePools,
+  getV3CandidatePools
+} from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
 import {
   buildMockTokenAccessor,
+  buildMockV2PoolAccessor,
   buildMockV3PoolAccessor,
+  DAI_USDT,
   DAI_USDT_LOW,
+  DAI_WETH,
+  pairToV2SubgraphPool,
   poolToV3SubgraphPool,
+  USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
+  USDC_WETH,
   USDC_WETH_LOW,
   WETH9_USDT_LOW,
+  WETH_USDT,
 } from '../../../../test-util/mock-data';
 
 describe('get candidate pools', () => {
@@ -31,6 +44,8 @@ describe('get candidate pools', () => {
   let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let mockV3SubgraphProvider: sinon.SinonStubbedInstance<V3SubgraphProvider>;
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
+  let mockV2PoolProvider: sinon.SinonStubbedInstance<V2PoolProvider>;
+  let mockV2SubgraphProvider: sinon.SinonStubbedInstance<V2SubgraphProvider>;
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
     v3PoolSelection: {
@@ -57,12 +72,19 @@ describe('get candidate pools', () => {
   };
 
   const mockTokens = [USDC, DAI, WRAPPED_NATIVE_CURRENCY[1]!, USDT];
-  const mockPools = [
+  const mockV3Pools = [
     USDC_DAI_LOW,
     USDC_DAI_MEDIUM,
     USDC_WETH_LOW,
     WETH9_USDT_LOW,
     DAI_USDT_LOW,
+  ];
+  const mockV2Pools = [
+    DAI_USDT,
+    DAI_WETH,
+    USDC_WETH,
+    WETH_USDT,
+    USDC_DAI
   ];
 
   beforeEach(() => {
@@ -72,14 +94,24 @@ describe('get candidate pools', () => {
     mockBlockTokenListProvider = sinon.createStubInstance(
       CachingTokenListProvider
     );
+    mockV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+    mockV2SubgraphProvider = sinon.createStubInstance(V2SubgraphProvider);
 
-    const mockSubgraphPools: V3SubgraphPool[] = _.map(
-      mockPools,
+    const mockV3SubgraphPools: V3SubgraphPool[] = _.map(
+      mockV3Pools,
       poolToV3SubgraphPool
     );
 
-    mockV3SubgraphProvider.getPools.resolves(mockSubgraphPools);
-    mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(mockPools));
+    const mockV2SubgraphPools: V2SubgraphPool[] = _.map(
+      mockV2Pools,
+      pairToV2SubgraphPool
+    );
+
+    mockV2SubgraphProvider.getPools.resolves(mockV2SubgraphPools);
+    mockV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(mockV2Pools));
+
+    mockV3SubgraphProvider.getPools.resolves(mockV3SubgraphPools);
+    mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(mockV3Pools));
     mockV3PoolProvider.getPoolAddress.callsFake(
       (t1: Token, t2: Token, f: FeeAmount) => {
         return {
@@ -228,5 +260,14 @@ describe('get candidate pools', () => {
         [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOWEST],
       ], { blockNumber: undefined })
     ).toBeTruthy();
+  });
+
+  test('getMixedCrossLiquidityCandidatePools', async () => {
+    await getMixedCrossLiquidityCandidatePools({
+      tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+      tokenOut: DAI,
+      v2SubgraphProvider: mockV2SubgraphProvider,
+      v3SubgraphProvider: mockV3SubgraphProvider
+    });
   });
 });

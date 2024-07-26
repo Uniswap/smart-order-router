@@ -1920,7 +1920,7 @@ export class AlphaRouter
             const crossLiquidityPools = await getMixedCrossLiquidityCandidatePools({
               tokenIn,
               tokenOut,
-              routingConfig,
+              blockNumber: routingConfig.blockNumber,
               v2SubgraphProvider: this.v2SubgraphProvider,
               v3SubgraphProvider: this.v3SubgraphProvider,
               v2Candidates: v2CandidatePools,
