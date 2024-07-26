@@ -67,6 +67,7 @@ export abstract class Simulator {
     const neededBalance =
       swapRoute.trade.tradeType == TradeType.EXACT_INPUT ? amount : quote;
     if (
+      // we assume we always have enough eth mainnet balance because we use beacon address later
       (neededBalance.currency.isNative && this.chainId == ChainId.MAINNET) ||
       (await this.userHasSufficientBalance(
         fromAddress,
