@@ -277,6 +277,7 @@ describe('Fallback Tenderly simulator', () => {
       quote
     );
     expect(ethEstimateGasSimulator.ethEstimateGas.called).toBeTruthy();
+    expect(tenderlySimulator.ethEstimateGas.called).toBeTruthy();
     expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
       SimulationStatus.Succeeded
     );
