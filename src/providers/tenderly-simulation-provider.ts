@@ -177,7 +177,7 @@ export class FallbackTenderlySimulator extends Simulator {
     const inputAmount = swapRoute.trade.inputAmount;
 
     if (
-      (inputAmount.currency.isNative && this.chainId == ChainId.MAINNET) ||
+      (inputAmount.currency.isNative) ||
       (await this.checkTokenApproved(
         fromAddress,
         inputAmount,
