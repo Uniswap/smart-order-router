@@ -1921,8 +1921,6 @@ export class AlphaRouter
               tokenIn,
               tokenOut,
               routingConfig,
-              v2PoolProvider: this.v2PoolProvider,
-              v3PoolProvider: this.v3PoolProvider,
               v2SubgraphProvider: this.v2SubgraphProvider,
               v3SubgraphProvider: this.v3SubgraphProvider,
               v2Candidates: v2CandidatePools,
