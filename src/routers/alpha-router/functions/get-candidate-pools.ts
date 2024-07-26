@@ -218,7 +218,6 @@ export type CrossedLiquidityCandidatePools = {
  *
  *   e.g. In V2CandidatePools we found that wstETH/DOG is the most liquid pool,
  *        then in V3CandidatePools ETH/wstETH is *not* the most liquid pool, so it is not selected
- *        then in V3CandidatePools ETH/wstETH is *not* the most liquid pool, so it is not selected
  *        This process will look for that pool in order to complete the route.
  *
  */
