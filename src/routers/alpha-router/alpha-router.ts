@@ -1917,9 +1917,18 @@ export class AlphaRouter
 
       quotePromises.push(
         Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(
-          ([v3CandidatePools, v2CandidatePools]) => {
-            v3CandidatePools?.candidatePools.selections.topByTVLUsingTokenIn[0];
-            const mixedCandidatePools = getMixedCrossLiquidityCandidatePools({});
+          async ([v3CandidatePools, v2CandidatePools]) => {
+            const crossLiquidityPools = await getMixedCrossLiquidityCandidatePools({
+              tokenIn,
+              tokenOut,
+              routingConfig,
+              v2PoolProvider: this.v2PoolProvider,
+              v3PoolProvider: this.v3PoolProvider,
+              v2SubgraphProvider: this.v2SubgraphProvider,
+              v3SubgraphProvider: this.v3SubgraphProvider,
+              v2Candidates: v2CandidatePools,
+              v3Candidates: v3CandidatePools,
+            });
 
             return this.mixedQuoter
               .getRoutesThenQuotes(
@@ -1929,7 +1938,7 @@ export class AlphaRouter
                 amounts,
                 percents,
                 quoteToken,
-                [v3CandidatePools!, v2CandidatePools!],
+                [v3CandidatePools!, v2CandidatePools!, crossLiquidityPools],
                 tradeType,
                 routingConfig,
                 mixedRouteGasModel

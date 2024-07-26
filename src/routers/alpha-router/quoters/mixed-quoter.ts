@@ -12,20 +12,17 @@ import {
   IV3PoolProvider,
   IV3SubgraphProvider,
   TokenValidationResult,
+  V2SubgraphPool,
+  V3SubgraphPool,
 } from '../../../providers';
-import {
-  CurrencyAmount,
-  log,
-  metric,
-  MetricLoggerUnit,
-  routeToString,
-} from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString, } from '../../../util';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { MixedRouteWithValidQuote } from '../entities';
 import { computeAllMixedRoutes } from '../functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
+  CrossedLiquidityCandidatePools,
   getMixedRouteCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
@@ -36,7 +33,7 @@ import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
 
 export class MixedQuoter extends BaseQuoter<
-  [V3CandidatePools, V2CandidatePools],
+  [V3CandidatePools, V2CandidatePools, CrossedLiquidityCandidatePools],
   MixedRoute
 > {
   protected v3SubgraphProvider: IV3SubgraphProvider;
@@ -73,7 +70,7 @@ export class MixedQuoter extends BaseQuoter<
   protected async getRoutes(
     tokenIn: Token,
     tokenOut: Token,
-    v3v2candidatePools: [V3CandidatePools, V2CandidatePools],
+    v3v2candidatePools: [V3CandidatePools, V2CandidatePools, CrossedLiquidityCandidatePools],
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<MixedRoute>> {
@@ -83,7 +80,7 @@ export class MixedQuoter extends BaseQuoter<
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
 
-    const [v3CandidatePools, v2CandidatePools] = v3v2candidatePools;
+    const [v3CandidatePools, v2CandidatePools, crossLiquidityPools] = v3v2candidatePools;
 
     const {
       V2poolAccessor,
@@ -92,6 +89,7 @@ export class MixedQuoter extends BaseQuoter<
     } = await getMixedRouteCandidatePools({
       v3CandidatePools,
       v2CandidatePools,
+      crossLiquidityPools,
       tokenProvider: this.tokenProvider,
       v3poolProvider: this.v3PoolProvider,
       v2poolProvider: this.v2PoolProvider,
@@ -165,7 +163,7 @@ export class MixedQuoter extends BaseQuoter<
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria,
+    candidatePools?: CandidatePoolsBySelectionCriteria<V2SubgraphPool | V3SubgraphPool>,
     gasModel?: IGasModel<MixedRouteWithValidQuote>
   ): Promise<GetQuotesResult> {
     const beforeGetQuotes = Date.now();

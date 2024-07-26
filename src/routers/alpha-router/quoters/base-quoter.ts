@@ -11,18 +11,13 @@ import {
   ITokenValidatorProvider,
   TokenValidationResult,
 } from '../../../providers';
-import {
-  CurrencyAmount,
-  log,
-  metric,
-  MetricLoggerUnit,
-  poolToString,
-} from '../../../util';
+import { CurrencyAmount, log, metric, MetricLoggerUnit, poolToString, } from '../../../util';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 import {
   CandidatePoolsBySelectionCriteria,
+  CrossedLiquidityCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
 } from '../functions/get-candidate-pools';
@@ -39,10 +34,9 @@ import { GetQuotesResult, GetRoutesResult } from './model/results';
  * @template Route
  */
 export abstract class BaseQuoter<
-  CandidatePools extends
-    | V2CandidatePools
+  CandidatePools extends | V2CandidatePools
     | V3CandidatePools
-    | [V3CandidatePools, V2CandidatePools],
+    | [V3CandidatePools, V2CandidatePools, CrossedLiquidityCandidatePools],
   Route extends V2Route | V3Route | MixedRoute
 > {
   protected tokenProvider: ITokenProvider;
@@ -106,7 +100,7 @@ export abstract class BaseQuoter<
     quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
-    candidatePools?: CandidatePoolsBySelectionCriteria,
+    candidatePools?: CandidatePoolsBySelectionCriteria<any>,
     gasModel?: IGasModel<RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult>;
