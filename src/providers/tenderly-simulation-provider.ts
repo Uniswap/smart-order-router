@@ -200,7 +200,7 @@ export class FallbackTenderlySimulator extends Simulator {
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
-        // If it fails, we should still try to simualte using Tenderly
+        // If it fails, we should still try to simulate using Tenderly
         // return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
     }
