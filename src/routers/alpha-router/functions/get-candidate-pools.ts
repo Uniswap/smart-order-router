@@ -95,8 +95,6 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   routingConfig: AlphaRouterConfig;
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
-  v2PoolProvider: IV2PoolProvider;
-  v3PoolProvider: IV3PoolProvider;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
 };
@@ -235,87 +233,21 @@ export async function getMixedCrossLiquidityCandidatePools({
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
 
-  const v2SelectedPools: {
-    forTokenIn?: V2SubgraphPool;
-    forTokenOut?: V2SubgraphPool;
-  } = {};
-  const previouslySelectedV2PoolIds = new Set(v2Candidates?.subgraphPools.map(pool => pool.id) ?? []);
+  const v2SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v2Pools,
+    v2Candidates,
+    v3Candidates
+  );
 
-  const crossTokenAgainstV3TokenOut = v3Candidates?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase() === tokenOutAddress ?
-    v3Candidates?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token1.id.toLowerCase() :
-    v3Candidates?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase();
-  const crossTokenAgainstV3TokenIn = v3Candidates?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase() === tokenInAddress ?
-    v3Candidates?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token1.id.toLowerCase() :
-    v3Candidates?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase();
-
-  for (const pool of v2Pools) {
-    if (previouslySelectedV2PoolIds.has(pool.id.toLowerCase())) {
-      continue;
-    }
-
-    if (v2SelectedPools.forTokenIn !== undefined && v2SelectedPools.forTokenOut !== undefined) {
-      break;
-    }
-
-    if (
-      v2SelectedPools.forTokenIn === undefined && (
-        (pool.token0.id.toLowerCase() === tokenOutAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV3TokenIn) ||
-        (pool.token1.id.toLowerCase() === tokenOutAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV3TokenIn)
-      )
-    ) {
-      v2SelectedPools.forTokenIn = pool;
-    }
-
-    if (
-      v2SelectedPools.forTokenOut === undefined && (
-        (pool.token0.id.toLowerCase() === tokenInAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV3TokenOut) ||
-        (pool.token1.id.toLowerCase() === tokenInAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV3TokenOut)
-      )
-    ) {
-      v2SelectedPools.forTokenOut = pool;
-    }
-  }
-
-  const v3SelectedPools: {
-    forTokenIn?: V3SubgraphPool;
-    forTokenOut?: V3SubgraphPool;
-  } = {};
-  const previouslySelectedV3PoolIds = new Set(v3Candidates?.subgraphPools.map(pool => pool.id) ?? []);
-
-  const crossTokenAgainstV2TokenOut = v2Candidates?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase() === tokenOutAddress ?
-    v2Candidates?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token1.id.toLowerCase() :
-    v2Candidates?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase();
-  const crossTokenAgainstV2TokenIn = v2Candidates?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase() === tokenInAddress ?
-    v2Candidates?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token1.id.toLowerCase() :
-    v2Candidates?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase();
-
-  for (const pool of v3Pools) {
-    if (previouslySelectedV3PoolIds.has(pool.id.toLowerCase())) {
-      continue;
-    }
-
-    if (v3SelectedPools.forTokenIn !== undefined && v3SelectedPools.forTokenOut !== undefined) {
-      break;
-    }
-
-    if (
-      v3SelectedPools.forTokenIn === undefined && (
-        (pool.token0.id.toLowerCase() === tokenOutAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV2TokenIn) ||
-        (pool.token1.id.toLowerCase() === tokenOutAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV2TokenIn)
-      )
-    ) {
-      v3SelectedPools.forTokenIn = pool;
-    }
-
-    if (
-      v3SelectedPools.forTokenOut === undefined && (
-        (pool.token0.id.toLowerCase() === tokenInAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV2TokenOut) ||
-        (pool.token1.id.toLowerCase() === tokenInAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV2TokenOut)
-      )
-    ) {
-      v3SelectedPools.forTokenOut = pool;
-    }
-  }
+  const v3SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v3Pools,
+    v3Candidates,
+    v2Candidates
+  );
 
   const selectedV2Pools = [
     v2SelectedPools.forTokenIn,
@@ -330,6 +262,64 @@ export async function getMixedCrossLiquidityCandidatePools({
     v2Pools: selectedV2Pools,
     v3Pools: selectedV3Pools
   };
+}
+
+function findCrossProtocolMissingPools<
+  TSubgraphPool extends SubgraphPool,
+  CandidatePoolsProtocolToSearch extends V2CandidatePools | V3CandidatePools,
+  CandidatePoolsContextualProtocol extends V2CandidatePools | V3CandidatePools
+>(
+  tokenInAddress: string,
+  tokenOutAddress: string,
+  pools: TSubgraphPool[],
+  candidatesInProtocolToSearch: CandidatePoolsProtocolToSearch | undefined,
+  candidatesInContextProtocol: CandidatePoolsContextualProtocol | undefined
+): {
+  forTokenIn?: TSubgraphPool;
+  forTokenOut?: TSubgraphPool;
+} {
+  const selectedPools: {
+    forTokenIn?: TSubgraphPool;
+    forTokenOut?: TSubgraphPool;
+  } = {};
+  const previouslySelectedPools = new Set(candidatesInProtocolToSearch?.subgraphPools.map(pool => pool.id) ?? []);
+
+  const crossTokenAgainstV3TokenOut = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase() === tokenOutAddress ?
+    candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token1.id.toLowerCase() :
+    candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0]?.token0.id.toLowerCase();
+  const crossTokenAgainstV3TokenIn = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase() === tokenInAddress ?
+    candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token1.id.toLowerCase() :
+    candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase();
+
+  for (const pool of pools) {
+    if (previouslySelectedPools.has(pool.id.toLowerCase())) {
+      continue;
+    }
+
+    if (selectedPools.forTokenIn !== undefined && selectedPools.forTokenOut !== undefined) {
+      break;
+    }
+
+    if (
+      selectedPools.forTokenIn === undefined && (
+        (pool.token0.id.toLowerCase() === tokenOutAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV3TokenIn) ||
+        (pool.token1.id.toLowerCase() === tokenOutAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV3TokenIn)
+      )
+    ) {
+      selectedPools.forTokenIn = pool;
+    }
+
+    if (
+      selectedPools.forTokenOut === undefined && (
+        (pool.token0.id.toLowerCase() === tokenInAddress && pool.token1.id.toLowerCase() === crossTokenAgainstV3TokenOut) ||
+        (pool.token1.id.toLowerCase() === tokenInAddress && pool.token0.id.toLowerCase() === crossTokenAgainstV3TokenOut)
+      )
+    ) {
+      selectedPools.forTokenOut = pool;
+    }
+  }
+
+  return selectedPools;
 }
 
 export type V3CandidatePools = {
