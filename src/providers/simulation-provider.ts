@@ -64,16 +64,13 @@ export abstract class Simulator {
     quote: CurrencyAmount,
     providerConfig?: GasModelProviderConfig
   ): Promise<SwapRoute> {
-    const neededBalance =
-      swapRoute.trade.tradeType == TradeType.EXACT_INPUT ? amount : quote;
     if (
-      (neededBalance.currency.isNative && this.chainId == ChainId.MAINNET) ||
-      (await this.userHasSufficientBalance(
+      await this.userHasSufficientBalance(
         fromAddress,
         swapRoute.trade.tradeType,
         amount,
         quote
-      ))
+      )
     ) {
       log.info(
         'User has sufficient balance to simulate. Simulating transaction.'
