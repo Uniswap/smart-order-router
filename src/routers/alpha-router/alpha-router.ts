@@ -103,6 +103,7 @@ import {
   getMixedCrossLiquidityCandidatePools,
   getV2CandidatePools,
   getV3CandidatePools,
+  SubgraphPool,
   V2CandidatePools,
   V3CandidatePools,
 } from './functions/get-candidate-pools';
