@@ -1385,6 +1385,7 @@ export async function getMixedRouteCandidatePools({
     { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools },
   ] = [v3CandidatePools, v2CandidatePools];
 
+  // Injects the liquidity pools found by the getMixedCrossLiquidityCandidatePools function
   V2subgraphPools.push(...crossLiquidityPools.v2Pools);
   V3subgraphPools.push(...crossLiquidityPools.v3Pools);
 
@@ -1412,7 +1413,7 @@ export async function getMixedRouteCandidatePools({
         ...V2candidatePools.selections.topByBaseWithTokenOut,
         /// Direct swap:
         ...V2candidatePools.selections.topByDirectSwapPool,
-        // Cross Liquidity:
+        // Cross Liquidity (has to be added to be considered):
         ...crossLiquidityPools.v2Pools,
       ].map((poolId) => poolId.id)
     );
