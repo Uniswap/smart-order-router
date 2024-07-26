@@ -212,6 +212,16 @@ export type CrossedLiquidityCandidatePools = {
   v3Pools: V3SubgraphPool[];
 }
 
+/**
+ * Function that finds any missing pools that were not selected by the heuristic but that would
+ *   create a route with the topPool by TVL with either tokenIn or tokenOut across protocols.
+ *
+ *   e.g. In V2CandidatePools we found that wstETH/DOG is the most liquid pool,
+ *        then in V3CandidatePools ETH/wstETH is *not* the most liquid pool, so it is not selected
+ *        then in V3CandidatePools ETH/wstETH is *not* the most liquid pool, so it is not selected
+ *        This process will look for that pool in order to complete the route.
+ *
+ */
 export async function getMixedCrossLiquidityCandidatePools({
   tokenIn,
   tokenOut,
