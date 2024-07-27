@@ -299,14 +299,17 @@ function findCrossProtocolMissingPools<
     candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0]?.token0.id.toLowerCase();
 
   for (const pool of pools) {
-    if (previouslySelectedPools.has(pool.id.toLowerCase())) {
-      continue;
-    }
-
+    // If we already found both pools for tokenIn and tokenOut. break out of this for loop.
     if (selectedPools.forTokenIn !== undefined && selectedPools.forTokenOut !== undefined) {
       break;
     }
 
+    // If the pool has already been selected. continue to the next pool.
+    if (previouslySelectedPools.has(pool.id.toLowerCase())) {
+      continue;
+    }
+
+    // If we haven't selected the pool for tokenIn, and we found a pool matching the tokenOut, and the intermediateToken, select this pool
     if (
       selectedPools.forTokenIn === undefined && (
         (pool.token0.id.toLowerCase() === tokenOutAddress && pool.token1.id.toLowerCase() === crossTokenAgainstTokenIn) ||
@@ -316,6 +319,7 @@ function findCrossProtocolMissingPools<
       selectedPools.forTokenIn = pool;
     }
 
+    // If we haven't selected the pool for tokenOut, and we found a pool matching the tokenIn, and the intermediateToken, select this pool
     if (
       selectedPools.forTokenOut === undefined && (
         (pool.token0.id.toLowerCase() === tokenInAddress && pool.token1.id.toLowerCase() === crossTokenAgainstTokenOut) ||
