@@ -46,7 +46,7 @@ export const WHALES = (token: Currency): string => {
     case nativeOnChain(ChainId.ZORA):
       return '0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9';
     case WETH9[1]:
-      return '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3';
+      return '0x6B44ba0a126a2A1a8aa6cD1AdeeD002e141Bcd44';
     case WNATIVE_ON(ChainId.MAINNET):
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
     case WNATIVE_ON(ChainId.ARBITRUM_ONE):

@@ -123,8 +123,9 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  SwapType,
   V2Route,
-  V3Route,
+  V3Route
 } from '../router';
 
 import {
@@ -1108,6 +1109,14 @@ export class AlphaRouter
     // Ideally the trade size (normalized in USD) would be ideal to log here, but we don't have spot price of output tokens here.
     if (tokenOutProperties[tokenOut.address.toLowerCase()]) {
       if (feeTakenOnTransfer || externalTransferFailed) {
+        // also to be extra safe, in case of FOT with feeTakenOnTransfer or externalTransferFailed,
+        // we nullify the fee and flat fee to avoid any potential issues.
+        // although neither web nor wallet should use the calldata returned from routing/SOR
+        if (swapConfig?.type === SwapType.UNIVERSAL_ROUTER) {
+          swapConfig.fee = undefined;
+          swapConfig.flatFee = undefined;
+        }
+
         metric.putMetric('TokenOutFeeOnTransferTakingFee', 1, MetricLoggerUnit.Count);
       } else {
         metric.putMetric('TokenOutFeeOnTransferNotTakingFee', 1, MetricLoggerUnit.Count);

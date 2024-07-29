@@ -2848,8 +2848,15 @@ describe('alpha router integration', () => {
                     expect(swap).toBeDefined();
                     expect(swap).not.toBeNull();
 
-                    // Expect tenderly simulation to be successful
-                    expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    // DFNDR_WITHOUT_TAX won't have tenderly simulation successful,
+                    // because of no token approval, hence the need to get permit2 approval.
+                    // permit2 approval has to have the universal router in custody,
+                    // hence it will trigger the token cool down error https://www.tdly.co/shared/simulation/cde9f5cd-7976-44f8-8baa-4bbe8fc913d6.
+                    if (tokenOut?.address !== DFNDR_WITHOUT_TAX.address) {
+                      // Expect tenderly simulation to be successful
+                      expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    }
+
                     expect(swap!.methodParameters).toBeDefined();
                     expect(swap!.methodParameters!.to).toBeDefined();
 
