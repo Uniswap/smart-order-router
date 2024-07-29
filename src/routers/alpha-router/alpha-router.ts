@@ -60,6 +60,7 @@ import {
   IPortionProvider,
   PortionProvider,
 } from '../../providers/portion-provider';
+import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
@@ -122,8 +123,9 @@ import {
   SwapRoute,
   SwapToRatioResponse,
   SwapToRatioStatus,
+  SwapType,
   V2Route,
-  V3Route,
+  V3Route
 } from '../router';
 
 import {
@@ -159,6 +161,7 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+
 
 export type AlphaRouterParams = {
   /**
@@ -1099,14 +1102,33 @@ export class AlphaRouter
         [tokenOut],
         partialRoutingConfig
       );
-      const buyFeeBps = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps;
-      const tokenOutHasFot = buyFeeBps && buyFeeBps.gt(0);
+    const feeTakenOnTransfer = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.feeTakenOnTransfer;
+    const externalTransferFailed = tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.externalTransferFailed;
+
+    // We want to log the fee on transfer output tokens that we are taking fee or not
+    // Ideally the trade size (normalized in USD) would be ideal to log here, but we don't have spot price of output tokens here.
+    if (tokenOutProperties[tokenOut.address.toLowerCase()]) {
+      if (feeTakenOnTransfer || externalTransferFailed) {
+        // also to be extra safe, in case of FOT with feeTakenOnTransfer or externalTransferFailed,
+        // we nullify the fee and flat fee to avoid any potential issues.
+        // although neither web nor wallet should use the calldata returned from routing/SOR
+        if (swapConfig?.type === SwapType.UNIVERSAL_ROUTER) {
+          swapConfig.fee = undefined;
+          swapConfig.flatFee = undefined;
+        }
+
+        metric.putMetric('TokenOutFeeOnTransferTakingFee', 1, MetricLoggerUnit.Count);
+      } else {
+        metric.putMetric('TokenOutFeeOnTransferNotTakingFee', 1, MetricLoggerUnit.Count);
+      }
+    }
 
     if (tradeType === TradeType.EXACT_OUTPUT) {
       const portionAmount = this.portionProvider.getPortionAmount(
         amount,
         tradeType,
-        tokenOutHasFot,
+        feeTakenOnTransfer,
+        externalTransferFailed,
         swapConfig
       );
       if (portionAmount && portionAmount.greaterThan(ZERO)) {
@@ -1178,6 +1200,8 @@ export class AlphaRouter
         quoteCurrency
       ),
       gasToken,
+      externalTransferFailed,
+      feeTakenOnTransfer
     };
 
     const {
@@ -1296,7 +1320,8 @@ export class AlphaRouter
         mixedRouteGasModel,
         gasPriceWei,
         v2GasModel,
-        swapConfig
+        swapConfig,
+        providerConfig
       );
     }
 
@@ -1315,7 +1340,8 @@ export class AlphaRouter
         mixedRouteGasModel,
         gasPriceWei,
         v2GasModel,
-        swapConfig
+        swapConfig,
+        providerConfig
       );
     }
 
@@ -1509,7 +1535,8 @@ export class AlphaRouter
     const portionAmount = this.portionProvider.getPortionAmount(
       tokenOutAmount,
       tradeType,
-      tokenOutHasFot,
+      feeTakenOnTransfer,
+      externalTransferFailed,
       swapConfig
     );
     const portionQuoteAmount = this.portionProvider.getPortionQuoteAmount(
@@ -1606,7 +1633,8 @@ export class AlphaRouter
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber,
     v2GasModel?: IGasModel<V2RouteWithValidQuote>,
-    swapConfig?: SwapOptions
+    swapConfig?: SwapOptions,
+    providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
     log.info(
       {
@@ -1766,7 +1794,8 @@ export class AlphaRouter
       this.portionProvider,
       v2GasModel,
       v3GasModel,
-      swapConfig
+      swapConfig,
+      providerConfig
     );
   }
 
@@ -1782,7 +1811,8 @@ export class AlphaRouter
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber,
     v2GasModel?: IGasModel<V2RouteWithValidQuote>,
-    swapConfig?: SwapOptions
+    swapConfig?: SwapOptions,
+    providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
     // Generate our distribution of amounts, i.e. fractions of the input amount.
     // We will get quotes for fractions of the input amount for different routes, then
@@ -2011,7 +2041,8 @@ export class AlphaRouter
       this.portionProvider,
       v2GasModel,
       v3GasModel,
-      swapConfig
+      swapConfig,
+      providerConfig
     );
 
     if (bestSwapRoute) {

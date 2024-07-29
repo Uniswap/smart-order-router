@@ -10,6 +10,8 @@ import {
 } from '../routers';
 import { CurrencyAmount } from '../util';
 
+import { ProviderConfig } from './provider';
+
 export interface IPortionProvider {
   /**
    * Get the portion amount for the given token out amount.
@@ -17,12 +19,15 @@ export interface IPortionProvider {
    *
    * @param tokenOutAmount the token out amount, either the quote for exact in, or the swapper requested amount for exact out
    * @param tradeType the trade type, exact in or exact out
+   * @param externalTransferFailed fees charged on token transfers where the to or from address is NOT the uniswap V2 pair address
+   * @param feeTakenOnTransfer double fee taken on transfer as part of universal router custody
    * @param swapConfig swap config, containing the portion related data
    */
   getPortionAmount(
     tokenOutAmount: CurrencyAmount,
     tradeType: TradeType,
-    tokenOutHasFot?: boolean,
+    externalTransferFailed?: boolean,
+    feeTakenOnTransfer?: boolean,
     swapConfig?: SwapOptions
   ): CurrencyAmount | undefined;
 
@@ -54,11 +59,13 @@ export interface IPortionProvider {
    * @param tradeType the trade type, exact in or exact out
    * @param routeWithQuotes the route with quotes
    * @param swapConfig swap config, containing the portion related data
+   * @param providerConfig provider config, for the FOT fee related data
    */
   getRouteWithQuotePortionAdjusted(
     tradeType: TradeType,
     routeWithQuotes: RouteWithValidQuote[],
-    swapConfig?: SwapOptions
+    swapConfig?: SwapOptions,
+    providerConfig?: ProviderConfig
   ): RouteWithValidQuote[];
 
   /**
@@ -117,10 +124,11 @@ export class PortionProvider implements IPortionProvider {
   getPortionAmount(
     tokenOutAmount: CurrencyAmount,
     tradeType: TradeType,
-    tokenOutHasFot?: boolean,
+    externalTransferFailed?: boolean,
+    feeTakenOnTransfer?: boolean,
     swapConfig?: SwapOptions
   ): CurrencyAmount | undefined {
-    if (tokenOutHasFot || swapConfig?.type !== SwapType.UNIVERSAL_ROUTER) {
+    if (externalTransferFailed || feeTakenOnTransfer || swapConfig?.type !== SwapType.UNIVERSAL_ROUTER) {
       return undefined;
     }
 
@@ -189,7 +197,8 @@ export class PortionProvider implements IPortionProvider {
   getRouteWithQuotePortionAdjusted(
     tradeType: TradeType,
     routeWithQuotes: RouteWithValidQuote[],
-    swapConfig?: SwapOptions
+    swapConfig?: SwapOptions,
+    providerConfig?: ProviderConfig
   ): RouteWithValidQuote[] {
     // the route with quote portion adjustment is only needed for exact in routes with quotes
     // because the route with quotes does not know the output amount needs to subtract the portion amount
@@ -204,13 +213,11 @@ export class PortionProvider implements IPortionProvider {
     }
 
     return routeWithQuotes.map((routeWithQuote) => {
-      const tokenOut =
-        routeWithQuote.tokenPath[routeWithQuote.tokenPath.length - 1];
-      const tokenOutHasFot = tokenOut && tokenOut.buyFeeBps?.gt(0);
       const portionAmount = this.getPortionAmount(
         routeWithQuote.quote,
         tradeType,
-        tokenOutHasFot,
+        providerConfig?.externalTransferFailed,
+        providerConfig?.feeTakenOnTransfer,
         swapConfig
       );
 

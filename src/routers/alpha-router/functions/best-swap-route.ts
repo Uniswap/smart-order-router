@@ -21,6 +21,7 @@ import {
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from './../entities/route-with-valid-quote';
+import { ProviderConfig } from '../../../providers/provider';
 
 export type BestSwapRoute = {
   quote: CurrencyAmount;
@@ -42,7 +43,8 @@ export async function getBestSwapRoute(
   portionProvider: IPortionProvider,
   v2GasModel?: IGasModel<V2RouteWithValidQuote>,
   v3GasModel?: IGasModel<V3RouteWithValidQuote>,
-  swapConfig?: SwapOptions
+  swapConfig?: SwapOptions,
+  providerConfig?: ProviderConfig
 ): Promise<BestSwapRoute | null> {
   const now = Date.now();
 
@@ -91,7 +93,8 @@ export async function getBestSwapRoute(
     portionProvider,
     v2GasModel,
     v3GasModel,
-    swapConfig
+    swapConfig,
+    providerConfig,
   );
 
   // It is possible we were unable to find any valid route given the quotes.
@@ -156,7 +159,8 @@ export async function getBestSwapRouteBy(
   portionProvider: IPortionProvider,
   v2GasModel?: IGasModel<V2RouteWithValidQuote>,
   v3GasModel?: IGasModel<V3RouteWithValidQuote>,
-  swapConfig?: SwapOptions
+  swapConfig?: SwapOptions,
+  providerConfig?: ProviderConfig
 ): Promise<BestSwapRoute | undefined> {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
   const percentToSortedQuotes = _.mapValues(
@@ -706,7 +710,8 @@ export async function getBestSwapRouteBy(
     routes: portionProvider.getRouteWithQuotePortionAdjusted(
       routeType,
       routeWithQuotes,
-      swapConfig
+      swapConfig,
+      providerConfig
     ),
   };
 }

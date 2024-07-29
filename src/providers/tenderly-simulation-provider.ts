@@ -622,7 +622,8 @@ export class TenderlySimulator extends Simulator {
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
         swapOptions,
-        estimatedGasUsedGasToken
+        estimatedGasUsedGasToken,
+        providerConfig
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };
