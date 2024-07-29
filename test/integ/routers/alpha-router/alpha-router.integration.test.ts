@@ -113,7 +113,7 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 20071566;
+const FORK_BLOCK = 20413900;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
@@ -612,7 +612,7 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3', // WETH whale
+        '0x6B44ba0a126a2A1a8aa6cD1AdeeD002e141Bcd44', // WETH whale
       ]
     );
 
