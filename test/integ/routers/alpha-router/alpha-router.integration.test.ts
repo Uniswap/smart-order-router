@@ -593,7 +593,7 @@ describe('alpha router integration', () => {
     await hardhat.fund(
       alice._address,
       [parseAmount('5000000', USDT_MAINNET)],
-      ['0x0750b999e493112C88cb226A13A2a67419f06aD6']
+      ['0xf4a3b00E806c9525B079c67A457897535E258651']
     );
 
     await hardhat.fund(
