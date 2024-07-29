@@ -106,13 +106,14 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import {
   BULLET,
   BULLET_WITHOUT_TAX,
+  DFNDR_WITHOUT_TAX,
   FLAT_PORTION,
   GREENLIST_TOKEN_PAIRS,
   Portion
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 
-const FORK_BLOCK = 20071566;
+const FORK_BLOCK = 20413900;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
@@ -592,7 +593,7 @@ describe('alpha router integration', () => {
     await hardhat.fund(
       alice._address,
       [parseAmount('5000000', USDT_MAINNET)],
-      ['0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503']
+      ['0xf4a3b00E806c9525B079c67A457897535E258651']
     );
 
     await hardhat.fund(
@@ -611,7 +612,7 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3', // WETH whale
+        '0x6B44ba0a126a2A1a8aa6cD1AdeeD002e141Bcd44', // WETH whale
       ]
     );
 
@@ -2803,6 +2804,7 @@ describe('alpha router integration', () => {
             const tokenInAndTokenOut = [
               [BULLET_WITHOUT_TAX, WETH9[ChainId.MAINNET]!],
               [WETH9[ChainId.MAINNET]!, BULLET_WITHOUT_TAX],
+              [WETH9[ChainId.MAINNET]!, DFNDR_WITHOUT_TAX],
             ]
 
             tokenInAndTokenOut.forEach(([tokenIn, tokenOut]) => {
@@ -2838,19 +2840,28 @@ describe('alpha router integration', () => {
                       },
                       {
                         ...ROUTING_CONFIG,
-                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching
+                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching,
+                        saveTenderlySimulationIfFailed: true
                       }
                     );
 
                     expect(swap).toBeDefined();
                     expect(swap).not.toBeNull();
 
-                    // Expect tenderly simulation to be successful
-                    expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    // DFNDR_WITHOUT_TAX won't have tenderly simulation successful,
+                    // because of no token approval, hence the need to get permit2 approval.
+                    // permit2 approval has to have the universal router in custody,
+                    // hence it will trigger the token cool down error https://www.tdly.co/shared/simulation/cde9f5cd-7976-44f8-8baa-4bbe8fc913d6.
+                    if (tokenOut?.address !== DFNDR_WITHOUT_TAX.address) {
+                      // Expect tenderly simulation to be successful
+                      expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    }
+
                     expect(swap!.methodParameters).toBeDefined();
                     expect(swap!.methodParameters!.to).toBeDefined();
 
-                    if (enableFeeOnTransferFeeFetching && tokenOut?.address === BULLET_WITHOUT_TAX.address) {
+                    // DFNDR fails with feeTakenOnTransfer, so we cannot take portion/fee
+                    if (enableFeeOnTransferFeeFetching && tokenOut?.address === DFNDR_WITHOUT_TAX.address) {
                       expect(swap?.portionAmount?.quotient).toBeUndefined();
                     } else {
                       expect(swap?.portionAmount?.quotient?.toString()).not.toEqual("0");

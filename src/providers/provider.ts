@@ -21,6 +21,14 @@ export type ProviderConfig = {
    * Optimistic mode means that we will allow blocksToLive greater than 1.
    */
   optimisticCachedRoutes?: boolean;
+  /**
+   * FOT fees charged on token transfers where the to or from address is NOT the uniswap V2 pair address
+   */
+  externalTransferFailed?: boolean;
+  /**
+   * double FOT fee taken on transfer as part of universal router custody
+   */
+  feeTakenOnTransfer?: boolean;
 };
 
 export type LocalCacheEntry<T> = {
