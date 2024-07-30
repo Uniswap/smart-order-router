@@ -1121,13 +1121,13 @@ export class AlphaRouter
         }
 
         metric.putMetric(
-          'TokenOutFeeOnTransferTakingFee',
+          'TokenOutFeeOnTransferNotTakingFee',
           1,
           MetricLoggerUnit.Count
         );
       } else {
         metric.putMetric(
-          'TokenOutFeeOnTransferNotTakingFee',
+          'TokenOutFeeOnTransferTakingFee',
           1,
           MetricLoggerUnit.Count
         );
