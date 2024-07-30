@@ -16,12 +16,12 @@ import { SwapOptions } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 
+import { ProviderConfig } from '../../../providers/provider';
 import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from './../entities/route-with-valid-quote';
-import { ProviderConfig } from '../../../providers/provider';
 
 export type BestSwapRoute = {
   quote: CurrencyAmount;
@@ -94,7 +94,7 @@ export async function getBestSwapRoute(
     v2GasModel,
     v3GasModel,
     swapConfig,
-    providerConfig,
+    providerConfig
   );
 
   // It is possible we were unable to find any valid route given the quotes.
@@ -597,9 +597,11 @@ export async function getBestSwapRouteBy(
       }
 
       if (decimalsDiff < 0 && chainId === 324) {
-          log.error(`Decimals diff is negative for ZkSync. This should not happen.
+        log.error(`Decimals diff is negative for ZkSync. This should not happen.
           usdTokenDecimals ${usdTokenDecimals} routeWithValidQuote.gasCostInUSD.currency.decimals
-          ${routeWithValidQuote.gasCostInUSD.currency.decimals} ${JSON.stringify(routeWithValidQuote)}`);
+          ${
+            routeWithValidQuote.gasCostInUSD.currency.decimals
+          } ${JSON.stringify(routeWithValidQuote)}`);
       }
 
       return CurrencyAmount.fromRawAmount(

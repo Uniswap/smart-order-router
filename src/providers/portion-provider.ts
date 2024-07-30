@@ -128,7 +128,11 @@ export class PortionProvider implements IPortionProvider {
     feeTakenOnTransfer?: boolean,
     swapConfig?: SwapOptions
   ): CurrencyAmount | undefined {
-    if (externalTransferFailed || feeTakenOnTransfer || swapConfig?.type !== SwapType.UNIVERSAL_ROUTER) {
+    if (
+      externalTransferFailed ||
+      feeTakenOnTransfer ||
+      swapConfig?.type !== SwapType.UNIVERSAL_ROUTER
+    ) {
       return undefined;
     }
 

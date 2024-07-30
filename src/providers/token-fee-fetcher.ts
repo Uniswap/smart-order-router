@@ -2,8 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
-import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
 import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
+import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
 import {
   log,
   metric,
@@ -143,16 +143,38 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
           // in case of FOT token fee fetch failure, we return null
           // so that they won't get returned from the token-fee-fetcher
           // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
-          return { address, buyFeeBps: undefined, sellFeeBps: undefined, feeTakenOnTransfer: false, externalTransferFailed: false, sellReverted: false  };
+          return {
+            address,
+            buyFeeBps: undefined,
+            sellFeeBps: undefined,
+            feeTakenOnTransfer: false,
+            externalTransferFailed: false,
+            sellReverted: false,
+          };
         }
       })
     );
 
-    results.forEach(({ address, buyFeeBps, sellFeeBps, feeTakenOnTransfer, externalTransferFailed, sellReverted }) => {
-      if (buyFeeBps || sellFeeBps) {
-        tokenToResult[address] = { buyFeeBps, sellFeeBps, feeTakenOnTransfer, externalTransferFailed, sellReverted };
+    results.forEach(
+      ({
+        address,
+        buyFeeBps,
+        sellFeeBps,
+        feeTakenOnTransfer,
+        externalTransferFailed,
+        sellReverted,
+      }) => {
+        if (buyFeeBps || sellFeeBps) {
+          tokenToResult[address] = {
+            buyFeeBps,
+            sellFeeBps,
+            feeTakenOnTransfer,
+            externalTransferFailed,
+            sellReverted,
+          };
+        }
       }
-    });
+    );
 
     return tokenToResult;
   }

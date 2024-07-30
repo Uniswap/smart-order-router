@@ -3,7 +3,7 @@ import {
   Currency,
   Ether,
   NativeCurrency,
-  Token
+  Token,
 } from '@uniswap/sdk-core';
 
 // WIP: Gnosis, Moonbeam
