@@ -13,7 +13,13 @@ import {
   IV3SubgraphProvider,
   TokenValidationResult,
 } from '../../../providers';
-import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString, } from '../../../util';
+import {
+  CurrencyAmount,
+  log,
+  metric,
+  MetricLoggerUnit,
+  routeToString,
+} from '../../../util';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { MixedRouteWithValidQuote } from '../entities';
@@ -68,7 +74,11 @@ export class MixedQuoter extends BaseQuoter<
   protected async getRoutes(
     tokenIn: Token,
     tokenOut: Token,
-    v3v2candidatePools: [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
+    v3v2candidatePools: [
+      V3CandidatePools,
+      V2CandidatePools,
+      CrossLiquidityCandidatePools
+    ],
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<MixedRoute>> {
@@ -78,7 +88,8 @@ export class MixedQuoter extends BaseQuoter<
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
 
-    const [v3CandidatePools, v2CandidatePools, crossLiquidityPools] = v3v2candidatePools;
+    const [v3CandidatePools, v2CandidatePools, crossLiquidityPools] =
+      v3v2candidatePools;
 
     const {
       V2poolAccessor,
@@ -185,7 +196,11 @@ export class MixedQuoter extends BaseQuoter<
       `Getting quotes for mixed for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
 
-    const { routesWithQuotes } = await quoteFn<MixedRoute>(amounts, routes, routingConfig);
+    const { routesWithQuotes } = await quoteFn<MixedRoute>(
+      amounts,
+      routes,
+      routingConfig
+    );
 
     metric.putMetric(
       'MixedQuotesLoad',

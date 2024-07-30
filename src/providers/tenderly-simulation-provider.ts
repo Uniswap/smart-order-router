@@ -177,7 +177,7 @@ export class FallbackTenderlySimulator extends Simulator {
     const inputAmount = swapRoute.trade.inputAmount;
 
     if (
-      (inputAmount.currency.isNative) ||
+      inputAmount.currency.isNative ||
       (await this.checkTokenApproved(
         fromAddress,
         inputAmount,
@@ -784,6 +784,23 @@ export class TenderlySimulator extends Simulator {
               2
             )}. HTTP Status: ${httpStatus}`,
             { resp }
+          );
+          return;
+        }
+
+        if (!gatewayResp.simulation_results || !resp.result) {
+          log.error(
+            `Gateway and node response bodies do not contain simulation results for gas estimation bundle ${JSON.stringify(
+              body,
+              null,
+              2
+            )}.`,
+            { gatewayResp, resp }
+          );
+          metric.putMetric(
+            'TenderlyNodeGasEstimateBundleMismatch',
+            1,
+            MetricLoggerUnit.Count
           );
           return;
         }

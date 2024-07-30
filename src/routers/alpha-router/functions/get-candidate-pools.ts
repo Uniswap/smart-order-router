@@ -11,7 +11,7 @@ import {
   USDC_OPTIMISM_SEPOLIA,
   USDT_OPTIMISM_SEPOLIA,
   V2SubgraphPool,
-  WBTC_OPTIMISM_SEPOLIA
+  WBTC_OPTIMISM_SEPOLIA,
 } from '../../../providers';
 import {
   CELO,
@@ -61,9 +61,18 @@ import {
   WSTETH_MAINNET,
   WXDAI_GNOSIS,
 } from '../../../providers/token-provider';
-import { IV2PoolProvider, V2PoolAccessor, } from '../../../providers/v2/pool-provider';
-import { IV3PoolProvider, V3PoolAccessor, } from '../../../providers/v3/pool-provider';
-import { IV3SubgraphProvider, V3SubgraphPool, } from '../../../providers/v3/subgraph-provider';
+import {
+  IV2PoolProvider,
+  V2PoolAccessor,
+} from '../../../providers/v2/pool-provider';
+import {
+  IV3PoolProvider,
+  V3PoolAccessor,
+} from '../../../providers/v3/pool-provider';
+import {
+  IV3SubgraphProvider,
+  V3SubgraphPool,
+} from '../../../providers/v3/subgraph-provider';
 import { unparseFeeAmount, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -199,8 +208,7 @@ class SubcategorySelectionPools<SubgraphPool> {
   constructor(
     public pools: SubgraphPool[],
     public readonly poolsNeeded: number
-  ) {
-  }
+  ) {}
 
   public hasEnoughPools(): boolean {
     return this.pools.length >= this.poolsNeeded;
@@ -210,7 +218,7 @@ class SubcategorySelectionPools<SubgraphPool> {
 export type CrossLiquidityCandidatePools = {
   v2Pools: V2SubgraphPool[];
   v3Pools: V3SubgraphPool[];
-}
+};
 
 /**
  * Function that finds any missing pools that were not selected by the heuristic but that would
@@ -230,12 +238,16 @@ export async function getMixedCrossLiquidityCandidatePools({
   v2Candidates,
   v3Candidates,
 }: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossLiquidityCandidatePools> {
-  const v2Pools = (await v2SubgraphProvider.getPools(tokenIn, tokenOut, {
-    blockNumber,
-  })).sort((a, b) => b.reserve - a.reserve);
-  const v3Pools = (await v3SubgraphProvider.getPools(tokenIn, tokenOut, {
-    blockNumber,
-  })).sort((a, b) => b.tvlUSD - a.tvlUSD);
+  const v2Pools = (
+    await v2SubgraphProvider.getPools(tokenIn, tokenOut, {
+      blockNumber,
+    })
+  ).sort((a, b) => b.reserve - a.reserve);
+  const v3Pools = (
+    await v3SubgraphProvider.getPools(tokenIn, tokenOut, {
+      blockNumber,
+    })
+  ).sort((a, b) => b.tvlUSD - a.tvlUSD);
 
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
@@ -258,16 +270,16 @@ export async function getMixedCrossLiquidityCandidatePools({
 
   const selectedV2Pools = [
     v2SelectedPools.forTokenIn,
-    v2SelectedPools.forTokenOut
-  ].filter(pool => pool !== undefined) as V2SubgraphPool[];
+    v2SelectedPools.forTokenOut,
+  ].filter((pool) => pool !== undefined) as V2SubgraphPool[];
   const selectedV3Pools = [
     v3SelectedPools.forTokenIn,
-    v3SelectedPools.forTokenOut
-  ].filter(pool => pool !== undefined) as V3SubgraphPool[];
+    v3SelectedPools.forTokenOut,
+  ].filter((pool) => pool !== undefined) as V3SubgraphPool[];
 
   return {
     v2Pools: selectedV2Pools,
-    v3Pools: selectedV3Pools
+    v3Pools: selectedV3Pools,
   };
 }
 
@@ -289,22 +301,32 @@ function findCrossProtocolMissingPools<
     forTokenIn?: TSubgraphPool;
     forTokenOut?: TSubgraphPool;
   } = {};
-  const previouslySelectedPools = new Set(candidatesInProtocolToSearch?.subgraphPools.map(pool => pool.id) ?? []);
+  const previouslySelectedPools = new Set(
+    candidatesInProtocolToSearch?.subgraphPools.map((pool) => pool.id) ?? []
+  );
 
-  const topPoolByTvlWithTokenOut = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenOut[0];
-  const crossTokenAgainstTokenOut = topPoolByTvlWithTokenOut?.token0.id.toLowerCase() === tokenOutAddress ?
-    topPoolByTvlWithTokenOut?.token1.id.toLowerCase() :
-    topPoolByTvlWithTokenOut?.token0.id.toLowerCase();
+  const topPoolByTvlWithTokenOut =
+    candidatesInContextProtocol?.candidatePools.selections
+      .topByTVLUsingTokenOut[0];
+  const crossTokenAgainstTokenOut =
+    topPoolByTvlWithTokenOut?.token0.id.toLowerCase() === tokenOutAddress
+      ? topPoolByTvlWithTokenOut?.token1.id.toLowerCase()
+      : topPoolByTvlWithTokenOut?.token0.id.toLowerCase();
 
-
-  const topPoolByTvlWithTokenIn = candidatesInContextProtocol?.candidatePools.selections.topByTVLUsingTokenIn[0];
-  const crossTokenAgainstTokenIn = topPoolByTvlWithTokenIn?.token0.id.toLowerCase() === tokenInAddress ?
-    topPoolByTvlWithTokenIn?.token1.id.toLowerCase() :
-    topPoolByTvlWithTokenIn?.token0.id.toLowerCase();
+  const topPoolByTvlWithTokenIn =
+    candidatesInContextProtocol?.candidatePools.selections
+      .topByTVLUsingTokenIn[0];
+  const crossTokenAgainstTokenIn =
+    topPoolByTvlWithTokenIn?.token0.id.toLowerCase() === tokenInAddress
+      ? topPoolByTvlWithTokenIn?.token1.id.toLowerCase()
+      : topPoolByTvlWithTokenIn?.token0.id.toLowerCase();
 
   for (const pool of pools) {
     // If we already found both pools for tokenIn and tokenOut. break out of this for loop.
-    if (selectedPools.forTokenIn !== undefined && selectedPools.forTokenOut !== undefined) {
+    if (
+      selectedPools.forTokenIn !== undefined &&
+      selectedPools.forTokenOut !== undefined
+    ) {
       break;
     }
 
@@ -318,20 +340,22 @@ function findCrossProtocolMissingPools<
 
     // If we haven't selected the pool for tokenIn, and we found a pool matching the tokenOut, and the intermediateToken, select this pool
     if (
-      selectedPools.forTokenIn === undefined && (
-        (poolToken0Address === tokenOutAddress && poolToken1Address === crossTokenAgainstTokenIn) ||
-        (poolToken1Address === tokenOutAddress && poolToken0Address === crossTokenAgainstTokenIn)
-      )
+      selectedPools.forTokenIn === undefined &&
+      ((poolToken0Address === tokenOutAddress &&
+        poolToken1Address === crossTokenAgainstTokenIn) ||
+        (poolToken1Address === tokenOutAddress &&
+          poolToken0Address === crossTokenAgainstTokenIn))
     ) {
       selectedPools.forTokenIn = pool;
     }
 
     // If we haven't selected the pool for tokenOut, and we found a pool matching the tokenIn, and the intermediateToken, select this pool
     if (
-      selectedPools.forTokenOut === undefined && (
-        (poolToken0Address === tokenInAddress && poolToken1Address === crossTokenAgainstTokenOut) ||
-        (poolToken1Address === tokenInAddress && poolToken0Address === crossTokenAgainstTokenOut)
-      )
+      selectedPools.forTokenOut === undefined &&
+      ((poolToken0Address === tokenInAddress &&
+        poolToken1Address === crossTokenAgainstTokenOut) ||
+        (poolToken1Address === tokenInAddress &&
+          poolToken0Address === crossTokenAgainstTokenOut))
     ) {
       selectedPools.forTokenOut = pool;
     }
@@ -478,7 +502,7 @@ export async function getV3CandidatePools({
       return (
         !poolAddressesSoFar.has(subgraphPool.id) &&
         ((subgraphPool.token0.id == tokenInAddress &&
-            subgraphPool.token1.id == tokenOutAddress) ||
+          subgraphPool.token1.id == tokenOutAddress) ||
           (subgraphPool.token1.id == tokenInAddress &&
             subgraphPool.token0.id == tokenOutAddress))
       );
@@ -1039,13 +1063,13 @@ export async function getV2CandidatePools({
     if (
       topByEthQuoteTokenPool.length < topNEthQuoteToken &&
       ((routeType === TradeType.EXACT_INPUT &&
-          ((subgraphPool.token0.id == wethAddress &&
-              subgraphPool.token1.id == tokenOutAddress) ||
-            (subgraphPool.token1.id == wethAddress &&
-              subgraphPool.token0.id == tokenOutAddress))) ||
+        ((subgraphPool.token0.id == wethAddress &&
+          subgraphPool.token1.id == tokenOutAddress) ||
+          (subgraphPool.token1.id == wethAddress &&
+            subgraphPool.token0.id == tokenOutAddress))) ||
         (routeType === TradeType.EXACT_OUTPUT &&
           ((subgraphPool.token0.id == wethAddress &&
-              subgraphPool.token1.id == tokenInAddress) ||
+            subgraphPool.token1.id == tokenInAddress) ||
             (subgraphPool.token1.id == wethAddress &&
               subgraphPool.token0.id == tokenInAddress))))
     ) {
@@ -1411,21 +1435,21 @@ export async function getMixedRouteCandidatePools({
    *
    * This way we can reduce calls to our provider since it's possible to generate a lot of mixed routes
    */
-    /// We only really care about pools involving the tokenIn or tokenOut explictly,
-    /// since there's no way a long tail token in V2 would be routed through as an intermediary
+  /// We only really care about pools involving the tokenIn or tokenOut explictly,
+  /// since there's no way a long tail token in V2 would be routed through as an intermediary
   const V2topByTVLPoolIds = new Set(
-      [
-        ...V2candidatePools.selections.topByTVLUsingTokenIn,
-        ...V2candidatePools.selections.topByBaseWithTokenIn,
-        /// tokenOut:
-        ...V2candidatePools.selections.topByTVLUsingTokenOut,
-        ...V2candidatePools.selections.topByBaseWithTokenOut,
-        /// Direct swap:
-        ...V2candidatePools.selections.topByDirectSwapPool,
-        // Cross Liquidity (has to be added to be considered):
-        ...crossLiquidityPools.v2Pools,
-      ].map((poolId) => poolId.id)
-    );
+    [
+      ...V2candidatePools.selections.topByTVLUsingTokenIn,
+      ...V2candidatePools.selections.topByBaseWithTokenIn,
+      /// tokenOut:
+      ...V2candidatePools.selections.topByTVLUsingTokenOut,
+      ...V2candidatePools.selections.topByBaseWithTokenOut,
+      /// Direct swap:
+      ...V2candidatePools.selections.topByDirectSwapPool,
+      // Cross Liquidity (has to be added to be considered):
+      ...crossLiquidityPools.v2Pools,
+    ].map((poolId) => poolId.id)
+  );
 
   const V2topByTVLSortedPools = _(V2subgraphPools)
     .filter((pool) => V2topByTVLPoolIds.has(pool.id))
