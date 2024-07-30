@@ -12,16 +12,28 @@ import {
   IV2SubgraphProvider,
   TokenValidationResult,
 } from '../../../providers';
-import { ArbitrumGasData, IL2GasDataProvider, } from '../../../providers/v3/gas-data-provider';
-import { CurrencyAmount, log, metric, MetricLoggerUnit, routeToString, } from '../../../util';
+import {
+  CurrencyAmount,
+  log,
+  metric,
+  MetricLoggerUnit,
+  routeToString,
+} from '../../../util';
 import { V2Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { V2RouteWithValidQuote } from '../entities';
 import { computeAllV2Routes } from '../functions/compute-all-routes';
-import { CandidatePoolsBySelectionCriteria, V2CandidatePools, } from '../functions/get-candidate-pools';
+import {
+  CandidatePoolsBySelectionCriteria,
+  V2CandidatePools,
+} from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
 import { NATIVE_OVERHEAD } from '../gas-models/v3/gas-costs';
 
+import {
+  ArbitrumGasData,
+  IL2GasDataProvider,
+} from '../../../providers/v3/gas-data-provider';
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
@@ -149,8 +161,8 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     const amountToken = amounts[0]!.currency;
     const gasToken = _routingConfig.gasToken
       ? (
-        await this.tokenProvider.getTokens([_routingConfig.gasToken])
-      ).getTokenByAddress(_routingConfig.gasToken)
+          await this.tokenProvider.getTokens([_routingConfig.gasToken])
+        ).getTokenByAddress(_routingConfig.gasToken)
       : undefined;
 
     if (routes.length == 0) {
