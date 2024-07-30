@@ -1110,7 +1110,9 @@ export class AlphaRouter
 
     // We want to log the fee on transfer output tokens that we are taking fee or not
     // Ideally the trade size (normalized in USD) would be ideal to log here, but we don't have spot price of output tokens here.
-    if (tokenOutProperties[tokenOut.address.toLowerCase()]) {
+    // We have to make sure token out is FOT with either buy/sell fee bps > 0
+    if (tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps?.gt(0) ||
+        tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps?.gt(0)) {
       if (feeTakenOnTransfer || externalTransferFailed) {
         // also to be extra safe, in case of FOT with feeTakenOnTransfer or externalTransferFailed,
         // we nullify the fee and flat fee to avoid any potential issues.
@@ -1121,13 +1123,13 @@ export class AlphaRouter
         }
 
         metric.putMetric(
-          'TokenOutFeeOnTransferTakingFee',
+          'TokenOutFeeOnTransferNotTakingFee',
           1,
           MetricLoggerUnit.Count
         );
       } else {
         metric.putMetric(
-          'TokenOutFeeOnTransferNotTakingFee',
+          'TokenOutFeeOnTransferTakingFee',
           1,
           MetricLoggerUnit.Count
         );
