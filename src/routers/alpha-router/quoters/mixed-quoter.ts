@@ -26,6 +26,7 @@ import { MixedRouteWithValidQuote } from '../entities';
 import { computeAllMixedRoutes } from '../functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
+  CrossLiquidityCandidatePools,
   getMixedRouteCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
@@ -36,7 +37,7 @@ import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
 
 export class MixedQuoter extends BaseQuoter<
-  [V3CandidatePools, V2CandidatePools],
+  [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
   MixedRoute
 > {
   protected v3SubgraphProvider: IV3SubgraphProvider;
@@ -73,7 +74,11 @@ export class MixedQuoter extends BaseQuoter<
   protected async getRoutes(
     tokenIn: Token,
     tokenOut: Token,
-    v3v2candidatePools: [V3CandidatePools, V2CandidatePools],
+    v3v2candidatePools: [
+      V3CandidatePools,
+      V2CandidatePools,
+      CrossLiquidityCandidatePools
+    ],
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
   ): Promise<GetRoutesResult<MixedRoute>> {
@@ -83,7 +88,8 @@ export class MixedQuoter extends BaseQuoter<
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
 
-    const [v3CandidatePools, v2CandidatePools] = v3v2candidatePools;
+    const [v3CandidatePools, v2CandidatePools, crossLiquidityPools] =
+      v3v2candidatePools;
 
     const {
       V2poolAccessor,
@@ -92,6 +98,7 @@ export class MixedQuoter extends BaseQuoter<
     } = await getMixedRouteCandidatePools({
       v3CandidatePools,
       v2CandidatePools,
+      crossLiquidityPools,
       tokenProvider: this.tokenProvider,
       v3poolProvider: this.v3PoolProvider,
       v2poolProvider: this.v2PoolProvider,

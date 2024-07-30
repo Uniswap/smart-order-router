@@ -143,9 +143,10 @@ import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
   CandidatePoolsBySelectionCriteria,
+  getMixedCrossLiquidityCandidatePools,
   getV2CandidatePools,
   getV3CandidatePools,
-  PoolId,
+  SubgraphPool,
   V2CandidatePools,
   V3CandidatePools,
 } from './functions/get-candidate-pools';
@@ -1101,6 +1102,7 @@ export class AlphaRouter
         [tokenOut],
         partialRoutingConfig
       );
+
     const feeTakenOnTransfer =
       tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult
         ?.feeTakenOnTransfer;
@@ -2000,8 +2002,19 @@ export class AlphaRouter
 
       quotePromises.push(
         Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(
-          ([v3CandidatePools, v2CandidatePools]) =>
-            this.mixedQuoter
+          async ([v3CandidatePools, v2CandidatePools]) => {
+            const crossLiquidityPools =
+              await getMixedCrossLiquidityCandidatePools({
+                tokenIn,
+                tokenOut,
+                blockNumber: routingConfig.blockNumber,
+                v2SubgraphProvider: this.v2SubgraphProvider,
+                v3SubgraphProvider: this.v3SubgraphProvider,
+                v2Candidates: v2CandidatePools,
+                v3Candidates: v3CandidatePools,
+              });
+
+            return this.mixedQuoter
               .getRoutesThenQuotes(
                 tokenIn,
                 tokenOut,
@@ -2009,7 +2022,7 @@ export class AlphaRouter
                 amounts,
                 percents,
                 quoteToken,
-                [v3CandidatePools!, v2CandidatePools!],
+                [v3CandidatePools!, v2CandidatePools!, crossLiquidityPools],
                 tradeType,
                 routingConfig,
                 mixedRouteGasModel
@@ -2022,7 +2035,8 @@ export class AlphaRouter
                 );
 
                 return result;
-              })
+              });
+          }
         )
       );
     }
@@ -2329,7 +2343,7 @@ export class AlphaRouter
       const { protocol } = poolsBySelection;
       _.forIn(
         poolsBySelection.selections,
-        (pools: PoolId[], topNSelection: string) => {
+        (pools: SubgraphPool[], topNSelection: string) => {
           const topNUsed =
             _.findLastIndex(pools, (pool) =>
               poolAddressesUsed.has(pool.id.toLowerCase())

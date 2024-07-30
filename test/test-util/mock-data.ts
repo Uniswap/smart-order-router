@@ -12,13 +12,13 @@ import {
   UNI_MAINNET,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
+  V2PoolAccessor,
   V2SubgraphPool,
   V3PoolAccessor,
   V3SubgraphPool,
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../src';
-import { V2PoolAccessor } from '../../src';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
@@ -239,7 +239,7 @@ export const WBTC_WETH = new Pair(
 
 export const poolToV3SubgraphPool = (
   pool: Pool,
-  idx: number
+  idx: number | string
 ): V3SubgraphPool => {
   return {
     id: idx.toString(),
@@ -258,7 +258,7 @@ export const poolToV3SubgraphPool = (
 
 export const pairToV2SubgraphPool = (
   pool: Pair,
-  idx: number
+  idx: number | string
 ): V2SubgraphPool => {
   return {
     id: idx.toString(),
@@ -385,59 +385,59 @@ export const mockTokenList: TokenList = {
 };
 
 export const BLAST_WITHOUT_TAX = new Token(
-    ChainId.MAINNET,
-    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
-    18,
-    'BLAST',
-    'BLAST',
-)
+  ChainId.MAINNET,
+  '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+  18,
+  'BLAST',
+  'BLAST',
+);
 export const BLAST = new Token(
-    ChainId.MAINNET,
-    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
-    18,
-    'BLAST',
-    'BLAST',
-    false,
-    BigNumber.from(400),
-    BigNumber.from(10000)
-)
+  ChainId.MAINNET,
+  '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+  18,
+  'BLAST',
+  'BLAST',
+  false,
+  BigNumber.from(400),
+  BigNumber.from(10000)
+);
 export const BULLET_WITHOUT_TAX = new Token(
-    ChainId.MAINNET,
-    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
-    8,
-    'BULLET',
-    'Bullet Game Betting Token',
-    false
-)
+  ChainId.MAINNET,
+  '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+  8,
+  'BULLET',
+  'Bullet Game Betting Token',
+  false
+);
 export const BULLET = new Token(
-    ChainId.MAINNET,
-    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
-    8,
-    'BULLET',
-    'Bullet Game Betting Token',
-    false,
-    BigNumber.from(500),
-    BigNumber.from(500)
-)
+  ChainId.MAINNET,
+  '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+  8,
+  'BULLET',
+  'Bullet Game Betting Token',
+  false,
+  BigNumber.from(500),
+  BigNumber.from(500)
+);
 export const STETH_WITHOUT_TAX = new Token(
-    ChainId.MAINNET,
-    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
-    18,
-    'stETH',
-    'stETH',
-    false
-)
+  ChainId.MAINNET,
+  '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+  18,
+  'stETH',
+  'stETH',
+  false
+);
 // stETH is a special case (rebase token), that would make the token include buyFeeBps and sellFeeBps of 0 as always
 export const STETH = new Token(
-    ChainId.MAINNET,
-    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
-    18,
-    'stETH',
-    'stETH',
-    false,
-    BigNumber.from(0),
-    BigNumber.from(0)
-)
+  ChainId.MAINNET,
+  '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+  18,
+  'stETH',
+  'stETH',
+  false,
+  BigNumber.from(0),
+  BigNumber.from(0)
+);
 export const BITBOY = new Token(
   ChainId.MAINNET,
   '0x4a500ed6add5994569e66426588168705fcc9767',
@@ -447,7 +447,7 @@ export const BITBOY = new Token(
   false,
   BigNumber.from(300),
   BigNumber.from(300)
-)
+);
 export const BOYS = new Token(
   ChainId.BASE,
   '0x4d58608EFf50b691A3B76189aF2a7A123dF1e9ba',
@@ -457,7 +457,7 @@ export const BOYS = new Token(
   false,
   BigNumber.from(0),
   BigNumber.from(200),
-)
+);
 export const DFNDR = new Token(
   ChainId.MAINNET,
   '0x3f57c35633cb29834bb7577ba8052eab90f52a02',
@@ -467,7 +467,7 @@ export const DFNDR = new Token(
   false,
   BigNumber.from(500),
   BigNumber.from(500)
-)
+);
 export const DFNDR_WITHOUT_TAX = new Token(
   ChainId.MAINNET,
   '0x3f57c35633cb29834bb7577ba8052eab90f52a02',
@@ -475,11 +475,11 @@ export const DFNDR_WITHOUT_TAX = new Token(
   'DFNDR',
   'Defender Bot',
   false
-)
+);
 
-export const PORTION_BIPS = 12
-export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
-export const PORTION_TYPE = 'flat'
+export const PORTION_BIPS = 12;
+export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
+export const PORTION_TYPE = 'flat';
 
 export type Portion = {
   bips: number,
@@ -491,7 +491,7 @@ export const FLAT_PORTION: Portion = {
   bips: PORTION_BIPS,
   recipient: PORTION_RECIPIENT,
   type: PORTION_TYPE,
-}
+};
 
 export const GREENLIST_TOKEN_PAIRS: Array<[Currency, Currency]> = [
   [Ether.onChain(ChainId.MAINNET), USDC],

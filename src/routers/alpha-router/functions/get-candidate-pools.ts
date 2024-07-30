@@ -79,7 +79,7 @@ import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
 
-export type PoolId = { id: string };
+export type SubgraphPool = V2SubgraphPool | V3SubgraphPool;
 export type CandidatePoolsBySelectionCriteria = {
   protocol: Protocol;
   selections: CandidatePoolsSelections;
@@ -87,15 +87,25 @@ export type CandidatePoolsBySelectionCriteria = {
 
 /// Utility type for allowing us to use `keyof CandidatePoolsSelections` to map
 export type CandidatePoolsSelections = {
-  topByBaseWithTokenIn: PoolId[];
-  topByBaseWithTokenOut: PoolId[];
-  topByDirectSwapPool: PoolId[];
-  topByEthQuoteTokenPool: PoolId[];
-  topByTVL: PoolId[];
-  topByTVLUsingTokenIn: PoolId[];
-  topByTVLUsingTokenOut: PoolId[];
-  topByTVLUsingTokenInSecondHops: PoolId[];
-  topByTVLUsingTokenOutSecondHops: PoolId[];
+  topByBaseWithTokenIn: SubgraphPool[];
+  topByBaseWithTokenOut: SubgraphPool[];
+  topByDirectSwapPool: SubgraphPool[];
+  topByEthQuoteTokenPool: SubgraphPool[];
+  topByTVL: SubgraphPool[];
+  topByTVLUsingTokenIn: SubgraphPool[];
+  topByTVLUsingTokenOut: SubgraphPool[];
+  topByTVLUsingTokenInSecondHops: SubgraphPool[];
+  topByTVLUsingTokenOutSecondHops: SubgraphPool[];
+};
+
+export type MixedCrossLiquidityCandidatePoolsParams = {
+  tokenIn: Token;
+  tokenOut: Token;
+  v2SubgraphProvider: IV2SubgraphProvider;
+  v3SubgraphProvider: IV3SubgraphProvider;
+  v2Candidates?: V2CandidatePools;
+  v3Candidates?: V3CandidatePools;
+  blockNumber?: number | Promise<number>;
 };
 
 export type V3GetCandidatePoolsParams = {
@@ -125,6 +135,7 @@ export type V2GetCandidatePoolsParams = {
 export type MixedRouteGetCandidatePoolsParams = {
   v3CandidatePools: V3CandidatePools;
   v2CandidatePools: V2CandidatePools;
+  crossLiquidityPools: CrossLiquidityCandidatePools;
   routingConfig: AlphaRouterConfig;
   tokenProvider: ITokenProvider;
   v2poolProvider: IV2PoolProvider;
@@ -202,6 +213,155 @@ class SubcategorySelectionPools<SubgraphPool> {
   public hasEnoughPools(): boolean {
     return this.pools.length >= this.poolsNeeded;
   }
+}
+
+export type CrossLiquidityCandidatePools = {
+  v2Pools: V2SubgraphPool[];
+  v3Pools: V3SubgraphPool[];
+};
+
+/**
+ * Function that finds any missing pools that were not selected by the heuristic but that would
+ *   create a route with the topPool by TVL with either tokenIn or tokenOut across protocols.
+ *
+ *   e.g. In V2CandidatePools we found that wstETH/DOG is the most liquid pool,
+ *        then in V3CandidatePools ETH/wstETH is *not* the most liquid pool, so it is not selected
+ *        This process will look for that pool in order to complete the route.
+ *
+ */
+export async function getMixedCrossLiquidityCandidatePools({
+  tokenIn,
+  tokenOut,
+  blockNumber,
+  v2SubgraphProvider,
+  v3SubgraphProvider,
+  v2Candidates,
+  v3Candidates,
+}: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossLiquidityCandidatePools> {
+  const v2Pools = (
+    await v2SubgraphProvider.getPools(tokenIn, tokenOut, {
+      blockNumber,
+    })
+  ).sort((a, b) => b.reserve - a.reserve);
+  const v3Pools = (
+    await v3SubgraphProvider.getPools(tokenIn, tokenOut, {
+      blockNumber,
+    })
+  ).sort((a, b) => b.tvlUSD - a.tvlUSD);
+
+  const tokenInAddress = tokenIn.address.toLowerCase();
+  const tokenOutAddress = tokenOut.address.toLowerCase();
+
+  const v2SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v2Pools,
+    v2Candidates,
+    v3Candidates
+  );
+
+  const v3SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v3Pools,
+    v3Candidates,
+    v2Candidates
+  );
+
+  const selectedV2Pools = [
+    v2SelectedPools.forTokenIn,
+    v2SelectedPools.forTokenOut,
+  ].filter((pool) => pool !== undefined) as V2SubgraphPool[];
+  const selectedV3Pools = [
+    v3SelectedPools.forTokenIn,
+    v3SelectedPools.forTokenOut,
+  ].filter((pool) => pool !== undefined) as V3SubgraphPool[];
+
+  return {
+    v2Pools: selectedV2Pools,
+    v3Pools: selectedV3Pools,
+  };
+}
+
+function findCrossProtocolMissingPools<
+  TSubgraphPool extends SubgraphPool,
+  CandidatePoolsProtocolToSearch extends V2CandidatePools | V3CandidatePools,
+  CandidatePoolsContextualProtocol extends V2CandidatePools | V3CandidatePools
+>(
+  tokenInAddress: string,
+  tokenOutAddress: string,
+  pools: TSubgraphPool[],
+  candidatesInProtocolToSearch: CandidatePoolsProtocolToSearch | undefined,
+  candidatesInContextProtocol: CandidatePoolsContextualProtocol | undefined
+): {
+  forTokenIn?: TSubgraphPool;
+  forTokenOut?: TSubgraphPool;
+} {
+  const selectedPools: {
+    forTokenIn?: TSubgraphPool;
+    forTokenOut?: TSubgraphPool;
+  } = {};
+  const previouslySelectedPools = new Set(
+    candidatesInProtocolToSearch?.subgraphPools.map((pool) => pool.id) ?? []
+  );
+
+  const topPoolByTvlWithTokenOut =
+    candidatesInContextProtocol?.candidatePools.selections
+      .topByTVLUsingTokenOut[0];
+  const crossTokenAgainstTokenOut =
+    topPoolByTvlWithTokenOut?.token0.id.toLowerCase() === tokenOutAddress
+      ? topPoolByTvlWithTokenOut?.token1.id.toLowerCase()
+      : topPoolByTvlWithTokenOut?.token0.id.toLowerCase();
+
+  const topPoolByTvlWithTokenIn =
+    candidatesInContextProtocol?.candidatePools.selections
+      .topByTVLUsingTokenIn[0];
+  const crossTokenAgainstTokenIn =
+    topPoolByTvlWithTokenIn?.token0.id.toLowerCase() === tokenInAddress
+      ? topPoolByTvlWithTokenIn?.token1.id.toLowerCase()
+      : topPoolByTvlWithTokenIn?.token0.id.toLowerCase();
+
+  for (const pool of pools) {
+    // If we already found both pools for tokenIn and tokenOut. break out of this for loop.
+    if (
+      selectedPools.forTokenIn !== undefined &&
+      selectedPools.forTokenOut !== undefined
+    ) {
+      break;
+    }
+
+    // If the pool has already been selected. continue to the next pool.
+    if (previouslySelectedPools.has(pool.id.toLowerCase())) {
+      continue;
+    }
+
+    const poolToken0Address = pool.token0.id.toLowerCase();
+    const poolToken1Address = pool.token1.id.toLowerCase();
+
+    // If we haven't selected the pool for tokenIn, and we found a pool matching the tokenOut, and the intermediateToken, select this pool
+    if (
+      selectedPools.forTokenIn === undefined &&
+      ((poolToken0Address === tokenOutAddress &&
+        poolToken1Address === crossTokenAgainstTokenIn) ||
+        (poolToken1Address === tokenOutAddress &&
+          poolToken0Address === crossTokenAgainstTokenIn))
+    ) {
+      selectedPools.forTokenIn = pool;
+    }
+
+    // If we haven't selected the pool for tokenOut, and we found a pool matching the tokenIn, and the intermediateToken, select this pool
+    if (
+      selectedPools.forTokenOut === undefined &&
+      ((poolToken0Address === tokenInAddress &&
+        poolToken1Address === crossTokenAgainstTokenOut) ||
+        (poolToken1Address === tokenInAddress &&
+          poolToken0Address === crossTokenAgainstTokenOut))
+    ) {
+      selectedPools.forTokenOut = pool;
+    }
+  }
+
+  return selectedPools;
 }
 
 export type V3CandidatePools = {
@@ -1240,12 +1400,13 @@ export type MixedCandidatePools = {
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
-  subgraphPools: (V2SubgraphPool | V3SubgraphPool)[];
+  subgraphPools: SubgraphPool[];
 };
 
 export async function getMixedRouteCandidatePools({
   v3CandidatePools,
   v2CandidatePools,
+  crossLiquidityPools,
   routingConfig,
   tokenProvider,
   v3poolProvider,
@@ -1256,6 +1417,10 @@ export async function getMixedRouteCandidatePools({
     { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools },
     { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools },
   ] = [v3CandidatePools, v2CandidatePools];
+
+  // Injects the liquidity pools found by the getMixedCrossLiquidityCandidatePools function
+  V2subgraphPools.push(...crossLiquidityPools.v2Pools);
+  V3subgraphPools.push(...crossLiquidityPools.v3Pools);
 
   metric.putMetric(
     'MixedSubgraphPoolsLoad',
@@ -1281,6 +1446,8 @@ export async function getMixedRouteCandidatePools({
       ...V2candidatePools.selections.topByBaseWithTokenOut,
       /// Direct swap:
       ...V2candidatePools.selections.topByDirectSwapPool,
+      // Cross Liquidity (has to be added to be considered):
+      ...crossLiquidityPools.v2Pools,
     ].map((poolId) => poolId.id)
   );
 
