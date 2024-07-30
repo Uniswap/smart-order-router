@@ -788,6 +788,23 @@ export class TenderlySimulator extends Simulator {
           return;
         }
 
+        if (!gatewayResp.simulation_results || !resp.result) {
+          log.error(
+            `Gateway and node response bodies do not contain simulation results for gas estimation bundle ${JSON.stringify(
+              body,
+              null,
+              2
+            )}.`,
+            { gatewayResp, resp }
+          );
+          metric.putMetric(
+            'TenderlyNodeGasEstimateBundleMismatch',
+            1,
+            MetricLoggerUnit.Count
+          );
+          return;
+        }
+
         if (gatewayResp.simulation_results.length !== resp.result.length) {
           metric.putMetric(
             'TenderlyNodeGasEstimateBundleLengthMismatch',
