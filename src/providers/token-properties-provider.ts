@@ -55,9 +55,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
   ): Promise<TokenPropertiesMap> {
     const tokenToResult: TokenPropertiesMap = {};
 
-    if (
-      !providerConfig?.enableFeeOnTransferFeeFetching
-    ) {
+    if (!providerConfig?.enableFeeOnTransferFeeFetching) {
       return tokenToResult;
     }
 
@@ -71,7 +69,8 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
 
     // Check if we have cached token validation results for any tokens.
     for (const address of addressesRaw) {
-      const cachedValue = tokenProperties[this.CACHE_KEY(this.chainId, address.toLowerCase())];
+      const cachedValue =
+        tokenProperties[this.CACHE_KEY(this.chainId, address.toLowerCase())];
       if (cachedValue) {
         metric.putMetric(
           'TokenPropertiesProviderBatchGetCacheHit',
@@ -201,7 +200,10 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     const addressesCacheKeys = new Set<string>();
 
     for (const token of tokens) {
-      const addressCacheKey = this.CACHE_KEY(this.chainId, token.address.toLowerCase());
+      const addressCacheKey = this.CACHE_KEY(
+        this.chainId,
+        token.address.toLowerCase()
+      );
       if (!addressesCacheKeys.has(addressCacheKey)) {
         addressesCacheKeys.add(addressCacheKey);
       }

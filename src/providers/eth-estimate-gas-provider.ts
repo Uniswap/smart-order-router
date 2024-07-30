@@ -112,7 +112,15 @@ export class EthEstimateGasSimulator extends Simulator {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedGasToken,
       quoteGasAdjusted,
-    } = await calculateGasUsed(route.quote.currency.chainId, route, estimatedGasUsed, this.v2PoolProvider, this.v3PoolProvider, this.provider, providerConfig);
+    } = await calculateGasUsed(
+      route.quote.currency.chainId,
+      route,
+      estimatedGasUsed,
+      this.v2PoolProvider,
+      this.v3PoolProvider,
+      this.provider,
+      providerConfig
+    );
     return {
       ...initSwapRouteFromExisting(
         route,
@@ -159,7 +167,12 @@ export class EthEstimateGasSimulator extends Simulator {
         this.provider
       ))
     ) {
-      return await this.ethEstimateGas(fromAddress, swapOptions, swapRoute, _providerConfig);
+      return await this.ethEstimateGas(
+        fromAddress,
+        swapOptions,
+        swapRoute,
+        _providerConfig
+      );
     } else {
       log.info('Token not approved, skipping simulation');
       return {
