@@ -75,6 +75,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-alpha-router-integration-mainnet-alpha-exact_input-hardhat:
     name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_INPUT Execute On Hardhat Fork
@@ -109,6 +110,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-alpha-router-integration-mainnet-alpha-exact_input-tenderly-hardhat:
     name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_INPUT Simulate On Tenderly Execute On Hardhat Fork
@@ -143,6 +145,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-alpha-router-integration-mainnet-alpha-exact_output-erc20-to-erc20:
     name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_OUTPUT ERC20 -> ERC20
@@ -177,6 +180,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-alpha-router-integration-mainnet-alpha-exact_output-hardhat:
     name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_OUTPUT Execute On Hardhat Fork
@@ -211,6 +215,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-alpha-router-integration-mainnet-alpha-exact_output-tenderly-hardhat:
     name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_OUTPUT Simulate On Tenderly Execute On Hardhat Fork
@@ -245,6 +250,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-alpha-router-integration-mixed-routes:
     name: Integration Tests - Alpha Router Integration Mixed Routes
@@ -279,6 +285,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-external-class-tests:
     name: Integration Tests - External Class Tests
@@ -313,6 +320,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-mainnet:
     name: Integration Tests - Quote For Other Networks Mainnet
@@ -347,6 +355,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-optimism:
     name: Integration Tests - Quote For Other Networks Optimism
@@ -382,6 +391,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-arbitrum:
     name: Integration Tests - Quote For Other Networks Arbitrum
@@ -417,6 +427,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-polygon:
     name: Integration Tests - Quote For Other Networks Polygon
@@ -452,6 +463,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-sepolia:
     name: Integration Tests - Quote For Other Networks Sepolia
@@ -486,6 +498,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-celo:
     name: Integration Tests - Quote For Other Networks Celo
@@ -521,6 +534,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-bnb:
     name: Integration Tests - Quote For Other Networks BNB
@@ -555,6 +569,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-avalanche:
     name: Integration Tests - Quote For Other Networks Avalanche
@@ -589,6 +604,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-base:
     name: Integration Tests - Quote For Other Networks Base
@@ -623,6 +639,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-blast:
     name: Integration Tests - Quote For Other Networks Blast
@@ -657,6 +674,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-zora:
     name: Integration Tests - Quote For Other Networks Zora
@@ -691,6 +709,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-zksync:
     name: Integration Tests - Quote For Other Networks ZkSync
@@ -724,6 +743,7 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
   integration-tests-quote-for-other-networks-remaining-networks:
     name: Integration Tests - Quote For Other Networks Remaining Networks
@@ -760,3 +780,4 @@ jobs:
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
