@@ -414,7 +414,17 @@ export class TenderlySimulator extends Simulator {
           MetricLoggerUnit.Milliseconds
         );
         metric.putMetric(
+          'TenderlyNodeSimulationUniversalRouterLatencies',
+          Date.now() - before,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
           `TenderlySimulationUniversalRouterResponseStatus${httpStatus}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `TenderlyNodeSimulationUniversalRouterResponseStatus${httpStatus}`,
           1,
           MetricLoggerUnit.Count
         );
@@ -457,7 +467,7 @@ export class TenderlySimulator extends Simulator {
             swapGas: (resp.result[2] as GasBody).gas,
             swapWithMultiplier: estimatedGasUsed.toString(),
           },
-          'Successfully Simulated Approvals + Swap via Tenderly for Universal Router. Gas used.'
+          'Successfully Simulated Approvals + Swap via Tenderly node endpoint for Universal Router. Gas used.'
         );
       } else {
         const { data: resp, status: httpStatus } =
@@ -476,7 +486,17 @@ export class TenderlySimulator extends Simulator {
           MetricLoggerUnit.Milliseconds
         );
         metric.putMetric(
+          'TenderlyApiSimulationUniversalRouterLatencies',
+          Date.now() - before,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
           `TenderlySimulationUniversalRouterResponseStatus${httpStatus}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `TenderlyApiSimulationUniversalRouterResponseStatus${httpStatus}`,
           1,
           MetricLoggerUnit.Count
         );
@@ -512,7 +532,7 @@ export class TenderlySimulator extends Simulator {
             swapGas: resp.simulation_results[2].transaction.gas,
             swapWithMultiplier: estimatedGasUsed.toString(),
           },
-          'Successfully Simulated Approvals + Swap via Tenderly for Universal Router. Gas used.'
+          'Successfully Simulated Approvals + Swap via Tenderly Api endpoint for Universal Router. Gas used.'
         );
 
         log.info(
@@ -521,7 +541,7 @@ export class TenderlySimulator extends Simulator {
             swapSimulation: resp.simulation_results[2].simulation,
             swapTransaction: resp.simulation_results[2].transaction,
           },
-          'Successful Tenderly Swap Simulation for Universal Router'
+          'Successful Tenderly Api endpoint Swap Simulation for Universal Router'
         );
       }
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
