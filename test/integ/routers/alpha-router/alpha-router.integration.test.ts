@@ -704,6 +704,10 @@ describe('alpha router integration', () => {
         // so we can use the gas limits returned from Tenderly for more accurate L2 gas estimate assertions.
         [ChainId.ARBITRUM_ONE]: 1
       },
+      // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
+      3000,
+      100,
+      [ChainId.MAINNET]
     );
 
     const simulator = new FallbackTenderlySimulator(
