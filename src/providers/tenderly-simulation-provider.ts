@@ -408,6 +408,11 @@ export class TenderlySimulator extends Simulator {
           approveUniversalRouter,
           swap
         );
+        // We will maintain the original metrics TenderlySimulationUniversalRouterLatencies and TenderlySimulationUniversalRouterResponseStatus
+        // so that they don't provide the existing tenderly dashboard as well as simulation alerts
+        // In the meanwhile, we also add tenderly node metrics to distinguish from the tenderly api metrics
+        // Once we migrate to node endpoint 100%, original metrics TenderlySimulationUniversalRouterLatencies and TenderlySimulationUniversalRouterResponseStatus
+        // will work as is
         metric.putMetric(
           'TenderlySimulationUniversalRouterLatencies',
           Date.now() - before,
