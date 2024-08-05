@@ -2,7 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
@@ -63,7 +64,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     IGasModel<MixedRouteWithValidQuote>
   > {
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
-    const usdPool: Pool = pools.usdPool;
+    const usdPool: V3Pool = pools.usdPool;
     const usdToken = usdPool.token0.equals(nativeCurrency)
       ? usdPool.token1
       : usdPool.token0;
@@ -102,7 +103,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
       );
 
       /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
-      const nativeAndSpecifiedGasTokenPool: Pool | null =
+      const nativeAndSpecifiedGasTokenPool: V3Pool | null =
         pools.nativeAndSpecifiedGasTokenV3Pool;
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
       if (nativeAndSpecifiedGasTokenPool) {
@@ -131,7 +132,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
 
       // If the quote token is not in the native currency, we convert the gas cost to be in terms of the quote token.
       // We do this by getting the highest liquidity <quoteToken>/<nativeCurrency> pool. eg. <quoteToken>/ETH pool.
-      const nativeV3Pool: Pool | null = pools.nativeAndQuoteTokenV3Pool;
+      const nativeV3Pool: V3Pool | null = pools.nativeAndQuoteTokenV3Pool;
 
       if (!nativeV3Pool && !nativeV2Pool) {
         log.info(
@@ -189,8 +190,8 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     const route = routeWithValidQuote.route;
 
     const res = partitionMixedRouteByProtocol(route);
-    res.map((section: (Pair | Pool)[]) => {
-      if (section.every((pool) => pool instanceof Pool)) {
+    res.map((section: (Pair | V3Pool | V4Pool)[]) => {
+      if (section.every((pool) => pool instanceof V3Pool)) {
         baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
         baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));
       } else if (section.every((pool) => pool instanceof Pair)) {

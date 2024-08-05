@@ -5,12 +5,13 @@ import {
   Trade,
 } from '@uniswap/router-sdk';
 import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
+import { CurrencyAmount as SDKCurrentAmount } from '@uniswap/sdk-core';
 import {
-  SwapRouter as UniversalRouter,
   UNIVERSAL_ROUTER_ADDRESS,
+  SwapRouter as UniversalRouter,
 } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
-import { Route as V3RouteRaw } from '@uniswap/v3-sdk';
+import { Route, Route as V3RouteRaw } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import {
@@ -18,9 +19,9 @@ import {
   MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
+  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
-  SWAP_ROUTER_02_ADDRESSES,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';
@@ -44,6 +45,9 @@ export function buildTrade<TTradeType extends TradeType>(
     routeAmounts,
     (routeAmount) => routeAmount.protocol === Protocol.MIXED
   );
+
+  // TODO: populate v4Routes
+  const v4Routes: {routev4: Route<Currency, Currency>, inputAmount: SDKCurrentAmount<Currency>, outputAmount: SDKCurrentAmount<Currency>}[] = []
 
   const v3Routes = _.map<
     V3RouteWithValidQuote,
@@ -223,7 +227,9 @@ export function buildTrade<TTradeType extends TradeType>(
     }
   );
 
-  const trade = new Trade({ v2Routes, v3Routes, mixedRoutes, tradeType });
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const trade = new Trade({ v2Routes, v3Routes, v4Routes, mixedRoutes, tradeType });
 
   return trade;
 }
