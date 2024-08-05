@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { Token, TradeType } from '@uniswap/sdk-core';
+import { Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
@@ -35,7 +35,7 @@ export interface IRouteWithValidQuote<
   gasCostInGasToken?: CurrencyAmount;
   tradeType: TradeType;
   poolAddresses: string[];
-  tokenPath: Token[];
+  tokenPath: Currency[];
 }
 
 // Discriminated unions on protocol field to narrow types.
@@ -291,7 +291,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
   public gasCostInGasToken?: CurrencyAmount;
   public tradeType: TradeType;
   public poolAddresses: string[];
-  public tokenPath: Token[];
+  public tokenPath: Currency[];
 
   public toString(): string {
     return `${this.percent.toFixed(
@@ -347,7 +347,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     this.poolAddresses = _.map(route.pools, (p) => {
       return p instanceof Pool
         ? v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress
-        : v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress;
+        : v2PoolProvider.getPoolAddress(p.token0.wrapped, p.token1.wrapped).poolAddress;
     });
 
     this.tokenPath = this.route.path;

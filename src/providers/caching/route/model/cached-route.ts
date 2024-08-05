@@ -1,10 +1,11 @@
-import { Protocol } from '@uniswap/router-sdk';
+import { Protocol, RouteV4 } from '@uniswap/router-sdk';
 import { Token } from '@uniswap/sdk-core';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
 
 import { MixedRoute, V2Route, V3Route } from '../../../../routers';
+import { Pair } from '@uniswap/v2-sdk';
 
-interface CachedRouteParams<Route extends V3Route | V2Route | MixedRoute> {
+interface CachedRouteParams<Route extends V3Route | V2Route | MixedRoute | RouteV4<any, any>> {
   route: Route;
   percent: number;
 }
@@ -62,10 +63,12 @@ export class CachedRoute<Route extends V3Route | V2Route | MixedRoute> {
       const route = this.route as MixedRoute;
       return route.pools
         .map((pool) => {
-          if (pool instanceof Pool) {
+          if (pool instanceof V3Pool) {
             return `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`;
-          } else {
+          } else if (pool instanceof Pair) {
             return `[V2]${pool.token0.address}/${pool.token1.address}`;
+          } else {
+            return `[V4]${pool.token0.isToken ? pool.token0.wrapped.address : pool.token0.symbol}/${pool.token1.isToken ? pool.token1.wrapped.address : pool.token1.symbol}`;
           }
         })
         .join('->');

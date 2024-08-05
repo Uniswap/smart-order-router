@@ -3,7 +3,7 @@ import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
   Protocol,
-  Trade,
+  Trade
 } from '@uniswap/router-sdk';
 import {
   Currency,
@@ -15,17 +15,23 @@ import {
 import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  MethodParameters as SDKMethodParameters,
   Pool,
   Position,
+  MethodParameters as SDKMethodParameters,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
+import {
+  Route as V4RouteRaw
+} from '@uniswap/v4-sdk';
 
 import { SimulationStatus } from '../providers';
 import { CurrencyAmount } from '../util/amounts';
 
 import { RouteWithValidQuote } from './alpha-router';
 
+export class V4Route extends V4RouteRaw<Currency, Currency> {
+  protocol: Protocol.V4 = Protocol.V4;
+}
 export class V3Route extends V3RouteRaw<Token, Token> {
   protocol: Protocol.V3 = Protocol.V3;
 }
