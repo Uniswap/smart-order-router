@@ -1,11 +1,11 @@
-import { Protocol, RouteV4 } from '@uniswap/router-sdk';
+import { Protocol } from '@uniswap/router-sdk';
 import { Token } from '@uniswap/sdk-core';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 
-import { MixedRoute, V2Route, V3Route } from '../../../../routers';
+import { MixedRoute, V2Route, V3Route, V4Route } from '../../../../routers';
 import { Pair } from '@uniswap/v2-sdk';
 
-interface CachedRouteParams<Route extends V3Route | V2Route | MixedRoute | RouteV4<any, any>> {
+interface CachedRouteParams<Route extends V4Route | V3Route | V2Route | MixedRoute> {
   route: Route;
   percent: number;
 }
@@ -16,7 +16,7 @@ interface CachedRouteParams<Route extends V3Route | V2Route | MixedRoute | Route
  * @export
  * @class CachedRoute
  */
-export class CachedRoute<Route extends V3Route | V2Route | MixedRoute> {
+export class CachedRoute<Route extends V4Route | V3Route | V2Route | MixedRoute> {
   public readonly route: Route;
   public readonly percent: number;
   // Hashing function copying the same implementation as Java's `hashCode`
@@ -37,12 +37,14 @@ export class CachedRoute<Route extends V3Route | V2Route | MixedRoute> {
     return this.route.protocol;
   }
 
+  // TODO: V4 cannot use wrapped
   public get tokenIn(): Token {
-    return this.route.input;
+    return this.route.input.wrapped;
   }
 
+  // TODO: V4 cannot use wrapped
   public get tokenOut(): Token {
-    return this.route.output;
+    return this.route.output.wrapped;
   }
 
   public get routePath(): string {

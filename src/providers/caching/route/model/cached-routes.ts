@@ -7,12 +7,13 @@ import {
   RouteWithValidQuote,
   V2Route,
   V3Route,
+  V4Route,
 } from '../../../../routers';
 
 import { CachedRoute } from './cached-route';
 
 interface CachedRoutesParams {
-  routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
+  routes: CachedRoute<V4Route | V3Route | V2Route | MixedRoute>[];
   chainId: ChainId;
   tokenIn: Token;
   tokenOut: Token;
@@ -30,7 +31,7 @@ interface CachedRoutesParams {
  * @class CachedRoute
  */
 export class CachedRoutes {
-  public readonly routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
+  public readonly routes: CachedRoute<V4Route | V3Route | V2Route | MixedRoute>[];
   public readonly chainId: ChainId;
   public readonly tokenIn: Token;
   public readonly tokenOut: Token;
