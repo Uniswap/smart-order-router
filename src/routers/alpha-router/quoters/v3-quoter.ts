@@ -147,7 +147,7 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route> {
       return { routesWithValidQuotes: [], candidatePools };
     }
 
-    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
+    // For all our routes and fractional amounts, fetch quotes on-chain.
     const quoteFn =
       tradeType == TradeType.EXACT_INPUT
         ? this.onChainQuoteProvider.getQuotesManyExactIn.bind(
