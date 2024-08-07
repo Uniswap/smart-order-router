@@ -83,34 +83,8 @@ export class CachedRoute<Route extends SupportedRoutes> {
             }
           })
           .join('->');
-    }
-
-    if (this.protocol == Protocol.V3) {
-      const route = this.route as V3Route;
-      return route.pools
-        .map(
-          (pool) =>
-            `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`
-        )
-        .join('->');
-    } else if (this.protocol == Protocol.V2) {
-      const route = this.route as V2Route;
-      return route.pairs
-        .map((pair) => `[V2]${pair.token0.address}/${pair.token1.address}`)
-        .join('->');
-    } else {
-      const route = this.route as MixedRoute;
-      return route.pools
-        .map((pool) => {
-          if (pool instanceof V3Pool) {
-            return `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`;
-          } else if (pool instanceof Pair) {
-            return `[V2]${pool.token0.address}/${pool.token1.address}`;
-          } else {
-            return `[V4]${pool.token0.isToken ? pool.token0.wrapped.address : pool.token0.symbol}/${pool.token1.isToken ? pool.token1.wrapped.address : pool.token1.symbol}`;
-          }
-        })
-        .join('->');
+      default:
+        throw new Error(`Unsupported protocol ${this.protocol}`);
     }
   }
 
