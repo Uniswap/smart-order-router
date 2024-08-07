@@ -358,7 +358,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
           .getPoolAddress(p.token0, p.token1)
           .poolAddress;
       } else {
-        throw new Error('Unknown pool type');
+        throw new Error(`Unknown pool type ${JSON.stringify(p)}`);
       }
     });
 
