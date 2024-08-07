@@ -1,28 +1,40 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { Percent } from '@uniswap/sdk-core';
+import { Currency, Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { RouteWithValidQuote } from '../routers/alpha-router';
-import { MixedRoute, V2Route, V3Route } from '../routers/router';
+import { MixedRoute, V2Route, V3Route, V4Route } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';
 
+export const routeToTokens = (
+  route: V4Route | V3Route | V2Route | MixedRoute
+): Currency[] => {
+  switch (route.protocol) {
+    case Protocol.V4:
+      return route.currencyPath
+    case Protocol.V3:
+      return route.tokenPath
+    case Protocol.V2:
+    case Protocol.MIXED:
+      return route.path
+    default:
+      return []
+  }
+}
+
 export const routeToString = (
-  route: V3Route | V2Route | MixedRoute
+  route: V4Route | V3Route | V2Route | MixedRoute
 ): string => {
   const routeStr = [];
-  const tokens =
-    route.protocol === Protocol.V3
-      ? route.tokenPath
-      : // MixedRoute and V2Route have path
-        route.path;
+  const tokens = routeToTokens(route);
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools =
-    route.protocol === Protocol.V3 || route.protocol === Protocol.MIXED
+    route.protocol === Protocol.V3 || route.protocol === Protocol.MIXED || route.protocol === Protocol.V4
       ? route.pools
       : route.pairs;
   const poolFeePath = _.map(pools, (pool) => {

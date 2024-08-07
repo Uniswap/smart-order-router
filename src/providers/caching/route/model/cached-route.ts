@@ -1,11 +1,17 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { Token } from '@uniswap/sdk-core';
+import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 
-import { MixedRoute, V2Route, V3Route, V4Route } from '../../../../routers';
-import { Pair } from '@uniswap/v2-sdk';
+import {
+  MixedRoute,
+  SupportedRoutes,
+  V2Route,
+  V3Route, V4Route
+} from '../../../../routers';
 
-interface CachedRouteParams<Route extends V4Route | V3Route | V2Route | MixedRoute> {
+
+interface CachedRouteParams<Route extends SupportedRoutes> {
   route: Route;
   percent: number;
 }
@@ -16,7 +22,7 @@ interface CachedRouteParams<Route extends V4Route | V3Route | V2Route | MixedRou
  * @export
  * @class CachedRoute
  */
-export class CachedRoute<Route extends V4Route | V3Route | V2Route | MixedRoute> {
+export class CachedRoute<Route extends SupportedRoutes> {
   public readonly route: Route;
   public readonly percent: number;
   // Hashing function copying the same implementation as Java's `hashCode`
@@ -48,6 +54,37 @@ export class CachedRoute<Route extends V4Route | V3Route | V2Route | MixedRoute>
   }
 
   public get routePath(): string {
+    switch (this.protocol) {
+      case Protocol.V4:
+        // TODO: ROUTE-217 - Support native currency routing in V4
+        return (this.route as V4Route).pools
+          .map((pool) => `[V4]${pool.token0.wrapped.address}/${pool.token1.wrapped.address}`)
+          .join('->');
+      case Protocol.V3:
+        return (this.route as V3Route).pools
+          .map(
+            (pool) =>
+              `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`
+          )
+          .join('->');
+      case Protocol.V2:
+        return (this.route as V2Route).pairs
+          .map((pair) => `[V2]${pair.token0.address}/${pair.token1.address}`)
+          .join('->');
+      case Protocol.MIXED:
+        return (this.route as MixedRoute).pools
+          .map((pool) => {
+            if (pool instanceof V3Pool) {
+              return `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`;
+            } else if (pool instanceof Pair) {
+              return `[V2]${pool.token0.address}/${pool.token1.address}`;
+            } else {
+              return `[V4]${pool.token0.isToken ? pool.token0.wrapped.address : pool.token0.symbol}/${pool.token1.isToken ? pool.token1.wrapped.address : pool.token1.symbol}`;
+            }
+          })
+          .join('->');
+    }
+
     if (this.protocol == Protocol.V3) {
       const route = this.route as V3Route;
       return route.pools

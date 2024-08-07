@@ -1,7 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
@@ -10,6 +11,7 @@ import { CurrencyAmount } from '../../../util/amounts';
 import { routeToString } from '../../../util/routes';
 import { MixedRoute, V2Route, V3Route } from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
+import { Pair } from '@uniswap/v2-sdk';
 
 /**
  * Represents a route, a quote for swapping some amount on it, and other
@@ -345,9 +347,19 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     }
 
     this.poolAddresses = _.map(route.pools, (p) => {
-      return p instanceof Pool
-        ? v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress
-        : v2PoolProvider.getPoolAddress(p.token0.wrapped, p.token1.wrapped).poolAddress;
+      if (p instanceof V4Pool) {
+        throw new Error('V4 pools not supported in mixed routes yet');
+      } else if (p instanceof V3Pool) {
+        return v3PoolProvider
+          .getPoolAddress(p.token0, p.token1, p.fee)
+          .poolAddress;
+      } else if (p instanceof Pair) {
+        return v2PoolProvider
+          .getPoolAddress(p.token0, p.token1)
+          .poolAddress;
+      } else {
+        throw new Error('Unknown pool type');
+      }
     });
 
     this.tokenPath = this.route.path;
