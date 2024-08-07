@@ -43,12 +43,12 @@ export class CachedRoute<Route extends SupportedRoutes> {
     return this.route.protocol;
   }
 
-  // TODO: V4 cannot use wrapped
+  // TODO: ROUTE-217 - Support native currency routing in V4
   public get tokenIn(): Token {
     return this.route.input.wrapped;
   }
 
-  // TODO: V4 cannot use wrapped
+  // TODO: ROUTE-217 - Support native currency routing in V4
   public get tokenOut(): Token {
     return this.route.output.wrapped;
   }
