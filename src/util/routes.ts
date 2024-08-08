@@ -80,7 +80,12 @@ export const routeToString = (
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools = routeToPools(route);
   const poolFeePath = _.map(pools, (pool) => {
-    if (pool instanceof V3Pool) {
+    if (pool instanceof Pair) {
+      return ` -- [${Pair.getAddress(
+        (pool as Pair).token0,
+        (pool as Pair).token1
+      )}]`;
+    } else if (pool instanceof V3Pool) {
       return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
         pool.token0,
         pool.token1,

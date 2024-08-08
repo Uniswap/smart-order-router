@@ -1,7 +1,8 @@
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
 import { Currency, CurrencyAmount, Ether } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import {
@@ -53,8 +54,8 @@ describe('mixed route gas model tests', () => {
     const route = routeWithValidQuote.route;
 
     const res = partitionMixedRouteByProtocol(route);
-    res.map((section: (Pair | Pool)[]) => {
-      if (section.every((pool) => pool instanceof Pool)) {
+    res.map((section: (Pair | V3Pool | V4Pool)[]) => {
+      if (section.every((pool) => pool instanceof V3Pool)) {
         baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
         baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));
       } else if (section.every((pool) => pool instanceof Pair)) {
@@ -63,6 +64,8 @@ describe('mixed route gas model tests', () => {
           /// same behavior in v2 heuristic gas model factory
           COST_PER_EXTRA_HOP_V2.mul(section.length - 1)
         );
+      } else if (section.every((pool) => pool instanceof V4Pool)) {
+        throw new Error('V4 pools are not supported in the heuristic gas model');
       }
     });
 
