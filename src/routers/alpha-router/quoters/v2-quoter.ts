@@ -169,7 +169,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
       return { routesWithValidQuotes: [], candidatePools };
     }
 
-    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
+    // For all our routes and fractional amounts, compute quotes off-chain using pool balances.
     const quoteFn =
       tradeType == TradeType.EXACT_INPUT
         ? this.v2QuoteProvider.getQuotesManyExactIn.bind(this.v2QuoteProvider)
