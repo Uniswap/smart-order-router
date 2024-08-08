@@ -134,7 +134,8 @@ export const NONFUNGIBLE_POSITION_MANAGER_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].nonfungiblePositionManagerAddress;
 export const V3_MIGRATOR_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v3MigratorAddress;
-export const MULTICALL2_ADDRESS = '0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696';
+// Neobase TODO: Verify this
+export const MULTICALL2_ADDRESS = '0x637490E68AA50Ea810688a52D7464E10c25A77c1';
 
 export type AddressMap = { [chainId: number]: string | undefined };
 
@@ -271,6 +272,13 @@ export const WETH9: {
     18,
     'WETH',
     'Wrapped Ether'
+  ),
+  [ChainId.CANTO]: new Token(
+    7700,
+    '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B',
+    18,
+    'WCANTO',
+    'Wrapped CANTO'
   ),
 };
 

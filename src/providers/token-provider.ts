@@ -696,6 +696,16 @@ export const DAI_ZKSYNC = new Token(
   'Dai Stablecoin'
 );
 
+export const CANTO = new Token(
+  7700,
+  '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B',
+  18,
+  'WCANTO',
+  'Wrapped CANTO'
+);
+
+
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,

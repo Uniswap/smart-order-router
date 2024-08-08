@@ -26,6 +26,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.BLAST,
   ChainId.ZORA,
   ChainId.ZKSYNC,
+  ChainId.CANTO
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -38,6 +39,7 @@ export const V2_SUPPORTED = [
   ChainId.BASE,
   ChainId.BNB,
   ChainId.AVALANCHE,
+  ChainId.CANTO
 ];
 
 export const HAS_L1_FEE = [
@@ -108,6 +110,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.ZORA;
     case 324:
       return ChainId.ZKSYNC;
+      case 7700:
+      return ChainId.CANTO;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -136,6 +140,7 @@ export enum ChainName {
   BLAST = 'blast-mainnet',
   ZORA = 'zora-mainnet',
   ZKSYNC = 'zksync-mainnet',
+  CANTO = 'canto-mainnet'
 }
 
 export enum NativeCurrencyName {
@@ -147,6 +152,7 @@ export enum NativeCurrencyName {
   MOONBEAM = 'GLMR',
   BNB = 'BNB',
   AVALANCHE = 'AVAX',
+  CANTO = 'CANTO'
 }
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
@@ -215,6 +221,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.CANTO]: [
+    'CANTO',
+    'CANTO',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
   [ChainId.BLAST]: [
     'ETH',
     'ETHER',
@@ -254,6 +265,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.BLAST]: NativeCurrencyName.ETHER,
   [ChainId.ZORA]: NativeCurrencyName.ETHER,
   [ChainId.ZKSYNC]: NativeCurrencyName.ETHER,
+  [ChainId.CANTO]: NativeCurrencyName.CANTO,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -270,6 +282,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.OPTIMISM;
     case 420:
       return ChainName.OPTIMISM_GOERLI;
+    case 7700:
+      return ChainName.CANTO;
     case 11155420:
       return ChainName.OPTIMISM_SEPOLIA;
     case 42161:
@@ -351,6 +365,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ZORA!;
     case ChainId.ZKSYNC:
       return process.env.JSON_RPC_PROVIDER_ZKSYNC!;
+    case ChainId.CANTO:
+      return process.env.JSON_RPC_PROVIDER_CANTO!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -527,6 +543,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
+  [ChainId.CANTO]: new Token(
+    7700,
+    '0x826551890Dc65655a0Aceca109aB11AbDbD7a07B',
+    18,
+    'WCANTO',
+    'Wrapped CANTO'
+  ),
 };
 
 function isMatic(
@@ -698,6 +721,7 @@ export class ExtendedEther extends Ether {
 
 const cachedNativeCurrency: { [chainId: number]: NativeCurrency } = {};
 
+// Neobase TODO: Find whats common here
 export function nativeOnChain(chainId: number): NativeCurrency {
   if (cachedNativeCurrency[chainId] != undefined) {
     return cachedNativeCurrency[chainId]!;
