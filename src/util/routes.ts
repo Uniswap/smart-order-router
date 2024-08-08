@@ -1,45 +1,111 @@
-import { Protocol } from '@uniswap/router-sdk';
-import { Percent } from '@uniswap/sdk-core';
+import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
+import { Currency, Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import { RouteWithValidQuote } from '../routers/alpha-router';
-import { MixedRoute, V2Route, V3Route } from '../routers/router';
+import { SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';
 
+export const routeToTokens = (
+  route: SupportedRoutes
+): Currency[] => {
+  switch (route.protocol) {
+    case Protocol.V4:
+      return route.currencyPath
+    case Protocol.V3:
+      return route.tokenPath
+    case Protocol.V2:
+    case Protocol.MIXED:
+      return route.path
+    default:
+      throw new Error(`Unsupported route ${JSON.stringify(route)}`)
+  }
+}
+
+export const routeToPools = (
+  route: SupportedRoutes
+): (V4Pool | V3Pool | Pair)[] => {
+  switch (route.protocol) {
+    case Protocol.V4:
+    case Protocol.V3:
+    case Protocol.MIXED:
+      return route.pools
+    case Protocol.V2:
+      return route.pairs
+    default:
+      throw new Error(`Unsupported route ${JSON.stringify(route)}`)
+  }
+}
+
+export const poolToString = (
+  pool: V4Pool | V3Pool | Pair
+): string => {
+  if (pool instanceof V4Pool) {
+    return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
+      pool.token0,
+      pool.token1,
+      pool.fee,
+      0,
+      ADDRESS_ZERO
+    )}]`
+  } else if (pool instanceof V3Pool) {
+    return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
+      pool.token0,
+      pool.token1,
+      pool.fee,
+      undefined,
+      V3_CORE_FACTORY_ADDRESSES[pool.chainId]
+    )}]`
+  } else if (pool instanceof Pair) {
+    return ` -- [${Pair.getAddress(
+      (pool as Pair).token0,
+      (pool as Pair).token1
+    )}]`
+  } else {
+    throw new Error(`Unsupported pool ${JSON.stringify(pool)}`)
+  }
+}
+
 export const routeToString = (
-  route: V3Route | V2Route | MixedRoute
+  route: SupportedRoutes
 ): string => {
   const routeStr = [];
-  const tokens =
-    route.protocol === Protocol.V3
-      ? route.tokenPath
-      : // MixedRoute and V2Route have path
-        route.path;
+  const tokens = routeToTokens(route);
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
-  const pools =
-    route.protocol === Protocol.V3 || route.protocol === Protocol.MIXED
-      ? route.pools
-      : route.pairs;
+  const pools = routeToPools(route);
   const poolFeePath = _.map(pools, (pool) => {
-    return `${
-      pool instanceof Pool
-        ? ` -- ${pool.fee / 10000}% [${Pool.getAddress(
-            pool.token0,
-            pool.token1,
-            pool.fee,
-            undefined,
-            V3_CORE_FACTORY_ADDRESSES[pool.chainId]
-          )}]`
-        : ` -- [${Pair.getAddress(
-            (pool as Pair).token0,
-            (pool as Pair).token1
-          )}]`
-    } --> `;
+    if (pool instanceof Pair) {
+      return ` -- [${Pair.getAddress(
+        (pool as Pair).token0,
+        (pool as Pair).token1
+      )}]`;
+    } else if (pool instanceof V3Pool) {
+      return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
+        pool.token0,
+        pool.token1,
+        pool.fee,
+        undefined,
+        V3_CORE_FACTORY_ADDRESSES[pool.chainId]
+      )}]`;
+    } else if (pool instanceof V4Pool) {
+      return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
+        pool.token0,
+        pool.token1,
+        pool.fee,
+        0,
+        ADDRESS_ZERO
+      )}]`;
+    } else {
+      throw new Error(`Unsupported pool ${JSON.stringify(pool)}`);
+    }
+
+    return `${poolToString(pool)} --> `;
   });
 
   for (let i = 0; i < tokenPath.length; i++) {
@@ -73,17 +139,4 @@ export const routeAmountsToString = (
   });
 
   return _.join(routeStrings, ', ');
-};
-
-export const routeAmountToString = (
-  routeAmount: RouteWithValidQuote
-): string => {
-  const { route, amount } = routeAmount;
-  return `${amount.toExact()} = ${routeToString(route)}`;
-};
-
-export const poolToString = (p: Pool | Pair): string => {
-  return `${p.token0.symbol}/${p.token1.symbol}${
-    p instanceof Pool ? `/${p.fee / 10000}%` : ``
-  }`;
 };

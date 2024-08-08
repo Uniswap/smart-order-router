@@ -146,6 +146,7 @@ describe('gas factory helpers tests', () => {
         estimatedGasUsedGasToken: undefined,
         gasPriceWei,
         trade: new Trade({
+          v4Routes: [],
           v3Routes: [{
             routev3: new Route([DAI_WETH_MEDIUM], amountToken, quoteToken),
             inputAmount: CurrencyAmount.fromRawAmount(amountToken, 1),

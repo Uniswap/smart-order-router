@@ -2,17 +2,12 @@ import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
-import {
-  MixedRoute,
-  RouteWithValidQuote,
-  V2Route,
-  V3Route,
-} from '../../../../routers';
+import { RouteWithValidQuote, SupportedRoutes } from '../../../../routers';
 
 import { CachedRoute } from './cached-route';
 
 interface CachedRoutesParams {
-  routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
+  routes: CachedRoute<SupportedRoutes>[];
   chainId: ChainId;
   tokenIn: Token;
   tokenOut: Token;
@@ -30,7 +25,7 @@ interface CachedRoutesParams {
  * @class CachedRoute
  */
 export class CachedRoutes {
-  public readonly routes: CachedRoute<V3Route | V2Route | MixedRoute>[];
+  public readonly routes: CachedRoute<SupportedRoutes>[];
   public readonly chainId: ChainId;
   public readonly tokenIn: Token;
   public readonly tokenOut: Token;
