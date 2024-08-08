@@ -96,6 +96,8 @@ export const routeToString = (
         0,
         ADDRESS_ZERO
       )}]`;
+    } else {
+      throw new Error(`Unsupported pool ${JSON.stringify(pool)}`);
     }
 
     return `${poolToString(pool)} --> `;

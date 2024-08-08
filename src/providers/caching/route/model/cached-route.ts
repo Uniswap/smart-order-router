@@ -2,6 +2,7 @@ import { Protocol } from '@uniswap/router-sdk';
 import { Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
 import {
   MixedRoute,
@@ -74,12 +75,15 @@ export class CachedRoute<Route extends SupportedRoutes> {
       case Protocol.MIXED:
         return (this.route as MixedRoute).pools
           .map((pool) => {
-            if (pool instanceof V3Pool) {
+            if (pool instanceof V4Pool) {
+              // TODO: ROUTE-217 - Support native currency routing in V4
+              return `[V4]${pool.token0.isToken ? pool.token0.wrapped.address : pool.token0.symbol}/${pool.token1.isToken ? pool.token1.wrapped.address : pool.token1.symbol}`;
+            } else if (pool instanceof V3Pool) {
               return `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`;
             } else if (pool instanceof Pair) {
               return `[V2]${pool.token0.address}/${pool.token1.address}`;
             } else {
-              return `[V4]${pool.token0.isToken ? pool.token0.wrapped.address : pool.token0.symbol}/${pool.token1.isToken ? pool.token1.wrapped.address : pool.token1.symbol}`;
+              throw new Error(`Unsupported pool type ${JSON.stringify(pool)}`)
             }
           })
           .join('->');
