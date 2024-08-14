@@ -14,6 +14,7 @@ import { CurrencyAmount, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
 
 import { permit2Address } from '@uniswap/permit2-sdk';
 import { IPortionProvider } from './portion-provider';
+import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
 
 export type SimulationResult = {
   transaction: {
@@ -190,7 +191,7 @@ export abstract class Simulator {
         await permit2Contract.allowance(
           fromAddress,
           inputAmount.currency.wrapped.address,
-          SWAP_ROUTER_02_ADDRESSES(this.chainId)
+          UNIVERSAL_ROUTER_ADDRESS(this.chainId)
         );
 
       const nowTimestampS = Math.round(Date.now() / 1000);
