@@ -4,14 +4,15 @@ import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
+
+import {
+  SubgraphPool
+} from '../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../util';
+
 import { ProviderConfig } from './provider';
 import { V3RawSubgraphPool, V3SubgraphPool } from './v3/subgraph-provider';
 import { V4RawSubgraphPool, V4SubgraphPool } from './v4/subgraph-provider';
-
-export interface SubgraphPool {
-  id: string;
-}
 
 export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
   getPools(

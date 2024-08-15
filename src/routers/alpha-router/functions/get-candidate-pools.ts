@@ -11,7 +11,8 @@ import {
   USDC_OPTIMISM_SEPOLIA,
   USDT_OPTIMISM_SEPOLIA,
   V2SubgraphPool,
-  WBTC_OPTIMISM_SEPOLIA,
+  V4SubgraphPool,
+  WBTC_OPTIMISM_SEPOLIA
 } from '../../../providers';
 import {
   CELO,
@@ -79,7 +80,7 @@ import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
 
-export type SubgraphPool = V2SubgraphPool | V3SubgraphPool;
+export type SubgraphPool = V2SubgraphPool | V3SubgraphPool | V4SubgraphPool;
 export type CandidatePoolsBySelectionCriteria = {
   protocol: Protocol;
   selections: CandidatePoolsSelections;
