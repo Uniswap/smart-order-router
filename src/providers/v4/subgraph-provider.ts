@@ -1,9 +1,9 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
 import { ProviderConfig } from '../provider';
 import { Protocol } from '@uniswap/router-sdk';
-import { SubgraphProvider } from '../subgraph-provider';
+import { SubgraphPool, SubgraphProvider } from '../subgraph-provider';
 
-export interface V4SubgraphPool {
+export interface V4SubgraphPool extends SubgraphPool {
   id: string; // v4 pool id is the internal PoolId from pool manager
   feeTier: string;
   liquidity: string;
@@ -16,6 +16,23 @@ export interface V4SubgraphPool {
   tvlETH: number;
   tvlUSD: number;
 }
+
+export type V4RawSubgraphPool = {
+  id: string;
+  feeTier: string;
+  liquidity: string;
+  token0: {
+    symbol: string;
+    id: string;
+  };
+  token1: {
+    symbol: string;
+    id: string;
+  };
+  totalValueLockedUSD: string;
+  totalValueLockedETH: string;
+  totalValueLockedUSDUntracked: string;
+};
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.SEPOLIA]:

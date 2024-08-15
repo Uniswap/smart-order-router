@@ -1,6 +1,6 @@
 {
   "name": "@uniswap/smart-order-router",
-  "version": "3.40.0",
+  "version": "3.40.0-v4-subgraph-1",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
@@ -12,12 +12,13 @@
   "license": "GPL",
   "keywords": [],
   "scripts": {
+    "compile-v4-types": "npx typechain --target ethers-v5 --out-dir src/types/v4 './node_modules/@uniswap/?(v4-core|v4-periphery)/artifacts/contracts/**/*.json'",
     "compile-v3-types": "npx typechain --target ethers-v5 --out-dir src/types/v3 './node_modules/@uniswap/?(v3-core|v3-periphery)/artifacts/contracts/**/*.json'",
     "compile-v2-types": "npx typechain --target ethers-v5 --out-dir src/types/v2 './node_modules/@uniswap/?(v2-core|v2-periphery)/build/*UniswapV2*.json'",
     "compile-router": "npx typechain --target ethers-v5 --out-dir src/types/other './node_modules/@uniswap/swap-router-contracts/artifacts/contracts/**/*.json'",
     "compile-narwhal": "npx typechain --target ethers-v5 --out-dir src/types/other './node_modules/@uniswap/narwhal/artifacts/contracts/**/*.json'",
     "compile-external-types": "npx typechain --target ethers-v5 --out-dir src/types/other 'src/abis/**/*.json'",
-    "build": "run-p compile-v3-types compile-v2-types compile-router compile-narwhal compile-external-types && run-p build:*",
+    "build": "run-p compile-v4-types compile-v3-types compile-v2-types compile-router compile-narwhal compile-external-types && run-p build:*",
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "fix": "run-s fix:*",

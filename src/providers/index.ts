@@ -36,4 +36,8 @@ export * from './v3/static-subgraph-provider';
 export * from './v3/subgraph-provider';
 export * from './v3/subgraph-provider-with-fallback';
 export * from './v3/uri-subgraph-provider';
+export * from './v4/caching-subgraph-provider';
 export * from './v4/subgraph-provider';
+export * from './v4/subgraph-provider-with-fallback';
+export * from './v4/static-subgraph-provider';
+export * from './v4/uri-subgraph-provider';

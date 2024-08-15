@@ -19,6 +19,23 @@ export interface V3SubgraphPool {
   tvlUSD: number;
 }
 
+export type V3RawSubgraphPool = {
+  id: string;
+  feeTier: string;
+  liquidity: string;
+  token0: {
+    symbol: string;
+    id: string;
+  };
+  token1: {
+    symbol: string;
+    id: string;
+  };
+  totalValueLockedUSD: string;
+  totalValueLockedETH: string;
+  totalValueLockedUSDUntracked: string;
+};
+
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
     'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
