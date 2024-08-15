@@ -1,15 +1,13 @@
-import { IV4SubgraphProvider, V4SubgraphPool } from './subgraph-provider';
 import { ChainId, Token } from '@uniswap/sdk-core';
-import { log, unparseFeeAmount } from '../../util';
-import _ from 'lodash';
-import { BASES_TO_CHECK_TRADES_AGAINST } from '../caching-subgraph-provider';
-import { Pool } from '@uniswap/v4-sdk';
 import { FeeAmount } from '@uniswap/v3-sdk';
+import { Pool } from '@uniswap/v4-sdk';
+import _ from 'lodash';
+import { log, unparseFeeAmount } from '../../util';
+import { BASES_TO_CHECK_TRADES_AGAINST } from '../caching-subgraph-provider';
+import { IV4SubgraphProvider, V4SubgraphPool } from './subgraph-provider';
 
 export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
-  constructor(
-    private chainId: ChainId,
-  ) {}
+  constructor(private chainId: ChainId) {}
 
   public async getPools(
     tokenIn?: Token,
@@ -46,7 +44,7 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
           [tokenA, tokenB, FeeAmount.LOW, 10],
           [tokenA, tokenB, FeeAmount.MEDIUM, 60],
           [tokenA, tokenB, FeeAmount.HIGH, 200],
-        ]
+        ];
       })
       .value();
 
@@ -57,7 +55,13 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
     const poolAddressSet = new Set<string>();
     const subgraphPools: V4SubgraphPool[] = _(pairs)
       .map(([token0, token1, fee, tickSpacing]) => {
-        const poolAddress = Pool.getPoolId(token0, token1, fee, tickSpacing, '0x');
+        const poolAddress = Pool.getPoolId(
+          token0,
+          token1,
+          fee,
+          tickSpacing,
+          '0x'
+        );
 
         if (poolAddressSet.has(poolAddress)) {
           return undefined;

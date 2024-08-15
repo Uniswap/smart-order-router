@@ -1,11 +1,11 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { ProviderConfig } from './provider';
-import { gql, GraphQLClient } from 'graphql-request';
-import { log, metric } from '../util';
 import { Protocol } from '@uniswap/router-sdk';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
+import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
+import { log, metric } from '../util';
+import { ProviderConfig } from './provider';
 import { V3RawSubgraphPool, V3SubgraphPool } from './v3/subgraph-provider';
 import { V4RawSubgraphPool, V4SubgraphPool } from './v4/subgraph-provider';
 
@@ -81,7 +81,9 @@ export abstract class SubgraphProvider {
     let pools: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
 
     log.info(
-      `Getting ${this.protocol} pools from the subgraph with page size ${PAGE_SIZE}${
+      `Getting ${
+        this.protocol
+      } pools from the subgraph with page size ${PAGE_SIZE}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
@@ -94,7 +96,9 @@ export abstract class SubgraphProvider {
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<(V3RawSubgraphPool | V4RawSubgraphPool)[]> => {
+        const getPools = async (): Promise<
+          (V3RawSubgraphPool | V4RawSubgraphPool)[]
+        > => {
           let lastId = '';
           let pools: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
           let poolsPage: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
@@ -192,7 +196,7 @@ export abstract class SubgraphProvider {
         parseInt(pool.liquidity) > 0 ||
         parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
         parseFloat(pool.totalValueLockedUSDUntracked) >
-        this.untrackedUsdThreshold
+          this.untrackedUsdThreshold
     );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`,
@@ -240,7 +244,10 @@ export abstract class SubgraphProvider {
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
       (poolsSanitized.length / pools.length) * 100
     );
-    metric.putMetric(`${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools`, 1);
+    metric.putMetric(
+      `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools`,
+      1
+    );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.latency`,
       Date.now() - beforeAll

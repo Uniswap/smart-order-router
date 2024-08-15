@@ -1,11 +1,17 @@
-import { Token } from '@uniswap/sdk-core';
-import { ProviderConfig } from './provider';
-import { log } from '../util';
-import { ISubgraphProvider, SubgraphPool } from './subgraph-provider';
 import { Protocol } from '@uniswap/router-sdk';
+import { Token } from '@uniswap/sdk-core';
+import { log } from '../util';
+import { ProviderConfig } from './provider';
+import { ISubgraphProvider, SubgraphPool } from './subgraph-provider';
 
-export abstract class SubgraphProviderWithFallBacks<TSubgraphPool extends SubgraphPool> implements ISubgraphProvider<TSubgraphPool> {
-  protected constructor(private fallbacks: ISubgraphProvider<TSubgraphPool>[], private protocol: Protocol) {}
+export abstract class SubgraphProviderWithFallBacks<
+  TSubgraphPool extends SubgraphPool
+> implements ISubgraphProvider<TSubgraphPool>
+{
+  protected constructor(
+    private fallbacks: ISubgraphProvider<TSubgraphPool>[],
+    private protocol: Protocol
+  ) {}
 
   public async getPools(
     tokenIn?: Token,
@@ -22,7 +28,9 @@ export abstract class SubgraphProviderWithFallBacks<TSubgraphPool extends Subgra
         );
         return pools;
       } catch (err) {
-        log.info(`Failed to get subgraph pools for ${this.protocol} from fallback #${i}`);
+        log.info(
+          `Failed to get subgraph pools for ${this.protocol} from fallback #${i}`
+        );
       }
     }
 

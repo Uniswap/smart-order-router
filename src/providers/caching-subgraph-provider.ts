@@ -1,29 +1,50 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { ICache } from './cache';
-import { V3SubgraphPool } from './v3/subgraph-provider';
-import { ProviderConfig } from './provider';
 import { Protocol } from '@uniswap/router-sdk';
-import { SubgraphPool } from './subgraph-provider';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { WRAPPED_NATIVE_CURRENCY } from '../util';
+import { ICache } from './cache';
+import { ProviderConfig } from './provider';
+import { SubgraphPool } from './subgraph-provider';
 import {
-  ARB_ARBITRUM, BTC_BNB, BUSD_BNB, CELO, CEUR_CELO, CUSD_CELO,
-  DAI_ARBITRUM, DAI_AVAX, DAI_BNB, DAI_CELO,
-  DAI_MAINNET, DAI_MOONBEAM,
-  DAI_OPTIMISM, ETH_BNB,
-  OP_OPTIMISM, USDB_BLAST,
-  USDC_ARBITRUM, USDC_AVAX, USDC_BASE, USDC_BNB,
-  USDC_MAINNET, USDC_MOONBEAM,
+  ARB_ARBITRUM,
+  BTC_BNB,
+  BUSD_BNB,
+  CELO,
+  CEUR_CELO,
+  CUSD_CELO,
+  DAI_ARBITRUM,
+  DAI_AVAX,
+  DAI_BNB,
+  DAI_CELO,
+  DAI_MAINNET,
+  DAI_MOONBEAM,
+  DAI_OPTIMISM,
+  ETH_BNB,
+  OP_OPTIMISM,
+  USDB_BLAST,
+  USDCE_ZKSYNC,
+  USDC_ARBITRUM,
+  USDC_AVAX,
+  USDC_BASE,
+  USDC_BNB,
+  USDC_MAINNET,
+  USDC_MOONBEAM,
   USDC_NATIVE_ARBITRUM,
   USDC_OPTIMISM,
-  USDC_POLYGON, USDC_ZKSYNC, USDCE_ZKSYNC,
-  USDT_ARBITRUM, USDT_BNB,
+  USDC_POLYGON,
+  USDC_ZKSYNC,
+  USDT_ARBITRUM,
+  USDT_BNB,
   USDT_MAINNET,
   USDT_OPTIMISM,
   WBTC_ARBITRUM,
-  WBTC_MAINNET, WBTC_MOONBEAM,
-  WBTC_OPTIMISM, WETH_POLYGON, WMATIC_POLYGON,
-  WSTETH_MAINNET
+  WBTC_MAINNET,
+  WBTC_MOONBEAM,
+  WBTC_OPTIMISM,
+  WETH_POLYGON,
+  WMATIC_POLYGON,
+  WSTETH_MAINNET,
 } from './token-provider';
+import { V3SubgraphPool } from './v3/subgraph-provider';
 
 type ChainTokenList = {
   readonly [chainId in ChainId]: Token[];
@@ -116,8 +137,12 @@ export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
   ): Promise<TSubgraphPool[]>;
 }
 
-export abstract class CachingSubgraphProvider<TSubgraphPool extends SubgraphPool> implements ISubgraphProvider<TSubgraphPool> {
-  private SUBGRAPH_KEY = (chainId: ChainId) => `subgraph-pools-${this.protocol}-${chainId}`;
+export abstract class CachingSubgraphProvider<
+  TSubgraphPool extends SubgraphPool
+> implements ISubgraphProvider<TSubgraphPool>
+{
+  private SUBGRAPH_KEY = (chainId: ChainId) =>
+    `subgraph-pools-${this.protocol}-${chainId}`;
 
   /**
    * Creates an instance of CachingV3SubgraphProvider.

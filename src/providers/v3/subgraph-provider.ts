@@ -4,7 +4,6 @@ import { ChainId, Token } from '@uniswap/sdk-core';
 import { ProviderConfig } from '../provider';
 import { SubgraphProvider } from '../subgraph-provider';
 
-
 export interface V3SubgraphPool {
   id: string;
   feeTier: string;
@@ -77,7 +76,10 @@ export interface IV3SubgraphProvider {
   ): Promise<V3SubgraphPool[]>;
 }
 
-export class V3SubgraphProvider extends SubgraphProvider implements IV3SubgraphProvider {
+export class V3SubgraphProvider
+  extends SubgraphProvider
+  implements IV3SubgraphProvider
+{
   constructor(
     chainId: ChainId,
     retries = 2,
@@ -95,6 +97,7 @@ export class V3SubgraphProvider extends SubgraphProvider implements IV3SubgraphP
       rollback,
       trackedEthThreshold,
       untrackedUsdThreshold,
-      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]);
+      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
+    );
   }
 }

@@ -1,8 +1,8 @@
-import { IV4SubgraphProvider, V4SubgraphPool } from './subgraph-provider';
-import { CachingSubgraphProvider } from '../caching-subgraph-provider';
-import { ICache } from '../cache';
-import { ChainId } from '@uniswap/sdk-core';
 import { Protocol } from '@uniswap/router-sdk';
+import { ChainId } from '@uniswap/sdk-core';
+import { ICache } from '../cache';
+import { CachingSubgraphProvider } from '../caching-subgraph-provider';
+import { IV4SubgraphProvider, V4SubgraphPool } from './subgraph-provider';
 
 /**
  * Provider for getting V4 pools, with functionality for caching the results.
@@ -10,7 +10,10 @@ import { Protocol } from '@uniswap/router-sdk';
  * @export
  * @class CachingV4SubgraphProvider
  */
-export class CachingV4SubgraphProvider extends CachingSubgraphProvider<V4SubgraphPool> implements IV4SubgraphProvider {
+export class CachingV4SubgraphProvider
+  extends CachingSubgraphProvider<V4SubgraphPool>
+  implements IV4SubgraphProvider
+{
   /**
    * Creates an instance of CachingV3SubgraphProvider.
    * @param chainId The chain id to use.
