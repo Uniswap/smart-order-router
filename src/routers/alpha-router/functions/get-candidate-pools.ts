@@ -6,7 +6,7 @@ import _ from 'lodash';
 import {
   DAI_OPTIMISM_SEPOLIA,
   ITokenListProvider,
-  IV2SubgraphProvider,
+  IV2SubgraphProvider, IV4SubgraphProvider,
   USDC_ARBITRUM_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
   USDT_OPTIMISM_SEPOLIA,
@@ -104,9 +104,23 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   tokenOut: Token;
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
+  v4SubgraphProvider: IV4SubgraphProvider;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
+  v4Candidates?: V4CandidatePools;
   blockNumber?: number | Promise<number>;
+};
+
+export type V4GetCandidatePoolsParams = {
+  tokenIn: Token;
+  tokenOut: Token;
+  routeType: TradeType;
+  routingConfig: AlphaRouterConfig;
+  subgraphProvider: IV4SubgraphProvider;
+  tokenProvider: ITokenProvider;
+  poolProvider: IV4PoolProvider;
+  blockedTokenListProvider?: ITokenListProvider;
+  chainId: ChainId;
 };
 
 export type V3GetCandidatePoolsParams = {
@@ -363,6 +377,112 @@ function findCrossProtocolMissingPools<
   }
 
   return selectedPools;
+}
+
+export type V4CandidatePools = {
+  poolAccessor: V4PoolAccessor;
+  candidatePools: CandidatePoolsBySelectionCriteria;
+  subgraphPools: V4SubgraphPool[];
+};
+
+export async function getV4CandidatePools({
+  tokenIn,
+  tokenOut,
+  routeType,
+  routingConfig,
+  subgraphProvider,
+  tokenProvider,
+  poolProvider,
+  blockedTokenListProvider,
+  chainId,
+}: V4GetCandidatePoolsParams): Promise<V4CandidatePools> {
+  const {
+    blockNumber,
+    v4PoolSelection: {
+      topN,
+      topNDirectSwaps,
+      topNTokenInOut,
+      topNSecondHop,
+      topNSecondHopForTokenAddress,
+      tokensToAvoidOnSecondHops,
+      topNWithEachBaseToken,
+      topNWithBaseToken,
+    },
+  } = routingConfig;
+
+  const tokenInAddress = tokenIn.address.toLowerCase();
+  const tokenOutAddress = tokenOut.address.toLowerCase();
+
+  const beforeSubgraphPools = Date.now();
+
+  const allPools = await subgraphProvider.getPools(tokenIn, tokenOut, {
+    blockNumber,
+  });
+
+  // Although this is less of an optimization than the V2 equivalent,
+  // save some time copying objects by mutating the underlying pool directly.
+  for (const pool of allPools) {
+    pool.token0.id = pool.token0.id.toLowerCase();
+    pool.token1.id = pool.token1.id.toLowerCase();
+  }
+
+  metric.putMetric(
+    'V4SubgraphPoolsLoad',
+    Date.now() - beforeSubgraphPools,
+    MetricLoggerUnit.Milliseconds
+  );
+
+  const beforePoolsFiltered = Date.now();
+
+  // Only consider pools where neither tokens are in the blocked token list.
+  let filteredPools: V4SubgraphPool[] = allPools;
+  if (blockedTokenListProvider) {
+    filteredPools = [];
+    for (const pool of allPools) {
+      const token0InBlocklist =
+        await blockedTokenListProvider.hasTokenByAddress(pool.token0.id);
+      const token1InBlocklist =
+        await blockedTokenListProvider.hasTokenByAddress(pool.token1.id);
+
+      if (token0InBlocklist || token1InBlocklist) {
+        continue;
+      }
+
+      filteredPools.push(pool);
+    }
+  }
+
+  // Sort by tvlUSD in descending order
+  const subgraphPoolsSorted = filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD);
+
+  const poolIdsSoFar = new Set<string>();
+  const addToAddressSet = (pools: V4SubgraphPool[]) => {
+    _(pools)
+      .map((pool) => pool.id)
+      .forEach((poolAddress) => poolIdsSoFar.add(poolAddress));
+  };
+
+  const baseTokens = baseTokensByChain[chainId] ?? [];
+
+  const topByBaseWithTokenIn = _(baseTokens)
+    .flatMap((token: Token) => {
+      return _(subgraphPoolsSorted)
+        .filter((subgraphPool) => {
+          const tokenAddress = token.address.toLowerCase();
+          return (
+            (subgraphPool.token0.id == tokenAddress &&
+              subgraphPool.token1.id == tokenInAddress) ||
+            (subgraphPool.token1.id == tokenAddress &&
+              subgraphPool.token0.id == tokenInAddress)
+          );
+        })
+        .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
+        .slice(0, topNWithEachBaseToken)
+        .value();
+    })
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
+    .slice(0, topNWithBaseToken)
+    .value();
 }
 
 export type V3CandidatePools = {

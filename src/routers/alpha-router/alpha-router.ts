@@ -388,7 +388,11 @@ export type AlphaRouterConfig = {
    */
   v3PoolSelection: ProtocolPoolSelection;
   /**
-   * For each route, the maximum number of hops to consider. More h ops will increase latency of the algorithm.
+   * Config for selecting which pools to consider routing via on V4.
+   */
+  v4PoolSelection: ProtocolPoolSelection;
+  /**
+   * For each route, the maximum number of hops to consider. More hops will increase latency of the algorithm.
    */
   maxSwapsPerPath: number;
   /**
