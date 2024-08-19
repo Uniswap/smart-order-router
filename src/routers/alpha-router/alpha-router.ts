@@ -120,6 +120,7 @@ import {
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapAndAddParameters,
+  SwapConfig,
   SwapOptions,
   SwapRoute,
   SwapToRatioResponse,
@@ -1082,7 +1083,7 @@ export class AlphaRouter
     amount: CurrencyAmount,
     quoteCurrency: Currency,
     tradeType: TradeType,
-    swapConfig?: SwapOptions,
+    swapConfig?: SwapConfig,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
     const originalAmount = amount;

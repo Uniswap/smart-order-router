@@ -188,6 +188,8 @@ export type SwapOptionsSwapRouter02 = {
 
 export type SwapOptions = SwapOptionsUniversalRouter | SwapOptionsSwapRouter02;
 
+export type SwapConfig = SwapOptions & { fee?: { fee: Percent; recipient: string } };
+
 // Config passed in to determine configurations on acceptable liquidity
 // to add to a position and max iterations on the route-finding algorithm
 export type SwapAndAddConfig = {
