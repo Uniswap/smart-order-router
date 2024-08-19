@@ -1,9 +1,10 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Token } from '@uniswap/sdk-core';
-import { ProviderConfig } from '../provider';
-import { SubgraphPool, SubgraphProvider } from '../subgraph-provider';
 
-export interface V4SubgraphPool extends SubgraphPool {
+import { ProviderConfig } from '../provider';
+import { SubgraphProvider } from '../subgraph-provider';
+
+export interface V4SubgraphPool {
   id: string; // v4 pool id is the internal PoolId from pool manager
   feeTier: string;
   liquidity: string;

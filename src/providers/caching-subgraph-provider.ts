@@ -1,11 +1,13 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Token } from '@uniswap/sdk-core';
 
+import {
+  SubgraphPool
+} from '../routers/alpha-router/functions/get-candidate-pools';
 import { WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
-import { SubgraphPool } from './subgraph-provider';
 import {
   ARB_ARBITRUM,
   BTC_BNB,
