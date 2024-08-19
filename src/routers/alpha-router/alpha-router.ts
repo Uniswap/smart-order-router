@@ -24,7 +24,7 @@ import {
   CachingV2PoolProvider,
   CachingV2SubgraphProvider,
   CachingV3PoolProvider,
-  CachingV3SubgraphProvider,
+  CachingV3SubgraphProvider, CachingV4SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
@@ -32,21 +32,21 @@ import {
   ISwapRouterProvider,
   ITokenPropertiesProvider,
   IV2QuoteProvider,
-  IV2SubgraphProvider,
+  IV2SubgraphProvider, IV4SubgraphProvider,
   LegacyGasPriceProvider,
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
   Simulator,
   StaticV2SubgraphProvider,
-  StaticV3SubgraphProvider,
+  StaticV3SubgraphProvider, StaticV4SubgraphProvider,
   SwapRouterProvider,
   TokenPropertiesProvider,
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
-  V3SubgraphProviderWithFallBacks,
+  V3SubgraphProviderWithFallBacks, V4SubgraphProviderWithFallBacks
 } from '../../providers';
 import {
   CachingTokenListProvider,
@@ -163,6 +163,13 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+import {
+  IV4PoolProvider,
+  V4PoolProvider
+} from '../../providers/v4/pool-provider';
+import {
+  CachingV4PoolProvider
+} from '../../providers/v4/caching-pool-provider';
 
 export type AlphaRouterParams = {
   /**
@@ -178,6 +185,15 @@ export type AlphaRouterParams = {
    * like pools, tokens, quotes in batch.
    */
   multicall2Provider?: UniswapMulticallProvider;
+  /**
+   * The provider for getting all pools that exist on V4 from the Subgraph. The pools
+   * from this provider are filtered during the algorithm to a set of candidate pools.
+   */
+  v4SubgraphProvider?: IV4SubgraphProvider;
+  /**
+   * The provider for getting data about V4 pools.
+   */
+  v4PoolProvider?: IV4PoolProvider;
   /**
    * The provider for getting all pools that exist on V3 from the Subgraph. The pools
    * from this provider are filtered during the algorithm to a set of candidate pools.
@@ -370,7 +386,7 @@ export type AlphaRouterConfig = {
    */
   v3PoolSelection: ProtocolPoolSelection;
   /**
-   * For each route, the maximum number of hops to consider. More hops will increase latency of the algorithm.
+   * For each route, the maximum number of hops to consider. More h ops will increase latency of the algorithm.
    */
   maxSwapsPerPath: number;
   /**
@@ -449,6 +465,8 @@ export class AlphaRouter
   protected chainId: ChainId;
   protected provider: BaseProvider;
   protected multicall2Provider: UniswapMulticallProvider;
+  protected v4SubgraphProvider: IV4SubgraphProvider;
+  protected v4PoolProvider: IV4PoolProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
   protected onChainQuoteProvider: IOnChainQuoteProvider;
@@ -477,6 +495,8 @@ export class AlphaRouter
     chainId,
     provider,
     multicall2Provider,
+    v4SubgraphProvider,
+    v4PoolProvider,
     v3PoolProvider,
     onChainQuoteProvider,
     v2PoolProvider,
@@ -503,6 +523,13 @@ export class AlphaRouter
     this.multicall2Provider =
       multicall2Provider ??
       new UniswapMulticallProvider(chainId, provider, 375_000);
+    this.v4PoolProvider =
+      v4PoolProvider ??
+      new CachingV4PoolProvider(
+        this.chainId,
+        new V4PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+      )
     this.v3PoolProvider =
       v3PoolProvider ??
       new CachingV3PoolProvider(
@@ -803,6 +830,24 @@ export class AlphaRouter
           new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
         ),
         new StaticV3SubgraphProvider(chainId, this.v3PoolProvider),
+      ]);
+    }
+
+    if (v4SubgraphProvider) {
+      this.v4SubgraphProvider = v4SubgraphProvider;
+    } else {
+      this.v4SubgraphProvider = new V4SubgraphProviderWithFallBacks([
+        new CachingV4SubgraphProvider(
+          chainId,
+          new URISubgraphProvider(
+            chainId,
+            `https://cloudflare-ipfs.com/ipns/api.uniswap.org/v1/pools/v4/${chainName}.json`,
+            undefined,
+            0
+          ),
+          new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
+        ),
+        new StaticV4SubgraphProvider(chainId, this.v4PoolProvider),
       ]);
     }
 

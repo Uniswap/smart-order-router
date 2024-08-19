@@ -1,6 +1,8 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Token } from '@uniswap/sdk-core';
+
 import { WRAPPED_NATIVE_CURRENCY } from '../util';
+
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import { SubgraphPool } from './subgraph-provider';
@@ -21,7 +23,6 @@ import {
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
-  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_AVAX,
   USDC_BASE,
@@ -32,6 +33,7 @@ import {
   USDC_OPTIMISM,
   USDC_POLYGON,
   USDC_ZKSYNC,
+  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,

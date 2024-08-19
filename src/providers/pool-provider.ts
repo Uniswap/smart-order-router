@@ -1,12 +1,14 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Currency } from '@uniswap/sdk-core';
-import { IMulticallProvider, Result } from './multicall-provider';
-import { ProviderConfig } from './provider';
-import { Options as RetryOptions } from 'async-retry';
-import { log, poolToString } from '../util';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
+import { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
-import { BigNumber } from '@ethersproject/bignumber';
+
+import { log, poolToString } from '../util';
+
+import { IMulticallProvider, Result } from './multicall-provider';
+import { ProviderConfig } from './provider';
 
 export type PoolConstruct<TCurrency extends Currency> = [TCurrency, TCurrency, ...Array<string | number>];
 export type Pool = V3Pool | V4Pool
@@ -35,7 +37,7 @@ export abstract class PoolProvider<TCurrency extends Currency, TPoolConstruct ex
     }
   ) {}
 
-  protected async getPoolsInternal<TPoolAccessor>(
+  protected async getPoolsInternal(
     poolConstructs: TPoolConstruct[],
     providerConfig?: ProviderConfig
   ): Promise<TPoolAccessor> {
@@ -50,6 +52,7 @@ export abstract class PoolProvider<TCurrency extends Currency, TPoolConstruct ex
         continue;
       }
 
+      // It's the easiest way to change the pool construct in place, since we don't know the entire pool construct at compiling time.
       poolConstruct[0] = currency0;
       poolConstruct[1] = currency1;
       poolIdentifierSet.add(poolIdentifier);

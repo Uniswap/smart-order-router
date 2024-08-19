@@ -1,16 +1,18 @@
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { ChainId, Currency } from '@uniswap/sdk-core';
-import { ProviderConfig } from '../provider';
 import { Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import { IMulticallProvider, Result } from '../multicall-provider';
 import {
   log,
   STATE_VIEW_ADDRESSES,
 } from '../../util';
+import { IMulticallProvider, Result } from '../multicall-provider';
+import { ProviderConfig } from '../provider';
+
+
 import { StateView__factory } from '../../types/other';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 import { sortsBefore } from '@uniswap/v4-sdk/dist/utils/sortsBefore';
-import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 
 type V4ISlot0 = ISlot0 & {
   poolId: string;
@@ -22,7 +24,7 @@ type V4ILiquidity = ILiquidity;
 
 export interface IV4PoolProvider {
   getPools(
-    currencyPairs: [Currency, Currency, number, number, string][],
+    currencyPairs: V4PoolConstruct[],
     providerConfig?: ProviderConfig
   ): Promise<V4PoolAccessor>;
 
@@ -32,7 +34,7 @@ export interface IV4PoolProvider {
     fee: number,
     tickSpacing: number,
     hooks: string
-  ): string;
+  ): { poolId: string; currency0: Currency; currency1: Currency };
 }
 
 export type V4PoolAccessor = {
@@ -77,11 +79,12 @@ export class V4PoolProvider extends PoolProvider<Currency, V4PoolConstruct, V4IS
     currencyPairs: V4PoolConstruct[],
     providerConfig?: ProviderConfig
   ): Promise<V4PoolAccessor> {
-    return await super.getPoolsInternal<V4PoolAccessor>(currencyPairs, providerConfig);
+    return await super.getPoolsInternal(currencyPairs, providerConfig);
   }
 
-  public getPoolId(currencyA: Currency, currencyB: Currency, fee: number, tickSpacing: number, hooks: string): string {
-    return Pool.getPoolId(currencyA, currencyB, fee, tickSpacing, hooks);
+  public getPoolId(currencyA: Currency, currencyB: Currency, fee: number, tickSpacing: number, hooks: string): { poolId: string; currency0: Currency; currency1: Currency } {
+    const { poolIdentifier, currency0, currency1 } = this.getPoolIdentifier([currencyA, currencyB, fee, tickSpacing, hooks]);
+    return { poolId: poolIdentifier, currency0, currency1 };
   }
 
   protected override async getPoolsData<TReturn>(
@@ -90,6 +93,9 @@ export class V4PoolProvider extends PoolProvider<Currency, V4PoolConstruct, V4IS
     providerConfig?: ProviderConfig
   ): Promise<Result<TReturn>[]> {
     const { results, blockNumber } = await retry(async () => {
+      // NOTE: V4 pools are a singleton living under PoolsManager.
+      // We have to retrieve the pool data from the state view contract.
+      // To begin with, we will be consistent with how v4 subgraph retrieves the pool state - via state view.
       return this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
         string[],
         TReturn
