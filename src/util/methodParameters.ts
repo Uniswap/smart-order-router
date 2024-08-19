@@ -20,7 +20,7 @@ import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   SWAP_ROUTER_02_ADDRESSES,
-  SwapOptions,
+  SwapConfig,
   SwapType,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
@@ -236,7 +236,7 @@ export function buildTrade<TTradeType extends TradeType>(
 
 export function buildSwapMethodParameters(
   trade: Trade<Currency, Currency, TradeType>,
-  swapConfig: SwapOptions,
+  swapConfig: SwapConfig,
   chainId: ChainId
 ): MethodParameters {
   if (swapConfig.type == SwapType.UNIVERSAL_ROUTER) {
@@ -245,7 +245,7 @@ export function buildSwapMethodParameters(
       to: UNIVERSAL_ROUTER_ADDRESS(chainId),
     };
   } else if (swapConfig.type == SwapType.SWAP_ROUTER_02) {
-    const { recipient, slippageTolerance, deadline, inputTokenPermit } =
+    const { recipient, slippageTolerance, deadline, inputTokenPermit, fee } =
       swapConfig;
 
     return {
@@ -254,6 +254,7 @@ export function buildSwapMethodParameters(
         slippageTolerance,
         deadlineOrPreviousBlockhash: deadline,
         inputTokenPermit,
+        fee
       }),
       to: SWAP_ROUTER_02_ADDRESSES(chainId),
     };
