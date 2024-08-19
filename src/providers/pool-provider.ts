@@ -10,8 +10,12 @@ import { log, poolToString } from '../util';
 import { IMulticallProvider, Result } from './multicall-provider';
 import { ProviderConfig } from './provider';
 
-export type PoolConstruct<TCurrency extends Currency> = [TCurrency, TCurrency, ...Array<string | number>];
-export type Pool = V3Pool | V4Pool
+export type PoolConstruct<TCurrency extends Currency> = [
+  TCurrency,
+  TCurrency,
+  ...Array<string | number>
+];
+export type Pool = V3Pool | V4Pool;
 
 export type ISlot0 = {
   sqrtPriceX96: BigNumber;
@@ -20,7 +24,13 @@ export type ISlot0 = {
 
 export type ILiquidity = { liquidity: BigNumber };
 
-export abstract class PoolProvider<TCurrency extends Currency, TPoolConstruct extends PoolConstruct<TCurrency>, TISlot0 extends ISlot0, TILiquidity extends ILiquidity, TPoolAccessor> {
+export abstract class PoolProvider<
+  TCurrency extends Currency,
+  TPoolConstruct extends PoolConstruct<TCurrency>,
+  TISlot0 extends ISlot0,
+  TILiquidity extends ILiquidity,
+  TPoolAccessor
+> {
   /**
    * Creates an instance of V4PoolProvider.
    * @param chainId The chain id to use.
@@ -46,7 +56,11 @@ export abstract class PoolProvider<TCurrency extends Currency, TPoolConstruct ex
     const sortedPoolIdentifiers: string[] = [];
 
     for (const poolConstruct of poolConstructs) {
-      const { poolIdentifier: poolIdentifier, currency0, currency1} = this.getPoolIdentifier(poolConstruct);
+      const {
+        poolIdentifier: poolIdentifier,
+        currency0,
+        currency1,
+      } = this.getPoolIdentifier(poolConstruct);
 
       if (poolIdentifierSet.has(poolIdentifier)) {
         continue;
@@ -65,7 +79,11 @@ export abstract class PoolProvider<TCurrency extends Currency, TPoolConstruct ex
     );
 
     const [slot0Results, liquidityResults] = await Promise.all([
-      this.getPoolsData<TISlot0>(sortedPoolIdentifiers, 'slot0', providerConfig),
+      this.getPoolsData<TISlot0>(
+        sortedPoolIdentifiers,
+        'slot0',
+        providerConfig
+      ),
       this.getPoolsData<[TILiquidity]>(
         sortedPoolIdentifiers,
         'liquidity',
@@ -103,7 +121,11 @@ export abstract class PoolProvider<TCurrency extends Currency, TPoolConstruct ex
       const slot0 = slot0Result.result;
       const liquidity = liquidityResult.result[0];
 
-      const pool = this.instantiatePool(sortedCurrencyPairs[i]!, slot0, liquidity);
+      const pool = this.instantiatePool(
+        sortedCurrencyPairs[i]!,
+        slot0,
+        liquidity
+      );
 
       const poolIdentifier = sortedPoolIdentifiers[i]!;
       poolIdentifierToPool[poolIdentifier] = pool;
@@ -122,9 +144,19 @@ export abstract class PoolProvider<TCurrency extends Currency, TPoolConstruct ex
     providerConfig?: ProviderConfig
   ): Promise<Result<TReturn>[]>;
 
-  protected abstract getPoolIdentifier(pool: TPoolConstruct): { poolIdentifier: string, currency0: TCurrency, currency1: TCurrency };
+  protected abstract getPoolIdentifier(pool: TPoolConstruct): {
+    poolIdentifier: string;
+    currency0: TCurrency;
+    currency1: TCurrency;
+  };
 
-  protected abstract instantiatePool(pool: TPoolConstruct, slot0: TISlot0, liquidity: TILiquidity): Pool;
+  protected abstract instantiatePool(
+    pool: TPoolConstruct,
+    slot0: TISlot0,
+    liquidity: TILiquidity
+  ): Pool;
 
-  protected abstract instantiatePoolAccessor(poolIdentifierToPool: { [poolId: string]: Pool }): TPoolAccessor;
+  protected abstract instantiatePoolAccessor(poolIdentifierToPool: {
+    [poolId: string]: Pool;
+  }): TPoolAccessor;
 }

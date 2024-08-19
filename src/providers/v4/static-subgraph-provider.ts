@@ -6,11 +6,11 @@ import _ from 'lodash';
 import { log, unparseFeeAmount } from '../../util';
 import { BASES_TO_CHECK_TRADES_AGAINST } from '../caching-subgraph-provider';
 
-import { IV4SubgraphProvider, V4SubgraphPool } from './subgraph-provider';
-import { IV4PoolProvider, V4PoolConstruct } from './pool-provider';
 import { ADDRESS_ZERO } from '@uniswap/router-sdk/dist/constants';
-import { ProviderConfig } from '../provider';
 import JSBI from 'jsbi';
+import { ProviderConfig } from '../provider';
+import { IV4PoolProvider, V4PoolConstruct } from './pool-provider';
+import { IV4SubgraphProvider, V4SubgraphPool } from './subgraph-provider';
 
 export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
   constructor(

@@ -1,12 +1,16 @@
-import { ProviderConfig } from './provider';
-import { Pool, PoolConstruct } from './pool-provider';
-import { ChainId, Currency } from '@uniswap/sdk-core';
-import { ICache } from './cache';
-import { log, metric, MetricLoggerUnit } from '../util';
 import { Protocol } from '@uniswap/router-sdk';
+import { ChainId, Currency } from '@uniswap/sdk-core';
 import _ from 'lodash';
+import { log, metric, MetricLoggerUnit } from '../util';
+import { ICache } from './cache';
+import { Pool, PoolConstruct } from './pool-provider';
+import { ProviderConfig } from './provider';
 
-export abstract class CachingPoolProvider<TCurrency extends Currency, TPoolConstruct extends PoolConstruct<TCurrency>, TPoolAccessor> {
+export abstract class CachingPoolProvider<
+  TCurrency extends Currency,
+  TPoolConstruct extends PoolConstruct<TCurrency>,
+  TPoolAccessor
+> {
   protected POOL_KEY = (
     protocol: Protocol,
     chainId: ChainId,
@@ -34,7 +38,11 @@ export abstract class CachingPoolProvider<TCurrency extends Currency, TPoolConst
     const blockNumber = await providerConfig?.blockNumber;
 
     for (const poolConstruct of poolConstructs) {
-      const { poolIdentifier: poolIdentifier, currency0, currency1} = this.getPoolIdentifier(poolConstruct);
+      const {
+        poolIdentifier: poolIdentifier,
+        currency0,
+        currency1,
+      } = this.getPoolIdentifier(poolConstruct);
 
       if (poolIdentifierSet.has(poolIdentifier)) {
         continue;
@@ -78,23 +86,39 @@ export abstract class CachingPoolProvider<TCurrency extends Currency, TPoolConst
           (t) => `${t[0].symbol} ${t[1].symbol} ${t[2]}`
         ),
       },
-      `Found ${
-        Object.keys(poolIdentifierToPool).length
-      } ${this.protocol} pools already in local cache. About to get liquidity and slot0s for ${
+      `Found ${Object.keys(poolIdentifierToPool).length} ${
+        this.protocol
+      } pools already in local cache. About to get liquidity and slot0s for ${
         poolsToGetCurrencyPairs.length
       } pools.`
     );
 
     if (poolsToGetIdentifiers.length > 0) {
-      this.cachePool(poolsToGetIdentifiers, poolsToGetCurrencyPairs, poolIdentifierToPool, providerConfig);
+      this.cachePool(
+        poolsToGetIdentifiers,
+        poolsToGetCurrencyPairs,
+        poolIdentifierToPool,
+        providerConfig
+      );
     }
 
     return this.instantiatePoolAccessor(poolIdentifierToPool);
   }
 
-  protected abstract getPoolIdentifier(pool: TPoolConstruct): { poolIdentifier: string, currency0: TCurrency, currency1: TCurrency };
+  protected abstract getPoolIdentifier(pool: TPoolConstruct): {
+    poolIdentifier: string;
+    currency0: TCurrency;
+    currency1: TCurrency;
+  };
 
-  protected abstract cachePool(poolsToGetIdentifiers: string[], poolsToGetCurrencyPairs: TPoolConstruct[], poolIdentifierToPool: { [poolIdentifier: string]: Pool }, providerConfig?: ProviderConfig): void;
+  protected abstract cachePool(
+    poolsToGetIdentifiers: string[],
+    poolsToGetCurrencyPairs: TPoolConstruct[],
+    poolIdentifierToPool: { [poolIdentifier: string]: Pool },
+    providerConfig?: ProviderConfig
+  ): void;
 
-  protected abstract instantiatePoolAccessor(poolIdentifierToPool: { [poolId: string]: Pool }): TPoolAccessor;
+  protected abstract instantiatePoolAccessor(poolIdentifierToPool: {
+    [poolId: string]: Pool;
+  }): TPoolAccessor;
 }

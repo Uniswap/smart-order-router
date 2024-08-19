@@ -64,7 +64,16 @@ export type V3PoolAccessor = {
 export type V3PoolRetryOptions = RetryOptions;
 export type V3PoolConstruct = [Token, Token, FeeAmount];
 
-export class V3PoolProvider extends PoolProvider<Token, V3PoolConstruct, V3ISlot0, V3ILiquidity, V3PoolAccessor> implements IV3PoolProvider {
+export class V3PoolProvider
+  extends PoolProvider<
+    Token,
+    V3PoolConstruct,
+    V3ISlot0,
+    V3ILiquidity,
+    V3PoolAccessor
+  >
+  implements IV3PoolProvider
+{
   // Computing pool addresses is slow as it requires hashing, encoding etc.
   // Addresses never change so can always be cached.
   private POOL_ADDRESS_CACHE: { [key: string]: string } = {};
@@ -99,8 +108,16 @@ export class V3PoolProvider extends PoolProvider<Token, V3PoolConstruct, V3ISlot
     tokenB: Token,
     feeAmount: FeeAmount
   ): { poolAddress: string; token0: Token; token1: Token } {
-    const { poolIdentifier, currency0, currency1 } = this.getPoolIdentifier([tokenA, tokenB, feeAmount]);
-    return { poolAddress: poolIdentifier, token0: currency0, token1: currency1 };
+    const { poolIdentifier, currency0, currency1 } = this.getPoolIdentifier([
+      tokenA,
+      tokenB,
+      feeAmount,
+    ]);
+    return {
+      poolAddress: poolIdentifier,
+      token0: currency0,
+      token1: currency1,
+    };
   }
 
   protected override async getPoolsData<TReturn>(
@@ -125,8 +142,12 @@ export class V3PoolProvider extends PoolProvider<Token, V3PoolConstruct, V3ISlot
     return results;
   }
 
-  protected override getPoolIdentifier(pool: V3PoolConstruct): { poolIdentifier: string, currency0: Token, currency1: Token } {
-    const [tokenA, tokenB, feeAmount]  = pool;
+  protected override getPoolIdentifier(pool: V3PoolConstruct): {
+    poolIdentifier: string;
+    currency0: Token;
+    currency1: Token;
+  } {
+    const [tokenA, tokenB, feeAmount] = pool;
 
     const [token0, token1] = tokenA.sortsBefore(tokenB)
       ? [tokenA, tokenB]
@@ -137,7 +158,11 @@ export class V3PoolProvider extends PoolProvider<Token, V3PoolConstruct, V3ISlot
     const cachedAddress = this.POOL_ADDRESS_CACHE[cacheKey];
 
     if (cachedAddress) {
-      return { poolIdentifier: cachedAddress, currency0: token0, currency1: token1 };
+      return {
+        poolIdentifier: cachedAddress,
+        currency0: token0,
+        currency1: token1,
+      };
     }
 
     const poolAddress = computePoolAddress({
@@ -151,17 +176,32 @@ export class V3PoolProvider extends PoolProvider<Token, V3PoolConstruct, V3ISlot
 
     this.POOL_ADDRESS_CACHE[cacheKey] = poolAddress;
 
-    return { poolIdentifier: poolAddress, currency0: token0, currency1: token1 };
+    return {
+      poolIdentifier: poolAddress,
+      currency0: token0,
+      currency1: token1,
+    };
   }
 
-  protected instantiatePool(pool: V3PoolConstruct, slot0: V3ISlot0, liquidity: V3ILiquidity): Pool {
+  protected instantiatePool(
+    pool: V3PoolConstruct,
+    slot0: V3ISlot0,
+    liquidity: V3ILiquidity
+  ): Pool {
     const [token0, token1, feeAmount] = pool;
 
-    return new Pool(token0, token1, feeAmount, slot0.sqrtPriceX96.toString(), liquidity.liquidity.toString(), slot0.tick);
+    return new Pool(
+      token0,
+      token1,
+      feeAmount,
+      slot0.sqrtPriceX96.toString(),
+      liquidity.liquidity.toString(),
+      slot0.tick
+    );
   }
 
   protected instantiatePoolAccessor(poolIdentifierToPool: {
-    [p: string]: Pool
+    [p: string]: Pool;
   }): V3PoolAccessor {
     return {
       getPool: (

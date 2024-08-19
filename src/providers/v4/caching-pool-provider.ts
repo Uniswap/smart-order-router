@@ -1,16 +1,19 @@
-import {
-  IV4PoolProvider,
-  V4PoolAccessor,
-  V4PoolConstruct
-} from './pool-provider';
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v4-sdk';
 import { ICache } from '../cache';
 import { CachingPoolProvider } from '../caching-pool-provider';
-import { Protocol } from '@uniswap/router-sdk';
 import { ProviderConfig } from '../provider';
+import {
+  IV4PoolProvider,
+  V4PoolAccessor,
+  V4PoolConstruct,
+} from './pool-provider';
 
-export class CachingV4PoolProvider extends CachingPoolProvider<Currency, V4PoolConstruct, V4PoolAccessor> implements IV4PoolProvider {
+export class CachingV4PoolProvider
+  extends CachingPoolProvider<Currency, V4PoolConstruct, V4PoolAccessor>
+  implements IV4PoolProvider
+{
   /**
    * Creates an instance of CachingV4PoolProvider.
    * @param chainId The chain id to use.
@@ -32,17 +35,38 @@ export class CachingV4PoolProvider extends CachingPoolProvider<Currency, V4PoolC
     tickSpacing: number,
     hooks: string
   ): { poolId: string; currency0: Currency; currency1: Currency } {
-    const { poolId, currency0, currency1 } =  this.poolProvider.getPoolId(currencyA, currencyB, fee, tickSpacing, hooks);
-    return { poolId, currency0, currency1 }
+    const { poolId, currency0, currency1 } = this.poolProvider.getPoolId(
+      currencyA,
+      currencyB,
+      fee,
+      tickSpacing,
+      hooks
+    );
+    return { poolId, currency0, currency1 };
   }
 
-  protected override getPoolIdentifier(pool: V4PoolConstruct): { poolIdentifier: string, currency0: Currency, currency1: Currency } {
+  protected override getPoolIdentifier(pool: V4PoolConstruct): {
+    poolIdentifier: string;
+    currency0: Currency;
+    currency1: Currency;
+  } {
     const [currencyA, currencyB, fee, tickSpacing, hooks] = pool;
-    const { poolId, currency0, currency1 } =  this.getPoolId(currencyA, currencyB, fee, tickSpacing, hooks);
+    const { poolId, currency0, currency1 } = this.getPoolId(
+      currencyA,
+      currencyB,
+      fee,
+      tickSpacing,
+      hooks
+    );
     return { poolIdentifier: poolId, currency0, currency1 };
   }
 
-  protected override async cachePool(poolsToGetIdentifiers: string[], poolsToGetCurrencyPairs: V4PoolConstruct[], poolIdentifierToPool: { [poolIdentifier: string]: Pool }, providerConfig?: ProviderConfig): Promise<void> {
+  protected override async cachePool(
+    poolsToGetIdentifiers: string[],
+    poolsToGetCurrencyPairs: V4PoolConstruct[],
+    poolIdentifierToPool: { [poolIdentifier: string]: Pool },
+    providerConfig?: ProviderConfig
+  ): Promise<void> {
     const poolAccessor = await this.poolProvider.getPools(
       poolsToGetCurrencyPairs,
       providerConfig
@@ -62,14 +86,28 @@ export class CachingV4PoolProvider extends CachingPoolProvider<Currency, V4PoolC
     }
   }
 
-  protected override instantiatePoolAccessor(poolIdentifierToPool: { [poolId: string]: Pool }): V4PoolAccessor {
+  protected override instantiatePoolAccessor(poolIdentifierToPool: {
+    [poolId: string]: Pool;
+  }): V4PoolAccessor {
     return {
-      getPool: (currencyA: Currency, currencyB: Currency, fee: number, tickSpacing: number, hooks: string) => {
-        const { poolId } = this.poolProvider.getPoolId(currencyA, currencyB, fee, tickSpacing, hooks);
+      getPool: (
+        currencyA: Currency,
+        currencyB: Currency,
+        fee: number,
+        tickSpacing: number,
+        hooks: string
+      ) => {
+        const { poolId } = this.poolProvider.getPoolId(
+          currencyA,
+          currencyB,
+          fee,
+          tickSpacing,
+          hooks
+        );
         return poolIdentifierToPool[poolId];
       },
       getPoolById: (poolId: string) => poolIdentifierToPool[poolId],
-      getAllPools: () => Object.values(poolIdentifierToPool)
+      getAllPools: () => Object.values(poolIdentifierToPool),
     };
   }
 }

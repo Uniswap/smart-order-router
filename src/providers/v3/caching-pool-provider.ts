@@ -9,10 +9,8 @@ import { ProviderConfig } from './../provider';
 import {
   IV3PoolProvider,
   V3PoolAccessor,
-  V3PoolConstruct
+  V3PoolConstruct,
 } from './pool-provider';
-
-
 
 /**
  * Provider for getting V3 pools, with functionality for caching the results.
@@ -22,7 +20,10 @@ import {
  * @export
  * @class CachingV3PoolProvider
  */
-export class CachingV3PoolProvider extends CachingPoolProvider<Token, V3PoolConstruct, V3PoolAccessor> implements IV3PoolProvider {
+export class CachingV3PoolProvider
+  extends CachingPoolProvider<Token, V3PoolConstruct, V3PoolAccessor>
+  implements IV3PoolProvider
+{
   /**
    * Creates an instance of CachingV3PoolProvider.
    * @param chainId The chain id to use.
@@ -45,13 +46,30 @@ export class CachingV3PoolProvider extends CachingPoolProvider<Token, V3PoolCons
     return this.poolProvider.getPoolAddress(tokenA, tokenB, feeAmount);
   }
 
-  protected override getPoolIdentifier(pool: V3PoolConstruct): { poolIdentifier: string, currency0: Token, currency1: Token } {
+  protected override getPoolIdentifier(pool: V3PoolConstruct): {
+    poolIdentifier: string;
+    currency0: Token;
+    currency1: Token;
+  } {
     const [tokenA, tokenB, feeAmount] = pool;
-    const { poolAddress, token0, token1 } =  this.getPoolAddress(tokenA, tokenB, feeAmount);
-    return { poolIdentifier: poolAddress, currency0: token0, currency1: token1 };
+    const { poolAddress, token0, token1 } = this.getPoolAddress(
+      tokenA,
+      tokenB,
+      feeAmount
+    );
+    return {
+      poolIdentifier: poolAddress,
+      currency0: token0,
+      currency1: token1,
+    };
   }
 
-  protected override async cachePool(poolsToGetIdentifiers: string[], poolsToGetCurrencyPairs: V3PoolConstruct[], poolIdentifierToPool: { [poolIdentifier: string]: Pool }, providerConfig?: ProviderConfig): Promise<void> {
+  protected override async cachePool(
+    poolsToGetIdentifiers: string[],
+    poolsToGetCurrencyPairs: V3PoolConstruct[],
+    poolIdentifierToPool: { [poolIdentifier: string]: Pool },
+    providerConfig?: ProviderConfig
+  ): Promise<void> {
     const poolAccessor = await this.poolProvider.getPools(
       poolsToGetCurrencyPairs,
       providerConfig
@@ -71,7 +89,9 @@ export class CachingV3PoolProvider extends CachingPoolProvider<Token, V3PoolCons
     }
   }
 
-  protected override instantiatePoolAccessor(poolIdentifierToPool: { [poolId: string]: Pool }): V3PoolAccessor {
+  protected override instantiatePoolAccessor(poolIdentifierToPool: {
+    [poolId: string]: Pool;
+  }): V3PoolAccessor {
     return {
       getPool: (
         tokenA: Token,

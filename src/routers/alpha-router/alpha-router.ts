@@ -24,7 +24,8 @@ import {
   CachingV2PoolProvider,
   CachingV2SubgraphProvider,
   CachingV3PoolProvider,
-  CachingV3SubgraphProvider, CachingV4SubgraphProvider,
+  CachingV3SubgraphProvider,
+  CachingV4SubgraphProvider,
   EIP1559GasPriceProvider,
   ETHGasStationInfoProvider,
   IOnChainQuoteProvider,
@@ -32,21 +33,24 @@ import {
   ISwapRouterProvider,
   ITokenPropertiesProvider,
   IV2QuoteProvider,
-  IV2SubgraphProvider, IV4SubgraphProvider,
+  IV2SubgraphProvider,
+  IV4SubgraphProvider,
   LegacyGasPriceProvider,
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
   Simulator,
   StaticV2SubgraphProvider,
-  StaticV3SubgraphProvider, StaticV4SubgraphProvider,
+  StaticV3SubgraphProvider,
+  StaticV4SubgraphProvider,
   SwapRouterProvider,
   TokenPropertiesProvider,
   UniswapMulticallProvider,
   URISubgraphProvider,
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
-  V3SubgraphProviderWithFallBacks, V4SubgraphProviderWithFallBacks
+  V3SubgraphProviderWithFallBacks,
+  V4SubgraphProviderWithFallBacks,
 } from '../../providers';
 import {
   CachingTokenListProvider,
@@ -129,6 +133,11 @@ import {
   V3Route,
 } from '../router';
 
+import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
+import {
+  IV4PoolProvider,
+  V4PoolProvider,
+} from '../../providers/v4/pool-provider';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -163,13 +172,6 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
-import {
-  IV4PoolProvider,
-  V4PoolProvider
-} from '../../providers/v4/pool-provider';
-import {
-  CachingV4PoolProvider
-} from '../../providers/v4/caching-pool-provider';
 
 export type AlphaRouterParams = {
   /**
@@ -529,7 +531,7 @@ export class AlphaRouter
         this.chainId,
         new V4PoolProvider(ID_TO_CHAIN_ID(chainId), this.multicall2Provider),
         new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-      )
+      );
     this.v3PoolProvider =
       v3PoolProvider ??
       new CachingV3PoolProvider(
