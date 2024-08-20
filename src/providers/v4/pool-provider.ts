@@ -6,9 +6,7 @@ import { log, STATE_VIEW_ADDRESSES } from '../../util';
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ProviderConfig } from '../provider';
 
-import {
-  StateView__factory
-} from '../../types/other/factories/StateView__factory';
+import { StateView__factory } from '../../types/other/factories/StateView__factory';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 
 type V4ISlot0 = ISlot0 & {
@@ -51,9 +49,9 @@ export type V4PoolConstruct = [Currency, Currency, number, number, string];
 
 // TODO: export sortsBefore from v4-sdk https://github.com/Uniswap/sdks/tree/main/sdks/v4-sdk/src/utils to avoid duplication
 export function sortsBefore(currencyA: Currency, currencyB: Currency): boolean {
-  if (currencyA.isNative) return true
-  if (currencyB.isNative) return false
-  return currencyA.wrapped.sortsBefore(currencyB.wrapped)
+  if (currencyA.isNative) return true;
+  if (currencyB.isNative) return false;
+  return currencyA.wrapped.sortsBefore(currencyB.wrapped);
 }
 
 export class V4PoolProvider
