@@ -1,6 +1,7 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { ProviderConfig } from '../provider';
 import { Protocol } from '@uniswap/router-sdk';
+import { ChainId, Token } from '@uniswap/sdk-core';
+
+import { ProviderConfig } from '../provider';
 import { SubgraphProvider } from '../subgraph-provider';
 
 export interface V4SubgraphPool {
@@ -17,10 +18,26 @@ export interface V4SubgraphPool {
   tvlUSD: number;
 }
 
+export type V4RawSubgraphPool = {
+  id: string;
+  feeTier: string;
+  liquidity: string;
+  token0: {
+    symbol: string;
+    id: string;
+  };
+  token1: {
+    symbol: string;
+    id: string;
+  };
+  totalValueLockedUSD: string;
+  totalValueLockedETH: string;
+  totalValueLockedUSDUntracked: string;
+};
+
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.SEPOLIA]:
-    '',
-}
+  [ChainId.SEPOLIA]: '',
+};
 
 /**
  * Provider for getting V4 pools from the Subgraph
@@ -36,7 +53,10 @@ export interface IV4SubgraphProvider {
   ): Promise<V4SubgraphPool[]>;
 }
 
-export class V4SubgraphProvider extends SubgraphProvider implements IV4SubgraphProvider {
+export class V4SubgraphProvider
+  extends SubgraphProvider
+  implements IV4SubgraphProvider
+{
   constructor(
     chainId: ChainId,
     retries = 2,
@@ -54,6 +74,7 @@ export class V4SubgraphProvider extends SubgraphProvider implements IV4SubgraphP
       rollback,
       trackedEthThreshold,
       untrackedUsdThreshold,
-      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]);
+      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
+    );
   }
 }

@@ -1,42 +1,24 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { ProviderConfig } from './provider';
-import { gql, GraphQLClient } from 'graphql-request';
-import { log, metric } from '../util';
 import { Protocol } from '@uniswap/router-sdk';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
+import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-export interface SubgraphPool {
-  id: string;
-  feeTier: string;
-  liquidity: string;
-  token0: {
-    id: string;
-  };
-  token1: {
-    id: string;
-  };
-  tvlETH: number;
-  tvlUSD: number;
-}
+import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
+import { log, metric } from '../util';
 
-type RawSubgraphPool = {
-  id: string;
-  feeTier: string;
-  liquidity: string;
-  token0: {
-    symbol: string;
-    id: string;
-  };
-  token1: {
-    symbol: string;
-    id: string;
-  };
-  totalValueLockedUSD: string;
-  totalValueLockedETH: string;
-  totalValueLockedUSDUntracked: string;
-};
+import { ProviderConfig } from './provider';
+import { V3RawSubgraphPool, V3SubgraphPool } from './v3/subgraph-provider';
+import { V4RawSubgraphPool, V4SubgraphPool } from './v4/subgraph-provider';
+
+export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
+  getPools(
+    tokenIn?: Token,
+    tokenOut?: Token,
+    providerConfig?: ProviderConfig
+  ): Promise<TSubgraphPool[]>;
+}
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 
@@ -64,7 +46,7 @@ export abstract class SubgraphProvider {
     _tokenIn?: Token,
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
-  ): Promise<SubgraphPool[]> {
+  ): Promise<(V3SubgraphPool | V4SubgraphPool)[]> {
     const beforeAll = Date.now();
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
@@ -95,10 +77,12 @@ export abstract class SubgraphProvider {
       }
     `;
 
-    let pools: RawSubgraphPool[] = [];
+    let pools: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
 
     log.info(
-      `Getting ${this.protocol} pools from the subgraph with page size ${PAGE_SIZE}${
+      `Getting ${
+        this.protocol
+      } pools from the subgraph with page size ${PAGE_SIZE}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
@@ -111,10 +95,12 @@ export abstract class SubgraphProvider {
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<RawSubgraphPool[]> => {
+        const getPools = async (): Promise<
+          (V3RawSubgraphPool | V4RawSubgraphPool)[]
+        > => {
           let lastId = '';
-          let pools: RawSubgraphPool[] = [];
-          let poolsPage: RawSubgraphPool[] = [];
+          let pools: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
+          let poolsPage: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
 
           // metrics variables
           let totalPages = 0;
@@ -123,7 +109,7 @@ export abstract class SubgraphProvider {
             totalPages += 1;
 
             const poolsResult = await this.client.request<{
-              pools: RawSubgraphPool[];
+              pools: (V3RawSubgraphPool | V4RawSubgraphPool)[];
             }>(query, {
               pageSize: PAGE_SIZE,
               id: lastId,
@@ -209,7 +195,7 @@ export abstract class SubgraphProvider {
         parseInt(pool.liquidity) > 0 ||
         parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
         parseFloat(pool.totalValueLockedUSDUntracked) >
-        this.untrackedUsdThreshold
+          this.untrackedUsdThreshold
     );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`,
@@ -257,7 +243,10 @@ export abstract class SubgraphProvider {
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
       (poolsSanitized.length / pools.length) * 100
     );
-    metric.putMetric(`${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools`, 1);
+    metric.putMetric(
+      `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools`,
+      1
+    );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.latency`,
       Date.now() - beforeAll

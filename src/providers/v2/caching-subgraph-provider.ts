@@ -1,4 +1,7 @@
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
+
+import { CachingSubgraphProvider } from '../caching-subgraph-provider';
 
 import { ICache } from './../cache';
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
@@ -9,9 +12,10 @@ import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
  * @export
  * @class CachingV2SubgraphProvider
  */
-export class CachingV2SubgraphProvider implements IV2SubgraphProvider {
-  private SUBGRAPH_KEY = (chainId: ChainId) => `subgraph-pools-v2-${chainId}`;
-
+export class CachingV2SubgraphProvider
+  extends CachingSubgraphProvider<V2SubgraphPool>
+  implements IV2SubgraphProvider
+{
   /**
    * Creates an instance of CachingV2SubgraphProvider.
    * @param chainId The chain id to use.
@@ -19,22 +23,10 @@ export class CachingV2SubgraphProvider implements IV2SubgraphProvider {
    * @param cache Cache instance to hold cached pools.
    */
   constructor(
-    private chainId: ChainId,
-    protected subgraphProvider: IV2SubgraphProvider,
-    private cache: ICache<V2SubgraphPool[]>
-  ) {}
-
-  public async getPools(): Promise<V2SubgraphPool[]> {
-    const cachedPools = await this.cache.get(this.SUBGRAPH_KEY(this.chainId));
-
-    if (cachedPools) {
-      return cachedPools;
-    }
-
-    const pools = await this.subgraphProvider.getPools();
-
-    await this.cache.set(this.SUBGRAPH_KEY(this.chainId), pools);
-
-    return pools;
+    chainId: ChainId,
+    subgraphProvider: IV2SubgraphProvider,
+    cache: ICache<V2SubgraphPool[]>
+  ) {
+    super(chainId, subgraphProvider, cache, Protocol.V2);
   }
 }

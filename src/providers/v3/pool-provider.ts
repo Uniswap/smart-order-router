@@ -2,26 +2,20 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Token } from '@uniswap/sdk-core';
 import { computePoolAddress, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import _ from 'lodash';
 
 import { IUniswapV3PoolState__factory } from '../../types/v3/factories/IUniswapV3PoolState__factory';
 import { V3_CORE_FACTORY_ADDRESSES } from '../../util/addresses';
 import { log } from '../../util/log';
-import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
+import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 import { ProviderConfig } from '../provider';
 
-type ISlot0 = {
+type V3ISlot0 = ISlot0 & {
   sqrtPriceX96: BigNumber;
   tick: number;
-  observationIndex: number;
-  observationCardinality: number;
-  observationCardinalityNext: number;
-  feeProtocol: number;
-  unlocked: boolean;
 };
 
-type ILiquidity = { liquidity: BigNumber };
+type V3ILiquidity = ILiquidity;
 
 /**
  * Provider or getting V3 pools.
@@ -68,143 +62,45 @@ export type V3PoolAccessor = {
 };
 
 export type V3PoolRetryOptions = RetryOptions;
+export type V3PoolConstruct = [Token, Token, FeeAmount];
 
-export class V3PoolProvider implements IV3PoolProvider {
+export class V3PoolProvider
+  extends PoolProvider<
+    Token,
+    V3PoolConstruct,
+    V3ISlot0,
+    V3ILiquidity,
+    V3PoolAccessor
+  >
+  implements IV3PoolProvider
+{
   // Computing pool addresses is slow as it requires hashing, encoding etc.
   // Addresses never change so can always be cached.
   private POOL_ADDRESS_CACHE: { [key: string]: string } = {};
 
   /**
-   * Creates an instance of V3PoolProvider.
+   * Creates an instance of V4PoolProvider.
    * @param chainId The chain id to use.
    * @param multicall2Provider The multicall provider to use to get the pools.
    * @param retryOptions The retry options for each call to the multicall.
    */
   constructor(
-    protected chainId: ChainId,
-    protected multicall2Provider: IMulticallProvider,
-    protected retryOptions: V3PoolRetryOptions = {
+    chainId: ChainId,
+    multicall2Provider: IMulticallProvider,
+    retryOptions: V3PoolRetryOptions = {
       retries: 2,
       minTimeout: 50,
       maxTimeout: 500,
     }
-  ) {}
+  ) {
+    super(chainId, multicall2Provider, retryOptions);
+  }
 
   public async getPools(
-    tokenPairs: [Token, Token, FeeAmount][],
+    tokenPairs: V3PoolConstruct[],
     providerConfig?: ProviderConfig
   ): Promise<V3PoolAccessor> {
-    const poolAddressSet: Set<string> = new Set<string>();
-    const sortedTokenPairs: Array<[Token, Token, FeeAmount]> = [];
-    const sortedPoolAddresses: string[] = [];
-
-    for (const tokenPair of tokenPairs) {
-      const [tokenA, tokenB, feeAmount] = tokenPair;
-
-      const { poolAddress, token0, token1 } = this.getPoolAddress(
-        tokenA,
-        tokenB,
-        feeAmount
-      );
-
-      if (poolAddressSet.has(poolAddress)) {
-        continue;
-      }
-
-      poolAddressSet.add(poolAddress);
-      sortedTokenPairs.push([token0, token1, feeAmount]);
-      sortedPoolAddresses.push(poolAddress);
-    }
-
-    log.debug(
-      `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
-    );
-
-    const [slot0Results, liquidityResults] = await Promise.all([
-      this.getPoolsData<ISlot0>(sortedPoolAddresses, 'slot0', providerConfig),
-      this.getPoolsData<[ILiquidity]>(
-        sortedPoolAddresses,
-        'liquidity',
-        providerConfig
-      ),
-    ]);
-
-    log.info(
-      `Got liquidity and slot0s for ${poolAddressSet.size} pools ${
-        providerConfig?.blockNumber
-          ? `as of block: ${providerConfig?.blockNumber}.`
-          : ``
-      }`
-    );
-
-    const poolAddressToPool: { [poolAddress: string]: Pool } = {};
-
-    const invalidPools: [Token, Token, FeeAmount][] = [];
-
-    for (let i = 0; i < sortedPoolAddresses.length; i++) {
-      const slot0Result = slot0Results[i];
-      const liquidityResult = liquidityResults[i];
-
-      // These properties tell us if a pool is valid and initialized or not.
-      if (
-        !slot0Result?.success ||
-        !liquidityResult?.success ||
-        slot0Result.result.sqrtPriceX96.eq(0)
-      ) {
-        const [token0, token1, fee] = sortedTokenPairs[i]!;
-        invalidPools.push([token0, token1, fee]);
-
-        continue;
-      }
-
-      const [token0, token1, fee] = sortedTokenPairs[i]!;
-      const slot0 = slot0Result.result;
-      const liquidity = liquidityResult.result[0];
-
-      const pool = new Pool(
-        token0,
-        token1,
-        fee,
-        slot0.sqrtPriceX96.toString(),
-        liquidity.toString(),
-        slot0.tick
-      );
-
-      const poolAddress = sortedPoolAddresses[i]!;
-
-      poolAddressToPool[poolAddress] = pool;
-    }
-
-    if (invalidPools.length > 0) {
-      log.info(
-        {
-          invalidPools: _.map(
-            invalidPools,
-            ([token0, token1, fee]) =>
-              `${token0.symbol}/${token1.symbol}/${fee / 10000}%`
-          ),
-        },
-        `${invalidPools.length} pools invalid after checking their slot0 and liquidity results. Dropping.`
-      );
-    }
-
-    const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
-
-    log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
-
-    return {
-      getPool: (
-        tokenA: Token,
-        tokenB: Token,
-        feeAmount: FeeAmount
-      ): Pool | undefined => {
-        const { poolAddress } = this.getPoolAddress(tokenA, tokenB, feeAmount);
-        return poolAddressToPool[poolAddress];
-      },
-      getPoolByAddress: (address: string): Pool | undefined =>
-        poolAddressToPool[address],
-      getAllPools: (): Pool[] => Object.values(poolAddressToPool),
-    };
+    return await super.getPoolsInternal(tokenPairs, providerConfig);
   }
 
   public getPoolAddress(
@@ -212,6 +108,55 @@ export class V3PoolProvider implements IV3PoolProvider {
     tokenB: Token,
     feeAmount: FeeAmount
   ): { poolAddress: string; token0: Token; token1: Token } {
+    const { poolIdentifier, currency0, currency1 } = this.getPoolIdentifier([
+      tokenA,
+      tokenB,
+      feeAmount,
+    ]);
+    return {
+      poolAddress: poolIdentifier,
+      token0: currency0,
+      token1: currency1,
+    };
+  }
+
+  protected override getLiquidityFunctionName(): string {
+    return 'liquidity';
+  }
+
+  protected override getSlot0FunctionName(): string {
+    return 'slot0';
+  }
+
+  protected override async getPoolsData<TReturn>(
+    poolAddresses: string[],
+    functionName: string,
+    providerConfig?: ProviderConfig
+  ): Promise<Result<TReturn>[]> {
+    const { results, blockNumber } = await retry(async () => {
+      return this.multicall2Provider.callSameFunctionOnMultipleContracts<
+        any,
+        TReturn
+      >({
+        addresses: poolAddresses,
+        contractInterface: IUniswapV3PoolState__factory.createInterface(),
+        functionName: functionName,
+        providerConfig,
+      });
+    }, this.retryOptions);
+
+    log.debug(`Pool data fetched as of block ${blockNumber}`);
+
+    return results;
+  }
+
+  protected override getPoolIdentifier(pool: V3PoolConstruct): {
+    poolIdentifier: string;
+    currency0: Token;
+    currency1: Token;
+  } {
+    const [tokenA, tokenB, feeAmount] = pool;
+
     const [token0, token1] = tokenA.sortsBefore(tokenB)
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
@@ -221,7 +166,11 @@ export class V3PoolProvider implements IV3PoolProvider {
     const cachedAddress = this.POOL_ADDRESS_CACHE[cacheKey];
 
     if (cachedAddress) {
-      return { poolAddress: cachedAddress, token0, token1 };
+      return {
+        poolIdentifier: cachedAddress,
+        currency0: token0,
+        currency1: token1,
+      };
     }
 
     const poolAddress = computePoolAddress({
@@ -235,28 +184,45 @@ export class V3PoolProvider implements IV3PoolProvider {
 
     this.POOL_ADDRESS_CACHE[cacheKey] = poolAddress;
 
-    return { poolAddress, token0, token1 };
+    return {
+      poolIdentifier: poolAddress,
+      currency0: token0,
+      currency1: token1,
+    };
   }
 
-  private async getPoolsData<TReturn>(
-    poolAddresses: string[],
-    functionName: string,
-    providerConfig?: ProviderConfig
-  ): Promise<Result<TReturn>[]> {
-    const { results, blockNumber } = await retry(async () => {
-      return this.multicall2Provider.callSameFunctionOnMultipleContracts<
-        undefined,
-        TReturn
-      >({
-        addresses: poolAddresses,
-        contractInterface: IUniswapV3PoolState__factory.createInterface(),
-        functionName: functionName,
-        providerConfig,
-      });
-    }, this.retryOptions);
+  protected instantiatePool(
+    pool: V3PoolConstruct,
+    slot0: V3ISlot0,
+    liquidity: V3ILiquidity
+  ): Pool {
+    const [token0, token1, feeAmount] = pool;
 
-    log.debug(`Pool data fetched as of block ${blockNumber}`);
+    return new Pool(
+      token0,
+      token1,
+      feeAmount,
+      slot0.sqrtPriceX96.toString(),
+      liquidity.toString(),
+      slot0.tick
+    );
+  }
 
-    return results;
+  protected instantiatePoolAccessor(poolIdentifierToPool: {
+    [p: string]: Pool;
+  }): V3PoolAccessor {
+    return {
+      getPool: (
+        tokenA: Token,
+        tokenB: Token,
+        feeAmount: FeeAmount
+      ): Pool | undefined => {
+        const { poolAddress } = this.getPoolAddress(tokenA, tokenB, feeAmount);
+        return poolIdentifierToPool[poolAddress];
+      },
+      getPoolByAddress: (address: string): Pool | undefined =>
+        poolIdentifierToPool[address],
+      getAllPools: (): Pool[] => Object.values(poolIdentifierToPool),
+    };
   }
 }

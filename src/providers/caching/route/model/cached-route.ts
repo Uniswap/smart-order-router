@@ -8,9 +8,9 @@ import {
   MixedRoute,
   SupportedRoutes,
   V2Route,
-  V3Route, V4Route
+  V3Route,
+  V4Route,
 } from '../../../../routers';
-
 
 interface CachedRouteParams<Route extends SupportedRoutes> {
   route: Route;
@@ -59,7 +59,10 @@ export class CachedRoute<Route extends SupportedRoutes> {
       case Protocol.V4:
         // TODO: ROUTE-217 - Support native currency routing in V4
         return (this.route as V4Route).pools
-          .map((pool) => `[V4]${pool.token0.wrapped.address}/${pool.token1.wrapped.address}`)
+          .map(
+            (pool) =>
+              `[V4]${pool.token0.wrapped.address}/${pool.token1.wrapped.address}`
+          )
           .join('->');
       case Protocol.V3:
         return (this.route as V3Route).pools
@@ -77,13 +80,21 @@ export class CachedRoute<Route extends SupportedRoutes> {
           .map((pool) => {
             if (pool instanceof V4Pool) {
               // TODO: ROUTE-217 - Support native currency routing in V4
-              return `[V4]${pool.token0.isToken ? pool.token0.wrapped.address : pool.token0.symbol}/${pool.token1.isToken ? pool.token1.wrapped.address : pool.token1.symbol}`;
+              return `[V4]${
+                pool.token0.isToken
+                  ? pool.token0.wrapped.address
+                  : pool.token0.symbol
+              }/${
+                pool.token1.isToken
+                  ? pool.token1.wrapped.address
+                  : pool.token1.symbol
+              }`;
             } else if (pool instanceof V3Pool) {
               return `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`;
             } else if (pool instanceof Pair) {
               return `[V2]${pool.token0.address}/${pool.token1.address}`;
             } else {
-              throw new Error(`Unsupported pool type ${JSON.stringify(pool)}`)
+              throw new Error(`Unsupported pool type ${JSON.stringify(pool)}`);
             }
           })
           .join('->');
