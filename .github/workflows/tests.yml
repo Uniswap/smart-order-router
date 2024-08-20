@@ -42,6 +42,7 @@ jobs:
           JSON_RPC_PROVIDER_ARBITRUM_ONE: ${{ secrets.JSON_RPC_PROVIDER_ARBITRUM_ONE }}
           JSON_RPC_PROVIDER_POLYGON: ${{ secrets.JSON_RPC_PROVIDER_POLYGON }}
           JSON_RPC_PROVIDER_BASE: ${{ secrets.JSON_RPC_PROVIDER_BASE }}
+          SUBGRAPH_URL_SEPOLIA: ${{ secrets.SUBGRAPH_URL_SEPOLIA }}
 
   integration-tests-alpha-router-integration-mainnet-alpha-exact_input-erc20-to-erc20:
     name: Integration Tests - Alpha Router Integration Mainnet Alpha EXACT_INPUT ERC20 -> ERC20
