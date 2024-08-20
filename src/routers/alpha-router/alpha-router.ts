@@ -154,10 +154,10 @@ import {
   CandidatePoolsBySelectionCriteria,
   getMixedCrossLiquidityCandidatePools,
   getV2CandidatePools,
-  getV3CandidatePools,
+  getV3CandidatePools, getV4CandidatePools,
   SubgraphPool,
   V2CandidatePools,
-  V3CandidatePools,
+  V3CandidatePools, V4CandidatePools
 } from './functions/get-candidate-pools';
 import {
   GasModelProviderConfig,
@@ -1889,6 +1889,7 @@ export class AlphaRouter
     );
 
     const noProtocolsSpecified = protocols.length === 0;
+    const v4ProtocolSpecified = protocols.includes(Protocol.V4);
     const v3ProtocolSpecified = protocols.includes(Protocol.V3);
     const v2ProtocolSpecified = protocols.includes(Protocol.V2);
     const v2SupportedInChain = this.v2Supported?.includes(this.chainId);
@@ -1900,6 +1901,29 @@ export class AlphaRouter
       tradeType === TradeType.EXACT_INPUT;
 
     const beforeGetCandidates = Date.now();
+
+    let v4CandidatePoolsPromise: Promise<V4CandidatePools | undefined> =
+      Promise.resolve(undefined);
+    if (v4ProtocolSpecified || noProtocolsSpecified) {
+      v4CandidatePoolsPromise = getV4CandidatePools({
+        tokenIn,
+        tokenOut,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v4PoolProvider,
+        routeType: tradeType,
+        subgraphProvider: this.v4SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+      }).then((candidatePools) => {
+        metric.putMetric(
+          'GetV4CandidatePools',
+          Date.now() - beforeGetCandidates,
+          MetricLoggerUnit.Milliseconds
+        );
+        return candidatePools;
+      })
+    }
 
     let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> =
       Promise.resolve(undefined);
@@ -1958,6 +1982,12 @@ export class AlphaRouter
     }
 
     const quotePromises: Promise<GetQuotesResult>[] = [];
+
+    // for v4, for now we explicitly require people to specify
+    if (v4ProtocolSpecified) {
+      // we do a blank invoke here so as not to have ESLint error.
+      v4CandidatePoolsPromise
+    }
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
     if (v3ProtocolSpecified || noProtocolsSpecified) {

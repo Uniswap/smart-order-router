@@ -106,10 +106,8 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   tokenOut: Token;
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
-  v4SubgraphProvider: IV4SubgraphProvider;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
-  v4Candidates?: V4CandidatePools;
   blockNumber?: number | Promise<number>;
 };
 
@@ -652,13 +650,13 @@ export async function getV4CandidatePools({
   for (const secondHopId of tokenInSecondHopAddresses) {
     topByTVLUsingTokenInSecondHopsMap.set(
       secondHopId,
-      new SecondHopPools<V3SubgraphPool>([], topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop)
+      new SecondHopPools<V4SubgraphPool>([], topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop)
     );
   }
   for (const secondHopId of tokenOutSecondHopAddresses) {
     topByTVLUsingTokenOutSecondHopsMap.set(
       secondHopId,
-      new SecondHopPools<V3SubgraphPool>([], topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop)
+      new SecondHopPools<V4SubgraphPool>([], topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop)
     );
   }
 
@@ -753,7 +751,7 @@ export async function getV4CandidatePools({
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
   ];
-  const subgraphPoolsSet: Set<V3SubgraphPool> = new Set(topPoolsByAllHeuristics);
+  const subgraphPoolsSet: Set<V4SubgraphPool> = new Set(topPoolsByAllHeuristics);
   const subgraphPools = Array.from(subgraphPoolsSet);
 
   const tokenAddressesSet: Set<string> = new Set();
