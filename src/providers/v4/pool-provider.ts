@@ -190,7 +190,7 @@ export class V4PoolProvider
       tickSpacing,
       hooks,
       slot0.sqrtPriceX96.toString(),
-      liquidity.liquidity.toString(),
+      liquidity.toString(),
       slot0.tick
     );
   }

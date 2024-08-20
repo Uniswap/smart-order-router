@@ -195,7 +195,7 @@ export class V3PoolProvider
       token1,
       feeAmount,
       slot0.sqrtPriceX96.toString(),
-      liquidity.liquidity.toString(),
+      liquidity.toString(),
       slot0.tick
     );
   }
