@@ -7,6 +7,7 @@ import { SubgraphProvider } from '../subgraph-provider';
 export interface V4SubgraphPool {
   id: string; // v4 pool id is the internal PoolId from pool manager
   feeTier: string;
+
   liquidity: string;
   token0: {
     id: string;

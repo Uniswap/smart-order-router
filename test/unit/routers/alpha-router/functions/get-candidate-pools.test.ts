@@ -62,6 +62,14 @@ describe('get candidate pools', () => {
   let mockV2SubgraphProvider: sinon.SinonStubbedInstance<V2SubgraphProvider>;
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
+    v4PoolSelection: {
+      topN: 0,
+      topNDirectSwaps: 0,
+      topNTokenInOut: 0,
+      topNSecondHop: 0,
+      topNWithEachBaseToken: 0,
+      topNWithBaseToken: 0,
+    },
     v3PoolSelection: {
       topN: 0,
       topNDirectSwaps: 0,
