@@ -120,6 +120,14 @@ export class V3PoolProvider
     };
   }
 
+  protected override getLiquidityFunctionName(): string {
+    return 'liquidity';
+  }
+
+  protected override getSlot0FunctionName(): string {
+    return 'slot0';
+  }
+
   protected override async getPoolsData<TReturn>(
     poolAddresses: string[],
     functionName: string,

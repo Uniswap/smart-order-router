@@ -127,7 +127,7 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
 
 export const STATE_VIEW_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
-  [ChainId.SEPOLIA]: '0x5e55C9e631FAE526cd4B0526C4818D6e0a9eF0e3',
+  [ChainId.SEPOLIA]: '0xc7A3b85D43fF66AD98A895dE0EaE4b9e24C932D7',
 };
 
 export const OVM_GASPRICE_ADDRESS =

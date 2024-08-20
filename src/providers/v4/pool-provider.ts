@@ -110,6 +110,14 @@ export class V4PoolProvider
     return { poolId: poolIdentifier, currency0, currency1 };
   }
 
+  protected override getLiquidityFunctionName(): string {
+    return 'getLiquidity';
+  }
+
+  protected override getSlot0FunctionName(): string {
+    return 'getSlot0';
+  }
+
   protected override async getPoolsData<TReturn>(
     poolIds: string[],
     functionName: string,

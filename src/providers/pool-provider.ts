@@ -81,12 +81,12 @@ export abstract class PoolProvider<
     const [slot0Results, liquidityResults] = await Promise.all([
       this.getPoolsData<TISlot0>(
         sortedPoolIdentifiers,
-        'slot0',
+        this.getSlot0FunctionName(),
         providerConfig
       ),
       this.getPoolsData<[TILiquidity]>(
         sortedPoolIdentifiers,
-        'liquidity',
+        this.getLiquidityFunctionName(),
         providerConfig
       ),
     ]);
@@ -137,6 +137,10 @@ export abstract class PoolProvider<
 
     return this.instantiatePoolAccessor(poolIdentifierToPool);
   }
+
+  protected abstract getLiquidityFunctionName(): string;
+
+  protected abstract getSlot0FunctionName(): string;
 
   protected abstract getPoolsData<TReturn>(
     poolIdentifiers: string[],
