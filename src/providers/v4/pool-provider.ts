@@ -6,10 +6,10 @@ import { log, STATE_VIEW_ADDRESSES } from '../../util';
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ProviderConfig } from '../provider';
 
-import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 import {
   StateView__factory
 } from '../../types/other/factories/StateView__factory';
+import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 
 type V4ISlot0 = ISlot0 & {
   poolId: string;

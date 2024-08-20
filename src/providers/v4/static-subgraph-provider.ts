@@ -1,12 +1,11 @@
 import { ChainId, Token } from '@uniswap/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+import { ADDRESS_ZERO, FeeAmount } from '@uniswap/v3-sdk';
 import { Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import { log, unparseFeeAmount } from '../../util';
 import { BASES_TO_CHECK_TRADES_AGAINST } from '../caching-subgraph-provider';
 
-import { ADDRESS_ZERO } from '@uniswap/router-sdk/dist/constants';
 import JSBI from 'jsbi';
 import { ProviderConfig } from '../provider';
 import { IV4PoolProvider, V4PoolConstruct } from './pool-provider';
