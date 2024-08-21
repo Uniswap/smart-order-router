@@ -2,7 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import {
@@ -18,12 +19,13 @@ import {
   MetricLoggerUnit,
   poolToString,
 } from '../../../util';
-import { MixedRoute, V2Route, V3Route } from '../../router';
+import { SupportedRoutes } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { RouteWithValidQuote } from '../entities/route-with-valid-quote';
 import {
   CandidatePoolsBySelectionCriteria,
   CrossLiquidityCandidatePools,
+  SupportedCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
 } from '../functions/get-candidate-pools';
@@ -41,10 +43,10 @@ import { GetQuotesResult, GetRoutesResult } from './model/results';
  */
 export abstract class BaseQuoter<
   CandidatePools extends
-    | V2CandidatePools
-    | V3CandidatePools
+    | SupportedCandidatePools
     | [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
-  Route extends V2Route | V3Route | MixedRoute
+  Route extends SupportedRoutes,
+  TCurrency extends Currency
 > {
   protected tokenProvider: ITokenProvider;
   protected chainId: ChainId;
@@ -79,8 +81,8 @@ export abstract class BaseQuoter<
    * @returns Promise<GetRoutesResult<Route>>
    */
   protected abstract getRoutes(
-    tokenIn: Token,
-    tokenOut: Token,
+    tokenIn: TCurrency,
+    tokenOut: TCurrency,
     candidatePools: CandidatePools,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig
@@ -127,8 +129,8 @@ export abstract class BaseQuoter<
    * @param gasPriceWei instead of passing gasModel, gasPriceWei is used to generate a gasModel
    */
   public getRoutesThenQuotes(
-    tokenIn: Token,
-    tokenOut: Token,
+    tokenIn: TCurrency,
+    tokenOut: TCurrency,
     amount: CurrencyAmount,
     amounts: CurrencyAmount[],
     percents: number[],
@@ -184,7 +186,7 @@ export abstract class BaseQuoter<
     });
   }
 
-  protected async applyTokenValidatorToPools<T extends Pool | Pair>(
+  protected async applyTokenValidatorToPools<T extends V4Pool | V3Pool | Pair>(
     pools: T[],
     isInvalidFn: (
       token: Currency,
@@ -200,14 +202,16 @@ export abstract class BaseQuoter<
     const tokens = _.flatMap(pools, (pool) => [pool.token0, pool.token1]);
 
     const tokenValidationResults =
-      await this.tokenValidatorProvider.validateTokens(tokens);
+      await this.tokenValidatorProvider.validateTokens(
+        tokens.map((token) => token.wrapped)
+      );
 
     const poolsFiltered = _.filter(pools, (pool: T) => {
       const token0Validation = tokenValidationResults.getValidationByToken(
-        pool.token0
+        pool.token0.wrapped
       );
       const token1Validation = tokenValidationResults.getValidationByToken(
-        pool.token1
+        pool.token1.wrapped
       );
 
       const token0Invalid = isInvalidFn(pool.token0, token0Validation);

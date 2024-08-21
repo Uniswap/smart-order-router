@@ -39,7 +39,7 @@ export class V2Route extends V2RouteRaw<Token, Token> {
 export class MixedRoute extends MixedRouteSDK<Token, Token> {
   protocol: Protocol.MIXED = Protocol.MIXED;
 }
-export type SupportedRoutes = V4Route | V3Route | V2Route | MixedRoute
+export type SupportedRoutes = V4Route | V3Route | V2Route | MixedRoute;
 
 export type SwapRoute = {
   /**
