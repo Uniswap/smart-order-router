@@ -89,6 +89,8 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
         return {
           id: poolAddress,
           feeTier: unparseFeeAmount(fee),
+          tickSpacing: tickSpacing.toString(),
+          hooks: hooks,
           liquidity: liquidity.toString(),
           token0: {
             id: token0.wrapped.address,

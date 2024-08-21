@@ -613,6 +613,8 @@ export async function getV4CandidatePools({
         return {
           id: poolId,
           feeTier: unparseFeeAmount(fee),
+          tickSpacing: tickSpacing.toString(),
+          hooks: hooks,
           liquidity: '10000',
           token0: {
             id: currency0.wrapped.address,
@@ -638,8 +640,8 @@ export async function getV4CandidatePools({
   addToAddressSet(topByTVL);
 
   // Filtering step for second hops
-  const topByTVLUsingTokenInSecondHopsMap: Map<string, SecondHopPools<V3SubgraphPool>> = new Map();
-  const topByTVLUsingTokenOutSecondHopsMap: Map<string, SecondHopPools<V3SubgraphPool>> = new Map();
+  const topByTVLUsingTokenInSecondHopsMap: Map<string, SecondHopPools<V4SubgraphPool>> = new Map();
+  const topByTVLUsingTokenOutSecondHopsMap: Map<string, SecondHopPools<V4SubgraphPool>> = new Map();
   const tokenInSecondHopAddresses = topByTVLUsingTokenIn.map((pool) =>
     tokenInAddress == pool.token0.id ? pool.token1.id : pool.token0.id
   );
@@ -732,7 +734,7 @@ export async function getV4CandidatePools({
     topByTVLUsingTokenInSecondHops.push(...secondHopPools.pools);
   }
 
-  const topByTVLUsingTokenOutSecondHops: V3SubgraphPool[] = [];
+  const topByTVLUsingTokenOutSecondHops: V4SubgraphPool[] = [];
   for (const secondHopPools of topByTVLUsingTokenOutSecondHopsMap.values()) {
     topByTVLUsingTokenOutSecondHops.push(...secondHopPools.pools);
   }

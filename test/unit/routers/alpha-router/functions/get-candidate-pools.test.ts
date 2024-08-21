@@ -1,7 +1,8 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 import sinon from 'sinon';
 import {
@@ -17,6 +18,9 @@ import {
   V3PoolProvider,
   V3SubgraphPool,
   V3SubgraphProvider,
+  V4PoolProvider,
+  V4SubgraphPool,
+  V4SubgraphProvider,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
 import {
@@ -34,19 +38,23 @@ import {
   DAI_WETH,
   DAI_WETH_MEDIUM,
   pairToV2SubgraphPool,
-  poolToV3SubgraphPool,
+  poolToV3SubgraphPool, poolToV4SubgraphPool,
   USDC_DAI,
   USDC_DAI_LOW,
-  USDC_DAI_MEDIUM,
+  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW,
   USDC_WETH,
   USDC_WETH_LOW,
   WETH9_USDT_LOW,
   WETH_DAI,
-  WETH_USDT,
+  WETH_USDT
 } from '../../../../test-util/mock-data';
 
 describe('get candidate pools', () => {
-  const poolToV3Subgraph = (pool: Pool) => poolToV3SubgraphPool(
+  const poolToV4Subgraph = (pool: V4Pool) => poolToV4SubgraphPool(
+    pool,
+    `${pool.token0.wrapped.address.toLowerCase()}#${pool.token1.wrapped.address.toLowerCase()}`
+  );
+  const poolToV3Subgraph = (pool: V3Pool) => poolToV3SubgraphPool(
     pool,
     `${pool.fee.toString()}#${pool.token0.address.toLowerCase()}#${pool.token1.address.toLowerCase()}`
   );
@@ -55,6 +63,8 @@ describe('get candidate pools', () => {
     `${pair.token0.address.toLowerCase()}#${pair.token1.address.toLowerCase()}`
   );
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
+  let mockV4PoolProvider: sinon.SinonStubbedInstance<V4PoolProvider>;
+  let mockV4SubgraphProvider: sinon.SinonStubbedInstance<V4SubgraphProvider>;
   let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let mockV3SubgraphProvider: sinon.SinonStubbedInstance<V3SubgraphProvider>;
   let mockBlockTokenListProvider: sinon.SinonStubbedInstance<CachingTokenListProvider>;
@@ -94,6 +104,10 @@ describe('get candidate pools', () => {
   };
 
   const mockTokens = [USDC, DAI, WRAPPED_NATIVE_CURRENCY[1]!, USDT];
+
+  const mockV4Pools = [
+    USDC_DAI_V4_LOW
+  ]
   const mockV3Pools = [
     USDC_DAI_LOW,
     USDC_DAI_MEDIUM,
@@ -111,6 +125,8 @@ describe('get candidate pools', () => {
 
   beforeEach(() => {
     mockTokenProvider = sinon.createStubInstance(TokenProvider);
+    mockV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+    mockV4SubgraphProvider = sinon.createStubInstance(V4SubgraphProvider);
     mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
     mockV3SubgraphProvider = sinon.createStubInstance(V3SubgraphProvider);
     mockBlockTokenListProvider = sinon.createStubInstance(
@@ -119,6 +135,7 @@ describe('get candidate pools', () => {
     mockV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
     mockV2SubgraphProvider = sinon.createStubInstance(V2SubgraphProvider);
 
+    const mockV4SubgraphPools: V4SubgraphPool[] = mockV4Pools.map(poolToV4Subgraph);
     const mockV3SubgraphPools: V3SubgraphPool[] = mockV3Pools.map(poolToV3Subgraph);
     const mockV2SubgraphPools: V2SubgraphPool[] = mockV2Pools.map(pairToV2Subgraph);
 
@@ -130,12 +147,16 @@ describe('get candidate pools', () => {
     mockV3PoolProvider.getPoolAddress.callsFake(
       (t1: Token, t2: Token, f: FeeAmount) => {
         return {
-          poolAddress: Pool.getAddress(t1, t2, f),
+          poolAddress: V3Pool.getAddress(t1, t2, f),
           token0: t1.sortsBefore(t2) ? t1 : t2,
           token1: t1.sortsBefore(t2) ? t2 : t1,
         };
       }
     );
+
+    mockV4SubgraphProvider.getPools.resolves(mockV4SubgraphPools);
+    mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(mockV4Pools));
+
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
   });
 
@@ -237,7 +258,7 @@ describe('get candidate pools', () => {
 
     mockV3SubgraphProvider.getPools.resolves(subgraphPools);
 
-    const DAI_WETH_LOW = new Pool(
+    const DAI_WETH_LOW = new V3Pool(
       DAI,
       WRAPPED_NATIVE_CURRENCY[1]!,
       FeeAmount.LOW,
@@ -278,7 +299,7 @@ describe('get candidate pools', () => {
   });
 
   describe('getMixedCrossLiquidityCandidatePools', () => {
-    const mockV3CandidatePools = (withTokenIn: Pool[], withTokenOut: Pool[], selectedPools: Pool[] = []) => {
+    const mockV3CandidatePools = (withTokenIn: V3Pool[], withTokenOut: V3Pool[], selectedPools: V3Pool[] = []) => {
       const poolsWithTokenIn = withTokenIn.map(poolToV3Subgraph);
       const poolsWithTokenOut = withTokenOut.map(poolToV3Subgraph);
       const subgraphPools = [...selectedPools, ...withTokenIn, ...withTokenOut].map(poolToV3Subgraph);

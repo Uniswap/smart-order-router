@@ -5,14 +5,11 @@ import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../util';
 
 import { ProviderConfig } from './provider';
-import { V3RawSubgraphPool, V3SubgraphPool } from './v3/subgraph-provider';
-import { V4RawSubgraphPool, V4SubgraphPool } from './v4/subgraph-provider';
 
-export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
+export interface ISubgraphProvider<TSubgraphPool extends V3V4SubgraphPool> {
   getPools(
     tokenIn?: Token,
     tokenOut?: Token,
@@ -22,7 +19,38 @@ export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
 
 const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 
-export abstract class SubgraphProvider {
+export type V3V4SubgraphPool = {
+  id: string;
+  feeTier: string;
+  liquidity: string;
+  token0: {
+    id: string;
+  };
+  token1: {
+    id: string;
+  };
+  tvlETH: number;
+  tvlUSD: number;
+}
+
+export type V3V4RawSubgraphPool = {
+  id: string;
+  feeTier: string;
+  liquidity: string;
+  token0: {
+    symbol: string;
+    id: string;
+  };
+  token1: {
+    symbol: string;
+    id: string;
+  };
+  totalValueLockedUSD: string;
+  totalValueLockedETH: string;
+  totalValueLockedUSDUntracked: string;
+};
+
+export abstract class SubgraphProvider<TRawSubgraphPool extends V3V4RawSubgraphPool, TSubgraphPool extends V3V4SubgraphPool> {
   private client: GraphQLClient;
 
   constructor(
@@ -46,7 +74,7 @@ export abstract class SubgraphProvider {
     _tokenIn?: Token,
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
-  ): Promise<(V3SubgraphPool | V4SubgraphPool)[]> {
+  ): Promise<TSubgraphPool[]> {
     const beforeAll = Date.now();
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
@@ -77,7 +105,7 @@ export abstract class SubgraphProvider {
       }
     `;
 
-    let pools: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
+    let pools: TRawSubgraphPool[] = [];
 
     log.info(
       `Getting ${
@@ -96,11 +124,11 @@ export abstract class SubgraphProvider {
         const timeout = new Timeout();
 
         const getPools = async (): Promise<
-          (V3RawSubgraphPool | V4RawSubgraphPool)[]
+          TRawSubgraphPool[]
         > => {
           let lastId = '';
-          let pools: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
-          let poolsPage: (V3RawSubgraphPool | V4RawSubgraphPool)[] = [];
+          let pools: TRawSubgraphPool[] = [];
+          let poolsPage: TRawSubgraphPool[] = [];
 
           // metrics variables
           let totalPages = 0;
@@ -109,7 +137,7 @@ export abstract class SubgraphProvider {
             totalPages += 1;
 
             const poolsResult = await this.client.request<{
-              pools: (V3RawSubgraphPool | V4RawSubgraphPool)[];
+              pools: TRawSubgraphPool[];
             }>(query, {
               pageSize: PAGE_SIZE,
               id: lastId,
@@ -207,7 +235,7 @@ export abstract class SubgraphProvider {
     );
 
     const beforeFilter = Date.now();
-    const poolsSanitized = pools
+    const poolsSanitized: TSubgraphPool[] = pools
       .filter(
         (pool) =>
           parseInt(pool.liquidity) > 0 ||
@@ -228,7 +256,7 @@ export abstract class SubgraphProvider {
           liquidity: pool.liquidity,
           tvlETH: parseFloat(totalValueLockedETH),
           tvlUSD: parseFloat(totalValueLockedUSD),
-        };
+        } as TSubgraphPool;
       });
 
     metric.putMetric(

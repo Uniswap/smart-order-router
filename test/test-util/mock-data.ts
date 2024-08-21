@@ -2,7 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Currency, Ether, Token } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 import {
   AlphaRouterConfig,
@@ -16,9 +17,12 @@ import {
   V2SubgraphPool,
   V3PoolAccessor,
   V3SubgraphPool,
+  V4PoolAccessor,
+  V4SubgraphPool,
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../src';
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
@@ -65,8 +69,20 @@ export const MOCK_ZERO_DEC_TOKEN = new Token(
   'Mock Zero Dec'
 );
 
+// Mock V4 Pools
+export const USDC_DAI_V4_LOW = new V4Pool(
+  USDC,
+  MOCK_ZERO_DEC_TOKEN,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+
 // Mock V3 Pools
-export const USDC_MOCK_LOW = new Pool(
+export const USDC_MOCK_LOW = new V3Pool(
   USDC,
   MOCK_ZERO_DEC_TOKEN,
   FeeAmount.LOW,
@@ -75,7 +91,7 @@ export const USDC_MOCK_LOW = new Pool(
   0
 );
 
-export const USDC_WETH_LOW = new Pool(
+export const USDC_WETH_LOW = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.LOW,
@@ -84,7 +100,7 @@ export const USDC_WETH_LOW = new Pool(
   0
 );
 
-export const USDC_WETH_MEDIUM = new Pool(
+export const USDC_WETH_MEDIUM = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.MEDIUM,
@@ -95,7 +111,7 @@ export const USDC_WETH_MEDIUM = new Pool(
 
 // Mock USDC weth pools with different liquidity
 
-export const USDC_WETH_LOW_LIQ_LOW = new Pool(
+export const USDC_WETH_LOW_LIQ_LOW = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.LOW,
@@ -104,7 +120,7 @@ export const USDC_WETH_LOW_LIQ_LOW = new Pool(
   0
 );
 
-export const USDC_WETH_MED_LIQ_MEDIUM = new Pool(
+export const USDC_WETH_MED_LIQ_MEDIUM = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.MEDIUM,
@@ -113,7 +129,7 @@ export const USDC_WETH_MED_LIQ_MEDIUM = new Pool(
   0
 );
 
-export const USDC_WETH_HIGH_LIQ_HIGH = new Pool(
+export const USDC_WETH_HIGH_LIQ_HIGH = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.HIGH,
@@ -122,7 +138,7 @@ export const USDC_WETH_HIGH_LIQ_HIGH = new Pool(
   0
 );
 
-export const WETH9_USDT_LOW = new Pool(
+export const WETH9_USDT_LOW = new V3Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   USDT,
   FeeAmount.LOW,
@@ -130,7 +146,7 @@ export const WETH9_USDT_LOW = new Pool(
   200,
   0
 );
-export const USDC_DAI_LOW = new Pool(
+export const USDC_DAI_LOW = new V3Pool(
   USDC,
   DAI,
   FeeAmount.LOW,
@@ -138,7 +154,7 @@ export const USDC_DAI_LOW = new Pool(
   10,
   0
 );
-export const USDC_DAI_MEDIUM = new Pool(
+export const USDC_DAI_MEDIUM = new V3Pool(
   USDC,
   DAI,
   FeeAmount.MEDIUM,
@@ -146,7 +162,7 @@ export const USDC_DAI_MEDIUM = new Pool(
   8,
   0
 );
-export const USDC_USDT_MEDIUM = new Pool(
+export const USDC_USDT_MEDIUM = new V3Pool(
   USDC,
   USDT,
   FeeAmount.MEDIUM,
@@ -155,7 +171,7 @@ export const USDC_USDT_MEDIUM = new Pool(
   0
 );
 
-export const DAI_USDT_LOW = new Pool(
+export const DAI_USDT_LOW = new V3Pool(
   DAI,
   USDT,
   FeeAmount.LOW,
@@ -163,7 +179,7 @@ export const DAI_USDT_LOW = new Pool(
   10,
   0
 );
-export const DAI_USDT_MEDIUM = new Pool(
+export const DAI_USDT_MEDIUM = new V3Pool(
   DAI,
   USDT,
   FeeAmount.MEDIUM,
@@ -171,7 +187,7 @@ export const DAI_USDT_MEDIUM = new Pool(
   10,
   0
 );
-export const DAI_WETH_MEDIUM = new Pool(
+export const DAI_WETH_MEDIUM = new V3Pool(
   DAI,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.MEDIUM,
@@ -179,7 +195,7 @@ export const DAI_WETH_MEDIUM = new Pool(
   10,
   0
 );
-export const WBTC_USDT_MEDIUM = new Pool(
+export const WBTC_USDT_MEDIUM = new V3Pool(
   USDT,
   WBTC,
   FeeAmount.MEDIUM,
@@ -187,7 +203,7 @@ export const WBTC_USDT_MEDIUM = new Pool(
   500,
   0
 );
-export const WBTC_WETH_MEDIUM = new Pool(
+export const WBTC_WETH_MEDIUM = new V3Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   WBTC,
   FeeAmount.MEDIUM,
@@ -195,7 +211,7 @@ export const WBTC_WETH_MEDIUM = new Pool(
   500,
   0
 );
-export const UNI_WETH_MEDIUM = new Pool(
+export const UNI_WETH_MEDIUM = new V3Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   UNI_MAINNET,
   FeeAmount.MEDIUM,
@@ -245,8 +261,29 @@ export const WBTC_WETH = new Pair(
   CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
 );
 
+export const poolToV4SubgraphPool = (
+  pool: V4Pool,
+  idx: number | string
+): V4SubgraphPool => {
+  return {
+    id: idx.toString(),
+    feeTier: pool.fee.toString(),
+    tickSpacing: pool.tickSpacing.toString(),
+    hooks: pool.hooks,
+    liquidity: pool.liquidity.toString(),
+    token0: {
+      id: pool.token0.wrapped.address,
+    },
+    token1: {
+      id: pool.token1.wrapped.address,
+    },
+    tvlETH: parseFloat(pool.liquidity.toString()),
+    tvlUSD: parseFloat(pool.liquidity.toString()),
+  };
+}
+
 export const poolToV3SubgraphPool = (
-  pool: Pool,
+  pool: V3Pool,
   idx: number | string
 ): V3SubgraphPool => {
   return {
@@ -282,8 +319,25 @@ export const pairToV2SubgraphPool = (
   };
 };
 
-export const buildMockV3PoolAccessor: (pools: Pool[]) => V3PoolAccessor = (
-  pools: Pool[]
+export const buildMockV4PoolAccessor: (pools: V4Pool[]) => V4PoolAccessor = (
+  pools: V4Pool[]
+) => {
+  return {
+    getAllPools: () => pools,
+    getPoolById: (poolId: string) =>
+      _.find(pools, (p) => p.poolId.toLowerCase() == poolId.toLowerCase()),
+    getPool: (tokenA, tokenB, fee, tickSpacing, hooks) =>
+      _.find(
+        pools,
+        (p) =>
+          V4Pool.getPoolId(p.currency0, p.currency1, p.fee, p.tickSpacing, p.hooks) ==
+          V4Pool.getPoolId(tokenA, tokenB, fee, tickSpacing, hooks)
+      ),
+  };
+}
+
+export const buildMockV3PoolAccessor: (pools: V3Pool[]) => V3PoolAccessor = (
+  pools: V3Pool[]
 ) => {
   return {
     getAllPools: () => pools,
@@ -291,15 +345,15 @@ export const buildMockV3PoolAccessor: (pools: Pool[]) => V3PoolAccessor = (
       _.find(
         pools,
         (p) =>
-          Pool.getAddress(p.token0, p.token1, p.fee).toLowerCase() ==
+          V3Pool.getAddress(p.token0, p.token1, p.fee).toLowerCase() ==
           address.toLowerCase()
       ),
     getPool: (tokenA, tokenB, fee) =>
       _.find(
         pools,
         (p) =>
-          Pool.getAddress(p.token0, p.token1, p.fee) ==
-          Pool.getAddress(tokenA, tokenB, fee)
+          V3Pool.getAddress(p.token0, p.token1, p.fee) ==
+          V3Pool.getAddress(tokenA, tokenB, fee)
       ),
   };
 };
