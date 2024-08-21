@@ -7,9 +7,10 @@ import _ from 'lodash';
 
 import { log, metric } from '../util';
 
+import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { ProviderConfig } from './provider';
 
-export interface ISubgraphProvider<TSubgraphPool extends V3V4SubgraphPool> {
+export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
   getPools(
     tokenIn?: Token,
     tokenOut?: Token,
@@ -31,7 +32,7 @@ export type V3V4SubgraphPool = {
   };
   tvlETH: number;
   tvlUSD: number;
-}
+};
 
 export type V3V4RawSubgraphPool = {
   id: string;
@@ -50,7 +51,10 @@ export type V3V4RawSubgraphPool = {
   totalValueLockedUSDUntracked: string;
 };
 
-export abstract class SubgraphProvider<TRawSubgraphPool extends V3V4RawSubgraphPool, TSubgraphPool extends V3V4SubgraphPool> {
+export abstract class SubgraphProvider<
+  TRawSubgraphPool extends V3V4RawSubgraphPool,
+  TSubgraphPool extends V3V4SubgraphPool
+> {
   private client: GraphQLClient;
 
   constructor(
@@ -123,9 +127,7 @@ export abstract class SubgraphProvider<TRawSubgraphPool extends V3V4RawSubgraphP
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<
-          TRawSubgraphPool[]
-        > => {
+        const getPools = async (): Promise<TRawSubgraphPool[]> => {
           let lastId = '';
           let pools: TRawSubgraphPool[] = [];
           let poolsPage: TRawSubgraphPool[] = [];
