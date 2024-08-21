@@ -72,7 +72,51 @@ export const MOCK_ZERO_DEC_TOKEN = new Token(
 // Mock V4 Pools
 export const USDC_DAI_V4_LOW = new V4Pool(
   USDC,
-  MOCK_ZERO_DEC_TOKEN,
+  DAI,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+
+export const USDC_DAI_V4_MEDIUM = new V4Pool(
+  USDC,
+  DAI,
+  FeeAmount.MEDIUM,
+60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const USDC_WETH_V4_LOW = new V4Pool(
+  USDC,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
+export const WETH9_USDT_V4_LOW = new V4Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  USDT,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  200,
+  0
+);
+
+export const DAI_USDT_V4_LOW = new V4Pool(
+  DAI,
+  USDT,
   FeeAmount.LOW,
   10,
   ADDRESS_ZERO,

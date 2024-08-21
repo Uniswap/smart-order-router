@@ -1,4 +1,4 @@
-import { Protocol } from '@uniswap/router-sdk';
+import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
 import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
@@ -36,17 +36,17 @@ import {
   buildMockV3PoolAccessor,
   buildMockV4PoolAccessor,
   DAI_USDT,
-  DAI_USDT_LOW,
+  DAI_USDT_LOW, DAI_USDT_V4_LOW,
   DAI_WETH,
   DAI_WETH_MEDIUM,
   pairToV2SubgraphPool,
   poolToV3SubgraphPool, poolToV4SubgraphPool,
   USDC_DAI,
   USDC_DAI_LOW,
-  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW,
+  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW, USDC_DAI_V4_MEDIUM,
   USDC_WETH,
-  USDC_WETH_LOW,
-  WETH9_USDT_LOW,
+  USDC_WETH_LOW, USDC_WETH_V4_LOW,
+  WETH9_USDT_LOW, WETH9_USDT_V4_LOW,
   WETH_DAI,
   WETH_USDT
 } from '../../../../test-util/mock-data';
@@ -108,7 +108,11 @@ describe('get candidate pools', () => {
   const mockTokens = [USDC, DAI, WRAPPED_NATIVE_CURRENCY[1]!, USDT];
 
   const mockV4Pools = [
-    USDC_DAI_V4_LOW
+    USDC_DAI_V4_LOW,
+    USDC_DAI_V4_MEDIUM,
+    USDC_WETH_V4_LOW,
+    WETH9_USDT_V4_LOW,
+    DAI_USDT_V4_LOW
   ]
   const mockV3Pools = [
     USDC_DAI_LOW,
@@ -189,7 +193,7 @@ describe('get candidate pools', () => {
             [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW],
           ], { blockNumber: undefined })
         ).toBeTruthy();
-      } else {
+      } else if (protocol === Protocol.V4) {
         await getV4CandidatePools({
           tokenIn: USDC,
           tokenOut: DAI,
@@ -208,14 +212,14 @@ describe('get candidate pools', () => {
           chainId: ChainId.MAINNET,
           }
         )
-      }
 
-      expect(
-        mockV4PoolProvider.getPools.calledWithExactly([
-          [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW, 10, ADDRESS_ZERO],
-          [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW, 10, ADDRESS_ZERO],
-        ], { blockNumber: undefined })
-      ).toBeTruthy();
+        expect(
+          mockV4PoolProvider.getPools.calledWithExactly([
+            [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW, 10, ADDRESS_ZERO],
+            [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW, 10, ADDRESS_ZERO],
+          ], { blockNumber: undefined })
+        ).toBeTruthy();
+      }
     });
   })
 
