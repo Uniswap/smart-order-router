@@ -26,6 +26,7 @@ import {
 import {
   getMixedCrossLiquidityCandidatePools,
   getV3CandidatePools,
+  getV4CandidatePools,
   V2CandidatePools,
   V3CandidatePools
 } from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
@@ -33,6 +34,7 @@ import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,
   buildMockV3PoolAccessor,
+  buildMockV4PoolAccessor,
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_WETH,
@@ -160,32 +162,64 @@ describe('get candidate pools', () => {
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
   });
 
-  test('succeeds to get top pools by liquidity', async () => {
-    await getV3CandidatePools({
-      tokenIn: USDC,
-      tokenOut: DAI,
-      routeType: TradeType.EXACT_INPUT,
-      routingConfig: {
-        ...ROUTING_CONFIG,
-        v3PoolSelection: {
-          ...ROUTING_CONFIG.v3PoolSelection,
-          topN: 2,
-        },
-      },
-      poolProvider: mockV3PoolProvider,
-      subgraphProvider: mockV3SubgraphProvider,
-      tokenProvider: mockTokenProvider,
-      blockedTokenListProvider: mockBlockTokenListProvider,
-      chainId: ChainId.MAINNET,
-    });
+  [Protocol.V3, Protocol.V4].forEach((protocol) => {
+    test(`succeeds to get top pools by liquidity for protocol ${protocol}`, async () => {
+      if (protocol === Protocol.V3) {
+        await getV3CandidatePools({
+          tokenIn: USDC,
+          tokenOut: DAI,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v3PoolSelection: {
+              ...ROUTING_CONFIG.v3PoolSelection,
+              topN: 2,
+            },
+          },
+          poolProvider: mockV3PoolProvider,
+          subgraphProvider: mockV3SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+        });
 
-    expect(
-      mockV3PoolProvider.getPools.calledWithExactly([
-        [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW],
-        [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW],
-      ], { blockNumber: undefined })
-    ).toBeTruthy();
-  });
+        expect(
+          mockV3PoolProvider.getPools.calledWithExactly([
+            [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW],
+            [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW],
+          ], { blockNumber: undefined })
+        ).toBeTruthy();
+      } else {
+        await getV4CandidatePools({
+          tokenIn: USDC,
+          tokenOut: DAI,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v4PoolSelection: {
+              ...ROUTING_CONFIG.v4PoolSelection,
+              topN: 2,
+            },
+          },
+          poolProvider: mockV4PoolProvider,
+          subgraphProvider: mockV4SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+          }
+        )
+      }
+
+      expect(
+        mockV4PoolProvider.getPools.calledWithExactly([
+          [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW, 10, ADDRESS_ZERO],
+          [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW, 10, ADDRESS_ZERO],
+        ], { blockNumber: undefined })
+      ).toBeTruthy();
+    });
+  })
+
+
 
   test('succeeds to get top pools directly swapping token in for token out', async () => {
     await getV3CandidatePools({

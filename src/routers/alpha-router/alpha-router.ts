@@ -1924,7 +1924,7 @@ export class AlphaRouter
           MetricLoggerUnit.Milliseconds
         );
         return candidatePools;
-      })
+      });
     }
 
     let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> =
@@ -1988,7 +1988,7 @@ export class AlphaRouter
     // for v4, for now we explicitly require people to specify
     if (v4ProtocolSpecified) {
       // we do a blank invoke here so as not to have ESLint error.
-      v4CandidatePoolsPromise
+      v4CandidatePoolsPromise;
     }
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified
