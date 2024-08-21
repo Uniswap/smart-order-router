@@ -77,7 +77,7 @@ export interface IV3SubgraphProvider {
 }
 
 export class V3SubgraphProvider
-  extends SubgraphProvider
+  extends SubgraphProvider<V3RawSubgraphPool, V3SubgraphPool>
   implements IV3SubgraphProvider
 {
   constructor(

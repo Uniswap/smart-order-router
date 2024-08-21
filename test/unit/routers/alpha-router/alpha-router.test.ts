@@ -112,6 +112,14 @@ describe('alpha router', () => {
   let alphaRouter: AlphaRouter;
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
+    v4PoolSelection: {
+      topN: 0,
+      topNDirectSwaps: 0,
+      topNTokenInOut: 0,
+      topNSecondHop: 0,
+      topNWithEachBaseToken: 0,
+      topNWithBaseToken: 0,
+    },
     v3PoolSelection: {
       topN: 0,
       topNDirectSwaps: 0,

@@ -201,7 +201,9 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
           COST_PER_EXTRA_HOP_V2.mul(section.length - 1)
         );
       } else if (section.every((pool) => pool instanceof V4Pool)) {
-        throw new Error('V4 pools are not supported in the heuristic gas model')
+        throw new Error(
+          'V4 pools are not supported in the heuristic gas model'
+        );
       }
     });
 

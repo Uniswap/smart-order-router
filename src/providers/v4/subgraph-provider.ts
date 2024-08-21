@@ -7,6 +7,8 @@ import { SubgraphProvider } from '../subgraph-provider';
 export interface V4SubgraphPool {
   id: string; // v4 pool id is the internal PoolId from pool manager
   feeTier: string;
+  tickSpacing: string; // TODO: waiting on v4 subgraph to return tickSpacing
+  hooks: string;
   liquidity: string;
   token0: {
     id: string;
@@ -21,6 +23,8 @@ export interface V4SubgraphPool {
 export type V4RawSubgraphPool = {
   id: string;
   feeTier: string;
+  tickSpacing: string; // TODO: waiting on v4 subgraph to return tickSpacing
+  hooks: string;
   liquidity: string;
   token0: {
     symbol: string;
@@ -54,7 +58,7 @@ export interface IV4SubgraphProvider {
 }
 
 export class V4SubgraphProvider
-  extends SubgraphProvider
+  extends SubgraphProvider<V4RawSubgraphPool, V4SubgraphPool>
   implements IV4SubgraphProvider
 {
   constructor(
