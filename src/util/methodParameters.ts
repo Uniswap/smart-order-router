@@ -24,9 +24,9 @@ import {
   MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
-  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
+  SWAP_ROUTER_02_ADDRESSES,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
 } from '..';

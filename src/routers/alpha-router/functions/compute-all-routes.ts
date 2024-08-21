@@ -68,21 +68,22 @@ export function computeAllV2Routes(
 export function computeAllMixedRoutes(
   tokenIn: Token,
   tokenOut: Token,
-  parts: (V3Pool | Pair)[],
+  parts: (V4Pool | V3Pool | Pair)[],
   maxHops: number
 ): MixedRoute[] {
-  const routesRaw = computeAllRoutes<V3Pool | Pair, MixedRoute>(
+  const routesRaw = computeAllRoutes<V4Pool | V3Pool | Pair, MixedRoute>(
     tokenIn,
     tokenOut,
-    (route: (V3Pool | Pair)[], tokenIn: Token, tokenOut: Token) => {
+    (route: (V4Pool | V3Pool | Pair)[], tokenIn: Token, tokenOut: Token) => {
       return new MixedRoute(route, tokenIn, tokenOut);
     },
     parts,
     maxHops
   );
-  /// filter out pure v3 and v2 routes
+  /// filter out pure v4 and v3 and v2 routes
   return routesRaw.filter((route) => {
     return (
+      !route.pools.every((pool) => pool instanceof V4Pool) &&
       !route.pools.every((pool) => pool instanceof V3Pool) &&
       !route.pools.every((pool) => pool instanceof Pair)
     );

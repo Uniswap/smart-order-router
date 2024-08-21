@@ -17,11 +17,11 @@ import {
   DAI_MAINNET as DAI, DEFAULT_TOKEN_PROPERTIES_RESULT,
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
-  MixedRoute,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
-  RouteWithQuotes,
+  RouteWithQuotes, SupportedExactOutRoutes,
+  SupportedRoutes,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapRouterProvider,
@@ -226,12 +226,12 @@ describe('alpha router', () => {
 
     mockOnChainQuoteProvider = sinon.createStubInstance(OnChainQuoteProvider);
     mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
-      getQuotesManyExactInFn<V3Route | V2Route | MixedRoute>()
+      getQuotesManyExactInFn<SupportedRoutes>()
     );
     mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
       async (
         amountOuts: CurrencyAmount[],
-        routes: V3Route[],
+        routes: SupportedExactOutRoutes[],
         _providerConfig?: ProviderConfig
       ) => {
         const routesWithQuotes = _.map(routes, (r) => {
@@ -455,7 +455,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: (V3Route | V2Route | MixedRoute)[],
+          routes: SupportedRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -636,7 +636,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -675,7 +675,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -857,7 +857,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: (V3Route | V2Route | MixedRoute)[],
+          routes: SupportedRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1330,7 +1330,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1368,7 +1368,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1898,7 +1898,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: V3Route[],
+          routes: SupportedExactOutRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -3195,7 +3195,7 @@ type GetQuotesManyExactInFnParams = {
   sqrtPriceX96AfterList?: BigNumber[];
 };
 
-function getQuotesManyExactInFn<TRoute extends V3Route | V2Route | MixedRoute>(
+function getQuotesManyExactInFn<TRoute extends SupportedRoutes>(
   options: GetQuotesManyExactInFnParams = {}
 ): (
   amountIns: CurrencyAmount[],
