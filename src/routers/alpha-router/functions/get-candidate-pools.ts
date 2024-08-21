@@ -386,6 +386,7 @@ export type V4CandidatePools = {
   subgraphPools: V4SubgraphPool[];
 };
 
+// TODO: ROUTE-241 - refactor getV3CandidatePools against getV4CandidatePools
 export async function getV4CandidatePools({
   tokenIn,
   tokenOut,
@@ -518,7 +519,7 @@ export async function getV4CandidatePools({
       return (
         !poolAddressesSoFar.has(subgraphPool.id) &&
         ((subgraphPool.token0.id == tokenInAddress &&
-            subgraphPool.token1.id == tokenOutAddress) ||
+          subgraphPool.token1.id == tokenOutAddress) ||
           (subgraphPool.token1.id == tokenInAddress &&
             subgraphPool.token0.id == tokenOutAddress))
       );
@@ -720,7 +721,7 @@ export async function getV4CandidatePools({
     .value();
 
   log.info(
-    `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} V3 pools we are considering`
+    `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} V4 pools we are considering`
   );
 
   const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {
@@ -777,7 +778,13 @@ export async function getV4CandidatePools({
       return undefined;
     }
 
-    return [tokenA, tokenB, fee, Number(subgraphPool.tickSpacing), subgraphPool.hooks];
+    return [
+      tokenA,
+      tokenB,
+      fee,
+      Number(subgraphPool.tickSpacing),
+      subgraphPool.hooks,
+    ];
   });
 
   const tokenPairs = _.compact(tokenPairsRaw);

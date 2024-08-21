@@ -3,7 +3,7 @@ import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
   Protocol,
-  Trade
+  Trade,
 } from '@uniswap/router-sdk';
 import {
   Currency,

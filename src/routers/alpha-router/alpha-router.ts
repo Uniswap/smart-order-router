@@ -1908,7 +1908,8 @@ export class AlphaRouter
       Promise.resolve(undefined);
 
     // we are explicitly requiring people to specify v4 for now
-    if (v4ProtocolSpecified) { // if (v4ProtocolSpecified || noProtocolsSpecified) {
+    if (v4ProtocolSpecified) {
+      // if (v4ProtocolSpecified || noProtocolsSpecified) {
       v4CandidatePoolsPromise = getV4CandidatePools({
         tokenIn,
         tokenOut,
