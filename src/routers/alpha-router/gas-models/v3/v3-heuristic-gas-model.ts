@@ -195,9 +195,32 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         ) as CurrencyAmount;
 
         // Convert gasCostInTermsOfAmountToken to quote token using execution price
-        const syntheticGasCostInTermsOfQuoteToken = executionPrice.quote(
-          gasCostInTermsOfAmountToken
-        );
+        let syntheticGasCostInTermsOfQuoteToken;
+
+        try {
+          syntheticGasCostInTermsOfQuoteToken = executionPrice.quote(
+            gasCostInTermsOfAmountToken
+          );
+        } catch (error) {
+          // This is in response to the 'division by zero' error
+          // during https://uniswapteam.slack.com/archives/C059TGEC57W/p1724360921341949
+          if (error instanceof RangeError && error.message.includes('Division by zero')) {
+            log.error(
+              {
+                nativeAndAmountTokenPrice: nativeAndAmountTokenPrice.toSignificant(6),
+                gasCostInTermsOfQuoteToken: gasCostInTermsOfQuoteToken
+                  ? gasCostInTermsOfQuoteToken.toExact()
+                  : 0,
+                gasCostInTermsOfAmountToken: gasCostInTermsOfAmountToken.toExact(),
+                executionPrice: executionPrice.toSignificant(6),
+              },
+              'Error calculating synthetic gas cost in terms of quote token'
+            );
+          }
+
+          // We don't want to change the behavior here. If it throws an error, we want to log it and re-throw
+          throw error;
+        }
 
         // Note that the syntheticGasCost being lessThan the original quoted value is not always strictly better
         // e.g. the scenario where the amountToken/ETH pool is very illiquid as well and returns an extremely small number
