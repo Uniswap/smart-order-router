@@ -130,7 +130,7 @@ import {
   SwapToRatioStatus,
   SwapType,
   V2Route,
-  V3Route,
+  V3Route, V4Route
 } from '../router';
 
 import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
@@ -174,6 +174,7 @@ import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-mod
 import { NATIVE_OVERHEAD } from './gas-models/v3/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
+import { V4Quoter } from './quoters/v4-quoter';
 
 export type AlphaRouterParams = {
   /**
@@ -493,6 +494,7 @@ export class AlphaRouter
   protected simulator?: Simulator;
   protected v2Quoter: V2Quoter;
   protected v3Quoter: V3Quoter;
+  protected v4Quoter: V4Quoter;
   protected mixedQuoter: MixedQuoter;
   protected routeCachingProvider?: IRouteCachingProvider;
   protected tokenPropertiesProvider: ITokenPropertiesProvider;
@@ -918,6 +920,16 @@ export class AlphaRouter
     this.v3Quoter = new V3Quoter(
       this.v3SubgraphProvider,
       this.v3PoolProvider,
+      this.onChainQuoteProvider,
+      this.tokenProvider,
+      this.chainId,
+      this.blockedTokenListProvider,
+      this.tokenValidatorProvider
+    );
+
+    this.v4Quoter = new V4Quoter(
+      this.v4SubgraphProvider,
+      this.v4PoolProvider,
       this.onChainQuoteProvider,
       this.tokenProvider,
       this.chainId,
@@ -1715,6 +1727,9 @@ export class AlphaRouter
     );
     const quotePromises: Promise<GetQuotesResult>[] = [];
 
+    const v4Routes = cachedRoutes.routes.filter(
+      (route) => route.protocol === Protocol.V4
+    );
     const v3Routes = cachedRoutes.routes.filter(
       (route) => route.protocol === Protocol.V3
     );
@@ -1735,6 +1750,43 @@ export class AlphaRouter
     } else {
       // In this case this means that there's no route, so we return null
       return Promise.resolve(null);
+    }
+
+    if (v4Routes.length > 0) {
+      const v4RoutesFromCache: V4Route[] = v4Routes.map(
+        (cachedRoute) => cachedRoute.route as V4Route
+      );
+      metric.putMetric(
+        'SwapRouteFromCache_V4_GetQuotes_Request',
+        1,
+        MetricLoggerUnit.Count
+      );
+
+      const beforeGetQuotes = Date.now();
+
+      quotePromises.push(
+        this.v4Quoter
+          .getQuotes(
+            v4RoutesFromCache,
+            amounts,
+            percents,
+            quoteToken,
+            tradeType,
+            routingConfig,
+            undefined,
+            v3GasModel,
+            gasPriceWei
+          )
+          .then((result) => {
+            metric.putMetric(
+              `SwapRouteFromCache_V4_GetQuotes_Load`,
+              Date.now() - beforeGetQuotes,
+              MetricLoggerUnit.Milliseconds
+            );
+
+            return result;
+          })
+      );
     }
 
     if (v3Routes.length > 0) {
@@ -1990,8 +2042,41 @@ export class AlphaRouter
 
     // for v4, for now we explicitly require people to specify
     if (v4ProtocolSpecified) {
-      // we do a blank invoke here so as not to have ESLint error.
-      v4CandidatePoolsPromise;
+      log.info({ protocols, tradeType }, 'Routing across V4');
+
+      metric.putMetric(
+        'SwapRouteFromChain_V4_GetRoutesThenQuotes_Request',
+        1,
+        MetricLoggerUnit.Count
+      );
+      const beforeGetRoutesThenQuotes = Date.now();
+
+      quotePromises.push(
+        v4CandidatePoolsPromise.then((v4CandidatePools) =>
+          this.v4Quoter
+            .getRoutesThenQuotes(
+              tokenIn,
+              tokenOut,
+              amount,
+              amounts,
+              percents,
+              quoteToken,
+              v4CandidatePools!,
+              tradeType,
+              routingConfig,
+              v3GasModel
+            )
+            .then((result) => {
+              metric.putMetric(
+                `SwapRouteFromChain_V4_GetRoutesThenQuotes_Load`,
+                Date.now() - beforeGetRoutesThenQuotes,
+                MetricLoggerUnit.Milliseconds
+              );
+
+              return result;
+            })
+        )
+      );
     }
 
     // Maybe Quote V3 - if V3 is specified, or no protocol is specified

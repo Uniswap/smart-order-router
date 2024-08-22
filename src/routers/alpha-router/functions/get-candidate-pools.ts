@@ -88,6 +88,10 @@ export type CandidatePoolsBySelectionCriteria = {
   protocol: Protocol;
   selections: CandidatePoolsSelections;
 };
+export type SupportedCandidatePools =
+  | V2CandidatePools
+  | V3CandidatePools
+  | V4CandidatePools;
 
 /// Utility type for allowing us to use `keyof CandidatePoolsSelections` to map
 export type CandidatePoolsSelections = {

@@ -1,21 +1,46 @@
-import { Token } from '@uniswap/sdk-core';
+import { Currency, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
-import { MixedRoute, V2Route, V3Route } from '../../router';
+import {
+  MixedRoute,
+  SupportedRoutes,
+  V2Route,
+  V3Route,
+  V4Route,
+} from '../../router';
+
+export function computeAllV4Routes(
+  tokenIn: Currency,
+  tokenOut: Currency,
+  pools: V4Pool[],
+  maxHops: number
+): V4Route[] {
+  // TODO: ROUTE-217 - Support native currency routing in V4
+  return computeAllRoutes<V4Pool, V4Route>(
+    tokenIn.wrapped,
+    tokenOut.wrapped,
+    (route: V4Pool[], tokenIn: Currency, tokenOut: Currency) => {
+      return new V4Route(route, tokenIn, tokenOut);
+    },
+    pools,
+    maxHops
+  );
+}
 
 export function computeAllV3Routes(
   tokenIn: Token,
   tokenOut: Token,
-  pools: Pool[],
+  pools: V3Pool[],
   maxHops: number
 ): V3Route[] {
-  return computeAllRoutes<Pool, V3Route>(
+  return computeAllRoutes<V3Pool, V3Route>(
     tokenIn,
     tokenOut,
-    (route: Pool[], tokenIn: Token, tokenOut: Token) => {
+    (route: V3Pool[], tokenIn: Token, tokenOut: Token) => {
       return new V3Route(route, tokenIn, tokenOut);
     },
     pools,
@@ -43,13 +68,13 @@ export function computeAllV2Routes(
 export function computeAllMixedRoutes(
   tokenIn: Token,
   tokenOut: Token,
-  parts: (Pool | Pair)[],
+  parts: (V3Pool | Pair)[],
   maxHops: number
 ): MixedRoute[] {
-  const routesRaw = computeAllRoutes<Pool | Pair, MixedRoute>(
+  const routesRaw = computeAllRoutes<V3Pool | Pair, MixedRoute>(
     tokenIn,
     tokenOut,
-    (route: (Pool | Pair)[], tokenIn: Token, tokenOut: Token) => {
+    (route: (V3Pool | Pair)[], tokenIn: Token, tokenOut: Token) => {
       return new MixedRoute(route, tokenIn, tokenOut);
     },
     parts,
@@ -58,15 +83,15 @@ export function computeAllMixedRoutes(
   /// filter out pure v3 and v2 routes
   return routesRaw.filter((route) => {
     return (
-      !route.pools.every((pool) => pool instanceof Pool) &&
+      !route.pools.every((pool) => pool instanceof V3Pool) &&
       !route.pools.every((pool) => pool instanceof Pair)
     );
   });
 }
 
 export function computeAllRoutes<
-  TPool extends Pair | Pool,
-  TRoute extends V3Route | V2Route | MixedRoute
+  TPool extends Pair | V3Pool | V4Pool,
+  TRoute extends SupportedRoutes
 >(
   tokenIn: Token,
   tokenOut: Token,
@@ -113,11 +138,12 @@ export function computeAllRoutes<
         ? curPool.token1
         : curPool.token0;
 
-      if (tokensVisited.has(currentTokenOut.address.toLowerCase())) {
+      // TODO: ROUTE-217 - Support native currency routing in V4
+      if (tokensVisited.has(currentTokenOut.wrapped.address.toLowerCase())) {
         continue;
       }
 
-      tokensVisited.add(currentTokenOut.address.toLowerCase());
+      tokensVisited.add(currentTokenOut.wrapped.address.toLowerCase());
       currentRoute.push(curPool);
       poolsUsed[i] = true;
       computeRoutes(
@@ -126,11 +152,11 @@ export function computeAllRoutes<
         currentRoute,
         poolsUsed,
         tokensVisited,
-        currentTokenOut
+        currentTokenOut.wrapped
       );
       poolsUsed[i] = false;
       currentRoute.pop();
-      tokensVisited.delete(currentTokenOut.address.toLowerCase());
+      tokensVisited.delete(currentTokenOut.wrapped.address.toLowerCase());
     }
   };
 

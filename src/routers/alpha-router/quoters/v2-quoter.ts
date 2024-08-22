@@ -38,7 +38,7 @@ import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
 
-export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
+export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;

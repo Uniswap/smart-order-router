@@ -38,7 +38,8 @@ import { GetQuotesResult, GetRoutesResult } from './model';
 
 export class MixedQuoter extends BaseQuoter<
   [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
-  MixedRoute
+  MixedRoute,
+  Token
 > {
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
