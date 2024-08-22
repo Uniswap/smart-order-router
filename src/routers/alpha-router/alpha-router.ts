@@ -1465,47 +1465,64 @@ export class AlphaRouter
         !quoteDiff.equalTo(0) ||
         !(quoteGasAdjustedDiff.equalTo(0) || gasUsedDiff.eq(0))
       ) {
-        // Calculates the percentage of the difference with respect to the quoteFromChain (not from cache)
-        const misquotePercent = quoteGasAdjustedDiff
-          .divide(swapRouteFromChain.quoteGasAdjusted)
-          .multiply(100);
+        try {
+          // Calculates the percentage of the difference with respect to the quoteFromChain (not from cache)
+          const misquotePercent = quoteGasAdjustedDiff
+            .divide(swapRouteFromChain.quoteGasAdjusted)
+            .multiply(100);
 
-        metric.putMetric(
-          `TapcompareCachedRoute_quoteGasAdjustedDiffPercent`,
-          Number(misquotePercent.toExact()),
-          MetricLoggerUnit.Percent
-        );
+          metric.putMetric(
+            `TapcompareCachedRoute_quoteGasAdjustedDiffPercent`,
+            Number(misquotePercent.toExact()),
+            MetricLoggerUnit.Percent
+          );
 
-        log.warn(
-          {
-            quoteFromChain: swapRouteFromChain.quote.toExact(),
-            quoteFromCache: swapRouteFromCache.quote.toExact(),
-            quoteDiff: quoteDiff.toExact(),
-            quoteGasAdjustedFromChain:
-              swapRouteFromChain.quoteGasAdjusted.toExact(),
-            quoteGasAdjustedFromCache:
-              swapRouteFromCache.quoteGasAdjusted.toExact(),
-            quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
-            gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
-            gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
-            gasUsedDiff: gasUsedDiff.toString(),
-            routesFromChain: swapRouteFromChain.routes.toString(),
-            routesFromCache: swapRouteFromCache.routes.toString(),
-            amount: amount.toExact(),
-            originalAmount: cachedRoutes?.originalAmount,
-            pair: this.tokenPairSymbolTradeTypeChainId(
+          log.warn(
+            {
+              quoteFromChain: swapRouteFromChain.quote.toExact(),
+              quoteFromCache: swapRouteFromCache.quote.toExact(),
+              quoteDiff: quoteDiff.toExact(),
+              quoteGasAdjustedFromChain:
+                swapRouteFromChain.quoteGasAdjusted.toExact(),
+              quoteGasAdjustedFromCache:
+                swapRouteFromCache.quoteGasAdjusted.toExact(),
+              quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
+              gasUsedFromChain: swapRouteFromChain.estimatedGasUsed.toString(),
+              gasUsedFromCache: swapRouteFromCache.estimatedGasUsed.toString(),
+              gasUsedDiff: gasUsedDiff.toString(),
+              routesFromChain: swapRouteFromChain.routes.toString(),
+              routesFromCache: swapRouteFromCache.routes.toString(),
+              amount: amount.toExact(),
+              originalAmount: cachedRoutes?.originalAmount,
+              pair: this.tokenPairSymbolTradeTypeChainId(
+                tokenIn,
+                tokenOut,
+                tradeType
+              ),
+              blockNumber,
+            },
+            `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
               tokenIn,
               tokenOut,
               tradeType
-            ),
-            blockNumber,
-          },
-          `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
-            tokenIn,
-            tokenOut,
-            tradeType
-          )}`
-        );
+            )}`
+          );
+        } catch (error) {
+          // This is in response to the 'division by zero' error
+          // during https://uniswapteam.slack.com/archives/C059TGEC57W/p1723997015399579
+          if (error instanceof RangeError && error.message.includes('Division by zero')) {
+            log.error(
+              {
+                quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
+                swapRouteFromChainQuoteGasAdjusted: swapRouteFromChain.quoteGasAdjusted.toExact(),
+              },
+              'Error calculating misquote percent'
+            );
+          }
+
+          // We don't want to change the behavior here. If it throws an error, we want to log it and re-throw
+          throw error;
+        }
       }
     }
 
