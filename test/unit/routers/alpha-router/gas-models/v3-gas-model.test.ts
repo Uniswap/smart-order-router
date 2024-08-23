@@ -1,6 +1,5 @@
 import { Currency, CurrencyAmount, Ether } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers';
-import _ from 'lodash';
 import {
   DAI_MAINNET,
   UNI_MAINNET,
@@ -69,9 +68,15 @@ describe('v3 gas model tests', () => {
       initializedTicksCrossedList: [1],
     });
 
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(v3RouteWithQuote.initializedTicksCrossedList))
-    );
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
 
     const gasOverheadFromTicks = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed
@@ -120,9 +125,15 @@ describe('v3 gas model tests', () => {
       initializedTicksCrossedList: [0, 1],
     });
 
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(v3RouteWithQuote.initializedTicksCrossedList))
-    );
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
 
     const gasOverheadFromHops = COST_PER_HOP(chainId).mul(
       v3RouteWithQuote.route.pools.length
@@ -136,6 +147,110 @@ describe('v3 gas model tests', () => {
     const expectedGasCost = BASE_SWAP_COST(chainId)
       .add(gasOverheadFromHops)
       .add(gasOverheadFromTicks);
+
+    expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
+  });
+
+  it('returns correct gas estimate for a v3 route | hops: 2 | ticks 3,2,5', async () => {
+    const amountToken = USDC_MAINNET;
+    const quoteToken = DAI_MAINNET;
+
+    const pools = await getPools(
+      amountToken,
+      quoteToken,
+      mockedV3PoolProvider,
+      {}
+    );
+
+    const v3GasModel = await v3GasModelFactory.buildGasModel({
+      chainId: chainId,
+      gasPriceWei,
+      pools,
+      amountToken,
+      quoteToken,
+      v2poolProvider: mockedV2PoolProvider,
+      l2GasDataProvider: undefined,
+      providerConfig: {},
+    });
+
+    const v3RouteWithQuote = getV3RouteWithValidQuoteStub({
+      gasModel: v3GasModel,
+      route: new V3Route(
+        [USDC_USDT_MEDIUM, DAI_USDT_LOW],
+        USDC_MAINNET,
+        DAI_MAINNET
+      ),
+      sqrtPriceX96AfterList: [BigNumber.from(100), BigNumber.from(100)],
+      initializedTicksCrossedList: [3, 2, 5],
+    });
+
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
+
+    const gasOverheadFromHops = COST_PER_HOP(chainId).mul(
+      v3RouteWithQuote.route.pools.length
+    );
+    const gasOverheadFromTicks = COST_PER_INIT_TICK(chainId).mul(
+      totalInitializedTicksCrossed
+    );
+
+    const { gasEstimate } = v3GasModel.estimateGasCost(v3RouteWithQuote);
+
+    const expectedGasCost = BASE_SWAP_COST(chainId)
+      .add(gasOverheadFromHops)
+      .add(gasOverheadFromTicks);
+
+    expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
+  });
+
+  it('returns correct gas estimate for a v3 route | hops: 2 | ticks 0', async () => {
+    const amountToken = USDC_MAINNET;
+    const quoteToken = DAI_MAINNET;
+
+    const pools = await getPools(
+      amountToken,
+      quoteToken,
+      mockedV3PoolProvider,
+      {}
+    );
+
+    const v3GasModel = await v3GasModelFactory.buildGasModel({
+      chainId: chainId,
+      gasPriceWei,
+      pools,
+      amountToken,
+      quoteToken,
+      v2poolProvider: mockedV2PoolProvider,
+      l2GasDataProvider: undefined,
+      providerConfig: {},
+    });
+
+    const v3RouteWithQuote = getV3RouteWithValidQuoteStub({
+      gasModel: v3GasModel,
+      route: new V3Route(
+        [USDC_USDT_MEDIUM, DAI_USDT_LOW],
+        USDC_MAINNET,
+        DAI_MAINNET
+      ),
+      sqrtPriceX96AfterList: [BigNumber.from(100), BigNumber.from(100)],
+      initializedTicksCrossedList: [0],
+    });
+
+    const gasOverheadFromHops = COST_PER_HOP(chainId).mul(
+      v3RouteWithQuote.route.pools.length
+    );
+
+    const { gasEstimate } = v3GasModel.estimateGasCost(v3RouteWithQuote);
+
+    const expectedGasCost = BASE_SWAP_COST(chainId)
+      .add(gasOverheadFromHops);
 
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
   });
@@ -180,9 +295,15 @@ describe('v3 gas model tests', () => {
       initializedTicksCrossedList: [1],
     });
 
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(v3RouteWithQuote.initializedTicksCrossedList))
-    );
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
 
     const gasOverheadFromHops = COST_PER_HOP(chainId).mul(
       v3RouteWithQuote.route.pools.length
@@ -242,9 +363,15 @@ describe('v3 gas model tests', () => {
       initializedTicksCrossedList: [1],
     });
 
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(v3RouteWithQuote.initializedTicksCrossedList))
-    );
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
 
     const gasOverheadFromHops = COST_PER_HOP(chainId).mul(
       v3RouteWithQuote.route.pools.length
@@ -300,9 +427,15 @@ describe('v3 gas model tests', () => {
       initializedTicksCrossedList: [1],
     });
 
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(v3RouteWithQuote.initializedTicksCrossedList))
-    );
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
 
     const gasOverheadFromTicks = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed
@@ -356,9 +489,15 @@ describe('v3 gas model tests', () => {
       initializedTicksCrossedList: [1],
     });
 
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(v3RouteWithQuote.initializedTicksCrossedList))
-    );
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
 
     const gasOverheadFromTicks = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed

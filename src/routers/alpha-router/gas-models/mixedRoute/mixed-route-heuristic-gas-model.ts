@@ -5,7 +5,6 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
-import _ from 'lodash';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { log } from '../../../../util';
@@ -178,9 +177,10 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory 
     chainId: ChainId,
     providerConfig?: GasModelProviderConfig
   ) {
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
+    const totalInitializedTicksCrossed = this.totalInitializedTicksCrossed(
+      routeWithValidQuote.initializedTicksCrossedList
     );
+
     /**
      * Since we must make a separate call to multicall for each v3 and v2 section, we will have to
      * add the BASE_SWAP_COST to each section.

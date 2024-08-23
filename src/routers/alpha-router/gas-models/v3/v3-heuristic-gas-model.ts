@@ -1,7 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Price } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
-import _ from 'lodash';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { CurrencyAmount } from '../../../../util/amounts';
@@ -204,14 +203,19 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
         } catch (error) {
           // This is in response to the 'division by zero' error
           // during https://uniswapteam.slack.com/archives/C059TGEC57W/p1724360921341949
-          if (error instanceof RangeError && error.message.includes('Division by zero')) {
+          if (
+            error instanceof RangeError &&
+            error.message.includes('Division by zero')
+          ) {
             log.error(
               {
-                nativeAndAmountTokenPrice: nativeAndAmountTokenPrice.toSignificant(6),
+                nativeAndAmountTokenPrice:
+                  nativeAndAmountTokenPrice.toSignificant(6),
                 gasCostInTermsOfQuoteToken: gasCostInTermsOfQuoteToken
                   ? gasCostInTermsOfQuoteToken.toExact()
                   : 0,
-                gasCostInTermsOfAmountToken: gasCostInTermsOfAmountToken.toExact(),
+                gasCostInTermsOfAmountToken:
+                  gasCostInTermsOfAmountToken.toExact(),
                 executionPrice: executionPrice.toSignificant(6),
               },
               'Error calculating synthetic gas cost in terms of quote token'
@@ -283,8 +287,8 @@ export class V3HeuristicGasModelFactory extends IOnChainGasModelFactory {
     chainId: ChainId,
     providerConfig?: GasModelProviderConfig
   ) {
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
+    const totalInitializedTicksCrossed = this.totalInitializedTicksCrossed(
+      routeWithValidQuote.initializedTicksCrossedList
     );
     const totalHops = BigNumber.from(routeWithValidQuote.route.pools.length);
 

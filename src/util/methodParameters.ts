@@ -11,8 +11,8 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import {
-  UNIVERSAL_ROUTER_ADDRESS,
   SwapRouter as UniversalRouter,
+  UNIVERSAL_ROUTER_ADDRESS,
 } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import { Route as V3RouteRaw } from '@uniswap/v3-sdk';
