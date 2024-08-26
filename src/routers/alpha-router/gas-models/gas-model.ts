@@ -243,6 +243,22 @@ export abstract class IOnChainGasModelFactory {
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
   >;
+
+  protected totalInitializedTicksCrossed(
+    initializedTicksCrossedList: number[]
+  ) {
+    let ticksCrossed = 0;
+    for (let i = 0; i < initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        ticksCrossed += initializedTicksCrossedList[i]! - 1;
+      }
+    }
+
+    return ticksCrossed;
+  }
 }
 
 // Determines if native currency is token0

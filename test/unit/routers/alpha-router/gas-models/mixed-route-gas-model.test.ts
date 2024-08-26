@@ -4,7 +4,6 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import { BigNumber } from 'ethers';
-import _ from 'lodash';
 import {
   DAI_MAINNET,
   MixedRoute,
@@ -69,9 +68,15 @@ describe('mixed route gas model tests', () => {
       }
     });
 
-    const totalInitializedTicksCrossed = BigNumber.from(
-      Math.max(1, _.sum(routeWithValidQuote.initializedTicksCrossedList))
-    );
+    let totalInitializedTicksCrossed = 0;
+    for (let i = 0; i < routeWithValidQuote.initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (routeWithValidQuote.initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        totalInitializedTicksCrossed += (routeWithValidQuote.initializedTicksCrossedList[i]! - 1);
+      }
+    }
 
     const tickGasUse = COST_PER_INIT_TICK(chainId).mul(
       totalInitializedTicksCrossed
@@ -107,6 +112,70 @@ describe('mixed route gas model tests', () => {
     const mixedRouteWithQuote = getMixedRouteWithValidQuoteStub({
       mixedRouteGasModel: mixedGasModel,
       initializedTicksCrossedList: [1],
+    });
+
+    const { gasEstimate } = mixedGasModel.estimateGasCost(mixedRouteWithQuote);
+    const expectedGasCost = calculateGasEstimate(mixedRouteWithQuote);
+
+    expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
+  });
+
+  it('returns correct gas estimate for a mixed route | hops: 2 | ticks 3,2,5', async () => {
+    const amountToken = USDC_MAINNET;
+    const quoteToken = DAI_MAINNET;
+
+    const pools = await getPools(
+      amountToken,
+      quoteToken,
+      mockedV3PoolProvider,
+      {}
+    );
+
+    const mixedGasModel = await mixedGasModelFactory.buildGasModel({
+      chainId: chainId,
+      gasPriceWei,
+      pools,
+      amountToken,
+      quoteToken,
+      v2poolProvider: mockedV2PoolProvider,
+      providerConfig: {},
+    });
+
+    const mixedRouteWithQuote = getMixedRouteWithValidQuoteStub({
+      mixedRouteGasModel: mixedGasModel,
+      initializedTicksCrossedList: [3,2,5],
+    });
+
+    const { gasEstimate } = mixedGasModel.estimateGasCost(mixedRouteWithQuote);
+    const expectedGasCost = calculateGasEstimate(mixedRouteWithQuote);
+
+    expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
+  });
+
+  it('returns correct gas estimate for a mixed route | hops: 2 | ticks 0', async () => {
+    const amountToken = USDC_MAINNET;
+    const quoteToken = DAI_MAINNET;
+
+    const pools = await getPools(
+      amountToken,
+      quoteToken,
+      mockedV3PoolProvider,
+      {}
+    );
+
+    const mixedGasModel = await mixedGasModelFactory.buildGasModel({
+      chainId: chainId,
+      gasPriceWei,
+      pools,
+      amountToken,
+      quoteToken,
+      v2poolProvider: mockedV2PoolProvider,
+      providerConfig: {},
+    });
+
+    const mixedRouteWithQuote = getMixedRouteWithValidQuoteStub({
+      mixedRouteGasModel: mixedGasModel,
+      initializedTicksCrossedList: [0],
     });
 
     const { gasEstimate } = mixedGasModel.estimateGasCost(mixedRouteWithQuote);
