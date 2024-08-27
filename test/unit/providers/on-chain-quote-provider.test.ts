@@ -3,7 +3,7 @@ import {
   CurrencyAmount,
   ID_TO_PROVIDER,
   OnChainQuoteProvider, parseAmount,
-  UniswapMulticallProvider, V4Route
+  UniswapMulticallProvider, V4_SEPOLIA_TEST_OP, V4_SEPOLIA_TEST_USDC, V4Route
 } from '../../../src';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Pool } from '@uniswap/v4-sdk';
@@ -28,20 +28,8 @@ describe('on chain quote provider', () => {
       provider,
       multicall2Provider,
     );
-    const op = new Token(
-        chain,
-        '0xc268035619873d85461525f5fdb792dd95982161',
-        18,
-        'OP',
-        'Optimism'
-      )
-    const usdc = new Token(
-      chain,
-      '0xbe2a7f5acecdc293bf34445a0021f229dd2edd49',
-      6,
-      'USDC',
-      'USD'
-    )
+    const op = V4_SEPOLIA_TEST_OP
+    const usdc = V4_SEPOLIA_TEST_USDC
     const amountIns = [
       parseAmount("0.01", op)
     ]

@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Currency } from '@uniswap/sdk-core';
 
+import { Protocol } from '@uniswap/router-sdk';
 import { AAVE_MAINNET, LIDO_MAINNET } from '../../../providers';
 import { V3Route, V4Route } from '../../router';
-import { Protocol } from '@uniswap/router-sdk';
 
 // Cost for crossing an uninitialized tick.
 export const COST_PER_UNINIT_TICK = BigNumber.from(0);

@@ -23,6 +23,7 @@ import {
   DAI_SEPOLIA,
   DAI_ZKSYNC,
   USDB_BLAST,
+  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
@@ -49,7 +50,6 @@ import {
   USDC_WORMHOLE_CELO,
   USDC_ZKSYNC,
   USDC_ZORA,
-  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -71,7 +71,7 @@ import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
-  V4RouteWithValidQuote
+  V4RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
 
 // When adding new usd gas tokens, ensure the tokens are ordered

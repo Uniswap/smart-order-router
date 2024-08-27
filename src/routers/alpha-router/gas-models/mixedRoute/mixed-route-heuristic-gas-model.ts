@@ -12,6 +12,12 @@ import { CurrencyAmount } from '../../../../util/amounts';
 import { getV2NativePool } from '../../../../util/gas-factory-helpers';
 import { MixedRouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import {
+  BASE_SWAP_COST,
+  COST_PER_HOP,
+  COST_PER_INIT_TICK,
+  COST_PER_UNINIT_TICK,
+} from '../gas-costs';
+import {
   BuildOnChainGasModelFactoryType,
   GasModelProviderConfig,
   getQuoteThroughNativePool,
@@ -22,12 +28,6 @@ import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
   COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
 } from '../v2/v2-heuristic-gas-model';
-import {
-  BASE_SWAP_COST,
-  COST_PER_HOP,
-  COST_PER_INIT_TICK,
-  COST_PER_UNINIT_TICK,
-} from '../gas-costs';
 
 /**
  * Computes a gas estimate for a mixed route swap using heuristics.

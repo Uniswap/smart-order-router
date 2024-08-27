@@ -40,6 +40,8 @@ export const V2_SUPPORTED = [
   ChainId.AVALANCHE,
 ];
 
+export const V4_SUPPORTED = [ChainId.SEPOLIA];
+
 export const HAS_L1_FEE = [
   ChainId.OPTIMISM,
   ChainId.OPTIMISM_GOERLI,

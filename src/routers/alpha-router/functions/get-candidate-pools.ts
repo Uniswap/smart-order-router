@@ -756,13 +756,13 @@ export async function getV4CandidatePools({
 
   const tokenPairsRaw = _.map<
     V4SubgraphPool,
-    [Token, Token, FeeAmount, number, string] | undefined
+    [Token, Token, number, number, string] | undefined
   >(subgraphPools, (subgraphPool) => {
     const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
     const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
     let fee: FeeAmount;
     try {
-      fee = parseFeeAmount(subgraphPool.feeTier);
+      fee = Number(subgraphPool.feeTier);
     } catch (err) {
       log.info(
         { subgraphPool },

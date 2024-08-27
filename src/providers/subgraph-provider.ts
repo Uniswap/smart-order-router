@@ -85,28 +85,7 @@ export abstract class SubgraphProvider<
       : undefined;
 
     const query = gql`
-      query getPools($pageSize: Int!, $id: String) {
-        pools(
-          first: $pageSize
-          ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
-        ) {
-          id
-          token0 {
-            symbol
-            id
-          }
-          token1 {
-            symbol
-            id
-          }
-          feeTier
-          liquidity
-          totalValueLockedUSD
-          totalValueLockedETH
-          totalValueLockedUSDUntracked
-        }
-      }
+      ${this.subgraphQuery(blockNumber)}
     `;
 
     let pools: TRawSubgraphPool[] = [];
@@ -244,21 +223,7 @@ export abstract class SubgraphProvider<
           parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
       )
       .map((pool) => {
-        const { totalValueLockedETH, totalValueLockedUSD } = pool;
-
-        return {
-          id: pool.id.toLowerCase(),
-          feeTier: pool.feeTier,
-          token0: {
-            id: pool.token0.id.toLowerCase(),
-          },
-          token1: {
-            id: pool.token1.id.toLowerCase(),
-          },
-          liquidity: pool.liquidity,
-          tvlETH: parseFloat(totalValueLockedETH),
-          tvlUSD: parseFloat(totalValueLockedUSD),
-        } as TSubgraphPool;
+        return this.mapSubgraphPool(pool);
       });
 
     metric.putMetric(
@@ -288,4 +253,10 @@ export abstract class SubgraphProvider<
 
     return poolsSanitized;
   }
+
+  protected abstract subgraphQuery(blockNumber?: number): string;
+
+  protected abstract mapSubgraphPool(
+    rawSubgraphPool: TRawSubgraphPool
+  ): TSubgraphPool;
 }

@@ -3,7 +3,11 @@
  */
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
-import { AllowanceTransfer, permit2Address, PermitSingle } from '@uniswap/permit2-sdk';
+import {
+  AllowanceTransfer,
+  permit2Address,
+  PermitSingle
+} from '@uniswap/permit2-sdk';
 import { Protocol } from '@uniswap/router-sdk';
 import {
   ChainId,
@@ -16,8 +20,12 @@ import {
   Token,
   TradeType
 } from '@uniswap/sdk-core';
-import { UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN } from '@uniswap/universal-router-sdk';
-import { Permit2Permit } from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
+import {
+  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
+} from '@uniswap/universal-router-sdk';
+import {
+  Permit2Permit
+} from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
@@ -32,6 +40,7 @@ import {
   AlphaRouterConfig,
   CachingV2PoolProvider,
   CachingV3PoolProvider,
+  CachingV4PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
   CUSD_CELO,
@@ -78,18 +87,25 @@ import {
   V2Route,
   V3PoolProvider,
   V3Route,
+  V4_SEPOLIA_TEST_OP,
+  V4_SEPOLIA_TEST_USDC,
+  V4PoolProvider,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY,
-  CachingV4PoolProvider,
-  V4PoolProvider
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
-import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
-import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../src/routers/alpha-router/config';
-import { Permit2__factory } from '../../../../src/types/other/factories/Permit2__factory';
+import {
+  OnChainTokenFeeFetcher
+} from '../../../../src/providers/token-fee-fetcher';
+import {
+  DEFAULT_ROUTING_CONFIG_BY_CHAIN
+} from '../../../../src/routers/alpha-router/config';
+import {
+  Permit2__factory
+} from '../../../../src/types/other/factories/Permit2__factory';
 import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import {
   BULLET,
@@ -100,6 +116,7 @@ import {
   Portion
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
+import { V4SubgraphProvider } from '../../../../build/main';
 
 const FORK_BLOCK = 20413900;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
@@ -733,6 +750,7 @@ describe('alpha router integration', () => {
       multicall2Provider,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       simulator,
     });
 
@@ -744,6 +762,7 @@ describe('alpha router integration', () => {
       multicall2Provider,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       simulator: ethEstimateGasSimulator,
     });
 
@@ -3378,6 +3397,7 @@ describe('quote for other networks', () => {
     [ChainId.MAINNET]: () => USDC_ON(ChainId.MAINNET),
     [ChainId.GOERLI]: () => UNI_GOERLI,
     [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
+    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_OP,
     [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM]: () => USDC_NATIVE_OPTIMISM,
     [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
@@ -3409,6 +3429,7 @@ describe('quote for other networks', () => {
     [ChainId.MAINNET]: () => DAI_ON(1),
     [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
+    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_USDC,
     [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
@@ -3516,13 +3537,36 @@ describe('quote for other networks', () => {
             tenderlySimulator,
             ethEstimateGasSimulator
           );
+          const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+            [ChainId.SEPOLIA]: process.env.SUBGRAPH_URL_SEPOLIA,
+          };
 
-          alphaRouter = new AlphaRouter({
-            chainId: chain,
-            provider,
-            multicall2Provider,
-            simulator,
-          });
+          if (SUBGRAPH_URL_BY_CHAIN[chain]) {
+            const v4SubgraphProvider = new V4SubgraphProvider(
+              chain,
+              2,
+              30000,
+              true,
+              0.01,
+              Number.MAX_VALUE,
+              SUBGRAPH_URL_BY_CHAIN[chain],
+            );
+
+            alphaRouter = new AlphaRouter({
+              chainId: chain,
+              provider,
+              multicall2Provider,
+              v4SubgraphProvider,
+              simulator,
+            });
+          } else {
+            alphaRouter = new AlphaRouter({
+              chainId: chain,
+              provider,
+              multicall2Provider,
+              simulator,
+            });
+          }
         });
 
         if (chain === ChainId.MAINNET && tradeType === TradeType.EXACT_INPUT) {
@@ -3559,6 +3603,10 @@ describe('quote for other networks', () => {
 
         describe(`Swap`, function() {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
+            if (erc1.equals(V4_SEPOLIA_TEST_OP)) {
+              return;
+            }
+
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
             const amount =
@@ -3614,8 +3662,8 @@ describe('quote for other networks', () => {
             expect(swap).not.toBeNull();
           });
 
-          it(`erc20 -> erc20`, async () => {
-            if (chain === ChainId.SEPOLIA) {
+          it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_OP)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
             }
@@ -3624,7 +3672,7 @@ describe('quote for other networks', () => {
             const tokenOut = erc2;
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
-            const exactOutAmount = chain === ChainId.BLAST || chain === ChainId.ZORA ? '0.002' : '1';
+            const exactOutAmount = '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
@@ -3638,9 +3686,10 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
+                protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
               }
             );
+            console.log(`quote ${swap!.quote.toExact().toString()}`)
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
           });
@@ -3693,7 +3742,7 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
-            if (chain === ChainId.SEPOLIA) {
+            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_OP)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
             }
@@ -3716,7 +3765,7 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
+                protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
               }
             );
             expect(swap).toBeDefined();
@@ -3734,7 +3783,8 @@ describe('quote for other networks', () => {
           });
 
           it(`does not error when protocols array is empty`, async () => {
-            if (chain === ChainId.SEPOLIA) {
+            // V4 protocol requires explicit Protocol.V4 in the input array
+            if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_OP)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
             }
@@ -3795,13 +3845,17 @@ describe('quote for other networks', () => {
             if ([
               ChainId.CELO,
               ChainId.CELO_ALFAJORES,
-              ChainId.SEPOLIA,
               ChainId.BLAST,
               ChainId.ZKSYNC
             ].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
+              if (chain === ChainId.SEPOLIA) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = wrappedNative;
               const tokenOut = erc1;
               const amount =
@@ -3877,7 +3931,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]}`);
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
@@ -3897,6 +3951,11 @@ describe('quote for other networks', () => {
             });
 
             it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
+              if (chain === ChainId.SEPOLIA) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = wrappedNative;
               const tokenOut = erc1;
 
@@ -3999,8 +4058,9 @@ describe('quote for other networks', () => {
               // Scope limited for non mainnet network tests to validating the swap
             });
 
-            it(`erc20 -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA) {
+            it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+              // TOOD: re-enable sepolia OP -> USDC swap with simulation, once universal router supports v4 swap commands
+              if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_OP)) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
@@ -4038,7 +4098,7 @@ describe('quote for other networks', () => {
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
+                  protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
                   saveTenderlySimulationIfFailed: true,
                 }
               );
@@ -4062,7 +4122,7 @@ describe('quote for other networks', () => {
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
+                  protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
                   saveTenderlySimulationIfFailed: true,
                 }
               );
@@ -4080,7 +4140,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]}`);
 
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
