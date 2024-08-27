@@ -727,7 +727,7 @@ const findFirstRouteNotUsingUsedPools = (
 ): RouteWithValidQuote | null => {
   const poolAddressSet = new Set();
   const usedPoolAddresses = _(usedRoutes)
-    .flatMap((r) => r.poolAddresses)
+    .flatMap((r) => r.poolIdentifiers)
     .value();
 
   for (const poolAddress of usedPoolAddresses) {
@@ -745,7 +745,7 @@ const findFirstRouteNotUsingUsedPools = (
   }
 
   for (const routeQuote of candidateRouteQuotes) {
-    const { poolAddresses, protocol } = routeQuote;
+    const { poolIdentifiers: poolAddresses, protocol } = routeQuote;
 
     if (poolAddresses.some((poolAddress) => poolAddressSet.has(poolAddress))) {
       continue;

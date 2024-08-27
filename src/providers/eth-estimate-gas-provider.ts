@@ -19,6 +19,7 @@ import { ProviderConfig } from './provider';
 import { SimulationStatus, Simulator } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
+import { IV4PoolProvider } from './v4/pool-provider';
 
 // We multiply eth estimate gas by this to add a buffer for gas limits
 const DEFAULT_ESTIMATE_MULTIPLIER = 1.2;
@@ -26,6 +27,7 @@ const DEFAULT_ESTIMATE_MULTIPLIER = 1.2;
 export class EthEstimateGasSimulator extends Simulator {
   v2PoolProvider: IV2PoolProvider;
   v3PoolProvider: IV3PoolProvider;
+  v4PoolProvider: IV4PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
 
   constructor(
@@ -33,12 +35,14 @@ export class EthEstimateGasSimulator extends Simulator {
     provider: JsonRpcProvider,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number }
   ) {
     super(provider, portionProvider, chainId);
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+    this.v4PoolProvider = v4PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
   }
 
@@ -126,6 +130,7 @@ export class EthEstimateGasSimulator extends Simulator {
         route,
         this.v2PoolProvider,
         this.v3PoolProvider,
+        this.v4PoolProvider,
         this.portionProvider,
         quoteGasAdjusted,
         estimatedGasUsed,

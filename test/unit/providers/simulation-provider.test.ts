@@ -9,6 +9,7 @@ import {
   FallbackTenderlySimulator,
   IV2PoolProvider,
   IV3PoolProvider,
+  IV4PoolProvider,
   nativeOnChain,
   RouteWithValidQuote,
   SimulationStatus,
@@ -48,6 +49,7 @@ jest.mock('../../../src/util/gas-factory-helpers', () => ({
     swapRoute: SwapRoute,
     _v2PoolProvider: IV2PoolProvider,
     _v3PoolProvider: IV3PoolProvider,
+    _v4PoolProvider: IV4PoolProvider,
     _portionProvider: IPortionProvider,
     quoteGasAdjusted: CurrencyAmount,
     estimatedGasUsed: BigNumber,
@@ -70,9 +72,16 @@ const v2PoolProvider = sinon.createStubInstance(V2PoolProvider);
 const v3PoolAccessor = {
   getPool: () => undefined,
 };
+const v4PoolAccessor = {
+  getPool: () => undefined,
+};
 const v3PoolProvider = {
   getPools: jest.fn().mockImplementation(() => Promise.resolve(v3PoolAccessor)),
 } as unknown as IV3PoolProvider;
+const v4PoolProvider = {
+  getPools: jest.fn().mockImplementation(() => Promise.resolve(v4PoolAccessor)),
+  getPoolId: jest.fn().mockImplementation(() => Promise.resolve('0')),
+}
 const portionProvider = new PortionProvider();
 const fromAddress = 'fromAddress';
 const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 300);
@@ -311,6 +320,7 @@ describe('Eth estimate gas simulator', () => {
       provider,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       portionProvider
     );
     permit2Contract = {

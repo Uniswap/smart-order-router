@@ -1,6 +1,6 @@
-import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import _ from 'lodash';
 import {
   IOnChainQuoteProvider,
   ITokenListProvider,
@@ -10,10 +10,16 @@ import {
   IV4SubgraphProvider,
   TokenValidationResult,
 } from '../../../providers';
-import { CurrencyAmount, metric, MetricLoggerUnit } from '../../../util';
+import {
+  CurrencyAmount,
+  log,
+  metric,
+  MetricLoggerUnit,
+  routeToString,
+} from '../../../util';
 import { V4Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
-import { RouteWithValidQuote } from '../entities';
+import { RouteWithValidQuote, V4RouteWithValidQuote } from '../entities';
 import { computeAllV4Routes } from '../functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
@@ -63,7 +69,7 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
     const { poolAccessor, candidatePools } = v4CandidatePools;
     const poolsRaw = poolAccessor.getAllPools();
 
-    // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
+    // Drop any pools that contain fee on transfer tokens (not supported by v4) or have issues with being transferred.
     const pools = await this.applyTokenValidatorToPools(
       poolsRaw,
       (
@@ -115,17 +121,123 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
     };
   }
 
-  getQuotes(
-    _routes: V4Route[],
-    _amounts: CurrencyAmount[],
-    _percents: number[],
-    _quoteToken: Token,
-    _tradeType: TradeType,
-    _routingConfig: AlphaRouterConfig,
-    _candidatePools: CandidatePoolsBySelectionCriteria | undefined,
-    _gasModel: IGasModel<RouteWithValidQuote> | undefined,
-    _gasPriceWei: BigNumber | undefined
+  public async getQuotes(
+    routes: V4Route[],
+    amounts: CurrencyAmount[],
+    percents: number[],
+    quoteToken: Token,
+    tradeType: TradeType,
+    routingConfig: AlphaRouterConfig,
+    candidatePools?: CandidatePoolsBySelectionCriteria,
+    gasModel?: IGasModel<RouteWithValidQuote>
   ): Promise<GetQuotesResult> {
-    throw new Error('Method not implemented.');
+    const beforeGetQuotes = Date.now();
+    log.info('Starting to get V4 quotes');
+
+    if (gasModel === undefined) {
+      throw new Error(
+        'GasModel for V4RouteWithValidQuote is required to getQuotes'
+      );
+    }
+
+    if (routes.length == 0) {
+      return { routesWithValidQuotes: [], candidatePools };
+    }
+
+    // For all our routes, and all the fractional amounts, fetch quotes on-chain.
+    const quoteFn =
+      tradeType == TradeType.EXACT_INPUT
+        ? this.onChainQuoteProvider.getQuotesManyExactIn.bind(
+            this.onChainQuoteProvider
+          )
+        : this.onChainQuoteProvider.getQuotesManyExactOut.bind(
+            this.onChainQuoteProvider
+          );
+
+    const beforeQuotes = Date.now();
+    log.info(
+      `Getting quotes for V4 for ${routes.length} routes with ${amounts.length} amounts per route.`
+    );
+
+    const { routesWithQuotes } = await quoteFn<V4Route>(
+      amounts,
+      routes,
+      routingConfig
+    );
+
+    metric.putMetric(
+      'V4QuotesLoad',
+      Date.now() - beforeQuotes,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    metric.putMetric(
+      'V4QuotesFetched',
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum(),
+      MetricLoggerUnit.Count
+    );
+
+    const routesWithValidQuotes = [];
+
+    for (const routeWithQuote of routesWithQuotes) {
+      const [route, quotes] = routeWithQuote;
+
+      for (let i = 0; i < quotes.length; i++) {
+        const percent = percents[i]!;
+        const amountQuote = quotes[i]!;
+        const {
+          quote,
+          amount,
+          sqrtPriceX96AfterList,
+          initializedTicksCrossedList,
+          gasEstimate,
+        } = amountQuote;
+
+        if (
+          !quote ||
+          !sqrtPriceX96AfterList ||
+          !initializedTicksCrossedList ||
+          !gasEstimate
+        ) {
+          log.debug(
+            {
+              route: routeToString(route),
+              amountQuote,
+            },
+            'Dropping a null V4 quote for route.'
+          );
+          continue;
+        }
+
+        const routeWithValidQuote = new V4RouteWithValidQuote({
+          route,
+          rawQuote: quote,
+          amount,
+          percent,
+          sqrtPriceX96AfterList,
+          initializedTicksCrossedList,
+          quoterGasEstimate: gasEstimate,
+          gasModel,
+          quoteToken,
+          tradeType,
+          v4PoolProvider: this.v4PoolProvider,
+        });
+
+        routesWithValidQuotes.push(routeWithValidQuote);
+      }
+    }
+
+    metric.putMetric(
+      'V4GetQuotesLoad',
+      Date.now() - beforeGetQuotes,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    return {
+      routesWithValidQuotes,
+      candidatePools,
+    };
   }
 }

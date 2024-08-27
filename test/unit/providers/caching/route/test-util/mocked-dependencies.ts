@@ -2,22 +2,20 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, TradeType } from '@uniswap/sdk-core';
 import {
-  DAI_MAINNET,
-  USDC_MAINNET,
-  V3Route,
-  V3RouteWithValidQuote,
-} from '../../../../../../build/main';
-import {
   CachedRoutes,
   CurrencyAmount,
   DAI_MAINNET as DAI,
+  DAI_MAINNET,
   MixedRoute,
   MixedRouteWithValidQuote,
   MixedRouteWithValidQuoteParams,
   USDC_MAINNET as USDC,
+  USDC_MAINNET,
   V2Route,
   V2RouteWithValidQuote,
   V2RouteWithValidQuoteParams,
+  V3Route,
+  V3RouteWithValidQuote,
   V3RouteWithValidQuoteParams,
 } from '../../../../../../src';
 import {

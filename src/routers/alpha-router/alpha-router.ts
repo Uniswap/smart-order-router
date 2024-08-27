@@ -1822,8 +1822,7 @@ export class AlphaRouter
             tradeType,
             routingConfig,
             undefined,
-            v3GasModel,
-            gasPriceWei
+            v3GasModel
           )
           .then((result) => {
             metric.putMetric(
@@ -2577,7 +2576,7 @@ export class AlphaRouter
     const { routes: routeAmounts } = swapRouteRaw;
     _(routeAmounts)
       .flatMap((routeAmount) => {
-        const { poolAddresses } = routeAmount;
+        const { poolIdentifiers: poolAddresses } = routeAmount;
         return poolAddresses;
       })
       .forEach((address: string) => {

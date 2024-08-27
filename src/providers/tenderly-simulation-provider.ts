@@ -40,6 +40,7 @@ import {
 } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
+import { IV4PoolProvider } from './v4/pool-provider';
 
 export type TenderlyResponseUniversalRouter = {
   config: {
@@ -235,6 +236,7 @@ export class TenderlySimulator extends Simulator {
   private tenderlyNodeApiKey: string;
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
+  private v4PoolProvider: IV4PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
   private tenderlyRequestTimeout?: number;
   private tenderlyNodeApiMigrationPercent?: number;
@@ -255,6 +257,7 @@ export class TenderlySimulator extends Simulator {
     tenderlyNodeApiKey: string,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider,
     provider: JsonRpcProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
@@ -270,6 +273,7 @@ export class TenderlySimulator extends Simulator {
     this.tenderlyNodeApiKey = tenderlyNodeApiKey;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+    this.v4PoolProvider = v4PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
     this.tenderlyRequestTimeout = tenderlyRequestTimeout;
     this.tenderlyNodeApiMigrationPercent = tenderlyNodeApiMigrationPercent;
@@ -399,15 +403,18 @@ export class TenderlySimulator extends Simulator {
 
       const before = Date.now();
 
-      if (Math.random() * 100 < (this.tenderlyNodeApiMigrationPercent ?? 0) &&
+      if (
+        Math.random() * 100 < (this.tenderlyNodeApiMigrationPercent ?? 0) &&
         (this.tenderlyNodeApiEnabledChains ?? []).find(
           (chainId) => chainId === this.chainId
-        )) {
-        const { data: resp, status: httpStatus } = await this.requestNodeSimulation(
-          approvePermit2,
-          approveUniversalRouter,
-          swap
-        );
+        )
+      ) {
+        const { data: resp, status: httpStatus } =
+          await this.requestNodeSimulation(
+            approvePermit2,
+            approveUniversalRouter,
+            swap
+          );
         // We will maintain the original metrics TenderlySimulationUniversalRouterLatencies and TenderlySimulationUniversalRouterResponseStatus
         // so that they don't provide the existing tenderly dashboard as well as simulation alerts
         // In the meanwhile, we also add tenderly node metrics to distinguish from the tenderly api metrics
@@ -462,10 +469,8 @@ export class TenderlySimulator extends Simulator {
         log.info(
           {
             body,
-            approvePermit2GasUsed:
-            (resp.result[0] as GasBody).gasUsed,
-            approveUniversalRouterGasUsed:
-            (resp.result[1] as GasBody).gasUsed,
+            approvePermit2GasUsed: (resp.result[0] as GasBody).gasUsed,
+            approveUniversalRouterGasUsed: (resp.result[1] as GasBody).gasUsed,
             swapGasUsed: (resp.result[2] as GasBody).gasUsed,
             approvePermit2Gas: (resp.result[0] as GasBody).gas,
             approveUniversalRouterGas: (resp.result[1] as GasBody).gas,
@@ -528,12 +533,13 @@ export class TenderlySimulator extends Simulator {
           {
             body,
             approvePermit2GasUsed:
-            resp.simulation_results[0].transaction.gas_used,
+              resp.simulation_results[0].transaction.gas_used,
             approveUniversalRouterGasUsed:
-            resp.simulation_results[1].transaction.gas_used,
+              resp.simulation_results[1].transaction.gas_used,
             swapGasUsed: resp.simulation_results[2].transaction.gas_used,
             approvePermit2Gas: resp.simulation_results[0].transaction.gas,
-            approveUniversalRouterGas: resp.simulation_results[1].transaction.gas,
+            approveUniversalRouterGas:
+              resp.simulation_results[1].transaction.gas,
             swapGas: resp.simulation_results[2].transaction.gas,
             swapWithMultiplier: estimatedGasUsed.toString(),
           },
@@ -681,6 +687,7 @@ export class TenderlySimulator extends Simulator {
         swapRoute,
         this.v2PoolProvider,
         this.v3PoolProvider,
+        this.v4PoolProvider,
         this.portionProvider,
         quoteGasAdjusted,
         estimatedGasUsed,
@@ -761,7 +768,7 @@ export class TenderlySimulator extends Simulator {
     approvePermit2: TenderlySimulationRequest,
     approveUniversalRouter: TenderlySimulationRequest,
     swap: TenderlySimulationRequest
-  ): Promise<{ data: TenderlyResponseEstimateGasBundle, status: number }> {
+  ): Promise<{ data: TenderlyResponseEstimateGasBundle; status: number }> {
     const nodeEndpoint = TENDERLY_NODE_API(
       this.chainId,
       this.tenderlyNodeApiKey
@@ -830,7 +837,7 @@ export class TenderlySimulator extends Simulator {
         return { data: resp, status: httpStatus };
       }
 
-      return { data: resp, status: httpStatus }
+      return { data: resp, status: httpStatus };
     } catch (err) {
       log.error(
         { err },

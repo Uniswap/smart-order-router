@@ -5,13 +5,20 @@ import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
+import { Pair } from '@uniswap/v2-sdk';
+import { IV4PoolProvider } from '../../../providers';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
 import { routeToString } from '../../../util/routes';
-import { MixedRoute, V2Route, V3Route } from '../../router';
+import {
+  MixedRoute,
+  SupportedRoutes,
+  V2Route,
+  V3Route,
+  V4Route,
+} from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
-import { Pair } from '@uniswap/v2-sdk';
 
 /**
  * Represents a route, a quote for swapping some amount on it, and other
@@ -21,9 +28,7 @@ import { Pair } from '@uniswap/v2-sdk';
  * @interface IRouteWithValidQuote
  * @template Route
  */
-export interface IRouteWithValidQuote<
-  Route extends V3Route | V2Route | MixedRoute
-> {
+export interface IRouteWithValidQuote<Route extends SupportedRoutes> {
   amount: CurrencyAmount;
   percent: number;
   // If exact in, this is (quote - gasCostInToken). If exact out, this is (quote + gasCostInToken).
@@ -36,7 +41,7 @@ export interface IRouteWithValidQuote<
   gasCostInUSD: CurrencyAmount;
   gasCostInGasToken?: CurrencyAmount;
   tradeType: TradeType;
-  poolAddresses: string[];
+  poolIdentifiers: string[];
   tokenPath: Currency[];
 }
 
@@ -49,6 +54,10 @@ export type IV3RouteWithValidQuote = {
   protocol: Protocol.V3;
 } & IRouteWithValidQuote<V3Route>;
 
+export type IV4RouteWithValidQuote = {
+  protocol: Protocol.V4;
+} & IRouteWithValidQuote<V4Route>;
+
 export type IMixedRouteWithValidQuote = {
   protocol: Protocol.MIXED;
 } & IRouteWithValidQuote<MixedRoute>;
@@ -56,6 +65,7 @@ export type IMixedRouteWithValidQuote = {
 export type RouteWithValidQuote =
   | V2RouteWithValidQuote
   | V3RouteWithValidQuote
+  | V4RouteWithValidQuote
   | MixedRouteWithValidQuote;
 
 export type V2RouteWithValidQuoteParams = {
@@ -92,7 +102,7 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
   public gasCostInUSD: CurrencyAmount;
   public gasCostInGasToken?: CurrencyAmount;
   public tradeType: TradeType;
-  public poolAddresses: string[];
+  public poolIdentifiers: string[];
   public tokenPath: Token[];
 
   public toString(): string {
@@ -139,7 +149,7 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
       this.quoteAdjustedForGas = quoteGasAdjusted;
     }
 
-    this.poolAddresses = _.map(
+    this.poolIdentifiers = _.map(
       route.pairs,
       (p) => v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress
     );
@@ -188,7 +198,7 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
   public gasCostInUSD: CurrencyAmount;
   public gasCostInGasToken?: CurrencyAmount;
   public tradeType: TradeType;
-  public poolAddresses: string[];
+  public poolIdentifiers: string[];
   public tokenPath: Token[];
 
   public toString(): string {
@@ -241,13 +251,114 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
       this.quoteAdjustedForGas = quoteGasAdjusted;
     }
 
-    this.poolAddresses = _.map(
+    this.poolIdentifiers = _.map(
       route.pools,
       (p) =>
         v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee).poolAddress
     );
 
     this.tokenPath = this.route.tokenPath;
+  }
+}
+
+export type V4RouteWithValidQuoteParams = {
+  amount: CurrencyAmount;
+  rawQuote: BigNumber;
+  sqrtPriceX96AfterList: BigNumber[];
+  initializedTicksCrossedList: number[];
+  quoterGasEstimate: BigNumber;
+  percent: number;
+  route: V4Route;
+  quoteToken: Token;
+  gasModel: IGasModel<V4RouteWithValidQuote>;
+  tradeType: TradeType;
+  v4PoolProvider: IV4PoolProvider;
+};
+
+export class V4RouteWithValidQuote implements IV4RouteWithValidQuote {
+  public readonly protocol = Protocol.V4;
+  public amount: CurrencyAmount;
+  public rawQuote: BigNumber;
+  public quote: CurrencyAmount;
+  public quoteAdjustedForGas: CurrencyAmount; // TODO: Might be an array in V4 quoter v1
+  public sqrtPriceX96AfterList: BigNumber[];
+  public initializedTicksCrossedList: number[];
+  public quoterGasEstimate: BigNumber; // TODO: not available in v4 quoter v1
+  public percent: number;
+  public route: V4Route;
+  public quoteToken: Token;
+  public gasModel: IGasModel<V4RouteWithValidQuote>;
+  public gasEstimate: BigNumber;
+  public gasCostInToken: CurrencyAmount;
+  public gasCostInUSD: CurrencyAmount;
+  public gasCostInGasToken?: CurrencyAmount;
+  public tradeType: TradeType;
+  public poolIdentifiers: string[];
+  public tokenPath: Currency[];
+
+  public toString(): string {
+    return `${this.percent.toFixed(
+      2
+    )}% QuoteGasAdj[${this.quoteAdjustedForGas.toExact()}] Quote[${this.quote.toExact()}] Gas[${this.gasEstimate.toString()}] = ${routeToString(
+      this.route
+    )}`;
+  }
+
+  constructor({
+    amount,
+    rawQuote,
+    sqrtPriceX96AfterList,
+    initializedTicksCrossedList,
+    quoterGasEstimate,
+    percent,
+    route,
+    gasModel,
+    quoteToken,
+    tradeType,
+    v4PoolProvider,
+  }: V4RouteWithValidQuoteParams) {
+    this.amount = amount;
+    this.rawQuote = rawQuote;
+    this.sqrtPriceX96AfterList = sqrtPriceX96AfterList;
+    this.initializedTicksCrossedList = initializedTicksCrossedList;
+    this.quoterGasEstimate = quoterGasEstimate;
+    this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
+    this.percent = percent;
+    this.route = route;
+    this.gasModel = gasModel;
+    this.quoteToken = quoteToken;
+    this.tradeType = tradeType;
+
+    const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } =
+      this.gasModel.estimateGasCost(this);
+
+    this.gasCostInToken = gasCostInToken;
+    this.gasCostInUSD = gasCostInUSD;
+    this.gasEstimate = gasEstimate;
+    this.gasCostInGasToken = gasCostInGasToken;
+
+    // If its exact out, we need to request *more* of the input token to account for the gas.
+    if (this.tradeType == TradeType.EXACT_INPUT) {
+      const quoteGasAdjusted = this.quote.subtract(gasCostInToken);
+      this.quoteAdjustedForGas = quoteGasAdjusted;
+    } else {
+      const quoteGasAdjusted = this.quote.add(gasCostInToken);
+      this.quoteAdjustedForGas = quoteGasAdjusted;
+    }
+
+    this.poolIdentifiers = _.map(
+      route.pools,
+      (p) =>
+        v4PoolProvider.getPoolId(
+          p.token0,
+          p.token1,
+          p.fee,
+          p.tickSpacing,
+          p.hooks
+        ).poolId
+    );
+
+    this.tokenPath = this.route.currencyPath;
   }
 }
 
@@ -292,7 +403,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
   public gasCostInUSD: CurrencyAmount;
   public gasCostInGasToken?: CurrencyAmount;
   public tradeType: TradeType;
-  public poolAddresses: string[];
+  public poolIdentifiers: string[];
   public tokenPath: Currency[];
 
   public toString(): string {
@@ -346,17 +457,14 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
       this.quoteAdjustedForGas = quoteGasAdjusted;
     }
 
-    this.poolAddresses = _.map(route.pools, (p) => {
+    this.poolIdentifiers = _.map(route.pools, (p) => {
       if (p instanceof V4Pool) {
         throw new Error('V4 pools not supported in mixed routes yet');
       } else if (p instanceof V3Pool) {
-        return v3PoolProvider
-          .getPoolAddress(p.token0, p.token1, p.fee)
+        return v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee)
           .poolAddress;
       } else if (p instanceof Pair) {
-        return v2PoolProvider
-          .getPoolAddress(p.token0, p.token1)
-          .poolAddress;
+        return v2PoolProvider.getPoolAddress(p.token0, p.token1).poolAddress;
       } else {
         throw new Error(`Unknown pool type ${JSON.stringify(p)}`);
       }
