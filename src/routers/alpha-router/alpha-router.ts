@@ -130,7 +130,8 @@ import {
   SwapToRatioStatus,
   SwapType,
   V2Route,
-  V3Route, V4Route
+  V3Route,
+  V4Route,
 } from '../router';
 
 import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
@@ -1178,8 +1179,14 @@ export class AlphaRouter
     // We want to log the fee on transfer output tokens that we are taking fee or not
     // Ideally the trade size (normalized in USD) would be ideal to log here, but we don't have spot price of output tokens here.
     // We have to make sure token out is FOT with either buy/sell fee bps > 0
-    if (tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.buyFeeBps?.gt(0) ||
-        tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult?.sellFeeBps?.gt(0)) {
+    if (
+      tokenOutProperties[
+        tokenOut.address.toLowerCase()
+      ]?.tokenFeeResult?.buyFeeBps?.gt(0) ||
+      tokenOutProperties[
+        tokenOut.address.toLowerCase()
+      ]?.tokenFeeResult?.sellFeeBps?.gt(0)
+    ) {
       if (feeTakenOnTransfer || externalTransferFailed) {
         // also to be extra safe, in case of FOT with feeTakenOnTransfer or externalTransferFailed,
         // we nullify the fee and flat fee to avoid any potential issues.
@@ -1390,6 +1397,8 @@ export class AlphaRouter
       Promise.resolve(null);
     if (cachedRoutes) {
       swapRouteFromCachePromise = this.getSwapRouteFromCache(
+        tokenIn,
+        tokenOut,
         cachedRoutes,
         await blockNumber,
         amount,
@@ -1510,11 +1519,15 @@ export class AlphaRouter
         } catch (error) {
           // This is in response to the 'division by zero' error
           // during https://uniswapteam.slack.com/archives/C059TGEC57W/p1723997015399579
-          if (error instanceof RangeError && error.message.includes('Division by zero')) {
+          if (
+            error instanceof RangeError &&
+            error.message.includes('Division by zero')
+          ) {
             log.error(
               {
                 quoteGasAdjustedDiff: quoteGasAdjustedDiff.toExact(),
-                swapRouteFromChainQuoteGasAdjusted: swapRouteFromChain.quoteGasAdjusted.toExact(),
+                swapRouteFromChainQuoteGasAdjusted:
+                  swapRouteFromChain.quoteGasAdjusted.toExact(),
               },
               'Error calculating misquote percent'
             );
@@ -1720,6 +1733,8 @@ export class AlphaRouter
   }
 
   private async getSwapRouteFromCache(
+    tokenIn: Token,
+    tokenOut: Token,
     cachedRoutes: CachedRoutes,
     blockNumber: number,
     amount: CurrencyAmount,
@@ -1733,6 +1748,22 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
+    const tokenPairProperties =
+      await this.tokenPropertiesProvider.getTokensProperties(
+        [tokenIn, tokenOut],
+        providerConfig
+      );
+
+    const sellTokenIsFot =
+      tokenPairProperties[
+        tokenIn.address.toLowerCase()
+      ]?.tokenFeeResult?.sellFeeBps?.gt(0);
+    const buyTokenIsFot =
+      tokenPairProperties[
+        tokenOut.address.toLowerCase()
+      ]?.tokenFeeResult?.buyFeeBps?.gt(0);
+    const fotInDirectSwap = sellTokenIsFot || buyTokenIsFot;
+
     log.info(
       {
         protocols: cachedRoutes.protocolsCovered,
@@ -1806,40 +1837,42 @@ export class AlphaRouter
       );
     }
 
-    if (v3Routes.length > 0) {
-      const v3RoutesFromCache: V3Route[] = v3Routes.map(
-        (cachedRoute) => cachedRoute.route as V3Route
-      );
-      metric.putMetric(
-        'SwapRouteFromCache_V3_GetQuotes_Request',
-        1,
-        MetricLoggerUnit.Count
-      );
+    if (!fotInDirectSwap) {
+      if (v3Routes.length > 0) {
+        const v3RoutesFromCache: V3Route[] = v3Routes.map(
+          (cachedRoute) => cachedRoute.route as V3Route
+        );
+        metric.putMetric(
+          'SwapRouteFromCache_V3_GetQuotes_Request',
+          1,
+          MetricLoggerUnit.Count
+        );
 
-      const beforeGetQuotes = Date.now();
+        const beforeGetQuotes = Date.now();
 
-      quotePromises.push(
-        this.v3Quoter
-          .getQuotes(
-            v3RoutesFromCache,
-            amounts,
-            percents,
-            quoteToken,
-            tradeType,
-            routingConfig,
-            undefined,
-            v3GasModel
-          )
-          .then((result) => {
-            metric.putMetric(
-              `SwapRouteFromCache_V3_GetQuotes_Load`,
-              Date.now() - beforeGetQuotes,
-              MetricLoggerUnit.Milliseconds
-            );
+        quotePromises.push(
+          this.v3Quoter
+            .getQuotes(
+              v3RoutesFromCache,
+              amounts,
+              percents,
+              quoteToken,
+              tradeType,
+              routingConfig,
+              undefined,
+              v3GasModel
+            )
+            .then((result) => {
+              metric.putMetric(
+                `SwapRouteFromCache_V3_GetQuotes_Load`,
+                Date.now() - beforeGetQuotes,
+                MetricLoggerUnit.Milliseconds
+              );
 
-            return result;
-          })
-      );
+              return result;
+            })
+        );
+      }
     }
 
     if (v2Routes.length > 0) {
@@ -1879,40 +1912,42 @@ export class AlphaRouter
       );
     }
 
-    if (mixedRoutes.length > 0) {
-      const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map(
-        (cachedRoute) => cachedRoute.route as MixedRoute
-      );
-      metric.putMetric(
-        'SwapRouteFromCache_Mixed_GetQuotes_Request',
-        1,
-        MetricLoggerUnit.Count
-      );
+    if (!fotInDirectSwap) {
+      if (mixedRoutes.length > 0) {
+        const mixedRoutesFromCache: MixedRoute[] = mixedRoutes.map(
+          (cachedRoute) => cachedRoute.route as MixedRoute
+        );
+        metric.putMetric(
+          'SwapRouteFromCache_Mixed_GetQuotes_Request',
+          1,
+          MetricLoggerUnit.Count
+        );
 
-      const beforeGetQuotes = Date.now();
+        const beforeGetQuotes = Date.now();
 
-      quotePromises.push(
-        this.mixedQuoter
-          .getQuotes(
-            mixedRoutesFromCache,
-            amounts,
-            percents,
-            quoteToken,
-            tradeType,
-            routingConfig,
-            undefined,
-            mixedRouteGasModel
-          )
-          .then((result) => {
-            metric.putMetric(
-              `SwapRouteFromCache_Mixed_GetQuotes_Load`,
-              Date.now() - beforeGetQuotes,
-              MetricLoggerUnit.Milliseconds
-            );
+        quotePromises.push(
+          this.mixedQuoter
+            .getQuotes(
+              mixedRoutesFromCache,
+              amounts,
+              percents,
+              quoteToken,
+              tradeType,
+              routingConfig,
+              undefined,
+              mixedRouteGasModel
+            )
+            .then((result) => {
+              metric.putMetric(
+                `SwapRouteFromCache_Mixed_GetQuotes_Load`,
+                Date.now() - beforeGetQuotes,
+                MetricLoggerUnit.Milliseconds
+              );
 
-            return result;
-          })
-      );
+              return result;
+            })
+        );
+      }
     }
 
     const getQuotesResults = await Promise.all(quotePromises);
@@ -1951,6 +1986,22 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
+    const tokenPairProperties =
+      await this.tokenPropertiesProvider.getTokensProperties(
+        [tokenIn, tokenOut],
+        providerConfig
+      );
+
+    const sellTokenIsFot =
+      tokenPairProperties[
+        tokenIn.address.toLowerCase()
+      ]?.tokenFeeResult?.sellFeeBps?.gt(0);
+    const buyTokenIsFot =
+      tokenPairProperties[
+        tokenOut.address.toLowerCase()
+      ]?.tokenFeeResult?.buyFeeBps?.gt(0);
+    const fotInDirectSwap = sellTokenIsFot || buyTokenIsFot;
+
     // Generate our distribution of amounts, i.e. fractions of the input amount.
     // We will get quotes for fractions of the input amount for different routes, then
     // combine to generate split routes.
@@ -2001,29 +2052,31 @@ export class AlphaRouter
 
     let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> =
       Promise.resolve(undefined);
-    if (
-      v3ProtocolSpecified ||
-      noProtocolsSpecified ||
-      (shouldQueryMixedProtocol && mixedProtocolAllowed)
-    ) {
-      v3CandidatePoolsPromise = getV3CandidatePools({
-        tokenIn,
-        tokenOut,
-        tokenProvider: this.tokenProvider,
-        blockedTokenListProvider: this.blockedTokenListProvider,
-        poolProvider: this.v3PoolProvider,
-        routeType: tradeType,
-        subgraphProvider: this.v3SubgraphProvider,
-        routingConfig,
-        chainId: this.chainId,
-      }).then((candidatePools) => {
-        metric.putMetric(
-          'GetV3CandidatePools',
-          Date.now() - beforeGetCandidates,
-          MetricLoggerUnit.Milliseconds
-        );
-        return candidatePools;
-      });
+    if (!fotInDirectSwap) {
+      if (
+        v3ProtocolSpecified ||
+        noProtocolsSpecified ||
+        (shouldQueryMixedProtocol && mixedProtocolAllowed)
+      ) {
+        v3CandidatePoolsPromise = getV3CandidatePools({
+          tokenIn,
+          tokenOut,
+          tokenProvider: this.tokenProvider,
+          blockedTokenListProvider: this.blockedTokenListProvider,
+          poolProvider: this.v3PoolProvider,
+          routeType: tradeType,
+          subgraphProvider: this.v3SubgraphProvider,
+          routingConfig,
+          chainId: this.chainId,
+        }).then((candidatePools) => {
+          metric.putMetric(
+            'GetV3CandidatePools',
+            Date.now() - beforeGetCandidates,
+            MetricLoggerUnit.Milliseconds
+          );
+          return candidatePools;
+        });
+      }
     }
 
     let v2CandidatePoolsPromise: Promise<V2CandidatePools | undefined> =
@@ -2096,43 +2149,45 @@ export class AlphaRouter
       );
     }
 
-    // Maybe Quote V3 - if V3 is specified, or no protocol is specified
-    if (v3ProtocolSpecified || noProtocolsSpecified) {
-      log.info({ protocols, tradeType }, 'Routing across V3');
+    if (!fotInDirectSwap) {
+      // Maybe Quote V3 - if V3 is specified, or no protocol is specified
+      if (v3ProtocolSpecified || noProtocolsSpecified) {
+        log.info({ protocols, tradeType }, 'Routing across V3');
 
-      metric.putMetric(
-        'SwapRouteFromChain_V3_GetRoutesThenQuotes_Request',
-        1,
-        MetricLoggerUnit.Count
-      );
-      const beforeGetRoutesThenQuotes = Date.now();
+        metric.putMetric(
+          'SwapRouteFromChain_V3_GetRoutesThenQuotes_Request',
+          1,
+          MetricLoggerUnit.Count
+        );
+        const beforeGetRoutesThenQuotes = Date.now();
 
-      quotePromises.push(
-        v3CandidatePoolsPromise.then((v3CandidatePools) =>
-          this.v3Quoter
-            .getRoutesThenQuotes(
-              tokenIn,
-              tokenOut,
-              amount,
-              amounts,
-              percents,
-              quoteToken,
-              v3CandidatePools!,
-              tradeType,
-              routingConfig,
-              v3GasModel
-            )
-            .then((result) => {
-              metric.putMetric(
-                `SwapRouteFromChain_V3_GetRoutesThenQuotes_Load`,
-                Date.now() - beforeGetRoutesThenQuotes,
-                MetricLoggerUnit.Milliseconds
-              );
+        quotePromises.push(
+          v3CandidatePoolsPromise.then((v3CandidatePools) =>
+            this.v3Quoter
+              .getRoutesThenQuotes(
+                tokenIn,
+                tokenOut,
+                amount,
+                amounts,
+                percents,
+                quoteToken,
+                v3CandidatePools!,
+                tradeType,
+                routingConfig,
+                v3GasModel
+              )
+              .then((result) => {
+                metric.putMetric(
+                  `SwapRouteFromChain_V3_GetRoutesThenQuotes_Load`,
+                  Date.now() - beforeGetRoutesThenQuotes,
+                  MetricLoggerUnit.Milliseconds
+                );
 
-              return result;
-            })
-        )
-      );
+                return result;
+              })
+          )
+        );
+      }
     }
 
     // Maybe Quote V2 - if V2 is specified, or no protocol is specified AND v2 is supported in this chain
@@ -2175,58 +2230,60 @@ export class AlphaRouter
       );
     }
 
-    // Maybe Quote mixed routes
-    // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
-    // AND is Mainnet or Gorli
-    if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
-      log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
+    if (!fotInDirectSwap) {
+      // Maybe Quote mixed routes
+      // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
+      // AND is Mainnet or Gorli
+      if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
+        log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
 
-      metric.putMetric(
-        'SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Request',
-        1,
-        MetricLoggerUnit.Count
-      );
-      const beforeGetRoutesThenQuotes = Date.now();
+        metric.putMetric(
+          'SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Request',
+          1,
+          MetricLoggerUnit.Count
+        );
+        const beforeGetRoutesThenQuotes = Date.now();
 
-      quotePromises.push(
-        Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(
-          async ([v3CandidatePools, v2CandidatePools]) => {
-            const crossLiquidityPools =
-              await getMixedCrossLiquidityCandidatePools({
-                tokenIn,
-                tokenOut,
-                blockNumber: routingConfig.blockNumber,
-                v2SubgraphProvider: this.v2SubgraphProvider,
-                v3SubgraphProvider: this.v3SubgraphProvider,
-                v2Candidates: v2CandidatePools,
-                v3Candidates: v3CandidatePools,
-              });
+        quotePromises.push(
+          Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(
+            async ([v3CandidatePools, v2CandidatePools]) => {
+              const crossLiquidityPools =
+                await getMixedCrossLiquidityCandidatePools({
+                  tokenIn,
+                  tokenOut,
+                  blockNumber: routingConfig.blockNumber,
+                  v2SubgraphProvider: this.v2SubgraphProvider,
+                  v3SubgraphProvider: this.v3SubgraphProvider,
+                  v2Candidates: v2CandidatePools,
+                  v3Candidates: v3CandidatePools,
+                });
 
-            return this.mixedQuoter
-              .getRoutesThenQuotes(
-                tokenIn,
-                tokenOut,
-                amount,
-                amounts,
-                percents,
-                quoteToken,
-                [v3CandidatePools!, v2CandidatePools!, crossLiquidityPools],
-                tradeType,
-                routingConfig,
-                mixedRouteGasModel
-              )
-              .then((result) => {
-                metric.putMetric(
-                  `SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Load`,
-                  Date.now() - beforeGetRoutesThenQuotes,
-                  MetricLoggerUnit.Milliseconds
-                );
+              return this.mixedQuoter
+                .getRoutesThenQuotes(
+                  tokenIn,
+                  tokenOut,
+                  amount,
+                  amounts,
+                  percents,
+                  quoteToken,
+                  [v3CandidatePools!, v2CandidatePools!, crossLiquidityPools],
+                  tradeType,
+                  routingConfig,
+                  mixedRouteGasModel
+                )
+                .then((result) => {
+                  metric.putMetric(
+                    `SwapRouteFromChain_Mixed_GetRoutesThenQuotes_Load`,
+                    Date.now() - beforeGetRoutesThenQuotes,
+                    MetricLoggerUnit.Milliseconds
+                  );
 
-                return result;
-              });
-          }
-        )
-      );
+                  return result;
+                });
+            }
+          )
+        );
+      }
     }
 
     const getQuotesResults = await Promise.all(quotePromises);
