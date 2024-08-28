@@ -16,7 +16,7 @@ import {
   NATIVE_UNWRAP_OVERHEAD,
   NATIVE_WRAP_OVERHEAD,
   SINGLE_HOP_OVERHEAD,
-} from '../../../../../src/routers/alpha-router/gas-models/v3/gas-costs';
+} from '../../../../../src/routers/alpha-router/gas-models/gas-costs';
 import {
   DAI_USDT_LOW,
   DAI_WETH_MEDIUM,

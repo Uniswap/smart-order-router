@@ -28,7 +28,7 @@ import {
   V2CandidatePools,
 } from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
-import { NATIVE_OVERHEAD } from '../gas-models/v3/gas-costs';
+import { NATIVE_OVERHEAD } from '../gas-models/gas-costs';
 
 import {
   ArbitrumGasData,

@@ -27,7 +27,7 @@ import {
   COST_PER_HOP,
   COST_PER_INIT_TICK,
   COST_PER_UNINIT_TICK,
-} from '../v3/gas-costs';
+} from '../gas-costs';
 
 /**
  * Computes a gas estimate for a mixed route swap using heuristics.
@@ -47,11 +47,7 @@ import {
  * @export
  * @class MixedRouteHeuristicGasModelFactory
  */
-export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory {
-  constructor() {
-    super();
-  }
-
+export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<MixedRouteWithValidQuote> {
   public async buildGasModel({
     chainId,
     gasPriceWei,

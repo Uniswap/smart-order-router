@@ -23,7 +23,6 @@ import {
   DAI_SEPOLIA,
   DAI_ZKSYNC,
   USDB_BLAST,
-  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
@@ -50,6 +49,7 @@ import {
   USDC_WORMHOLE_CELO,
   USDC_ZKSYNC,
   USDC_ZORA,
+  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -71,6 +71,7 @@ import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
+  V4RouteWithValidQuote
 } from '../entities/route-with-valid-quote';
 
 // When adding new usd gas tokens, ensure the tokens are ordered
@@ -169,6 +170,7 @@ export type LiquidityCalculationPools = {
 export type GasModelType = {
   v2GasModel?: IGasModel<V2RouteWithValidQuote>;
   v3GasModel: IGasModel<V3RouteWithValidQuote>;
+  v4GasModel: IGasModel<V4RouteWithValidQuote>;
   mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>;
 };
 
@@ -230,7 +232,9 @@ export abstract class IV2GasModelFactory {
  * @abstract
  * @class IOnChainGasModelFactory
  */
-export abstract class IOnChainGasModelFactory {
+export abstract class IOnChainGasModelFactory<
+  TRouteWithValidQuote extends RouteWithValidQuote
+> {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,
@@ -240,9 +244,7 @@ export abstract class IOnChainGasModelFactory {
     v2poolProvider,
     l2GasDataProvider,
     providerConfig,
-  }: BuildOnChainGasModelFactoryType): Promise<
-    IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
-  >;
+  }: BuildOnChainGasModelFactoryType): Promise<IGasModel<TRouteWithValidQuote>>;
 
   protected totalInitializedTicksCrossed(
     initializedTicksCrossedList: number[]

@@ -24,7 +24,7 @@ import {
   NATIVE_OVERHEAD,
   NATIVE_UNWRAP_OVERHEAD,
   NATIVE_WRAP_OVERHEAD,
-} from '../../../../../src/routers/alpha-router/gas-models/v3/gas-costs';
+} from '../../../../../src/routers/alpha-router/gas-models/gas-costs';
 import {
   USDC_DAI,
   USDC_DAI_MEDIUM,
