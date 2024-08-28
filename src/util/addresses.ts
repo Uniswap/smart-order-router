@@ -85,6 +85,11 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.ZKSYNC]: '0x071Bd2063dF031EDd110E27C6F4CDe50A3DeF2d4',
 };
 
+export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
+  ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
+  [ChainId.SEPOLIA]: '0x340e960d7d06dc77f5b7cf5f14c1ecd50b591803',
+};
+
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
   [ChainId.MAINNET]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].mixedRouteQuoterV1Address,

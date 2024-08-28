@@ -305,6 +305,21 @@ export const WBTC_WETH = new Pair(
   CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
 );
 
+export const BULLET = new Token(
+  ChainId.MAINNET,
+  '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+  8,
+  'BULLET',
+  'Bullet Game Betting Token',
+  false,
+  BigNumber.from(500),
+  BigNumber.from(500)
+);
+export const BULLET_USDC = new Pair(
+  CurrencyAmount.fromRawAmount(BULLET, 10000000000),
+  CurrencyAmount.fromRawAmount(USDC, 10000000000)
+);
+
 export const poolToV4SubgraphPool = (
   pool: V4Pool,
   idx: number | string
@@ -514,16 +529,6 @@ export const BULLET_WITHOUT_TAX = new Token(
   'BULLET',
   'Bullet Game Betting Token',
   false
-);
-export const BULLET = new Token(
-  ChainId.MAINNET,
-  '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
-  8,
-  'BULLET',
-  'Bullet Game Betting Token',
-  false,
-  BigNumber.from(500),
-  BigNumber.from(500)
 );
 export const STETH_WITHOUT_TAX = new Token(
   ChainId.MAINNET,

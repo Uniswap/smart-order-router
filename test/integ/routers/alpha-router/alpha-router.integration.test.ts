@@ -82,7 +82,9 @@ import {
   WBTC_MOONBEAM,
   WETH9,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
+  CachingV4PoolProvider,
+  V4PoolProvider
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import { OnChainTokenFeeFetcher } from '../../../../src/providers/token-fee-fetcher';
@@ -654,6 +656,11 @@ describe('alpha router integration', () => {
     );
     expect(aliceBULLETBalance).toEqual(parseAmount('735871', BULLET));
 
+    const v4PoolProvider = new CachingV4PoolProvider(
+      ChainId.MAINNET,
+      new V4PoolProvider(ChainId.MAINNET, multicall2Provider),
+      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+    );
     const v3PoolProvider = new CachingV3PoolProvider(
       ChainId.MAINNET,
       new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
@@ -685,6 +692,7 @@ describe('alpha router integration', () => {
       hardhat.providers[0]!,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       portionProvider
     );
 
@@ -697,6 +705,7 @@ describe('alpha router integration', () => {
       process.env.TENDERLY_NODE_API_KEY!,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       hardhat.providers[0]!,
       portionProvider,
       {
@@ -3455,6 +3464,11 @@ describe('quote for other networks', () => {
             provider
           );
 
+          const v4PoolProvider = new CachingV4PoolProvider(
+            chain,
+            new V4PoolProvider(chain, multicall2Provider),
+            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+          )
           const v3PoolProvider = new CachingV3PoolProvider(
             chain,
             new V3PoolProvider(chain, multicall2Provider),
@@ -3477,6 +3491,7 @@ describe('quote for other networks', () => {
             provider,
             v2PoolProvider,
             v3PoolProvider,
+            v4PoolProvider,
             portionProvider
           );
 
@@ -3489,6 +3504,7 @@ describe('quote for other networks', () => {
             process.env.TENDERLY_NODE_API_KEY!,
             v2PoolProvider,
             v3PoolProvider,
+            v4PoolProvider,
             provider,
             portionProvider
           );

@@ -17,17 +17,17 @@ import {
   DAI_MAINNET as DAI, DEFAULT_TOKEN_PROPERTIES_RESULT,
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
-  MixedRoute,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
-  RouteWithQuotes,
+  RouteWithQuotes, SupportedExactOutRoutes,
+  SupportedRoutes,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapRouterProvider,
   SwapToRatioStatus,
-  SwapType,
-  TokenPropertiesProvider,
+  SwapType, TokenPropertiesMap,
+  TokenPropertiesProvider, TokenPropertiesResult,
   TokenProvider,
   UniswapMulticallProvider,
   USDC_MAINNET as USDC,
@@ -57,7 +57,7 @@ import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router
 import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,
-  buildMockV3PoolAccessor,
+  buildMockV3PoolAccessor, BULLET, BULLET_USDC,
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_USDT_MEDIUM,
@@ -76,7 +76,7 @@ import {
   USDC_WETH_LOW,
   WBTC_WETH,
   WETH9_USDT_LOW,
-  WETH_USDT,
+  WETH_USDT
 } from '../../../test-util/mock-data';
 import { InMemoryRouteCachingProvider } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
 
@@ -201,7 +201,7 @@ describe('alpha router', () => {
       token1: tB,
     }));
 
-    const v2MockPools = [DAI_USDT, USDC_WETH, WETH_USDT, USDC_DAI, WBTC_WETH];
+    const v2MockPools = [DAI_USDT, USDC_WETH, WETH_USDT, USDC_DAI, WBTC_WETH, BULLET_USDC];
     mockV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
     mockV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
     mockV2PoolProvider.getPoolAddress.callsFake((tA, tB) => ({
@@ -226,12 +226,12 @@ describe('alpha router', () => {
 
     mockOnChainQuoteProvider = sinon.createStubInstance(OnChainQuoteProvider);
     mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
-      getQuotesManyExactInFn<V3Route | V2Route | MixedRoute>()
+      getQuotesManyExactInFn<SupportedRoutes>()
     );
     mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
       async (
         amountOuts: CurrencyAmount[],
-        routes: V3Route[],
+        routes: SupportedExactOutRoutes[],
         _providerConfig?: ProviderConfig
       ) => {
         const routesWithQuotes = _.map(routes, (r) => {
@@ -455,7 +455,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: (V3Route | V2Route | MixedRoute)[],
+          routes: SupportedRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -636,7 +636,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -675,7 +675,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -857,7 +857,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: (V3Route | V2Route | MixedRoute)[],
+          routes: SupportedRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1330,7 +1330,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1368,7 +1368,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1800,6 +1800,72 @@ describe('alpha router', () => {
         expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
       });
     });
+
+    describe('token in is fee-on-transfer token on sell', () => {
+      test('should only quote against v2', async () => {
+        mockTokenPropertiesProvider.getTokensProperties.returns(Promise.resolve({
+          '0x8ef32a03784c8fd63bbf027251b9620865bd54b6': {
+            tokenFeeResult: {
+              buyFeeBps: BigNumber.from(500),
+              sellFeeBps: BigNumber.from(500)
+            } as TokenPropertiesResult
+          } as TokenPropertiesMap
+        }));
+
+        const swap = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(BULLET, 10000),
+          USDC,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap).toBeDefined();
+
+        expect(mockV2SubgraphProvider.getPools.called).toBeTruthy();
+        expect(mockV3SubgraphProvider.getPools.called).toBeFalsy();
+        sinon.assert.calledWith(
+          mockV2QuoteProvider.getQuotesManyExactIn,
+          sinon.match((value) => {
+            return value instanceof Array && value.length == 1;
+          }),
+          sinon.match.array
+        );
+        expect(mockOnChainQuoteProvider.getQuotesManyExactIn.called).toBeFalsy();
+      })
+    })
+
+    describe('token out is fee-on-transfer token on buy', () => {
+      test('should only quote against v2', async () => {
+        mockTokenPropertiesProvider.getTokensProperties.returns(Promise.resolve({
+          '0x8ef32a03784c8fd63bbf027251b9620865bd54b6': {
+            tokenFeeResult: {
+              buyFeeBps: BigNumber.from(500),
+              sellFeeBps: BigNumber.from(500)
+            } as TokenPropertiesResult
+          } as TokenPropertiesMap
+        }));
+
+        const swap = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(USDC, 10000),
+          BULLET,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap).toBeDefined();
+
+        expect(mockV2SubgraphProvider.getPools.called).toBeTruthy();
+        expect(mockV3SubgraphProvider.getPools.called).toBeFalsy();
+        sinon.assert.calledWith(
+          mockV2QuoteProvider.getQuotesManyExactIn,
+          sinon.match((value) => {
+            return value instanceof Array && value.length == 1;
+          }),
+          sinon.match.array
+        );
+        expect(mockOnChainQuoteProvider.getQuotesManyExactIn.called).toBeFalsy();
+      })
+    })
   });
 
   describe('exact out', () => {
@@ -1832,7 +1898,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: V3Route[],
+          routes: SupportedExactOutRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -3129,7 +3195,7 @@ type GetQuotesManyExactInFnParams = {
   sqrtPriceX96AfterList?: BigNumber[];
 };
 
-function getQuotesManyExactInFn<TRoute extends V3Route | V2Route | MixedRoute>(
+function getQuotesManyExactInFn<TRoute extends SupportedRoutes>(
   options: GetQuotesManyExactInFnParams = {}
 ): (
   amountIns: CurrencyAmount[],

@@ -6,7 +6,7 @@ import brotli from 'brotli';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
-import { IV2PoolProvider } from '../providers';
+import { IV2PoolProvider, IV4PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
 import { ArbitrumGasData } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
@@ -23,6 +23,7 @@ import {
   usdGasTokensByChain,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
 } from '../routers';
 import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
@@ -382,6 +383,7 @@ export function initSwapRouteFromExisting(
   swapRoute: SwapRoute,
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
+  v4PoolProvider: IV4PoolProvider,
   portionProvider: IPortionProvider,
   quoteGasAdjusted: CurrencyAmount,
   estimatedGasUsed: BigNumber,
@@ -398,6 +400,32 @@ export function initSwapRouteFromExisting(
     : TradeType.EXACT_INPUT;
   const routesWithValidQuote = swapRoute.route.map((route) => {
     switch (route.protocol) {
+      case Protocol.V4:
+        return new V4RouteWithValidQuote({
+          amount: CurrencyAmount.fromFractionalAmount(
+            route.amount.currency,
+            route.amount.numerator,
+            route.amount.denominator
+          ),
+          rawQuote: BigNumber.from(route.rawQuote),
+          sqrtPriceX96AfterList: route.sqrtPriceX96AfterList.map((num) =>
+            BigNumber.from(num)
+          ),
+          initializedTicksCrossedList: [...route.initializedTicksCrossedList],
+          quoterGasEstimate: BigNumber.from(route.quoterGasEstimate),
+          percent: route.percent,
+          route: route.route,
+          gasModel: route.gasModel,
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
+          tradeType: tradeType,
+          v4PoolProvider: v4PoolProvider,
+        });
       case Protocol.V3:
         return new V3RouteWithValidQuote({
           amount: CurrencyAmount.fromFractionalAmount(

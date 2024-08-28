@@ -12,21 +12,19 @@ import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';
 
-export const routeToTokens = (
-  route: SupportedRoutes
-): Currency[] => {
+export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
     case Protocol.V4:
-      return route.currencyPath
+      return route.currencyPath;
     case Protocol.V3:
-      return route.tokenPath
+      return route.tokenPath;
     case Protocol.V2:
     case Protocol.MIXED:
-      return route.path
+      return route.path;
     default:
-      throw new Error(`Unsupported route ${JSON.stringify(route)}`)
+      throw new Error(`Unsupported route ${JSON.stringify(route)}`);
   }
-}
+};
 
 export const routeToPools = (
   route: SupportedRoutes
@@ -35,17 +33,15 @@ export const routeToPools = (
     case Protocol.V4:
     case Protocol.V3:
     case Protocol.MIXED:
-      return route.pools
+      return route.pools;
     case Protocol.V2:
-      return route.pairs
+      return route.pairs;
     default:
-      throw new Error(`Unsupported route ${JSON.stringify(route)}`)
+      throw new Error(`Unsupported route ${JSON.stringify(route)}`);
   }
-}
+};
 
-export const poolToString = (
-  pool: V4Pool | V3Pool | Pair
-): string => {
+export const poolToString = (pool: V4Pool | V3Pool | Pair): string => {
   if (pool instanceof V4Pool) {
     return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
       pool.token0,
@@ -53,7 +49,7 @@ export const poolToString = (
       pool.fee,
       0,
       ADDRESS_ZERO
-    )}]`
+    )}]`;
   } else if (pool instanceof V3Pool) {
     return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
       pool.token0,
@@ -61,20 +57,18 @@ export const poolToString = (
       pool.fee,
       undefined,
       V3_CORE_FACTORY_ADDRESSES[pool.chainId]
-    )}]`
+    )}]`;
   } else if (pool instanceof Pair) {
     return ` -- [${Pair.getAddress(
       (pool as Pair).token0,
       (pool as Pair).token1
-    )}]`
+    )}]`;
   } else {
-    throw new Error(`Unsupported pool ${JSON.stringify(pool)}`)
+    throw new Error(`Unsupported pool ${JSON.stringify(pool)}`);
   }
-}
+};
 
-export const routeToString = (
-  route: SupportedRoutes
-): string => {
+export const routeToString = (route: SupportedRoutes): string => {
   const routeStr = [];
   const tokens = routeToTokens(route);
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
