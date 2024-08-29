@@ -6,13 +6,6 @@ import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { calculateL1GasFeesHelper } from '../../../util/gas-factory-helpers';
 import { V3RouteWithValidQuote, V4RouteWithValidQuote } from '../entities';
 import {
-  BuildOnChainGasModelFactoryType,
-  GasModelProviderConfig,
-  getQuoteThroughNativePool,
-  IGasModel,
-  IOnChainGasModelFactory,
-} from './gas-model';
-import {
   BASE_SWAP_COST,
   COST_PER_HOP,
   COST_PER_INIT_TICK,
@@ -20,6 +13,13 @@ import {
   SINGLE_HOP_OVERHEAD,
   TOKEN_OVERHEAD,
 } from './gas-costs';
+import {
+  BuildOnChainGasModelFactoryType,
+  GasModelProviderConfig,
+  getQuoteThroughNativePool,
+  IGasModel,
+  IOnChainGasModelFactory,
+} from './gas-model';
 
 export abstract class TickBasedHeuristicGasModelFactory<
   TRouteWithValidQuote extends V3RouteWithValidQuote | V4RouteWithValidQuote

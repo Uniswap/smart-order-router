@@ -86,7 +86,11 @@ import {
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
-import { SWAP_ROUTER_02_ADDRESSES, WRAPPED_NATIVE_CURRENCY } from '../../util';
+import {
+  SWAP_ROUTER_02_ADDRESSES,
+  V4_SUPPORTED,
+  WRAPPED_NATIVE_CURRENCY
+} from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,
@@ -147,7 +151,8 @@ import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
-  V3RouteWithValidQuote, V4RouteWithValidQuote
+  V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
@@ -162,6 +167,7 @@ import {
   V3CandidatePools,
   V4CandidatePools,
 } from './functions/get-candidate-pools';
+import { NATIVE_OVERHEAD } from './gas-models/gas-costs';
 import {
   GasModelProviderConfig,
   GasModelType,
@@ -172,7 +178,6 @@ import {
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
-import { NATIVE_OVERHEAD } from './gas-models/gas-costs';
 import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
 import { V4HeuristicGasModelFactory } from './gas-models/v4/v4-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
@@ -302,6 +307,11 @@ export type AlphaRouterParams = {
    * All the supported v2 chains configuration
    */
   v2Supported?: ChainId[];
+
+  /**
+   * All the supported v4 chains configuration
+   */
+  v4Supported?: ChainId[];
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -508,6 +518,7 @@ export class AlphaRouter
   protected tokenPropertiesProvider: ITokenPropertiesProvider;
   protected portionProvider: IPortionProvider;
   protected v2Supported?: ChainId[];
+  protected v4Supported?: ChainId[];
 
   constructor({
     chainId,
@@ -536,6 +547,7 @@ export class AlphaRouter
     tokenPropertiesProvider,
     portionProvider,
     v2Supported,
+    v4Supported,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -961,6 +973,7 @@ export class AlphaRouter
     );
 
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
+    this.v4Supported = v4Supported ?? V4_SUPPORTED;
   }
 
   public async routeToRatio(
@@ -1438,6 +1451,7 @@ export class AlphaRouter
         tradeType,
         routingConfig,
         v3GasModel,
+        v4GasModel,
         mixedRouteGasModel,
         gasPriceWei,
         v2GasModel,
@@ -1978,6 +1992,7 @@ export class AlphaRouter
       this.portionProvider,
       v2GasModel,
       v3GasModel,
+      v4GasModel,
       swapConfig,
       providerConfig
     );
@@ -1992,6 +2007,7 @@ export class AlphaRouter
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
+    v4GasModel: IGasModel<V4RouteWithValidQuote>,
     mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>,
     gasPriceWei: BigNumber,
     v2GasModel?: IGasModel<V2RouteWithValidQuote>,
@@ -2027,6 +2043,7 @@ export class AlphaRouter
     const v3ProtocolSpecified = protocols.includes(Protocol.V3);
     const v2ProtocolSpecified = protocols.includes(Protocol.V2);
     const v2SupportedInChain = this.v2Supported?.includes(this.chainId);
+    const v4SupportedInChain = this.v4Supported?.includes(this.chainId);
     const shouldQueryMixedProtocol =
       protocols.includes(Protocol.MIXED) ||
       (noProtocolsSpecified && v2SupportedInChain);
@@ -2040,7 +2057,7 @@ export class AlphaRouter
       Promise.resolve(undefined);
 
     // we are explicitly requiring people to specify v4 for now
-    if (v4ProtocolSpecified) {
+    if (v4ProtocolSpecified && v4SupportedInChain) {
       // if (v4ProtocolSpecified || noProtocolsSpecified) {
       v4CandidatePoolsPromise = getV4CandidatePools({
         tokenIn,
@@ -2123,7 +2140,7 @@ export class AlphaRouter
     const quotePromises: Promise<GetQuotesResult>[] = [];
 
     // for v4, for now we explicitly require people to specify
-    if (v4ProtocolSpecified) {
+    if (v4SupportedInChain && v4ProtocolSpecified) {
       log.info({ protocols, tradeType }, 'Routing across V4');
 
       metric.putMetric(
@@ -2325,6 +2342,7 @@ export class AlphaRouter
       this.portionProvider,
       v2GasModel,
       v3GasModel,
+      v4GasModel,
       swapConfig,
       providerConfig
     );
@@ -2498,12 +2516,13 @@ export class AlphaRouter
         providerConfig: providerConfig,
       });
 
-    const [v2GasModel, v3GasModel, V4GasModel, mixedRouteGasModel] = await Promise.all([
-      v2GasModelPromise,
-      v3GasModelPromise,
-      v4GasModelPromise,
-      mixedRouteGasModelPromise,
-    ]);
+    const [v2GasModel, v3GasModel, V4GasModel, mixedRouteGasModel] =
+      await Promise.all([
+        v2GasModelPromise,
+        v3GasModelPromise,
+        v4GasModelPromise,
+        mixedRouteGasModelPromise,
+      ]);
 
     metric.putMetric(
       'GasModelCreation',

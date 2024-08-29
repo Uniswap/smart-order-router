@@ -81,4 +81,53 @@ export class V4SubgraphProvider
       subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
     );
   }
+
+  protected override subgraphQuery(blockNumber?: number): string {
+    return `
+    query getPools($pageSize: Int!, $id: String) {
+      pools(
+        first: $pageSize
+        ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+          where: { id_gt: $id }
+        ) {
+          id
+          token0 {
+            symbol
+            id
+          }
+          token1 {
+            symbol
+            id
+          }
+          feeTier
+          tickSpacing
+          hooks
+          liquidity
+          totalValueLockedUSD
+          totalValueLockedETH
+          totalValueLockedUSDUntracked
+        }
+      }
+   `;
+  }
+
+  protected override mapSubgraphPool(
+    rawPool: V4RawSubgraphPool
+  ): V4SubgraphPool {
+    return {
+      id: rawPool.id,
+      feeTier: rawPool.feeTier,
+      tickSpacing: rawPool.tickSpacing,
+      hooks: rawPool.hooks,
+      liquidity: rawPool.liquidity,
+      token0: {
+        id: rawPool.token0.id,
+      },
+      token1: {
+        id: rawPool.token1.id,
+      },
+      tvlETH: parseFloat(rawPool.totalValueLockedETH),
+      tvlUSD: parseFloat(rawPool.totalValueLockedUSD),
+    };
+  }
 }
