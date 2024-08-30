@@ -1557,10 +1557,15 @@ export class AlphaRouter
               },
               'Error calculating misquote percent'
             );
+
+            metric.putMetric(
+              `TapcompareCachedRoute_quoteGasAdjustedDiffPercent_divzero`,
+              1,
+              MetricLoggerUnit.Count
+            );
           }
 
-          // We don't want to change the behavior here. If it throws an error, we want to log it and re-throw
-          throw error;
+          // Log but don't throw here - this is only for logging.
         }
       }
     }
