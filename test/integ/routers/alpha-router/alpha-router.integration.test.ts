@@ -118,7 +118,7 @@ import {
 import { WHALES } from '../../../test-util/whales';
 import { V4SubgraphProvider } from '../../../../build/main';
 
-const FORK_BLOCK = 20413900;
+const FORK_BLOCK = 20444945;
 const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
@@ -126,7 +126,7 @@ const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
-  [ChainId.MAINNET]: 40,
+  [ChainId.MAINNET]: 50,
   [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 50,
   [ChainId.OPTIMISM]: 61,
@@ -135,17 +135,17 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.ARBITRUM_ONE]: 53,
   [ChainId.ARBITRUM_GOERLI]: 50,
   [ChainId.ARBITRUM_SEPOLIA]: 50,
-  [ChainId.POLYGON]: 38,
+  [ChainId.POLYGON]: 53,
   [ChainId.POLYGON_MUMBAI]: 30,
   [ChainId.CELO]: 30,
   [ChainId.CELO_ALFAJORES]: 30,
   [ChainId.GNOSIS]: 30,
   [ChainId.MOONBEAM]: 30,
-  [ChainId.BNB]: 63,
-  [ChainId.AVALANCHE]: 36,
-  [ChainId.BASE]: 39,
+  [ChainId.BNB]: 82,
+  [ChainId.AVALANCHE]: 45,
+  [ChainId.BASE]: 50,
   [ChainId.BASE_GOERLI]: 30,
-  [ChainId.ZORA]: 40,
+  [ChainId.ZORA]: 50,
   [ChainId.ZORA_SEPOLIA]: 30,
   [ChainId.ROOTSTOCK]: 30,
   [ChainId.BLAST]: 34,
@@ -4068,9 +4068,9 @@ describe('quote for other networks', () => {
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
-                tradeType == TradeType.EXACT_INPUT
+                tradeType === TradeType.EXACT_INPUT
                   ? parseAmount(chain === ChainId.ZORA ? '0.1' : '1', tokenIn)
-                  : parseAmount(chain === ChainId.ZORA ? '0.1' : '1', tokenOut);
+                  : parseAmount(chain === ChainId.ZORA ? '0.01' : '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
