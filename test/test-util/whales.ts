@@ -36,7 +36,7 @@ export const WHALES = (token: Currency): string => {
     case nativeOnChain(ChainId.GOERLI):
       return '0x08505F42D5666225d5d73B842dAdB87CCA44d1AE';
     case nativeOnChain(ChainId.BASE):
-      return '0x428ab2ba90eba0a4be7af34c9ac451ab061ac010';
+      return '0x66e4e30cf1eb6155c1bf0422879a470e582f3a50';
     case nativeOnChain(ChainId.AVALANCHE):
       return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
     case nativeOnChain(ChainId.BNB):
@@ -102,7 +102,7 @@ export const WHALES = (token: Currency): string => {
     case USDC_ON(ChainId.BASE):
       return '0x4a3636608d7bc5776cb19eb72caa36ebb9ea683b';
     case USDC_ZORA:
-      return '0x26eF03A20AaeDA8aaFCeE4E146DC6B328195947C';
+      return '0xbC59f8F3b275AA56A90D13bAE7cCe5e6e11A3b17';
     case USDC_NATIVE_BASE:
       return '0x20fe51a9229eef2cf8ad9e89d91cab9312cf3b7a';
     case DAI_ON(ChainId.GOERLI):
