@@ -87,6 +87,7 @@ import {
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
+  shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
   WRAPPED_NATIVE_CURRENCY
@@ -165,7 +166,7 @@ import {
   SubgraphPool,
   V2CandidatePools,
   V3CandidatePools,
-  V4CandidatePools,
+  V4CandidatePools
 } from './functions/get-candidate-pools';
 import { NATIVE_OVERHEAD } from './gas-models/gas-costs';
 import {
@@ -399,6 +400,10 @@ export type AlphaRouterConfig = {
    * will be used.
    */
   protocols?: Protocol[];
+  /**
+   * The protocols-version pools to be excluded from the mixed routes.
+   */
+  excludedProtocolsFromMixed?: Protocol[];
   /**
    * Config for selecting which pools to consider routing via on V2.
    */
@@ -1354,6 +1359,10 @@ export class AlphaRouter
         await blockNumber,
         routingConfig.optimisticCachedRoutes
       );
+    }
+
+    if (shouldWipeoutCachedRoutes(routingConfig.excludedProtocolsFromMixed, cachedRoutes)) {
+      cachedRoutes = undefined;
     }
 
     metric.putMetric(

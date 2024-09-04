@@ -14,11 +14,11 @@ import {
   TokenValidationResult,
 } from '../../../providers';
 import {
-  CurrencyAmount,
+  CurrencyAmount, excludeProtocolPoolRouteFromMixedRoute,
   log,
   metric,
   MetricLoggerUnit,
-  routeToString,
+  routeToString
 } from '../../../util';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
@@ -154,6 +154,8 @@ export class MixedQuoter extends BaseQuoter<
       maxSwapsPerPath
     );
 
+    const protocolExcludedRoutes = excludeProtocolPoolRouteFromMixedRoute(routes, routingConfig.excludedProtocolsFromMixed);
+
     metric.putMetric(
       'MixedGetRoutesLoad',
       Date.now() - beforeGetRoutes,
@@ -161,7 +163,7 @@ export class MixedQuoter extends BaseQuoter<
     );
 
     return {
-      routes,
+      routes: protocolExcludedRoutes,
       candidatePools,
     };
   }
