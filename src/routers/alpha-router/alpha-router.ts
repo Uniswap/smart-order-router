@@ -90,7 +90,7 @@ import {
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
@@ -166,7 +166,7 @@ import {
   SubgraphPool,
   V2CandidatePools,
   V3CandidatePools,
-  V4CandidatePools
+  V4CandidatePools,
 } from './functions/get-candidate-pools';
 import { NATIVE_OVERHEAD } from './gas-models/gas-costs';
 import {
@@ -1361,7 +1361,12 @@ export class AlphaRouter
       );
     }
 
-    if (shouldWipeoutCachedRoutes(routingConfig.excludedProtocolsFromMixed, cachedRoutes)) {
+    if (
+      shouldWipeoutCachedRoutes(
+        cachedRoutes,
+        routingConfig.excludedProtocolsFromMixed
+      )
+    ) {
       cachedRoutes = undefined;
     }
 

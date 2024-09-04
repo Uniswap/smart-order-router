@@ -136,23 +136,18 @@ export const routeAmountsToString = (
   return _.join(routeStrings, ', ');
 };
 
-export function shouldWipeoutCachedRoutes(excludedProtocolsFromMixed?: Protocol[], cachedRoutes?: CachedRoutes): boolean {
+export function shouldWipeoutCachedRoutes(
+  cachedRoutes?: CachedRoutes,
+  excludedProtocolsFromMixed?: Protocol[]
+): boolean {
   const containsExcludedProtocolPools = cachedRoutes?.routes.find((route) => {
     switch (route.protocol) {
       case Protocol.MIXED:
-        return (route.route as MixedRoute).pools.filter((pool) =>
-          {
-            if (pool instanceof V4Pool) {
-              return excludedProtocolsFromMixed?.includes(Protocol.V4);
-            } else if (pool instanceof V3Pool) {
-              return excludedProtocolsFromMixed?.includes(Protocol.V3);
-            } else if (pool instanceof Pair) {
-              return excludedProtocolsFromMixed?.includes(Protocol.V2);
-            } else {
-              return false;
-            }
-          }
-        ).length > 0;
+        return (
+          (route.route as MixedRoute).pools.filter((pool) => {
+            return poolIsInExcludedProtocols(pool, excludedProtocolsFromMixed);
+          }).length > 0
+        );
       default:
         return false;
     }
@@ -161,18 +156,30 @@ export function shouldWipeoutCachedRoutes(excludedProtocolsFromMixed?: Protocol[
   return containsExcludedProtocolPools !== undefined;
 }
 
-export function excludeProtocolPoolRouteFromMixedRoute(mixedRoutes: MixedRoute[], excludedProtocolsFromMixed?: Protocol[]): MixedRoute[] {
+export function excludeProtocolPoolRouteFromMixedRoute(
+  mixedRoutes: MixedRoute[],
+  excludedProtocolsFromMixed?: Protocol[]
+): MixedRoute[] {
   return mixedRoutes.filter((route) => {
-    return route.pools.filter((pool) => {
-      if (pool instanceof V4Pool) {
-        return excludedProtocolsFromMixed?.includes(Protocol.V4);
-      } else if (pool instanceof V3Pool) {
-        return excludedProtocolsFromMixed?.includes(Protocol.V3);
-      } else if (pool instanceof Pair) {
-        return excludedProtocolsFromMixed?.includes(Protocol.V2);
-      } else {
-        return false;
-      }
-    }).length == 0;
+    return (
+      route.pools.filter((pool) => {
+        return poolIsInExcludedProtocols(pool, excludedProtocolsFromMixed);
+      }).length == 0
+    );
   });
+}
+
+function poolIsInExcludedProtocols(
+  pool: V4Pool | V3Pool | Pair,
+  excludedProtocolsFromMixed?: Protocol[]
+): boolean {
+  if (pool instanceof V4Pool) {
+    return excludedProtocolsFromMixed?.includes(Protocol.V4) ?? false;
+  } else if (pool instanceof V3Pool) {
+    return excludedProtocolsFromMixed?.includes(Protocol.V3) ?? false;
+  } else if (pool instanceof Pair) {
+    return excludedProtocolsFromMixed?.includes(Protocol.V2) ?? false;
+  } else {
+    return false;
+  }
 }
