@@ -1361,12 +1361,7 @@ export class AlphaRouter
       );
     }
 
-    if (
-      shouldWipeoutCachedRoutes(
-        cachedRoutes,
-        routingConfig.excludedProtocolsFromMixed
-      )
-    ) {
+    if (shouldWipeoutCachedRoutes(cachedRoutes, routingConfig)) {
       cachedRoutes = undefined;
     }
 
