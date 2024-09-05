@@ -189,8 +189,16 @@ export abstract class TickBasedHeuristicGasModelFactory<
             gasCostInTermsOfAmountToken
           );
         } catch (err) {
-          // If the quote fails (division by zero), set syntheticGasCostInTermsOfQuoteToken to null
-          syntheticGasCostInTermsOfQuoteToken = null;
+          if (
+            err instanceof RangeError &&
+            err.message.includes('Division by zero')
+          ) {
+            // If the quote fails (division by zero), set syntheticGasCostInTermsOfQuoteToken to null
+            syntheticGasCostInTermsOfQuoteToken = null;
+          } else {
+            // any other error, throw
+            throw err;
+          }
         }
 
         // Note that the syntheticGasCost being lessThan the original quoted value is not always strictly better
