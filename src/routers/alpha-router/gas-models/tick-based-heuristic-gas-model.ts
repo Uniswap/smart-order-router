@@ -183,18 +183,25 @@ export abstract class TickBasedHeuristicGasModelFactory<
         ) as CurrencyAmount;
 
         // Convert gasCostInTermsOfAmountToken to quote token using execution price
-        const syntheticGasCostInTermsOfQuoteToken = executionPrice.quote(
-          gasCostInTermsOfAmountToken
-        );
+        let syntheticGasCostInTermsOfQuoteToken: CurrencyAmount | null;
+        try {
+          syntheticGasCostInTermsOfQuoteToken = executionPrice.quote(
+            gasCostInTermsOfAmountToken
+          );
+        } catch (err) {
+          // If the quote fails (division by zero), set syntheticGasCostInTermsOfQuoteToken to null
+          syntheticGasCostInTermsOfQuoteToken = null;
+        }
 
         // Note that the syntheticGasCost being lessThan the original quoted value is not always strictly better
         // e.g. the scenario where the amountToken/ETH pool is very illiquid as well and returns an extremely small number
         // however, it is better to have the gasEstimation be almost 0 than almost infinity, as the user will still receive a quote
         if (
-          gasCostInTermsOfQuoteToken === null ||
-          syntheticGasCostInTermsOfQuoteToken.lessThan(
-            gasCostInTermsOfQuoteToken.asFraction
-          )
+          syntheticGasCostInTermsOfQuoteToken !== null &&
+          (gasCostInTermsOfQuoteToken === null ||
+            syntheticGasCostInTermsOfQuoteToken.lessThan(
+              gasCostInTermsOfQuoteToken.asFraction
+            ))
         ) {
           log.info(
             {
@@ -207,7 +214,7 @@ export abstract class TickBasedHeuristicGasModelFactory<
                 gasCostInTermsOfAmountToken.toExact(),
               executionPrice: executionPrice.toSignificant(6),
               syntheticGasCostInTermsOfQuoteToken:
-                syntheticGasCostInTermsOfQuoteToken.toSignificant(6),
+                syntheticGasCostInTermsOfQuoteToken?.toSignificant(6),
             },
             'New gasCostInTermsOfQuoteToken calculated with synthetic quote token price is less than original'
           );
