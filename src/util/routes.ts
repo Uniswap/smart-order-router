@@ -5,12 +5,16 @@ import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
-import { RouteWithValidQuote } from '../routers/alpha-router';
-import { SupportedRoutes } from '../routers/router';
+import {
+  AlphaRouterConfig,
+  RouteWithValidQuote,
+} from '../routers/alpha-router';
+import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';
+import { CachedRoutes } from '../providers';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -134,3 +138,65 @@ export const routeAmountsToString = (
 
   return _.join(routeStrings, ', ');
 };
+
+export function shouldWipeoutCachedRoutes(
+  cachedRoutes?: CachedRoutes,
+  routingConfig?: AlphaRouterConfig
+): boolean {
+  // In case of optimisticCachedRoutes, we don't want to wipe out the cache
+  // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
+  // such that we should still use the cached routes.
+  // In case of routing-api,
+  // when intent=quote, optimisticCachedRoutes will be true, it means it's an online quote request, and we should use the cached routes.
+  // when intent=caching, optimisticCachedRoutes will be false, it means it's an async routing lambda invocation for the benefit of
+  // non-perf-sensitive, so that we can nullify the retrieved cached routes, if certain condition meets.
+  if (routingConfig?.optimisticCachedRoutes) {
+    return false;
+  }
+
+  const containsExcludedProtocolPools = cachedRoutes?.routes.find((route) => {
+    switch (route.protocol) {
+      case Protocol.MIXED:
+        return (
+          (route.route as MixedRoute).pools.filter((pool) => {
+            return poolIsInExcludedProtocols(
+              pool,
+              routingConfig?.excludedProtocolsFromMixed
+            );
+          }).length > 0
+        );
+      default:
+        return false;
+    }
+  });
+
+  return containsExcludedProtocolPools !== undefined;
+}
+
+export function excludeProtocolPoolRouteFromMixedRoute(
+  mixedRoutes: MixedRoute[],
+  excludedProtocolsFromMixed?: Protocol[]
+): MixedRoute[] {
+  return mixedRoutes.filter((route) => {
+    return (
+      route.pools.filter((pool) => {
+        return poolIsInExcludedProtocols(pool, excludedProtocolsFromMixed);
+      }).length == 0
+    );
+  });
+}
+
+function poolIsInExcludedProtocols(
+  pool: V4Pool | V3Pool | Pair,
+  excludedProtocolsFromMixed?: Protocol[]
+): boolean {
+  if (pool instanceof V4Pool) {
+    return excludedProtocolsFromMixed?.includes(Protocol.V4) ?? false;
+  } else if (pool instanceof V3Pool) {
+    return excludedProtocolsFromMixed?.includes(Protocol.V3) ?? false;
+  } else if (pool instanceof Pair) {
+    return excludedProtocolsFromMixed?.includes(Protocol.V2) ?? false;
+  } else {
+    return false;
+  }
+}

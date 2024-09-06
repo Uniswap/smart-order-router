@@ -15,6 +15,7 @@ import {
 } from '../../../providers';
 import {
   CurrencyAmount,
+  excludeProtocolPoolRouteFromMixedRoute,
   log,
   metric,
   MetricLoggerUnit,
@@ -154,6 +155,11 @@ export class MixedQuoter extends BaseQuoter<
       maxSwapsPerPath
     );
 
+    const protocolExcludedRoutes = excludeProtocolPoolRouteFromMixedRoute(
+      routes,
+      routingConfig.excludedProtocolsFromMixed
+    );
+
     metric.putMetric(
       'MixedGetRoutesLoad',
       Date.now() - beforeGetRoutes,
@@ -161,7 +167,7 @@ export class MixedQuoter extends BaseQuoter<
     );
 
     return {
-      routes,
+      routes: protocolExcludedRoutes,
       candidatePools,
     };
   }

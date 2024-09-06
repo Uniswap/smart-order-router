@@ -87,9 +87,10 @@ import {
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
+  shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
@@ -399,6 +400,10 @@ export type AlphaRouterConfig = {
    * will be used.
    */
   protocols?: Protocol[];
+  /**
+   * The protocols-version pools to be excluded from the mixed routes.
+   */
+  excludedProtocolsFromMixed?: Protocol[];
   /**
    * Config for selecting which pools to consider routing via on V2.
    */
@@ -1354,6 +1359,10 @@ export class AlphaRouter
         await blockNumber,
         routingConfig.optimisticCachedRoutes
       );
+    }
+
+    if (shouldWipeoutCachedRoutes(cachedRoutes, routingConfig)) {
+      cachedRoutes = undefined;
     }
 
     metric.putMetric(
