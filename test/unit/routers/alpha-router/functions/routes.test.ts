@@ -1,19 +1,24 @@
 import {
+  AlphaRouterConfig,
   CachedRoute,
   CachedRoutes,
-  DAI_MAINNET, excludeProtocolPoolRouteFromMixedRoute,
+  DAI_MAINNET,
+  excludeProtocolPoolRouteFromMixedRoute,
   MixedRoute,
   shouldWipeoutCachedRoutes,
   USDC_MAINNET
 } from '../../../../../src';
 import { Protocol } from '@uniswap/router-sdk';
-import { TradeType } from '@uniswap/sdk-core';
+import { ChainId, TradeType } from '@uniswap/sdk-core';
 import {
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
   USDC_DAI_V4_LOW
 } from '../../../../test-util/mock-data';
+import {
+  DEFAULT_ROUTING_CONFIG_BY_CHAIN
+} from '../../../../../src/routers/alpha-router/config';
 
 describe('routes', () => {
   const mixedRoutes1 = new MixedRoute([USDC_DAI, USDC_DAI_LOW], USDC_MAINNET, DAI_MAINNET);
@@ -57,15 +62,37 @@ describe('routes', () => {
   });
 
   test(`do not exclude any cached route for empty excluded protocols list`, async () => {
-    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithV4Pool, [])).toBeFalsy();
+    const routingConfig: AlphaRouterConfig = {
+      // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+      ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
+      protocols: [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED],
+      excludedProtocolsFromMixed: [],
+      optimisticCachedRoutes: false,
+    };
+
+    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithV4Pool, routingConfig)).toBeFalsy();
   });
 
   test(`exclude cached route for V4 protocol`, async () => {
-    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithV4Pool, [Protocol.V4])).toBeTruthy();
+    const routingConfig: AlphaRouterConfig = {
+      // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+      ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
+      protocols: [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED],
+      excludedProtocolsFromMixed: [Protocol.V4],
+      optimisticCachedRoutes: false,
+    };
+    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithV4Pool, routingConfig)).toBeTruthy();
   });
 
   test(`do not exclude cached route for V4 protocol`, async () => {
-    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithoutV4Pool, [Protocol.V4])).toBeFalsy();
+    const routingConfig: AlphaRouterConfig = {
+      // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+      ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
+      protocols: [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED],
+      excludedProtocolsFromMixed: [Protocol.V4],
+      optimisticCachedRoutes: false,
+    };
+    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithoutV4Pool, routingConfig)).toBeFalsy();
   });
 
   test(`do not exclude any mixed route for empty excluded protocols list`, async () => {

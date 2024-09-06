@@ -6,6 +6,7 @@ import {
 } from '../../../src/providers/token-fee-fetcher';
 import { BITBOY, BOYS, BULLET, DFNDR } from '../../test-util/mock-data';
 import dotenv from 'dotenv';
+import { ProviderConfig } from '../../../src/providers/provider';
 const each = require("jest-each").default;
 
 dotenv.config();
@@ -16,11 +17,14 @@ describe('TokenFeeFetcher', () => {
     [ChainId.MAINNET, WETH9[ChainId.MAINNET]!, DFNDR, true, false],
     [ChainId.BASE, WETH9[ChainId.BASE]!, BOYS, false, false],
   ]).it('Fetch non-FOT and FOT, should only return FOT', async (chain: ChainId, inputToken: Token, outputToken: Token, feeTakenOnTransfer?: boolean, externalTransferFailed?: boolean) => {
+    const providerConfig: ProviderConfig = {
+      blockNumber: chain === ChainId.MAINNET ? 20686752 : 19395859,
+    }
     const chainProvider = ID_TO_PROVIDER(chain);
     const provider = new JsonRpcProvider(chainProvider, chain);
 
     const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
-    const tokenFeeMap = await tokenFeeFetcher.fetchFees([inputToken.address, outputToken.address])
+    const tokenFeeMap = await tokenFeeFetcher.fetchFees([inputToken.address, outputToken.address], providerConfig)
 
     expect(tokenFeeMap).not.toContain(inputToken.address)
     expect(tokenFeeMap[outputToken.address]).toBeDefined()
