@@ -317,7 +317,7 @@ export function buildSwapMethodParameters(
   if (swapConfig.type == SwapType.UNIVERSAL_ROUTER) {
     return {
       ...UniversalRouter.swapERC20CallParameters(trade, swapConfig),
-      to: UNIVERSAL_ROUTER_ADDRESS(chainId),
+      to: UNIVERSAL_ROUTER_ADDRESS(swapConfig.version, chainId),
     };
   } else if (swapConfig.type == SwapType.SWAP_ROUTER_02) {
     const { recipient, slippageTolerance, deadline, inputTokenPermit } =

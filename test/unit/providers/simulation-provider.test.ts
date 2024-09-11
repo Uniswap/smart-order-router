@@ -18,11 +18,15 @@ import {
   SwapType,
   TenderlySimulator,
   USDC_MAINNET,
-  V2PoolProvider,
+  V2PoolProvider
 } from '../../../src';
-import { IPortionProvider, PortionProvider } from '../../../src/providers/portion-provider';
+import {
+  IPortionProvider,
+  PortionProvider
+} from '../../../src/providers/portion-provider';
 import { Erc20 } from '../../../src/types/other/Erc20';
 import { Permit2 } from '../../../src/types/other/Permit2';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 let tokenContract: Erc20;
 let permit2Contract: Permit2;
@@ -93,6 +97,7 @@ const quote = {
 const blockNumber = BigNumber.from(0);
 const swapOptions: SwapOptions = {
   type: SwapType.UNIVERSAL_ROUTER,
+  version: UniversalRouterVersion.V1_2,
   slippageTolerance: new Percent(5, 100),
   deadlineOrPreviousBlockhash: 10000000,
   recipient: '0x0',

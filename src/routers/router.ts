@@ -12,7 +12,10 @@ import {
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
-import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
+import {
+  SwapOptions as UniversalRouterSwapOptions,
+  UniversalRouterVersion,
+} from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
   MethodParameters as SDKMethodParameters,
@@ -158,6 +161,7 @@ export enum SwapType {
 // Swap options for Universal Router and Permit2.
 export type SwapOptionsUniversalRouter = UniversalRouterSwapOptions & {
   type: SwapType.UNIVERSAL_ROUTER;
+  version: UniversalRouterVersion;
   simulate?: { fromAddress: string };
 };
 

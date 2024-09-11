@@ -79,6 +79,7 @@ import {
   WETH_USDT
 } from '../../../test-util/mock-data';
 import { InMemoryRouteCachingProvider } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
@@ -1422,6 +1423,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on v3 only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1503,6 +1505,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on v2 only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1577,6 +1580,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on mixed only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1653,6 +1657,7 @@ describe('alpha router', () => {
     test('succeeds to route and generate calldata and simulates', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -2188,6 +2193,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on v2 only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -2258,6 +2264,7 @@ describe('alpha router', () => {
       const amount = CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000);
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),

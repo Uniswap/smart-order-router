@@ -139,6 +139,7 @@ import {
   V4Route,
 } from '../router';
 
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
 import {
   IV4PoolProvider,
@@ -313,6 +314,11 @@ export type AlphaRouterParams = {
    * All the supported v4 chains configuration
    */
   v4Supported?: ChainId[];
+
+  /**
+   * The version of the universal router to use.
+   */
+  universalRouterVersion?: UniversalRouterVersion;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -486,6 +492,10 @@ export type AlphaRouterConfig = {
    * This requires a suitable Native/GasToken pool to exist on V3. If one does not exist this field will return null.
    */
   gasToken?: string;
+  /**
+   * The version of the universal router to use.
+   */
+  universalRouterVersion?: UniversalRouterVersion;
 };
 
 export class AlphaRouter
@@ -524,6 +534,7 @@ export class AlphaRouter
   protected portionProvider: IPortionProvider;
   protected v2Supported?: ChainId[];
   protected v4Supported?: ChainId[];
+  protected universalRouterVersion?: UniversalRouterVersion;
 
   constructor({
     chainId,
@@ -553,6 +564,7 @@ export class AlphaRouter
     portionProvider,
     v2Supported,
     v4Supported,
+    universalRouterVersion,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -979,6 +991,8 @@ export class AlphaRouter
 
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
     this.v4Supported = v4Supported ?? V4_SUPPORTED;
+    this.universalRouterVersion =
+      universalRouterVersion ?? UniversalRouterVersion.V1_2;
   }
 
   public async routeToRatio(

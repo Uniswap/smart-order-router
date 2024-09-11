@@ -37,7 +37,7 @@ export const routeToPools = (
     case Protocol.V4:
     case Protocol.V3:
     case Protocol.MIXED:
-      return route.pools;
+      return route.pools as (V4Pool | V3Pool | Pair)[];
     case Protocol.V2:
       return route.pairs;
     default:
@@ -160,7 +160,7 @@ export function shouldWipeoutCachedRoutes(
         return (
           (route.route as MixedRoute).pools.filter((pool) => {
             return poolIsInExcludedProtocols(
-              pool,
+              pool as V4Pool | V3Pool | Pair,
               routingConfig?.excludedProtocolsFromMixed
             );
           }).length > 0
@@ -180,7 +180,10 @@ export function excludeProtocolPoolRouteFromMixedRoute(
   return mixedRoutes.filter((route) => {
     return (
       route.pools.filter((pool) => {
-        return poolIsInExcludedProtocols(pool, excludedProtocolsFromMixed);
+        return poolIsInExcludedProtocols(
+          pool as V4Pool | V3Pool | Pair,
+          excludedProtocolsFromMixed
+        );
       }).length == 0
     );
   });

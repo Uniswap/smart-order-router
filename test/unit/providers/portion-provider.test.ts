@@ -1,5 +1,12 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Currency, CurrencyAmount, Fraction, Percent, Token, TradeType, } from '@uniswap/sdk-core';
+import {
+  Currency,
+  CurrencyAmount,
+  Fraction,
+  Percent,
+  Token,
+  TradeType
+} from '@uniswap/sdk-core';
 import {
   MixedRouteWithValidQuote,
   parseAmount,
@@ -16,6 +23,7 @@ import {
   getV2RouteWithValidQuoteStub,
   getV3RouteWithValidQuoteStub
 } from './caching/route/test-util/mocked-dependencies';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 describe('portion provider', () => {
   const expectedRequestAmount = '1.01';
@@ -58,6 +66,7 @@ describe('portion provider', () => {
 
         const swapConfig: SwapOptions = {
           type: SwapType.UNIVERSAL_ROUTER,
+          version: UniversalRouterVersion.V1_2,
           slippageTolerance: new Percent(5),
           recipient: '0x123',
           fee: {
@@ -129,6 +138,7 @@ describe('portion provider', () => {
         const expectedPortionAmount = amount.multiply(new Fraction(expectedPortion.bips, 10_000));
         const swapConfig: SwapOptions = {
           type: SwapType.UNIVERSAL_ROUTER,
+          version: UniversalRouterVersion.V1_2,
           slippageTolerance: new Percent(5),
           recipient: '0x123',
           flatFee: {
@@ -199,6 +209,7 @@ describe('portion provider', () => {
 
             const swapConfig: SwapOptions = {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               slippageTolerance: new Percent(5),
               recipient: '0x123',
               fee: {
@@ -225,6 +236,7 @@ describe('portion provider', () => {
 
             const swapConfig: SwapOptions = {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               slippageTolerance: new Percent(5),
               recipient: '0x123',
               fee: {
@@ -268,6 +280,7 @@ describe('portion provider', () => {
       ];
       const swapParams: SwapOptions = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadlineOrPreviousBlockhash: undefined,
         recipient: '0x123',
         slippageTolerance: new Percent(5),
@@ -331,6 +344,7 @@ describe('portion provider', () => {
       ];
       const swapParams: SwapOptions = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadlineOrPreviousBlockhash: undefined,
         recipient: '0x123',
         slippageTolerance: new Percent(5),
