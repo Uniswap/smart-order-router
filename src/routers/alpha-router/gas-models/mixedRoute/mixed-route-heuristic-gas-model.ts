@@ -6,6 +6,7 @@ import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
@@ -28,7 +29,6 @@ import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
   COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
 } from '../v2/v2-heuristic-gas-model';
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 
 /**
  * Computes a gas estimate for a mixed route swap using heuristics.

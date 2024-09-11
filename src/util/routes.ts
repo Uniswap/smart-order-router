@@ -1,9 +1,9 @@
 import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent } from '@uniswap/sdk-core';
-import _ from 'lodash';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
+import _ from 'lodash';
 
 import {
   AlphaRouterConfig,
@@ -13,9 +13,9 @@ import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { CurrencyAmount } from '.';
 import { CachedRoutes } from '../providers';
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -31,9 +31,7 @@ export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   }
 };
 
-export const routeToPools = (
-  route: SupportedRoutes
-): TPool[] => {
+export const routeToPools = (route: SupportedRoutes): TPool[] => {
   switch (route.protocol) {
     case Protocol.V4:
     case Protocol.V3:
@@ -181,10 +179,7 @@ export function excludeProtocolPoolRouteFromMixedRoute(
   return mixedRoutes.filter((route) => {
     return (
       route.pools.filter((pool) => {
-        return poolIsInExcludedProtocols(
-          pool,
-          excludedProtocolsFromMixed
-        );
+        return poolIsInExcludedProtocols(pool, excludedProtocolsFromMixed);
       }).length == 0
     );
   });
