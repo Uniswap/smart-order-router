@@ -28,6 +28,7 @@ import {
   BASE_SWAP_COST as BASE_SWAP_COST_V2,
   COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
 } from '../v2/v2-heuristic-gas-model';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 
 /**
  * Computes a gas estimate for a mixed route swap using heuristics.
@@ -186,7 +187,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
     const route = routeWithValidQuote.route;
 
     const res = partitionMixedRouteByProtocol(route);
-    res.map((section: (Pair | V3Pool | V4Pool)[]) => {
+    res.map((section: TPool[]) => {
       if (section.every((pool) => pool instanceof V3Pool)) {
         baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
         baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));

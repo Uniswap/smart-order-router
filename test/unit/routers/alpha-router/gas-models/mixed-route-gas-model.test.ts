@@ -37,6 +37,7 @@ import {
   getMockedV3PoolProvider,
 } from './test-util/mocked-dependencies';
 import { getPools } from './test-util/helpers';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 
 describe('mixed route gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
@@ -53,7 +54,7 @@ describe('mixed route gas model tests', () => {
     const route = routeWithValidQuote.route;
 
     const res = partitionMixedRouteByProtocol(route);
-    res.map((section: (Pair | V3Pool | V4Pool)[]) => {
+    res.map((section: TPool[]) => {
       if (section.every((pool) => pool instanceof V3Pool)) {
         baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
         baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));

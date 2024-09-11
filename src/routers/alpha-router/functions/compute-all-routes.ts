@@ -12,6 +12,7 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 
 export function computeAllV4Routes(
   tokenIn: Currency,
@@ -68,13 +69,13 @@ export function computeAllV2Routes(
 export function computeAllMixedRoutes(
   tokenIn: Token,
   tokenOut: Token,
-  parts: (V4Pool | V3Pool | Pair)[],
+  parts: TPool[],
   maxHops: number
 ): MixedRoute[] {
-  const routesRaw = computeAllRoutes<V4Pool | V3Pool | Pair, MixedRoute>(
+  const routesRaw = computeAllRoutes<TPool, MixedRoute>(
     tokenIn,
     tokenOut,
-    (route: (V4Pool | V3Pool | Pair)[], tokenIn: Token, tokenOut: Token) => {
+    (route: TPool[], tokenIn: Token, tokenOut: Token) => {
       return new MixedRoute(route, tokenIn, tokenOut);
     },
     parts,
@@ -91,13 +92,13 @@ export function computeAllMixedRoutes(
 }
 
 export function computeAllRoutes<
-  TPool extends Pair | V3Pool | V4Pool,
+  TypePool extends TPool,
   TRoute extends SupportedRoutes
 >(
   tokenIn: Token,
   tokenOut: Token,
-  buildRoute: (route: TPool[], tokenIn: Token, tokenOut: Token) => TRoute,
-  pools: TPool[],
+  buildRoute: (route: TypePool[], tokenIn: Token, tokenOut: Token) => TRoute,
+  pools: TypePool[],
   maxHops: number
 ): TRoute[] {
   const poolsUsed = Array<boolean>(pools.length).fill(false);
@@ -106,7 +107,7 @@ export function computeAllRoutes<
   const computeRoutes = (
     tokenIn: Token,
     tokenOut: Token,
-    currentRoute: TPool[],
+    currentRoute: TypePool[],
     poolsUsed: boolean[],
     tokensVisited: Set<string>,
     _previousTokenOut?: Token

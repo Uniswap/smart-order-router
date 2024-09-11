@@ -32,6 +32,7 @@ import {
 import { IGasModel } from '../gas-models';
 
 import { GetQuotesResult, GetRoutesResult } from './model/results';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 
 /**
  * Interface for a Quoter.
@@ -186,7 +187,7 @@ export abstract class BaseQuoter<
     });
   }
 
-  protected async applyTokenValidatorToPools<T extends V4Pool | V3Pool | Pair>(
+  protected async applyTokenValidatorToPools<T extends TPool>(
     pools: T[],
     isInvalidFn: (
       token: Currency,

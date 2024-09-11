@@ -1,9 +1,9 @@
 import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent } from '@uniswap/sdk-core';
+import _ from 'lodash';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
-import _ from 'lodash';
 
 import {
   AlphaRouterConfig,
@@ -15,6 +15,7 @@ import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';
 import { CachedRoutes } from '../providers';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -32,12 +33,12 @@ export const routeToTokens = (route: SupportedRoutes): Currency[] => {
 
 export const routeToPools = (
   route: SupportedRoutes
-): (V4Pool | V3Pool | Pair)[] => {
+): TPool[] => {
   switch (route.protocol) {
     case Protocol.V4:
     case Protocol.V3:
     case Protocol.MIXED:
-      return route.pools as (V4Pool | V3Pool | Pair)[];
+      return route.pools;
     case Protocol.V2:
       return route.pairs;
     default:
@@ -45,7 +46,7 @@ export const routeToPools = (
   }
 };
 
-export const poolToString = (pool: V4Pool | V3Pool | Pair): string => {
+export const poolToString = (pool: TPool): string => {
   if (pool instanceof V4Pool) {
     return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
       pool.token0,
@@ -160,7 +161,7 @@ export function shouldWipeoutCachedRoutes(
         return (
           (route.route as MixedRoute).pools.filter((pool) => {
             return poolIsInExcludedProtocols(
-              pool as V4Pool | V3Pool | Pair,
+              pool,
               routingConfig?.excludedProtocolsFromMixed
             );
           }).length > 0
@@ -181,7 +182,7 @@ export function excludeProtocolPoolRouteFromMixedRoute(
     return (
       route.pools.filter((pool) => {
         return poolIsInExcludedProtocols(
-          pool as V4Pool | V3Pool | Pair,
+          pool,
           excludedProtocolsFromMixed
         );
       }).length == 0
@@ -190,7 +191,7 @@ export function excludeProtocolPoolRouteFromMixedRoute(
 }
 
 function poolIsInExcludedProtocols(
-  pool: V4Pool | V3Pool | Pair,
+  pool: TPool,
   excludedProtocolsFromMixed?: Protocol[]
 ): boolean {
   if (pool instanceof V4Pool) {
