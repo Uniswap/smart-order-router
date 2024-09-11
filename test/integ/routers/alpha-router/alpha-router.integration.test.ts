@@ -21,7 +21,8 @@ import {
   TradeType
 } from '@uniswap/sdk-core';
 import {
-  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
+  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
+  UniversalRouterVersion
 } from '@uniswap/universal-router-sdk';
 import {
   Permit2Permit
@@ -119,7 +120,7 @@ import { WHALES } from '../../../test-util/whales';
 import { V4SubgraphProvider } from '../../../../build/main';
 
 const FORK_BLOCK = 20444945;
-const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
+const UNIVERSAL_ROUTER_ADDRESS_V1_2 = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(UniversalRouterVersion.V1_2, 1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
 const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 
@@ -317,7 +318,7 @@ describe('alpha router integration', () => {
         const aliceP2 = Permit2__factory.connect(permit2Address(ChainId.MAINNET), alice);
         const approveNarwhal = await aliceP2.approve(
           tokenIn.wrapped.address,
-          UNIVERSAL_ROUTER_ADDRESS,
+          UNIVERSAL_ROUTER_ADDRESS_V1_2,
           MAX_UINT160,
           20_000_000_000_000
         );
@@ -797,6 +798,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -857,8 +859,8 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -935,7 +937,7 @@ describe('alpha router integration', () => {
               ).toString(),
               nonce,
             },
-            spender: UNIVERSAL_ROUTER_ADDRESS,
+            spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
             sigDeadline: Math.floor(
               new Date().getTime() / 1000 + 100000
             ).toString(),
@@ -960,6 +962,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1011,7 +1014,7 @@ describe('alpha router integration', () => {
               ).toString(),
               nonce,
             },
-            spender: UNIVERSAL_ROUTER_ADDRESS,
+            spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
             sigDeadline: Math.floor(
               new Date().getTime() / 1000 + 1000
             ).toString(),
@@ -1036,6 +1039,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1088,6 +1092,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1128,6 +1133,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1221,7 +1227,7 @@ describe('alpha router integration', () => {
               ).toString(),
               nonce,
             },
-            spender: UNIVERSAL_ROUTER_ADDRESS,
+            spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
             sigDeadline: Math.floor(
               new Date().getTime() / 1000 + 1000
             ).toString(),
@@ -1246,6 +1252,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE.multiply(10),
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1294,6 +1301,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1433,6 +1441,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1472,6 +1481,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1511,6 +1521,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1559,6 +1570,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1607,6 +1619,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1665,6 +1678,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1712,6 +1726,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1761,6 +1776,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1883,7 +1899,7 @@ describe('alpha router integration', () => {
                   ).toString(),
                   nonce,
                 },
-                spender: UNIVERSAL_ROUTER_ADDRESS,
+                spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
                 sigDeadline: Math.floor(
                   new Date().getTime() / 1000 + 100000
                 ).toString(),
@@ -1914,6 +1930,7 @@ describe('alpha router integration', () => {
                 tradeType,
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: wallet.address,
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1948,6 +1965,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2007,6 +2025,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2093,6 +2112,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: new Percent(50, 100),
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2150,6 +2170,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2207,6 +2228,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2264,6 +2286,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2322,6 +2345,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2381,6 +2405,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2443,6 +2468,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2594,6 +2620,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2625,6 +2652,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2675,6 +2703,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2727,6 +2756,7 @@ describe('alpha router integration', () => {
                 tradeType,
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: alice._address,
                   slippageTolerance: LARGE_SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2868,6 +2898,7 @@ describe('alpha router integration', () => {
                       tradeType,
                       {
                         type: SwapType.UNIVERSAL_ROUTER,
+                        version: UniversalRouterVersion.V1_2,
                         recipient: alice._address,
                         slippageTolerance: LARGE_SLIPPAGE,
                         deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3158,6 +3189,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: new Percent(50, 100),
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3205,6 +3237,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3875,6 +3908,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V1_2,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3900,6 +3934,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3983,6 +4018,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V1_2,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4008,6 +4044,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4084,6 +4121,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V1_2,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4109,6 +4147,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4187,6 +4226,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V1_2,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4212,6 +4252,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),

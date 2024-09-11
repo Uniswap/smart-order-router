@@ -63,7 +63,8 @@ export abstract class TickBasedHeuristicGasModelFactory<
         quoteToken,
         pools.nativeAndQuoteTokenV3Pool,
         this.provider,
-        l2GasData
+        l2GasData,
+        providerConfig
       );
     };
 

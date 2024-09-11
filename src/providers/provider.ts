@@ -1,3 +1,5 @@
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+
 export type ProviderConfig = {
   /**
    * The block number to use when getting data on-chain.
@@ -29,6 +31,10 @@ export type ProviderConfig = {
    * double FOT fee taken on transfer as part of universal router custody
    */
   feeTakenOnTransfer?: boolean;
+  /**
+   * The version of the universal router to use.
+   */
+  universalRouterVersion?: UniversalRouterVersion;
 };
 
 export type LocalCacheEntry<T> = {

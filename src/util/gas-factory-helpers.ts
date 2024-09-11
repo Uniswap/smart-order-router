@@ -29,6 +29,7 @@ import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { ProviderConfig } from '../providers/provider';
 import { opStackChains } from './l2FeeChains';
@@ -557,7 +558,8 @@ export const calculateL1GasFeesHelper = async (
   quoteToken: Token,
   nativePool: Pair | Pool | null,
   provider: BaseProvider,
-  l2GasData?: ArbitrumGasData
+  l2GasData?: ArbitrumGasData,
+  providerConfig?: GasModelProviderConfig
 ): Promise<{
   gasUsedL1: BigNumber;
   gasUsedL1OnL2: BigNumber;
@@ -566,6 +568,8 @@ export const calculateL1GasFeesHelper = async (
 }> => {
   const swapOptions: SwapOptionsUniversalRouter = {
     type: SwapType.UNIVERSAL_ROUTER,
+    version:
+      providerConfig?.universalRouterVersion ?? UniversalRouterVersion.V1_2,
     recipient: '0x0000000000000000000000000000000000000001',
     deadlineOrPreviousBlockhash: 100,
     slippageTolerance: new Percent(5, 10_000),
