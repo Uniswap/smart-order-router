@@ -5,32 +5,41 @@ import { BaseProvider } from '@ethersproject/providers';
 import {
   encodeMixedRouteToPath,
   MixedRouteSDK,
-  Protocol,
+  Protocol
 } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
-import { Pool } from '@uniswap/v4-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
 
-import { SupportedRoutes, V2Route, V3Route, V4Route } from '../routers/router';
-import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
+import {
+  MixedRoute,
+  SupportedRoutes,
+  V2Route,
+  V3Route,
+  V4Route
+} from '../routers/router';
+import {
+  IMixedRouteQuoterV1__factory
+} from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { V4Quoter__factory } from '../types/other/factories/V4Quoter__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import {
   ID_TO_NETWORK_NAME,
   metric,
   MetricLoggerUnit,
+  MIXED_ROUTE_QUOTER_V1_ADDRESSES,
+  MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
-  PROTOCOL_V4_QUOTER_ADDRESSES,
+  PROTOCOL_V4_QUOTER_ADDRESSES
 } from '../util';
-import { MIXED_ROUTE_QUOTER_V1_ADDRESSES } from '../util/addresses';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import {
   DEFAULT_BLOCK_NUMBER_CONFIGS,
-  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES
 } from '../util/onchainQuoteProviderConfigs';
 import { routeToString } from '../util/routes';
 
@@ -355,6 +364,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
   private getQuoterAddress(
     useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
     protocol: Protocol
   ): string {
     if (this.quoterAddressOverride) {
@@ -371,10 +381,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       return quoterAddress;
     }
     const quoterAddress = useMixedRouteQuoter
-      ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
-      : protocol === Protocol.V3
+      ? (mixedRouteContainsV4Pool ?
+        MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId] :
+        MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId])
+      : (protocol === Protocol.V3
       ? NEW_QUOTER_V2_ADDRESSES[this.chainId]
-      : PROTOCOL_V4_QUOTER_ADDRESSES[this.chainId];
+      : PROTOCOL_V4_QUOTER_ADDRESSES[this.chainId]);
 
     if (!quoterAddress) {
       throw new Error(
@@ -447,7 +459,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const { path } = route.pools.reduce(
       (
         { inputToken, path }: { inputToken: Currency; path: PathKey[] },
-        pool: Pool,
+        pool: V4Pool,
         index
       ): { inputToken: Currency; path: PathKey[] } => {
         const outputToken = pool.token0.equals(inputToken)
@@ -501,6 +513,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
   private async consolidateResults(
     protocol: Protocol,
     useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
     functionName: string,
     inputs: (QuoteExactParams[] | [string, string])[],
     providerConfig?: ProviderConfig,
@@ -518,7 +531,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             QuoteExactParams[],
             [BigNumber[], BigNumber[], number[]] // deltaAmounts, sqrtPriceX96AfterList, initializedTicksCrossedList
           >({
-            address: this.getQuoterAddress(useMixedRouteQuoter, protocol),
+            address: this.getQuoterAddress(useMixedRouteQuoter, mixedRouteContainsV4Pool, protocol),
             contractInterface: this.getContractInterface(
               useMixedRouteQuoter,
               protocol
@@ -580,7 +593,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           [string, string],
           [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
         >({
-          address: this.getQuoterAddress(useMixedRouteQuoter, protocol),
+          address: this.getQuoterAddress(useMixedRouteQuoter, mixedRouteContainsV4Pool, protocol),
           contractInterface: useMixedRouteQuoter
             ? IMixedRouteQuoterV1__factory.createInterface()
             : IQuoterV2__factory.createInterface(),
@@ -606,6 +619,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const useV4RouteQuoter = routes.some(
       (route) => route.protocol === Protocol.V4
     );
+    const mixedRouteContainsV4Pool =
+      useMixedRouteQuoter ? routes.some((route) => (route as MixedRoute).pools.some((pool) => pool instanceof V4Pool)) : false;
     const optimisticCachedRoutes =
       _providerConfig?.optimisticCachedRoutes ?? false;
 
@@ -758,6 +773,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 const results = await this.consolidateResults(
                   protocol,
                   useMixedRouteQuoter,
+                  mixedRouteContainsV4Pool,
                   functionName,
                   inputs,
                   providerConfig,
