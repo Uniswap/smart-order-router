@@ -6,6 +6,7 @@ import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
@@ -186,7 +187,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
     const route = routeWithValidQuote.route;
 
     const res = partitionMixedRouteByProtocol(route);
-    res.map((section: (Pair | V3Pool | V4Pool)[]) => {
+    res.map((section: TPool[]) => {
       if (section.every((pool) => pool instanceof V3Pool)) {
         baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
         baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));

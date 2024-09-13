@@ -1,9 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
-import { Pool as V3Pool } from '@uniswap/v3-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import {
@@ -31,6 +28,7 @@ import {
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { GetQuotesResult, GetRoutesResult } from './model/results';
 
 /**
@@ -186,7 +184,7 @@ export abstract class BaseQuoter<
     });
   }
 
-  protected async applyTokenValidatorToPools<T extends V4Pool | V3Pool | Pair>(
+  protected async applyTokenValidatorToPools<T extends TPool>(
     pools: T[],
     isInvalidFn: (
       token: Currency,
