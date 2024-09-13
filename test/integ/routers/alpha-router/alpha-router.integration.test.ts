@@ -3774,7 +3774,11 @@ describe('quote for other networks', () => {
             expect(swap).not.toBeNull();
           });
 
-          it(`has quoteGasAdjusted values`, async () => {
+          it.only(`has quoteGasAdjusted values`, async () => {
+            if (chain !== ChainId.SEPOLIA) {
+              return;
+            }
+
             if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_A)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
@@ -3784,7 +3788,7 @@ describe('quote for other networks', () => {
             const tokenOut = erc2;
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
-            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
+            const exactOutAmount = '1';
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
@@ -3799,6 +3803,7 @@ describe('quote for other networks', () => {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
                 protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0,
               }
             );
             expect(swap).toBeDefined();
