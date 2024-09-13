@@ -3774,11 +3774,7 @@ describe('quote for other networks', () => {
             expect(swap).not.toBeNull();
           });
 
-          it.only(`has quoteGasAdjusted values`, async () => {
-            if (chain !== ChainId.SEPOLIA) {
-              return;
-            }
-
+          it(`has quoteGasAdjusted values`, async () => {
             if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_A)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
