@@ -87,7 +87,7 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
-  [ChainId.SEPOLIA]: '0x340e960d7d06dc77f5b7cf5f14c1ecd50b591803',
+  [ChainId.SEPOLIA]: '0x8C41f1696360ca987803a4c24B8b7c36dFd61c4d',
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {

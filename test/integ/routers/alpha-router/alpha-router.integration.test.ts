@@ -88,8 +88,8 @@ import {
   V2Route,
   V3PoolProvider,
   V3Route,
-  V4_SEPOLIA_TEST_OP,
-  V4_SEPOLIA_TEST_USDC,
+  V4_SEPOLIA_TEST_A,
+  V4_SEPOLIA_TEST_B,
   V4PoolProvider,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
@@ -3430,7 +3430,7 @@ describe('quote for other networks', () => {
     [ChainId.MAINNET]: () => USDC_ON(ChainId.MAINNET),
     [ChainId.GOERLI]: () => UNI_GOERLI,
     [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
-    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_OP,
+    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_A,
     [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM]: () => USDC_NATIVE_OPTIMISM,
     [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
@@ -3462,7 +3462,7 @@ describe('quote for other networks', () => {
     [ChainId.MAINNET]: () => DAI_ON(1),
     [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
-    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_USDC,
+    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_B,
     [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
@@ -3636,7 +3636,7 @@ describe('quote for other networks', () => {
 
         describe(`Swap`, function() {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
-            if (erc1.equals(V4_SEPOLIA_TEST_OP)) {
+            if (erc1.equals(V4_SEPOLIA_TEST_A)) {
               return;
             }
 
@@ -3696,7 +3696,7 @@ describe('quote for other networks', () => {
           });
 
           it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
-            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_OP)) {
+            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_A)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
             }
@@ -3775,7 +3775,7 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
-            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_OP)) {
+            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_A)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
             }
@@ -3817,7 +3817,7 @@ describe('quote for other networks', () => {
 
           it(`does not error when protocols array is empty`, async () => {
             // V4 protocol requires explicit Protocol.V4 in the input array
-            if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_OP)) {
+            if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_A)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
               return;
             }
@@ -4097,7 +4097,7 @@ describe('quote for other networks', () => {
 
             it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
               // TOOD: re-enable sepolia OP -> USDC swap with simulation, once universal router supports v4 swap commands
-              if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_OP)) {
+              if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_A)) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
