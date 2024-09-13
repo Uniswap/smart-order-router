@@ -3,7 +3,7 @@ import {
   CurrencyAmount,
   ID_TO_PROVIDER,
   OnChainQuoteProvider, parseAmount,
-  UniswapMulticallProvider, V4_SEPOLIA_TEST_OP, V4_SEPOLIA_TEST_USDC, V4Route
+  UniswapMulticallProvider, V4_SEPOLIA_TEST_A, V4_SEPOLIA_TEST_B, V4Route
 } from '../../../src';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Pool } from '@uniswap/v4-sdk';
@@ -28,39 +28,39 @@ describe('on chain quote provider', () => {
       provider,
       multicall2Provider,
     );
-    const op = V4_SEPOLIA_TEST_OP
-    const usdc = V4_SEPOLIA_TEST_USDC
+    const mockA = V4_SEPOLIA_TEST_A
+    const mockB = V4_SEPOLIA_TEST_B
     const amountIns = [
-      parseAmount("0.01", op)
+      parseAmount("0.01", mockA)
     ]
     const routes = [
       new V4Route(
   [new Pool(
-          usdc,
-          op,
-          500,
-          10,
+          mockB,
+          mockA,
+          3000,
+          60,
           ADDRESS_ZERO,
-    79307390518005047181445936088,
-    10000000000000000000000,
-    19,
+    79186511702831612165570076748,
+    100000000000000000000,
+    -11,
         )],
-        op,
-        usdc,
+        mockA,
+        mockB,
       )
     ]
 
     it('exact in quote and then exact out quote to match original exact in currency amount', async () => {
       const providerConfig: ProviderConfig = {
-        blockNumber: 6582517,
+        blockNumber: 6682153,
       }
 
       const exactInQuotes = await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes, providerConfig)
       // @ts-ignore
-      const amountOuts = [CurrencyAmount.fromRawAmount(usdc, JSBI.BigInt(exactInQuotes.routesWithQuotes[0][1][0].quote))]
+      const amountOuts = [CurrencyAmount.fromRawAmount(mockB, JSBI.BigInt(exactInQuotes.routesWithQuotes[0][1][0].quote))]
       const exactOutQuotes = await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, routes, providerConfig)
       // @ts-ignore
-      const opQuoteAmount = CurrencyAmount.fromRawAmount(op, exactOutQuotes.routesWithQuotes[0][1][0].quote)
+      const opQuoteAmount = CurrencyAmount.fromRawAmount(mockA, exactOutQuotes.routesWithQuotes[0][1][0].quote)
       // @ts-ignore
       expect(opQuoteAmount.equalTo(amountIns[0])).toBeTruthy()
     })
@@ -74,7 +74,7 @@ describe('on chain quote provider', () => {
         'MATIC'
       )
       const opMaticPool = new Pool(
-        op,
+        mockA,
         matic,
         500,
         10,
@@ -85,7 +85,7 @@ describe('on chain quote provider', () => {
       )
       const maticUsdcPool = new Pool(
         matic,
-        usdc,
+        mockB,
         500,
         10,
         ADDRESS_ZERO,
@@ -99,8 +99,8 @@ describe('on chain quote provider', () => {
           opMaticPool,
           maticUsdcPool
         ],
-        op,
-        usdc,
+        mockA,
+        mockB,
       )
 
       const exactInPathKey = onChainQuoteProvider.convertV4RouteToPathKey(v4Route, false)
@@ -113,14 +113,14 @@ describe('on chain quote provider', () => {
       expect(exactInPathKey[1]!.fee).toStrictEqual(maticUsdcPool.fee)
       expect(exactInPathKey[1]!.hooks).toStrictEqual(maticUsdcPool.hooks)
       expect(exactInPathKey[1]!.tickSpacing).toStrictEqual(maticUsdcPool.tickSpacing)
-      expect(exactInPathKey[1]!.intermediateCurrency).toStrictEqual(usdc.address)
+      expect(exactInPathKey[1]!.intermediateCurrency).toStrictEqual(mockB.address)
 
       const exactOutPathKey = onChainQuoteProvider.convertV4RouteToPathKey(v4Route, true)
       expect(exactOutPathKey.length).toEqual(2)
       expect(exactOutPathKey[0]!.fee).toStrictEqual(opMaticPool.fee)
       expect(exactOutPathKey[0]!.hooks).toStrictEqual(opMaticPool.hooks)
       expect(exactOutPathKey[0]!.tickSpacing).toStrictEqual(opMaticPool.tickSpacing)
-      expect(exactOutPathKey[0]!.intermediateCurrency).toStrictEqual(op.address)
+      expect(exactOutPathKey[0]!.intermediateCurrency).toStrictEqual(mockA.address)
 
       expect(exactOutPathKey[1]!.fee).toStrictEqual(maticUsdcPool.fee)
       expect(exactOutPathKey[1]!.hooks).toStrictEqual(maticUsdcPool.hooks)

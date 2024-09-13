@@ -978,18 +978,18 @@ export const WNATIVE_ON = (chainId: ChainId): Token => {
   return WRAPPED_NATIVE_CURRENCY[chainId];
 };
 
-export const V4_SEPOLIA_TEST_OP = new Token(
+export const V4_SEPOLIA_TEST_A = new Token(
   ChainId.SEPOLIA,
-  '0xc268035619873d85461525f5fdb792dd95982161',
+  '0x0275C79896215a790dD57F436E1103D4179213be',
   18,
-  'OP',
-  'Optimism'
+  'A',
+  'MockA'
 );
 
-export const V4_SEPOLIA_TEST_USDC = new Token(
+export const V4_SEPOLIA_TEST_B = new Token(
   ChainId.SEPOLIA,
-  '0xbe2a7f5acecdc293bf34445a0021f229dd2edd49',
-  6,
-  'USDC',
-  'USD'
+  '0x1a6990c77cfbba398beb230dd918e28aab71eec2',
+  18,
+  'B',
+  'MockB'
 );
