@@ -11,6 +11,8 @@ import {
   IV2SubgraphProvider,
   IV3PoolProvider,
   IV3SubgraphProvider,
+  IV4PoolProvider,
+  IV4SubgraphProvider,
   TokenValidationResult,
 } from '../../../providers';
 import {
@@ -31,6 +33,7 @@ import {
   getMixedRouteCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
+  V4CandidatePools,
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
@@ -38,10 +41,17 @@ import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
 
 export class MixedQuoter extends BaseQuoter<
-  [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
+  [
+    V4CandidatePools,
+    V3CandidatePools,
+    V2CandidatePools,
+    CrossLiquidityCandidatePools
+  ],
   MixedRoute,
   Token
 > {
+  protected v4SubgraphProvider: IV4SubgraphProvider;
+  protected v4PoolProvider: IV4PoolProvider;
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
   protected v2SubgraphProvider: IV2SubgraphProvider;
@@ -49,6 +59,8 @@ export class MixedQuoter extends BaseQuoter<
   protected onChainQuoteProvider: IOnChainQuoteProvider;
 
   constructor(
+    v4SubgraphProvider: IV4SubgraphProvider,
+    v4PoolProvider: IV4PoolProvider,
     v3SubgraphProvider: IV3SubgraphProvider,
     v3PoolProvider: IV3PoolProvider,
     v2SubgraphProvider: IV2SubgraphProvider,
@@ -66,6 +78,8 @@ export class MixedQuoter extends BaseQuoter<
       blockedTokenListProvider,
       tokenValidatorProvider
     );
+    this.v4SubgraphProvider = v4SubgraphProvider;
+    this.v4PoolProvider = v4PoolProvider;
     this.v3SubgraphProvider = v3SubgraphProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.v2SubgraphProvider = v2SubgraphProvider;
@@ -76,7 +90,8 @@ export class MixedQuoter extends BaseQuoter<
   protected async getRoutes(
     tokenIn: Token,
     tokenOut: Token,
-    v3v2candidatePools: [
+    v4v3v2candidatePools: [
+      V4CandidatePools,
       V3CandidatePools,
       V2CandidatePools,
       CrossLiquidityCandidatePools
@@ -90,28 +105,36 @@ export class MixedQuoter extends BaseQuoter<
       throw new Error('Mixed route quotes are not supported for EXACT_OUTPUT');
     }
 
-    const [v3CandidatePools, v2CandidatePools, crossLiquidityPools] =
-      v3v2candidatePools;
+    const [
+      v4CandidatePools,
+      v3CandidatePools,
+      v2CandidatePools,
+      crossLiquidityPools,
+    ] = v4v3v2candidatePools;
 
     const {
       V2poolAccessor,
       V3poolAccessor,
+      V4poolAccessor,
       candidatePools: mixedRouteCandidatePools,
     } = await getMixedRouteCandidatePools({
+      v4CandidatePools,
       v3CandidatePools,
       v2CandidatePools,
       crossLiquidityPools,
       tokenProvider: this.tokenProvider,
+      v4PoolProvider: this.v4PoolProvider,
       v3poolProvider: this.v3PoolProvider,
       v2poolProvider: this.v2PoolProvider,
       routingConfig,
       chainId: this.chainId,
     });
 
+    const V4poolsRaw = V4poolAccessor.getAllPools();
     const V3poolsRaw = V3poolAccessor.getAllPools();
     const V2poolsRaw = V2poolAccessor.getAllPools();
 
-    const poolsRaw = [...V3poolsRaw, ...V2poolsRaw];
+    const poolsRaw = [...V4poolsRaw, ...V3poolsRaw, ...V2poolsRaw];
 
     const candidatePools = mixedRouteCandidatePools;
 
@@ -266,6 +289,7 @@ export class MixedQuoter extends BaseQuoter<
           mixedRouteGasModel: gasModel,
           quoteToken,
           tradeType,
+          v4PoolProvider: this.v4PoolProvider,
           v3PoolProvider: this.v3PoolProvider,
           v2PoolProvider: this.v2PoolProvider,
         });

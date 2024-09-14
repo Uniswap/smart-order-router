@@ -373,6 +373,7 @@ export type MixedRouteWithValidQuoteParams = {
   mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>;
   quoteToken: Token;
   tradeType: TradeType;
+  v4PoolProvider: IV4PoolProvider;
   v3PoolProvider: IV3PoolProvider;
   v2PoolProvider: IV2PoolProvider;
 };
@@ -425,6 +426,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     mixedRouteGasModel,
     quoteToken,
     tradeType,
+    v4PoolProvider,
     v3PoolProvider,
     v2PoolProvider,
   }: MixedRouteWithValidQuoteParams) {
@@ -459,7 +461,13 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
 
     this.poolIdentifiers = _.map(route.pools, (p) => {
       if (p instanceof V4Pool) {
-        throw new Error('V4 pools not supported in mixed routes yet');
+        return v4PoolProvider.getPoolId(
+          p.token0,
+          p.token1,
+          p.fee,
+          p.tickSpacing,
+          p.hooks
+        ).poolId;
       } else if (p instanceof V3Pool) {
         return v3PoolProvider.getPoolAddress(p.token0, p.token1, p.fee)
           .poolAddress;

@@ -3719,10 +3719,10 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
+                protocols: [Protocol.MIXED, Protocol.V4, Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0,
               }
             );
-            console.log(`quote ${swap!.quote.toExact().toString()}`)
             expect(swap).toBeDefined();
             expect(swap).not.toBeNull();
           });
@@ -3798,7 +3798,7 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
+                protocols: [Protocol.MIXED, Protocol.V4, Protocol.V3, Protocol.V2],
                 universalRouterVersion: UniversalRouterVersion.V2_0,
               }
             );

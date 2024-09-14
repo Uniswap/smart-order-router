@@ -113,6 +113,7 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   v3SubgraphProvider: IV3SubgraphProvider;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
+  v4Candidates?: V4CandidatePools;
   blockNumber?: number | Promise<number>;
 };
 
@@ -153,6 +154,7 @@ export type V2GetCandidatePoolsParams = {
 };
 
 export type MixedRouteGetCandidatePoolsParams = {
+  v4CandidatePools: V4CandidatePools;
   v3CandidatePools: V3CandidatePools;
   v2CandidatePools: V2CandidatePools;
   crossLiquidityPools: CrossLiquidityCandidatePools;
@@ -160,6 +162,7 @@ export type MixedRouteGetCandidatePoolsParams = {
   tokenProvider: ITokenProvider;
   v2poolProvider: IV2PoolProvider;
   v3poolProvider: IV3PoolProvider;
+  v4PoolProvider: IV4PoolProvider;
   blockedTokenListProvider?: ITokenListProvider;
   chainId: ChainId;
 };
@@ -1864,24 +1867,28 @@ export async function getV2CandidatePools({
 export type MixedCandidatePools = {
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
+  V4poolAccessor: V4PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
   subgraphPools: SubgraphPool[];
 };
 
 export async function getMixedRouteCandidatePools({
+  v4CandidatePools,
   v3CandidatePools,
   v2CandidatePools,
   crossLiquidityPools,
   routingConfig,
   tokenProvider,
+  v4PoolProvider,
   v3poolProvider,
   v2poolProvider,
 }: MixedRouteGetCandidatePoolsParams): Promise<MixedCandidatePools> {
   const beforeSubgraphPools = Date.now();
   const [
+    { subgraphPools: V4subgraphPools, candidatePools: V4candidatePools },
     { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools },
     { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools },
-  ] = [v3CandidatePools, v2CandidatePools];
+  ] = [v4CandidatePools, v3CandidatePools, v2CandidatePools];
 
   // Injects the liquidity pools found by the getMixedCrossLiquidityCandidatePools function
   V2subgraphPools.push(...crossLiquidityPools.v2Pools);
@@ -1926,6 +1933,10 @@ export async function getMixedRouteCandidatePools({
     .sortBy((pool) => -pool.tvlUSD)
     .value();
 
+  const V4sortedPools = _(V4subgraphPools)
+    .sortBy((pool) => -pool.tvlUSD)
+    .value();
+
   /// Finding pools with greater reserveUSD on v2 than tvlUSD on v3, or if there is no v3 liquidity
   const buildV2Pools: V2SubgraphPool[] = [];
   V2topByTVLSortedPools.forEach((V2subgraphPool) => {
@@ -1961,6 +1972,39 @@ export async function getMixedRouteCandidatePools({
       );
       buildV2Pools.push(V2subgraphPool);
     }
+
+    const V4subgraphPool = V4sortedPools.find(
+      (pool) =>
+        (pool.token0.id == V2subgraphPool.token0.id &&
+          pool.token1.id == V2subgraphPool.token1.id) ||
+        (pool.token0.id == V2subgraphPool.token1.id &&
+          pool.token1.id == V2subgraphPool.token0.id)
+    );
+
+    if (V4subgraphPool) {
+      if (V2subgraphPool.reserveUSD > V4subgraphPool.tvlUSD) {
+        log.info(
+          {
+            token0: V2subgraphPool.token0.id,
+            token1: V2subgraphPool.token1.id,
+            v2reserveUSD: V2subgraphPool.reserveUSD,
+            v4tvlUSD: V4subgraphPool.tvlUSD,
+          },
+          `MixedRoute heuristic, found a V2 pool with higher liquidity than its V4 counterpart`
+        );
+        buildV2Pools.push(V2subgraphPool);
+      }
+    } else {
+      log.info(
+        {
+          token0: V2subgraphPool.token0.id,
+          token1: V2subgraphPool.token1.id,
+          v2reserveUSD: V2subgraphPool.reserveUSD,
+        },
+        `MixedRoute heuristic, found a V2 pool with no V3 counterpart`
+      );
+      buildV2Pools.push(V2subgraphPool);
+    }
   });
 
   log.info(
@@ -1968,7 +2012,8 @@ export async function getMixedRouteCandidatePools({
     `Number of V2 candidate pools that fit first heuristic`
   );
 
-  const subgraphPools = [...buildV2Pools, ...V3sortedPools];
+  const subgraphPools: Array<V2SubgraphPool | V3SubgraphPool | V4SubgraphPool> =
+    [...buildV2Pools, ...V3sortedPools, ...V4sortedPools];
 
   const tokenAddresses = _(subgraphPools)
     .flatMap((subgraphPool) => [subgraphPool.token0.id, subgraphPool.token1.id])
@@ -1984,6 +2029,45 @@ export async function getMixedRouteCandidatePools({
     tokenAddresses,
     routingConfig
   );
+
+  const V4tokenPairsRaw = _.map<
+    V4SubgraphPool,
+    [Token, Token, number, number, string] | undefined
+  >(V4sortedPools, (subgraphPool) => {
+    const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+    const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
+    let fee: FeeAmount;
+    try {
+      fee = Number(subgraphPool.feeTier);
+    } catch (err) {
+      log.info(
+        { subgraphPool },
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}/${subgraphPool.feeTier}/${subgraphPool.tickSpacing}/${subgraphPool.hooks} because fee tier not supported`
+      );
+      return undefined;
+    }
+
+    if (!tokenA || !tokenB) {
+      log.info(
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${
+          subgraphPool.token1.id
+        }/${fee}/${subgraphPool.tickSpacing}/${subgraphPool.hooks} because ${
+          tokenA ? subgraphPool.token1.id : subgraphPool.token0.id
+        } not found by token provider`
+      );
+      return undefined;
+    }
+
+    return [
+      tokenA,
+      tokenB,
+      fee,
+      Number(subgraphPool.tickSpacing),
+      subgraphPool.hooks,
+    ];
+  });
+
+  const V4tokenPairs = _.compact(V4tokenPairsRaw);
 
   const V3tokenPairsRaw = _.map<
     V3SubgraphPool,
@@ -2045,9 +2129,10 @@ export async function getMixedRouteCandidatePools({
 
   const beforePoolsLoad = Date.now();
 
-  const [V2poolAccessor, V3poolAccessor] = await Promise.all([
+  const [V2poolAccessor, V3poolAccessor, V4poolAccessor] = await Promise.all([
     v2poolProvider.getPools(V2tokenPairs, routingConfig),
     v3poolProvider.getPools(V3tokenPairs, routingConfig),
+    v4PoolProvider.getPools(V4tokenPairs, routingConfig),
   ]);
 
   metric.putMetric(
@@ -2064,6 +2149,7 @@ export async function getMixedRouteCandidatePools({
         V2candidatePools.selections[key].map((p) => p.id).includes(pool.id)
       ),
       ...V3candidatePools.selections[key],
+      ...V4candidatePools.selections[key],
     ];
   };
 
@@ -2089,6 +2175,7 @@ export async function getMixedRouteCandidatePools({
   return {
     V2poolAccessor,
     V3poolAccessor,
+    V4poolAccessor,
     candidatePools: poolsBySelection,
     subgraphPools,
   };

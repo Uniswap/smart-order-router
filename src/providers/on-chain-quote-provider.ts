@@ -22,6 +22,7 @@ import {
   V4Route,
 } from '../routers/router';
 import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
+import { MixedRouteQuoterV2__factory } from '../types/other/factories/MixedRouteQuoterV2__factory';
 import { V4Quoter__factory } from '../types/other/factories/V4Quoter__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import {
@@ -64,6 +65,21 @@ export type QuoteExactParams = {
   path: PathKey[];
   exactAmount: BigNumberish;
 };
+
+/**
+ * Emulate on-chain [ExtraQuoteExactInputParams](https://github.com/Uniswap/mixed-quoter/blob/main/src/interfaces/IMixedRouteQuoterV2.sol#L44C12-L44C38) struct
+ */
+type NonEncodableData = {
+  hookData: BytesLike;
+};
+export type ExtraQuoteExactInputParams = {
+  nonEncodableData: NonEncodableData[];
+};
+export type QuoteInputType =
+  | QuoteExactParams[]
+  | [string, string]
+  | [string, ExtraQuoteExactInputParams, string];
+
 /**
  * An on chain quote for a swap.
  */
@@ -348,6 +364,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
     protected quoterAddressOverride?: (
       useMixedRouteQuoter: boolean,
+      mixedRouteContainsV4Pool: boolean,
       protocol: Protocol
     ) => string | undefined,
     protected metricsPrefix: (
@@ -368,6 +385,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     if (this.quoterAddressOverride) {
       const quoterAddress = this.quoterAddressOverride(
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
         protocol
       );
 
@@ -492,10 +510,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
   private getContractInterface(
     useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
     protocol: Protocol
   ): Interface {
     if (useMixedRouteQuoter) {
-      return IMixedRouteQuoterV1__factory.createInterface();
+      if (mixedRouteContainsV4Pool) {
+        return MixedRouteQuoterV2__factory.createInterface();
+      } else {
+        return IMixedRouteQuoterV1__factory.createInterface();
+      }
     }
 
     switch (protocol) {
@@ -513,7 +536,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     useMixedRouteQuoter: boolean,
     mixedRouteContainsV4Pool: boolean,
     functionName: string,
-    inputs: (QuoteExactParams[] | [string, string])[],
+    inputs: QuoteInputType[],
     providerConfig?: ProviderConfig,
     gasLimitOverride?: number
   ): Promise<{
@@ -522,6 +545,62 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     approxGasUsedPerSuccessCall: number;
   }> {
     switch (protocol) {
+      case Protocol.MIXED:
+        // eslint-disable-next-line no-case-declarations
+        const mixedQuote =
+          await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+            [string, ExtraQuoteExactInputParams, string],
+            [BigNumber, BigNumber] // amountIn/amountOut, gasEstimate
+          >({
+            address: this.getQuoterAddress(
+              useMixedRouteQuoter,
+              mixedRouteContainsV4Pool,
+              protocol
+            ),
+            contractInterface: this.getContractInterface(
+              useMixedRouteQuoter,
+              mixedRouteContainsV4Pool,
+              protocol
+            ),
+            functionName,
+            functionParams: inputs as [
+              string,
+              ExtraQuoteExactInputParams,
+              string
+            ][],
+            providerConfig,
+            additionalConfig: {
+              gasLimitPerCallOverride: gasLimitOverride,
+            },
+          });
+
+        return {
+          blockNumber: mixedQuote.blockNumber,
+          approxGasUsedPerSuccessCall: mixedQuote.approxGasUsedPerSuccessCall,
+          results: mixedQuote.results.map((result) => {
+            if (result.success) {
+              switch (functionName) {
+                case 'quoteExactInput':
+                  return {
+                    success: true,
+                    result: [
+                      result.result[0],
+                      Array<BigNumber>(inputs.length),
+                      Array<number>(inputs.length),
+                      result.result[1],
+                    ],
+                  } as SuccessResult<
+                    [BigNumber, BigNumber[], number[], BigNumber]
+                  >;
+                case 'quoteExactOutput':
+                default:
+                  throw new Error(`Unsupported function name: ${functionName}`);
+              }
+            } else {
+              return result;
+            }
+          }),
+        };
       case Protocol.V4:
         // eslint-disable-next-line no-case-declarations
         const results =
@@ -536,6 +615,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             ),
             contractInterface: this.getContractInterface(
               useMixedRouteQuoter,
+              mixedRouteContainsV4Pool,
               protocol
             ),
             functionName,
@@ -600,9 +680,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             mixedRouteContainsV4Pool,
             protocol
           ),
-          contractInterface: useMixedRouteQuoter
-            ? IMixedRouteQuoterV1__factory.createInterface()
-            : IQuoterV2__factory.createInterface(),
+          contractInterface: this.getContractInterface(
+            useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol
+          ),
           functionName,
           functionParams: inputs as [string, string][],
           providerConfig,
@@ -622,9 +704,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const useMixedRouteQuoter =
       routes.some((route) => route.protocol === Protocol.V2) ||
       routes.some((route) => route.protocol === Protocol.MIXED);
-    const useV4RouteQuoter = routes.some(
-      (route) => route.protocol === Protocol.V4
-    );
+    const useV4RouteQuoter =
+      routes.some((route) => route.protocol === Protocol.V4) &&
+      !useMixedRouteQuoter;
     const mixedRouteContainsV4Pool = useMixedRouteQuoter
       ? routes.some(
           (route) =>
@@ -656,13 +738,13 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         _providerConfig?.blockNumber ?? originalBlockNumber + baseBlockOffset,
     };
 
-    const inputs: (QuoteExactParams[] | [string, string])[] = _(routes)
+    const inputs: QuoteInputType[] = _(routes)
       .flatMap((route) => {
         const encodedRoute = this.encodeRouteToPath(route, functionName);
 
-        const routeInputs: (QuoteExactParams[] | [string, string])[] =
-          amounts.map((amount) => {
-            if (route.protocol === Protocol.V4) {
+        const routeInputs: QuoteInputType[] = amounts.map((amount) => {
+          switch (route.protocol) {
+            case Protocol.V4:
               return [
                 {
                   exactCurrency: amount.currency.wrapped.address,
@@ -670,13 +752,25 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   exactAmount: amount.quotient.toString(),
                 },
               ] as QuoteExactParams[];
-            } else {
+            case Protocol.MIXED:
+              return [
+                encodedRoute as string,
+                {
+                  nonEncodableData: route.pools.map((_) => {
+                    return {
+                      hookData: '0x',
+                    };
+                  }) as NonEncodableData[],
+                } as ExtraQuoteExactInputParams,
+                amount.quotient.toString(),
+              ];
+            default:
               return [
                 encodedRoute as string,
                 `0x${amount.quotient.toString(16)}`,
               ];
-            }
-          });
+          }
+        });
         return routeInputs;
       })
       .value();
@@ -685,13 +779,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       inputs.length / Math.ceil(inputs.length / multicallChunk)
     );
     const inputsChunked = _.chunk(inputs, normalizedChunk);
-    let quoteStates: QuoteBatchState<QuoteExactParams[] | [string, string]>[] =
-      _.map(inputsChunked, (inputChunk) => {
+    let quoteStates: QuoteBatchState<QuoteInputType>[] = _.map(
+      inputsChunked,
+      (inputChunk) => {
         return {
           status: 'pending',
           inputs: inputChunk,
         };
-      });
+      }
+    );
 
     log.info(
       `About to get ${
@@ -761,9 +857,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           _.map(
             quoteStates,
             async (
-              quoteState: QuoteBatchState<
-                QuoteExactParams[] | [string, string]
-              >,
+              quoteState: QuoteBatchState<QuoteInputType>,
               idx: number
             ) => {
               if (quoteState.status == 'success') {
@@ -804,14 +898,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     inputs,
                     reason: successRateError,
                     results,
-                  } as QuoteBatchFailed<QuoteExactParams[] | [string, string]>;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 return {
                   status: 'success',
                   inputs,
                   results,
-                } as QuoteBatchSuccess<QuoteExactParams[] | [string, string]>;
+                } as QuoteBatchSuccess<QuoteInputType>;
               } catch (err: any) {
                 // Error from providers have huge messages that include all the calldata and fill the logs.
                 // Catch them and rethrow with shorter message.
@@ -822,7 +916,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     reason: new ProviderBlockHeaderError(
                       err.message.slice(0, 500)
                     ),
-                  } as QuoteBatchFailed<QuoteExactParams[] | [string, string]>;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 if (err.message.includes('timeout')) {
@@ -834,7 +928,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                         inputs.length
                       } inputs. ${err.message.slice(0, 500)}`
                     ),
-                  } as QuoteBatchFailed<QuoteExactParams[] | [string, string]>;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 if (err.message.includes('out of gas')) {
@@ -842,7 +936,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     status: 'failed',
                     inputs,
                     reason: new ProviderGasError(err.message.slice(0, 500)),
-                  } as QuoteBatchFailed<QuoteExactParams[] | [string, string]>;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 return {
@@ -851,7 +945,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   reason: new Error(
                     `Unknown error from provider: ${err.message.slice(0, 500)}`
                   ),
-                } as QuoteBatchFailed<QuoteExactParams[] | [string, string]>;
+                } as QuoteBatchFailed<QuoteInputType>;
               }
             }
           )
@@ -866,9 +960,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
         let retryAll = false;
 
-        const blockNumberError = this.validateBlockNumbers<
-          QuoteExactParams[] | [string, string]
-        >(successfulQuoteStates, inputsChunked.length, gasLimitOverride);
+        const blockNumberError = this.validateBlockNumbers<QuoteInputType>(
+          successfulQuoteStates,
+          inputsChunked.length,
+          gasLimitOverride
+        );
 
         // If there is a block number conflict we retry all the quotes.
         if (blockNumberError) {

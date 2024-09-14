@@ -978,6 +978,8 @@ export class AlphaRouter
     );
 
     this.mixedQuoter = new MixedQuoter(
+      this.v4SubgraphProvider,
+      this.v4PoolProvider,
       this.v3SubgraphProvider,
       this.v3PoolProvider,
       this.v2SubgraphProvider,
@@ -2076,8 +2078,9 @@ export class AlphaRouter
       protocols.includes(Protocol.MIXED) ||
       (noProtocolsSpecified && v2SupportedInChain);
     const mixedProtocolAllowed =
-      [ChainId.MAINNET, ChainId.GOERLI].includes(this.chainId) &&
-      tradeType === TradeType.EXACT_INPUT;
+      [ChainId.MAINNET, ChainId.SEPOLIA, ChainId.GOERLI].includes(
+        this.chainId
+      ) && tradeType === TradeType.EXACT_INPUT;
 
     const beforeGetCandidates = Date.now();
 
@@ -2085,7 +2088,10 @@ export class AlphaRouter
       Promise.resolve(undefined);
 
     // we are explicitly requiring people to specify v4 for now
-    if (v4ProtocolSpecified && v4SupportedInChain) {
+    if (
+      (v4SupportedInChain && (v4ProtocolSpecified || noProtocolsSpecified)) ||
+      (shouldQueryMixedProtocol && mixedProtocolAllowed)
+    ) {
       // if (v4ProtocolSpecified || noProtocolsSpecified) {
       v4CandidatePoolsPromise = getV4CandidatePools({
         tokenIn,
@@ -2302,8 +2308,12 @@ export class AlphaRouter
         const beforeGetRoutesThenQuotes = Date.now();
 
         quotePromises.push(
-          Promise.all([v3CandidatePoolsPromise, v2CandidatePoolsPromise]).then(
-            async ([v3CandidatePools, v2CandidatePools]) => {
+          Promise.all([
+            v4CandidatePoolsPromise,
+            v3CandidatePoolsPromise,
+            v2CandidatePoolsPromise,
+          ]).then(
+            async ([v4CandidatePools, v3CandidatePools, v2CandidatePools]) => {
               const crossLiquidityPools =
                 await getMixedCrossLiquidityCandidatePools({
                   tokenIn,
@@ -2313,6 +2323,7 @@ export class AlphaRouter
                   v3SubgraphProvider: this.v3SubgraphProvider,
                   v2Candidates: v2CandidatePools,
                   v3Candidates: v3CandidatePools,
+                  v4Candidates: v4CandidatePools,
                 });
 
               return this.mixedQuoter
@@ -2323,7 +2334,12 @@ export class AlphaRouter
                   amounts,
                   percents,
                   quoteToken,
-                  [v3CandidatePools!, v2CandidatePools!, crossLiquidityPools],
+                  [
+                    v4CandidatePools!,
+                    v3CandidatePools!,
+                    v2CandidatePools!,
+                    crossLiquidityPools,
+                  ],
                   tradeType,
                   routingConfig,
                   mixedRouteGasModel

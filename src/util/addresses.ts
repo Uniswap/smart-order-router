@@ -97,9 +97,9 @@ export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV1Address,
 };
 
+// TODO: use CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV2Address once sdk-core finalizes deploy addresses
 export const MIXED_ROUTE_QUOTER_V2_ADDRESSES: AddressMap = {
-  [ChainId.SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].mixedRouteQuoterV1Address,
+  [ChainId.SEPOLIA]: '0x4745f77b56a0e2294426e3936dc4fab68d9543cd',
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
