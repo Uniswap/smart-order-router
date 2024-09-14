@@ -1,6 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import sinon from 'sinon';
 import {
   CurrencyAmount,
@@ -11,24 +12,29 @@ import {
   V2RouteWithValidQuote,
   V3PoolProvider,
   V3RouteWithValidQuote,
+  V4PoolProvider,
 } from '../../../../../../src';
 import {
   buildMockV2PoolAccessor,
-  buildMockV3PoolAccessor,
+  buildMockV3PoolAccessor, buildMockV4PoolAccessor,
   DAI_USDT,
-  DAI_USDT_LOW,
+  DAI_USDT_LOW, DAI_USDT_V4_LOW,
   DAI_WETH,
-  DAI_WETH_MEDIUM,
+  DAI_WETH_MEDIUM, DAI_WETH_V4_MEDIUM,
   UNI_WETH_MEDIUM,
+  UNI_WETH_V4_MEDIUM,
   USDC_DAI,
   USDC_DAI_LOW,
-  USDC_DAI_MEDIUM,
-  USDC_USDT_MEDIUM,
+  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW,
+  USDC_DAI_V4_MEDIUM,
+  USDC_USDT_MEDIUM, USDC_USDT_V4_MEDIUM,
   USDC_WETH,
   USDC_WETH_LOW,
+  USDC_WETH_V4_LOW,
   WBTC_WETH,
   WETH9_USDT_LOW,
-  WETH_USDT,
+  WETH9_USDT_V4_LOW,
+  WETH_USDT
 } from '../../../../../test-util/mock-data';
 
 export function getMockedMixedGasModel(): IGasModel<MixedRouteWithValidQuote> {
@@ -63,6 +69,30 @@ export function getMockedV3GasModel(): IGasModel<V3RouteWithValidQuote> {
   return mockV3GasModel;
 }
 
+export function getMockedV4PoolProvider(): V4PoolProvider {
+  const mockV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+
+  const v4MockPools = [
+    USDC_DAI_V4_LOW,
+    USDC_DAI_V4_MEDIUM,
+    USDC_WETH_V4_LOW,
+    WETH9_USDT_V4_LOW,
+    DAI_USDT_V4_LOW,
+    USDC_USDT_V4_MEDIUM,
+    UNI_WETH_V4_MEDIUM,
+    DAI_WETH_V4_MEDIUM
+  ];
+
+  mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+  mockV4PoolProvider.getPoolId.callsFake((cA, cB, fee, tickSpacing, hooks) => ({
+    poolId: V4Pool.getPoolId(cA, cB, fee, tickSpacing, hooks),
+    currency0: cA,
+    currency1: cB,
+  }));
+
+  return mockV4PoolProvider;
+}
+
 export function getMockedV3PoolProvider(): V3PoolProvider {
   const mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
 
@@ -79,7 +109,7 @@ export function getMockedV3PoolProvider(): V3PoolProvider {
 
   mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
   mockV3PoolProvider.getPoolAddress.callsFake((tA, tB, fee) => ({
-    poolAddress: Pool.getAddress(tA, tB, fee),
+    poolAddress: V3Pool.getAddress(tA, tB, fee),
     token0: tA,
     token1: tB,
   }));

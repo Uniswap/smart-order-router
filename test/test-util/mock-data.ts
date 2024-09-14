@@ -125,6 +125,39 @@ export const DAI_USDT_V4_LOW = new V4Pool(
   0
 );
 
+export const USDC_USDT_V4_MEDIUM = new V4Pool(
+  USDC,
+  USDT,
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const UNI_WETH_V4_MEDIUM = new V4Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  UNI_MAINNET,
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const DAI_WETH_V4_MEDIUM = new V4Pool(
+  DAI,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
 // Mock V3 Pools
 export const USDC_MOCK_LOW = new V3Pool(
   USDC,
