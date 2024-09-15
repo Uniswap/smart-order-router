@@ -5,7 +5,7 @@ import { BaseProvider } from '@ethersproject/providers';
 import {
   encodeMixedRouteToPath,
   MixedRouteSDK,
-  Protocol
+  Protocol,
 } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
@@ -19,14 +19,10 @@ import {
   SupportedRoutes,
   V2Route,
   V3Route,
-  V4Route
+  V4Route,
 } from '../routers/router';
-import {
-  IMixedRouteQuoterV1__factory
-} from '../types/other/factories/IMixedRouteQuoterV1__factory';
-import {
-  MixedRouteQuoterV2__factory
-} from '../types/other/factories/MixedRouteQuoterV2__factory';
+import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
+import { MixedRouteQuoterV2__factory } from '../types/other/factories/MixedRouteQuoterV2__factory';
 import { V4Quoter__factory } from '../types/other/factories/V4Quoter__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import {
@@ -36,13 +32,13 @@ import {
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
-  PROTOCOL_V4_QUOTER_ADDRESSES
+  PROTOCOL_V4_QUOTER_ADDRESSES,
 } from '../util';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import {
   DEFAULT_BLOCK_NUMBER_CONFIGS,
-  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES
+  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
 } from '../util/onchainQuoteProviderConfigs';
 import { routeToString } from '../util/routes';
 
@@ -672,27 +668,27 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         }),
       };
     } else {
-        return await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-          [string, string],
-          [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
-        >({
-          address: this.getQuoterAddress(
-            useMixedRouteQuoter,
-            mixedRouteContainsV4Pool,
-            protocol
-          ),
-          contractInterface: this.getContractInterface(
-            useMixedRouteQuoter,
-            mixedRouteContainsV4Pool,
-            protocol
-          ),
-          functionName,
-          functionParams: inputs as [string, string][],
-          providerConfig,
-          additionalConfig: {
-            gasLimitPerCallOverride: gasLimitOverride,
-          },
-        });
+      return await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+        [string, string],
+        [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
+      >({
+        address: this.getQuoterAddress(
+          useMixedRouteQuoter,
+          mixedRouteContainsV4Pool,
+          protocol
+        ),
+        contractInterface: this.getContractInterface(
+          useMixedRouteQuoter,
+          mixedRouteContainsV4Pool,
+          protocol
+        ),
+        functionName,
+        functionParams: inputs as [string, string][],
+        providerConfig,
+        additionalConfig: {
+          gasLimitPerCallOverride: gasLimitOverride,
+        },
+      });
     }
   }
 
@@ -767,10 +763,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   amount.quotient.toString(),
                 ];
               } else {
-                return [
-                  encodedRoute as string,
-                  amount.quotient.toString(),
-                ];
+                return [encodedRoute as string, amount.quotient.toString()];
               }
             default:
               return [

@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -15,20 +15,24 @@ import {
   CacheMode,
   CachingTokenListProvider,
   CurrencyAmount,
-  DAI_MAINNET as DAI, DEFAULT_TOKEN_PROPERTIES_RESULT,
+  DAI_MAINNET as DAI,
+  DEFAULT_TOKEN_PROPERTIES_RESULT,
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
-  RouteWithQuotes, SupportedExactOutRoutes,
+  RouteWithQuotes,
+  SupportedExactOutRoutes,
   SupportedRoutes,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapRouterProvider,
   SwapToRatioStatus,
-  SwapType, TokenPropertiesMap,
-  TokenPropertiesProvider, TokenPropertiesResult,
+  SwapType,
+  TokenPropertiesMap,
+  TokenPropertiesProvider,
+  TokenPropertiesResult,
   TokenProvider,
   UniswapMulticallProvider,
   USDC_MAINNET as USDC,
@@ -53,49 +57,58 @@ import {
   WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
-import { TokenValidationResult, TokenValidatorProvider, } from '../../../../src/providers/token-validator-provider';
+import {
+  TokenValidationResult,
+  TokenValidatorProvider
+} from '../../../../src/providers/token-validator-provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import {
   MixedRouteHeuristicGasModelFactory
 } from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
-import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
+import {
+  V2HeuristicGasModelFactory
+} from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,
   buildMockV3PoolAccessor,
+  buildMockV4PoolAccessor,
   BULLET,
   BULLET_USDC,
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_USDT_MEDIUM,
+  DAI_USDT_V4_LOW,
   MOCK_ZERO_DEC_TOKEN,
   mockBlock,
   mockBlockBN,
   mockGasPriceWeiBN,
   pairToV2SubgraphPool,
   poolToV3SubgraphPool,
+  poolToV4SubgraphPool,
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
-  USDC_MOCK_LOW,
-  USDC_USDT_MEDIUM,
-  USDC_WETH,
-  USDC_WETH_LOW,
-  WBTC_WETH,
-  WETH9_USDT_LOW,
-  WETH_USDT,
   USDC_DAI_V4_LOW,
   USDC_DAI_V4_MEDIUM,
-  USDC_WETH_V4_LOW,
-  WETH9_USDT_V4_LOW,
-  DAI_USDT_V4_LOW,
+  USDC_MOCK_LOW,
+  USDC_USDT_MEDIUM,
   USDC_USDT_V4_MEDIUM,
-  buildMockV4PoolAccessor,
-  poolToV4SubgraphPool
+  USDC_WETH,
+  USDC_WETH_LOW,
+  USDC_WETH_V4_LOW,
+  WBTC_WETH,
+  WETH9_USDT_LOW,
+  WETH9_USDT_V4_LOW,
+  WETH_USDT
 } from '../../../test-util/mock-data';
-import { InMemoryRouteCachingProvider } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
+import {
+  InMemoryRouteCachingProvider
+} from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { V4HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v4/v4-heuristic-gas-model';
+import {
+  V4HeuristicGasModelFactory
+} from '../../../../src/routers/alpha-router/gas-models/v4/v4-heuristic-gas-model';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
@@ -489,6 +502,7 @@ describe('alpha router', () => {
       simulator: mockFallbackTenderlySimulator,
       routeCachingProvider: inMemoryRouteCachingProvider,
       tokenPropertiesProvider: mockTokenPropertiesProvider,
+      v4Supported: [ChainId.SEPOLIA, ChainId.MAINNET]
     });
   });
 
