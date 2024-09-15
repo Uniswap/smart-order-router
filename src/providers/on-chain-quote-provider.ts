@@ -5,7 +5,7 @@ import { BaseProvider } from '@ethersproject/providers';
 import {
   encodeMixedRouteToPath,
   MixedRouteSDK,
-  Protocol,
+  Protocol
 } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { encodeRouteToPath } from '@uniswap/v3-sdk';
@@ -19,10 +19,14 @@ import {
   SupportedRoutes,
   V2Route,
   V3Route,
-  V4Route,
+  V4Route
 } from '../routers/router';
-import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
-import { MixedRouteQuoterV2__factory } from '../types/other/factories/MixedRouteQuoterV2__factory';
+import {
+  IMixedRouteQuoterV1__factory
+} from '../types/other/factories/IMixedRouteQuoterV1__factory';
+import {
+  MixedRouteQuoterV2__factory
+} from '../types/other/factories/MixedRouteQuoterV2__factory';
 import { V4Quoter__factory } from '../types/other/factories/V4Quoter__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import {
@@ -32,13 +36,13 @@ import {
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
-  PROTOCOL_V4_QUOTER_ADDRESSES,
+  PROTOCOL_V4_QUOTER_ADDRESSES
 } from '../util';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import {
   DEFAULT_BLOCK_NUMBER_CONFIGS,
-  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+  DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES
 } from '../util/onchainQuoteProviderConfigs';
 import { routeToString } from '../util/routes';
 
@@ -544,133 +548,130 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
     approxGasUsedPerSuccessCall: number;
   }> {
-    switch (protocol) {
-      case Protocol.MIXED:
-        // eslint-disable-next-line no-case-declarations
-        const mixedQuote =
-          await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-            [string, ExtraQuoteExactInputParams, string],
-            [BigNumber, BigNumber] // amountIn/amountOut, gasEstimate
-          >({
-            address: this.getQuoterAddress(
-              useMixedRouteQuoter,
-              mixedRouteContainsV4Pool,
-              protocol
-            ),
-            contractInterface: this.getContractInterface(
-              useMixedRouteQuoter,
-              mixedRouteContainsV4Pool,
-              protocol
-            ),
-            functionName,
-            functionParams: inputs as [
-              string,
-              ExtraQuoteExactInputParams,
-              string
-            ][],
-            providerConfig,
-            additionalConfig: {
-              gasLimitPerCallOverride: gasLimitOverride,
-            },
-          });
+    if (protocol === Protocol.MIXED && mixedRouteContainsV4Pool) {
+      const mixedQuote =
+        await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+          [string, ExtraQuoteExactInputParams, string],
+          [BigNumber, BigNumber] // amountIn/amountOut, gasEstimate
+        >({
+          address: this.getQuoterAddress(
+            useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol
+          ),
+          contractInterface: this.getContractInterface(
+            useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol
+          ),
+          functionName,
+          functionParams: inputs as [
+            string,
+            ExtraQuoteExactInputParams,
+            string
+          ][],
+          providerConfig,
+          additionalConfig: {
+            gasLimitPerCallOverride: gasLimitOverride,
+          },
+        });
 
-        return {
-          blockNumber: mixedQuote.blockNumber,
-          approxGasUsedPerSuccessCall: mixedQuote.approxGasUsedPerSuccessCall,
-          results: mixedQuote.results.map((result) => {
-            if (result.success) {
-              switch (functionName) {
-                case 'quoteExactInput':
-                  return {
-                    success: true,
-                    result: [
-                      result.result[0],
-                      Array<BigNumber>(inputs.length),
-                      Array<number>(inputs.length),
-                      result.result[1],
-                    ],
-                  } as SuccessResult<
-                    [BigNumber, BigNumber[], number[], BigNumber]
-                  >;
-                case 'quoteExactOutput':
-                default:
-                  throw new Error(`Unsupported function name: ${functionName}`);
-              }
-            } else {
-              return result;
+      return {
+        blockNumber: mixedQuote.blockNumber,
+        approxGasUsedPerSuccessCall: mixedQuote.approxGasUsedPerSuccessCall,
+        results: mixedQuote.results.map((result) => {
+          if (result.success) {
+            switch (functionName) {
+              case 'quoteExactInput':
+                return {
+                  success: true,
+                  result: [
+                    result.result[0],
+                    Array<BigNumber>(inputs.length),
+                    Array<number>(inputs.length),
+                    result.result[1],
+                  ],
+                } as SuccessResult<
+                  [BigNumber, BigNumber[], number[], BigNumber]
+                >;
+              case 'quoteExactOutput':
+              default:
+                throw new Error(`Unsupported function name: ${functionName}`);
             }
-          }),
-        };
-      case Protocol.V4:
-        // eslint-disable-next-line no-case-declarations
-        const results =
-          await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-            QuoteExactParams[],
-            [BigNumber[], BigNumber[], number[]] // deltaAmounts, sqrtPriceX96AfterList, initializedTicksCrossedList
-          >({
-            address: this.getQuoterAddress(
-              useMixedRouteQuoter,
-              mixedRouteContainsV4Pool,
-              protocol
-            ),
-            contractInterface: this.getContractInterface(
-              useMixedRouteQuoter,
-              mixedRouteContainsV4Pool,
-              protocol
-            ),
-            functionName,
-            functionParams: inputs as QuoteExactParams[][],
-            providerConfig,
-            additionalConfig: {
-              gasLimitPerCallOverride: gasLimitOverride,
-            },
-          });
+          } else {
+            return result;
+          }
+        }),
+      };
+    } else if (protocol === Protocol.V4) {
+      const results =
+        await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+          QuoteExactParams[],
+          [BigNumber[], BigNumber[], number[]] // deltaAmounts, sqrtPriceX96AfterList, initializedTicksCrossedList
+        >({
+          address: this.getQuoterAddress(
+            useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol
+          ),
+          contractInterface: this.getContractInterface(
+            useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol
+          ),
+          functionName,
+          functionParams: inputs as QuoteExactParams[][],
+          providerConfig,
+          additionalConfig: {
+            gasLimitPerCallOverride: gasLimitOverride,
+          },
+        });
 
-        return {
-          blockNumber: results.blockNumber,
-          approxGasUsedPerSuccessCall: results.approxGasUsedPerSuccessCall,
-          results: results.results.map((result) => {
-            if (result.success) {
-              let deltaAmountsSum = BigNumber.from(0);
-              result.result[0].forEach((result) => {
-                deltaAmountsSum = deltaAmountsSum.add(result as BigNumber);
-              });
+      return {
+        blockNumber: results.blockNumber,
+        approxGasUsedPerSuccessCall: results.approxGasUsedPerSuccessCall,
+        results: results.results.map((result) => {
+          if (result.success) {
+            let deltaAmountsSum = BigNumber.from(0);
+            result.result[0].forEach((result) => {
+              deltaAmountsSum = deltaAmountsSum.add(result as BigNumber);
+            });
 
-              switch (functionName) {
-                case 'quoteExactInput':
-                  return {
-                    success: true,
-                    result: [
-                      result.result[0][result.result[0].length - 1]?.mul(-1), // we need to negate the negative amount out in case of exact in
-                      result.result[1],
-                      result.result[2],
-                      BigNumber.from(0),
-                    ],
-                  } as SuccessResult<
-                    [BigNumber, BigNumber[], number[], BigNumber]
-                  >;
-                case 'quoteExactOutput':
-                  return {
-                    success: true,
-                    result: [
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                      result.result[0][0]!, // amount in is the first element in the array, with positive sign
-                      result.result[1],
-                      result.result[2],
-                      BigNumber.from(0),
-                    ],
-                  } as SuccessResult<
-                    [BigNumber, BigNumber[], number[], BigNumber]
-                  >;
-                default:
-                  throw new Error(`Unsupported function name: ${functionName}`);
-              }
-            } else {
-              return result;
+            switch (functionName) {
+              case 'quoteExactInput':
+                return {
+                  success: true,
+                  result: [
+                    result.result[0][result.result[0].length - 1]?.mul(-1), // we need to negate the negative amount out in case of exact in
+                    result.result[1],
+                    result.result[2],
+                    BigNumber.from(0),
+                  ],
+                } as SuccessResult<
+                  [BigNumber, BigNumber[], number[], BigNumber]
+                >;
+              case 'quoteExactOutput':
+                return {
+                  success: true,
+                  result: [
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    result.result[0][0]!, // amount in is the first element in the array, with positive sign
+                    result.result[1],
+                    result.result[2],
+                    BigNumber.from(0),
+                  ],
+                } as SuccessResult<
+                  [BigNumber, BigNumber[], number[], BigNumber]
+                >;
+              default:
+                throw new Error(`Unsupported function name: ${functionName}`);
             }
-          }),
-        };
-      default:
+          } else {
+            return result;
+          }
+        }),
+      };
+    } else {
         return await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
           [string, string],
           [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
@@ -753,17 +754,24 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 },
               ] as QuoteExactParams[];
             case Protocol.MIXED:
-              return [
-                encodedRoute as string,
-                {
-                  nonEncodableData: route.pools.map((_) => {
-                    return {
-                      hookData: '0x',
-                    };
-                  }) as NonEncodableData[],
-                } as ExtraQuoteExactInputParams,
-                amount.quotient.toString(),
-              ];
+              if (mixedRouteContainsV4Pool) {
+                return [
+                  encodedRoute as string,
+                  {
+                    nonEncodableData: route.pools.map((_) => {
+                      return {
+                        hookData: '0x',
+                      };
+                    }) as NonEncodableData[],
+                  } as ExtraQuoteExactInputParams,
+                  amount.quotient.toString(),
+                ];
+              } else {
+                return [
+                  encodedRoute as string,
+                  amount.quotient.toString(),
+                ];
+              }
             default:
               return [
                 encodedRoute as string,
