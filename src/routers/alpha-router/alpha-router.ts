@@ -10,7 +10,6 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
@@ -86,11 +85,6 @@ import {
   V3PoolProvider,
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
-import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
-import {
-  IV4PoolProvider,
-  V4PoolProvider,
-} from '../../providers/v4/pool-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
   shouldWipeoutCachedRoutes,
@@ -145,6 +139,12 @@ import {
   V4Route,
 } from '../router';
 
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
+import {
+  IV4PoolProvider,
+  V4PoolProvider,
+} from '../../providers/v4/pool-provider';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -2321,25 +2321,9 @@ export class AlphaRouter
                   blockNumber: routingConfig.blockNumber,
                   v2SubgraphProvider: this.v2SubgraphProvider,
                   v3SubgraphProvider: this.v3SubgraphProvider,
-                  v4SubgraphProvider: this.v4SubgraphProvider,
-                  v2Candidates:
-                    routingConfig.excludedProtocolsFromMixed?.includes(
-                      Protocol.V2
-                    )
-                      ? undefined
-                      : v2CandidatePools,
-                  v3Candidates:
-                    routingConfig.excludedProtocolsFromMixed?.includes(
-                      Protocol.V3
-                    )
-                      ? undefined
-                      : v3CandidatePools,
-                  v4Candidates:
-                    routingConfig.excludedProtocolsFromMixed?.includes(
-                      Protocol.V4
-                    )
-                      ? undefined
-                      : v4CandidatePools,
+                  v2Candidates: v2CandidatePools,
+                  v3Candidates: v3CandidatePools,
+                  v4Candidates: v4CandidatePools,
                 });
 
               return this.mixedQuoter
