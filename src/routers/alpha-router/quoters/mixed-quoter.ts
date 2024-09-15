@@ -17,7 +17,6 @@ import {
 } from '../../../providers';
 import {
   CurrencyAmount,
-  excludeProtocolPoolRouteFromMixedRoute,
   log,
   metric,
   MetricLoggerUnit,
@@ -134,7 +133,16 @@ export class MixedQuoter extends BaseQuoter<
     const V3poolsRaw = V3poolAccessor.getAllPools();
     const V2poolsRaw = V2poolAccessor.getAllPools();
 
-    const poolsRaw = [...V4poolsRaw, ...V3poolsRaw, ...V2poolsRaw];
+    const poolsRaw = [];
+    if (!routingConfig.excludedProtocolsFromMixed?.includes(Protocol.V4)) {
+      poolsRaw.push(...V4poolsRaw);
+    }
+    if (!routingConfig.excludedProtocolsFromMixed?.includes(Protocol.V3)) {
+      poolsRaw.push(...V3poolsRaw);
+    }
+    if (!routingConfig.excludedProtocolsFromMixed?.includes(Protocol.V2)) {
+      poolsRaw.push(...V2poolsRaw);
+    }
 
     const candidatePools = mixedRouteCandidatePools;
 
@@ -178,11 +186,6 @@ export class MixedQuoter extends BaseQuoter<
       maxSwapsPerPath
     );
 
-    const protocolExcludedRoutes = excludeProtocolPoolRouteFromMixedRoute(
-      routes,
-      routingConfig.excludedProtocolsFromMixed
-    );
-
     metric.putMetric(
       'MixedGetRoutesLoad',
       Date.now() - beforeGetRoutes,
@@ -190,7 +193,7 @@ export class MixedQuoter extends BaseQuoter<
     );
 
     return {
-      routes: protocolExcludedRoutes,
+      routes: routes,
       candidatePools,
     };
   }

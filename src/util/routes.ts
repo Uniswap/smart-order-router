@@ -172,19 +172,6 @@ export function shouldWipeoutCachedRoutes(
   return containsExcludedProtocolPools !== undefined;
 }
 
-export function excludeProtocolPoolRouteFromMixedRoute(
-  mixedRoutes: MixedRoute[],
-  excludedProtocolsFromMixed?: Protocol[]
-): MixedRoute[] {
-  return mixedRoutes.filter((route) => {
-    return (
-      route.pools.filter((pool) => {
-        return poolIsInExcludedProtocols(pool, excludedProtocolsFromMixed);
-      }).length == 0
-    );
-  });
-}
-
 function poolIsInExcludedProtocols(
   pool: TPool,
   excludedProtocolsFromMixed?: Protocol[]

@@ -801,6 +801,7 @@ describe('alpha router', () => {
           ...ROUTING_CONFIG,
           minSplits: 3, // ensure we get all 3 protocols
           protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+          excludedProtocolsFromMixed: [Protocol.V4]
         }
       );
       expect(swap).toBeDefined();
@@ -1490,6 +1491,7 @@ describe('alpha router', () => {
         undefined,
         {
           ...ROUTING_CONFIG,
+          excludedProtocolsFromMixed: [Protocol.V4]
         }
       );
       expect(swap).toBeDefined();
