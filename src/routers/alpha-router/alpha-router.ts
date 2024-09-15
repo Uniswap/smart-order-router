@@ -2076,7 +2076,7 @@ export class AlphaRouter
     const v4SupportedInChain = this.v4Supported?.includes(this.chainId);
     const shouldQueryMixedProtocol =
       protocols.includes(Protocol.MIXED) ||
-      (noProtocolsSpecified && v2SupportedInChain);
+      (noProtocolsSpecified && v2SupportedInChain && v4SupportedInChain);
     const mixedProtocolAllowed =
       [ChainId.MAINNET, ChainId.SEPOLIA, ChainId.GOERLI].includes(
         this.chainId
