@@ -1,6 +1,6 @@
 {
   "name": "@uniswap/smart-order-router",
-  "version": "3.50.0",
+  "version": "3.51.0",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
