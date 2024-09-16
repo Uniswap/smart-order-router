@@ -3,7 +3,9 @@ import {
   CurrencyAmount,
   ID_TO_PROVIDER,
   OnChainQuoteProvider, parseAmount,
-  UniswapMulticallProvider, V4_SEPOLIA_TEST_A, V4_SEPOLIA_TEST_B, V4Route
+  UniswapMulticallProvider, V4_SEPOLIA_TEST_A, V4_SEPOLIA_TEST_B,
+  V4Route,
+  MixedRoute
 } from '../../../src';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Pool } from '@uniswap/v4-sdk';
@@ -33,7 +35,7 @@ describe('on chain quote provider', () => {
     const amountIns = [
       parseAmount("0.01", mockA)
     ]
-    const routes = [
+    const v4Routes = [
       new V4Route(
   [new Pool(
           mockB,
@@ -49,20 +51,42 @@ describe('on chain quote provider', () => {
         mockB,
       )
     ]
+    const mixedRoutes = [
+      new MixedRoute(
+        [new Pool(
+          mockB,
+          mockA,
+          3000,
+          60,
+          ADDRESS_ZERO,
+          79186511702831612165570076748,
+          100000000000000000000,
+          -11,
+        )],
+        mockA,
+        mockB,
+      )
+    ]
 
     it('exact in quote and then exact out quote to match original exact in currency amount', async () => {
       const providerConfig: ProviderConfig = {
-        blockNumber: 6682153,
+        blockNumber: 6685697,
       }
 
-      const exactInQuotes = await onChainQuoteProvider.getQuotesManyExactIn(amountIns, routes, providerConfig)
+      const exactInQuotes = await onChainQuoteProvider.getQuotesManyExactIn(amountIns, v4Routes, providerConfig)
       // @ts-ignore
       const amountOuts = [CurrencyAmount.fromRawAmount(mockB, JSBI.BigInt(exactInQuotes.routesWithQuotes[0][1][0].quote))]
-      const exactOutQuotes = await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, routes, providerConfig)
+      const exactOutQuotes = await onChainQuoteProvider.getQuotesManyExactOut(amountOuts, v4Routes, providerConfig)
       // @ts-ignore
       const opQuoteAmount = CurrencyAmount.fromRawAmount(mockA, exactOutQuotes.routesWithQuotes[0][1][0].quote)
       // @ts-ignore
       expect(opQuoteAmount.equalTo(amountIns[0])).toBeTruthy()
+
+      const mixedExactInQuotes = await onChainQuoteProvider.getQuotesManyExactIn(amountIns, mixedRoutes, providerConfig)
+      // @ts-ignore
+      const mixedAmountOuts = [CurrencyAmount.fromRawAmount(mockB, JSBI.BigInt(mixedExactInQuotes.routesWithQuotes[0][1][0].quote))]
+      // @ts-ignore
+      expect(mixedAmountOuts[0].equalTo(amountOuts[0])).toBeTruthy()
     })
 
     it('convert v4 route to path key', () => {

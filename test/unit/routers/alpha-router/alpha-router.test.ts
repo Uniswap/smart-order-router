@@ -1,9 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -14,20 +15,24 @@ import {
   CacheMode,
   CachingTokenListProvider,
   CurrencyAmount,
-  DAI_MAINNET as DAI, DEFAULT_TOKEN_PROPERTIES_RESULT,
+  DAI_MAINNET as DAI,
+  DEFAULT_TOKEN_PROPERTIES_RESULT,
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
-  RouteWithQuotes, SupportedExactOutRoutes,
+  RouteWithQuotes,
+  SupportedExactOutRoutes,
   SupportedRoutes,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapRouterProvider,
   SwapToRatioStatus,
-  SwapType, TokenPropertiesMap,
-  TokenPropertiesProvider, TokenPropertiesResult,
+  SwapType,
+  TokenPropertiesMap,
+  TokenPropertiesProvider,
+  TokenPropertiesResult,
   TokenProvider,
   UniswapMulticallProvider,
   USDC_MAINNET as USDC,
@@ -45,41 +50,65 @@ import {
   V3RouteWithValidQuote,
   V3SubgraphPool,
   V3SubgraphProvider,
+  V4PoolProvider,
+  V4RouteWithValidQuote,
+  V4SubgraphPool,
+  V4SubgraphProvider,
   WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
-import { TokenValidationResult, TokenValidatorProvider, } from '../../../../src/providers/token-validator-provider';
+import {
+  TokenValidationResult,
+  TokenValidatorProvider
+} from '../../../../src/providers/token-validator-provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import {
   MixedRouteHeuristicGasModelFactory
 } from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
-import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
+import {
+  V2HeuristicGasModelFactory
+} from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,
-  buildMockV3PoolAccessor, BULLET, BULLET_USDC,
+  buildMockV3PoolAccessor,
+  buildMockV4PoolAccessor,
+  BULLET,
+  BULLET_USDC,
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_USDT_MEDIUM,
+  DAI_USDT_V4_LOW,
   MOCK_ZERO_DEC_TOKEN,
   mockBlock,
   mockBlockBN,
   mockGasPriceWeiBN,
   pairToV2SubgraphPool,
   poolToV3SubgraphPool,
+  poolToV4SubgraphPool,
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
+  USDC_DAI_V4_LOW,
+  USDC_DAI_V4_MEDIUM,
   USDC_MOCK_LOW,
   USDC_USDT_MEDIUM,
+  USDC_USDT_V4_MEDIUM,
   USDC_WETH,
   USDC_WETH_LOW,
+  USDC_WETH_V4_LOW,
   WBTC_WETH,
   WETH9_USDT_LOW,
+  WETH9_USDT_V4_LOW,
   WETH_USDT
 } from '../../../test-util/mock-data';
-import { InMemoryRouteCachingProvider } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
+import {
+  InMemoryRouteCachingProvider
+} from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import {
+  V4HeuristicGasModelFactory
+} from '../../../../src/routers/alpha-router/gas-models/v4/v4-heuristic-gas-model';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
@@ -87,6 +116,10 @@ describe('alpha router', () => {
   let mockProvider: sinon.SinonStubbedInstance<BaseProvider>;
   let mockMulticallProvider: sinon.SinonStubbedInstance<UniswapMulticallProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
+
+  let mockV4PoolProvider: sinon.SinonStubbedInstance<V4PoolProvider>;
+  let mockV4SubgraphProvider: sinon.SinonStubbedInstance<V4SubgraphProvider>;
+  let mockV4GasModelFactory: sinon.SinonStubbedInstance<V4HeuristicGasModelFactory>;
 
   let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let mockV3SubgraphProvider: sinon.SinonStubbedInstance<V3SubgraphProvider>;
@@ -185,6 +218,22 @@ describe('alpha router', () => {
     ];
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
 
+    mockV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+    const v4MockPools = [
+      USDC_DAI_V4_LOW,
+      USDC_DAI_V4_MEDIUM,
+      USDC_WETH_V4_LOW,
+      WETH9_USDT_V4_LOW,
+      DAI_USDT_V4_LOW,
+      USDC_USDT_V4_MEDIUM,
+    ];
+    mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+    mockV4PoolProvider.getPoolId.callsFake((cA, cB, fee, tickSpacing, hooks) => ({
+      poolId: V4Pool.getPoolId(cA, cB, fee, tickSpacing, hooks),
+      currency0: cA,
+      currency1: cB,
+    }));
+
     mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
     const v3MockPools = [
       USDC_DAI_LOW,
@@ -197,7 +246,7 @@ describe('alpha router', () => {
     ];
     mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
     mockV3PoolProvider.getPoolAddress.callsFake((tA, tB, fee) => ({
-      poolAddress: Pool.getAddress(tA, tB, fee),
+      poolAddress: V3Pool.getAddress(tA, tB, fee),
       token0: tA,
       token1: tB,
     }));
@@ -210,6 +259,13 @@ describe('alpha router', () => {
       token0: tA,
       token1: tB,
     }));
+
+    mockV4SubgraphProvider = sinon.createStubInstance(V4SubgraphProvider);
+    const v4MockSubgraphPools: V4SubgraphPool[] = _.map(
+      v4MockPools,
+      poolToV4SubgraphPool
+    );
+    mockV4SubgraphProvider.getPools.resolves(v4MockSubgraphPools);
 
     mockV3SubgraphProvider = sinon.createStubInstance(V3SubgraphProvider);
     const v3MockSubgraphPools: V3SubgraphPool[] = _.map(
@@ -303,6 +359,27 @@ describe('alpha router', () => {
     mockGasPriceProvider.getGasPrice.resolves({
       gasPriceWei: mockGasPriceWeiBN,
     });
+
+    mockV4GasModelFactory = sinon.createStubInstance(
+      V4HeuristicGasModelFactory
+    );
+    const v4MockGasModel = {
+      estimateGasCost: sinon.stub(),
+    };
+    v4MockGasModel.estimateGasCost.callsFake((r: V4RouteWithValidQuote) => {
+      return {
+        gasEstimate: BigNumber.from(10000),
+        gasCostInToken: CurrencyAmount.fromRawAmount(
+          r.quoteToken,
+          r.quote.multiply(new Fraction(95, 100)).quotient
+        ),
+        gasCostInUSD: CurrencyAmount.fromRawAmount(
+          USDC,
+          r.quote.multiply(new Fraction(95, 100)).quotient
+        ),
+      };
+    });
+    mockV4GasModelFactory.buildGasModel.resolves(v4MockGasModel);
 
     mockV3GasModelFactory = sinon.createStubInstance(
       V3HeuristicGasModelFactory
@@ -406,6 +483,8 @@ describe('alpha router', () => {
       chainId: 1,
       provider: mockProvider,
       multicall2Provider: mockMulticallProvider as any,
+      v4SubgraphProvider: mockV4SubgraphProvider,
+      v4PoolProvider: mockV4PoolProvider,
       v3SubgraphProvider: mockV3SubgraphProvider,
       v3PoolProvider: mockV3PoolProvider,
       onChainQuoteProvider: mockOnChainQuoteProvider,
@@ -423,6 +502,7 @@ describe('alpha router', () => {
       simulator: mockFallbackTenderlySimulator,
       routeCachingProvider: inMemoryRouteCachingProvider,
       tokenPropertiesProvider: mockTokenPropertiesProvider,
+      v4Supported: [ChainId.SEPOLIA, ChainId.MAINNET]
     });
   });
 
@@ -721,6 +801,7 @@ describe('alpha router', () => {
           ...ROUTING_CONFIG,
           minSplits: 3, // ensure we get all 3 protocols
           protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+          excludedProtocolsFromMixed: [Protocol.V4]
         }
       );
       expect(swap).toBeDefined();
@@ -1410,6 +1491,7 @@ describe('alpha router', () => {
         undefined,
         {
           ...ROUTING_CONFIG,
+          excludedProtocolsFromMixed: [Protocol.V4]
         }
       );
       expect(swap).toBeDefined();

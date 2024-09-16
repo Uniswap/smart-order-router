@@ -29,7 +29,7 @@ import {
   getMockedV2GasModel,
   getMockedV2PoolProvider,
   getMockedV3GasModel,
-  getMockedV3PoolProvider,
+  getMockedV3PoolProvider, getMockedV4PoolProvider
 } from '../../../../routers/alpha-router/gas-models/test-util/mocked-dependencies';
 
 export function getV2RouteWithValidQuoteStub(
@@ -92,6 +92,7 @@ export function getMixedRouteWithValidQuoteStub(
     mixedRouteGasModel: getMockedMixedGasModel(),
     quoteToken: DAI,
     tradeType: TradeType.EXACT_INPUT,
+    v4PoolProvider: getMockedV4PoolProvider(),
     v3PoolProvider: getMockedV3PoolProvider(),
     v2PoolProvider: getMockedV2PoolProvider(),
     ...overrides,

@@ -182,25 +182,30 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
      * Since we must make a separate call to multicall for each v3 and v2 section, we will have to
      * add the BASE_SWAP_COST to each section.
      */
+    let baseGasUseV2Only = BigNumber.from(0);
+    let baseGasUseV3Only = BigNumber.from(0);
     let baseGasUse = BigNumber.from(0);
+    let routeContainsV4Pool = false;
 
     const route = routeWithValidQuote.route;
 
     const res = partitionMixedRouteByProtocol(route);
     res.map((section: TPool[]) => {
       if (section.every((pool) => pool instanceof V3Pool)) {
-        baseGasUse = baseGasUse.add(BASE_SWAP_COST(chainId));
-        baseGasUse = baseGasUse.add(COST_PER_HOP(chainId).mul(section.length));
+        baseGasUseV3Only = baseGasUseV3Only.add(BASE_SWAP_COST(chainId));
+        baseGasUseV3Only = baseGasUseV3Only.add(
+          COST_PER_HOP(chainId).mul(section.length)
+        );
+        baseGasUse = baseGasUse.add(baseGasUseV3Only);
       } else if (section.every((pool) => pool instanceof Pair)) {
-        baseGasUse = baseGasUse.add(BASE_SWAP_COST_V2);
-        baseGasUse = baseGasUse.add(
+        baseGasUseV2Only = baseGasUseV2Only.add(BASE_SWAP_COST_V2);
+        baseGasUseV2Only = baseGasUseV2Only.add(
           /// same behavior in v2 heuristic gas model factory
           COST_PER_EXTRA_HOP_V2.mul(section.length - 1)
         );
+        baseGasUse = baseGasUse.add(baseGasUseV2Only);
       } else if (section.every((pool) => pool instanceof V4Pool)) {
-        throw new Error(
-          'V4 pools are not supported in the heuristic gas model'
-        );
+        routeContainsV4Pool = true;
       }
     });
 
@@ -209,8 +214,16 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
     );
     const uninitializedTickGasUse = COST_PER_UNINIT_TICK.mul(0);
 
-    // base estimate gas used based on chainId estimates for hops and ticks gas useage
-    baseGasUse = baseGasUse.add(tickGasUse).add(uninitializedTickGasUse);
+    if (routeContainsV4Pool) {
+      // If the route contains a V4 pool, we know we are hitting mixed quoter V2, not mixed quoter V1,
+      // Hence we already know the v3 and v4 hops part of the quoter gas estimate.
+      // We only need to add the base gas use for the v2 part of the route,
+      // because mixed quoter doesn't have a way to estimate gas for v2 pools swaps.
+      baseGasUse = baseGasUseV2Only.add(routeWithValidQuote.quoterGasEstimate);
+    } else {
+      // base estimate gas used based on chainId estimates for hops and ticks gas useage
+      baseGasUse = baseGasUse.add(tickGasUse).add(uninitializedTickGasUse);
+    }
 
     if (providerConfig?.additionalGasOverhead) {
       baseGasUse = baseGasUse.add(providerConfig.additionalGasOverhead);

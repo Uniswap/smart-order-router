@@ -3,7 +3,6 @@ import {
   CachedRoute,
   CachedRoutes,
   DAI_MAINNET,
-  excludeProtocolPoolRouteFromMixedRoute,
   MixedRoute,
   shouldWipeoutCachedRoutes,
   USDC_MAINNET
@@ -93,20 +92,5 @@ describe('routes', () => {
       optimisticCachedRoutes: false,
     };
     expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithoutV4Pool, routingConfig)).toBeFalsy();
-  });
-
-  test(`do not exclude any mixed route for empty excluded protocols list`, async () => {
-    const newMixedRoutes = excludeProtocolPoolRouteFromMixedRoute([mixedRoutes1, mixedRoutes2, mixedRoutes3], []);
-    expect(newMixedRoutes).toStrictEqual([mixedRoutes1, mixedRoutes2, mixedRoutes3]);
-  });
-
-  test(`exclude mixed route for V4 protocol`, async () => {
-    const newMixedRoutes = excludeProtocolPoolRouteFromMixedRoute([mixedRoutes1, mixedRoutes2, mixedRoutes3], [Protocol.V4]);
-    expect(newMixedRoutes).toStrictEqual([mixedRoutes1, mixedRoutes3]);
-  });
-
-  test(`do not exclude mixed route for V4 protocol`, async () => {
-    const newMixedRoutes = excludeProtocolPoolRouteFromMixedRoute([mixedRoutes1, mixedRoutes3], [Protocol.V4]);
-    expect(newMixedRoutes).toStrictEqual([mixedRoutes1, mixedRoutes3]);
   });
 });

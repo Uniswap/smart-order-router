@@ -500,6 +500,7 @@ export function initSwapRouteFromExisting(
           ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
+          v4PoolProvider: v4PoolProvider,
         });
       default:
         throw new Error('Invalid protocol');

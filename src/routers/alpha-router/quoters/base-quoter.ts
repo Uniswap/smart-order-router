@@ -25,6 +25,7 @@ import {
   SupportedCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
+  V4CandidatePools,
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
@@ -42,7 +43,12 @@ import { GetQuotesResult, GetRoutesResult } from './model/results';
 export abstract class BaseQuoter<
   CandidatePools extends
     | SupportedCandidatePools
-    | [V3CandidatePools, V2CandidatePools, CrossLiquidityCandidatePools],
+    | [
+        V4CandidatePools,
+        V3CandidatePools,
+        V2CandidatePools,
+        CrossLiquidityCandidatePools
+      ],
   Route extends SupportedRoutes,
   TCurrency extends Currency
 > {
