@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import { RouteWithValidQuote, SupportedRoutes } from '../../../../routers';
@@ -9,8 +9,8 @@ import { CachedRoute } from './cached-route';
 interface CachedRoutesParams {
   routes: CachedRoute<SupportedRoutes>[];
   chainId: ChainId;
-  tokenIn: Token;
-  tokenOut: Token;
+  currencyIn: Currency;
+  currencyOut: Currency;
   protocolsCovered: Protocol[];
   blockNumber: number;
   tradeType: TradeType;
@@ -27,8 +27,8 @@ interface CachedRoutesParams {
 export class CachedRoutes {
   public readonly routes: CachedRoute<SupportedRoutes>[];
   public readonly chainId: ChainId;
-  public readonly tokenIn: Token;
-  public readonly tokenOut: Token;
+  public readonly currencyIn: Currency;
+  public readonly currencyOut: Currency;
   public readonly protocolsCovered: Protocol[];
   public readonly blockNumber: number;
   public readonly tradeType: TradeType;
@@ -39,8 +39,8 @@ export class CachedRoutes {
   /**
    * @param routes
    * @param chainId
-   * @param tokenIn
-   * @param tokenOut
+   * @param currencyIn
+   * @param currencyOut
    * @param protocolsCovered
    * @param blockNumber
    * @param tradeType
@@ -50,8 +50,8 @@ export class CachedRoutes {
   constructor({
     routes,
     chainId,
-    tokenIn,
-    tokenOut,
+    currencyIn,
+    currencyOut,
     protocolsCovered,
     blockNumber,
     tradeType,
@@ -60,8 +60,8 @@ export class CachedRoutes {
   }: CachedRoutesParams) {
     this.routes = routes;
     this.chainId = chainId;
-    this.tokenIn = tokenIn;
-    this.tokenOut = tokenOut;
+    this.currencyIn = currencyIn;
+    this.currencyOut = currencyOut;
     this.protocolsCovered = protocolsCovered;
     this.blockNumber = blockNumber;
     this.tradeType = tradeType;
@@ -76,8 +76,8 @@ export class CachedRoutes {
    * @static
    * @param routes
    * @param chainId
-   * @param tokenIn
-   * @param tokenOut
+   * @param currencyIn
+   * @param currencyOut
    * @param protocolsCovered
    * @param blockNumber
    * @param tradeType
@@ -86,8 +86,8 @@ export class CachedRoutes {
   public static fromRoutesWithValidQuotes(
     routes: RouteWithValidQuote[],
     chainId: ChainId,
-    tokenIn: Token,
-    tokenOut: Token,
+    currencyIn: Currency,
+    currencyOut: Currency,
     protocolsCovered: Protocol[],
     blockNumber: number,
     tradeType: TradeType,
@@ -104,8 +104,8 @@ export class CachedRoutes {
     return new CachedRoutes({
       routes: cachedRoutes,
       chainId,
-      tokenIn,
-      tokenOut,
+      currencyIn,
+      currencyOut,
       protocolsCovered,
       blockNumber,
       tradeType,

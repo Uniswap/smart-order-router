@@ -92,7 +92,7 @@ import {
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
@@ -1357,7 +1357,13 @@ export class AlphaRouter
 
     const cacheMode =
       routingConfig.overwriteCacheMode ??
-      (await this.routeCachingProvider?.getCacheMode(this.chainId, amount, quoteToken, tradeType, protocols));
+      (await this.routeCachingProvider?.getCacheMode(
+        this.chainId,
+        amount,
+        quoteToken,
+        tradeType,
+        protocols
+      ));
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
@@ -1617,7 +1623,7 @@ export class AlphaRouter
         this.chainId,
         tokenIn,
         tokenOut,
-        protocols.sort(), // sort it for consistency in the order of the protocols.
+        protocols.sort(),
         await blockNumber,
         tradeType,
         amount.toExact()
@@ -1942,8 +1948,8 @@ export class AlphaRouter
       quotePromises.push(
         this.v2Quoter
           .refreshRoutesThenGetQuotes(
-            cachedRoutes.tokenIn,
-            cachedRoutes.tokenOut,
+            cachedRoutes.currencyIn.wrapped,
+            cachedRoutes.currencyOut.wrapped,
             v2RoutesFromCache,
             amounts,
             percents,

@@ -102,14 +102,5 @@ export function getMixedRouteWithValidQuoteStub(
 export function getCachedRoutesStub(
   blockNumber: number
 ): CachedRoutes | undefined {
-  return CachedRoutes.fromRoutesWithValidQuotes(
-    [getV3RouteWithValidQuoteStub()],
-    ChainId.MAINNET,
-    USDC,
-    DAI,
-    [Protocol.V2, Protocol.V3, Protocol.MIXED],
-    blockNumber,
-    TradeType.EXACT_INPUT,
-    '1.1'
-  );
+  return CachedRoutes.fromRoutesWithValidQuotes([getV3RouteWithValidQuoteStub()], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
 }
