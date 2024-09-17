@@ -2,6 +2,8 @@ import { Protocol } from '@uniswap/router-sdk';
 
 export const TO_PROTOCOL = (protocol: string): Protocol => {
   switch (protocol.toLowerCase()) {
+    case 'v4':
+      return Protocol.V4;
     case 'v3':
       return Protocol.V3;
     case 'v2':
