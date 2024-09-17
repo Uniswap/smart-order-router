@@ -87,10 +87,11 @@ import {
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
+  getAddress,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
@@ -1208,16 +1209,13 @@ export class AlphaRouter
     const tokenOut = currencyOut.wrapped;
 
     const tokenOutProperties =
-      await this.tokenPropertiesProvider.getTokensProperties(
-        [tokenOut],
-        partialRoutingConfig
-      );
+      await this.tokenPropertiesProvider.getTokensProperties([currencyOut], partialRoutingConfig);
 
     const feeTakenOnTransfer =
-      tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult
+      tokenOutProperties[getAddress(currencyOut).toLowerCase()]?.tokenFeeResult
         ?.feeTakenOnTransfer;
     const externalTransferFailed =
-      tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult
+      tokenOutProperties[getAddress(currencyOut).toLowerCase()]?.tokenFeeResult
         ?.externalTransferFailed;
 
     // We want to log the fee on transfer output tokens that we are taking fee or not
@@ -1806,10 +1804,7 @@ export class AlphaRouter
     providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
     const tokenPairProperties =
-      await this.tokenPropertiesProvider.getTokensProperties(
-        [tokenIn, tokenOut],
-        providerConfig
-      );
+      await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], providerConfig);
 
     const sellTokenIsFot =
       tokenPairProperties[
@@ -2045,10 +2040,7 @@ export class AlphaRouter
     providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
     const tokenPairProperties =
-      await this.tokenPropertiesProvider.getTokensProperties(
-        [tokenIn, tokenOut],
-        providerConfig
-      );
+      await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], providerConfig);
 
     const sellTokenIsFot =
       tokenPairProperties[

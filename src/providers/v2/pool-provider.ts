@@ -134,10 +134,7 @@ export class V2PoolProvider implements IV2PoolProvider {
         'getReserves',
         providerConfig
       ),
-      this.tokenPropertiesProvider.getTokensProperties(
-        this.flatten(tokenPairs),
-        providerConfig
-      ),
+      this.tokenPropertiesProvider.getTokensProperties(this.flatten(tokenPairs), providerConfig),
     ]);
 
     log.info(
