@@ -1,11 +1,13 @@
 import {
   ChainId,
   CHAIN_TO_ADDRESSES_MAP,
+  Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
 } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
 export const BNB_TICK_LENS_ADDRESS =
@@ -291,3 +293,11 @@ export const WETH9: {
 
 export const BEACON_CHAIN_DEPOSIT_ADDRESS =
   '0x00000000219ab540356cBB839Cbe05303d7705Fa';
+
+export function getAddress(currency: Currency): string {
+  if (currency.isToken) {
+    return currency.address.toLowerCase();
+  } else {
+    return ADDRESS_ZERO;
+  }
+}

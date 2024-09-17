@@ -87,6 +87,7 @@ import {
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
+  getAddress,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
@@ -1209,15 +1210,15 @@ export class AlphaRouter
 
     const tokenOutProperties =
       await this.tokenPropertiesProvider.getTokensProperties(
-        [tokenOut],
+        [currencyOut],
         partialRoutingConfig
       );
 
     const feeTakenOnTransfer =
-      tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult
+      tokenOutProperties[getAddress(currencyOut)]?.tokenFeeResult
         ?.feeTakenOnTransfer;
     const externalTransferFailed =
-      tokenOutProperties[tokenOut.address.toLowerCase()]?.tokenFeeResult
+      tokenOutProperties[getAddress(currencyOut)]?.tokenFeeResult
         ?.externalTransferFailed;
 
     // We want to log the fee on transfer output tokens that we are taking fee or not
@@ -1225,10 +1226,10 @@ export class AlphaRouter
     // We have to make sure token out is FOT with either buy/sell fee bps > 0
     if (
       tokenOutProperties[
-        tokenOut.address.toLowerCase()
+        getAddress(currencyOut)
       ]?.tokenFeeResult?.buyFeeBps?.gt(0) ||
       tokenOutProperties[
-        tokenOut.address.toLowerCase()
+        getAddress(currencyOut)
       ]?.tokenFeeResult?.sellFeeBps?.gt(0)
     ) {
       if (feeTakenOnTransfer || externalTransferFailed) {
