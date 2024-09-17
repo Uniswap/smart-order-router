@@ -77,7 +77,11 @@ import {
   IV3SubgraphProvider,
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
-import { unparseFeeAmount, WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import {
+  getApplicableV3FeeAmounts,
+  unparseFeeAmount,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -983,7 +987,7 @@ export async function getV3CandidatePools({
     // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
     // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
     top2DirectSwapPool = _.map(
-      [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
+      getApplicableV3FeeAmounts(chainId),
       (feeAmount) => {
         const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
           tokenIn,

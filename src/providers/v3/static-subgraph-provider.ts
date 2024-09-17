@@ -4,7 +4,10 @@ import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
-import { unparseFeeAmount } from '../../util/amounts';
+import {
+  getApplicableV3FeeAmounts,
+  unparseFeeAmount,
+} from '../../util/amounts';
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 import { log } from '../../util/log';
 import { ProviderConfig } from '../provider';
@@ -224,12 +227,11 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
           tokenA.address !== tokenB.address && !tokenA.equals(tokenB)
       )
       .flatMap<[Token, Token, FeeAmount]>(([tokenA, tokenB]) => {
-        return [
-          [tokenA, tokenB, FeeAmount.LOWEST],
-          [tokenA, tokenB, FeeAmount.LOW],
-          [tokenA, tokenB, FeeAmount.MEDIUM],
-          [tokenA, tokenB, FeeAmount.HIGH],
-        ];
+        const feeAmounts = getApplicableV3FeeAmounts(this.chainId);
+        const entries: [Token, Token, FeeAmount][] = feeAmounts.map(
+          (feeAmount) => [tokenA, tokenB, feeAmount]
+        );
+        return entries;
       })
       .value();
 

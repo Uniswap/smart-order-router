@@ -1,5 +1,6 @@
 import { parseUnits } from '@ethersproject/units';
 import {
+  ChainId,
   Currency,
   CurrencyAmount as CurrencyAmountRaw,
 } from '@uniswap/sdk-core';
@@ -24,6 +25,13 @@ export function parseFeeAmount(feeAmountStr: string) {
       return FeeAmount.MEDIUM;
     case '500':
       return FeeAmount.LOW;
+    // TODO: enable new entries once https://github.com/Uniswap/sdks/pull/99 is in
+    // case '400':
+    //   return FeeAmount.LOW_400;
+    //  case '300':
+    //   return FeeAmount.LOW_300;
+    // case '200':
+    //   return FeeAmount.LOW_200;
     case '100':
       return FeeAmount.LOWEST;
     default:
@@ -39,9 +47,35 @@ export function unparseFeeAmount(feeAmount: FeeAmount) {
       return '3000';
     case FeeAmount.LOW:
       return '500';
+    // TODO: enable new entries once https://github.com/Uniswap/sdks/pull/99 is in
+    // case FeeAmount.LOW_400:
+    //   return '400';
+    // case FeeAmount.LOW_300:
+    //   return '300';
+    // case FeeAmount.LOW_200:
+    //   return '200';
     case FeeAmount.LOWEST:
       return '100';
     default:
       throw new Error(`Fee amount ${feeAmount} not supported.`);
   }
+}
+
+export function getApplicableV3FeeAmounts(chainId: ChainId): FeeAmount[] {
+  const feeAmounts = [
+    FeeAmount.HIGH,
+    FeeAmount.MEDIUM,
+    FeeAmount.LOW,
+    FeeAmount.LOWEST,
+  ];
+
+  if (chainId === ChainId.BASE) {
+    // TODO: enable new entries once https://github.com/Uniswap/sdks/pull/99 is in
+    // feeAmounts.push(FeeAmount.LOW_200);
+    // feeAmounts.push(FeeAmount.LOW_300);
+    // feeAmounts.push(FeeAmount.LOW_400);
+    // feeAmounts.push(FeeAmount.LOW);
+  }
+
+  return feeAmounts;
 }

@@ -25,7 +25,12 @@ import {
   V3RouteWithValidQuote,
   V4RouteWithValidQuote,
 } from '../routers';
-import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import {
+  CurrencyAmount,
+  getApplicableV3FeeAmounts,
+  log,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../util';
 
 import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
@@ -73,12 +78,9 @@ export async function getHighestLiquidityV3NativePool(
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
-  const nativePools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const feeAmounts = getApplicableV3FeeAmounts(token.chainId);
+
+  const nativePools = _(feeAmounts)
     .map<[Token, Token, FeeAmount]>((feeAmount) => {
       return [nativeCurrency, token, feeAmount];
     })
@@ -86,12 +88,7 @@ export async function getHighestLiquidityV3NativePool(
 
   const poolAccessor = await poolProvider.getPools(nativePools, providerConfig);
 
-  const pools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const pools = _(feeAmounts)
     .map((feeAmount) => {
       return poolAccessor.getPool(nativeCurrency, token, feeAmount);
     })
@@ -128,12 +125,9 @@ export async function getHighestLiquidityV3USDPool(
     );
   }
 
-  const usdPools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const feeAmounts = getApplicableV3FeeAmounts(chainId);
+
+  const usdPools = _(feeAmounts)
     .flatMap((feeAmount) => {
       return _.map<Token, [Token, Token, FeeAmount]>(usdTokens, (usdToken) => [
         wrappedCurrency,
@@ -145,12 +139,7 @@ export async function getHighestLiquidityV3USDPool(
 
   const poolAccessor = await poolProvider.getPools(usdPools, providerConfig);
 
-  const pools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const pools = _(feeAmounts)
     .flatMap((feeAmount) => {
       const pools = [];
 
