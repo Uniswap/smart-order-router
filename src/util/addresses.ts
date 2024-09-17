@@ -1,13 +1,14 @@
 import {
   ChainId,
   CHAIN_TO_ADDRESSES_MAP,
+  Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
-  Token, Currency
+  Token,
 } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
-import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
+import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
 export const BNB_TICK_LENS_ADDRESS =
   CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].tickLensAddress;

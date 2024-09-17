@@ -91,7 +91,7 @@ import {
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
@@ -1209,7 +1209,10 @@ export class AlphaRouter
     const tokenOut = currencyOut.wrapped;
 
     const tokenOutProperties =
-      await this.tokenPropertiesProvider.getTokensProperties([currencyOut], partialRoutingConfig);
+      await this.tokenPropertiesProvider.getTokensProperties(
+        [currencyOut],
+        partialRoutingConfig
+      );
 
     const feeTakenOnTransfer =
       tokenOutProperties[getAddress(currencyOut).toLowerCase()]?.tokenFeeResult
@@ -1223,10 +1226,10 @@ export class AlphaRouter
     // We have to make sure token out is FOT with either buy/sell fee bps > 0
     if (
       tokenOutProperties[
-        tokenOut.address.toLowerCase()
+        getAddress(currencyOut).toLowerCase()
       ]?.tokenFeeResult?.buyFeeBps?.gt(0) ||
       tokenOutProperties[
-        tokenOut.address.toLowerCase()
+        getAddress(currencyOut).toLowerCase()
       ]?.tokenFeeResult?.sellFeeBps?.gt(0)
     ) {
       if (feeTakenOnTransfer || externalTransferFailed) {
@@ -1804,7 +1807,10 @@ export class AlphaRouter
     providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
     const tokenPairProperties =
-      await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], providerConfig);
+      await this.tokenPropertiesProvider.getTokensProperties(
+        [tokenIn, tokenOut],
+        providerConfig
+      );
 
     const sellTokenIsFot =
       tokenPairProperties[
@@ -2040,7 +2046,10 @@ export class AlphaRouter
     providerConfig?: ProviderConfig
   ): Promise<BestSwapRoute | null> {
     const tokenPairProperties =
-      await this.tokenPropertiesProvider.getTokensProperties([tokenIn, tokenOut], providerConfig);
+      await this.tokenPropertiesProvider.getTokensProperties(
+        [tokenIn, tokenOut],
+        providerConfig
+      );
 
     const sellTokenIsFot =
       tokenPairProperties[
