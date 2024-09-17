@@ -1215,10 +1215,10 @@ export class AlphaRouter
       );
 
     const feeTakenOnTransfer =
-      tokenOutProperties[getAddress(currencyOut).toLowerCase()]?.tokenFeeResult
+      tokenOutProperties[getAddress(currencyOut)]?.tokenFeeResult
         ?.feeTakenOnTransfer;
     const externalTransferFailed =
-      tokenOutProperties[getAddress(currencyOut).toLowerCase()]?.tokenFeeResult
+      tokenOutProperties[getAddress(currencyOut)]?.tokenFeeResult
         ?.externalTransferFailed;
 
     // We want to log the fee on transfer output tokens that we are taking fee or not
@@ -1226,10 +1226,10 @@ export class AlphaRouter
     // We have to make sure token out is FOT with either buy/sell fee bps > 0
     if (
       tokenOutProperties[
-        getAddress(currencyOut).toLowerCase()
+        getAddress(currencyOut)
       ]?.tokenFeeResult?.buyFeeBps?.gt(0) ||
       tokenOutProperties[
-        getAddress(currencyOut).toLowerCase()
+        getAddress(currencyOut)
       ]?.tokenFeeResult?.sellFeeBps?.gt(0)
     ) {
       if (feeTakenOnTransfer || externalTransferFailed) {

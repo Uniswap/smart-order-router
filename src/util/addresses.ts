@@ -296,7 +296,7 @@ export const BEACON_CHAIN_DEPOSIT_ADDRESS =
 
 export function getAddress(currency: Currency): string {
   if (currency.isToken) {
-    return currency.address;
+    return currency.address.toLowerCase();
   } else {
     return ADDRESS_ZERO;
   }

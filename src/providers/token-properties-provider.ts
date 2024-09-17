@@ -202,7 +202,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     for (const currency of currencies) {
       const addressCacheKey = this.CACHE_KEY(
         this.chainId,
-        getAddress(currency).toLowerCase()
+        getAddress(currency)
       );
       if (!addressesCacheKeys.has(addressCacheKey)) {
         addressesCacheKeys.add(addressCacheKey);
