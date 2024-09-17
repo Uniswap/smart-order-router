@@ -41,11 +41,11 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
   }
 
   async getCacheMode(
-    _chainId: ChainId,
-    _amount: CurrencyAmount<Currency>,
-    _quoteToken: Token,
-    _tradeType: TradeType,
-    _protocols: Protocol[]
+    chainId: ChainId,
+    amount: CurrencyAmount<Currency>,
+    quoteCurrency: Currency,
+    tradeType: TradeType,
+    protocols: Protocol[]
   ): Promise<CacheMode> {
     this.getCacheModeCalls += 1;
     return this.cacheMode;

@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Currency } from '@uniswap/sdk-core';
 
-import { getAddress, log, metric, MetricLoggerUnit } from '../util';
+import { getAddressLowerCase, log, metric, MetricLoggerUnit } from '../util';
 
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
@@ -187,7 +187,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     const addressesRaw = new Set<string>();
 
     for (const currency of currencies) {
-      const address = getAddress(currency);
+      const address = getAddressLowerCase(currency);
       if (!addressesRaw.has(address)) {
         addressesRaw.add(address);
       }
@@ -202,7 +202,7 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     for (const currency of currencies) {
       const addressCacheKey = this.CACHE_KEY(
         this.chainId,
-        getAddress(currency)
+        getAddressLowerCase(currency)
       );
       if (!addressesCacheKeys.has(addressCacheKey)) {
         addressesCacheKeys.add(addressCacheKey);

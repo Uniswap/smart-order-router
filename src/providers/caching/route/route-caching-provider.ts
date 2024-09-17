@@ -44,13 +44,7 @@ export abstract class IRouteCachingProvider {
     optimistic = false
   ): Promise<CachedRoutes | undefined> => {
     if (
-      (await this.getCacheMode(
-        chainId,
-        amount,
-        quoteToken,
-        tradeType,
-        protocols
-      )) == CacheMode.Darkmode
+      (await this.getCacheMode(chainId, amount, quoteToken, tradeType, protocols)) == CacheMode.Darkmode
     ) {
       return undefined;
     }
@@ -112,13 +106,7 @@ export abstract class IRouteCachingProvider {
         ? cachedRoutes.tokenOut
         : cachedRoutes.tokenIn;
 
-    return this.getCacheMode(
-      cachedRoutes.chainId,
-      amount,
-      quoteToken,
-      cachedRoutes.tradeType,
-      cachedRoutes.protocolsCovered
-    );
+    return this.getCacheMode(cachedRoutes.chainId, amount, quoteToken, cachedRoutes.tradeType, cachedRoutes.protocolsCovered);
   }
 
   /**
@@ -127,15 +115,13 @@ export abstract class IRouteCachingProvider {
    * @public
    * @abstract
    * @param chainId
-   * @param tokenIn
-   * @param tokenOut
-   * @param tradeType
    * @param amount
+   * @param tradeType
    */
   public abstract getCacheMode(
     chainId: ChainId,
     amount: CurrencyAmount<Currency>,
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     protocols: Protocol[]
   ): Promise<CacheMode>;

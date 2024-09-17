@@ -294,9 +294,17 @@ export const WETH9: {
 export const BEACON_CHAIN_DEPOSIT_ADDRESS =
   '0x00000000219ab540356cBB839Cbe05303d7705Fa';
 
-export function getAddress(currency: Currency): string {
+export function getAddressLowerCase(currency: Currency): string {
   if (currency.isToken) {
     return currency.address.toLowerCase();
+  } else {
+    return ADDRESS_ZERO;
+  }
+}
+
+export function getAddress(currency: Currency): string {
+  if (currency.isToken) {
+    return currency.address;
   } else {
     return ADDRESS_ZERO;
   }
