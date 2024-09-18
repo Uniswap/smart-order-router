@@ -1,13 +1,13 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
+import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../util';
 
-import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { ProviderConfig } from './provider';
 
 export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
@@ -75,8 +75,8 @@ export abstract class SubgraphProvider<
   }
 
   public async getPools(
-    _tokenIn?: Token,
-    _tokenOut?: Token,
+    _currencyIn?: Currency,
+    _currencyOut?: Currency,
     providerConfig?: ProviderConfig
   ): Promise<TSubgraphPool[]> {
     const beforeAll = Date.now();
