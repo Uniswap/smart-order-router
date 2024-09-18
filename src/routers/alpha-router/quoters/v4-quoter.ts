@@ -1,6 +1,7 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
+
 import {
   IOnChainQuoteProvider,
   ITokenListProvider,
@@ -26,6 +27,7 @@ import {
   V4CandidatePools,
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
+
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
 
@@ -56,8 +58,8 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
   }
 
   protected async getRoutes(
-    tokenIn: Currency,
-    tokenOut: Currency,
+    currencyIn: Currency,
+    currencyOut: Currency,
     v4CandidatePools: V4CandidatePools,
     _tradeType: TradeType,
     routingConfig: AlphaRouterConfig
@@ -88,7 +90,7 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
         //
         if (
           tokenValidation == TokenValidationResult.STF &&
-          (token.equals(tokenIn) || token.equals(tokenOut))
+          (token.equals(currencyIn) || token.equals(currencyOut))
         ) {
           return false;
         }
@@ -100,11 +102,11 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
       }
     );
 
-    // Given all our candidate pools, compute all the possible ways to route from tokenIn to tokenOut.
+    // Given all our candidate pools, compute all the possible ways to route from currencyIn to tokenOut.
     const { maxSwapsPerPath } = routingConfig;
     const routes = computeAllV4Routes(
-      tokenIn,
-      tokenOut,
+      currencyIn,
+      currencyOut,
       pools,
       maxSwapsPerPath
     );
@@ -125,7 +127,7 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
     routes: V4Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
@@ -220,7 +222,7 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
           gasModel,
-          quoteToken,
+          quoteToken: quoteCurrency.wrapped,
           tradeType,
           v4PoolProvider: this.v4PoolProvider,
         });

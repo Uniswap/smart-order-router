@@ -8,7 +8,7 @@ import {
   MixedRoute
 } from '../../../src';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { Pool } from '@uniswap/v4-sdk';
+import { encodeRouteToPath, Pool } from '@uniswap/v4-sdk';
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk';
 import dotenv from 'dotenv';
 import JSBI from 'jsbi';
@@ -127,7 +127,7 @@ describe('on chain quote provider', () => {
         mockB,
       )
 
-      const exactInPathKey = onChainQuoteProvider.convertV4RouteToPathKey(v4Route, false)
+      const exactInPathKey = encodeRouteToPath(v4Route, false)
       expect(exactInPathKey.length).toEqual(2)
       expect(exactInPathKey[0]!.fee).toStrictEqual(opMaticPool.fee)
       expect(exactInPathKey[0]!.hooks).toStrictEqual(opMaticPool.hooks)
@@ -139,7 +139,7 @@ describe('on chain quote provider', () => {
       expect(exactInPathKey[1]!.tickSpacing).toStrictEqual(maticUsdcPool.tickSpacing)
       expect(exactInPathKey[1]!.intermediateCurrency).toStrictEqual(mockB.address)
 
-      const exactOutPathKey = onChainQuoteProvider.convertV4RouteToPathKey(v4Route, true)
+      const exactOutPathKey = encodeRouteToPath(v4Route, true)
       expect(exactOutPathKey.length).toEqual(2)
       expect(exactOutPathKey[0]!.fee).toStrictEqual(opMaticPool.fee)
       expect(exactOutPathKey[0]!.hooks).toStrictEqual(opMaticPool.hooks)
