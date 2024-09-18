@@ -71,10 +71,11 @@ export function getApplicableV3FeeAmounts(chainId: ChainId): FeeAmount[] {
 
   if (chainId === ChainId.BASE) {
     // TODO: enable new entries once https://github.com/Uniswap/sdks/pull/99 is in
-    // feeAmounts.push(FeeAmount.LOW_200);
-    // feeAmounts.push(FeeAmount.LOW_300);
-    // feeAmounts.push(FeeAmount.LOW_400);
-    // feeAmounts.push(FeeAmount.LOW);
+    // feeAmounts.push(
+    //   FeeAmount.LOW_200,
+    //   FeeAmount.LOW_300,
+    //   FeeAmount.LOW_400
+    // );
   }
 
   return feeAmounts;
