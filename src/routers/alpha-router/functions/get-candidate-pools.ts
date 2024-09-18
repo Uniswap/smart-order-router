@@ -78,9 +78,10 @@ import {
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
 import {
+  getAddress,
   getAddressLowerCase,
   unparseFeeAmount,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -566,10 +567,10 @@ export async function getV4CandidatePools({
           hooks: hooks,
           liquidity: '10000',
           token0: {
-            id: currency0.wrapped.address,
+            id: getAddress(currency0),
           },
           token1: {
-            id: currency1.wrapped.address,
+            id: getAddress(currency1),
           },
           tvlETH: 10000,
           tvlUSD: 10000,
