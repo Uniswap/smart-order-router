@@ -39,8 +39,8 @@ describe('routes', () => {
   const cachedRoutesIncludeRouteWithV4Pool = new CachedRoutes({
     routes: [cachedRoute1, cachedRoute2],
     chainId: 1,
-    tokenIn: USDC_MAINNET,
-    tokenOut: DAI_MAINNET,
+    currencyIn: USDC_MAINNET,
+    currencyOut: DAI_MAINNET,
     protocolsCovered: [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED],
     blockNumber: 1,
     tradeType: TradeType.EXACT_INPUT,
@@ -51,8 +51,8 @@ describe('routes', () => {
   const cachedRoutesIncludeRouteWithoutV4Pool = new CachedRoutes({
     routes: [cachedRoute1, cachedRoute3],
     chainId: 1,
-    tokenIn: USDC_MAINNET,
-    tokenOut: DAI_MAINNET,
+    currencyIn: USDC_MAINNET,
+    currencyOut: DAI_MAINNET,
     protocolsCovered: [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED],
     blockNumber: 1,
     tradeType: TradeType.EXACT_INPUT,
