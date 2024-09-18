@@ -88,6 +88,7 @@ import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
   getAddress,
+  getAddressLowerCase,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
@@ -1215,10 +1216,10 @@ export class AlphaRouter
       );
 
     const feeTakenOnTransfer =
-      tokenOutProperties[getAddress(currencyOut)]?.tokenFeeResult
+      tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
         ?.feeTakenOnTransfer;
     const externalTransferFailed =
-      tokenOutProperties[getAddress(currencyOut)]?.tokenFeeResult
+      tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
         ?.externalTransferFailed;
 
     // We want to log the fee on transfer output tokens that we are taking fee or not
@@ -1226,10 +1227,10 @@ export class AlphaRouter
     // We have to make sure token out is FOT with either buy/sell fee bps > 0
     if (
       tokenOutProperties[
-        getAddress(currencyOut)
+        getAddressLowerCase(currencyOut)
       ]?.tokenFeeResult?.buyFeeBps?.gt(0) ||
       tokenOutProperties[
-        getAddress(currencyOut)
+        getAddressLowerCase(currencyOut)
       ]?.tokenFeeResult?.sellFeeBps?.gt(0)
     ) {
       if (feeTakenOnTransfer || externalTransferFailed) {
@@ -1275,9 +1276,9 @@ export class AlphaRouter
     }
 
     metric.setProperty('chainId', this.chainId);
-    metric.setProperty('pair', `${tokenIn.symbol}/${tokenOut.symbol}`);
-    metric.setProperty('tokenIn', tokenIn.address);
-    metric.setProperty('tokenOut', tokenOut.address);
+    metric.setProperty('pair', `${currencyIn.symbol}/${currencyOut.symbol}`);
+    metric.setProperty('tokenIn', getAddress(currencyIn));
+    metric.setProperty('tokenOut', getAddress(currencyOut));
     metric.setProperty(
       'tradeType',
       tradeType === TradeType.EXACT_INPUT ? 'ExactIn' : 'ExactOut'
@@ -1622,7 +1623,7 @@ export class AlphaRouter
         this.chainId,
         tokenIn,
         tokenOut,
-        protocols.sort(), // sort it for consistency in the order of the protocols.
+        protocols.sort(),
         await blockNumber,
         tradeType,
         amount.toExact()
@@ -1947,8 +1948,8 @@ export class AlphaRouter
       quotePromises.push(
         this.v2Quoter
           .refreshRoutesThenGetQuotes(
-            cachedRoutes.tokenIn,
-            cachedRoutes.tokenOut,
+            cachedRoutes.currencyIn.wrapped,
+            cachedRoutes.currencyOut.wrapped,
             v2RoutesFromCache,
             amounts,
             percents,
