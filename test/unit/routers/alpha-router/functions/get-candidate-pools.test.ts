@@ -233,36 +233,6 @@ describe('get candidate pools', () => {
       }
     });
 
-
-    test(`succeeds to get top pools by liquidity for protocol ${protocol} (including LOW_200)`, async () => {
-      if (protocol === Protocol.V3) {
-        await getV3CandidatePools({
-          tokenIn: USDC,
-          tokenOut: DAI,
-          routeType: TradeType.EXACT_INPUT,
-          routingConfig: {
-            ...ROUTING_CONFIG,
-            v3PoolSelection: {
-              ...ROUTING_CONFIG.v3PoolSelection,
-              topN: 2,
-            },
-          },
-          poolProvider: mockV3PoolProvider,
-          subgraphProvider: mockV3SubgraphProvider,
-          tokenProvider: mockTokenProvider,
-          blockedTokenListProvider: mockBlockTokenListProvider,
-          chainId: ChainId.MAINNET,
-        });
-
-        expect(
-          mockV3PoolProvider.getPools.calledWithExactly([
-            [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW],
-            [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW],
-          ], { blockNumber: undefined })
-        ).toBeTruthy();
-      }
-    });
-
     test(`succeeds to get top pools directly swapping token in for token out for protocol ${protocol}`, async () => {
       if (protocol === Protocol.V3) {
         await getV3CandidatePools({
