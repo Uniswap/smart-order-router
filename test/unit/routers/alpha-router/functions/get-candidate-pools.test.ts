@@ -5,6 +5,7 @@ import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 import sinon from 'sinon';
+import { USDC_BASE } from '../../../../../build/main';
 import {
   AlphaRouterConfig,
   CachingTokenListProvider,
@@ -42,7 +43,7 @@ import {
   pairToV2SubgraphPool,
   poolToV3SubgraphPool, poolToV4SubgraphPool,
   USDC_DAI,
-  USDC_DAI_LOW,
+  USDC_DAI_LOW, USDC_DAI_LOW_200,
   USDC_DAI_MEDIUM, USDC_DAI_V4_LOW, USDC_DAI_V4_MEDIUM,
   USDC_WETH,
   USDC_WETH_LOW, USDC_WETH_V4_LOW,
@@ -116,6 +117,7 @@ describe('get candidate pools', () => {
   ]
   const mockV3Pools = [
     USDC_DAI_LOW,
+    USDC_DAI_LOW_200,
     USDC_DAI_MEDIUM,
     USDC_WETH_LOW,
     WETH9_USDT_LOW,
@@ -231,6 +233,36 @@ describe('get candidate pools', () => {
       }
     });
 
+
+    test(`succeeds to get top pools by liquidity for protocol ${protocol} (including LOW_200)`, async () => {
+      if (protocol === Protocol.V3) {
+        await getV3CandidatePools({
+          tokenIn: USDC,
+          tokenOut: DAI,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v3PoolSelection: {
+              ...ROUTING_CONFIG.v3PoolSelection,
+              topN: 2,
+            },
+          },
+          poolProvider: mockV3PoolProvider,
+          subgraphProvider: mockV3SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+        });
+
+        expect(
+          mockV3PoolProvider.getPools.calledWithExactly([
+            [USDC, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW],
+            [WRAPPED_NATIVE_CURRENCY[1]!, USDT, FeeAmount.LOW],
+          ], { blockNumber: undefined })
+        ).toBeTruthy();
+      }
+    });
+
     test(`succeeds to get top pools directly swapping token in for token out for protocol ${protocol}`, async () => {
       if (protocol === Protocol.V3) {
         await getV3CandidatePools({
@@ -241,7 +273,7 @@ describe('get candidate pools', () => {
             ...ROUTING_CONFIG,
             v3PoolSelection: {
               ...ROUTING_CONFIG.v3PoolSelection,
-              topNDirectSwaps: 2,
+              topNDirectSwaps: 3,
             },
           },
           poolProvider: mockV3PoolProvider,
@@ -254,6 +286,7 @@ describe('get candidate pools', () => {
         expect(
           mockV3PoolProvider.getPools.calledWithExactly([
             [DAI, USDC, FeeAmount.LOW],
+            [DAI, USDC, FeeAmount.LOW_200],
             [DAI, USDC, FeeAmount.MEDIUM],
           ], { blockNumber: undefined })
         ).toBeTruthy();
@@ -450,6 +483,56 @@ describe('get candidate pools', () => {
             [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.MEDIUM, 60, ADDRESS_ZERO],
             [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOW, 10, ADDRESS_ZERO],
             [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOWEST, 1, ADDRESS_ZERO],
+          ], { blockNumber: undefined })
+        ).toBeTruthy();
+      }
+    });
+
+    test(`succeeds to get direct swap pools even if they dont exist in the subgraph for protocol ${protocol} but includes default LOW_200 for Base`, async () => {
+      if (protocol === Protocol.V3) {
+        const poolsOnSubgraph: V3Pool[] = [];
+
+        const subgraphPools: V3SubgraphPool[] = _.map(
+          poolsOnSubgraph,
+          poolToV3SubgraphPool
+        );
+
+        mockV3SubgraphProvider.getPools.resolves(subgraphPools);
+
+        mockV3PoolProvider.getPools.resolves(
+          buildMockV3PoolAccessor([...poolsOnSubgraph])
+        );
+
+        const mockTokenProviderBase = sinon.createStubInstance(TokenProvider);
+        mockTokenProviderBase.getTokens.resolves(buildMockTokenAccessor([USDC_BASE, WRAPPED_NATIVE_CURRENCY[8453]!]));
+
+        await getV3CandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[8453]!,
+          tokenOut: USDC_BASE,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v3PoolSelection: {
+              ...ROUTING_CONFIG.v3PoolSelection,
+              topNDirectSwaps: 1,
+            },
+          },
+          poolProvider: mockV3PoolProvider,
+          subgraphProvider: mockV3SubgraphProvider,
+          tokenProvider: mockTokenProviderBase,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.BASE,
+        });
+
+        expect(
+          mockV3PoolProvider.getPools.calledWithExactly([
+            [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.HIGH],
+            [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.MEDIUM],
+            [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.LOW],
+            [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.LOWEST],
+            [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.LOW_200],
+            [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.LOW_300],
+            [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.LOW_400],
           ], { blockNumber: undefined })
         ).toBeTruthy();
       }

@@ -231,6 +231,14 @@ export const USDC_DAI_LOW = new V3Pool(
   10,
   0
 );
+export const USDC_DAI_LOW_200 = new V3Pool(
+  USDC,
+  DAI,
+  FeeAmount.LOW_200,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
 export const USDC_DAI_MEDIUM = new V3Pool(
   USDC,
   DAI,
