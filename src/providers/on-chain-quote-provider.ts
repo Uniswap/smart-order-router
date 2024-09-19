@@ -7,9 +7,12 @@ import {
   MixedRouteSDK,
   Protocol,
 } from '@uniswap/router-sdk';
-import { ChainId, Currency, Token } from '@uniswap/sdk-core';
-import { encodeRouteToPath } from '@uniswap/v3-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk';
+import { ChainId } from '@uniswap/sdk-core';
+import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
+import {
+  encodeRouteToPath as encodeV4RouteToPath,
+  Pool as V4Pool,
+} from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
@@ -444,12 +447,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
   >(route: TRoute, functionName: string): TPath {
     switch (route.protocol) {
       case Protocol.V3:
-        return encodeRouteToPath(
+        return encodeV3RouteToPath(
           route,
           functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
         ) as TPath;
       case Protocol.V4:
-        return this.convertV4RouteToPathKey(
+        return encodeV4RouteToPath(
           route,
           functionName == 'quoteExactOutput'
         ) as TPath;
@@ -467,45 +470,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           `Unsupported protocol for the route: ${JSON.stringify(route)}`
         );
     }
-  }
-
-  public convertV4RouteToPathKey(route: V4Route, exactOut: boolean): PathKey[] {
-    const firstInputToken: Token = route.input.wrapped;
-
-    const { path } = route.pools.reduce(
-      (
-        { inputToken, path }: { inputToken: Currency; path: PathKey[] },
-        pool: V4Pool,
-        index
-      ): { inputToken: Currency; path: PathKey[] } => {
-        const outputToken = pool.token0.equals(inputToken)
-          ? pool.token1
-          : pool.token0;
-
-        const pathKey: PathKey = {
-          intermediateCurrency: exactOut
-            ? inputToken.wrapped.address
-            : outputToken.wrapped.address,
-          hookData: '0x',
-          ...pool,
-        };
-
-        if (index === 0) {
-          return {
-            inputToken: outputToken,
-            path: [pathKey],
-          };
-        } else {
-          return {
-            inputToken: outputToken,
-            path: [...path, pathKey],
-          };
-        }
-      },
-      { inputToken: firstInputToken, path: [] as PathKey[] }
-    );
-
-    return path;
   }
 
   private getContractInterface(

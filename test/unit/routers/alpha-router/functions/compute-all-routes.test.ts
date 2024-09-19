@@ -15,11 +15,12 @@ import {
   computeAllV3Routes, computeAllV4Routes
 } from '../../../../../src/routers/alpha-router/functions/compute-all-routes';
 import {
+  DAI_ETH_V4_MEDIUM,
   DAI_USDT,
-  DAI_USDT_LOW, DAI_USDT_V4_LOW,
+  DAI_USDT_LOW, DAI_USDT_V4_LOW, ETH_USDT_V4_LOW, UNI_ETH_V4_MEDIUM,
   USDC_DAI,
   USDC_DAI_LOW,
-  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW, USDC_DAI_V4_MEDIUM,
+  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW, USDC_DAI_V4_MEDIUM, USDC_ETH_V4_LOW,
   USDC_USDT,
   USDC_WETH,
   USDC_WETH_LOW, USDC_WETH_V4_LOW,
@@ -87,6 +88,18 @@ describe('compute all v4 routes', () => {
 
     expect(routes).toHaveLength(0);
   });
+
+  test('succeeds to compute native currency routes', async () => {
+    const pools = [
+      USDC_ETH_V4_LOW,
+      ETH_USDT_V4_LOW,
+      DAI_ETH_V4_MEDIUM,
+      UNI_ETH_V4_MEDIUM
+    ];
+    const routes = computeAllV4Routes(USDC, USDT, pools, 3);
+
+    expect(routes).toHaveLength(1);
+  })
 })
 
 describe('compute all v3 routes', () => {
