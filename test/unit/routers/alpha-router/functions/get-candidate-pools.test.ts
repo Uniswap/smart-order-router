@@ -206,8 +206,8 @@ describe('get candidate pools', () => {
         ).toBeTruthy();
       } else if (protocol === Protocol.V4) {
         await getV4CandidatePools({
-          tokenIn: USDC,
-          tokenOut: DAI,
+          currencyIn: USDC,
+          currencyOut: DAI,
           routeType: TradeType.EXACT_INPUT,
           routingConfig: {
             ...ROUTING_CONFIG,
@@ -262,8 +262,8 @@ describe('get candidate pools', () => {
         ).toBeTruthy();
       } else if (protocol === Protocol.V4) {
         await getV4CandidatePools({
-          tokenIn: USDC,
-          tokenOut: DAI,
+          currencyIn: USDC,
+          currencyOut: DAI,
           routeType: TradeType.EXACT_INPUT,
           routingConfig: {
             ...ROUTING_CONFIG,
@@ -316,8 +316,8 @@ describe('get candidate pools', () => {
         ).toBeTruthy();
       } else if (protocol === Protocol.V4) {
         await getV4CandidatePools({
-          tokenIn: USDC,
-          tokenOut: DAI,
+          currencyIn: USDC,
+          currencyOut: DAI,
           routeType: TradeType.EXACT_INPUT,
           routingConfig: {
             ...ROUTING_CONFIG,
@@ -430,8 +430,8 @@ describe('get candidate pools', () => {
         );
 
         await getV4CandidatePools({
-          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
-          tokenOut: DAI,
+          currencyIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          currencyOut: DAI,
           routeType: TradeType.EXACT_INPUT,
           routingConfig: {
             ...ROUTING_CONFIG,

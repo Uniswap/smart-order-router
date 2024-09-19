@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { ADDRESS_ZERO, FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
@@ -78,9 +78,11 @@ import {
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
 import {
+  getAddress,
+  getAddressLowerCase,
   getApplicableV3FeeAmounts,
   unparseFeeAmount,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -122,8 +124,8 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
 };
 
 export type V4GetCandidatePoolsParams = {
-  tokenIn: Token;
-  tokenOut: Token;
+  currencyIn: Currency;
+  currencyOut: Currency;
   routeType: TradeType;
   routingConfig: AlphaRouterConfig;
   subgraphProvider: IV4SubgraphProvider;
@@ -399,8 +401,8 @@ export type V4CandidatePools = {
 
 // TODO: ROUTE-241 - refactor getV3CandidatePools against getV4CandidatePools
 export async function getV4CandidatePools({
-  tokenIn,
-  tokenOut,
+  currencyIn,
+  currencyOut,
   routeType,
   routingConfig,
   subgraphProvider,
@@ -422,12 +424,12 @@ export async function getV4CandidatePools({
       topNWithBaseToken,
     },
   } = routingConfig;
-  const tokenInAddress = tokenIn.address.toLowerCase();
-  const tokenOutAddress = tokenOut.address.toLowerCase();
+  const tokenInAddress = getAddressLowerCase(currencyIn);
+  const tokenOutAddress = getAddressLowerCase(currencyOut);
 
   const beforeSubgraphPools = Date.now();
 
-  const allPools = await subgraphProvider.getPools(tokenIn, tokenOut, {
+  const allPools = await subgraphProvider.getPools(currencyIn, currencyOut, {
     blockNumber,
   });
 
@@ -553,8 +555,8 @@ export async function getV4CandidatePools({
         const [fee, tickSpacing, hooks] = poolParams;
 
         const { currency0, currency1, poolId } = poolProvider.getPoolId(
-          tokenIn,
-          tokenOut,
+          currencyIn,
+          currencyOut,
           fee,
           tickSpacing,
           hooks
@@ -566,10 +568,10 @@ export async function getV4CandidatePools({
           hooks: hooks,
           liquidity: '10000',
           token0: {
-            id: currency0.wrapped.address,
+            id: getAddress(currency0),
           },
           token1: {
-            id: currency1.wrapped.address,
+            id: getAddress(currency1),
           },
           tvlETH: 10000,
           tvlUSD: 10000,
@@ -590,12 +592,12 @@ export async function getV4CandidatePools({
   if (
     (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol ==
       WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]?.symbol &&
-      tokenOut.symbol != 'WETH' &&
-      tokenOut.symbol != 'WETH9' &&
-      tokenOut.symbol != 'ETH') ||
+      currencyOut.symbol != 'WETH' &&
+      currencyOut.symbol != 'WETH9' &&
+      currencyOut.symbol != 'ETH') ||
     (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
-      tokenOut.symbol != 'MATIC' &&
-      tokenOut.symbol != 'WMATIC')
+      currencyOut.symbol != 'MATIC' &&
+      currencyOut.symbol != 'WMATIC')
   ) {
     top2EthQuoteTokenPool = _(subgraphPoolsSorted)
       .filter((subgraphPool) => {
