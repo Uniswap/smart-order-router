@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency } from '@uniswap/sdk-core';
 
 import { ProviderConfig } from '../provider';
 import { SubgraphProvider } from '../subgraph-provider';
@@ -51,8 +51,8 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
  */
 export interface IV4SubgraphProvider {
   getPools(
-    tokenIn?: Token,
-    tokenOut?: Token,
+    currencyIn?: Currency,
+    currencyOut?: Currency,
     providerConfig?: ProviderConfig
   ): Promise<V4SubgraphPool[]>;
 }

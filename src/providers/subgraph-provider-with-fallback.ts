@@ -15,16 +15,16 @@ export abstract class SubgraphProviderWithFallBacks<
   ) {}
 
   public async getPools(
-    tokenIn?: Token,
-    tokenOut?: Token,
+    currencyIn?: Token,
+    currencyOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<TSubgraphPool[]> {
     for (let i = 0; i < this.fallbacks.length; i++) {
       const provider = this.fallbacks[i]!;
       try {
         const pools = await provider.getPools(
-          tokenIn,
-          tokenOut,
+          currencyIn,
+          currencyOut,
           providerConfig
         );
         return pools;

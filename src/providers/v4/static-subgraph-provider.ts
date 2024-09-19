@@ -18,8 +18,8 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
   ) {}
 
   public async getPools(
-    tokenIn?: Token,
-    tokenOut?: Token,
+    currencyIn?: Token,
+    currencyOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<V4SubgraphPool[]> {
     log.info('In static subgraph provider for V4');
@@ -30,11 +30,11 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
       (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
     );
 
-    if (tokenIn && tokenOut) {
+    if (currencyIn && currencyOut) {
       basePairs.push(
-        [tokenIn, tokenOut],
-        ...bases.map((base): [Token, Token] => [tokenIn, base]),
-        ...bases.map((base): [Token, Token] => [tokenOut, base])
+        [currencyIn, currencyOut],
+        ...bases.map((base): [Token, Token] => [currencyIn, base]),
+        ...bases.map((base): [Token, Token] => [currencyOut, base])
       );
     }
 
