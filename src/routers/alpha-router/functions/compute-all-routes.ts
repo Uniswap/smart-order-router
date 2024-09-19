@@ -1,9 +1,10 @@
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { Currency, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import { getAddressLowerCase } from '../../../util';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
@@ -21,12 +22,13 @@ export function computeAllV4Routes(
   maxHops: number
 ): V4Route[] {
   // TODO: ROUTE-217 - Support native currency routing in V4
-  return computeAllRoutes<V4Pool, V4Route>(
+  return computeAllRoutes<V4Pool, V4Route, Currency>(
     tokenIn.wrapped,
     tokenOut.wrapped,
     (route: V4Pool[], tokenIn: Currency, tokenOut: Currency) => {
       return new V4Route(route, tokenIn, tokenOut);
     },
+    (pool: V4Pool, token: Currency) => pool.involvesToken(token.wrapped),
     pools,
     maxHops
   );
@@ -38,12 +40,13 @@ export function computeAllV3Routes(
   pools: V3Pool[],
   maxHops: number
 ): V3Route[] {
-  return computeAllRoutes<V3Pool, V3Route>(
+  return computeAllRoutes<V3Pool, V3Route, Token>(
     tokenIn,
     tokenOut,
     (route: V3Pool[], tokenIn: Token, tokenOut: Token) => {
       return new V3Route(route, tokenIn, tokenOut);
     },
+    (pool: V3Pool, token: Token) => pool.involvesToken(token),
     pools,
     maxHops
   );
@@ -55,12 +58,13 @@ export function computeAllV2Routes(
   pools: Pair[],
   maxHops: number
 ): V2Route[] {
-  return computeAllRoutes<Pair, V2Route>(
+  return computeAllRoutes<Pair, V2Route, Token>(
     tokenIn,
     tokenOut,
     (route: Pair[], tokenIn: Token, tokenOut: Token) => {
       return new V2Route(route, tokenIn, tokenOut);
     },
+    (pool: Pair, token: Token) => pool.involvesToken(token),
     pools,
     maxHops
   );
@@ -72,12 +76,13 @@ export function computeAllMixedRoutes(
   parts: TPool[],
   maxHops: number
 ): MixedRoute[] {
-  const routesRaw = computeAllRoutes<TPool, MixedRoute>(
+  const routesRaw = computeAllRoutes<TPool, MixedRoute, Token>(
     tokenIn,
     tokenOut,
     (route: TPool[], tokenIn: Token, tokenOut: Token) => {
       return new MixedRoute(route, tokenIn, tokenOut);
     },
+    (pool: TPool, token: Token) => pool.involvesToken(token),
     parts,
     maxHops
   );
@@ -93,11 +98,13 @@ export function computeAllMixedRoutes(
 
 export function computeAllRoutes<
   TypePool extends TPool,
-  TRoute extends SupportedRoutes
+  TRoute extends SupportedRoutes,
+  TCurrency extends Currency
 >(
-  tokenIn: Token,
-  tokenOut: Token,
-  buildRoute: (route: TypePool[], tokenIn: Token, tokenOut: Token) => TRoute,
+  tokenIn: TCurrency,
+  tokenOut: TCurrency,
+  buildRoute: (route: TypePool[], tokenIn: TCurrency, tokenOut: TCurrency) => TRoute,
+  involvesToken: (pool: TypePool, token: TCurrency) => boolean,
   pools: TypePool[],
   maxHops: number
 ): TRoute[] {
@@ -105,20 +112,19 @@ export function computeAllRoutes<
   const routes: TRoute[] = [];
 
   const computeRoutes = (
-    tokenIn: Token,
-    tokenOut: Token,
+    tokenIn: TCurrency,
+    tokenOut: TCurrency,
     currentRoute: TypePool[],
     poolsUsed: boolean[],
     tokensVisited: Set<string>,
-    _previousTokenOut?: Token
+    _previousTokenOut?: TCurrency
   ) => {
     if (currentRoute.length > maxHops) {
       return;
     }
 
     if (
-      currentRoute.length > 0 &&
-      currentRoute[currentRoute.length - 1]!.involvesToken(tokenOut)
+      currentRoute.length > 0 && involvesToken(currentRoute[currentRoute.length - 1]!, tokenOut)
     ) {
       routes.push(buildRoute([...currentRoute], tokenIn, tokenOut));
       return;
@@ -132,7 +138,7 @@ export function computeAllRoutes<
       const curPool = pools[i]!;
       const previousTokenOut = _previousTokenOut ? _previousTokenOut : tokenIn;
 
-      if (!curPool.involvesToken(previousTokenOut)) {
+      if (!involvesToken(curPool, previousTokenOut)) {
         continue;
       }
 
@@ -141,11 +147,11 @@ export function computeAllRoutes<
         : curPool.token0;
 
       // TODO: ROUTE-217 - Support native currency routing in V4
-      if (tokensVisited.has(currentTokenOut.wrapped.address.toLowerCase())) {
+      if (tokensVisited.has(getAddressLowerCase(currentTokenOut))) {
         continue;
       }
 
-      tokensVisited.add(currentTokenOut.wrapped.address.toLowerCase());
+      tokensVisited.add(getAddressLowerCase(currentTokenOut));
       currentRoute.push(curPool);
       poolsUsed[i] = true;
       computeRoutes(
@@ -154,11 +160,11 @@ export function computeAllRoutes<
         currentRoute,
         poolsUsed,
         tokensVisited,
-        currentTokenOut.wrapped
+        currentTokenOut
       );
       poolsUsed[i] = false;
       currentRoute.pop();
-      tokensVisited.delete(currentTokenOut.wrapped.address.toLowerCase());
+      tokensVisited.delete(getAddressLowerCase(currentTokenOut));
     }
   };
 
@@ -167,7 +173,7 @@ export function computeAllRoutes<
     tokenOut,
     [],
     poolsUsed,
-    new Set([tokenIn.address.toLowerCase()])
+    new Set([getAddressLowerCase(tokenIn)])
   );
 
   log.info(
