@@ -175,10 +175,15 @@ describe('compute all mixed routes', () => {
       USDC_WETH_LOW,
       WETH9_USDT_LOW,
       DAI_USDT_LOW,
+      DAI_USDT_V4_LOW,
+      WETH9_USDT_V4_LOW,
+      USDC_WETH_V4_LOW,
+      USDC_DAI_V4_LOW,
+      USDC_DAI_V4_MEDIUM,
     ];
     const routes = computeAllMixedRoutes(USDC, DAI, pools, 3);
 
-    expect(routes).toHaveLength(6);
+    expect(routes).toHaveLength(24);
   });
 
   test('fails to compute all routes with 1 hop (since mixed requires at least 2 hops)', async () => {
