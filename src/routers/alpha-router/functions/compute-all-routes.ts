@@ -16,19 +16,19 @@ import {
 } from '../../router';
 
 export function computeAllV4Routes(
-  tokenIn: Currency,
-  tokenOut: Currency,
+  currencyIn: Currency,
+  currencyOut: Currency,
   pools: V4Pool[],
   maxHops: number
 ): V4Route[] {
   // TODO: ROUTE-217 - Support native currency routing in V4
   return computeAllRoutes<V4Pool, V4Route, Currency>(
-    tokenIn.wrapped,
-    tokenOut.wrapped,
-    (route: V4Pool[], tokenIn: Currency, tokenOut: Currency) => {
-      return new V4Route(route, tokenIn, tokenOut);
+    currencyIn,
+    currencyOut,
+    (route: V4Pool[], currencyIn: Currency, currencyOut: Currency) => {
+      return new V4Route(route, currencyIn, currencyOut);
     },
-    (pool: V4Pool, token: Currency) => pool.involvesToken(token.wrapped),
+    (pool: V4Pool, currency: Currency) => pool.involvesToken(currency),
     pools,
     maxHops
   );
@@ -103,7 +103,11 @@ export function computeAllRoutes<
 >(
   tokenIn: TCurrency,
   tokenOut: TCurrency,
-  buildRoute: (route: TypePool[], tokenIn: TCurrency, tokenOut: TCurrency) => TRoute,
+  buildRoute: (
+    route: TypePool[],
+    tokenIn: TCurrency,
+    tokenOut: TCurrency
+  ) => TRoute,
   involvesToken: (pool: TypePool, token: TCurrency) => boolean,
   pools: TypePool[],
   maxHops: number
@@ -124,7 +128,8 @@ export function computeAllRoutes<
     }
 
     if (
-      currentRoute.length > 0 && involvesToken(currentRoute[currentRoute.length - 1]!, tokenOut)
+      currentRoute.length > 0 &&
+      involvesToken(currentRoute[currentRoute.length - 1]!, tokenOut)
     ) {
       routes.push(buildRoute([...currentRoute], tokenIn, tokenOut));
       return;

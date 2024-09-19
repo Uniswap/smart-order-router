@@ -82,7 +82,7 @@ import {
   getAddressLowerCase,
   getApplicableV3FeeAmounts,
   unparseFeeAmount,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
