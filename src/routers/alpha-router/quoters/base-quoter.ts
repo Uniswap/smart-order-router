@@ -98,7 +98,7 @@ export abstract class BaseQuoter<
    * @param routes the list of route that can be used to fetch a quote.
    * @param amounts the list of amounts to query for EACH route.
    * @param percents the percentage of each amount.
-   * @param quoteCurrency
+   * @param quoteToken
    * @param tradeType
    * @param routingConfig
    * @param candidatePools the candidate pools that were used to generate the routes
@@ -110,7 +110,7 @@ export abstract class BaseQuoter<
     routes: Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteCurrency: Token,
+    quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,

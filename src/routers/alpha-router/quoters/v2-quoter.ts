@@ -136,15 +136,13 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteCurrency: Currency,
+    quoteToken: Token,
     tradeType: TradeType,
     _routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
     _gasModel?: IGasModel<V2RouteWithValidQuote>,
     gasPriceWei?: BigNumber
   ): Promise<GetQuotesResult> {
-    const quoteToken = quoteCurrency.wrapped;
-
     const beforeGetQuotes = Date.now();
     log.info('Starting to get V2 quotes');
     if (gasPriceWei === undefined) {

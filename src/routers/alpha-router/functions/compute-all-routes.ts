@@ -79,8 +79,8 @@ export function computeAllMixedRoutes(
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
     currencyIn,
     currencyOut,
-    (route: TPool[], tokenIn: Currency, currencyOut: Currency) => {
-      return new MixedRoute(route, tokenIn, currencyOut);
+    (route: TPool[], currencyIn: Currency, currencyOut: Currency) => {
+      return new MixedRoute(route, currencyIn, currencyOut);
     },
     (pool: TPool, currency: Currency) =>
       currency.isNative
