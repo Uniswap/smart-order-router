@@ -160,7 +160,7 @@ export function computeAllRoutes<
         currentRoute,
         poolsUsed,
         tokensVisited,
-        currentTokenOut
+        currentTokenOut as TCurrency
       );
       poolsUsed[i] = false;
       currentRoute.pop();
