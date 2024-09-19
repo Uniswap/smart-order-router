@@ -198,7 +198,7 @@ export class MixedQuoter extends BaseQuoter<
     };
   }
 
-  public async getQuotes(
+  public override async getQuotes(
     routes: MixedRoute[],
     amounts: CurrencyAmount[],
     percents: number[],

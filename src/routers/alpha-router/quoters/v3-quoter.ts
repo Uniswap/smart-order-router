@@ -124,7 +124,7 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
     };
   }
 
-  public async getQuotes(
+  public override async getQuotes(
     routes: V3Route[],
     amounts: CurrencyAmount[],
     percents: number[],

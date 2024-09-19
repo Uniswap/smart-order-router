@@ -132,7 +132,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     };
   }
 
-  public async getQuotes(
+  public override async getQuotes(
     routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],
