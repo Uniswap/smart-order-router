@@ -71,18 +71,21 @@ export function computeAllV2Routes(
 }
 
 export function computeAllMixedRoutes(
-  tokenIn: Token,
-  tokenOut: Token,
+  currencyIn: Currency,
+  currencyOut: Currency,
   parts: TPool[],
   maxHops: number
 ): MixedRoute[] {
-  const routesRaw = computeAllRoutes<TPool, MixedRoute, Token>(
-    tokenIn,
-    tokenOut,
-    (route: TPool[], tokenIn: Token, tokenOut: Token) => {
-      return new MixedRoute(route, tokenIn, tokenOut);
+  const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
+    currencyIn,
+    currencyOut,
+    (route: TPool[], tokenIn: Currency, currencyOut: Currency) => {
+      return new MixedRoute(route, tokenIn, currencyOut);
     },
-    (pool: TPool, token: Token) => pool.involvesToken(token),
+    (pool: TPool, currency: Currency) =>
+      currency.isNative
+        ? (pool as V4Pool).involvesToken(currency)
+        : pool.involvesToken(currency),
     parts,
     maxHops
   );
