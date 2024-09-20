@@ -70,7 +70,7 @@ describe('on chain quote provider', () => {
 
     it('exact in quote and then exact out quote to match original exact in currency amount', async () => {
       const providerConfig: ProviderConfig = {
-        blockNumber: 6685697,
+        blockNumber: 6724128,
       }
 
       const exactInQuotes = await onChainQuoteProvider.getQuotesManyExactIn(amountIns, v4Routes, providerConfig)
