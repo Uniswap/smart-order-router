@@ -6,7 +6,6 @@ import { ChainId, Percent, Token, TradeType } from '@uniswap/sdk-core';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk/dist/entities/pool';
 import brotli from 'brotli';
 import JSBI from 'jsbi';
 import _ from 'lodash';
@@ -389,14 +388,6 @@ export function initSwapRouteFromExisting(
   const tradeType = swapRoute.trade.tradeType.valueOf()
     ? TradeType.EXACT_OUTPUT
     : TradeType.EXACT_INPUT;
-  const mixedRoutesContainsV4Pool = swapRoute.route.some(
-    (route) =>
-      route.protocol === Protocol.MIXED &&
-      (route as MixedRouteWithValidQuote).route.pools.some(
-        (pool) => pool instanceof V4Pool
-      )
-  );
-
   const routesWithValidQuote = swapRoute.route.map((route) => {
     switch (route.protocol) {
       case Protocol.V4:
@@ -411,7 +402,7 @@ export function initSwapRouteFromExisting(
             BigNumber.from(num)
           ),
           initializedTicksCrossedList: [...route.initializedTicksCrossedList],
-          quoterGasEstimate: BigNumber.from(route.quoterGasEstimate),
+          quoterGasEstimate: BigNumber.from(route.gasEstimate),
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
@@ -484,10 +475,7 @@ export function initSwapRouteFromExisting(
             BigNumber.from(num)
           ),
           initializedTicksCrossedList: [...route.initializedTicksCrossedList],
-          // If any mixed route contains v4 pool, then it used the mixed quoter v2 that includes v4 pool
-          quoterGasEstimate: mixedRoutesContainsV4Pool
-            ? BigNumber.from(route.quoterGasEstimate)
-            : BigNumber.from(route.gasEstimate),
+          quoterGasEstimate: BigNumber.from(route.gasEstimate),
           percent: route.percent,
           route: route.route,
           mixedRouteGasModel: route.gasModel,
