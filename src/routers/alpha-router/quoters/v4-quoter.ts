@@ -123,7 +123,7 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
     };
   }
 
-  public async getQuotes(
+  public override async getQuotes(
     routes: V4Route[],
     amounts: CurrencyAmount[],
     percents: number[],

@@ -17,18 +17,28 @@ import {
 import {
   DAI_ETH_V4_MEDIUM,
   DAI_USDT,
-  DAI_USDT_LOW, DAI_USDT_V4_LOW, ETH_USDT_V4_LOW, UNI_ETH_V4_MEDIUM,
+  DAI_USDT_LOW,
+  DAI_USDT_V4_LOW,
+  ETH_USDT_V4_LOW,
+  UNI_ETH_V4_MEDIUM,
+  UNI_WETH_MEDIUM,
   USDC_DAI,
   USDC_DAI_LOW,
-  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW, USDC_DAI_V4_MEDIUM, USDC_ETH_V4_LOW,
+  USDC_DAI_MEDIUM,
+  USDC_DAI_V4_LOW,
+  USDC_DAI_V4_MEDIUM,
+  USDC_ETH_V4_LOW,
   USDC_USDT,
   USDC_WETH,
-  USDC_WETH_LOW, USDC_WETH_V4_LOW,
+  USDC_WETH_LOW,
+  USDC_WETH_V4_LOW,
   WBTC_WETH,
-  WETH9_USDT_LOW, WETH9_USDT_V4_LOW,
+  WETH9_USDT_LOW,
+  WETH9_USDT_V4_LOW,
   WETH_USDT
 } from '../../../../test-util/mock-data';
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
+import { ChainId, WETH9 } from '@uniswap/sdk-core';
 
 describe('compute all v4 routes', () => {
   test('succeeds to compute all routes', async () => {
@@ -175,10 +185,15 @@ describe('compute all mixed routes', () => {
       USDC_WETH_LOW,
       WETH9_USDT_LOW,
       DAI_USDT_LOW,
+      DAI_USDT_V4_LOW,
+      WETH9_USDT_V4_LOW,
+      USDC_WETH_V4_LOW,
+      USDC_DAI_V4_LOW,
+      USDC_DAI_V4_MEDIUM,
     ];
     const routes = computeAllMixedRoutes(USDC, DAI, pools, 3);
 
-    expect(routes).toHaveLength(6);
+    expect(routes).toHaveLength(24);
   });
 
   test('fails to compute all routes with 1 hop (since mixed requires at least 2 hops)', async () => {
@@ -264,6 +279,17 @@ describe('compute all mixed routes', () => {
     const routes = computeAllMixedRoutes(USDC, WBTC, pools, 2);
 
     expect(routes).toHaveLength(0);
+  });
+
+  test('succeeds to compute native currency routes', async () => {
+    const pools = [
+      ETH_USDT_V4_LOW,
+      UNI_ETH_V4_MEDIUM,
+      UNI_WETH_MEDIUM,
+    ];
+    const routes = computeAllMixedRoutes(USDT, WETH9[ChainId.MAINNET]!, pools, 3);
+
+    expect(routes).toHaveLength(1);
   });
 });
 

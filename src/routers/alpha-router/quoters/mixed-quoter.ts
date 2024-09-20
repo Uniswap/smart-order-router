@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import {
@@ -47,7 +47,7 @@ export class MixedQuoter extends BaseQuoter<
     CrossLiquidityCandidatePools
   ],
   MixedRoute,
-  Token
+  Currency
 > {
   protected v4SubgraphProvider: IV4SubgraphProvider;
   protected v4PoolProvider: IV4PoolProvider;
@@ -87,8 +87,8 @@ export class MixedQuoter extends BaseQuoter<
   }
 
   protected async getRoutes(
-    tokenIn: Token,
-    tokenOut: Token,
+    currencyIn: Currency,
+    currencyOut: Currency,
     v4v3v2candidatePools: [
       V4CandidatePools,
       V3CandidatePools,
@@ -165,7 +165,7 @@ export class MixedQuoter extends BaseQuoter<
         //
         if (
           tokenValidation == TokenValidationResult.STF &&
-          (token.equals(tokenIn) || token.equals(tokenOut))
+          (token.equals(currencyIn) || token.equals(currencyOut))
         ) {
           return false;
         }
@@ -180,8 +180,8 @@ export class MixedQuoter extends BaseQuoter<
     const { maxSwapsPerPath } = routingConfig;
 
     const routes = computeAllMixedRoutes(
-      tokenIn,
-      tokenOut,
+      currencyIn,
+      currencyOut,
       pools,
       maxSwapsPerPath
     );
@@ -198,11 +198,11 @@ export class MixedQuoter extends BaseQuoter<
     };
   }
 
-  public async getQuotes(
+  public override async getQuotes(
     routes: MixedRoute[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
@@ -290,7 +290,7 @@ export class MixedQuoter extends BaseQuoter<
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
           mixedRouteGasModel: gasModel,
-          quoteToken,
+          quoteToken: quoteCurrency.wrapped,
           tradeType,
           v4PoolProvider: this.v4PoolProvider,
           v3PoolProvider: this.v3PoolProvider,
