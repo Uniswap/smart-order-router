@@ -7,6 +7,7 @@ import FixedReverseHeap from 'mnemonist/fixed-reverse-heap';
 import Queue from 'mnemonist/queue';
 
 import { IPortionProvider } from '../../../providers/portion-provider';
+import { ProviderConfig } from '../../../providers/provider';
 import { HAS_L1_FEE, V2_SUPPORTED, V4_SUPPORTED } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
@@ -16,7 +17,6 @@ import { SwapOptions } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 
-import { ProviderConfig } from '../../../providers/provider';
 import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
