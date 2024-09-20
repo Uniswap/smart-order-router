@@ -1,13 +1,19 @@
+import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { Pair } from '@uniswap/v2-sdk';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk/dist/entities/pool';
 import brotli from 'brotli';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
 import { IV2PoolProvider, IV4PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
+import { ProviderConfig } from '../providers/provider';
 import { ArbitrumGasData } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
@@ -32,11 +38,6 @@ import {
   WRAPPED_NATIVE_CURRENCY,
 } from '../util';
 
-import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
-import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { Pair } from '@uniswap/v2-sdk';
-import { ProviderConfig } from '../providers/provider';
 import { opStackChains } from './l2FeeChains';
 import { buildSwapMethodParameters, buildTrade } from './methodParameters';
 
@@ -388,6 +389,14 @@ export function initSwapRouteFromExisting(
   const tradeType = swapRoute.trade.tradeType.valueOf()
     ? TradeType.EXACT_OUTPUT
     : TradeType.EXACT_INPUT;
+  const mixedRoutesContainsV4Pool = swapRoute.route.some(
+    (route) =>
+      route.protocol === Protocol.MIXED &&
+      (route as MixedRouteWithValidQuote).route.pools.some(
+        (pool) => pool instanceof V4Pool
+      )
+  );
+
   const routesWithValidQuote = swapRoute.route.map((route) => {
     switch (route.protocol) {
       case Protocol.V4:
@@ -475,7 +484,10 @@ export function initSwapRouteFromExisting(
             BigNumber.from(num)
           ),
           initializedTicksCrossedList: [...route.initializedTicksCrossedList],
-          quoterGasEstimate: BigNumber.from(route.gasEstimate),
+          // If any mixed route contains v4 pool, then it used the mixed quoter v2 that includes v4 pool
+          quoterGasEstimate: mixedRoutesContainsV4Pool
+            ? BigNumber.from(route.quoterGasEstimate)
+            : BigNumber.from(route.gasEstimate),
           percent: route.percent,
           route: route.route,
           mixedRouteGasModel: route.gasModel,
