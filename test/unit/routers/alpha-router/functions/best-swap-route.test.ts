@@ -208,7 +208,7 @@ describe('get best swap route', () => {
       percent,
       route,
       gasModel: mockV2GasModel,
-      quoteToken,
+      quoteCurrency: quoteToken,
       tradeType,
       v2PoolProvider: mockV2PoolProvider,
     });

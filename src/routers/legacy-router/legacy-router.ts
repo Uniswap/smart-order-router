@@ -317,7 +317,7 @@ export class LegacyRouter {
         initializedTicksCrossedList: [],
         quoterGasEstimate: BigNumber.from(0),
         tradeType: routeType,
-        quoteToken,
+        quoteCurrency: quoteToken,
         v3PoolProvider: this.poolProvider,
       });
     });

@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import {
@@ -98,7 +98,7 @@ export abstract class BaseQuoter<
    * @param routes the list of route that can be used to fetch a quote.
    * @param amounts the list of amounts to query for EACH route.
    * @param percents the percentage of each amount.
-   * @param quoteToken
+   * @param quoteCurrency
    * @param tradeType
    * @param routingConfig
    * @param candidatePools the candidate pools that were used to generate the routes
@@ -110,7 +110,7 @@ export abstract class BaseQuoter<
     routes: Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
@@ -138,7 +138,7 @@ export abstract class BaseQuoter<
     amount: CurrencyAmount,
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     candidatePools: CandidatePools,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
@@ -180,7 +180,7 @@ export abstract class BaseQuoter<
         routesResult.routes,
         amounts,
         percents,
-        quoteToken,
+        quoteCurrency,
         tradeType,
         routingConfig,
         routesResult.candidatePools,

@@ -32,6 +32,7 @@ import {
 } from '../routers';
 import {
   CurrencyAmount,
+  getAddress,
   getApplicableV3FeeAmounts,
   log,
   WRAPPED_NATIVE_CURRENCY,
@@ -406,13 +407,15 @@ export function initSwapRouteFromExisting(
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteToken: new Token(
-            currencyIn.chainId,
-            route.quoteToken.address,
-            route.quoteToken.decimals,
-            route.quoteToken.symbol,
-            route.quoteToken.name
-          ),
+          quoteCurrency: route.quoteCurrency.isNative
+            ? route.quoteCurrency
+            : new Token(
+                route.quoteCurrency.chainId,
+                getAddress(route.quoteCurrency),
+                route.quoteCurrency.decimals,
+                route.quoteCurrency.symbol,
+                route.quoteCurrency.name
+              ),
           tradeType: tradeType,
           v4PoolProvider: v4PoolProvider,
         });
@@ -432,12 +435,12 @@ export function initSwapRouteFromExisting(
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteToken: new Token(
+          quoteCurrency: new Token(
             currencyIn.chainId,
-            route.quoteToken.address,
-            route.quoteToken.decimals,
-            route.quoteToken.symbol,
-            route.quoteToken.name
+            route.quoteCurrency.wrapped.address,
+            route.quoteCurrency.decimals,
+            route.quoteCurrency.symbol,
+            route.quoteCurrency.name
           ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
@@ -453,12 +456,12 @@ export function initSwapRouteFromExisting(
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteToken: new Token(
+          quoteCurrency: new Token(
             currencyIn.chainId,
-            route.quoteToken.address,
-            route.quoteToken.decimals,
-            route.quoteToken.symbol,
-            route.quoteToken.name
+            route.quoteCurrency.wrapped.address,
+            route.quoteCurrency.decimals,
+            route.quoteCurrency.symbol,
+            route.quoteCurrency.name
           ),
           tradeType: tradeType,
           v2PoolProvider: v2PoolProvider,
@@ -480,13 +483,15 @@ export function initSwapRouteFromExisting(
           route: route.route,
           mixedRouteGasModel: route.gasModel,
           v2PoolProvider,
-          quoteToken: new Token(
-            currencyIn.chainId,
-            route.quoteToken.address,
-            route.quoteToken.decimals,
-            route.quoteToken.symbol,
-            route.quoteToken.name
-          ),
+          quoteCurrency: route.quoteCurrency.isNative
+            ? route.quoteCurrency
+            : new Token(
+                route.quoteCurrency.chainId,
+                getAddress(route.quoteCurrency),
+                route.quoteCurrency.decimals,
+                route.quoteCurrency.symbol,
+                route.quoteCurrency.name
+              ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
           v4PoolProvider: v4PoolProvider,

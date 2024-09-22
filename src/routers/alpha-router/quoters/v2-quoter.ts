@@ -136,9 +136,9 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
-    _routingConfig: AlphaRouterConfig,
+    routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
     _gasModel?: IGasModel<V2RouteWithValidQuote>,
     gasPriceWei?: BigNumber
@@ -159,10 +159,10 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     }
     // safe to force unwrap here because we throw if there are no amounts
     const amountToken = amounts[0]!.currency;
-    const gasToken = _routingConfig.gasToken
+    const gasToken = routingConfig.gasToken
       ? (
-          await this.tokenProvider.getTokens([_routingConfig.gasToken])
-        ).getTokenByAddress(_routingConfig.gasToken)
+          await this.tokenProvider.getTokens([routingConfig.gasToken])
+        ).getTokenByAddress(routingConfig.gasToken)
       : undefined;
 
     if (routes.length == 0) {
@@ -180,20 +180,20 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     log.info(
       `Getting quotes for V2 for ${routes.length} routes with ${amounts.length} amounts per route.`
     );
-    const { routesWithQuotes } = await quoteFn(amounts, routes, _routingConfig);
+    const { routesWithQuotes } = await quoteFn(amounts, routes, routingConfig);
 
     const v2GasModel = await this.v2GasModelFactory.buildGasModel({
       chainId: this.chainId,
       gasPriceWei,
       poolProvider: this.v2PoolProvider,
-      token: quoteToken,
+      token: quoteCurrency.wrapped,
       l2GasDataProvider: this.l2GasDataProvider,
       providerConfig: {
-        ..._routingConfig,
+        ...routingConfig,
         additionalGasOverhead: NATIVE_OVERHEAD(
           this.chainId,
           amountToken,
-          quoteToken
+          quoteCurrency
         ),
         gasToken,
       },
@@ -240,7 +240,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
           amount,
           percent,
           gasModel: v2GasModel,
-          quoteToken,
+          quoteCurrency: quoteCurrency,
           tradeType,
           v2PoolProvider: this.v2PoolProvider,
         });
@@ -267,7 +267,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     gasPriceWei?: BigNumber
@@ -291,7 +291,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
           routes,
           amounts,
           percents,
-          quoteToken,
+          quoteCurrency,
           tradeType,
           routingConfig,
           undefined,

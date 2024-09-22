@@ -290,7 +290,7 @@ export class MixedQuoter extends BaseQuoter<
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
           mixedRouteGasModel: gasModel,
-          quoteToken: quoteCurrency.wrapped,
+          quoteCurrency: quoteCurrency,
           tradeType,
           v4PoolProvider: this.v4PoolProvider,
           v3PoolProvider: this.v3PoolProvider,
