@@ -4,8 +4,10 @@ import https from 'https';
 import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { permit2Address } from '@uniswap/permit2-sdk';
+import { Protocol } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
 import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import axios, { AxiosRequestConfig } from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
@@ -289,6 +291,8 @@ export class TenderlySimulator extends Simulator {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
     const chainId = this.chainId;
+    const firstPoolIsV4 = swapRoute.route.some(route => route.protocol === Protocol.V4
+      || (route.protocol === Protocol.MIXED && route.route.pools.length > 0 && route.route.pools[0] instanceof V4Pool));
 
     if (TENDERLY_NOT_SUPPORTED_CHAINS.includes(chainId)) {
       const msg = `${TENDERLY_NOT_SUPPORTED_CHAINS.toString()} not supported by Tenderly!`;
@@ -380,7 +384,7 @@ export class TenderlySimulator extends Simulator {
       };
 
       const body: TenderlySimulationBody = {
-        simulations: [approvePermit2, approveUniversalRouter, swap],
+        simulations: firstPoolIsV4 && currencyIn.isNative? [swap] : [approvePermit2, approveUniversalRouter, swap],
         estimate_gas: true,
       };
       const opts: AxiosRequestConfig = {
