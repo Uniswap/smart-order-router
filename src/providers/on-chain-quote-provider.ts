@@ -508,7 +508,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
     approxGasUsedPerSuccessCall: number;
   }> {
-    if (protocol === Protocol.MIXED && mixedRouteContainsV4Pool) {
+    if (
+      (protocol === Protocol.MIXED && mixedRouteContainsV4Pool) ||
+      protocol === Protocol.V4
+    ) {
       const mixedQuote =
         await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
           [string, ExtraQuoteExactInputParams, string],
@@ -543,6 +546,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           if (result.success) {
             switch (functionName) {
               case 'quoteExactInput':
+              case 'quoteExactOutput':
                 return {
                   success: true,
                   result: [
@@ -550,75 +554,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     Array<BigNumber>(inputs.length),
                     Array<number>(inputs.length),
                     result.result[1],
-                  ],
-                } as SuccessResult<
-                  [BigNumber, BigNumber[], number[], BigNumber]
-                >;
-              case 'quoteExactOutput':
-              default:
-                throw new Error(`Unsupported function name: ${functionName}`);
-            }
-          } else {
-            return result;
-          }
-        }),
-      };
-    } else if (protocol === Protocol.V4) {
-      const results =
-        await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-          QuoteExactParams[],
-          [BigNumber[], BigNumber[], number[]] // deltaAmounts, sqrtPriceX96AfterList, initializedTicksCrossedList
-        >({
-          address: this.getQuoterAddress(
-            useMixedRouteQuoter,
-            mixedRouteContainsV4Pool,
-            protocol
-          ),
-          contractInterface: this.getContractInterface(
-            useMixedRouteQuoter,
-            mixedRouteContainsV4Pool,
-            protocol
-          ),
-          functionName,
-          functionParams: inputs as QuoteExactParams[][],
-          providerConfig,
-          additionalConfig: {
-            gasLimitPerCallOverride: gasLimitOverride,
-          },
-        });
-
-      return {
-        blockNumber: results.blockNumber,
-        approxGasUsedPerSuccessCall: results.approxGasUsedPerSuccessCall,
-        results: results.results.map((result) => {
-          if (result.success) {
-            let deltaAmountsSum = BigNumber.from(0);
-            result.result[0].forEach((result) => {
-              deltaAmountsSum = deltaAmountsSum.add(result as BigNumber);
-            });
-
-            switch (functionName) {
-              case 'quoteExactInput':
-                return {
-                  success: true,
-                  result: [
-                    result.result[0][result.result[0].length - 1]?.mul(-1), // we need to negate the negative amount out in case of exact in
-                    result.result[1],
-                    result.result[2],
-                    BigNumber.from(0),
-                  ],
-                } as SuccessResult<
-                  [BigNumber, BigNumber[], number[], BigNumber]
-                >;
-              case 'quoteExactOutput':
-                return {
-                  success: true,
-                  result: [
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    result.result[0][0]!, // amount in is the first element in the array, with positive sign
-                    result.result[1],
-                    result.result[2],
-                    BigNumber.from(0),
                   ],
                 } as SuccessResult<
                   [BigNumber, BigNumber[], number[], BigNumber]
