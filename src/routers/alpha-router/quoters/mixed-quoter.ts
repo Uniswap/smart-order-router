@@ -134,20 +134,52 @@ export class MixedQuoter extends BaseQuoter<
     const V2poolsRaw = V2poolAccessor.getAllPools();
 
     const poolsRaw = [];
+    const v2V3OnlyPoolsRaw = [];
     if (!routingConfig.excludedProtocolsFromMixed?.includes(Protocol.V4)) {
       poolsRaw.push(...V4poolsRaw);
     }
     if (!routingConfig.excludedProtocolsFromMixed?.includes(Protocol.V3)) {
       poolsRaw.push(...V3poolsRaw);
+      v2V3OnlyPoolsRaw.push(...V3poolsRaw);
     }
     if (!routingConfig.excludedProtocolsFromMixed?.includes(Protocol.V2)) {
       poolsRaw.push(...V2poolsRaw);
+      v2V3OnlyPoolsRaw.push(...V2poolsRaw);
     }
 
     const candidatePools = mixedRouteCandidatePools;
 
     // Drop any pools that contain fee on transfer tokens (not supported by v3) or have issues with being transferred.
     const pools = await this.applyTokenValidatorToPools(
+      v2V3OnlyPoolsRaw,
+      (
+        token: Currency,
+        tokenValidation: TokenValidationResult | undefined
+      ): boolean => {
+        // If there is no available validation result we assume the token is fine.
+        if (!tokenValidation) {
+          return false;
+        }
+
+        // Only filters out *intermediate* pools that involve tokens that we detect
+        // cant be transferred. This prevents us trying to route through tokens that may
+        // not be transferrable, but allows users to still swap those tokens if they
+        // specify.
+        //
+        if (
+          tokenValidation == TokenValidationResult.STF &&
+          (token.equals(currencyIn) || token.equals(currencyOut))
+        ) {
+          return false;
+        }
+
+        return (
+          tokenValidation == TokenValidationResult.FOT ||
+          tokenValidation == TokenValidationResult.STF
+        );
+      }
+    );
+    const v2V3OnlyPools = await this.applyTokenValidatorToPools(
       poolsRaw,
       (
         token: Currency,
@@ -186,6 +218,17 @@ export class MixedQuoter extends BaseQuoter<
       maxSwapsPerPath
     );
 
+    // special case mixed route w/ native currency routing
+    // there's a possibility upstream is requesting the native currency,
+    // but we might want to wrap into the wrapped token because maybe only v2/v3 have the routes.
+    // in that case, we have to remain the non-native currency routing as is today for mixed routing.
+    const v2V3OnlyRoutes = computeAllMixedRoutes(
+      currencyIn.wrapped,
+      currencyOut.wrapped,
+      v2V3OnlyPools,
+      maxSwapsPerPath
+    );
+
     metric.putMetric(
       'MixedGetRoutesLoad',
       Date.now() - beforeGetRoutes,
@@ -193,7 +236,7 @@ export class MixedQuoter extends BaseQuoter<
     );
 
     return {
-      routes: routes,
+      routes: routes.concat(v2V3OnlyRoutes),
       candidatePools,
     };
   }
