@@ -2341,10 +2341,11 @@ export class AlphaRouter
                   v4Candidates: v4CandidatePools,
                 });
 
+              // TODO: ROUTE-291 - special treat mixed route native currency routing, only when the route contains v4 pools
               return this.mixedQuoter
                 .getRoutesThenQuotes(
-                  currencyIn,
-                  currencyOut,
+                  tokenIn,
+                  tokenOut,
                   amount,
                   amounts,
                   percents,

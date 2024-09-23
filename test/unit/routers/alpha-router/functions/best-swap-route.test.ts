@@ -158,7 +158,7 @@ describe('get best swap route', () => {
     quote: number,
     percent: number
   ): V3RouteWithValidQuote => {
-    const quoteCurrency =
+    const quoteToken =
       tradeType == TradeType.EXACT_OUTPUT ? route.output : route.input;
     return new V3RouteWithValidQuote({
       amount,
@@ -169,7 +169,7 @@ describe('get best swap route', () => {
       percent,
       route,
       gasModel: mockV3GasModel,
-      quoteToken: quoteCurrency,
+      quoteToken,
       tradeType,
       v3PoolProvider: mockV3PoolProvider,
     });
