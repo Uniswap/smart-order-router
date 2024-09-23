@@ -43,7 +43,7 @@ export function getV2RouteWithValidQuoteStub(
     percent: 100,
     route,
     gasModel: getMockedV2GasModel(),
-    quoteCurrency: DAI,
+    quoteToken: DAI,
     tradeType: TradeType.EXACT_INPUT,
     v2PoolProvider: getMockedV2PoolProvider(),
     ...overrides,

@@ -74,7 +74,7 @@ export type V2RouteWithValidQuoteParams = {
   percent: number;
   route: V2Route;
   gasModel: IGasModel<V2RouteWithValidQuote>;
-  quoteCurrency: Currency;
+  quoteToken: Token;
   tradeType: TradeType;
   v2PoolProvider: IV2PoolProvider;
 };
@@ -95,7 +95,7 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
   public quoteAdjustedForGas: CurrencyAmount;
   public percent: number;
   public route: V2Route;
-  public quoteCurrency: Currency;
+  public quoteToken: Token;
   public gasModel: IGasModel<V2RouteWithValidQuote>;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
@@ -119,20 +119,17 @@ export class V2RouteWithValidQuote implements IV2RouteWithValidQuote {
     percent,
     route,
     gasModel,
-    quoteCurrency,
+    quoteToken,
     tradeType,
     v2PoolProvider,
   }: V2RouteWithValidQuoteParams) {
     this.amount = amount;
     this.rawQuote = rawQuote;
-    this.quote = CurrencyAmount.fromRawAmount(
-      quoteCurrency,
-      rawQuote.toString()
-    );
+    this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
     this.percent = percent;
     this.route = route;
     this.gasModel = gasModel;
-    this.quoteCurrency = quoteCurrency;
+    this.quoteToken = quoteToken;
     this.tradeType = tradeType;
 
     const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } =
@@ -170,7 +167,7 @@ export type V3RouteWithValidQuoteParams = {
   percent: number;
   route: V3Route;
   gasModel: IGasModel<V3RouteWithValidQuote>;
-  quoteCurrency: Currency;
+  quoteToken: Token;
   tradeType: TradeType;
   v3PoolProvider: IV3PoolProvider;
 };
@@ -194,7 +191,7 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
   public quoterGasEstimate: BigNumber;
   public percent: number;
   public route: V3Route;
-  public quoteCurrency: Currency;
+  public quoteToken: Token;
   public gasModel: IGasModel<V3RouteWithValidQuote>;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;
@@ -221,7 +218,7 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
     percent,
     route,
     gasModel,
-    quoteCurrency,
+    quoteToken,
     tradeType,
     v3PoolProvider,
   }: V3RouteWithValidQuoteParams) {
@@ -230,14 +227,11 @@ export class V3RouteWithValidQuote implements IV3RouteWithValidQuote {
     this.sqrtPriceX96AfterList = sqrtPriceX96AfterList;
     this.initializedTicksCrossedList = initializedTicksCrossedList;
     this.quoterGasEstimate = quoterGasEstimate;
-    this.quote = CurrencyAmount.fromRawAmount(
-      quoteCurrency,
-      rawQuote.toString()
-    );
+    this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
     this.percent = percent;
     this.route = route;
     this.gasModel = gasModel;
-    this.quoteCurrency = quoteCurrency;
+    this.quoteToken = quoteToken;
     this.tradeType = tradeType;
 
     const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } =

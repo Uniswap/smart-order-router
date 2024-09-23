@@ -399,7 +399,7 @@ describe('alpha router', () => {
       return {
         gasEstimate: BigNumber.from(10000),
         gasCostInToken: CurrencyAmount.fromRawAmount(
-          r.quoteCurrency,
+          r.quoteToken,
           r.quote.multiply(new Fraction(95, 100)).quotient
         ),
         gasCostInUSD: CurrencyAmount.fromRawAmount(
@@ -445,7 +445,7 @@ describe('alpha router', () => {
       return {
         gasEstimate: BigNumber.from(10000),
         gasCostInToken: CurrencyAmount.fromRawAmount(
-          r.quoteCurrency,
+          r.quoteToken,
           r.quote.multiply(new Fraction(95, 100)).quotient
         ),
         gasCostInUSD: CurrencyAmount.fromRawAmount(
@@ -493,6 +493,7 @@ describe('alpha router', () => {
       multicall2Provider: mockMulticallProvider as any,
       v4SubgraphProvider: mockV4SubgraphProvider,
       v4PoolProvider: mockV4PoolProvider,
+      v4GasModelFactory: mockV4GasModelFactory,
       v3SubgraphProvider: mockV3SubgraphProvider,
       v3PoolProvider: mockV3PoolProvider,
       onChainQuoteProvider: mockOnChainQuoteProvider,

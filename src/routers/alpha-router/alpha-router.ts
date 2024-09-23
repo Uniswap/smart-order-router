@@ -1903,6 +1903,7 @@ export class AlphaRouter
         );
 
         const beforeGetQuotes = Date.now();
+        const quoteToken = quoteCurrency.wrapped;
 
         quotePromises.push(
           this.v3Quoter
@@ -1910,7 +1911,7 @@ export class AlphaRouter
               v3RoutesFromCache,
               amounts,
               percents,
-              quoteCurrency,
+              quoteToken,
               tradeType,
               routingConfig,
               undefined,
@@ -1940,6 +1941,7 @@ export class AlphaRouter
       );
 
       const beforeGetQuotes = Date.now();
+      const quoteToken = quoteCurrency.wrapped;
 
       quotePromises.push(
         this.v2Quoter
@@ -1949,7 +1951,7 @@ export class AlphaRouter
             v2RoutesFromCache,
             amounts,
             percents,
-            quoteCurrency,
+            quoteToken,
             tradeType,
             routingConfig,
             gasPriceWei
@@ -2201,7 +2203,7 @@ export class AlphaRouter
               v4CandidatePools!,
               tradeType,
               routingConfig,
-              v3GasModel
+              v4GasModel
             )
             .then((result) => {
               metric.putMetric(

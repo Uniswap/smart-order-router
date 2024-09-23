@@ -136,7 +136,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteCurrency: Currency,
+    quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
@@ -186,14 +186,14 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
       chainId: this.chainId,
       gasPriceWei,
       poolProvider: this.v2PoolProvider,
-      token: quoteCurrency.wrapped,
+      token: quoteToken,
       l2GasDataProvider: this.l2GasDataProvider,
       providerConfig: {
         ...routingConfig,
         additionalGasOverhead: NATIVE_OVERHEAD(
           this.chainId,
           amountToken,
-          quoteCurrency
+          quoteToken
         ),
         gasToken,
       },
@@ -240,7 +240,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
           amount,
           percent,
           gasModel: v2GasModel,
-          quoteCurrency: quoteCurrency,
+          quoteToken,
           tradeType,
           v2PoolProvider: this.v2PoolProvider,
         });
@@ -267,7 +267,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteCurrency: Currency,
+    quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     gasPriceWei?: BigNumber
@@ -291,7 +291,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
           routes,
           amounts,
           percents,
-          quoteCurrency,
+          quoteToken,
           tradeType,
           routingConfig,
           undefined,

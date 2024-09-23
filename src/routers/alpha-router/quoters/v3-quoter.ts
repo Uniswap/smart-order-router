@@ -128,7 +128,7 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
     routes: V3Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteCurrency: Currency,
+    quoteToken: Token,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
@@ -223,7 +223,7 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
           gasModel,
-          quoteCurrency,
+          quoteToken,
           tradeType,
           v3PoolProvider: this.v3PoolProvider,
         });

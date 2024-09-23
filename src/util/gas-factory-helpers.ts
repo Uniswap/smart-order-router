@@ -435,12 +435,12 @@ export function initSwapRouteFromExisting(
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteCurrency: new Token(
+          quoteToken: new Token(
             currencyIn.chainId,
-            route.quoteCurrency.wrapped.address,
-            route.quoteCurrency.decimals,
-            route.quoteCurrency.symbol,
-            route.quoteCurrency.name
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
           ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
@@ -456,12 +456,12 @@ export function initSwapRouteFromExisting(
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteCurrency: new Token(
+          quoteToken: new Token(
             currencyIn.chainId,
-            route.quoteCurrency.wrapped.address,
-            route.quoteCurrency.decimals,
-            route.quoteCurrency.symbol,
-            route.quoteCurrency.name
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
           ),
           tradeType: tradeType,
           v2PoolProvider: v2PoolProvider,
