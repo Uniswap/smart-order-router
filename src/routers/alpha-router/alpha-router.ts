@@ -2231,6 +2231,7 @@ export class AlphaRouter
         const beforeGetRoutesThenQuotes = Date.now();
         const tokenIn = currencyIn.wrapped;
         const tokenOut = currencyOut.wrapped;
+        const quoteToken = quoteCurrency.wrapped;
 
         quotePromises.push(
           v3CandidatePoolsPromise.then((v3CandidatePools) =>
@@ -2241,7 +2242,7 @@ export class AlphaRouter
                 amount,
                 amounts,
                 percents,
-                quoteCurrency,
+                quoteToken,
                 v3CandidatePools!,
                 tradeType,
                 routingConfig,
@@ -2273,6 +2274,7 @@ export class AlphaRouter
       const beforeGetRoutesThenQuotes = Date.now();
       const tokenIn = currencyIn.wrapped;
       const tokenOut = currencyOut.wrapped;
+      const quoteToken = quoteCurrency.wrapped;
 
       quotePromises.push(
         v2CandidatePoolsPromise.then((v2CandidatePools) =>
@@ -2283,7 +2285,7 @@ export class AlphaRouter
               amount,
               amounts,
               percents,
-              quoteCurrency,
+              quoteToken,
               v2CandidatePools!,
               tradeType,
               routingConfig,

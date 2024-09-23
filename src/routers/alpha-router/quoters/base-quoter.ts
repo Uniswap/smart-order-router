@@ -1,5 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
@@ -29,7 +30,6 @@ import {
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { GetQuotesResult, GetRoutesResult } from './model/results';
 
 /**
@@ -98,7 +98,7 @@ export abstract class BaseQuoter<
    * @param routes the list of route that can be used to fetch a quote.
    * @param amounts the list of amounts to query for EACH route.
    * @param percents the percentage of each amount.
-   * @param quoteCurrency
+   * @param quoteToken
    * @param tradeType
    * @param routingConfig
    * @param candidatePools the candidate pools that were used to generate the routes
@@ -110,7 +110,7 @@ export abstract class BaseQuoter<
     routes: Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteCurrency: Currency,
+    quoteToken: TCurrency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
@@ -138,7 +138,7 @@ export abstract class BaseQuoter<
     amount: CurrencyAmount,
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteCurrency: Currency,
+    quoteToken: TCurrency,
     candidatePools: CandidatePools,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
@@ -180,7 +180,7 @@ export abstract class BaseQuoter<
         routesResult.routes,
         amounts,
         percents,
-        quoteCurrency,
+        quoteToken,
         tradeType,
         routingConfig,
         routesResult.candidatePools,
