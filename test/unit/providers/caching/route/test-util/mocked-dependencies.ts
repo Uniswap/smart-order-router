@@ -90,7 +90,7 @@ export function getMixedRouteWithValidQuoteStub(
     percent: 100,
     route,
     mixedRouteGasModel: getMockedMixedGasModel(),
-    quoteToken: DAI,
+    quoteCurrency: DAI,
     tradeType: TradeType.EXACT_INPUT,
     v4PoolProvider: getMockedV4PoolProvider(),
     v3PoolProvider: getMockedV3PoolProvider(),

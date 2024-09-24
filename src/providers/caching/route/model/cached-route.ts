@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { Token } from '@uniswap/sdk-core';
+import { Currency } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -11,6 +11,7 @@ import {
   V3Route,
   V4Route,
 } from '../../../../routers';
+import { getAddress } from '../../../../util';
 
 interface CachedRouteParams<Route extends SupportedRoutes> {
   route: Route;
@@ -44,24 +45,21 @@ export class CachedRoute<Route extends SupportedRoutes> {
     return this.route.protocol;
   }
 
-  // TODO: ROUTE-217 - Support native currency routing in V4
-  public get tokenIn(): Token {
-    return this.route.input.wrapped;
+  public get currencyIn(): Currency {
+    return this.route.input;
   }
 
-  // TODO: ROUTE-217 - Support native currency routing in V4
-  public get tokenOut(): Token {
-    return this.route.output.wrapped;
+  public get currencyOut(): Currency {
+    return this.route.output;
   }
 
   public get routePath(): string {
     switch (this.protocol) {
       case Protocol.V4:
-        // TODO: ROUTE-217 - Support native currency routing in V4
         return (this.route as V4Route).pools
           .map(
             (pool) =>
-              `[V4]${pool.token0.wrapped.address}/${pool.token1.wrapped.address}`
+              `[V4]${getAddress(pool.token0)}/${getAddress(pool.token1)}`
           )
           .join('->');
       case Protocol.V3:
@@ -79,16 +77,9 @@ export class CachedRoute<Route extends SupportedRoutes> {
         return (this.route as MixedRoute).pools
           .map((pool) => {
             if (pool instanceof V4Pool) {
-              // TODO: ROUTE-217 - Support native currency routing in V4
-              return `[V4]${
-                pool.token0.isToken
-                  ? pool.token0.wrapped.address
-                  : pool.token0.symbol
-              }/${
-                pool.token1.isToken
-                  ? pool.token1.wrapped.address
-                  : pool.token1.symbol
-              }`;
+              return `[V4]${getAddress(pool.token0)}/${getAddress(
+                pool.token1
+              )}`;
             } else if (pool instanceof V3Pool) {
               return `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`;
             } else if (pool instanceof Pair) {

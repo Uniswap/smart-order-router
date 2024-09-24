@@ -111,7 +111,7 @@ describe('gas factory helpers tests', () => {
       const mockPoolProvider = getMockedV3PoolProvider();
 
       const amountToken = WRAPPED_NATIVE_CURRENCY[1];
-      const quoteToken = DAI_MAINNET;
+      const quoteCurrency = DAI_MAINNET;
       const gasToken = USDC_MAINNET;
       const providerConfig = {
         gasToken
@@ -119,7 +119,7 @@ describe('gas factory helpers tests', () => {
 
       const pools = await getPools(
         amountToken,
-        quoteToken,
+        quoteCurrency,
         mockPoolProvider,
         providerConfig,
         gasToken
@@ -130,27 +130,27 @@ describe('gas factory helpers tests', () => {
         gasPriceWei,
         pools,
         amountToken,
-        quoteToken,
+        quoteToken: quoteCurrency,
         v2poolProvider: getMockedV2PoolProvider(),
         l2GasDataProvider: undefined,
         providerConfig
       });
 
       const mockSwapRoute: SwapRoute = {
-        quote: CurrencyAmount.fromRawAmount(quoteToken, 100),
-        quoteGasAdjusted: CurrencyAmount.fromRawAmount(quoteToken, 100),
+        quote: CurrencyAmount.fromRawAmount(quoteCurrency, 100),
+        quoteGasAdjusted: CurrencyAmount.fromRawAmount(quoteCurrency, 100),
         // these are all 0 before the function is called
         estimatedGasUsed: BigNumber.from(0),
-        estimatedGasUsedQuoteToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
-        estimatedGasUsedUSD: CurrencyAmount.fromRawAmount(quoteToken, 0),
+        estimatedGasUsedQuoteToken: CurrencyAmount.fromRawAmount(quoteCurrency, 0),
+        estimatedGasUsedUSD: CurrencyAmount.fromRawAmount(quoteCurrency, 0),
         estimatedGasUsedGasToken: undefined,
         gasPriceWei,
         trade: new Trade({
           v4Routes: [],
           v3Routes: [{
-            routev3: new Route([DAI_WETH_MEDIUM], amountToken, quoteToken),
+            routev3: new Route([DAI_WETH_MEDIUM], amountToken, quoteCurrency),
             inputAmount: CurrencyAmount.fromRawAmount(amountToken, 1),
-            outputAmount: CurrencyAmount.fromRawAmount(quoteToken, 100),
+            outputAmount: CurrencyAmount.fromRawAmount(quoteCurrency, 100),
           }],
           v2Routes: [],
           mixedRoutes: [],
@@ -159,12 +159,12 @@ describe('gas factory helpers tests', () => {
         route: [new V3RouteWithValidQuote({
           amount: CurrencyAmount.fromRawAmount(amountToken, 1),
           rawQuote: BigNumber.from('100'),
-          quoteToken,
+          quoteToken: quoteCurrency,
           sqrtPriceX96AfterList: [],
           initializedTicksCrossedList: [1],
           quoterGasEstimate: BigNumber.from(100000),
           percent: 100,
-          route: new V3Route([DAI_WETH_MEDIUM], amountToken, quoteToken),
+          route: new V3Route([DAI_WETH_MEDIUM], amountToken, quoteCurrency),
           tradeType: TradeType.EXACT_INPUT,
           v3PoolProvider: mockPoolProvider,
           gasModel: v3GasModel,
@@ -187,7 +187,7 @@ describe('gas factory helpers tests', () => {
         quoteGasAdjusted
       } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), providerConfig);
 
-      expect(estimatedGasUsedQuoteToken.currency.equals(quoteToken)).toBe(true);
+      expect(estimatedGasUsedQuoteToken.currency.equals(quoteCurrency)).toBe(true);
       expect(estimatedGasUsedQuoteToken.toExact()).not.toEqual('0');
       expect(estimatedGasUsedUSD.toExact()).not.toEqual('0');
       expect(estimatedGasUsedGasToken?.currency.equals(gasToken)).toBe(true);
@@ -202,7 +202,7 @@ describe('gas factory helpers tests', () => {
       } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), providerConfig);
 
       // Arbitrum gas data should not affect the quote gas or USD amounts
-      expect(estimatedGasUsedQuoteTokenArb.currency.equals(quoteToken)).toBe(true);
+      expect(estimatedGasUsedQuoteTokenArb.currency.equals(quoteCurrency)).toBe(true);
       expect(estimatedGasUsedUSDArb.equalTo(estimatedGasUsedUSD)).toBe(true);
       expect(estimatedGasUsedGasTokenArb?.currency.equals(gasToken)).toBe(true);
       expect(quoteGasAdjustedArb.equalTo(quoteGasAdjusted)).toBe(true);
