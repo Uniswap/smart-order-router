@@ -1,12 +1,13 @@
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { ChainId, Currency } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
+import { log, STATE_VIEW_ADDRESSES } from '../../util';
+import { IMulticallProvider, Result } from '../multicall-provider';
+import { ProviderConfig } from '../provider';
 
 import { StateView__factory } from '../../types/other/factories/StateView__factory';
-import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
-import { IMulticallProvider, Result } from '../multicall-provider';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
-import { ProviderConfig } from '../provider';
 
 type V4ISlot0 = ISlot0 & {
   poolId: string;
@@ -153,8 +154,12 @@ export class V4PoolProvider
     const [currency0, currency1] = sortsBefore(currencyA, currencyB)
       ? [currencyA, currencyB]
       : [currencyB, currencyA];
-    const currency0Addr = getAddress(currency0);
-    const currency1Addr = getAddress(currency1);
+    const currency0Addr = currency0.isNative
+      ? ADDRESS_ZERO
+      : currency0.wrapped.address;
+    const currency1Addr = currency1.isNative
+      ? ADDRESS_ZERO
+      : currency1.wrapped.address;
 
     const cacheKey = `${this.chainId}/${currency0Addr}/${currency1Addr}/${fee}/${tickSpacing}/${hooks}`;
 

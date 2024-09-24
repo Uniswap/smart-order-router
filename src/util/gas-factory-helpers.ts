@@ -32,7 +32,6 @@ import {
 } from '../routers';
 import {
   CurrencyAmount,
-  getAddress,
   getApplicableV3FeeAmounts,
   log,
   WRAPPED_NATIVE_CURRENCY,
@@ -407,15 +406,13 @@ export function initSwapRouteFromExisting(
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteCurrency: route.quoteCurrency.isNative
-            ? route.quoteCurrency
-            : new Token(
-                route.quoteCurrency.chainId,
-                getAddress(route.quoteCurrency),
-                route.quoteCurrency.decimals,
-                route.quoteCurrency.symbol,
-                route.quoteCurrency.name
-              ),
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
           tradeType: tradeType,
           v4PoolProvider: v4PoolProvider,
         });
@@ -483,15 +480,13 @@ export function initSwapRouteFromExisting(
           route: route.route,
           mixedRouteGasModel: route.gasModel,
           v2PoolProvider,
-          quoteCurrency: route.quoteCurrency.isNative
-            ? route.quoteCurrency
-            : new Token(
-                route.quoteCurrency.chainId,
-                getAddress(route.quoteCurrency),
-                route.quoteCurrency.decimals,
-                route.quoteCurrency.symbol,
-                route.quoteCurrency.name
-              ),
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
           v4PoolProvider: v4PoolProvider,
