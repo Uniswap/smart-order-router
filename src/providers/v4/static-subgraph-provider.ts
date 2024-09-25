@@ -3,7 +3,7 @@ import { ADDRESS_ZERO, FeeAmount } from '@uniswap/v3-sdk';
 import { Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
-import { getAddress, log, unparseFeeAmount } from '../../util';
+import { log, unparseFeeAmount } from '../../util';
 import { BASES_TO_CHECK_TRADES_AGAINST } from '../caching-subgraph-provider';
 
 import JSBI from 'jsbi';
@@ -93,10 +93,10 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
           hooks: hooks,
           liquidity: liquidity.toString(),
           token0: {
-            id: getAddress(token0),
+            id: token0.wrapped.address,
           },
           token1: {
-            id: getAddress(token1),
+            id: token1.wrapped.address,
           },
           // As a very rough proxy we just use liquidity for TVL.
           tvlETH: liquidityNumber,

@@ -18,7 +18,6 @@ import { AlphaRouterConfig } from '../alpha-router';
 import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 
 import {
-  MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
@@ -493,13 +492,8 @@ export async function getBestSwapRouteBy(
     gasUsedL1OnL2: BigNumber.from(0),
     gasCostL1USD: CurrencyAmount.fromRawAmount(usdToken, 0),
     gasCostL1QuoteToken: CurrencyAmount.fromRawAmount(
-      bestSwap[0] &&
-        (bestSwap[0] instanceof V4RouteWithValidQuote ||
-          bestSwap[0] instanceof MixedRouteWithValidQuote)
-        ? // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-          bestSwap[0]?.quoteCurrency!
-        : // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-          bestSwap[0]?.quoteToken!,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+      bestSwap[0]?.quoteToken!,
       0
     ),
   };

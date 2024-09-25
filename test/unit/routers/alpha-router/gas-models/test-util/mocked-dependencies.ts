@@ -45,7 +45,7 @@ export function getMockedMixedGasModel(): IGasModel<MixedRouteWithValidQuote> {
   mockMixedGasModel.estimateGasCost.callsFake((r) => {
     return {
       gasEstimate: BigNumber.from(10000),
-      gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteCurrency, 0),
+      gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
       gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
     };
   });

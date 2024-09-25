@@ -221,7 +221,7 @@ describe('mixed route gas model tests', () => {
         WRAPPED_NATIVE_CURRENCY[1],
         DAI_MAINNET
       ),
-      quoteCurrency: DAI_MAINNET,
+      quoteToken: DAI_MAINNET,
       initializedTicksCrossedList: [1],
     });
 
@@ -269,7 +269,7 @@ describe('mixed route gas model tests', () => {
         USDC_MAINNET,
         WRAPPED_NATIVE_CURRENCY[1]
       ),
-      quoteCurrency: WRAPPED_NATIVE_CURRENCY[1],
+      quoteToken: WRAPPED_NATIVE_CURRENCY[1],
       initializedTicksCrossedList: [1],
     });
 

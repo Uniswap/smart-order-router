@@ -54,7 +54,7 @@ export class V4HeuristicGasModelFactory
       routeWithValidQuote.initializedTicksCrossedList
     );
 
-    const baseGasUse = routeWithValidQuote.quoterGasEstimate
+    const baseGasUse = routeWithValidQuote.gasEstimate
       // we still need the gas override for native wrap/unwrap, because quoter doesn't simulate on universal router level
       .add(providerConfig?.additionalGasOverhead ?? BigNumber.from(0));
 
