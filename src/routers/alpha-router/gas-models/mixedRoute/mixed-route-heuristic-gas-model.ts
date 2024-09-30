@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { ChainId } from '@uniswap/sdk-core';
+import { ChainId, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -48,7 +48,10 @@ import {
  * @export
  * @class MixedRouteHeuristicGasModelFactory
  */
-export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<MixedRouteWithValidQuote> {
+export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
+  MixedRouteWithValidQuote,
+  Token
+> {
   public async buildGasModel({
     chainId,
     gasPriceWei,
@@ -56,7 +59,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
     quoteToken,
     v2poolProvider: V2poolProvider,
     providerConfig,
-  }: BuildOnChainGasModelFactoryType): Promise<
+  }: BuildOnChainGasModelFactoryType<Token>): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
@@ -93,9 +96,9 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
 
       /** ------ MARK: USD Logic -------- */
       const gasCostInTermsOfUSD = getQuoteThroughNativePool(
-        chainId,
         totalGasCostNativeCurrency,
-        usdPool
+        usdPool,
+        nativeCurrency
       );
 
       /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
@@ -104,9 +107,9 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
       let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
       if (nativeAndSpecifiedGasTokenPool) {
         gasCostInTermsOfGasToken = getQuoteThroughNativePool(
-          chainId,
           totalGasCostNativeCurrency,
-          nativeAndSpecifiedGasTokenPool
+          nativeAndSpecifiedGasTokenPool,
+          nativeCurrency
         );
       }
       // if the gasToken is the native currency, we can just use the totalGasCostNativeCurrency
@@ -150,9 +153,9 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
           : nativeV3Pool!;
 
       const gasCostInTermsOfQuoteToken = getQuoteThroughNativePool(
-        chainId,
         totalGasCostNativeCurrency,
-        nativePool
+        nativePool,
+        nativeCurrency
       );
 
       return {

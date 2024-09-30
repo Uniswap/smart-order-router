@@ -1,5 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
+import { ChainId, Currency } from '@uniswap/sdk-core';
+
 import { CurrencyAmount, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { V4RouteWithValidQuote } from '../../entities';
 import {
@@ -10,14 +12,12 @@ import {
 } from '../gas-model';
 import { TickBasedHeuristicGasModelFactory } from '../tick-based-heuristic-gas-model';
 
-import { ChainId } from '@uniswap/sdk-core';
-
 export class V4HeuristicGasModelFactory
-  extends TickBasedHeuristicGasModelFactory<V4RouteWithValidQuote>
-  implements IOnChainGasModelFactory<V4RouteWithValidQuote>
+  extends TickBasedHeuristicGasModelFactory<V4RouteWithValidQuote, Currency>
+  implements IOnChainGasModelFactory<V4RouteWithValidQuote, Currency>
 {
-  constructor(provider: BaseProvider) {
-    super(provider);
+  constructor(provider: BaseProvider, nativeCurrency: Currency) {
+    super(provider, nativeCurrency);
   }
 
   public async buildGasModel({
@@ -29,7 +29,7 @@ export class V4HeuristicGasModelFactory
     v2poolProvider,
     l2GasDataProvider,
     providerConfig,
-  }: BuildOnChainGasModelFactoryType): Promise<
+  }: BuildOnChainGasModelFactoryType<Currency>): Promise<
     IGasModel<V4RouteWithValidQuote>
   > {
     return await super.buildGasModelInternal({
@@ -48,15 +48,14 @@ export class V4HeuristicGasModelFactory
     routeWithValidQuote: V4RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId,
-    providerConfig?: GasModelProviderConfig
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _providerConfig?: GasModelProviderConfig
   ) {
     const totalInitializedTicksCrossed = this.totalInitializedTicksCrossed(
       routeWithValidQuote.initializedTicksCrossedList
     );
 
-    const baseGasUse = routeWithValidQuote.quoterGasEstimate
-      // we still need the gas override for native wrap/unwrap, because quoter doesn't simulate on universal router level
-      .add(providerConfig?.additionalGasOverhead ?? BigNumber.from(0));
+    const baseGasUse = routeWithValidQuote.quoterGasEstimate;
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 

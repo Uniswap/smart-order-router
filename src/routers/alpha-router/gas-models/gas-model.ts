@@ -1,10 +1,11 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import {
   ChainId,
+  Currency,
   CurrencyAmount as CurrencyAmountRaw,
   Token,
 } from '@uniswap/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 
 import { ProviderConfig } from '../../../providers/provider';
@@ -64,7 +65,6 @@ import {
   ArbitrumGasData,
   IL2GasDataProvider,
 } from '../../../providers/v3/gas-data-provider';
-import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import {
   MixedRouteWithValidQuote,
@@ -140,12 +140,12 @@ export type GasModelProviderConfig = ProviderConfig & {
   gasToken?: Token;
 };
 
-export type BuildOnChainGasModelFactoryType = {
+export type BuildOnChainGasModelFactoryType<TCurrency extends Currency> = {
   chainId: ChainId;
   gasPriceWei: BigNumber;
   pools: LiquidityCalculationPools;
-  amountToken: Token;
-  quoteToken: Token;
+  amountToken: TCurrency;
+  quoteToken: TCurrency;
   v2poolProvider: IV2PoolProvider;
   l2GasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
   providerConfig?: GasModelProviderConfig;
@@ -233,7 +233,8 @@ export abstract class IV2GasModelFactory {
  * @class IOnChainGasModelFactory
  */
 export abstract class IOnChainGasModelFactory<
-  TRouteWithValidQuote extends RouteWithValidQuote
+  TRouteWithValidQuote extends RouteWithValidQuote,
+  TCurrency extends Currency
 > {
   public abstract buildGasModel({
     chainId,
@@ -244,7 +245,9 @@ export abstract class IOnChainGasModelFactory<
     v2poolProvider,
     l2GasDataProvider,
     providerConfig,
-  }: BuildOnChainGasModelFactoryType): Promise<IGasModel<TRouteWithValidQuote>>;
+  }: BuildOnChainGasModelFactoryType<TCurrency>): Promise<
+    IGasModel<TRouteWithValidQuote>
+  >;
 
   protected totalInitializedTicksCrossed(
     initializedTicksCrossedList: number[]
@@ -266,12 +269,11 @@ export abstract class IOnChainGasModelFactory<
 // Determines if native currency is token0
 // Gets the native price of the pool, dependent on 0 or 1
 // quotes across the pool
-export const getQuoteThroughNativePool = (
-  chainId: ChainId,
-  nativeTokenAmount: CurrencyAmountRaw<Token>,
-  nativeTokenPool: Pool | Pair
-): CurrencyAmount => {
-  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+export function getQuoteThroughNativePool<TCurrency extends Currency>(
+  nativeTokenAmount: CurrencyAmountRaw<TCurrency>,
+  nativeTokenPool: TPool,
+  nativeCurrency: TCurrency
+): CurrencyAmount {
   const isToken0 = nativeTokenPool.token0.equals(nativeCurrency);
   // returns mid price in terms of the native currency (the ratio of token/nativeToken)
   const nativeTokenPrice = isToken0
@@ -279,4 +281,4 @@ export const getQuoteThroughNativePool = (
     : nativeTokenPool.token1Price;
   // return gas cost in terms of the non native currency
   return nativeTokenPrice.quote(nativeTokenAmount) as CurrencyAmount;
-};
+}

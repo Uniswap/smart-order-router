@@ -95,6 +95,7 @@ import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
   getAddress,
   getAddressLowerCase,
+  nativeOnChain,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
@@ -249,12 +250,12 @@ export type AlphaRouterParams = {
    * A factory for generating a gas model that is used when estimating the gas used by
    * V4 routes.
    */
-  v4GasModelFactory?: IOnChainGasModelFactory<V4RouteWithValidQuote>;
+  v4GasModelFactory?: IOnChainGasModelFactory<V4RouteWithValidQuote, Currency>;
   /**
    * A factory for generating a gas model that is used when estimating the gas used by
    * V3 routes.
    */
-  v3GasModelFactory?: IOnChainGasModelFactory<V3RouteWithValidQuote>;
+  v3GasModelFactory?: IOnChainGasModelFactory<V3RouteWithValidQuote, Token>;
   /**
    * A factory for generating a gas model that is used when estimating the gas used by
    * V2 routes.
@@ -264,7 +265,10 @@ export type AlphaRouterParams = {
    * A factory for generating a gas model that is used when estimating the gas used by
    * V3 routes.
    */
-  mixedRouteGasModelFactory?: IOnChainGasModelFactory<MixedRouteWithValidQuote>;
+  mixedRouteGasModelFactory?: IOnChainGasModelFactory<
+    MixedRouteWithValidQuote,
+    Token
+  >;
   /**
    * A token list that specifies Token that should be blocked from routing through.
    * Defaults to Uniswap's unsupported token list.
@@ -519,10 +523,19 @@ export class AlphaRouter
   protected tokenProvider: ITokenProvider;
   protected gasPriceProvider: IGasPriceProvider;
   protected swapRouterProvider: ISwapRouterProvider;
-  protected v4GasModelFactory: IOnChainGasModelFactory<V4RouteWithValidQuote>;
-  protected v3GasModelFactory: IOnChainGasModelFactory<V3RouteWithValidQuote>;
+  protected v4GasModelFactory: IOnChainGasModelFactory<
+    V4RouteWithValidQuote,
+    Currency
+  >;
+  protected v3GasModelFactory: IOnChainGasModelFactory<
+    V3RouteWithValidQuote,
+    Token
+  >;
   protected v2GasModelFactory: IV2GasModelFactory;
-  protected mixedRouteGasModelFactory: IOnChainGasModelFactory<MixedRouteWithValidQuote>;
+  protected mixedRouteGasModelFactory: IOnChainGasModelFactory<
+    MixedRouteWithValidQuote,
+    Token
+  >;
   protected tokenValidatorProvider?: ITokenValidatorProvider;
   protected blockedTokenListProvider?: ITokenListProvider;
   protected l2GasDataProvider?: IL2GasDataProvider<ArbitrumGasData>;
@@ -924,9 +937,14 @@ export class AlphaRouter
         )
       );
     this.v4GasModelFactory =
-      v4GasModelFactory ?? new V4HeuristicGasModelFactory(this.provider);
+      v4GasModelFactory ??
+      new V4HeuristicGasModelFactory(this.provider, nativeOnChain(chainId));
     this.v3GasModelFactory =
-      v3GasModelFactory ?? new V3HeuristicGasModelFactory(this.provider);
+      v3GasModelFactory ??
+      new V3HeuristicGasModelFactory(
+        this.provider,
+        WRAPPED_NATIVE_CURRENCY[chainId]!
+      );
     this.v2GasModelFactory =
       v2GasModelFactory ?? new V2HeuristicGasModelFactory(this.provider);
     this.mixedRouteGasModelFactory =

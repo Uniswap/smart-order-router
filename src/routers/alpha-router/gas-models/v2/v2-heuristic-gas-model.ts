@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider } from '@ethersproject/providers';
 import { ChainId, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 
-import { BaseProvider } from '@ethersproject/providers';
 import { ProviderConfig } from '../../../../providers/provider';
 import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
@@ -61,6 +61,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
     l2GasDataProvider,
     providerConfig,
   }: BuildV2GasModelFactoryType): Promise<IGasModel<V2RouteWithValidQuote>> {
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
     const l2GasData = l2GasDataProvider
       ? await l2GasDataProvider.getGasData(providerConfig)
       : undefined;
@@ -122,6 +123,7 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         token,
         nativePool,
         this.provider,
+        nativeCurrency,
         l2GasData
       );
     };
@@ -137,18 +139,18 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
 
         /** ------ MARK: USD logic  -------- */
         const gasCostInTermsOfUSD = getQuoteThroughNativePool(
-          chainId,
           gasCostInEth,
-          usdPool
+          usdPool,
+          nativeCurrency
         );
 
         /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
         let gasCostInTermsOfGasToken: CurrencyAmount | undefined = undefined;
         if (nativeAndSpecifiedGasTokenPool) {
           gasCostInTermsOfGasToken = getQuoteThroughNativePool(
-            chainId,
             gasCostInEth,
-            nativeAndSpecifiedGasTokenPool
+            nativeAndSpecifiedGasTokenPool,
+            nativeCurrency
           );
         }
         // if the gasToken is the native currency, we can just use the gasCostInEth
@@ -182,9 +184,9 @@ export class V2HeuristicGasModelFactory extends IV2GasModelFactory {
         }
 
         const gasCostInTermsOfQuoteToken = getQuoteThroughNativePool(
-          chainId,
           gasCostInEth,
-          ethPool
+          ethPool,
+          nativeCurrency
         );
 
         return {
