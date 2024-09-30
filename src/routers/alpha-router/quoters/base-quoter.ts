@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import _ from 'lodash';
 
 import {
@@ -110,7 +110,7 @@ export abstract class BaseQuoter<
     routes: Route[],
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteToken: TCurrency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     candidatePools?: CandidatePoolsBySelectionCriteria,
@@ -138,7 +138,7 @@ export abstract class BaseQuoter<
     amount: CurrencyAmount,
     amounts: CurrencyAmount[],
     percents: number[],
-    quoteToken: Token,
+    quoteToken: TCurrency,
     candidatePools: CandidatePools,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,

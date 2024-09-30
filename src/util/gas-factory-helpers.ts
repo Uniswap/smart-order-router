@@ -416,13 +416,15 @@ export function initSwapRouteFromExisting(
           percent: route.percent,
           route: route.route,
           gasModel: route.gasModel,
-          quoteToken: new Token(
-            currencyIn.chainId,
-            route.quoteToken.address,
-            route.quoteToken.decimals,
-            route.quoteToken.symbol,
-            route.quoteToken.name
-          ),
+          quoteToken: route.quoteToken.isNative
+            ? route.quoteToken
+            : new Token(
+                route.quoteToken.chainId,
+                getAddress(route.quoteToken),
+                route.quoteToken.decimals,
+                route.quoteToken.symbol,
+                route.quoteToken.name
+              ),
           tradeType: tradeType,
           v4PoolProvider: v4PoolProvider,
         });
