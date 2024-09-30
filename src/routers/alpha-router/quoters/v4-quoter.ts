@@ -222,7 +222,7 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
           gasModel,
-          quoteToken: quoteCurrency.wrapped,
+          quoteToken: quoteCurrency,
           tradeType,
           v4PoolProvider: this.v4PoolProvider,
         });

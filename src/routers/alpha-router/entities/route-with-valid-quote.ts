@@ -269,7 +269,7 @@ export type V4RouteWithValidQuoteParams = {
   quoterGasEstimate: BigNumber;
   percent: number;
   route: V4Route;
-  quoteToken: Token;
+  quoteToken: Currency;
   gasModel: IGasModel<V4RouteWithValidQuote>;
   tradeType: TradeType;
   v4PoolProvider: IV4PoolProvider;
@@ -286,7 +286,7 @@ export class V4RouteWithValidQuote implements IV4RouteWithValidQuote {
   public quoterGasEstimate: BigNumber; // TODO: not available in v4 quoter v1
   public percent: number;
   public route: V4Route;
-  public quoteToken: Token;
+  public quoteToken: Currency;
   public gasModel: IGasModel<V4RouteWithValidQuote>;
   public gasEstimate: BigNumber;
   public gasCostInToken: CurrencyAmount;

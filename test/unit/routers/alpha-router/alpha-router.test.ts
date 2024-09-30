@@ -1166,6 +1166,60 @@ describe('alpha router', () => {
       expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
 
+    test('succeeds to route on v4 only', async () => {
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
+      const swap = await alphaRouter.route(
+        amount,
+        Ether.onChain(ChainId.MAINNET),
+        TradeType.EXACT_INPUT,
+        undefined,
+        { ...ROUTING_CONFIG, protocols: [Protocol.V4] }
+      )
+      expect(swap).toBeDefined();
+
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
+      expect(mockProvider.getBlockNumber.called).toBeTruthy();
+      expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
+
+      sinon.assert.calledWith(
+        mockOnChainQuoteProvider.getQuotesManyExactIn,
+        sinon.match((value) => {
+          return value instanceof Array && value.length == 4;
+        }),
+        sinon.match.array,
+        sinon.match({ blockNumber: sinon.match.defined })
+      );
+      /// Should not be calling onChainQuoteProvider for mixedRoutes
+      sinon.assert.callCount(mockOnChainQuoteProvider.getQuotesManyExactIn, 1);
+
+      expect(
+        swap!.quote.currency.equals(Ether.onChain(ChainId.MAINNET))
+      ).toBeTruthy();
+      expect(
+        swap!.quoteGasAdjusted.currency.equals(Ether.onChain(ChainId.MAINNET))
+      ).toBeTruthy();
+
+      expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
+      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      expect(
+        swap!.estimatedGasUsedQuoteToken.currency.equals(
+          Ether.onChain(ChainId.MAINNET)
+        )
+      ).toBeTruthy();
+      expect(
+        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      ).toBeTruthy();
+      expect(swap!.gasPriceWei.toString()).toEqual(
+        mockGasPriceWeiBN.toString()
+      );
+      expect(swap!.route).toHaveLength(1);
+      expect(swap!.trade).toBeDefined();
+      expect(swap!.methodParameters).not.toBeDefined();
+      expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
+    });
+
     test('succeeds to route on v3 only', async () => {
       const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
       const swap = await alphaRouter.route(

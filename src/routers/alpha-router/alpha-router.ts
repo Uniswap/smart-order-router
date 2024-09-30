@@ -1468,7 +1468,7 @@ export class AlphaRouter
         cachedRoutes,
         await blockNumber,
         amount,
-        quoteToken,
+        quoteCurrency,
         tradeType,
         routingConfig,
         v3GasModel,
@@ -1489,7 +1489,7 @@ export class AlphaRouter
         currencyIn,
         currencyOut,
         protocols,
-        quoteToken,
+        quoteCurrency,
         tradeType,
         routingConfig,
         v3GasModel,
@@ -1811,7 +1811,7 @@ export class AlphaRouter
     cachedRoutes: CachedRoutes,
     blockNumber: number,
     amount: CurrencyAmount,
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
@@ -1892,7 +1892,7 @@ export class AlphaRouter
             v4RoutesFromCache,
             amounts,
             percents,
-            quoteToken,
+            quoteCurrency,
             tradeType,
             routingConfig,
             undefined,
@@ -1922,6 +1922,7 @@ export class AlphaRouter
         );
 
         const beforeGetQuotes = Date.now();
+        const quoteToken = quoteCurrency.wrapped;
 
         quotePromises.push(
           this.v3Quoter
@@ -1959,6 +1960,7 @@ export class AlphaRouter
       );
 
       const beforeGetQuotes = Date.now();
+      const quoteToken = quoteCurrency.wrapped;
 
       quotePromises.push(
         this.v2Quoter
@@ -1997,6 +1999,7 @@ export class AlphaRouter
         );
 
         const beforeGetQuotes = Date.now();
+        const quoteToken = quoteCurrency.wrapped;
 
         quotePromises.push(
           this.mixedQuoter
@@ -2050,7 +2053,7 @@ export class AlphaRouter
     currencyIn: Currency,
     currencyOut: Currency,
     protocols: Protocol[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
@@ -2216,7 +2219,7 @@ export class AlphaRouter
               amount,
               amounts,
               percents,
-              quoteToken,
+              quoteCurrency,
               v4CandidatePools!,
               tradeType,
               routingConfig,
@@ -2248,6 +2251,7 @@ export class AlphaRouter
         const beforeGetRoutesThenQuotes = Date.now();
         const tokenIn = currencyIn.wrapped;
         const tokenOut = currencyOut.wrapped;
+        const quoteToken = quoteCurrency.wrapped;
 
         quotePromises.push(
           v3CandidatePoolsPromise.then((v3CandidatePools) =>
@@ -2290,6 +2294,7 @@ export class AlphaRouter
       const beforeGetRoutesThenQuotes = Date.now();
       const tokenIn = currencyIn.wrapped;
       const tokenOut = currencyOut.wrapped;
+      const quoteToken = quoteCurrency.wrapped;
 
       quotePromises.push(
         v2CandidatePoolsPromise.then((v2CandidatePools) =>
@@ -2343,6 +2348,7 @@ export class AlphaRouter
             async ([v4CandidatePools, v3CandidatePools, v2CandidatePools]) => {
               const tokenIn = currencyIn.wrapped;
               const tokenOut = currencyOut.wrapped;
+              const quoteToken = quoteCurrency.wrapped;
 
               const crossLiquidityPools =
                 await getMixedCrossLiquidityCandidatePools({
