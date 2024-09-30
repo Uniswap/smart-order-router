@@ -17,7 +17,7 @@ import {
   USDC_NATIVE_POLYGON,
   USDC_ON,
   USDC_ZORA,
-  USDT_MAINNET,
+  USDT_MAINNET, V4_SEPOLIA_TEST_A,
   WETH9,
   WNATIVE_ON
 } from '../../src';
@@ -129,6 +129,8 @@ export const WHALES = (token: Currency): string => {
       return '0xC32cBaf3D44dA6fbC761289b871af1A30cc7f993';
     case BULLET_WITHOUT_TAX || BULLET:
       return '0x171d311eAcd2206d21Cb462d661C33F0eddadC03';
+    case V4_SEPOLIA_TEST_A:
+      return '0xB7a249bdeFf39727B5Eb4C7AD458f682BAe6aDAD';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

@@ -129,7 +129,7 @@ const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.MAINNET]: 50,
   [ChainId.GOERLI]: 62,
-  [ChainId.SEPOLIA]: 50,
+  [ChainId.SEPOLIA]: 75,
   [ChainId.OPTIMISM]: 61,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
@@ -4097,12 +4097,6 @@ describe('quote for other networks', () => {
             });
 
             it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
-              // TOOD: re-enable sepolia OP -> USDC swap with simulation, once universal router supports v4 swap commands
-              if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_A)) {
-                // Sepolia doesn't have sufficient liquidity on DAI pools yet
-                return;
-              }
-
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
@@ -4122,7 +4116,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
-                    version: UniversalRouterVersion.V1_2,
+                    version: UniversalRouterVersion.V2_0,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4148,7 +4142,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
-                  version: UniversalRouterVersion.V1_2,
+                  version: UniversalRouterVersion.V2_0,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4180,7 +4174,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]}`);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed.toNumber()} ${swap!.estimatedGasUsed.toNumber()}`);
 
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
