@@ -29,6 +29,7 @@ import { MixedRouteQuoterV2__factory } from '../types/other/factories/MixedRoute
 import { V4Quoter__factory } from '../types/other/factories/V4Quoter__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
 import {
+  getAddress,
   ID_TO_NETWORK_NAME,
   metric,
   MetricLoggerUnit,
@@ -643,7 +644,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             case Protocol.V4:
               return [
                 {
-                  exactCurrency: amount.currency.wrapped.address,
+                  exactCurrency: getAddress(amount.currency),
                   path: encodedRoute as PathKey[],
                   exactAmount: amount.quotient.toString(),
                 },
