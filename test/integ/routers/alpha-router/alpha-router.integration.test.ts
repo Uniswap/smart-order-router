@@ -4097,12 +4097,6 @@ describe('quote for other networks', () => {
             });
 
             it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
-              // TOOD: re-enable sepolia OP -> USDC swap with simulation, once universal router supports v4 swap commands
-              if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_A)) {
-                // Sepolia doesn't have sufficient liquidity on DAI pools yet
-                return;
-              }
-
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
