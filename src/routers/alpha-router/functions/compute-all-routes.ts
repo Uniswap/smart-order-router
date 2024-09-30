@@ -21,7 +21,6 @@ export function computeAllV4Routes(
   pools: V4Pool[],
   maxHops: number
 ): V4Route[] {
-  // TODO: ROUTE-217 - Support native currency routing in V4
   return computeAllRoutes<V4Pool, V4Route, Currency>(
     currencyIn,
     currencyOut,
@@ -154,7 +153,6 @@ export function computeAllRoutes<
         ? curPool.token1
         : curPool.token0;
 
-      // TODO: ROUTE-217 - Support native currency routing in V4
       if (tokensVisited.has(getAddressLowerCase(currentTokenOut))) {
         continue;
       }
