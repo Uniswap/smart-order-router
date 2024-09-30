@@ -1206,9 +1206,6 @@ export class AlphaRouter
         quoteCurrency
       );
 
-    const tokenIn = currencyIn.wrapped;
-    const tokenOut = currencyOut.wrapped;
-
     const tokenOutProperties =
       await this.tokenPropertiesProvider.getTokensProperties(
         [currencyOut],
@@ -1404,18 +1401,18 @@ export class AlphaRouter
       );
       log.info(
         {
-          tokenIn: tokenIn.symbol,
-          tokenInAddress: tokenIn.address,
-          tokenOut: tokenOut.symbol,
-          tokenOutAddress: tokenOut.address,
+          currencyIn: currencyIn.symbol,
+          currencyInAddress: getAddress(currencyIn),
+          currencyOut: currencyOut.symbol,
+          currencyOutAddress: getAddress(currencyOut),
           cacheMode,
           amount: amount.toExact(),
           chainId: this.chainId,
           tradeType: this.tradeTypeStr(tradeType),
         },
         `GetCachedRoute miss ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(
-          tokenIn,
-          tokenOut,
+          currencyIn,
+          currencyOut,
           tradeType
         )}`
       );
@@ -1427,18 +1424,18 @@ export class AlphaRouter
       );
       log.info(
         {
-          tokenIn: tokenIn.symbol,
-          tokenInAddress: tokenIn.address,
-          tokenOut: tokenOut.symbol,
-          tokenOutAddress: tokenOut.address,
+          currencyIn: currencyIn.symbol,
+          currencyInAddress: getAddress(currencyIn),
+          currencyOut: currencyOut.symbol,
+          currencyOutAddress: getAddress(currencyOut),
           cacheMode,
           amount: amount.toExact(),
           chainId: this.chainId,
           tradeType: this.tradeTypeStr(tradeType),
         },
         `GetCachedRoute hit ${cacheMode} for ${this.tokenPairSymbolTradeTypeChainId(
-          tokenIn,
-          tokenOut,
+          currencyIn,
+          currencyOut,
           tradeType
         )}`
       );
@@ -1448,8 +1445,8 @@ export class AlphaRouter
       Promise.resolve(null);
     if (cachedRoutes) {
       swapRouteFromCachePromise = this.getSwapRouteFromCache(
-        tokenIn,
-        tokenOut,
+        currencyIn,
+        currencyOut,
         cachedRoutes,
         await blockNumber,
         amount,
@@ -1471,8 +1468,8 @@ export class AlphaRouter
     if (!cachedRoutes || cacheMode !== CacheMode.Livemode) {
       swapRouteFromChainPromise = this.getSwapRouteFromChain(
         amount,
-        tokenIn,
-        tokenOut,
+        currencyIn,
+        currencyOut,
         protocols,
         quoteToken,
         tradeType,
@@ -1557,15 +1554,15 @@ export class AlphaRouter
               amount: amount.toExact(),
               originalAmount: cachedRoutes?.originalAmount,
               pair: this.tokenPairSymbolTradeTypeChainId(
-                tokenIn,
-                tokenOut,
+                currencyIn,
+                currencyOut,
                 tradeType
               ),
               blockNumber,
             },
             `Comparing quotes between Chain and Cache for ${this.tokenPairSymbolTradeTypeChainId(
-              tokenIn,
-              tokenOut,
+              currencyIn,
+              currencyOut,
               tradeType
             )}`
           );
@@ -1621,8 +1618,8 @@ export class AlphaRouter
       const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
         swapRouteFromChain.routes,
         this.chainId,
-        tokenIn,
-        tokenOut,
+        currencyIn,
+        currencyOut,
         protocols.sort(),
         await blockNumber,
         tradeType,
@@ -1647,8 +1644,8 @@ export class AlphaRouter
               {
                 reason: reason,
                 tokenPair: this.tokenPairSymbolTradeTypeChainId(
-                  tokenIn,
-                  tokenOut,
+                  currencyIn,
+                  currencyOut,
                   tradeType
                 ),
               },
@@ -1791,8 +1788,8 @@ export class AlphaRouter
   }
 
   private async getSwapRouteFromCache(
-    tokenIn: Token,
-    tokenOut: Token,
+    currencyIn: Currency,
+    currencyOut: Currency,
     cachedRoutes: CachedRoutes,
     blockNumber: number,
     amount: CurrencyAmount,
@@ -1809,17 +1806,17 @@ export class AlphaRouter
   ): Promise<BestSwapRoute | null> {
     const tokenPairProperties =
       await this.tokenPropertiesProvider.getTokensProperties(
-        [tokenIn, tokenOut],
+        [currencyIn, currencyOut],
         providerConfig
       );
 
     const sellTokenIsFot =
       tokenPairProperties[
-        tokenIn.address.toLowerCase()
+        getAddressLowerCase(currencyIn)
       ]?.tokenFeeResult?.sellFeeBps?.gt(0);
     const buyTokenIsFot =
       tokenPairProperties[
-        tokenOut.address.toLowerCase()
+        getAddressLowerCase(currencyOut)
       ]?.tokenFeeResult?.buyFeeBps?.gt(0);
     const fotInDirectSwap = sellTokenIsFot || buyTokenIsFot;
 
@@ -2032,8 +2029,8 @@ export class AlphaRouter
 
   private async getSwapRouteFromChain(
     amount: CurrencyAmount,
-    tokenIn: Token,
-    tokenOut: Token,
+    currencyIn: Currency,
+    currencyOut: Currency,
     protocols: Protocol[],
     quoteToken: Token,
     tradeType: TradeType,
@@ -2048,17 +2045,17 @@ export class AlphaRouter
   ): Promise<BestSwapRoute | null> {
     const tokenPairProperties =
       await this.tokenPropertiesProvider.getTokensProperties(
-        [tokenIn, tokenOut],
+        [currencyIn, currencyOut],
         providerConfig
       );
 
     const sellTokenIsFot =
       tokenPairProperties[
-        tokenIn.address.toLowerCase()
+        getAddressLowerCase(currencyIn)
       ]?.tokenFeeResult?.sellFeeBps?.gt(0);
     const buyTokenIsFot =
       tokenPairProperties[
-        tokenOut.address.toLowerCase()
+        getAddressLowerCase(currencyOut)
       ]?.tokenFeeResult?.buyFeeBps?.gt(0);
     const fotInDirectSwap = sellTokenIsFot || buyTokenIsFot;
 
@@ -2096,8 +2093,8 @@ export class AlphaRouter
     ) {
       // if (v4ProtocolSpecified || noProtocolsSpecified) {
       v4CandidatePoolsPromise = getV4CandidatePools({
-        currencyIn: tokenIn,
-        currencyOut: tokenOut,
+        currencyIn: currencyIn,
+        currencyOut: currencyOut,
         tokenProvider: this.tokenProvider,
         blockedTokenListProvider: this.blockedTokenListProvider,
         poolProvider: this.v4PoolProvider,
@@ -2123,6 +2120,9 @@ export class AlphaRouter
         noProtocolsSpecified ||
         (shouldQueryMixedProtocol && mixedProtocolAllowed)
       ) {
+        const tokenIn = currencyIn.wrapped;
+        const tokenOut = currencyOut.wrapped;
+
         v3CandidatePoolsPromise = getV3CandidatePools({
           tokenIn,
           tokenOut,
@@ -2150,6 +2150,9 @@ export class AlphaRouter
       (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) ||
       (shouldQueryMixedProtocol && mixedProtocolAllowed)
     ) {
+      const tokenIn = currencyIn.wrapped;
+      const tokenOut = currencyOut.wrapped;
+
       // Fetch all the pools that we will consider routing via. There are thousands
       // of pools, so we filter them to a set of candidate pools that we expect will
       // result in good prices.
@@ -2190,8 +2193,8 @@ export class AlphaRouter
         v4CandidatePoolsPromise.then((v4CandidatePools) =>
           this.v4Quoter
             .getRoutesThenQuotes(
-              tokenIn,
-              tokenOut,
+              currencyIn,
+              currencyOut,
               amount,
               amounts,
               percents,
@@ -2199,7 +2202,7 @@ export class AlphaRouter
               v4CandidatePools!,
               tradeType,
               routingConfig,
-              v3GasModel
+              v4GasModel
             )
             .then((result) => {
               metric.putMetric(
@@ -2225,6 +2228,8 @@ export class AlphaRouter
           MetricLoggerUnit.Count
         );
         const beforeGetRoutesThenQuotes = Date.now();
+        const tokenIn = currencyIn.wrapped;
+        const tokenOut = currencyOut.wrapped;
 
         quotePromises.push(
           v3CandidatePoolsPromise.then((v3CandidatePools) =>
@@ -2265,6 +2270,8 @@ export class AlphaRouter
         MetricLoggerUnit.Count
       );
       const beforeGetRoutesThenQuotes = Date.now();
+      const tokenIn = currencyIn.wrapped;
+      const tokenOut = currencyOut.wrapped;
 
       quotePromises.push(
         v2CandidatePoolsPromise.then((v2CandidatePools) =>
@@ -2316,6 +2323,9 @@ export class AlphaRouter
             v2CandidatePoolsPromise,
           ]).then(
             async ([v4CandidatePools, v3CandidatePools, v2CandidatePools]) => {
+              const tokenIn = currencyIn.wrapped;
+              const tokenOut = currencyOut.wrapped;
+
               const crossLiquidityPools =
                 await getMixedCrossLiquidityCandidatePools({
                   tokenIn,
@@ -2405,11 +2415,11 @@ export class AlphaRouter
   }
 
   private tokenPairSymbolTradeTypeChainId(
-    tokenIn: Token,
-    tokenOut: Token,
+    currencyIn: Currency,
+    currencyOut: Currency,
     tradeType: TradeType
   ) {
-    return `${tokenIn.symbol}/${tokenOut.symbol}/${this.tradeTypeStr(
+    return `${currencyIn.symbol}/${currencyOut.symbol}/${this.tradeTypeStr(
       tradeType
     )}/${this.chainId}`;
   }
