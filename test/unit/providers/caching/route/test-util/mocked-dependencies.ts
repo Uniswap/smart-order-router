@@ -17,19 +17,22 @@ import {
   V3Route,
   V3RouteWithValidQuote,
   V3RouteWithValidQuoteParams,
+  V4Route,
+  V4RouteWithValidQuote,
+  V4RouteWithValidQuoteParams,
 } from '../../../../../../src';
 import {
   USDC_DAI,
-  USDC_DAI_MEDIUM,
+  USDC_DAI_MEDIUM, USDC_DAI_V4_MEDIUM,
   USDC_WETH_MEDIUM,
-  WETH_DAI,
+  WETH_DAI
 } from '../../../../../test-util/mock-data';
 import {
   getMockedMixedGasModel,
   getMockedV2GasModel,
   getMockedV2PoolProvider,
   getMockedV3GasModel,
-  getMockedV3PoolProvider, getMockedV4PoolProvider
+  getMockedV3PoolProvider, getMockedV4GasModel, getMockedV4PoolProvider
 } from '../../../../routers/alpha-router/gas-models/test-util/mocked-dependencies';
 
 export function getV2RouteWithValidQuoteStub(
@@ -67,6 +70,27 @@ export function getV3RouteWithValidQuoteStub(
     quoteToken: DAI,
     tradeType: TradeType.EXACT_INPUT,
     v3PoolProvider: getMockedV3PoolProvider(),
+    ...overrides,
+  });
+}
+
+export function getV4RouteWithValidQuoteStub(
+  overrides?: Partial<V4RouteWithValidQuoteParams>
+): V4RouteWithValidQuote {
+  const route = new V4Route([USDC_DAI_V4_MEDIUM], USDC_MAINNET, DAI_MAINNET);
+
+  return new V4RouteWithValidQuote({
+    amount: CurrencyAmount.fromRawAmount(USDC, 100),
+    rawQuote: BigNumber.from(100),
+    sqrtPriceX96AfterList: [BigNumber.from(1)],
+    initializedTicksCrossedList: [1],
+    quoterGasEstimate: BigNumber.from(100000), // unused
+    percent: 100,
+    route,
+    gasModel: getMockedV4GasModel(),
+    quoteToken: DAI,
+    tradeType: TradeType.EXACT_INPUT,
+    v4PoolProvider: getMockedV4PoolProvider(),
     ...overrides,
   });
 }

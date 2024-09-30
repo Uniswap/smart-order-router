@@ -36,7 +36,7 @@ import { BaseProvider } from '@ethersproject/providers';
 describe('v3 gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
   const chainId = 1;
-  const v3GasModelFactory = new V3HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider));
+  const v3GasModelFactory = new V3HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider), WRAPPED_NATIVE_CURRENCY[chainId]);
 
   const mockedV3PoolProvider = getMockedV3PoolProvider();
   const mockedV2PoolProvider = getMockedV2PoolProvider();

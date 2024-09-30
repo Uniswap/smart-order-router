@@ -2,6 +2,7 @@ import sinon from 'sinon';
 import {
   CurrencyAmount,
   DAI_MAINNET,
+  nativeOnChain,
   SimulationStatus,
   SwapRoute,
   USDC_MAINNET,
@@ -9,6 +10,8 @@ import {
   V3PoolProvider,
   V3Route,
   V3RouteWithValidQuote,
+  V4Route,
+  V4RouteWithValidQuote,
   WRAPPED_NATIVE_CURRENCY
 } from '../../../../../src';
 import {
@@ -19,20 +22,26 @@ import {
   getL2ToL1GasUsed,
 } from '../../../../../src/util/gas-factory-helpers';
 import {
-  buildMockV3PoolAccessor,
+  buildMockV3PoolAccessor, DAI_ETH_V4_MEDIUM,
   DAI_WETH_MEDIUM,
   USDC_DAI_LOW,
   USDC_WETH_HIGH_LIQ_HIGH,
   USDC_WETH_LOW_LIQ_LOW,
-  USDC_WETH_MED_LIQ_MEDIUM,
+  USDC_WETH_MED_LIQ_MEDIUM
 } from '../../../../test-util/mock-data';
 import { BigNumber } from 'ethers';
-import { getMockedV2PoolProvider, getMockedV3PoolProvider } from '../gas-models/test-util/mocked-dependencies';
-import { ChainId, TradeType } from '@uniswap/sdk-core';
+import {
+  getMockedV2PoolProvider,
+  getMockedV3PoolProvider,
+  getMockedV4PoolProvider
+} from '../gas-models/test-util/mocked-dependencies';
+import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import { Trade } from '@uniswap/router-sdk';
-import { Route } from '@uniswap/v3-sdk';
+import { Route as V3RouteRaw } from '@uniswap/v3-sdk';
+import { Route as V4RouteRaw } from '@uniswap/v4-sdk';
 import { getPools } from '../gas-models/test-util/helpers';
 import { BaseProvider } from '@ethersproject/providers';
+import { V4HeuristicGasModelFactory } from '../../../../../src/routers/alpha-router/gas-models/v4/v4-heuristic-gas-model';
 
 const mockUSDCNativePools = [
   USDC_WETH_LOW_LIQ_LOW,
@@ -107,7 +116,7 @@ describe('gas factory helpers tests', () => {
   });
 
   describe('calculateGasUsed', () => {
-    it('should return correct estimated gas values and quoteGasAdjusted', async () => {
+    it('should return correct estimated gas values and quoteGasAdjusted for v3', async () => {
       const mockPoolProvider = getMockedV3PoolProvider();
 
       const amountToken = WRAPPED_NATIVE_CURRENCY[1];
@@ -125,7 +134,7 @@ describe('gas factory helpers tests', () => {
         gasToken
       );
 
-      const v3GasModel = await (new V3HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider))).buildGasModel({
+      const v3GasModel = await (new V3HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider), WRAPPED_NATIVE_CURRENCY[chainId])).buildGasModel({
         chainId: chainId,
         gasPriceWei,
         pools,
@@ -148,7 +157,7 @@ describe('gas factory helpers tests', () => {
         trade: new Trade({
           v4Routes: [],
           v3Routes: [{
-            routev3: new Route([DAI_WETH_MEDIUM], amountToken, quoteToken),
+            routev3: new V3RouteRaw([DAI_WETH_MEDIUM], amountToken, quoteToken),
             inputAmount: CurrencyAmount.fromRawAmount(amountToken, 1),
             outputAmount: CurrencyAmount.fromRawAmount(quoteToken, 100),
           }],
@@ -200,6 +209,107 @@ describe('gas factory helpers tests', () => {
         estimatedGasUsedGasToken: estimatedGasUsedGasTokenArb,
         quoteGasAdjusted: quoteGasAdjustedArb
       } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), mockPoolProvider, sinon.createStubInstance(BaseProvider), providerConfig);
+
+      // Arbitrum gas data should not affect the quote gas or USD amounts
+      expect(estimatedGasUsedQuoteTokenArb.currency.equals(quoteToken)).toBe(true);
+      expect(estimatedGasUsedUSDArb.equalTo(estimatedGasUsedUSD)).toBe(true);
+      expect(estimatedGasUsedGasTokenArb?.currency.equals(gasToken)).toBe(true);
+      expect(quoteGasAdjustedArb.equalTo(quoteGasAdjusted)).toBe(true);
+    })
+
+    it('should return correct estimated gas values and quoteGasAdjusted for v4', async () => {
+      const mockPoolProvider = getMockedV4PoolProvider();
+
+      const amountToken = nativeOnChain(chainId);
+      const quoteToken: Currency = DAI_MAINNET;
+      const gasToken = USDC_MAINNET;
+      const providerConfig = {
+        gasToken
+      }
+
+      const pools = await getPools(
+        amountToken.wrapped,
+        quoteToken,
+        getMockedV3PoolProvider(),
+        providerConfig,
+        gasToken
+      );
+
+      const v4GasModel = await (new V4HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider), nativeOnChain(chainId))).buildGasModel({
+        chainId: chainId,
+        gasPriceWei,
+        pools,
+        amountToken,
+        quoteToken,
+        v2poolProvider: getMockedV2PoolProvider(),
+        l2GasDataProvider: undefined,
+        providerConfig
+      });
+
+      const mockSwapRoute: SwapRoute = {
+        quote: CurrencyAmount.fromRawAmount(quoteToken, 100),
+        quoteGasAdjusted: CurrencyAmount.fromRawAmount(quoteToken, 100),
+        // these are all 0 before the function is called
+        estimatedGasUsed: BigNumber.from(0),
+        estimatedGasUsedQuoteToken: CurrencyAmount.fromRawAmount(quoteToken, 0),
+        estimatedGasUsedUSD: CurrencyAmount.fromRawAmount(quoteToken, 0),
+        estimatedGasUsedGasToken: undefined,
+        gasPriceWei,
+        trade: new Trade({
+          v4Routes: [{
+            routev4: new V4RouteRaw([DAI_ETH_V4_MEDIUM], amountToken, quoteToken),
+            inputAmount: CurrencyAmount.fromRawAmount(amountToken, 1),
+            outputAmount: CurrencyAmount.fromRawAmount(quoteToken, 100),
+          }],
+          v3Routes: [],
+          v2Routes: [],
+          mixedRoutes: [],
+          tradeType: TradeType.EXACT_INPUT,
+        }),
+        route: [new V4RouteWithValidQuote({
+          amount: CurrencyAmount.fromRawAmount(amountToken, 1),
+          rawQuote: BigNumber.from('100'),
+          quoteToken,
+          sqrtPriceX96AfterList: [],
+          initializedTicksCrossedList: [1],
+          quoterGasEstimate: BigNumber.from(100000),
+          percent: 100,
+          route: new V4Route([DAI_ETH_V4_MEDIUM], amountToken, quoteToken),
+          tradeType: TradeType.EXACT_INPUT,
+          v4PoolProvider: mockPoolProvider,
+          gasModel: v4GasModel,
+        })],
+        blockNumber: BigNumber.from(123456),
+        simulationStatus: SimulationStatus.Succeeded,
+        methodParameters: {
+          calldata: '0x0',
+          value: '0x0',
+          to: '0x0',
+        },
+      };
+
+      const simulatedGasUsed = BigNumber.from(100_000);
+
+      const {
+        estimatedGasUsedQuoteToken,
+        estimatedGasUsedUSD,
+        estimatedGasUsedGasToken,
+        quoteGasAdjusted
+      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), getMockedV3PoolProvider(), sinon.createStubInstance(BaseProvider), providerConfig);
+
+      expect(estimatedGasUsedQuoteToken.currency.equals(quoteToken)).toBe(true);
+      expect(estimatedGasUsedQuoteToken.toExact()).not.toEqual('0');
+      expect(estimatedGasUsedUSD.toExact()).not.toEqual('0');
+      expect(estimatedGasUsedGasToken?.currency.equals(gasToken)).toBe(true);
+      expect(estimatedGasUsedGasToken?.toExact()).not.toEqual('0');
+      expect(quoteGasAdjusted.lessThan(mockSwapRoute.quote)).toBe(true);
+
+      const {
+        estimatedGasUsedQuoteToken: estimatedGasUsedQuoteTokenArb,
+        estimatedGasUsedUSD: estimatedGasUsedUSDArb,
+        estimatedGasUsedGasToken: estimatedGasUsedGasTokenArb,
+        quoteGasAdjusted: quoteGasAdjustedArb
+      } = await calculateGasUsed(chainId, mockSwapRoute, simulatedGasUsed, getMockedV2PoolProvider(), getMockedV3PoolProvider(), sinon.createStubInstance(BaseProvider), providerConfig);
 
       // Arbitrum gas data should not affect the quote gas or USD amounts
       expect(estimatedGasUsedQuoteTokenArb.currency.equals(quoteToken)).toBe(true);

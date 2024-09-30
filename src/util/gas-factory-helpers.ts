@@ -2,7 +2,16 @@ import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import {
+  ChainId,
+  Currency,
+  Percent,
+  Price,
+  Token,
+  TradeType,
+} from '@uniswap/sdk-core';
+import { CurrencyAmount as CurrencyAmountRaw } from '@uniswap/sdk-core/dist/entities/fractions/currencyAmount';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
@@ -32,6 +41,7 @@ import {
 } from '../routers';
 import {
   CurrencyAmount,
+  getAddress,
   getApplicableV3FeeAmounts,
   log,
   WRAPPED_NATIVE_CURRENCY,
@@ -168,10 +178,10 @@ export async function getHighestLiquidityV3USDPool(
   return maxPool;
 }
 
-export function getGasCostInNativeCurrency(
-  nativeCurrency: Token,
+export function getGasCostInNativeCurrency<TCurrency extends Currency>(
+  nativeCurrency: TCurrency,
   gasCostInWei: BigNumber
-) {
+): CurrencyAmountRaw<TCurrency> {
   // wrap fee to native currency
   const costNativeCurrency = CurrencyAmount.fromRawAmount(
     nativeCurrency,
@@ -288,9 +298,9 @@ export async function calculateGasUsed(
 
   /** ------ MARK: USD logic  -------- */
   const gasCostUSD = getQuoteThroughNativePool(
-    chainId,
     costNativeCurrency,
-    usdPool
+    usdPool,
+    nativeCurrency
   );
 
   /** ------ MARK: Conditional logic run if gasToken is specified  -------- */
@@ -307,9 +317,9 @@ export async function calculateGasUsed(
         );
       if (nativeAndSpecifiedGasTokenPool) {
         gasCostInTermsOfGasToken = getQuoteThroughNativePool(
-          chainId,
           costNativeCurrency,
-          nativeAndSpecifiedGasTokenPool
+          nativeAndSpecifiedGasTokenPool,
+          nativeCurrency
         );
       } else {
         log.info(
@@ -344,9 +354,9 @@ export async function calculateGasUsed(
       gasCostQuoteToken = CurrencyAmount.fromRawAmount(quoteToken, 0);
     } else {
       gasCostQuoteToken = getQuoteThroughNativePool(
-        chainId,
         costNativeCurrency,
-        nativePool
+        nativePool,
+        nativeCurrency
       );
     }
   }
@@ -541,13 +551,14 @@ export function initSwapRouteFromExisting(
   };
 }
 
-export const calculateL1GasFeesHelper = async (
+export async function calculateL1GasFeesHelper<TCurrency extends Currency>(
   route: RouteWithValidQuote[],
   chainId: ChainId,
   usdPool: Pair | Pool,
-  quoteToken: Token,
-  nativePool: Pair | Pool | null,
+  quoteToken: TCurrency,
+  nativePool: TPool | null,
   provider: BaseProvider,
+  nativeCurrency: TCurrency,
   l2GasData?: ArbitrumGasData,
   providerConfig?: GasModelProviderConfig
 ): Promise<{
@@ -555,7 +566,7 @@ export const calculateL1GasFeesHelper = async (
   gasUsedL1OnL2: BigNumber;
   gasCostL1USD: CurrencyAmount;
   gasCostL1QuoteToken: CurrencyAmount;
-}> => {
+}> {
   const swapOptions: SwapOptionsUniversalRouter = {
     type: SwapType.UNIVERSAL_ROUTER,
     version:
@@ -588,7 +599,6 @@ export const calculateL1GasFeesHelper = async (
   }
 
   // wrap fee to native currency
-  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
   const costNativeCurrency = CurrencyAmount.fromRawAmount(
     nativeCurrency,
     mainnetFeeInWei.toString()
@@ -596,9 +606,9 @@ export const calculateL1GasFeesHelper = async (
 
   // convert fee into usd
   const gasCostL1USD: CurrencyAmount = getQuoteThroughNativePool(
-    chainId,
     costNativeCurrency,
-    usdPool
+    usdPool,
+    nativeCurrency
   );
 
   let gasCostL1QuoteToken = costNativeCurrency;
@@ -610,10 +620,10 @@ export const calculateL1GasFeesHelper = async (
       );
       gasCostL1QuoteToken = CurrencyAmount.fromRawAmount(quoteToken, 0);
     } else {
-      const nativeTokenPrice =
-        nativePool.token0.address == nativeCurrency.address
-          ? nativePool.token0Price
-          : nativePool.token1Price;
+      const nativeTokenPrice: Price<TCurrency, TCurrency> =
+        getAddress(nativePool.token0) == getAddress(nativeCurrency)
+          ? (nativePool.token0Price as Price<TCurrency, TCurrency>)
+          : (nativePool.token1Price as Price<TCurrency, TCurrency>);
       gasCostL1QuoteToken = nativeTokenPrice.quote(costNativeCurrency);
     }
   }
@@ -688,4 +698,4 @@ export const calculateL1GasFeesHelper = async (
     ).calldata;
     return calculateArbitrumToL1FeeFromCalldata(data, gasData, chainId);
   }
-};
+}

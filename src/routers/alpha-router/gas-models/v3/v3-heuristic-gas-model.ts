@@ -1,7 +1,8 @@
+import { BaseProvider } from '@ethersproject/providers';
+import { Token } from '@uniswap/sdk-core';
+
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import { BuildOnChainGasModelFactoryType, IGasModel } from '../gas-model';
-
-import { BaseProvider } from '@ethersproject/providers';
 import { TickBasedHeuristicGasModelFactory } from '../tick-based-heuristic-gas-model';
 
 /**
@@ -22,9 +23,12 @@ import { TickBasedHeuristicGasModelFactory } from '../tick-based-heuristic-gas-m
  * @export
  * @class V3HeuristicGasModelFactory
  */
-export class V3HeuristicGasModelFactory extends TickBasedHeuristicGasModelFactory<V3RouteWithValidQuote> {
-  constructor(provider: BaseProvider) {
-    super(provider);
+export class V3HeuristicGasModelFactory extends TickBasedHeuristicGasModelFactory<
+  V3RouteWithValidQuote,
+  Token
+> {
+  constructor(provider: BaseProvider, nativeCurrency: Token) {
+    super(provider, nativeCurrency);
   }
 
   public override async buildGasModel({
@@ -36,7 +40,7 @@ export class V3HeuristicGasModelFactory extends TickBasedHeuristicGasModelFactor
     v2poolProvider,
     l2GasDataProvider,
     providerConfig,
-  }: BuildOnChainGasModelFactoryType): Promise<
+  }: BuildOnChainGasModelFactoryType<Token>): Promise<
     IGasModel<V3RouteWithValidQuote>
   > {
     return await super.buildGasModelInternal({

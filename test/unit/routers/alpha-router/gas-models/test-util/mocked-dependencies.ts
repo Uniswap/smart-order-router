@@ -13,6 +13,7 @@ import {
   V3PoolProvider,
   V3RouteWithValidQuote,
   V4PoolProvider,
+  V4RouteWithValidQuote,
 } from '../../../../../../src';
 import {
   buildMockV2PoolAccessor,
@@ -52,6 +53,23 @@ export function getMockedMixedGasModel(): IGasModel<MixedRouteWithValidQuote> {
 
   return mockMixedGasModel;
 }
+
+export function getMockedV4GasModel(): IGasModel<V4RouteWithValidQuote> {
+  const mockV4GasModel = {
+    estimateGasCost: sinon.stub(),
+  };
+
+  mockV4GasModel.estimateGasCost.callsFake((r) => {
+    return {
+      gasEstimate: BigNumber.from(10000),
+      gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+      gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+    };
+  });
+
+  return mockV4GasModel;
+}
+
 
 export function getMockedV3GasModel(): IGasModel<V3RouteWithValidQuote> {
   const mockV3GasModel = {
