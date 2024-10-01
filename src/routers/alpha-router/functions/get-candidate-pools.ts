@@ -80,14 +80,15 @@ import {
 import {
   getAddress,
   getAddressLowerCase,
-  getApplicableV3FeeAmounts,
+  getApplicableV3FeeAmounts, nativeOnChain,
   unparseFeeAmount,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
+import { isNativeCurrency } from '@uniswap/universal-router-sdk';
 
 export type SubgraphPool = V2SubgraphPool | V3SubgraphPool | V4SubgraphPool;
 export type CandidatePoolsBySelectionCriteria = {
@@ -765,10 +766,11 @@ export async function getV4CandidatePools({
 
   const tokenPairsRaw = _.map<
     V4SubgraphPool,
-    [Token, Token, number, number, string] | undefined
+    [Currency, Currency, number, number, string] | undefined
   >(subgraphPools, (subgraphPool) => {
-    const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
-    const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
+    // native currency is not erc20 token, therefore there's no way to retrieve native currency metadata as the erc20 token.
+    const tokenA = isNativeCurrency(subgraphPool.token0.id) ? nativeOnChain(chainId) : tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+    const tokenB = isNativeCurrency(subgraphPool.token1.id) ? nativeOnChain(chainId) : tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
     let fee: FeeAmount;
     try {
       fee = Number(subgraphPool.feeTier);

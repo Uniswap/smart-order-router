@@ -80,6 +80,7 @@ import {
   USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
+  USDC_NATIVE_SEPOLIA,
   USDC_ON,
   USDT_BNB,
   USDT_MAINNET,
@@ -3730,11 +3731,6 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.SEPOLIA) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
-              return;
-            }
-
             if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
@@ -3745,7 +3741,7 @@ describe('quote for other networks', () => {
             const tokenIn = nativeOnChain(chain);
             // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
             // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
-            const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2;
+            const tokenOut = [ChainId.BASE, ChainId.SEPOLIA].includes(chain) ? (chain !== ChainId.SEPOLIA ? USDC_ON(chain) : USDC_NATIVE_SEPOLIA) : erc2;
 
             // Celo currently has low liquidity and will not be able to find route for
             // large input amounts
@@ -3755,9 +3751,12 @@ describe('quote for other networks', () => {
                 ? tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('10', tokenIn)
                   : parseAmount('10', tokenOut)
-                : tradeType == TradeType.EXACT_INPUT
+                : (chain !== ChainId.SEPOLIA ? tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)
-                  : parseAmount('1', tokenOut);
+                  : parseAmount('1', tokenOut) :
+                  tradeType == TradeType.EXACT_INPUT ?
+                  parseAmount('0.00000000000001', tokenIn):
+                  parseAmount('0.000001', tokenOut));
 
             const swap = await alphaRouter.route(
               amount,
@@ -3767,7 +3766,8 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
+                protocols: chain === ChainId.SEPOLIA ? [Protocol.V4] : [Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0
               }
             );
             expect(swap).toBeDefined();

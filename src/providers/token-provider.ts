@@ -111,6 +111,13 @@ export const USDC_SEPOLIA = new Token(
   'USDC',
   'USDC Token'
 );
+export const USDC_NATIVE_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
+  6,
+  'USDC',
+  'USDC Token'
+);
 export const DAI_SEPOLIA = new Token(
   ChainId.SEPOLIA,
   '0x7AF17A48a6336F7dc1beF9D485139f7B6f4FB5C8',
