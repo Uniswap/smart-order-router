@@ -3,6 +3,7 @@ import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { ADDRESS_ZERO, FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
+import { isNativeCurrency } from '@uniswap/universal-router-sdk';
 import {
   DAI_OPTIMISM_SEPOLIA,
   ITokenListProvider,
@@ -81,6 +82,7 @@ import {
   getAddress,
   getAddressLowerCase,
   getApplicableV3FeeAmounts,
+  nativeOnChain,
   unparseFeeAmount,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../util';
@@ -765,10 +767,15 @@ export async function getV4CandidatePools({
 
   const tokenPairsRaw = _.map<
     V4SubgraphPool,
-    [Token, Token, number, number, string] | undefined
+    [Currency, Currency, number, number, string] | undefined
   >(subgraphPools, (subgraphPool) => {
-    const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
-    const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
+    // native currency is not erc20 token, therefore there's no way to retrieve native currency metadata as the erc20 token.
+    const tokenA = isNativeCurrency(subgraphPool.token0.id)
+      ? nativeOnChain(chainId)
+      : tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+    const tokenB = isNativeCurrency(subgraphPool.token1.id)
+      ? nativeOnChain(chainId)
+      : tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
     let fee: FeeAmount;
     try {
       fee = Number(subgraphPool.feeTier);
