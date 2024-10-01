@@ -3774,6 +3774,34 @@ describe('quote for other networks', () => {
             expect(swap).not.toBeNull();
           });
 
+          it(`erc20 -> ${native}`, async () => {
+            if (chain !== ChainId.SEPOLIA) {
+              return;
+            }
+
+            const tokenIn = USDC_NATIVE_SEPOLIA;
+            const tokenOut = nativeOnChain(chain);
+
+            const amount = tradeType == TradeType.EXACT_INPUT ?
+              parseAmount('0.000001', tokenIn):
+              parseAmount('0.00000000000001', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: chain === ChainId.SEPOLIA ? [Protocol.V4] : [Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+          });
+
           it(`has quoteGasAdjusted values`, async () => {
             if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_A)) {
               // Sepolia doesn't have sufficient liquidity on DAI pools yet
