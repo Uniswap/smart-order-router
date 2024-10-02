@@ -43,6 +43,10 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v3CoreFactoryAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].v3CoreFactoryAddress,
   [ChainId.ZKSYNC]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZKSYNC].v3CoreFactoryAddress,
+  [ChainId.WORLDCHAIN]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].v3CoreFactoryAddress,
+  [ChainId.ASTROCHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -68,6 +72,10 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].quoterAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].quoterAddress,
   [ChainId.ZKSYNC]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZKSYNC].quoterAddress,
+  [ChainId.WORLDCHAIN]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress,
+  [ChainId.ASTROCHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -85,6 +93,10 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
   [ChainId.ZORA]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
   [ChainId.ZKSYNC]: '0x071Bd2063dF031EDd110E27C6F4CDe50A3DeF2d4',
+  [ChainId.WORLDCHAIN]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress, // TODO: deploy view-only-quoter to worldchain
+  [ChainId.ASTROCHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress, // TODO: deploy view-only-quoter to astrochain
 };
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
@@ -127,6 +139,10 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].multicallAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].multicallAddress,
   [ChainId.ZKSYNC]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZKSYNC].multicallAddress,
+  [ChainId.WORLDCHAIN]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].multicallAddress,
+  [ChainId.ASTROCHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
 };
 
@@ -285,6 +301,20 @@ export const WETH9: {
   [ChainId.ZKSYNC]: new Token(
     ChainId.ZKSYNC,
     '0x5aea5775959fbc2557cc8789bc1bf90a239d9a91',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.WORLDCHAIN]: new Token(
+    ChainId.WORLDCHAIN,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ASTROCHAIN_SEPOLIA]: new Token(
+    ChainId.ASTROCHAIN_SEPOLIA,
+    '0x4200000000000000000000000000000000000006',
     18,
     'WETH',
     'Wrapped Ether'
