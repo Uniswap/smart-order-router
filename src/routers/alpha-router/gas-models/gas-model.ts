@@ -27,6 +27,7 @@ import {
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
+  USDC_ASTROCHAIN_SEPOLIA,
   USDC_AVAX,
   USDC_BASE,
   USDC_BNB,
@@ -124,6 +125,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.ZORA]: [USDC_ZORA],
   [ChainId.ZKSYNC]: [DAI_ZKSYNC, USDCE_ZKSYNC, USDC_ZKSYNC],
   [ChainId.WORLDCHAIN]: [USDC_WORLDCHAIN],
+  [ChainId.ASTROCHAIN_SEPOLIA]: [USDC_ASTROCHAIN_SEPOLIA],
 };
 
 export type L1ToL2GasCosts = {

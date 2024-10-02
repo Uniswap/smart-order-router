@@ -727,6 +727,14 @@ export const WBTC_WORLDCHAIN = new Token(
   'Wrapped BTC'
 );
 
+export const USDC_ASTROCHAIN_SEPOLIA = new Token(
+  ChainId.ASTROCHAIN_SEPOLIA,
+  '0x31d0220469e10c4E71834a79b1f276d740d3768F',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -1002,6 +1010,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDCE_ZKSYNC;
     case ChainId.WORLDCHAIN:
       return USDC_WORLDCHAIN;
+    case ChainId.ASTROCHAIN_SEPOLIA:
+      return USDC_ASTROCHAIN_SEPOLIA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
