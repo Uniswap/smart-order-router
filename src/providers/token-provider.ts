@@ -703,6 +703,38 @@ export const DAI_ZKSYNC = new Token(
   'Dai Stablecoin'
 );
 
+export const USDC_WORLDCHAIN = new Token(
+  ChainId.WORLDCHAIN,
+  '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1',
+  6,
+  'USDC.e',
+  'Bridged USDC (world-chain-mainnet)'
+);
+
+export const WLD_WORLDCHAIN = new Token(
+  ChainId.WORLDCHAIN,
+  '0x2cFc85d8E48F8EAB294be644d9E25C3030863003',
+  18,
+  'WLD',
+  'Worldcoin'
+);
+
+export const WBTC_WORLDCHAIN = new Token(
+  ChainId.WORLDCHAIN,
+  '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+
+export const USDC_ASTROCHAIN_SEPOLIA = new Token(
+  ChainId.ASTROCHAIN_SEPOLIA,
+  '0x31d0220469e10c4E71834a79b1f276d740d3768F',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -976,6 +1008,10 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ZORA;
     case ChainId.ZKSYNC:
       return USDCE_ZKSYNC;
+    case ChainId.WORLDCHAIN:
+      return USDC_WORLDCHAIN;
+    case ChainId.ASTROCHAIN_SEPOLIA:
+      return USDC_ASTROCHAIN_SEPOLIA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

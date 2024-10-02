@@ -26,6 +26,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.BLAST,
   ChainId.ZORA,
   ChainId.ZKSYNC,
+  ChainId.WORLDCHAIN,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -53,6 +54,8 @@ export const HAS_L1_FEE = [
   ChainId.BASE_GOERLI,
   ChainId.BLAST,
   ChainId.ZORA,
+  ChainId.WORLDCHAIN,
+  ChainId.ASTROCHAIN_SEPOLIA,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -110,6 +113,10 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.ZORA;
     case 324:
       return ChainId.ZKSYNC;
+    case 480:
+      return ChainId.WORLDCHAIN;
+    case 1301:
+      return ChainId.ASTROCHAIN_SEPOLIA;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -138,6 +145,8 @@ export enum ChainName {
   BLAST = 'blast-mainnet',
   ZORA = 'zora-mainnet',
   ZKSYNC = 'zksync-mainnet',
+  WORLDCHAIN = 'worldchain-mainnet',
+  ASTROCHAIN_SEPOLIA = 'astrochain-sepolia',
 }
 
 export enum NativeCurrencyName {
@@ -232,6 +241,16 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.WORLDCHAIN]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.ASTROCHAIN_SEPOLIA]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -256,6 +275,8 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.BLAST]: NativeCurrencyName.ETHER,
   [ChainId.ZORA]: NativeCurrencyName.ETHER,
   [ChainId.ZKSYNC]: NativeCurrencyName.ETHER,
+  [ChainId.WORLDCHAIN]: NativeCurrencyName.ETHER,
+  [ChainId.ASTROCHAIN_SEPOLIA]: NativeCurrencyName.ETHER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -304,6 +325,10 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.ZORA;
     case 324:
       return ChainName.ZKSYNC;
+    case 480:
+      return ChainName.WORLDCHAIN;
+    case 1301:
+      return ChainName.ASTROCHAIN_SEPOLIA;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -353,6 +378,10 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ZORA!;
     case ChainId.ZKSYNC:
       return process.env.JSON_RPC_PROVIDER_ZKSYNC!;
+    case ChainId.WORLDCHAIN:
+      return process.env.JSON_RPC_PROVIDER_WORLDCHAIN!;
+    case ChainId.ASTROCHAIN_SEPOLIA:
+      return process.env.JSON_RPC_PROVIDER_ASTROCHAIN_SEPOLIA!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -525,6 +554,20 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   [ChainId.ZKSYNC]: new Token(
     ChainId.ZKSYNC,
     '0x5aea5775959fbc2557cc8789bc1bf90a239d9a91',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.WORLDCHAIN]: new Token(
+    ChainId.WORLDCHAIN,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.ASTROCHAIN_SEPOLIA]: new Token(
+    ChainId.ASTROCHAIN_SEPOLIA,
+    '0x4200000000000000000000000000000000000006',
     18,
     'WETH',
     'Wrapped Ether'

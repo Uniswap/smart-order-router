@@ -16,14 +16,17 @@ import {
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
   USDC_ON,
+  USDC_WORLDCHAIN,
   USDC_ZORA,
   USDT_MAINNET, V4_SEPOLIA_TEST_A,
   WETH9,
+  WLD_WORLDCHAIN,
   WNATIVE_ON
 } from '../../src';
 import { BULLET, BULLET_WITHOUT_TAX } from './mock-data';
 
 export const WHALES = (token: Currency): string => {
+  let USDC_ASTROCHAIN_SEPOLIA;
   switch (token) {
     case Ether.onChain(ChainId.MAINNET) as Currency:
       return '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
@@ -131,6 +134,20 @@ export const WHALES = (token: Currency): string => {
       return '0x171d311eAcd2206d21Cb462d661C33F0eddadC03';
     case V4_SEPOLIA_TEST_A:
       return '0xB7a249bdeFf39727B5Eb4C7AD458f682BAe6aDAD';
+    case WLD_WORLDCHAIN:
+      return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
+    case USDC_WORLDCHAIN:
+      return '0x45CED21E1d5eFB631997F2Fa1727d5577427d350';
+    case nativeOnChain(ChainId.WORLDCHAIN):
+      return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
+    case WNATIVE_ON(ChainId.WORLDCHAIN):
+      return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
+    case USDC_ASTROCHAIN_SEPOLIA:
+      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
+    case nativeOnChain(ChainId.ASTROCHAIN_SEPOLIA):
+      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
+    case WNATIVE_ON(ChainId.ASTROCHAIN_SEPOLIA):
+      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }
