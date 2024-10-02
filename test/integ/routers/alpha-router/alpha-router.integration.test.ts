@@ -66,7 +66,6 @@ import {
   SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
-  TENDERLY_NOT_SUPPORTED_CHAINS,
   TenderlySimulator,
   TokenPropertiesProvider,
   UNI_GOERLI,
