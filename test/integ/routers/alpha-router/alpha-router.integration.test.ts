@@ -66,6 +66,7 @@ import {
   SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
+  TENDERLY_NOT_SUPPORTED_CHAINS,
   TenderlySimulator,
   TokenPropertiesProvider,
   UNI_GOERLI,
@@ -95,6 +96,7 @@ import {
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
+  WLD_WORLDCHAIN,
   WNATIVE_ON,
   WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
@@ -3489,7 +3491,7 @@ describe('quote for other networks', () => {
     [ChainId.ROOTSTOCK]: () => WNATIVE_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
     [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
-    [ChainId.WORLDCHAIN]: () => WNATIVE_ON(ChainId.WORLDCHAIN),
+    [ChainId.WORLDCHAIN]: () => WLD_WORLDCHAIN,
     [ChainId.ASTROCHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.ASTROCHAIN_SEPOLIA),
   };
 
@@ -3738,10 +3740,11 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.ASTROCHAIN_SEPOLIA) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
+              // astrochain sepolia doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -3929,7 +3932,7 @@ describe('quote for other networks', () => {
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA ? '0.1' : '10', tokenIn)
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.1' : '10', tokenIn)
                   : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -4002,7 +4005,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]}`);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed.toNumber()} ${swap!.estimatedGasUsed.toNumber()}`);
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
@@ -4112,7 +4115,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed.toNumber()} ${swap!.estimatedGasUsed.toNumber()}`);
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
@@ -4136,8 +4139,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                 tradeType === TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA ? '0.1' : '1', tokenIn)
-                  : parseAmount(chain === ChainId.ZORA ? '0.01' : '1', tokenOut);
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.1' : '1', tokenIn)
+                  : parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -4241,7 +4244,7 @@ describe('quote for other networks', () => {
               const tokenOut = chain == ChainId.BASE || chain == ChainId.ZORA ? USDC_ON(chain) : erc2;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('1', tokenIn)
+                  ? parseAmount(chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '1', tokenIn)
                   : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -4314,7 +4317,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`);
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed} ${swap!.estimatedGasUsed}`);
 
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
