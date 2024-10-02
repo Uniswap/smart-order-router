@@ -235,6 +235,13 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x5aea5775959fbc2557cc8789bc1bf90a239d9a91 --tokenOut 0x1d17cbcf0d6d143135ae902365d2e5e2a16538d4 --amount 10 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 324
 ```
 
+## WorldChain Mainnet
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 480
+```
+
+
 
 ## Adding a new Chain
 

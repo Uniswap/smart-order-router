@@ -8,4 +8,5 @@ export const opStackChains = [
   ChainId.BASE_GOERLI,
   ChainId.BLAST,
   ChainId.ZORA,
+  ChainId.WORLDCHAIN,
 ];

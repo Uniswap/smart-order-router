@@ -747,6 +747,39 @@ jobs:
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
           TENDERLY_NODE_API_KEY: ${{ secrets.TENDERLY_NODE_API_KEY }}
 
+  integration-tests-quote-for-other-networks-worldchain:
+    name: Integration Tests - Quote For Other Networks WorldChain
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'quote for other networks * worldchain'
+        env:
+          JSON_RPC_PROVIDER_WORLDCHAIN: ${{ secrets.JSON_RPC_PROVIDER_WORLDCHAIN }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+
   integration-tests-quote-for-other-networks-remaining-networks:
     name: Integration Tests - Quote For Other Networks Remaining Networks
     runs-on: ubuntu-latest

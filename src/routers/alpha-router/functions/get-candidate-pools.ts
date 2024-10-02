@@ -12,11 +12,14 @@ import {
   IV4SubgraphProvider,
   USDC_ARBITRUM_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
+  USDC_WORLDCHAIN,
   USDT_OPTIMISM_SEPOLIA,
   V2SubgraphPool,
   V4PoolAccessor,
   V4SubgraphPool,
   WBTC_OPTIMISM_SEPOLIA,
+  WBTC_WORLDCHAIN,
+  WLD_WORLDCHAIN,
 } from '../../../providers';
 import {
   CELO,
@@ -233,6 +236,12 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BLAST]: [WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!, USDB_BLAST],
   [ChainId.ZORA]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZORA]!],
   [ChainId.ZKSYNC]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZKSYNC]!],
+  [ChainId.WORLDCHAIN]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.WORLDCHAIN]!,
+    USDC_WORLDCHAIN,
+    WBTC_WORLDCHAIN,
+    WLD_WORLDCHAIN,
+  ],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {
