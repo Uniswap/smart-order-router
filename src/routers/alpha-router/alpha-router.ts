@@ -1315,7 +1315,6 @@ export class AlphaRouter
       await partialRoutingConfig.blockNumber
     );
 
-    const quoteToken = quoteCurrency.wrapped;
     // const gasTokenAccessor = await this.tokenProvider.getTokens([routingConfig.gasToken!]);
     const gasToken = routingConfig.gasToken
       ? (
@@ -1344,7 +1343,7 @@ export class AlphaRouter
     } = await this.getGasModels(
       gasPriceWei,
       amount.currency.wrapped,
-      quoteToken,
+      quoteCurrency.wrapped,
       providerConfig
     );
 
@@ -1359,7 +1358,7 @@ export class AlphaRouter
       (await this.routeCachingProvider?.getCacheMode(
         this.chainId,
         amount,
-        quoteToken,
+        quoteCurrency,
         tradeType,
         protocols
       ));
@@ -1370,7 +1369,7 @@ export class AlphaRouter
       cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
         this.chainId,
         amount,
-        quoteToken,
+        quoteCurrency,
         tradeType,
         protocols,
         await blockNumber,
@@ -1452,7 +1451,7 @@ export class AlphaRouter
         cachedRoutes,
         await blockNumber,
         amount,
-        quoteToken,
+        quoteCurrency,
         tradeType,
         routingConfig,
         v3GasModel,
@@ -1473,7 +1472,7 @@ export class AlphaRouter
         currencyIn,
         currencyOut,
         protocols,
-        quoteToken,
+        quoteCurrency,
         tradeType,
         routingConfig,
         v3GasModel,
@@ -1795,7 +1794,7 @@ export class AlphaRouter
     cachedRoutes: CachedRoutes,
     blockNumber: number,
     amount: CurrencyAmount,
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
@@ -1876,7 +1875,7 @@ export class AlphaRouter
             v4RoutesFromCache,
             amounts,
             percents,
-            quoteToken,
+            quoteCurrency,
             tradeType,
             routingConfig,
             undefined,
@@ -1913,7 +1912,7 @@ export class AlphaRouter
               v3RoutesFromCache,
               amounts,
               percents,
-              quoteToken,
+              quoteCurrency.wrapped,
               tradeType,
               routingConfig,
               undefined,
@@ -1952,7 +1951,7 @@ export class AlphaRouter
             v2RoutesFromCache,
             amounts,
             percents,
-            quoteToken,
+            quoteCurrency.wrapped,
             tradeType,
             routingConfig,
             gasPriceWei
@@ -1988,7 +1987,7 @@ export class AlphaRouter
               mixedRoutesFromCache,
               amounts,
               percents,
-              quoteToken,
+              quoteCurrency.wrapped,
               tradeType,
               routingConfig,
               undefined,
@@ -2034,7 +2033,7 @@ export class AlphaRouter
     currencyIn: Currency,
     currencyOut: Currency,
     protocols: Protocol[],
-    quoteToken: Token,
+    quoteCurrency: Currency,
     tradeType: TradeType,
     routingConfig: AlphaRouterConfig,
     v3GasModel: IGasModel<V3RouteWithValidQuote>,
@@ -2200,7 +2199,7 @@ export class AlphaRouter
               amount,
               amounts,
               percents,
-              quoteToken,
+              quoteCurrency,
               v4CandidatePools!,
               tradeType,
               routingConfig,
@@ -2242,7 +2241,7 @@ export class AlphaRouter
                 amount,
                 amounts,
                 percents,
-                quoteToken,
+                quoteCurrency.wrapped,
                 v3CandidatePools!,
                 tradeType,
                 routingConfig,
@@ -2284,7 +2283,7 @@ export class AlphaRouter
               amount,
               amounts,
               percents,
-              quoteToken,
+              quoteCurrency.wrapped,
               v2CandidatePools!,
               tradeType,
               routingConfig,
@@ -2347,7 +2346,7 @@ export class AlphaRouter
                   amount,
                   amounts,
                   percents,
-                  quoteToken,
+                  quoteCurrency.wrapped,
                   [
                     v4CandidatePools!,
                     v3CandidatePools!,
