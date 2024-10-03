@@ -222,6 +222,9 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
           initializedTicksCrossedList,
           quoterGasEstimate: gasEstimate,
           gasModel,
+          // TODO: make it unwrapped, once v4 gas model supports native quote currency
+          // For now it's ok to keep it wrapped,
+          // because the quote is the fairly accurate quote from the native currency routing
           quoteToken: quoteCurrency.wrapped,
           tradeType,
           v4PoolProvider: this.v4PoolProvider,

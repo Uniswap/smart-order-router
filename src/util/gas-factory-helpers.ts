@@ -538,6 +538,7 @@ export function initSwapRouteFromExisting(
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
     portionAmount: swapRoute.portionAmount,
+    hitsCachedRoute: swapRoute.hitsCachedRoute,
   };
 }
 
