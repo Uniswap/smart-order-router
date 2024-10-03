@@ -772,7 +772,7 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * worldchain'
+        run: npm run integ-test  -- -t 'quote for other networks * astrochain'
         env:
           JSON_RPC_PROVIDER_WORLDCHAIN: ${{ secrets.JSON_RPC_PROVIDER_WORLDCHAIN }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
