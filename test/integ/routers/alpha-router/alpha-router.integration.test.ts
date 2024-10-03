@@ -3506,8 +3506,7 @@ describe('quote for other networks', () => {
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA_SEPOLIA &&
-      c != ChainId.ROOTSTOCK &&
-      c != ChainId.ASTROCHAIN_SEPOLIA
+      c != ChainId.ROOTSTOCK
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
