@@ -27,6 +27,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.ZORA,
   ChainId.ZKSYNC,
   ChainId.WORLDCHAIN,
+  ChainId.ASTROCHAIN_SEPOLIA,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -39,6 +40,8 @@ export const V2_SUPPORTED = [
   ChainId.BASE,
   ChainId.BNB,
   ChainId.AVALANCHE,
+  ChainId.WORLDCHAIN,
+  ChainId.ASTROCHAIN_SEPOLIA,
 ];
 
 export const V4_SUPPORTED = [ChainId.SEPOLIA];
