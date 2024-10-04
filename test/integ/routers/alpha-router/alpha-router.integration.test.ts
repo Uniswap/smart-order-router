@@ -3506,8 +3506,7 @@ describe('quote for other networks', () => {
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA_SEPOLIA &&
-      c != ChainId.ROOTSTOCK &&
-      c != ChainId.ASTROCHAIN_SEPOLIA
+      c != ChainId.ROOTSTOCK
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
@@ -3651,7 +3650,10 @@ describe('quote for other networks', () => {
 
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
-            const amount =
+            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.01', tokenIn):
+                parseAmount('0.01', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('10', tokenIn)
                 : parseAmount('10', tokenOut);
@@ -3715,7 +3717,10 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount =
+            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.01', tokenIn):
+                parseAmount('0.01', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3822,7 +3827,10 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount =
+            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.01', tokenIn):
+                parseAmount('0.01', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3865,7 +3873,10 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
-            const amount =
+            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.01', tokenIn):
+                parseAmount('0.01', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3931,7 +3942,7 @@ describe('quote for other networks', () => {
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.1' : '10', tokenIn)
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '10', tokenIn)
                   : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -4138,8 +4149,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                 tradeType === TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.1' : '1', tokenIn)
-                  : parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '1', tokenOut);
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '1', tokenIn)
+                  : parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -4243,7 +4254,7 @@ describe('quote for other networks', () => {
               const tokenOut = chain == ChainId.BASE || chain == ChainId.ZORA ? USDC_ON(chain) : erc2;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '1', tokenIn)
+                  ? parseAmount(chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '1', tokenIn)
                   : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
