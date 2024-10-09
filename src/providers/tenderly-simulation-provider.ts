@@ -132,17 +132,6 @@ const TENDERLY_BATCH_SIMULATE_API = (
 ) =>
   `${tenderlyBaseUrl}/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate-batch`;
 
-const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
-  switch (chainId) {
-    case ChainId.MAINNET:
-      return `https://mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
-    default:
-      throw new Error(
-        `ChainId ${chainId} does not correspond to a tenderly node endpoint`
-      );
-  }
-};
-
 export const TENDERLY_NOT_SUPPORTED_CHAINS = [
   ChainId.CELO,
   ChainId.CELO_ALFAJORES,
@@ -233,7 +222,7 @@ export class TenderlySimulator extends Simulator {
   private tenderlyUser: string;
   private tenderlyProject: string;
   private tenderlyAccessKey: string;
-  private tenderlyNodeApiKey: string;
+  private tenderlyNodeApiUrl: string;
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
   private v4PoolProvider: IV4PoolProvider;
@@ -254,7 +243,7 @@ export class TenderlySimulator extends Simulator {
     tenderlyUser: string,
     tenderlyProject: string,
     tenderlyAccessKey: string,
-    tenderlyNodeApiKey: string,
+    tenderlyNodeApiBaseUrl: string,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
     v4PoolProvider: IV4PoolProvider,
@@ -270,7 +259,7 @@ export class TenderlySimulator extends Simulator {
     this.tenderlyUser = tenderlyUser;
     this.tenderlyProject = tenderlyProject;
     this.tenderlyAccessKey = tenderlyAccessKey;
-    this.tenderlyNodeApiKey = tenderlyNodeApiKey;
+    this.tenderlyNodeApiUrl = tenderlyNodeApiBaseUrl;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
     this.v4PoolProvider = v4PoolProvider;
@@ -769,10 +758,7 @@ export class TenderlySimulator extends Simulator {
     approveUniversalRouter: TenderlySimulationRequest,
     swap: TenderlySimulationRequest
   ): Promise<{ data: TenderlyResponseEstimateGasBundle; status: number }> {
-    const nodeEndpoint = TENDERLY_NODE_API(
-      this.chainId,
-      this.tenderlyNodeApiKey
-    );
+    const nodeEndpoint = this.tenderlyNodeApiUrl;
     const blockNumber = swap.block_number
       ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
       : 'latest';
