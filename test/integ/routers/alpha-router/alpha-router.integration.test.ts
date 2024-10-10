@@ -3652,8 +3652,8 @@ describe('quote for other networks', () => {
             const tokenOut = erc1;
             const amount = ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
-                parseAmount('0.01', tokenIn):
-                parseAmount('0.01', tokenOut) :
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('10', tokenIn)
                 : parseAmount('10', tokenOut);
@@ -3719,8 +3719,8 @@ describe('quote for other networks', () => {
             const exactOutAmount = '1';
             const amount = ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
-                parseAmount('0.01', tokenIn):
-                parseAmount('0.01', tokenOut) :
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3829,8 +3829,8 @@ describe('quote for other networks', () => {
             const exactOutAmount = '1';
             const amount = ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
-                parseAmount('0.01', tokenIn):
-                parseAmount('0.01', tokenOut) :
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3875,8 +3875,8 @@ describe('quote for other networks', () => {
             const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
             const amount = ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
-                parseAmount('0.01', tokenIn):
-                parseAmount('0.01', tokenOut) :
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3942,7 +3942,7 @@ describe('quote for other networks', () => {
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '10', tokenIn)
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
                   : parseAmount('10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -4149,7 +4149,7 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                 tradeType === TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.01' : '1', tokenIn)
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '1', tokenIn)
                   : parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
