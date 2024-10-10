@@ -96,7 +96,7 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.WORLDCHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress, // TODO: deploy view-only-quoter to worldchain
   [ChainId.ASTROCHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress, // TODO: deploy view-only-quoter to astrochain
+    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].quoterAddress, // TODO: deploy view-only-quoter to astrochain
 };
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
