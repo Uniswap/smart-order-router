@@ -99,7 +99,7 @@ export const WHALES = (token: Currency): string => {
     case USDC_ON(ChainId.AVALANCHE):
       return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
     case USDC_NATIVE_AVAX:
-      return '0x3A2434c698f8D79af1f5A9e43013157ca8B11a66';
+      return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
     case USDC_ON(ChainId.BNB):
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case USDC_ON(ChainId.BASE):
