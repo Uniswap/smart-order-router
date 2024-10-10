@@ -18,7 +18,8 @@ import {
   USDC_ON,
   USDC_WORLDCHAIN,
   USDC_ZORA,
-  USDT_MAINNET, V4_SEPOLIA_TEST_A,
+  USDT_MAINNET,
+  V4_SEPOLIA_TEST_A,
   WETH9,
   WLD_WORLDCHAIN,
   WNATIVE_ON
@@ -99,7 +100,7 @@ export const WHALES = (token: Currency): string => {
     case USDC_ON(ChainId.AVALANCHE):
       return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
     case USDC_NATIVE_AVAX:
-      return '0x3A2434c698f8D79af1f5A9e43013157ca8B11a66';
+      return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
     case USDC_ON(ChainId.BNB):
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case USDC_ON(ChainId.BASE):
@@ -108,6 +109,8 @@ export const WHALES = (token: Currency): string => {
       return '0xbC59f8F3b275AA56A90D13bAE7cCe5e6e11A3b17';
     case USDC_NATIVE_BASE:
       return '0x20fe51a9229eef2cf8ad9e89d91cab9312cf3b7a';
+    case USDC_ON(ChainId.ASTROCHAIN_SEPOLIA):
+      return '0xca8cA8840c77589981E63f4D8122fFEc4b74e2a1';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):

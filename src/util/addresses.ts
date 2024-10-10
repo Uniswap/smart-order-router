@@ -96,12 +96,12 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.WORLDCHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress, // TODO: deploy view-only-quoter to worldchain
   [ChainId.ASTROCHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress, // TODO: deploy view-only-quoter to astrochain
+    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].quoterAddress, // TODO: deploy view-only-quoter to astrochain
 };
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
-  [ChainId.SEPOLIA]: '0x9336CF25dDad216FD480A5422CBEa7b3BC5bDda8',
+  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
@@ -111,9 +111,9 @@ export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV1Address,
 };
 
-// TODO: use CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV2Address once sdk-core finalizes deploy addresses
 export const MIXED_ROUTE_QUOTER_V2_ADDRESSES: AddressMap = {
-  [ChainId.SEPOLIA]: '0x4745f77b56a0e2294426e3936dc4fab68d9543cd',
+  [ChainId.SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].mixedRouteQuoterV2Address,
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
@@ -155,7 +155,7 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
 
 export const STATE_VIEW_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
-  [ChainId.SEPOLIA]: '0x6Bb7157fb50e3Ae4983Ccdc62Fb8173c03c6b0a7',
+  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4StateView,
 };
 
 export const OVM_GASPRICE_ADDRESS =
