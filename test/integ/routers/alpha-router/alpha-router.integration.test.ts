@@ -4243,7 +4243,7 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.ASTROCHAIN_SEPOLIA) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
@@ -4254,7 +4254,7 @@ describe('quote for other networks', () => {
               const tokenOut = chain == ChainId.BASE || chain == ChainId.ZORA ? USDC_ON(chain) : erc2;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '1', tokenIn)
+                  ? parseAmount(chain === ChainId.WORLDCHAIN ? '0.001' : '1', tokenIn)
                   : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
