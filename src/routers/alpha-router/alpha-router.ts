@@ -327,6 +327,12 @@ export type AlphaRouterParams = {
    * The version of the universal router to use.
    */
   universalRouterVersion?: UniversalRouterVersion;
+
+  /**
+   * We want to rollout the cached routes cache invalidation carefully.
+   * Because a wrong fix might impact prod success rate and/or latency.
+   */
+  cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -544,6 +550,7 @@ export class AlphaRouter
   protected v4Supported?: ChainId[];
   protected mixedSupported?: ChainId[];
   protected universalRouterVersion?: UniversalRouterVersion;
+  protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
 
   constructor({
     chainId,
@@ -575,6 +582,7 @@ export class AlphaRouter
     v4Supported,
     mixedSupported,
     universalRouterVersion,
+    cachedRoutesCacheInvalidationFixRolloutPercentage,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -1034,6 +1042,8 @@ export class AlphaRouter
     this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
     this.universalRouterVersion =
       universalRouterVersion ?? UniversalRouterVersion.V1_2;
+
+    this.cachedRoutesCacheInvalidationFixRolloutPercentage = 0;
   }
 
   public async routeToRatio(
@@ -1645,61 +1655,155 @@ export class AlphaRouter
     } = swapRouteRaw;
 
     if (
-      this.routeCachingProvider &&
-      routingConfig.writeToCachedRoutes &&
-      cacheMode !== CacheMode.Darkmode &&
-      swapRouteFromChain
+      Math.random() * 100 <
+      (this.cachedRoutesCacheInvalidationFixRolloutPercentage ?? 0)
     ) {
-      // Generate the object to be cached
-      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-        swapRouteFromChain.routes,
-        this.chainId,
-        currencyIn,
-        currencyOut,
-        protocols.sort(),
-        await blockNumber,
-        tradeType,
-        amount.toExact()
-      );
-
-      if (routesToCache) {
-        // Attempt to insert the entry in cache. This is fire and forget promise.
-        // The catch method will prevent any exception from blocking the normal code execution.
-        this.routeCachingProvider
-          .setCachedRoute(routesToCache, amount)
-          .then((success) => {
-            const status = success ? 'success' : 'rejected';
-            metric.putMetric(
-              `SetCachedRoute_${status}`,
-              1,
-              MetricLoggerUnit.Count
-            );
-          })
-          .catch((reason) => {
-            log.error(
-              {
-                reason: reason,
-                tokenPair: this.tokenPairSymbolTradeTypeChainId(
-                  currencyIn,
-                  currencyOut,
-                  tradeType
-                ),
-              },
-              `SetCachedRoute failure`
-            );
-
-            metric.putMetric(
-              `SetCachedRoute_failure`,
-              1,
-              MetricLoggerUnit.Count
-            );
-          });
-      } else {
-        metric.putMetric(
-          `SetCachedRoute_unnecessary`,
-          1,
-          MetricLoggerUnit.Count
+      // there's a possibility that cachedRoutes object is not null/undefined, but it could cause swapRouteFromCache to be null/undefined
+      // because such cached routes already becomes invalid.
+      // in that case then, we want to try swapRouteFromChain.
+      // If CachedRoutes is populated, then swapRouteFromChain is not being invoked at all in
+      // https://github.com/Uniswap/smart-order-router/blob/66927c4e4f7e75138df48afab1c33a6c6d8d8f15/src/routers/alpha-router/alpha-router.ts#L1469
+      if (
+        this.routeCachingProvider &&
+        routingConfig.writeToCachedRoutes &&
+        cacheMode !== CacheMode.Darkmode &&
+        !swapRouteFromCache
+      ) {
+        // we do want to rollout with percent control though
+        // because we don't know how many cached routes in prod are actually invalid cached routes (that could make swapRouteFromCache null)
+        // if there are many, then this bug fix might have a chance to slow down routing lambda
+        // this code path although can only run in the quote=caching (because of routingConfig.writeToCachedRoutes)
+        // but it will invoke the on-chain-quote provider, which is the most expensive part of the routing lambda network wise
+        // so the intent=caching lambda execution has some chance to impact intent=quote lambda execution
+        const swapRouteFromChain = await this.getSwapRouteFromChain(
+          amount,
+          currencyIn,
+          currencyOut,
+          protocols,
+          quoteCurrency,
+          tradeType,
+          routingConfig,
+          v3GasModel,
+          v4GasModel,
+          mixedRouteGasModel,
+          gasPriceWei,
+          v2GasModel,
+          swapConfig,
+          providerConfig
         );
+
+        if (swapRouteFromChain) {
+          // Generate the object to be cached
+          const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+            swapRouteFromChain.routes,
+            this.chainId,
+            currencyIn,
+            currencyOut,
+            protocols.sort(),
+            await blockNumber,
+            tradeType,
+            amount.toExact()
+          );
+
+          if (routesToCache) {
+            // Attempt to insert the entry in cache. This is fire and forget promise.
+            // The catch method will prevent any exception from blocking the normal code execution.
+            this.routeCachingProvider
+              .setCachedRoute(routesToCache, amount)
+              .then((success) => {
+                const status = success ? 'success' : 'rejected';
+                metric.putMetric(
+                  `SetCachedRoute_${status}`,
+                  1,
+                  MetricLoggerUnit.Count
+                );
+              })
+              .catch((reason) => {
+                log.error(
+                  {
+                    reason: reason,
+                    tokenPair: this.tokenPairSymbolTradeTypeChainId(
+                      currencyIn,
+                      currencyOut,
+                      tradeType
+                    ),
+                  },
+                  `SetCachedRoute failure`
+                );
+
+                metric.putMetric(
+                  `SetCachedRoute_failure`,
+                  1,
+                  MetricLoggerUnit.Count
+                );
+              });
+          } else {
+            metric.putMetric(
+              `SetCachedRoute_unnecessary`,
+              1,
+              MetricLoggerUnit.Count
+            );
+          }
+        }
+      }
+    } else {
+      if (
+        this.routeCachingProvider &&
+        routingConfig.writeToCachedRoutes &&
+        cacheMode !== CacheMode.Darkmode &&
+        swapRouteFromChain
+      ) {
+        // Generate the object to be cached
+        const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+          swapRouteFromChain.routes,
+          this.chainId,
+          currencyIn,
+          currencyOut,
+          protocols.sort(),
+          await blockNumber,
+          tradeType,
+          amount.toExact()
+        );
+
+        if (routesToCache) {
+          // Attempt to insert the entry in cache. This is fire and forget promise.
+          // The catch method will prevent any exception from blocking the normal code execution.
+          this.routeCachingProvider
+            .setCachedRoute(routesToCache, amount)
+            .then((success) => {
+              const status = success ? 'success' : 'rejected';
+              metric.putMetric(
+                `SetCachedRoute_${status}`,
+                1,
+                MetricLoggerUnit.Count
+              );
+            })
+            .catch((reason) => {
+              log.error(
+                {
+                  reason: reason,
+                  tokenPair: this.tokenPairSymbolTradeTypeChainId(
+                    currencyIn,
+                    currencyOut,
+                    tradeType
+                  ),
+                },
+                `SetCachedRoute failure`
+              );
+
+              metric.putMetric(
+                `SetCachedRoute_failure`,
+                1,
+                MetricLoggerUnit.Count
+              );
+            });
+        } else {
+          metric.putMetric(
+            `SetCachedRoute_unnecessary`,
+            1,
+            MetricLoggerUnit.Count
+          );
+        }
       }
     }
 
