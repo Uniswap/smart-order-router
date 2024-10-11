@@ -95,6 +95,7 @@ import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
   getAddress,
   getAddressLowerCase,
+  MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
@@ -318,6 +319,11 @@ export type AlphaRouterParams = {
   v4Supported?: ChainId[];
 
   /**
+   * All the supported mixed chains configuration
+   */
+  mixedSupported?: ChainId[];
+
+  /**
    * The version of the universal router to use.
    */
   universalRouterVersion?: UniversalRouterVersion;
@@ -536,6 +542,7 @@ export class AlphaRouter
   protected portionProvider: IPortionProvider;
   protected v2Supported?: ChainId[];
   protected v4Supported?: ChainId[];
+  protected mixedSupported?: ChainId[];
   protected universalRouterVersion?: UniversalRouterVersion;
 
   constructor({
@@ -566,6 +573,7 @@ export class AlphaRouter
     portionProvider,
     v2Supported,
     v4Supported,
+    mixedSupported,
     universalRouterVersion,
   }: AlphaRouterParams) {
     this.chainId = chainId;
@@ -997,6 +1005,7 @@ export class AlphaRouter
 
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
     this.v4Supported = v4Supported ?? V4_SUPPORTED;
+    this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
     this.universalRouterVersion =
       universalRouterVersion ?? UniversalRouterVersion.V1_2;
   }
@@ -2078,9 +2087,8 @@ export class AlphaRouter
       protocols.includes(Protocol.MIXED) ||
       (noProtocolsSpecified && v2SupportedInChain && v4SupportedInChain);
     const mixedProtocolAllowed =
-      [ChainId.MAINNET, ChainId.SEPOLIA, ChainId.GOERLI].includes(
-        this.chainId
-      ) && tradeType === TradeType.EXACT_INPUT;
+      this.mixedSupported?.includes(this.chainId) &&
+      tradeType === TradeType.EXACT_INPUT;
 
     const beforeGetCandidates = Date.now();
 

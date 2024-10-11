@@ -349,8 +349,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     },
     protected batchParams: (
       optimisticCachedRoutes: boolean,
-      useMixedRouteQuoter: boolean
-    ) => BatchParams = (_optimisticCachedRoutes, _useMixedRouteQuoter) => {
+      useMixedRouteQuoter: boolean,
+      mixedRouteContainsV4Pool: boolean,
+      protocol: Protocol
+    ) => BatchParams = (
+      _optimisticCachedRoutes,
+      _useMixedRouteQuoter,
+      _mixedRouteContainsV4Pool,
+      _protocol
+    ) => {
       return {
         multicallChunk: 150,
         gasLimitPerCall: 1_000_000,
@@ -374,11 +381,21 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected metricsPrefix: (
       chainId: ChainId,
       useMixedRouteQuoter: boolean,
+      mixedRouteContainsV4Pool: boolean,
+      protocol: Protocol,
       optimisticCachedRoutes: boolean
-    ) => string = (chainId, useMixedRouteQuoter, optimisticCachedRoutes) =>
+    ) => string = (
+      chainId,
+      useMixedRouteQuoter,
+      mixedRouteContainsV4Pool,
+      protocol,
+      optimisticCachedRoutes
+    ) =>
       useMixedRouteQuoter
-        ? `ChainId_${chainId}_MixedQuoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
-        : `ChainId_${chainId}_V3Quoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
+        ? `ChainId_${chainId}_${protocol}RouteQuoter${
+            mixedRouteContainsV4Pool ? 'V2' : 'V1'
+          }_OptimisticCachedRoutes${optimisticCachedRoutes}_`
+        : `ChainId_${chainId}_${protocol}Quoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
   ) {}
 
   private getQuoterAddress(
@@ -611,6 +628,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             (route as MixedRoute).pools.some((pool) => pool instanceof V4Pool)
         )
       : false;
+    const protocol = useMixedRouteQuoter
+      ? Protocol.MIXED
+      : useV4RouteQuoter
+      ? Protocol.V4
+      : Protocol.V3;
+
     const optimisticCachedRoutes =
       _providerConfig?.optimisticCachedRoutes ?? false;
 
@@ -619,11 +642,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     let multicallChunk = this.batchParams(
       optimisticCachedRoutes,
-      useMixedRouteQuoter
+      useMixedRouteQuoter,
+      mixedRouteContainsV4Pool,
+      protocol
     ).multicallChunk;
     let gasLimitOverride = this.batchParams(
       optimisticCachedRoutes,
-      useMixedRouteQuoter
+      useMixedRouteQuoter,
+      mixedRouteContainsV4Pool,
+      protocol
     ).gasLimitPerCall;
     const { baseBlockOffset, rollback } = this.blockNumberConfig;
 
@@ -707,6 +734,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteBatchSize`,
       inputs.length,
@@ -716,6 +745,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteBatchSize_${ID_TO_NETWORK_NAME(this.chainId)}`,
       inputs.length,
@@ -771,11 +802,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               try {
                 totalCallsMade = totalCallsMade + 1;
 
-                const protocol = useMixedRouteQuoter
-                  ? Protocol.MIXED
-                  : useV4RouteQuoter
-                  ? Protocol.V4
-                  : Protocol.V3;
                 const results = await this.consolidateResults(
                   protocol,
                   useMixedRouteQuoter,
@@ -790,6 +816,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   results.results,
                   haveRetriedForSuccessRate,
                   useMixedRouteQuoter,
+                  mixedRouteContainsV4Pool,
+                  protocol,
                   optimisticCachedRoutes
                 );
 
@@ -896,6 +924,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   `${this.metricsPrefix(
                     this.chainId,
                     useMixedRouteQuoter,
+                    mixedRouteContainsV4Pool,
+                    protocol,
                     optimisticCachedRoutes
                   )}QuoteBlockConflictErrorRetry`,
                   1,
@@ -911,6 +941,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   `${this.metricsPrefix(
                     this.chainId,
                     useMixedRouteQuoter,
+                    mixedRouteContainsV4Pool,
+                    protocol,
                     optimisticCachedRoutes
                   )}QuoteBlockHeaderNotFoundRetry`,
                   1,
@@ -955,6 +987,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   `${this.metricsPrefix(
                     this.chainId,
                     useMixedRouteQuoter,
+                    mixedRouteContainsV4Pool,
+                    protocol,
                     optimisticCachedRoutes
                   )}QuoteTimeoutRetry`,
                   1,
@@ -968,6 +1002,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   `${this.metricsPrefix(
                     this.chainId,
                     useMixedRouteQuoter,
+                    mixedRouteContainsV4Pool,
+                    protocol,
                     optimisticCachedRoutes
                   )}QuoteOutOfGasExceptionRetry`,
                   1,
@@ -984,6 +1020,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   `${this.metricsPrefix(
                     this.chainId,
                     useMixedRouteQuoter,
+                    mixedRouteContainsV4Pool,
+                    protocol,
                     optimisticCachedRoutes
                   )}QuoteSuccessRateRetry`,
                   1,
@@ -1004,6 +1042,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   `${this.metricsPrefix(
                     this.chainId,
                     useMixedRouteQuoter,
+                    mixedRouteContainsV4Pool,
+                    protocol,
                     optimisticCachedRoutes
                   )}QuoteUnknownReasonRetry`,
                   1,
@@ -1099,6 +1139,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteLatency`,
       endTime - startTime,
@@ -1109,6 +1151,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteApproxGasUsedPerSuccessfulCall`,
       approxGasUsedPerSuccessCall,
@@ -1119,6 +1163,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteNumRetryLoops`,
       finalAttemptNumber - 1,
@@ -1129,6 +1175,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteTotalCallsToProvider`,
       totalCallsMade,
@@ -1139,6 +1187,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteExpectedCallsToProvider`,
       expectedCallsMade,
@@ -1149,6 +1199,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       `${this.metricsPrefix(
         this.chainId,
         useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
         optimisticCachedRoutes
       )}QuoteNumRetriedCalls`,
       totalCallsMade - expectedCallsMade,
@@ -1342,6 +1394,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     allResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     haveRetriedForSuccessRate: boolean,
     useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
+    protocol: Protocol,
     optimisticCachedRoutes: boolean
   ): void | SuccessRateError {
     const numResults = allResults.length;
@@ -1353,7 +1407,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const { quoteMinSuccessRate } = this.batchParams(
       optimisticCachedRoutes,
-      useMixedRouteQuoter
+      useMixedRouteQuoter,
+      mixedRouteContainsV4Pool,
+      protocol
     );
     if (successRate < quoteMinSuccessRate) {
       if (haveRetriedForSuccessRate) {
@@ -1364,6 +1420,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           `${this.metricsPrefix(
             this.chainId,
             useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol,
             optimisticCachedRoutes
           )}QuoteRetriedSuccessRateLow`,
           successRate,
@@ -1377,6 +1435,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         `${this.metricsPrefix(
           this.chainId,
           useMixedRouteQuoter,
+          mixedRouteContainsV4Pool,
+          protocol,
           optimisticCachedRoutes
         )}QuoteSuccessRateLow`,
         successRate,
