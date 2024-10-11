@@ -40,8 +40,6 @@ export const V2_SUPPORTED = [
   ChainId.BASE,
   ChainId.BNB,
   ChainId.AVALANCHE,
-  ChainId.WORLDCHAIN,
-  ChainId.ASTROCHAIN_SEPOLIA,
 ];
 
 export const V4_SUPPORTED = [ChainId.SEPOLIA];
