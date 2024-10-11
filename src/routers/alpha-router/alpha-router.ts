@@ -1043,7 +1043,7 @@ export class AlphaRouter
     this.universalRouterVersion =
       universalRouterVersion ?? UniversalRouterVersion.V1_2;
 
-    this.cachedRoutesCacheInvalidationFixRolloutPercentage = 0;
+    this.cachedRoutesCacheInvalidationFixRolloutPercentage = cachedRoutesCacheInvalidationFixRolloutPercentage;
   }
 
   public async routeToRatio(
