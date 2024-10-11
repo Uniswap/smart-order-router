@@ -621,21 +621,27 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              baseBlockOffset: -10,
-              rollback: {
-                enabled: true,
-                attemptsBeforeRollback: 1,
-                rollbackBlockOffset: -10,
-              },
+            (_) => {
+              return {
+                baseBlockOffset: -10,
+                rollback: {
+                  enabled: true,
+                  attemptsBeforeRollback: 1,
+                  rollbackBlockOffset: -10,
+                },
+              };
             }
           );
           break;
@@ -661,21 +667,27 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              baseBlockOffset: -10,
-              rollback: {
-                enabled: true,
-                attemptsBeforeRollback: 1,
-                rollbackBlockOffset: -10,
-              },
+            (_) => {
+              return {
+                baseBlockOffset: -10,
+                rollback: {
+                  enabled: true,
+                  attemptsBeforeRollback: 1,
+                  rollbackBlockOffset: -10,
+                },
+              };
             }
           );
           break;
@@ -696,21 +708,27 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 6_000_000,
-              multicallChunk: 13,
+            (_) => {
+              return {
+                gasLimitOverride: 6_000_000,
+                multicallChunk: 13,
+              };
             },
-            {
-              gasLimitOverride: 6_000_000,
-              multicallChunk: 13,
+            (_) => {
+              return {
+                gasLimitOverride: 6_000_000,
+                multicallChunk: 13,
+              };
             },
-            {
-              baseBlockOffset: -10,
-              rollback: {
-                enabled: true,
-                attemptsBeforeRollback: 1,
-                rollbackBlockOffset: -10,
-              },
+            (_) => {
+              return {
+                baseBlockOffset: -10,
+                rollback: {
+                  enabled: true,
+                  attemptsBeforeRollback: 1,
+                  rollbackBlockOffset: -10,
+                },
+              };
             }
           );
           break;
@@ -733,13 +751,17 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 30_000_000,
-              multicallChunk: 6,
+            (_) => {
+              return {
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 6,
+              };
             },
-            {
-              gasLimitOverride: 30_000_000,
-              multicallChunk: 6,
+            (_) => {
+              return {
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 6,
+              };
             }
           );
           break;
@@ -761,13 +783,17 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 5_000_000,
-              multicallChunk: 5,
+            (_) => {
+              return {
+                gasLimitOverride: 5_000_000,
+                multicallChunk: 5,
+              };
             },
-            {
-              gasLimitOverride: 6_250_000,
-              multicallChunk: 4,
+            (_) => {
+              return {
+                gasLimitOverride: 6_250_000,
+                multicallChunk: 4,
+              };
             }
           );
           break;
@@ -781,9 +807,9 @@ export class AlphaRouter
             this.multicall2Provider,
             RETRY_OPTIONS[chainId],
             (_) => BATCH_PARAMS[chainId]!,
-            GAS_ERROR_FAILURE_OVERRIDES[chainId],
-            SUCCESS_RATE_FAILURE_OVERRIDES[chainId],
-            BLOCK_NUMBER_CONFIGS[chainId]
+            (_) => GAS_ERROR_FAILURE_OVERRIDES[chainId]!,
+            (_) => SUCCESS_RATE_FAILURE_OVERRIDES[chainId]!,
+            (_) => BLOCK_NUMBER_CONFIGS[chainId]!
           );
           break;
         default:
@@ -793,9 +819,9 @@ export class AlphaRouter
             this.multicall2Provider,
             DEFAULT_RETRY_OPTIONS,
             (_) => DEFAULT_BATCH_PARAMS,
-            DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
-            DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
-            DEFAULT_BLOCK_NUMBER_CONFIGS
+            (_) => DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
+            (_) => DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+            (_) => DEFAULT_BLOCK_NUMBER_CONFIGS
           );
           break;
       }
