@@ -349,30 +349,35 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     },
     protected batchParams: (
       optimisticCachedRoutes: boolean,
-      useMixedRouteQuoter: boolean,
-      mixedRouteContainsV4Pool: boolean,
       protocol: Protocol
-    ) => BatchParams = (
-      _optimisticCachedRoutes,
-      _useMixedRouteQuoter,
-      _mixedRouteContainsV4Pool,
-      _protocol
-    ) => {
+    ) => BatchParams = (_optimisticCachedRoutes, _protocol) => {
       return {
         multicallChunk: 150,
         gasLimitPerCall: 1_000_000,
         quoteMinSuccessRate: 0.2,
       };
     },
-    protected gasErrorFailureOverride: FailureOverrides = {
-      gasLimitOverride: 1_500_000,
-      multicallChunk: 100,
+    protected gasErrorFailureOverride: (
+      protocol: Protocol
+    ) => FailureOverrides = (_protocol: Protocol) => {
+      return {
+        gasLimitOverride: 1_500_000,
+        multicallChunk: 100,
+      };
     },
     // successRateFailureOverrides and blockNumberConfig are not always override in alpha-router.
     // So we will extract out below default values into constants.
     // In alpha-router default case, we will also define the constants with same values as below.
-    protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
-    protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
+    protected successRateFailureOverrides: (
+      protocol: Protocol
+    ) => FailureOverrides = (_protocol: Protocol) => {
+      return DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES;
+    },
+    protected blockNumberConfig: (protocol: Protocol) => BlockNumberConfig = (
+      _protocol: Protocol
+    ) => {
+      return DEFAULT_BLOCK_NUMBER_CONFIGS;
+    },
     protected quoterAddressOverride?: (
       useMixedRouteQuoter: boolean,
       mixedRouteContainsV4Pool: boolean,
@@ -642,17 +647,13 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     let multicallChunk = this.batchParams(
       optimisticCachedRoutes,
-      useMixedRouteQuoter,
-      mixedRouteContainsV4Pool,
       protocol
     ).multicallChunk;
     let gasLimitOverride = this.batchParams(
       optimisticCachedRoutes,
-      useMixedRouteQuoter,
-      mixedRouteContainsV4Pool,
       protocol
     ).gasLimitPerCall;
-    const { baseBlockOffset, rollback } = this.blockNumberConfig;
+    const { baseBlockOffset, rollback } = this.blockNumberConfig(protocol);
 
     // Apply the base block offset if provided
     const originalBlockNumber = await this.provider.getBlockNumber();
@@ -1011,8 +1012,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 );
                 haveRetriedForOutOfGas = true;
               }
-              gasLimitOverride = this.gasErrorFailureOverride.gasLimitOverride;
-              multicallChunk = this.gasErrorFailureOverride.multicallChunk;
+              gasLimitOverride =
+                this.gasErrorFailureOverride(protocol).gasLimitOverride;
+              multicallChunk =
+                this.gasErrorFailureOverride(protocol).multicallChunk;
               retryAll = true;
             } else if (error instanceof SuccessRateError) {
               if (!haveRetriedForSuccessRate) {
@@ -1031,9 +1034,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
                 // Low success rate can indicate too little gas given to each call.
                 gasLimitOverride =
-                  this.successRateFailureOverrides.gasLimitOverride;
+                  this.successRateFailureOverrides(protocol).gasLimitOverride;
                 multicallChunk =
-                  this.successRateFailureOverrides.multicallChunk;
+                  this.successRateFailureOverrides(protocol).multicallChunk;
                 retryAll = true;
               }
             } else {
@@ -1407,8 +1410,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const { quoteMinSuccessRate } = this.batchParams(
       optimisticCachedRoutes,
-      useMixedRouteQuoter,
-      mixedRouteContainsV4Pool,
       protocol
     );
     if (successRate < quoteMinSuccessRate) {
