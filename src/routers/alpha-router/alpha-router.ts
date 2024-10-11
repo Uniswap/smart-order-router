@@ -1667,12 +1667,13 @@ export class AlphaRouter
         this.routeCachingProvider &&
         routingConfig.writeToCachedRoutes &&
         cacheMode !== CacheMode.Darkmode &&
-        !swapRouteFromCache
+        !swapRouteFromCache &&
+        !routingConfig.optimisticCachedRoutes
       ) {
         // we do want to rollout with percent control though
         // because we don't know how many cached routes in prod are actually invalid cached routes (that could make swapRouteFromCache null)
         // if there are many, then this bug fix might have a chance to slow down routing lambda
-        // this code path although can only run in the quote=caching (because of routingConfig.writeToCachedRoutes)
+        // this code path although can only run in the quote=caching (because of routingConfig.optimisticCachedRoutes = false)
         // but it will invoke the on-chain-quote provider, which is the most expensive part of the routing lambda network wise
         // so the intent=caching lambda execution has some chance to impact intent=quote lambda execution
         const swapRouteFromChain = await this.getSwapRouteFromChain(
