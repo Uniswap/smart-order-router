@@ -1,4 +1,4 @@
-import NodeCache from 'node-cache';
+import NodeCache from '@cacheable/node-cache';
 import { NodeJSCache } from '../../../src';
 
 describe('NodeJSCache', () => {

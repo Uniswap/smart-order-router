@@ -1,9 +1,9 @@
-import NodeCache from 'node-cache';
+import NodeCache from '@cacheable/node-cache';
 
 import { ICache } from './cache';
 
 export class NodeJSCache<T> implements ICache<T> {
-  constructor(private nodeCache: NodeCache) {}
+  constructor(private nodeCache: NodeCache) { }
 
   async get(key: string): Promise<T | undefined> {
     return this.nodeCache.get<T>(key);
