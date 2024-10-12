@@ -9,7 +9,7 @@ import { MethodParameters } from '@uniswap/v3-sdk';
 import bunyan, { default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 import _ from 'lodash';
-import NodeCache from 'node-cache';
+import NodeCache from '@cacheable/node-cache';
 
 import {
   AlphaRouter,
@@ -403,7 +403,7 @@ export abstract class BaseCommand extends Command {
         Math.min(estimatedGasUsedUSD.currency.decimals, 6)
       )}`
     );
-    if(estimatedGasUsedGasToken) {
+    if (estimatedGasUsedGasToken) {
       this.logger.info(
         `Gas Used gas token: ${estimatedGasUsedGasToken.toFixed(
           Math.min(estimatedGasUsedGasToken.currency.decimals, 6)
