@@ -1,13 +1,18 @@
+import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { Pair } from '@uniswap/v2-sdk';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import brotli from 'brotli';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
-import { IV2PoolProvider } from '../providers';
+import { IV2PoolProvider, IV4PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
+import { ProviderConfig } from '../providers/provider';
 import { ArbitrumGasData } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
@@ -23,13 +28,15 @@ import {
   usdGasTokensByChain,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
 } from '../routers';
-import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import {
+  CurrencyAmount,
+  getApplicableV3FeeAmounts,
+  log,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../util';
 
-import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
-import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
-import { Pair } from '@uniswap/v2-sdk';
-import { ProviderConfig } from '../providers/provider';
 import { opStackChains } from './l2FeeChains';
 import { buildSwapMethodParameters, buildTrade } from './methodParameters';
 
@@ -71,12 +78,9 @@ export async function getHighestLiquidityV3NativePool(
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
-  const nativePools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const feeAmounts = getApplicableV3FeeAmounts(token.chainId);
+
+  const nativePools = _(feeAmounts)
     .map<[Token, Token, FeeAmount]>((feeAmount) => {
       return [nativeCurrency, token, feeAmount];
     })
@@ -84,12 +88,7 @@ export async function getHighestLiquidityV3NativePool(
 
   const poolAccessor = await poolProvider.getPools(nativePools, providerConfig);
 
-  const pools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const pools = _(feeAmounts)
     .map((feeAmount) => {
       return poolAccessor.getPool(nativeCurrency, token, feeAmount);
     })
@@ -126,12 +125,9 @@ export async function getHighestLiquidityV3USDPool(
     );
   }
 
-  const usdPools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const feeAmounts = getApplicableV3FeeAmounts(chainId);
+
+  const usdPools = _(feeAmounts)
     .flatMap((feeAmount) => {
       return _.map<Token, [Token, Token, FeeAmount]>(usdTokens, (usdToken) => [
         wrappedCurrency,
@@ -143,12 +139,7 @@ export async function getHighestLiquidityV3USDPool(
 
   const poolAccessor = await poolProvider.getPools(usdPools, providerConfig);
 
-  const pools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const pools = _(feeAmounts)
     .flatMap((feeAmount) => {
       const pools = [];
 
@@ -382,6 +373,7 @@ export function initSwapRouteFromExisting(
   swapRoute: SwapRoute,
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
+  v4PoolProvider: IV4PoolProvider,
   portionProvider: IPortionProvider,
   quoteGasAdjusted: CurrencyAmount,
   estimatedGasUsed: BigNumber,
@@ -398,6 +390,32 @@ export function initSwapRouteFromExisting(
     : TradeType.EXACT_INPUT;
   const routesWithValidQuote = swapRoute.route.map((route) => {
     switch (route.protocol) {
+      case Protocol.V4:
+        return new V4RouteWithValidQuote({
+          amount: CurrencyAmount.fromFractionalAmount(
+            route.amount.currency,
+            route.amount.numerator,
+            route.amount.denominator
+          ),
+          rawQuote: BigNumber.from(route.rawQuote),
+          sqrtPriceX96AfterList: route.sqrtPriceX96AfterList.map((num) =>
+            BigNumber.from(num)
+          ),
+          initializedTicksCrossedList: [...route.initializedTicksCrossedList],
+          quoterGasEstimate: BigNumber.from(route.gasEstimate),
+          percent: route.percent,
+          route: route.route,
+          gasModel: route.gasModel,
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
+          tradeType: tradeType,
+          v4PoolProvider: v4PoolProvider,
+        });
       case Protocol.V3:
         return new V3RouteWithValidQuote({
           amount: CurrencyAmount.fromFractionalAmount(
@@ -471,7 +489,10 @@ export function initSwapRouteFromExisting(
           ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
+          v4PoolProvider: v4PoolProvider,
         });
+      default:
+        throw new Error('Invalid protocol');
     }
   });
   const trade = buildTrade<typeof tradeType>(
@@ -517,6 +538,7 @@ export function initSwapRouteFromExisting(
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
     portionAmount: swapRoute.portionAmount,
+    hitsCachedRoute: swapRoute.hitsCachedRoute,
   };
 }
 
@@ -527,7 +549,8 @@ export const calculateL1GasFeesHelper = async (
   quoteToken: Token,
   nativePool: Pair | Pool | null,
   provider: BaseProvider,
-  l2GasData?: ArbitrumGasData
+  l2GasData?: ArbitrumGasData,
+  providerConfig?: GasModelProviderConfig
 ): Promise<{
   gasUsedL1: BigNumber;
   gasUsedL1OnL2: BigNumber;
@@ -536,6 +559,8 @@ export const calculateL1GasFeesHelper = async (
 }> => {
   const swapOptions: SwapOptionsUniversalRouter = {
     type: SwapType.UNIVERSAL_ROUTER,
+    version:
+      providerConfig?.universalRouterVersion ?? UniversalRouterVersion.V1_2,
     recipient: '0x0000000000000000000000000000000000000001',
     deadlineOrPreviousBlockhash: 100,
     slippageTolerance: new Percent(5, 10_000),

@@ -1,4 +1,6 @@
-import { BigNumber } from '@ethersproject/bignumber';
+import { Interface } from '@ethersproject/abi';
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
+import { BytesLike } from '@ethersproject/bytes';
 import { BaseProvider } from '@ethersproject/providers';
 import {
   encodeMixedRouteToPath,
@@ -6,19 +8,36 @@ import {
   Protocol,
 } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
-import { encodeRouteToPath } from '@uniswap/v3-sdk';
+import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
+import {
+  encodeRouteToPath as encodeV4RouteToPath,
+  Pool as V4Pool,
+} from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';
 
-import { MixedRoute, V2Route, V3Route } from '../routers/router';
-import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
-import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
-import { ID_TO_NETWORK_NAME, metric, MetricLoggerUnit } from '../util';
 import {
+  MixedRoute,
+  SupportedRoutes,
+  V2Route,
+  V3Route,
+  V4Route,
+} from '../routers/router';
+import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
+import { MixedRouteQuoterV2__factory } from '../types/other/factories/MixedRouteQuoterV2__factory';
+import { V4Quoter__factory } from '../types/other/factories/V4Quoter__factory';
+import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
+import {
+  getAddress,
+  ID_TO_NETWORK_NAME,
+  metric,
+  MetricLoggerUnit,
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
+  MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
-} from '../util/addresses';
+  PROTOCOL_V4_QUOTER_ADDRESSES,
+} from '../util';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
 import {
@@ -27,9 +46,43 @@ import {
 } from '../util/onchainQuoteProviderConfigs';
 import { routeToString } from '../util/routes';
 
-import { Result } from './multicall-provider';
+import { Result, SuccessResult } from './multicall-provider';
 import { UniswapMulticallProvider } from './multicall-uniswap-provider';
 import { ProviderConfig } from './provider';
+
+/**
+ * Emulate on-chain [PathKey](https://github.com/Uniswap/v4-periphery/blob/main/src/libraries/PathKey.sol#L8) struct
+ */
+export type PathKey = {
+  intermediateCurrency: string;
+  fee: BigNumberish;
+  tickSpacing: BigNumberish;
+  hooks: string;
+  hookData: BytesLike;
+};
+export type SupportedPath = string | PathKey[];
+/**
+ * Emulate on-chain [QuoteExactParams](https://github.com/Uniswap/v4-periphery/blob/main/src/interfaces/IQuoter.sol#L34) struct
+ */
+export type QuoteExactParams = {
+  exactCurrency: string;
+  path: PathKey[];
+  exactAmount: BigNumberish;
+};
+
+/**
+ * Emulate on-chain [ExtraQuoteExactInputParams](https://github.com/Uniswap/mixed-quoter/blob/main/src/interfaces/IMixedRouteQuoterV2.sol#L44C12-L44C38) struct
+ */
+type NonEncodableData = {
+  hookData: BytesLike;
+};
+export type ExtraQuoteExactInputParams = {
+  nonEncodableData: NonEncodableData[];
+};
+export type QuoteInputType =
+  | QuoteExactParams[]
+  | [string, string]
+  | [string, ExtraQuoteExactInputParams, string];
 
 /**
  * An on chain quote for a swap.
@@ -95,7 +148,7 @@ export type QuoteRetryOptions = RetryOptions;
 /**
  * The V3 route and a list of quotes for that route.
  */
-export type RouteWithQuotes<TRoute extends V3Route | V2Route | MixedRoute> = [
+export type RouteWithQuotes<TRoute extends SupportedRoutes> = [
   TRoute,
   AmountQuote[]
 ];
@@ -103,14 +156,16 @@ export type RouteWithQuotes<TRoute extends V3Route | V2Route | MixedRoute> = [
 /**
  * Final consolidated return type of all on-chain quotes.
  */
-export type OnChainQuotes<TRoute extends V3Route | V2Route | MixedRoute> = {
+export type OnChainQuotes<TRoute extends SupportedRoutes> = {
   routesWithQuotes: RouteWithQuotes<TRoute>[];
   blockNumber: BigNumber;
 };
 
-type QuoteBatchSuccess = {
+export type SupportedExactOutRoutes = V4Route | V3Route;
+
+type QuoteBatchSuccess<TQuoteParams> = {
   status: 'success';
-  inputs: [string, string][];
+  inputs: TQuoteParams[];
   results: {
     blockNumber: BigNumber;
     results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
@@ -118,9 +173,9 @@ type QuoteBatchSuccess = {
   };
 };
 
-type QuoteBatchFailed = {
+type QuoteBatchFailed<TQuoteParams> = {
   status: 'failed';
-  inputs: [string, string][];
+  inputs: TQuoteParams[];
   reason: Error;
   results?: {
     blockNumber: BigNumber;
@@ -129,12 +184,15 @@ type QuoteBatchFailed = {
   };
 };
 
-type QuoteBatchPending = {
+type QuoteBatchPending<TQuoteParams> = {
   status: 'pending';
-  inputs: [string, string][];
+  inputs: TQuoteParams[];
 };
 
-type QuoteBatchState = QuoteBatchSuccess | QuoteBatchFailed | QuoteBatchPending;
+type QuoteBatchState<TQuoteParams> =
+  | QuoteBatchSuccess<TQuoteParams>
+  | QuoteBatchFailed<TQuoteParams>
+  | QuoteBatchPending<TQuoteParams>;
 
 /**
  * Provider for getting on chain quotes using routes containing V3 pools or V2 pools.
@@ -153,7 +211,7 @@ export interface IOnChainQuoteProvider {
    * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
-  getQuotesManyExactIn<TRoute extends V3Route | V2Route | MixedRoute>(
+  getQuotesManyExactIn<TRoute extends SupportedRoutes>(
     amountIns: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
@@ -169,7 +227,7 @@ export interface IOnChainQuoteProvider {
    * @returns For each route returns a RouteWithQuotes object that contains all the quotes.
    * @returns The blockNumber used when generating the quotes.
    */
-  getQuotesManyExactOut<TRoute extends V3Route>(
+  getQuotesManyExactOut<TRoute extends SupportedExactOutRoutes>(
     amountOuts: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
@@ -309,7 +367,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protected successRateFailureOverrides: FailureOverrides = DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
     protected blockNumberConfig: BlockNumberConfig = DEFAULT_BLOCK_NUMBER_CONFIGS,
     protected quoterAddressOverride?: (
-      useMixedRouteQuoter: boolean
+      useMixedRouteQuoter: boolean,
+      mixedRouteContainsV4Pool: boolean,
+      protocol: Protocol
     ) => string | undefined,
     protected metricsPrefix: (
       chainId: ChainId,
@@ -321,9 +381,17 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         : `ChainId_${chainId}_V3Quoter_OptimisticCachedRoutes${optimisticCachedRoutes}_`
   ) {}
 
-  private getQuoterAddress(useMixedRouteQuoter: boolean): string {
+  private getQuoterAddress(
+    useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
+    protocol: Protocol
+  ): string {
     if (this.quoterAddressOverride) {
-      const quoterAddress = this.quoterAddressOverride(useMixedRouteQuoter);
+      const quoterAddress = this.quoterAddressOverride(
+        useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol
+      );
 
       if (!quoterAddress) {
         throw new Error(
@@ -333,8 +401,12 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       return quoterAddress;
     }
     const quoterAddress = useMixedRouteQuoter
-      ? MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
-      : NEW_QUOTER_V2_ADDRESSES[this.chainId];
+      ? mixedRouteContainsV4Pool
+        ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
+        : MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
+      : protocol === Protocol.V3
+      ? NEW_QUOTER_V2_ADDRESSES[this.chainId]
+      : PROTOCOL_V4_QUOTER_ADDRESSES[this.chainId];
 
     if (!quoterAddress) {
       throw new Error(
@@ -344,9 +416,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     return quoterAddress;
   }
 
-  public async getQuotesManyExactIn<
-    TRoute extends V3Route | V2Route | MixedRoute
-  >(
+  public async getQuotesManyExactIn<TRoute extends SupportedRoutes>(
     amountIns: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
@@ -359,7 +429,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
   }
 
-  public async getQuotesManyExactOut<TRoute extends V3Route>(
+  public async getQuotesManyExactOut<TRoute extends SupportedExactOutRoutes>(
     amountOuts: CurrencyAmount[],
     routes: TRoute[],
     providerConfig?: ProviderConfig
@@ -372,9 +442,157 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     );
   }
 
-  private async getQuotesManyData<
-    TRoute extends V3Route | V2Route | MixedRoute
-  >(
+  private encodeRouteToPath<
+    TRoute extends SupportedRoutes,
+    TPath extends SupportedPath
+  >(route: TRoute, functionName: string): TPath {
+    switch (route.protocol) {
+      case Protocol.V3:
+        return encodeV3RouteToPath(
+          route,
+          functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
+        ) as TPath;
+      case Protocol.V4:
+        return encodeV4RouteToPath(
+          route,
+          functionName == 'quoteExactOutput'
+        ) as TPath;
+      // We don't have onchain V2 quoter, but we do have a mixed quoter that can quote against v2 routes onchain
+      // Hence in case of V2 or mixed, we explicitly encode into mixed routes.
+      case Protocol.V2:
+      case Protocol.MIXED:
+        return encodeMixedRouteToPath(
+          route instanceof V2Route
+            ? new MixedRouteSDK(route.pairs, route.input, route.output)
+            : route
+        ) as TPath;
+      default:
+        throw new Error(
+          `Unsupported protocol for the route: ${JSON.stringify(route)}`
+        );
+    }
+  }
+
+  private getContractInterface(
+    useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
+    protocol: Protocol
+  ): Interface {
+    if (useMixedRouteQuoter) {
+      if (mixedRouteContainsV4Pool) {
+        return MixedRouteQuoterV2__factory.createInterface();
+      } else {
+        return IMixedRouteQuoterV1__factory.createInterface();
+      }
+    }
+
+    switch (protocol) {
+      case Protocol.V3:
+        return IQuoterV2__factory.createInterface();
+      case Protocol.V4:
+        return V4Quoter__factory.createInterface();
+      default:
+        throw new Error(`Unsupported protocol: ${protocol}`);
+    }
+  }
+
+  private async consolidateResults(
+    protocol: Protocol,
+    useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
+    functionName: string,
+    inputs: QuoteInputType[],
+    providerConfig?: ProviderConfig,
+    gasLimitOverride?: number
+  ): Promise<{
+    blockNumber: BigNumber;
+    results: Result<[BigNumber, BigNumber[], number[], BigNumber]>[];
+    approxGasUsedPerSuccessCall: number;
+  }> {
+    if (
+      (protocol === Protocol.MIXED && mixedRouteContainsV4Pool) ||
+      protocol === Protocol.V4
+    ) {
+      const mixedQuote =
+        await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+          [string, ExtraQuoteExactInputParams, string],
+          [BigNumber, BigNumber] // amountIn/amountOut, gasEstimate
+        >({
+          address: this.getQuoterAddress(
+            useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol
+          ),
+          contractInterface: this.getContractInterface(
+            useMixedRouteQuoter,
+            mixedRouteContainsV4Pool,
+            protocol
+          ),
+          functionName,
+          functionParams: inputs as [
+            string,
+            ExtraQuoteExactInputParams,
+            string
+          ][],
+          providerConfig,
+          additionalConfig: {
+            gasLimitPerCallOverride: gasLimitOverride,
+          },
+        });
+
+      return {
+        blockNumber: mixedQuote.blockNumber,
+        approxGasUsedPerSuccessCall: mixedQuote.approxGasUsedPerSuccessCall,
+        results: mixedQuote.results.map((result) => {
+          if (result.success) {
+            switch (functionName) {
+              case 'quoteExactInput':
+              case 'quoteExactOutput':
+                return {
+                  success: true,
+                  result: [
+                    result.result[0],
+                    Array<BigNumber>(inputs.length),
+                    Array<number>(inputs.length),
+                    result.result[1],
+                  ],
+                } as SuccessResult<
+                  [BigNumber, BigNumber[], number[], BigNumber]
+                >;
+              default:
+                throw new Error(`Unsupported function name: ${functionName}`);
+            }
+          } else {
+            return result;
+          }
+        }),
+      };
+    } else {
+      return await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
+        [string, string],
+        [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
+      >({
+        address: this.getQuoterAddress(
+          useMixedRouteQuoter,
+          mixedRouteContainsV4Pool,
+          protocol
+        ),
+        contractInterface: this.getContractInterface(
+          useMixedRouteQuoter,
+          mixedRouteContainsV4Pool,
+          protocol
+        ),
+        functionName,
+        functionParams: inputs as [string, string][],
+        providerConfig,
+        additionalConfig: {
+          gasLimitPerCallOverride: gasLimitOverride,
+        },
+      });
+    }
+  }
+
+  private async getQuotesManyData<TRoute extends SupportedRoutes>(
     amounts: CurrencyAmount[],
     routes: TRoute[],
     functionName: 'quoteExactInput' | 'quoteExactOutput',
@@ -383,6 +601,16 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     const useMixedRouteQuoter =
       routes.some((route) => route.protocol === Protocol.V2) ||
       routes.some((route) => route.protocol === Protocol.MIXED);
+    const useV4RouteQuoter =
+      routes.some((route) => route.protocol === Protocol.V4) &&
+      !useMixedRouteQuoter;
+    const mixedRouteContainsV4Pool = useMixedRouteQuoter
+      ? routes.some(
+          (route) =>
+            route.protocol === Protocol.MIXED &&
+            (route as MixedRoute).pools.some((pool) => pool instanceof V4Pool)
+        )
+      : false;
     const optimisticCachedRoutes =
       _providerConfig?.optimisticCachedRoutes ?? false;
 
@@ -407,23 +635,43 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         _providerConfig?.blockNumber ?? originalBlockNumber + baseBlockOffset,
     };
 
-    const inputs: [string, string][] = _(routes)
+    const inputs: QuoteInputType[] = _(routes)
       .flatMap((route) => {
-        const encodedRoute =
-          route.protocol === Protocol.V3
-            ? encodeRouteToPath(
-                route,
-                functionName == 'quoteExactOutput' // For exactOut must be true to ensure the routes are reversed.
-              )
-            : encodeMixedRouteToPath(
-                route instanceof V2Route
-                  ? new MixedRouteSDK(route.pairs, route.input, route.output)
-                  : route
-              );
-        const routeInputs: [string, string][] = amounts.map((amount) => [
-          encodedRoute,
-          `0x${amount.quotient.toString(16)}`,
-        ]);
+        const encodedRoute = this.encodeRouteToPath(route, functionName);
+
+        const routeInputs: QuoteInputType[] = amounts.map((amount) => {
+          switch (route.protocol) {
+            case Protocol.V4:
+              return [
+                {
+                  exactCurrency: getAddress(amount.currency),
+                  path: encodedRoute as PathKey[],
+                  exactAmount: amount.quotient.toString(),
+                },
+              ] as QuoteExactParams[];
+            case Protocol.MIXED:
+              if (mixedRouteContainsV4Pool) {
+                return [
+                  encodedRoute as string,
+                  {
+                    nonEncodableData: route.pools.map((_) => {
+                      return {
+                        hookData: '0x',
+                      };
+                    }) as NonEncodableData[],
+                  } as ExtraQuoteExactInputParams,
+                  amount.quotient.toString(),
+                ];
+              } else {
+                return [encodedRoute as string, amount.quotient.toString()];
+              }
+            default:
+              return [
+                encodedRoute as string,
+                `0x${amount.quotient.toString(16)}`,
+              ];
+          }
+        });
         return routeInputs;
       })
       .value();
@@ -432,12 +680,15 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       inputs.length / Math.ceil(inputs.length / multicallChunk)
     );
     const inputsChunked = _.chunk(inputs, normalizedChunk);
-    let quoteStates: QuoteBatchState[] = _.map(inputsChunked, (inputChunk) => {
-      return {
-        status: 'pending',
-        inputs: inputChunk,
-      };
-    });
+    let quoteStates: QuoteBatchState<QuoteInputType>[] = _.map(
+      inputsChunked,
+      (inputChunk) => {
+        return {
+          status: 'pending',
+          inputs: inputChunk,
+        };
+      }
+    );
 
     log.info(
       `About to get ${
@@ -506,7 +757,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         quoteStates = await Promise.all(
           _.map(
             quoteStates,
-            async (quoteState: QuoteBatchState, idx: number) => {
+            async (
+              quoteState: QuoteBatchState<QuoteInputType>,
+              idx: number
+            ) => {
               if (quoteState.status == 'success') {
                 return quoteState;
               }
@@ -517,22 +771,20 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               try {
                 totalCallsMade = totalCallsMade + 1;
 
-                const results =
-                  await this.multicall2Provider.callSameFunctionOnContractWithMultipleParams<
-                    [string, string],
-                    [BigNumber, BigNumber[], number[], BigNumber] // amountIn/amountOut, sqrtPriceX96AfterList, initializedTicksCrossedList, gasEstimate
-                  >({
-                    address: this.getQuoterAddress(useMixedRouteQuoter),
-                    contractInterface: useMixedRouteQuoter
-                      ? IMixedRouteQuoterV1__factory.createInterface()
-                      : IQuoterV2__factory.createInterface(),
-                    functionName,
-                    functionParams: inputs,
-                    providerConfig,
-                    additionalConfig: {
-                      gasLimitPerCallOverride: gasLimitOverride,
-                    },
-                  });
+                const protocol = useMixedRouteQuoter
+                  ? Protocol.MIXED
+                  : useV4RouteQuoter
+                  ? Protocol.V4
+                  : Protocol.V3;
+                const results = await this.consolidateResults(
+                  protocol,
+                  useMixedRouteQuoter,
+                  mixedRouteContainsV4Pool,
+                  functionName,
+                  inputs,
+                  providerConfig,
+                  gasLimitOverride
+                );
 
                 const successRateError = this.validateSuccessRate(
                   results.results,
@@ -547,14 +799,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     inputs,
                     reason: successRateError,
                     results,
-                  } as QuoteBatchFailed;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 return {
                   status: 'success',
                   inputs,
                   results,
-                } as QuoteBatchSuccess;
+                } as QuoteBatchSuccess<QuoteInputType>;
               } catch (err: any) {
                 // Error from providers have huge messages that include all the calldata and fill the logs.
                 // Catch them and rethrow with shorter message.
@@ -565,7 +817,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     reason: new ProviderBlockHeaderError(
                       err.message.slice(0, 500)
                     ),
-                  } as QuoteBatchFailed;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 if (err.message.includes('timeout')) {
@@ -577,7 +829,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                         inputs.length
                       } inputs. ${err.message.slice(0, 500)}`
                     ),
-                  } as QuoteBatchFailed;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 if (err.message.includes('out of gas')) {
@@ -585,7 +837,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     status: 'failed',
                     inputs,
                     reason: new ProviderGasError(err.message.slice(0, 500)),
-                  } as QuoteBatchFailed;
+                  } as QuoteBatchFailed<QuoteInputType>;
                 }
 
                 return {
@@ -594,7 +846,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                   reason: new Error(
                     `Unknown error from provider: ${err.message.slice(0, 500)}`
                   ),
-                } as QuoteBatchFailed;
+                } as QuoteBatchFailed<QuoteInputType>;
               }
             }
           )
@@ -609,7 +861,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
         let retryAll = false;
 
-        const blockNumberError = this.validateBlockNumbers(
+        const blockNumberError = this.validateBlockNumbers<QuoteInputType>(
           successfulQuoteStates,
           inputsChunked.length,
           gasLimitOverride
@@ -922,40 +1174,44 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     } as OnChainQuotes<TRoute>;
   }
 
-  private partitionQuotes(
-    quoteStates: QuoteBatchState[]
-  ): [QuoteBatchSuccess[], QuoteBatchFailed[], QuoteBatchPending[]] {
-    const successfulQuoteStates: QuoteBatchSuccess[] = _.filter<
-      QuoteBatchState,
-      QuoteBatchSuccess
+  private partitionQuotes<TQuoteParams>(
+    quoteStates: QuoteBatchState<TQuoteParams>[]
+  ): [
+    QuoteBatchSuccess<TQuoteParams>[],
+    QuoteBatchFailed<TQuoteParams>[],
+    QuoteBatchPending<TQuoteParams>[]
+  ] {
+    const successfulQuoteStates: QuoteBatchSuccess<TQuoteParams>[] = _.filter<
+      QuoteBatchState<TQuoteParams>,
+      QuoteBatchSuccess<TQuoteParams>
     >(
       quoteStates,
-      (quoteState): quoteState is QuoteBatchSuccess =>
+      (quoteState): quoteState is QuoteBatchSuccess<TQuoteParams> =>
         quoteState.status == 'success'
     );
 
-    const failedQuoteStates: QuoteBatchFailed[] = _.filter<
-      QuoteBatchState,
-      QuoteBatchFailed
+    const failedQuoteStates: QuoteBatchFailed<TQuoteParams>[] = _.filter<
+      QuoteBatchState<TQuoteParams>,
+      QuoteBatchFailed<TQuoteParams>
     >(
       quoteStates,
-      (quoteState): quoteState is QuoteBatchFailed =>
+      (quoteState): quoteState is QuoteBatchFailed<TQuoteParams> =>
         quoteState.status == 'failed'
     );
 
-    const pendingQuoteStates: QuoteBatchPending[] = _.filter<
-      QuoteBatchState,
-      QuoteBatchPending
+    const pendingQuoteStates: QuoteBatchPending<TQuoteParams>[] = _.filter<
+      QuoteBatchState<TQuoteParams>,
+      QuoteBatchPending<TQuoteParams>
     >(
       quoteStates,
-      (quoteState): quoteState is QuoteBatchPending =>
+      (quoteState): quoteState is QuoteBatchPending<TQuoteParams> =>
         quoteState.status == 'pending'
     );
 
     return [successfulQuoteStates, failedQuoteStates, pendingQuoteStates];
   }
 
-  private processQuoteResults<TRoute extends V3Route | V2Route | MixedRoute>(
+  private processQuoteResults<TRoute extends SupportedRoutes>(
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     routes: TRoute[],
     amounts: CurrencyAmount[],
@@ -1045,8 +1301,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     return routesQuotes;
   }
 
-  private validateBlockNumbers(
-    successfulQuoteStates: QuoteBatchSuccess[],
+  private validateBlockNumbers<TQuoteParams>(
+    successfulQuoteStates: QuoteBatchSuccess<TQuoteParams>[],
     totalCalls: number,
     gasLimitOverride?: number
   ): BlockConflictError | null {
@@ -1139,7 +1395,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
    * @param useMixedRouteQuoter true if there are ANY V2Routes or MixedRoutes in the routes parameter
    */
   protected validateRoutes(
-    routes: (V3Route | V2Route | MixedRoute)[],
+    routes: SupportedRoutes[],
     functionName: string,
     useMixedRouteQuoter: boolean
   ) {

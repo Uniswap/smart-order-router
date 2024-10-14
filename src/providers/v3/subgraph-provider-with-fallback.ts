@@ -1,8 +1,5 @@
-import { Token } from '@uniswap/sdk-core';
-
-import { log } from '../../util';
-import { ProviderConfig } from '../provider';
-
+import { Protocol } from '@uniswap/router-sdk';
+import { SubgraphProviderWithFallBacks } from '../subgraph-provider-with-fallback';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
 /**
@@ -12,28 +9,11 @@ import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
  * @export
  * @class V3SubgraphProviderWithFallBacks
  */
-export class V3SubgraphProviderWithFallBacks implements IV3SubgraphProvider {
-  constructor(private fallbacks: IV3SubgraphProvider[]) {}
-
-  public async getPools(
-    tokenIn?: Token,
-    tokenOut?: Token,
-    providerConfig?: ProviderConfig
-  ): Promise<V3SubgraphPool[]> {
-    for (let i = 0; i < this.fallbacks.length; i++) {
-      const provider = this.fallbacks[i]!;
-      try {
-        const pools = await provider.getPools(
-          tokenIn,
-          tokenOut,
-          providerConfig
-        );
-        return pools;
-      } catch (err) {
-        log.info(`Failed to get subgraph pools for V3 from fallback #${i}`);
-      }
-    }
-
-    throw new Error('Failed to get subgraph pools from any providers');
+export class V3SubgraphProviderWithFallBacks
+  extends SubgraphProviderWithFallBacks<V3SubgraphPool>
+  implements IV3SubgraphProvider
+{
+  constructor(fallbacks: IV3SubgraphProvider[]) {
+    super(fallbacks, Protocol.V3);
   }
 }

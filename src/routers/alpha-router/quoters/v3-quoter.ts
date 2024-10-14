@@ -32,7 +32,7 @@ import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
 
-export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route> {
+export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
   protected v3SubgraphProvider: IV3SubgraphProvider;
   protected v3PoolProvider: IV3PoolProvider;
   protected onChainQuoteProvider: IOnChainQuoteProvider;
@@ -124,7 +124,7 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route> {
     };
   }
 
-  public async getQuotes(
+  public override async getQuotes(
     routes: V3Route[],
     amounts: CurrencyAmount[],
     percents: number[],

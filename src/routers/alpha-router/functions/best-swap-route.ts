@@ -7,7 +7,8 @@ import FixedReverseHeap from 'mnemonist/fixed-reverse-heap';
 import Queue from 'mnemonist/queue';
 
 import { IPortionProvider } from '../../../providers/portion-provider';
-import { HAS_L1_FEE, V2_SUPPORTED } from '../../../util';
+import { ProviderConfig } from '../../../providers/provider';
+import { HAS_L1_FEE, V2_SUPPORTED, V4_SUPPORTED } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -16,11 +17,11 @@ import { SwapOptions } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 
-import { ProviderConfig } from '../../../providers/provider';
 import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
 } from './../entities/route-with-valid-quote';
 
 export type BestSwapRoute = {
@@ -43,6 +44,7 @@ export async function getBestSwapRoute(
   portionProvider: IPortionProvider,
   v2GasModel?: IGasModel<V2RouteWithValidQuote>,
   v3GasModel?: IGasModel<V3RouteWithValidQuote>,
+  v4GasModel?: IGasModel<V4RouteWithValidQuote>,
   swapConfig?: SwapOptions,
   providerConfig?: ProviderConfig
 ): Promise<BestSwapRoute | null> {
@@ -93,6 +95,7 @@ export async function getBestSwapRoute(
     portionProvider,
     v2GasModel,
     v3GasModel,
+    v4GasModel,
     swapConfig,
     providerConfig
   );
@@ -159,6 +162,7 @@ export async function getBestSwapRouteBy(
   portionProvider: IPortionProvider,
   v2GasModel?: IGasModel<V2RouteWithValidQuote>,
   v3GasModel?: IGasModel<V3RouteWithValidQuote>,
+  v4GasModel?: IGasModel<V4RouteWithValidQuote>,
   swapConfig?: SwapOptions,
   providerConfig?: ProviderConfig
 ): Promise<BestSwapRoute | undefined> {
@@ -362,9 +366,14 @@ export async function getBestSwapRouteBy(
           );
 
           if (HAS_L1_FEE.includes(chainId)) {
-            if (v2GasModel == undefined && v3GasModel == undefined) {
+            if (
+              v2GasModel == undefined &&
+              v3GasModel == undefined &&
+              v4GasModel == undefined
+            ) {
               throw new Error("Can't compute L1 gas fees.");
             } else {
+              // ROUTE-249: consoliate L1 + L2 gas fee adjustment within best-swap-route
               const v2Routes = curRoutesNew.filter(
                 (routes) => routes.protocol === Protocol.V2
               );
@@ -388,6 +397,19 @@ export async function getBestSwapRouteBy(
                   );
                   gasCostL1QuoteToken = gasCostL1QuoteToken.add(
                     v3GasCostL1.gasCostL1QuoteToken
+                  );
+                }
+              }
+              const v4Routes = curRoutesNew.filter(
+                (routes) => routes.protocol === Protocol.V4
+              );
+              if (v4Routes.length > 0 && V4_SUPPORTED.includes(chainId)) {
+                if (v4GasModel) {
+                  const v4GasCostL1 = await v4GasModel.calculateL1GasFees!(
+                    v4Routes as V4RouteWithValidQuote[]
+                  );
+                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(
+                    v4GasCostL1.gasCostL1QuoteToken
                   );
                 }
               }
@@ -477,7 +499,12 @@ export async function getBestSwapRouteBy(
   };
   // If swapping on an L2 that includes a L1 security fee, calculate the fee and include it in the gas adjusted quotes
   if (HAS_L1_FEE.includes(chainId)) {
-    if (v2GasModel == undefined && v3GasModel == undefined) {
+    // ROUTE-249: consoliate L1 + L2 gas fee adjustment within best-swap-route
+    if (
+      v2GasModel == undefined &&
+      v3GasModel == undefined &&
+      v4GasModel == undefined
+    ) {
       throw new Error("Can't compute L1 gas fees.");
     } else {
       // Before v2 deploy everywhere, a quote on L2 can only go through v3 protocol,
@@ -574,6 +601,52 @@ export async function getBestSwapRouteBy(
           gasCostsL1ToL2.gasCostL1QuoteToken =
             gasCostsL1ToL2.gasCostL1QuoteToken.add(
               v3GasCostL1.gasCostL1QuoteToken
+            );
+        }
+      }
+      const v4Routes = bestSwap.filter(
+        (routes) => routes.protocol === Protocol.V4
+      );
+      if (v4Routes.length > 0 && V4_SUPPORTED.includes(chainId)) {
+        if (v4GasModel) {
+          const v4GasCostL1 = await v4GasModel.calculateL1GasFees!(
+            v4Routes as V4RouteWithValidQuote[]
+          );
+          gasCostsL1ToL2.gasUsedL1 = gasCostsL1ToL2.gasUsedL1.add(
+            v4GasCostL1.gasUsedL1
+          );
+          gasCostsL1ToL2.gasUsedL1OnL2 = gasCostsL1ToL2.gasUsedL1OnL2.add(
+            v4GasCostL1.gasUsedL1OnL2
+          );
+          if (
+            gasCostsL1ToL2.gasCostL1USD.currency.equals(
+              v4GasCostL1.gasCostL1USD.currency
+            )
+          ) {
+            gasCostsL1ToL2.gasCostL1USD = gasCostsL1ToL2.gasCostL1USD.add(
+              v4GasCostL1.gasCostL1USD
+            );
+          } else {
+            // This is to handle the case where gasCostsL1ToL2.gasCostL1USD and v4GasCostL1.gasCostL1USD have different currencies.
+            //
+            // gasCostsL1ToL2.gasCostL1USD was initially hardcoded to CurrencyAmount.fromRawAmount(usdGasTokensByChain[chainId]![0]!, 0)
+            // (https://github.com/Uniswap/smart-order-router/blob/main/src/routers/alpha-router/functions/best-swap-route.ts#L438)
+            // , where usdGasTokensByChain is coded in the descending order of decimals per chain,
+            // e.g. Arbitrum_one DAI (18 decimals), USDC bridged (6 decimals), USDC native (6 decimals)
+            // so gasCostsL1ToL2.gasCostL1USD will have DAI as currency.
+            //
+            // For v4GasCostL1.gasCostL1USD, it's calculated within getHighestLiquidityV3USDPool among usdGasTokensByChain[chainId]!,
+            // (https://github.com/Uniswap/smart-order-router/blob/1c93e133c46af545f8a3d8af7fca3f1f2dcf597d/src/util/gas-factory-helpers.ts#L110)
+            // , so the code will actually see which USD pool has the highest liquidity, if any.
+            // e.g. Arbitrum_one on v3 has highest liquidity on USDC native
+            // so v4GasCostL1.gasCostL1USD will have USDC native as currency.
+            //
+            // We will re-assign gasCostsL1ToL2.gasCostL1USD to v3GasCostL1.gasCostL1USD in this case.
+            gasCostsL1ToL2.gasCostL1USD = v4GasCostL1.gasCostL1USD;
+          }
+          gasCostsL1ToL2.gasCostL1QuoteToken =
+            gasCostsL1ToL2.gasCostL1QuoteToken.add(
+              v4GasCostL1.gasCostL1QuoteToken
             );
         }
       }
@@ -727,7 +800,7 @@ const findFirstRouteNotUsingUsedPools = (
 ): RouteWithValidQuote | null => {
   const poolAddressSet = new Set();
   const usedPoolAddresses = _(usedRoutes)
-    .flatMap((r) => r.poolAddresses)
+    .flatMap((r) => r.poolIdentifiers)
     .value();
 
   for (const poolAddress of usedPoolAddresses) {
@@ -745,7 +818,7 @@ const findFirstRouteNotUsingUsedPools = (
   }
 
   for (const routeQuote of candidateRouteQuotes) {
-    const { poolAddresses, protocol } = routeQuote;
+    const { poolIdentifiers: poolAddresses, protocol } = routeQuote;
 
     if (poolAddresses.some((poolAddress) => poolAddressSet.has(poolAddress))) {
       continue;

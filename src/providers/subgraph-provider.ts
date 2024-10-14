@@ -1,13 +1,26 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { ProviderConfig } from './provider';
-import { gql, GraphQLClient } from 'graphql-request';
-import { log, metric } from '../util';
 import { Protocol } from '@uniswap/router-sdk';
+import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
+import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-export interface SubgraphPool {
+import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
+import { log, metric } from '../util';
+
+import { ProviderConfig } from './provider';
+
+export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
+  getPools(
+    tokenIn?: Token,
+    tokenOut?: Token,
+    providerConfig?: ProviderConfig
+  ): Promise<TSubgraphPool[]>;
+}
+
+const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
+
+export type V3V4SubgraphPool = {
   id: string;
   feeTier: string;
   liquidity: string;
@@ -19,9 +32,9 @@ export interface SubgraphPool {
   };
   tvlETH: number;
   tvlUSD: number;
-}
+};
 
-type RawSubgraphPool = {
+export type V3V4RawSubgraphPool = {
   id: string;
   feeTier: string;
   liquidity: string;
@@ -38,9 +51,10 @@ type RawSubgraphPool = {
   totalValueLockedUSDUntracked: string;
 };
 
-const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
-
-export abstract class SubgraphProvider {
+export abstract class SubgraphProvider<
+  TRawSubgraphPool extends V3V4RawSubgraphPool,
+  TSubgraphPool extends V3V4SubgraphPool
+> {
   private client: GraphQLClient;
 
   constructor(
@@ -61,44 +75,25 @@ export abstract class SubgraphProvider {
   }
 
   public async getPools(
-    _tokenIn?: Token,
-    _tokenOut?: Token,
+    _currencyIn?: Currency,
+    _currencyOut?: Currency,
     providerConfig?: ProviderConfig
-  ): Promise<SubgraphPool[]> {
+  ): Promise<TSubgraphPool[]> {
     const beforeAll = Date.now();
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
 
     const query = gql`
-      query getPools($pageSize: Int!, $id: String) {
-        pools(
-          first: $pageSize
-          ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
-        ) {
-          id
-          token0 {
-            symbol
-            id
-          }
-          token1 {
-            symbol
-            id
-          }
-          feeTier
-          liquidity
-          totalValueLockedUSD
-          totalValueLockedETH
-          totalValueLockedUSDUntracked
-        }
-      }
+      ${this.subgraphQuery(blockNumber)}
     `;
 
-    let pools: RawSubgraphPool[] = [];
+    let pools: TRawSubgraphPool[] = [];
 
     log.info(
-      `Getting ${this.protocol} pools from the subgraph with page size ${PAGE_SIZE}${
+      `Getting ${
+        this.protocol
+      } pools from the subgraph with page size ${PAGE_SIZE}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
@@ -111,10 +106,10 @@ export abstract class SubgraphProvider {
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<RawSubgraphPool[]> => {
+        const getPools = async (): Promise<TRawSubgraphPool[]> => {
           let lastId = '';
-          let pools: RawSubgraphPool[] = [];
-          let poolsPage: RawSubgraphPool[] = [];
+          let pools: TRawSubgraphPool[] = [];
+          let poolsPage: TRawSubgraphPool[] = [];
 
           // metrics variables
           let totalPages = 0;
@@ -123,7 +118,7 @@ export abstract class SubgraphProvider {
             totalPages += 1;
 
             const poolsResult = await this.client.request<{
-              pools: RawSubgraphPool[];
+              pools: TRawSubgraphPool[];
             }>(query, {
               pageSize: PAGE_SIZE,
               id: lastId,
@@ -209,7 +204,7 @@ export abstract class SubgraphProvider {
         parseInt(pool.liquidity) > 0 ||
         parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
         parseFloat(pool.totalValueLockedUSDUntracked) >
-        this.untrackedUsdThreshold
+          this.untrackedUsdThreshold
     );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`,
@@ -221,28 +216,14 @@ export abstract class SubgraphProvider {
     );
 
     const beforeFilter = Date.now();
-    const poolsSanitized = pools
+    const poolsSanitized: TSubgraphPool[] = pools
       .filter(
         (pool) =>
           parseInt(pool.liquidity) > 0 ||
           parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
       )
       .map((pool) => {
-        const { totalValueLockedETH, totalValueLockedUSD } = pool;
-
-        return {
-          id: pool.id.toLowerCase(),
-          feeTier: pool.feeTier,
-          token0: {
-            id: pool.token0.id.toLowerCase(),
-          },
-          token1: {
-            id: pool.token1.id.toLowerCase(),
-          },
-          liquidity: pool.liquidity,
-          tvlETH: parseFloat(totalValueLockedETH),
-          tvlUSD: parseFloat(totalValueLockedUSD),
-        };
+        return this.mapSubgraphPool(pool);
       });
 
     metric.putMetric(
@@ -257,7 +238,10 @@ export abstract class SubgraphProvider {
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
       (poolsSanitized.length / pools.length) * 100
     );
-    metric.putMetric(`${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools`, 1);
+    metric.putMetric(
+      `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools`,
+      1
+    );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.latency`,
       Date.now() - beforeAll
@@ -269,4 +253,10 @@ export abstract class SubgraphProvider {
 
     return poolsSanitized;
   }
+
+  protected abstract subgraphQuery(blockNumber?: number): string;
+
+  protected abstract mapSubgraphPool(
+    rawSubgraphPool: TRawSubgraphPool
+  ): TSubgraphPool;
 }

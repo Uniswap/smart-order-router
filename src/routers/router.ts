@@ -3,7 +3,7 @@ import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
   Protocol,
-  Trade
+  Trade,
 } from '@uniswap/router-sdk';
 import {
   Currency,
@@ -12,17 +12,18 @@ import {
   Token,
   TradeType,
 } from '@uniswap/sdk-core';
-import { SwapOptions as UniversalRouterSwapOptions } from '@uniswap/universal-router-sdk';
+import {
+  SwapOptions as UniversalRouterSwapOptions,
+  UniversalRouterVersion,
+} from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
+  MethodParameters as SDKMethodParameters,
   Pool,
   Position,
-  MethodParameters as SDKMethodParameters,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
-import {
-  Route as V4RouteRaw
-} from '@uniswap/v4-sdk';
+import { Route as V4RouteRaw } from '@uniswap/v4-sdk';
 
 import { SimulationStatus } from '../providers';
 import { CurrencyAmount } from '../util/amounts';
@@ -38,10 +39,10 @@ export class V3Route extends V3RouteRaw<Token, Token> {
 export class V2Route extends V2RouteRaw<Token, Token> {
   protocol: Protocol.V2 = Protocol.V2;
 }
-export class MixedRoute extends MixedRouteSDK<Token, Token> {
+export class MixedRoute extends MixedRouteSDK<Currency, Currency> {
   protocol: Protocol.MIXED = Protocol.MIXED;
 }
-export type SupportedRoutes = V4Route | V3Route | V2Route | MixedRoute
+export type SupportedRoutes = V4Route | V3Route | V2Route | MixedRoute;
 
 export type SwapRoute = {
   /**
@@ -160,6 +161,7 @@ export enum SwapType {
 // Swap options for Universal Router and Permit2.
 export type SwapOptionsUniversalRouter = UniversalRouterSwapOptions & {
   type: SwapType.UNIVERSAL_ROUTER;
+  version: UniversalRouterVersion;
   simulate?: { fromAddress: string };
 };
 

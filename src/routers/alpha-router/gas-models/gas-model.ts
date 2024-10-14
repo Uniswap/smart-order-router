@@ -27,6 +27,7 @@ import {
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
+  USDC_ASTROCHAIN_SEPOLIA,
   USDC_AVAX,
   USDC_BASE,
   USDC_BNB,
@@ -47,6 +48,7 @@ import {
   USDC_OPTIMISM_SEPOLIA,
   USDC_POLYGON,
   USDC_SEPOLIA,
+  USDC_WORLDCHAIN,
   USDC_WORMHOLE_CELO,
   USDC_ZKSYNC,
   USDC_ZORA,
@@ -71,6 +73,7 @@ import {
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
 } from '../entities/route-with-valid-quote';
 
 // When adding new usd gas tokens, ensure the tokens are ordered
@@ -121,6 +124,8 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BLAST]: [USDB_BLAST],
   [ChainId.ZORA]: [USDC_ZORA],
   [ChainId.ZKSYNC]: [DAI_ZKSYNC, USDCE_ZKSYNC, USDC_ZKSYNC],
+  [ChainId.WORLDCHAIN]: [USDC_WORLDCHAIN],
+  [ChainId.ASTROCHAIN_SEPOLIA]: [USDC_ASTROCHAIN_SEPOLIA],
 };
 
 export type L1ToL2GasCosts = {
@@ -169,6 +174,7 @@ export type LiquidityCalculationPools = {
 export type GasModelType = {
   v2GasModel?: IGasModel<V2RouteWithValidQuote>;
   v3GasModel: IGasModel<V3RouteWithValidQuote>;
+  v4GasModel: IGasModel<V4RouteWithValidQuote>;
   mixedRouteGasModel: IGasModel<MixedRouteWithValidQuote>;
 };
 
@@ -230,7 +236,9 @@ export abstract class IV2GasModelFactory {
  * @abstract
  * @class IOnChainGasModelFactory
  */
-export abstract class IOnChainGasModelFactory {
+export abstract class IOnChainGasModelFactory<
+  TRouteWithValidQuote extends RouteWithValidQuote
+> {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,
@@ -240,9 +248,23 @@ export abstract class IOnChainGasModelFactory {
     v2poolProvider,
     l2GasDataProvider,
     providerConfig,
-  }: BuildOnChainGasModelFactoryType): Promise<
-    IGasModel<V3RouteWithValidQuote | MixedRouteWithValidQuote>
-  >;
+  }: BuildOnChainGasModelFactoryType): Promise<IGasModel<TRouteWithValidQuote>>;
+
+  protected totalInitializedTicksCrossed(
+    initializedTicksCrossedList: number[]
+  ) {
+    let ticksCrossed = 0;
+    for (let i = 0; i < initializedTicksCrossedList.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (initializedTicksCrossedList[i]! > 0) {
+        // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        ticksCrossed += initializedTicksCrossedList[i]! - 1;
+      }
+    }
+
+    return ticksCrossed;
+  }
 }
 
 // Determines if native currency is token0

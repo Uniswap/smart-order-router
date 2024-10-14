@@ -1,9 +1,16 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { Fraction, Percent, TradeType } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  Ether,
+  Fraction,
+  Percent,
+  TradeType
+} from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, Pool, Position } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -14,20 +21,24 @@ import {
   CacheMode,
   CachingTokenListProvider,
   CurrencyAmount,
-  DAI_MAINNET as DAI, DEFAULT_TOKEN_PROPERTIES_RESULT,
+  DAI_MAINNET as DAI,
+  DEFAULT_TOKEN_PROPERTIES_RESULT,
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
-  MixedRoute,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
   RouteWithQuotes,
+  SupportedExactOutRoutes,
+  SupportedRoutes,
   SwapAndAddConfig,
   SwapAndAddOptions,
   SwapRouterProvider,
   SwapToRatioStatus,
   SwapType,
+  TokenPropertiesMap,
   TokenPropertiesProvider,
+  TokenPropertiesResult,
   TokenProvider,
   UniswapMulticallProvider,
   USDC_MAINNET as USDC,
@@ -45,40 +56,65 @@ import {
   V3RouteWithValidQuote,
   V3SubgraphPool,
   V3SubgraphProvider,
+  V4PoolProvider,
+  V4RouteWithValidQuote,
+  V4SubgraphPool,
+  V4SubgraphProvider,
   WRAPPED_NATIVE_CURRENCY
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
-import { TokenValidationResult, TokenValidatorProvider, } from '../../../../src/providers/token-validator-provider';
+import {
+  TokenValidationResult,
+  TokenValidatorProvider
+} from '../../../../src/providers/token-validator-provider';
 import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import {
   MixedRouteHeuristicGasModelFactory
 } from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
-import { V2HeuristicGasModelFactory } from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
+import {
+  V2HeuristicGasModelFactory
+} from '../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,
   buildMockV3PoolAccessor,
+  buildMockV4PoolAccessor,
+  BULLET,
+  BULLET_USDC,
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_USDT_MEDIUM,
+  DAI_USDT_V4_LOW, ETH_USDT_V4_LOW,
   MOCK_ZERO_DEC_TOKEN,
   mockBlock,
   mockBlockBN,
   mockGasPriceWeiBN,
   pairToV2SubgraphPool,
   poolToV3SubgraphPool,
+  poolToV4SubgraphPool, UNI_ETH_V4_MEDIUM,
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
+  USDC_DAI_V4_LOW,
+  USDC_DAI_V4_MEDIUM,
   USDC_MOCK_LOW,
   USDC_USDT_MEDIUM,
+  USDC_USDT_V4_MEDIUM,
   USDC_WETH,
   USDC_WETH_LOW,
+  USDC_WETH_V4_LOW,
   WBTC_WETH,
   WETH9_USDT_LOW,
-  WETH_USDT,
+  WETH9_USDT_V4_LOW,
+  WETH_USDT
 } from '../../../test-util/mock-data';
-import { InMemoryRouteCachingProvider } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
+import {
+  InMemoryRouteCachingProvider
+} from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import {
+  V4HeuristicGasModelFactory
+} from '../../../../src/routers/alpha-router/gas-models/v4/v4-heuristic-gas-model';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
@@ -86,6 +122,10 @@ describe('alpha router', () => {
   let mockProvider: sinon.SinonStubbedInstance<BaseProvider>;
   let mockMulticallProvider: sinon.SinonStubbedInstance<UniswapMulticallProvider>;
   let mockTokenProvider: sinon.SinonStubbedInstance<TokenProvider>;
+
+  let mockV4PoolProvider: sinon.SinonStubbedInstance<V4PoolProvider>;
+  let mockV4SubgraphProvider: sinon.SinonStubbedInstance<V4SubgraphProvider>;
+  let mockV4GasModelFactory: sinon.SinonStubbedInstance<V4HeuristicGasModelFactory>;
 
   let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let mockV3SubgraphProvider: sinon.SinonStubbedInstance<V3SubgraphProvider>;
@@ -112,6 +152,14 @@ describe('alpha router', () => {
   let alphaRouter: AlphaRouter;
 
   const ROUTING_CONFIG: AlphaRouterConfig = {
+    v4PoolSelection: {
+      topN: 0,
+      topNDirectSwaps: 0,
+      topNTokenInOut: 0,
+      topNSecondHop: 0,
+      topNWithEachBaseToken: 0,
+      topNWithBaseToken: 0,
+    },
     v3PoolSelection: {
       topN: 0,
       topNDirectSwaps: 0,
@@ -176,6 +224,24 @@ describe('alpha router', () => {
     ];
     mockTokenProvider.getTokens.resolves(buildMockTokenAccessor(mockTokens));
 
+    mockV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+    const v4MockPools = [
+      USDC_DAI_V4_LOW,
+      USDC_DAI_V4_MEDIUM,
+      USDC_WETH_V4_LOW,
+      WETH9_USDT_V4_LOW,
+      DAI_USDT_V4_LOW,
+      USDC_USDT_V4_MEDIUM,
+      ETH_USDT_V4_LOW,
+      UNI_ETH_V4_MEDIUM,
+    ];
+    mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+    mockV4PoolProvider.getPoolId.callsFake((cA, cB, fee, tickSpacing, hooks) => ({
+      poolId: V4Pool.getPoolId(cA, cB, fee, tickSpacing, hooks),
+      currency0: cA,
+      currency1: cB,
+    }));
+
     mockV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
     const v3MockPools = [
       USDC_DAI_LOW,
@@ -188,12 +254,12 @@ describe('alpha router', () => {
     ];
     mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
     mockV3PoolProvider.getPoolAddress.callsFake((tA, tB, fee) => ({
-      poolAddress: Pool.getAddress(tA, tB, fee),
+      poolAddress: V3Pool.getAddress(tA, tB, fee),
       token0: tA,
       token1: tB,
     }));
 
-    const v2MockPools = [DAI_USDT, USDC_WETH, WETH_USDT, USDC_DAI, WBTC_WETH];
+    const v2MockPools = [DAI_USDT, USDC_WETH, WETH_USDT, USDC_DAI, WBTC_WETH, BULLET_USDC];
     mockV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
     mockV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
     mockV2PoolProvider.getPoolAddress.callsFake((tA, tB) => ({
@@ -201,6 +267,13 @@ describe('alpha router', () => {
       token0: tA,
       token1: tB,
     }));
+
+    mockV4SubgraphProvider = sinon.createStubInstance(V4SubgraphProvider);
+    const v4MockSubgraphPools: V4SubgraphPool[] = _.map(
+      v4MockPools,
+      poolToV4SubgraphPool
+    );
+    mockV4SubgraphProvider.getPools.resolves(v4MockSubgraphPools);
 
     mockV3SubgraphProvider = sinon.createStubInstance(V3SubgraphProvider);
     const v3MockSubgraphPools: V3SubgraphPool[] = _.map(
@@ -218,12 +291,12 @@ describe('alpha router', () => {
 
     mockOnChainQuoteProvider = sinon.createStubInstance(OnChainQuoteProvider);
     mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
-      getQuotesManyExactInFn<V3Route | V2Route | MixedRoute>()
+      getQuotesManyExactInFn<SupportedRoutes>()
     );
     mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
       async (
         amountOuts: CurrencyAmount[],
-        routes: V3Route[],
+        routes: SupportedExactOutRoutes[],
         _providerConfig?: ProviderConfig
       ) => {
         const routesWithQuotes = _.map(routes, (r) => {
@@ -294,6 +367,27 @@ describe('alpha router', () => {
     mockGasPriceProvider.getGasPrice.resolves({
       gasPriceWei: mockGasPriceWeiBN,
     });
+
+    mockV4GasModelFactory = sinon.createStubInstance(
+      V4HeuristicGasModelFactory
+    );
+    const v4MockGasModel = {
+      estimateGasCost: sinon.stub(),
+    };
+    v4MockGasModel.estimateGasCost.callsFake((r: V4RouteWithValidQuote) => {
+      return {
+        gasEstimate: BigNumber.from(10000),
+        gasCostInToken: CurrencyAmount.fromRawAmount(
+          r.quoteToken,
+          r.quote.multiply(new Fraction(95, 100)).quotient
+        ),
+        gasCostInUSD: CurrencyAmount.fromRawAmount(
+          USDC,
+          r.quote.multiply(new Fraction(95, 100)).quotient
+        ),
+      };
+    });
+    mockV4GasModelFactory.buildGasModel.resolves(v4MockGasModel);
 
     mockV3GasModelFactory = sinon.createStubInstance(
       V3HeuristicGasModelFactory
@@ -397,6 +491,9 @@ describe('alpha router', () => {
       chainId: 1,
       provider: mockProvider,
       multicall2Provider: mockMulticallProvider as any,
+      v4SubgraphProvider: mockV4SubgraphProvider,
+      v4PoolProvider: mockV4PoolProvider,
+      v4GasModelFactory: mockV4GasModelFactory,
       v3SubgraphProvider: mockV3SubgraphProvider,
       v3PoolProvider: mockV3PoolProvider,
       onChainQuoteProvider: mockOnChainQuoteProvider,
@@ -414,6 +511,7 @@ describe('alpha router', () => {
       simulator: mockFallbackTenderlySimulator,
       routeCachingProvider: inMemoryRouteCachingProvider,
       tokenPropertiesProvider: mockTokenPropertiesProvider,
+      v4Supported: [ChainId.SEPOLIA, ChainId.MAINNET]
     });
   });
 
@@ -447,7 +545,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: (V3Route | V2Route | MixedRoute)[],
+          routes: SupportedRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -628,7 +726,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -667,7 +765,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -712,6 +810,7 @@ describe('alpha router', () => {
           ...ROUTING_CONFIG,
           minSplits: 3, // ensure we get all 3 protocols
           protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+          excludedProtocolsFromMixed: [Protocol.V4]
         }
       );
       expect(swap).toBeDefined();
@@ -849,7 +948,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactIn.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: (V3Route | V2Route | MixedRoute)[],
+          routes: SupportedRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1011,6 +1110,60 @@ describe('alpha router', () => {
         { ...ROUTING_CONFIG }
       );
       expect(swapTo).toBeDefined();
+    });
+
+    test('succeeds to route on mixed only', async () => {
+      const amount = CurrencyAmount.fromRawAmount(USDC, 10000);
+      const swap = await alphaRouter.route(
+        amount,
+        Ether.onChain(ChainId.MAINNET),
+        TradeType.EXACT_INPUT,
+        undefined,
+        { ...ROUTING_CONFIG, protocols: [Protocol.MIXED] }
+      )
+      expect(swap).toBeDefined();
+
+      expect(mockFallbackTenderlySimulator.simulate.called).toBeFalsy();
+      expect(mockProvider.getBlockNumber.called).toBeTruthy();
+      expect(mockGasPriceProvider.getGasPrice.called).toBeTruthy();
+
+      sinon.assert.calledWith(
+        mockOnChainQuoteProvider.getQuotesManyExactIn,
+        sinon.match((value) => {
+          return value instanceof Array && value.length == 4;
+        }),
+        sinon.match.array,
+        sinon.match({ blockNumber: sinon.match.defined })
+      );
+      /// Should not be calling onChainQuoteProvider for mixedRoutes
+      sinon.assert.callCount(mockOnChainQuoteProvider.getQuotesManyExactIn, 1);
+
+      expect(
+        swap!.quote.currency.equals(WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET])
+      ).toBeTruthy();
+      expect(
+        swap!.quoteGasAdjusted.currency.equals(WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET])
+      ).toBeTruthy();
+
+      expect(swap!.quote.greaterThan(swap!.quoteGasAdjusted)).toBeTruthy();
+      expect(swap!.estimatedGasUsed.toString()).toEqual('10000');
+      expect(
+        swap!.estimatedGasUsedQuoteToken.currency.equals(
+          WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]
+        )
+      ).toBeTruthy();
+      expect(
+        swap!.estimatedGasUsedUSD.currency.equals(USDC) ||
+        swap!.estimatedGasUsedUSD.currency.equals(USDT) ||
+        swap!.estimatedGasUsedUSD.currency.equals(DAI)
+      ).toBeTruthy();
+      expect(swap!.gasPriceWei.toString()).toEqual(
+        mockGasPriceWeiBN.toString()
+      );
+      expect(swap!.route).toHaveLength(1);
+      expect(swap!.trade).toBeDefined();
+      expect(swap!.methodParameters).not.toBeDefined();
+      expect(swap!.blockNumber.toString()).toEqual(mockBlockBN.toString());
     });
 
     test('succeeds to route on v3 only', async () => {
@@ -1322,7 +1475,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1360,7 +1513,7 @@ describe('alpha router', () => {
         .callsFake(
           async (
             amountIns: CurrencyAmount[],
-            routes: (V3Route | V2Route | MixedRoute)[],
+            routes: SupportedRoutes[],
             _providerConfig?: ProviderConfig
           ) => {
             const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -1401,6 +1554,7 @@ describe('alpha router', () => {
         undefined,
         {
           ...ROUTING_CONFIG,
+          excludedProtocolsFromMixed: [Protocol.V4]
         }
       );
       expect(swap).toBeDefined();
@@ -1414,6 +1568,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on v3 only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1495,6 +1650,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on v2 only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1569,6 +1725,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on mixed only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1645,6 +1802,7 @@ describe('alpha router', () => {
     test('succeeds to route and generate calldata and simulates', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -1792,6 +1950,72 @@ describe('alpha router', () => {
         expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
       });
     });
+
+    describe('token in is fee-on-transfer token on sell', () => {
+      test('should only quote against v2', async () => {
+        mockTokenPropertiesProvider.getTokensProperties.returns(Promise.resolve({
+          '0x8ef32a03784c8fd63bbf027251b9620865bd54b6': {
+            tokenFeeResult: {
+              buyFeeBps: BigNumber.from(500),
+              sellFeeBps: BigNumber.from(500)
+            } as TokenPropertiesResult
+          } as TokenPropertiesMap
+        }));
+
+        const swap = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(BULLET, 10000),
+          USDC,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap).toBeDefined();
+
+        expect(mockV2SubgraphProvider.getPools.called).toBeTruthy();
+        expect(mockV3SubgraphProvider.getPools.called).toBeFalsy();
+        sinon.assert.calledWith(
+          mockV2QuoteProvider.getQuotesManyExactIn,
+          sinon.match((value) => {
+            return value instanceof Array && value.length == 1;
+          }),
+          sinon.match.array
+        );
+        expect(mockOnChainQuoteProvider.getQuotesManyExactIn.called).toBeFalsy();
+      })
+    })
+
+    describe('token out is fee-on-transfer token on buy', () => {
+      test('should only quote against v2', async () => {
+        mockTokenPropertiesProvider.getTokensProperties.returns(Promise.resolve({
+          '0x8ef32a03784c8fd63bbf027251b9620865bd54b6': {
+            tokenFeeResult: {
+              buyFeeBps: BigNumber.from(500),
+              sellFeeBps: BigNumber.from(500)
+            } as TokenPropertiesResult
+          } as TokenPropertiesMap
+        }));
+
+        const swap = await alphaRouter.route(
+          CurrencyAmount.fromRawAmount(USDC, 10000),
+          BULLET,
+          TradeType.EXACT_INPUT,
+          undefined,
+          { ...ROUTING_CONFIG }
+        );
+        expect(swap).toBeDefined();
+
+        expect(mockV2SubgraphProvider.getPools.called).toBeTruthy();
+        expect(mockV3SubgraphProvider.getPools.called).toBeFalsy();
+        sinon.assert.calledWith(
+          mockV2QuoteProvider.getQuotesManyExactIn,
+          sinon.match((value) => {
+            return value instanceof Array && value.length == 1;
+          }),
+          sinon.match.array
+        );
+        expect(mockOnChainQuoteProvider.getQuotesManyExactIn.called).toBeFalsy();
+      })
+    })
   });
 
   describe('exact out', () => {
@@ -1824,7 +2048,7 @@ describe('alpha router', () => {
       mockOnChainQuoteProvider.getQuotesManyExactOut.callsFake(
         async (
           amountIns: CurrencyAmount[],
-          routes: V3Route[],
+          routes: SupportedExactOutRoutes[],
           _providerConfig?: ProviderConfig
         ) => {
           const routesWithQuotes = _.map(routes, (r, routeIdx) => {
@@ -2114,6 +2338,7 @@ describe('alpha router', () => {
     test('succeeds to route and generates calldata on v2 only', async () => {
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -2184,6 +2409,7 @@ describe('alpha router', () => {
       const amount = CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1], 10000);
       const swapParams = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadline: Math.floor(Date.now() / 1000) + 1000000,
         recipient: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
         slippageTolerance: new Percent(500, 10_000),
@@ -3121,7 +3347,7 @@ type GetQuotesManyExactInFnParams = {
   sqrtPriceX96AfterList?: BigNumber[];
 };
 
-function getQuotesManyExactInFn<TRoute extends V3Route | V2Route | MixedRoute>(
+function getQuotesManyExactInFn<TRoute extends SupportedRoutes>(
   options: GetQuotesManyExactInFnParams = {}
 ): (
   amountIns: CurrencyAmount[],

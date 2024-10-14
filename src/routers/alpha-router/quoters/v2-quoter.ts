@@ -13,6 +13,10 @@ import {
   TokenValidationResult,
 } from '../../../providers';
 import {
+  ArbitrumGasData,
+  IL2GasDataProvider,
+} from '../../../providers/v3/gas-data-provider';
+import {
   CurrencyAmount,
   log,
   metric,
@@ -28,17 +32,13 @@ import {
   V2CandidatePools,
 } from '../functions/get-candidate-pools';
 import { IGasModel, IV2GasModelFactory } from '../gas-models';
-import { NATIVE_OVERHEAD } from '../gas-models/v3/gas-costs';
+import { NATIVE_OVERHEAD } from '../gas-models/gas-costs';
 
-import {
-  ArbitrumGasData,
-  IL2GasDataProvider,
-} from '../../../providers/v3/gas-data-provider';
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult } from './model/results/get-quotes-result';
 import { GetRoutesResult } from './model/results/get-routes-result';
 
-export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
+export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
   protected v2SubgraphProvider: IV2SubgraphProvider;
   protected v2PoolProvider: IV2PoolProvider;
   protected v2QuoteProvider: IV2QuoteProvider;
@@ -132,7 +132,7 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route> {
     };
   }
 
-  public async getQuotes(
+  public override async getQuotes(
     routes: V2Route[],
     amounts: CurrencyAmount[],
     percents: number[],

@@ -17,6 +17,7 @@ import {
   CachingTokenListProvider,
   CachingTokenProviderWithFallback,
   CachingV3PoolProvider,
+  CachingV4PoolProvider,
   CHAIN_IDS_LIST,
   EIP1559GasPriceProvider,
   EthEstimateGasSimulator,
@@ -44,7 +45,8 @@ import {
   UniswapMulticallProvider,
   V2PoolProvider,
   V3PoolProvider,
-  V3RouteWithValidQuote
+  V3RouteWithValidQuote,
+  V4PoolProvider
 } from '../src';
 import {
   LegacyGasPriceProvider
@@ -286,6 +288,11 @@ export abstract class BaseCommand extends Command {
         new NodeCache({ stdTTL: 15, useClones: true })
       );
 
+      const v4PoolProvider = new CachingV4PoolProvider(
+        chainId,
+        new V4PoolProvider(chainId, multicall2Provider),
+        new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+      );
       const v3PoolProvider = new CachingV3PoolProvider(
         chainId,
         new V3PoolProvider(chainId, multicall2Provider),
@@ -312,6 +319,7 @@ export abstract class BaseCommand extends Command {
         process.env.TENDERLY_NODE_API_KEY!,
         v2PoolProvider,
         v3PoolProvider,
+        v4PoolProvider,
         provider,
         portionProvider,
         { [ChainId.ARBITRUM_ONE]: 1 },
@@ -325,6 +333,7 @@ export abstract class BaseCommand extends Command {
         provider,
         v2PoolProvider,
         v3PoolProvider,
+        v4PoolProvider,
         portionProvider
       );
 

@@ -2,22 +2,20 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, TradeType } from '@uniswap/sdk-core';
 import {
-  DAI_MAINNET,
-  USDC_MAINNET,
-  V3Route,
-  V3RouteWithValidQuote,
-} from '../../../../../../build/main';
-import {
   CachedRoutes,
   CurrencyAmount,
   DAI_MAINNET as DAI,
+  DAI_MAINNET,
   MixedRoute,
   MixedRouteWithValidQuote,
   MixedRouteWithValidQuoteParams,
   USDC_MAINNET as USDC,
+  USDC_MAINNET,
   V2Route,
   V2RouteWithValidQuote,
   V2RouteWithValidQuoteParams,
+  V3Route,
+  V3RouteWithValidQuote,
   V3RouteWithValidQuoteParams,
 } from '../../../../../../src';
 import {
@@ -31,7 +29,7 @@ import {
   getMockedV2GasModel,
   getMockedV2PoolProvider,
   getMockedV3GasModel,
-  getMockedV3PoolProvider,
+  getMockedV3PoolProvider, getMockedV4PoolProvider
 } from '../../../../routers/alpha-router/gas-models/test-util/mocked-dependencies';
 
 export function getV2RouteWithValidQuoteStub(
@@ -94,6 +92,7 @@ export function getMixedRouteWithValidQuoteStub(
     mixedRouteGasModel: getMockedMixedGasModel(),
     quoteToken: DAI,
     tradeType: TradeType.EXACT_INPUT,
+    v4PoolProvider: getMockedV4PoolProvider(),
     v3PoolProvider: getMockedV3PoolProvider(),
     v2PoolProvider: getMockedV2PoolProvider(),
     ...overrides,
@@ -103,14 +102,5 @@ export function getMixedRouteWithValidQuoteStub(
 export function getCachedRoutesStub(
   blockNumber: number
 ): CachedRoutes | undefined {
-  return CachedRoutes.fromRoutesWithValidQuotes(
-    [getV3RouteWithValidQuoteStub()],
-    ChainId.MAINNET,
-    USDC,
-    DAI,
-    [Protocol.V2, Protocol.V3, Protocol.MIXED],
-    blockNumber,
-    TradeType.EXACT_INPUT,
-    '1.1'
-  );
+  return CachedRoutes.fromRoutesWithValidQuotes([getV3RouteWithValidQuoteStub()], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
 }

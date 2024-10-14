@@ -1,6 +1,14 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Currency, CurrencyAmount, Fraction, Percent, Token, TradeType, } from '@uniswap/sdk-core';
 import {
+  Currency,
+  CurrencyAmount,
+  Fraction,
+  Percent,
+  Token,
+  TradeType
+} from '@uniswap/sdk-core';
+import {
+  MixedRouteWithValidQuote,
   parseAmount,
   RouteWithValidQuote,
   SwapOptions,
@@ -15,6 +23,7 @@ import {
   getV2RouteWithValidQuoteStub,
   getV3RouteWithValidQuoteStub
 } from './caching/route/test-util/mocked-dependencies';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 describe('portion provider', () => {
   const expectedRequestAmount = '1.01';
@@ -57,6 +66,7 @@ describe('portion provider', () => {
 
         const swapConfig: SwapOptions = {
           type: SwapType.UNIVERSAL_ROUTER,
+          version: UniversalRouterVersion.V1_2,
           slippageTolerance: new Percent(5),
           recipient: '0x123',
           fee: {
@@ -128,6 +138,7 @@ describe('portion provider', () => {
         const expectedPortionAmount = amount.multiply(new Fraction(expectedPortion.bips, 10_000));
         const swapConfig: SwapOptions = {
           type: SwapType.UNIVERSAL_ROUTER,
+          version: UniversalRouterVersion.V1_2,
           slippageTolerance: new Percent(5),
           recipient: '0x123',
           flatFee: {
@@ -198,6 +209,7 @@ describe('portion provider', () => {
 
             const swapConfig: SwapOptions = {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               slippageTolerance: new Percent(5),
               recipient: '0x123',
               fee: {
@@ -224,6 +236,7 @@ describe('portion provider', () => {
 
             const swapConfig: SwapOptions = {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               slippageTolerance: new Percent(5),
               recipient: '0x123',
               fee: {
@@ -267,6 +280,7 @@ describe('portion provider', () => {
       ];
       const swapParams: SwapOptions = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadlineOrPreviousBlockhash: undefined,
         recipient: '0x123',
         slippageTolerance: new Percent(5),
@@ -293,17 +307,17 @@ describe('portion provider', () => {
         }
 
         if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.toExact())
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString())
             .toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000))
               .multiply(50)
               .quotient
               .toString());
         }
 
-        if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
-          expect(routeWithQuotePortionAdjusted.quote.toExact())
+        if (routeWithQuotePortionAdjusted instanceof MixedRouteWithValidQuote) {
+          expect(routeWithQuotePortionAdjusted.quote.quotient.toString())
             .toEqual(oneHundredPercent.subtract(new Percent(FLAT_PORTION.bips, 10_000))
-              .multiply(60)
+              .multiply(30)
               .quotient
               .toString());
         }
@@ -330,6 +344,7 @@ describe('portion provider', () => {
       ];
       const swapParams: SwapOptions = {
         type: SwapType.UNIVERSAL_ROUTER,
+        version: UniversalRouterVersion.V1_2,
         deadlineOrPreviousBlockhash: undefined,
         recipient: '0x123',
         slippageTolerance: new Percent(5),
@@ -354,7 +369,7 @@ describe('portion provider', () => {
           expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('50');
         }
 
-        if (routeWithQuotePortionAdjusted instanceof V3RouteWithValidQuote) {
+        if (routeWithQuotePortionAdjusted instanceof MixedRouteWithValidQuote) {
           expect(routeWithQuotePortionAdjusted.quote.quotient.toString()).toEqual('30');
         }
       });

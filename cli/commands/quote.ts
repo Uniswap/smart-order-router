@@ -5,9 +5,17 @@ import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import _ from 'lodash';
 
-import { ID_TO_CHAIN_ID, MapWithLowerCaseKey, nativeOnChain, parseAmount, SwapRoute, SwapType, } from '../../src';
+import {
+  ID_TO_CHAIN_ID,
+  MapWithLowerCaseKey,
+  nativeOnChain,
+  parseAmount,
+  SwapRoute,
+  SwapType
+} from '../../src';
 import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
 import { BaseCommand } from '../base-command';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 dotenv.config();
 
@@ -138,6 +146,7 @@ export class Quote extends BaseCommand {
             recipient,
             slippageTolerance: new Percent(5, 100),
             simulate: simulate ? { fromAddress: recipient } : undefined,
+            version: UniversalRouterVersion.V2_0
           }
           : undefined,
         {

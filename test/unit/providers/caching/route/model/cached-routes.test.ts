@@ -1,7 +1,6 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, TradeType } from '@uniswap/sdk-core';
-import { V3RouteWithValidQuote } from '../../../../../../build/main';
-import { CachedRoutes, DAI_MAINNET as DAI, USDC_MAINNET as USDC } from '../../../../../../src';
+import { CachedRoutes, DAI_MAINNET as DAI, USDC_MAINNET as USDC, V3RouteWithValidQuote } from '../../../../../../src';
 import { getV3RouteWithValidQuoteStub } from '../test-util/mocked-dependencies';
 
 describe('CachedRoutes', () => {
@@ -14,31 +13,13 @@ describe('CachedRoutes', () => {
 
   describe('#fromRoutesWithValidQuotes', () => {
     it('creates the instance', () => {
-      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
-        [v3RouteWithValidQuote],
-        ChainId.MAINNET,
-        USDC,
-        DAI,
-        [Protocol.V2, Protocol.V3, Protocol.MIXED],
-        blockNumber,
-        TradeType.EXACT_INPUT,
-        '1.1'
-      );
+      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes([v3RouteWithValidQuote], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
 
       expect(cachedRoutes).toBeInstanceOf(CachedRoutes);
     });
 
     it('returns undefined when routes are empty', () => {
-      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
-        [],
-        ChainId.MAINNET,
-        USDC,
-        DAI,
-        [Protocol.V2, Protocol.V3, Protocol.MIXED],
-        blockNumber,
-        TradeType.EXACT_INPUT,
-        '1.1'
-      );
+      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes([], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
 
       expect(cachedRoutes).toBeUndefined();
     });
@@ -48,16 +29,7 @@ describe('CachedRoutes', () => {
     let cachedRoutes: CachedRoutes;
 
     beforeEach(() => {
-      cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
-        [v3RouteWithValidQuote],
-        ChainId.MAINNET,
-        USDC,
-        DAI,
-        [Protocol.V2, Protocol.V3, Protocol.MIXED],
-        blockNumber,
-        TradeType.EXACT_INPUT,
-        '1.1'
-      )!;
+      cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes([v3RouteWithValidQuote], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1')!;
     });
 
     describe('.blocksToLive', () => {

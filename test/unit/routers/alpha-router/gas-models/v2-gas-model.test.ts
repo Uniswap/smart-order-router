@@ -9,7 +9,7 @@ import {
 import {
   NATIVE_OVERHEAD,
   NATIVE_WRAP_OVERHEAD,
-} from '../../../../../src/routers/alpha-router/gas-models/v3/gas-costs';
+} from '../../../../../src/routers/alpha-router/gas-models/gas-costs';
 import { WETH_DAI } from '../../../../test-util/mock-data';
 import { getV2RouteWithValidQuoteStub } from '../../../providers/caching/route/test-util/mocked-dependencies';
 import { getMockedV2PoolProvider } from './test-util/mocked-dependencies';

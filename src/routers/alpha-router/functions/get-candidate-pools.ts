@@ -1,16 +1,21 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Token, TradeType } from '@uniswap/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ADDRESS_ZERO, FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
+import { isNativeCurrency } from '@uniswap/universal-router-sdk';
 import {
   DAI_OPTIMISM_SEPOLIA,
   ITokenListProvider,
   IV2SubgraphProvider,
+  IV4PoolProvider,
+  IV4SubgraphProvider,
   USDC_ARBITRUM_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
   USDT_OPTIMISM_SEPOLIA,
   V2SubgraphPool,
+  V4PoolAccessor,
+  V4SubgraphPool,
   WBTC_OPTIMISM_SEPOLIA,
 } from '../../../providers';
 import {
@@ -73,17 +78,28 @@ import {
   IV3SubgraphProvider,
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
-import { unparseFeeAmount, WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import {
+  getAddress,
+  getAddressLowerCase,
+  getApplicableV3FeeAmounts,
+  nativeOnChain,
+  unparseFeeAmount,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../../util';
 import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
 
-export type SubgraphPool = V2SubgraphPool | V3SubgraphPool;
+export type SubgraphPool = V2SubgraphPool | V3SubgraphPool | V4SubgraphPool;
 export type CandidatePoolsBySelectionCriteria = {
   protocol: Protocol;
   selections: CandidatePoolsSelections;
 };
+export type SupportedCandidatePools =
+  | V2CandidatePools
+  | V3CandidatePools
+  | V4CandidatePools;
 
 /// Utility type for allowing us to use `keyof CandidatePoolsSelections` to map
 export type CandidatePoolsSelections = {
@@ -105,7 +121,20 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   v3SubgraphProvider: IV3SubgraphProvider;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
+  v4Candidates?: V4CandidatePools;
   blockNumber?: number | Promise<number>;
+};
+
+export type V4GetCandidatePoolsParams = {
+  currencyIn: Currency;
+  currencyOut: Currency;
+  routeType: TradeType;
+  routingConfig: AlphaRouterConfig;
+  subgraphProvider: IV4SubgraphProvider;
+  tokenProvider: ITokenProvider;
+  poolProvider: IV4PoolProvider;
+  blockedTokenListProvider?: ITokenListProvider;
+  chainId: ChainId;
 };
 
 export type V3GetCandidatePoolsParams = {
@@ -133,6 +162,7 @@ export type V2GetCandidatePoolsParams = {
 };
 
 export type MixedRouteGetCandidatePoolsParams = {
+  v4CandidatePools: V4CandidatePools;
   v3CandidatePools: V3CandidatePools;
   v2CandidatePools: V2CandidatePools;
   crossLiquidityPools: CrossLiquidityCandidatePools;
@@ -140,6 +170,7 @@ export type MixedRouteGetCandidatePoolsParams = {
   tokenProvider: ITokenProvider;
   v2poolProvider: IV2PoolProvider;
   v3poolProvider: IV3PoolProvider;
+  v4PoolProvider: IV4PoolProvider;
   blockedTokenListProvider?: ITokenListProvider;
   chainId: ChainId;
 };
@@ -202,6 +233,8 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BLAST]: [WRAPPED_NATIVE_CURRENCY[ChainId.BLAST]!, USDB_BLAST],
   [ChainId.ZORA]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZORA]!],
   [ChainId.ZKSYNC]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZKSYNC]!],
+  [ChainId.WORLDCHAIN]: [WRAPPED_NATIVE_CURRENCY[ChainId.WORLDCHAIN]!],
+  [ChainId.ASTROCHAIN_SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.WORLDCHAIN]!],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {
@@ -364,6 +397,456 @@ function findCrossProtocolMissingPools<
   return selectedPools;
 }
 
+export type V4CandidatePools = {
+  poolAccessor: V4PoolAccessor;
+  candidatePools: CandidatePoolsBySelectionCriteria;
+  subgraphPools: V4SubgraphPool[];
+};
+
+// TODO: ROUTE-241 - refactor getV3CandidatePools against getV4CandidatePools
+export async function getV4CandidatePools({
+  currencyIn,
+  currencyOut,
+  routeType,
+  routingConfig,
+  subgraphProvider,
+  tokenProvider,
+  poolProvider,
+  blockedTokenListProvider,
+  chainId,
+}: V4GetCandidatePoolsParams): Promise<V4CandidatePools> {
+  const {
+    blockNumber,
+    v4PoolSelection: {
+      topN,
+      topNDirectSwaps,
+      topNTokenInOut,
+      topNSecondHop,
+      topNSecondHopForTokenAddress,
+      tokensToAvoidOnSecondHops,
+      topNWithEachBaseToken,
+      topNWithBaseToken,
+    },
+  } = routingConfig;
+  const tokenInAddress = getAddressLowerCase(currencyIn);
+  const tokenOutAddress = getAddressLowerCase(currencyOut);
+
+  const beforeSubgraphPools = Date.now();
+
+  const allPools = await subgraphProvider.getPools(currencyIn, currencyOut, {
+    blockNumber,
+  });
+
+  log.info(
+    { samplePools: allPools.slice(0, 3) },
+    'Got all pools from V4 subgraph provider'
+  );
+
+  // Although this is less of an optimization than the V2 equivalent,
+  // save some time copying objects by mutating the underlying pool directly.
+  for (const pool of allPools) {
+    pool.token0.id = pool.token0.id.toLowerCase();
+    pool.token1.id = pool.token1.id.toLowerCase();
+  }
+
+  metric.putMetric(
+    'V4SubgraphPoolsLoad',
+    Date.now() - beforeSubgraphPools,
+    MetricLoggerUnit.Milliseconds
+  );
+
+  const beforePoolsFiltered = Date.now();
+
+  // Only consider pools where neither tokens are in the blocked token list.
+  let filteredPools: V4SubgraphPool[] = allPools;
+  if (blockedTokenListProvider) {
+    filteredPools = [];
+    for (const pool of allPools) {
+      const token0InBlocklist =
+        await blockedTokenListProvider.hasTokenByAddress(pool.token0.id);
+      const token1InBlocklist =
+        await blockedTokenListProvider.hasTokenByAddress(pool.token1.id);
+
+      if (token0InBlocklist || token1InBlocklist) {
+        continue;
+      }
+
+      filteredPools.push(pool);
+    }
+  }
+
+  // Sort by tvlUSD in descending order
+  const subgraphPoolsSorted = filteredPools.sort((a, b) => b.tvlUSD - a.tvlUSD);
+
+  log.info(
+    `After filtering blocked tokens went from ${allPools.length} to ${subgraphPoolsSorted.length}.`
+  );
+
+  const poolAddressesSoFar = new Set<string>();
+  const addToAddressSet = (pools: V4SubgraphPool[]) => {
+    _(pools)
+      .map((pool) => pool.id)
+      .forEach((poolAddress) => poolAddressesSoFar.add(poolAddress));
+  };
+
+  const baseTokens = baseTokensByChain[chainId] ?? [];
+
+  const topByBaseWithTokenIn = _(baseTokens)
+    .flatMap((token: Token) => {
+      return _(subgraphPoolsSorted)
+        .filter((subgraphPool) => {
+          const tokenAddress = token.address.toLowerCase();
+          return (
+            (subgraphPool.token0.id == tokenAddress &&
+              subgraphPool.token1.id == tokenInAddress) ||
+            (subgraphPool.token1.id == tokenAddress &&
+              subgraphPool.token0.id == tokenInAddress)
+          );
+        })
+        .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
+        .slice(0, topNWithEachBaseToken)
+        .value();
+    })
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
+    .slice(0, topNWithBaseToken)
+    .value();
+
+  const topByBaseWithTokenOut = _(baseTokens)
+    .flatMap((token: Token) => {
+      return _(subgraphPoolsSorted)
+        .filter((subgraphPool) => {
+          const tokenAddress = token.address.toLowerCase();
+          return (
+            (subgraphPool.token0.id == tokenAddress &&
+              subgraphPool.token1.id == tokenOutAddress) ||
+            (subgraphPool.token1.id == tokenAddress &&
+              subgraphPool.token0.id == tokenOutAddress)
+          );
+        })
+        .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
+        .slice(0, topNWithEachBaseToken)
+        .value();
+    })
+    .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
+    .slice(0, topNWithBaseToken)
+    .value();
+
+  let top2DirectSwapPool = _(subgraphPoolsSorted)
+    .filter((subgraphPool) => {
+      return (
+        !poolAddressesSoFar.has(subgraphPool.id) &&
+        ((subgraphPool.token0.id == tokenInAddress &&
+          subgraphPool.token1.id == tokenOutAddress) ||
+          (subgraphPool.token1.id == tokenInAddress &&
+            subgraphPool.token0.id == tokenOutAddress))
+      );
+    })
+    .slice(0, topNDirectSwaps)
+    .value();
+
+  if (top2DirectSwapPool.length == 0 && topNDirectSwaps > 0) {
+    // If we requested direct swap pools but did not find any in the subgraph query.
+    // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
+    // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
+    top2DirectSwapPool = _.map(
+      [
+        [FeeAmount.HIGH, 200, ADDRESS_ZERO],
+        [FeeAmount.MEDIUM, 60, ADDRESS_ZERO],
+        [FeeAmount.LOW, 10, ADDRESS_ZERO],
+        [FeeAmount.LOWEST, 1, ADDRESS_ZERO],
+      ] as Array<[number, number, string]>,
+      (poolParams) => {
+        const [fee, tickSpacing, hooks] = poolParams;
+
+        const { currency0, currency1, poolId } = poolProvider.getPoolId(
+          currencyIn,
+          currencyOut,
+          fee,
+          tickSpacing,
+          hooks
+        );
+        return {
+          id: poolId,
+          feeTier: unparseFeeAmount(fee),
+          tickSpacing: tickSpacing.toString(),
+          hooks: hooks,
+          liquidity: '10000',
+          token0: {
+            id: getAddress(currency0),
+          },
+          token1: {
+            id: getAddress(currency1),
+          },
+          tvlETH: 10000,
+          tvlUSD: 10000,
+        };
+      }
+    );
+  }
+
+  addToAddressSet(top2DirectSwapPool);
+
+  const wrappedNativeAddress =
+    WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLowerCase();
+
+  // Main reason we need this is for gas estimates, only needed if token out is not native.
+  // We don't check the seen address set because if we've already added pools for getting native quotes
+  // theres no need to add more.
+  let top2EthQuoteTokenPool: V4SubgraphPool[] = [];
+  if (
+    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol ==
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]?.symbol &&
+      currencyOut.symbol != 'WETH' &&
+      currencyOut.symbol != 'WETH9' &&
+      currencyOut.symbol != 'ETH') ||
+    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
+      currencyOut.symbol != 'MATIC' &&
+      currencyOut.symbol != 'WMATIC')
+  ) {
+    top2EthQuoteTokenPool = _(subgraphPoolsSorted)
+      .filter((subgraphPool) => {
+        if (routeType == TradeType.EXACT_INPUT) {
+          return (
+            (subgraphPool.token0.id == wrappedNativeAddress &&
+              subgraphPool.token1.id == tokenOutAddress) ||
+            (subgraphPool.token1.id == wrappedNativeAddress &&
+              subgraphPool.token0.id == tokenOutAddress)
+          );
+        } else {
+          return (
+            (subgraphPool.token0.id == wrappedNativeAddress &&
+              subgraphPool.token1.id == tokenInAddress) ||
+            (subgraphPool.token1.id == wrappedNativeAddress &&
+              subgraphPool.token0.id == tokenInAddress)
+          );
+        }
+      })
+      .slice(0, 1)
+      .value();
+  }
+
+  addToAddressSet(top2EthQuoteTokenPool);
+
+  const topByTVL = _(subgraphPoolsSorted)
+    .filter((subgraphPool) => {
+      return !poolAddressesSoFar.has(subgraphPool.id);
+    })
+    .slice(0, topN)
+    .value();
+
+  addToAddressSet(topByTVL);
+
+  const topByTVLUsingTokenIn = _(subgraphPoolsSorted)
+    .filter((subgraphPool) => {
+      return (
+        !poolAddressesSoFar.has(subgraphPool.id) &&
+        (subgraphPool.token0.id == tokenInAddress ||
+          subgraphPool.token1.id == tokenInAddress)
+      );
+    })
+    .slice(0, topNTokenInOut)
+    .value();
+
+  addToAddressSet(topByTVLUsingTokenIn);
+
+  const topByTVLUsingTokenOut = _(subgraphPoolsSorted)
+    .filter((subgraphPool) => {
+      return (
+        !poolAddressesSoFar.has(subgraphPool.id) &&
+        (subgraphPool.token0.id == tokenOutAddress ||
+          subgraphPool.token1.id == tokenOutAddress)
+      );
+    })
+    .slice(0, topNTokenInOut)
+    .value();
+
+  addToAddressSet(topByTVLUsingTokenOut);
+
+  const topByTVLUsingTokenInSecondHops = _(topByTVLUsingTokenIn)
+    .map((subgraphPool) => {
+      return tokenInAddress == subgraphPool.token0.id
+        ? subgraphPool.token1.id
+        : subgraphPool.token0.id;
+    })
+    .flatMap((secondHopId: string) => {
+      return _(subgraphPoolsSorted)
+        .filter((subgraphPool) => {
+          return (
+            !poolAddressesSoFar.has(subgraphPool.id) &&
+            !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()) &&
+            (subgraphPool.token0.id == secondHopId ||
+              subgraphPool.token1.id == secondHopId)
+          );
+        })
+        .slice(
+          0,
+          topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop
+        )
+        .value();
+    })
+    .uniqBy((pool) => pool.id)
+    .value();
+
+  addToAddressSet(topByTVLUsingTokenInSecondHops);
+
+  const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenOut)
+    .map((subgraphPool) => {
+      return tokenOutAddress == subgraphPool.token0.id
+        ? subgraphPool.token1.id
+        : subgraphPool.token0.id;
+    })
+    .flatMap((secondHopId: string) => {
+      return _(subgraphPoolsSorted)
+        .filter((subgraphPool) => {
+          return (
+            !poolAddressesSoFar.has(subgraphPool.id) &&
+            !tokensToAvoidOnSecondHops?.includes(secondHopId.toLowerCase()) &&
+            (subgraphPool.token0.id == secondHopId ||
+              subgraphPool.token1.id == secondHopId)
+          );
+        })
+        .slice(
+          0,
+          topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop
+        )
+        .value();
+    })
+    .uniqBy((pool) => pool.id)
+    .value();
+
+  addToAddressSet(topByTVLUsingTokenOutSecondHops);
+
+  const subgraphPools = _([
+    ...topByBaseWithTokenIn,
+    ...topByBaseWithTokenOut,
+    ...top2DirectSwapPool,
+    ...top2EthQuoteTokenPool,
+    ...topByTVL,
+    ...topByTVLUsingTokenIn,
+    ...topByTVLUsingTokenOut,
+    ...topByTVLUsingTokenInSecondHops,
+    ...topByTVLUsingTokenOutSecondHops,
+  ])
+    .compact()
+    .uniqBy((pool) => pool.id)
+    .value();
+
+  const tokenAddresses = _(subgraphPools)
+    .flatMap((subgraphPool) => [subgraphPool.token0.id, subgraphPool.token1.id])
+    .compact()
+    .uniq()
+    .value();
+
+  log.info(
+    `Getting the ${tokenAddresses.length} tokens within the ${subgraphPools.length} V4 pools we are considering`
+  );
+
+  const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {
+    blockNumber,
+  });
+
+  const printV4SubgraphPool = (s: V4SubgraphPool) =>
+    `${tokenAccessor.getTokenByAddress(s.token0.id)?.symbol ?? s.token0.id}/${
+      tokenAccessor.getTokenByAddress(s.token1.id)?.symbol ?? s.token1.id
+    }/${s.feeTier}/${s.tickSpacing}/${s.hooks}`;
+
+  log.info(
+    {
+      topByBaseWithTokenIn: topByBaseWithTokenIn.map(printV4SubgraphPool),
+      topByBaseWithTokenOut: topByBaseWithTokenOut.map(printV4SubgraphPool),
+      topByTVL: topByTVL.map(printV4SubgraphPool),
+      topByTVLUsingTokenIn: topByTVLUsingTokenIn.map(printV4SubgraphPool),
+      topByTVLUsingTokenOut: topByTVLUsingTokenOut.map(printV4SubgraphPool),
+      topByTVLUsingTokenInSecondHops:
+        topByTVLUsingTokenInSecondHops.map(printV4SubgraphPool),
+      topByTVLUsingTokenOutSecondHops:
+        topByTVLUsingTokenOutSecondHops.map(printV4SubgraphPool),
+      top2DirectSwap: top2DirectSwapPool.map(printV4SubgraphPool),
+      top2EthQuotePool: top2EthQuoteTokenPool.map(printV4SubgraphPool),
+    },
+    `V4 Candidate Pools`
+  );
+
+  const tokenPairsRaw = _.map<
+    V4SubgraphPool,
+    [Currency, Currency, number, number, string] | undefined
+  >(subgraphPools, (subgraphPool) => {
+    // native currency is not erc20 token, therefore there's no way to retrieve native currency metadata as the erc20 token.
+    const tokenA = isNativeCurrency(subgraphPool.token0.id)
+      ? nativeOnChain(chainId)
+      : tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+    const tokenB = isNativeCurrency(subgraphPool.token1.id)
+      ? nativeOnChain(chainId)
+      : tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
+    let fee: FeeAmount;
+    try {
+      fee = Number(subgraphPool.feeTier);
+    } catch (err) {
+      log.info(
+        { subgraphPool },
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}/${subgraphPool.feeTier} because fee tier not supported`
+      );
+      return undefined;
+    }
+
+    if (!tokenA || !tokenB) {
+      log.info(
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${
+          subgraphPool.token1.id
+        }/${fee} because ${
+          tokenA ? subgraphPool.token1.id : subgraphPool.token0.id
+        } not found by token provider`
+      );
+      return undefined;
+    }
+
+    return [
+      tokenA,
+      tokenB,
+      fee,
+      Number(subgraphPool.tickSpacing),
+      subgraphPool.hooks,
+    ];
+  });
+
+  const tokenPairs = _.compact(tokenPairsRaw);
+
+  metric.putMetric(
+    'V4PoolsFilterLoad',
+    Date.now() - beforePoolsFiltered,
+    MetricLoggerUnit.Milliseconds
+  );
+
+  const beforePoolsLoad = Date.now();
+
+  const poolAccessor = await poolProvider.getPools(tokenPairs, {
+    blockNumber,
+  });
+
+  metric.putMetric(
+    'V4PoolsLoad',
+    Date.now() - beforePoolsLoad,
+    MetricLoggerUnit.Milliseconds
+  );
+
+  const poolsBySelection: CandidatePoolsBySelectionCriteria = {
+    protocol: Protocol.V4,
+    selections: {
+      topByBaseWithTokenIn,
+      topByBaseWithTokenOut,
+      topByDirectSwapPool: top2DirectSwapPool,
+      topByEthQuoteTokenPool: top2EthQuoteTokenPool,
+      topByTVL,
+      topByTVLUsingTokenIn,
+      topByTVLUsingTokenOut,
+      topByTVLUsingTokenInSecondHops,
+      topByTVLUsingTokenOutSecondHops,
+    },
+  };
+
+  return { poolAccessor, candidatePools: poolsBySelection, subgraphPools };
+}
+
 export type V3CandidatePools = {
   poolAccessor: V3PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
@@ -515,7 +998,7 @@ export async function getV3CandidatePools({
     // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
     // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
     top2DirectSwapPool = _.map(
-      [FeeAmount.HIGH, FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.LOWEST],
+      getApplicableV3FeeAmounts(chainId),
       (feeAmount) => {
         const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
           tokenIn,
@@ -1399,24 +1882,28 @@ export async function getV2CandidatePools({
 export type MixedCandidatePools = {
   V2poolAccessor: V2PoolAccessor;
   V3poolAccessor: V3PoolAccessor;
+  V4poolAccessor: V4PoolAccessor;
   candidatePools: CandidatePoolsBySelectionCriteria;
   subgraphPools: SubgraphPool[];
 };
 
 export async function getMixedRouteCandidatePools({
+  v4CandidatePools,
   v3CandidatePools,
   v2CandidatePools,
   crossLiquidityPools,
   routingConfig,
   tokenProvider,
+  v4PoolProvider,
   v3poolProvider,
   v2poolProvider,
 }: MixedRouteGetCandidatePoolsParams): Promise<MixedCandidatePools> {
   const beforeSubgraphPools = Date.now();
   const [
+    { subgraphPools: V4subgraphPools, candidatePools: V4candidatePools },
     { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools },
     { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools },
-  ] = [v3CandidatePools, v2CandidatePools];
+  ] = [v4CandidatePools, v3CandidatePools, v2CandidatePools];
 
   // Injects the liquidity pools found by the getMixedCrossLiquidityCandidatePools function
   V2subgraphPools.push(...crossLiquidityPools.v2Pools);
@@ -1461,6 +1948,10 @@ export async function getMixedRouteCandidatePools({
     .sortBy((pool) => -pool.tvlUSD)
     .value();
 
+  const V4sortedPools = _(V4subgraphPools)
+    .sortBy((pool) => -pool.tvlUSD)
+    .value();
+
   /// Finding pools with greater reserveUSD on v2 than tvlUSD on v3, or if there is no v3 liquidity
   const buildV2Pools: V2SubgraphPool[] = [];
   V2topByTVLSortedPools.forEach((V2subgraphPool) => {
@@ -1496,6 +1987,39 @@ export async function getMixedRouteCandidatePools({
       );
       buildV2Pools.push(V2subgraphPool);
     }
+
+    const V4subgraphPool = V4sortedPools.find(
+      (pool) =>
+        (pool.token0.id == V2subgraphPool.token0.id &&
+          pool.token1.id == V2subgraphPool.token1.id) ||
+        (pool.token0.id == V2subgraphPool.token1.id &&
+          pool.token1.id == V2subgraphPool.token0.id)
+    );
+
+    if (V4subgraphPool) {
+      if (V2subgraphPool.reserveUSD > V4subgraphPool.tvlUSD) {
+        log.info(
+          {
+            token0: V2subgraphPool.token0.id,
+            token1: V2subgraphPool.token1.id,
+            v2reserveUSD: V2subgraphPool.reserveUSD,
+            v4tvlUSD: V4subgraphPool.tvlUSD,
+          },
+          `MixedRoute heuristic, found a V2 pool with higher liquidity than its V4 counterpart`
+        );
+        buildV2Pools.push(V2subgraphPool);
+      }
+    } else {
+      log.info(
+        {
+          token0: V2subgraphPool.token0.id,
+          token1: V2subgraphPool.token1.id,
+          v2reserveUSD: V2subgraphPool.reserveUSD,
+        },
+        `MixedRoute heuristic, found a V2 pool with no V3 counterpart`
+      );
+      buildV2Pools.push(V2subgraphPool);
+    }
   });
 
   log.info(
@@ -1503,7 +2027,8 @@ export async function getMixedRouteCandidatePools({
     `Number of V2 candidate pools that fit first heuristic`
   );
 
-  const subgraphPools = [...buildV2Pools, ...V3sortedPools];
+  const subgraphPools: Array<V2SubgraphPool | V3SubgraphPool | V4SubgraphPool> =
+    [...buildV2Pools, ...V3sortedPools, ...V4sortedPools];
 
   const tokenAddresses = _(subgraphPools)
     .flatMap((subgraphPool) => [subgraphPool.token0.id, subgraphPool.token1.id])
@@ -1519,6 +2044,45 @@ export async function getMixedRouteCandidatePools({
     tokenAddresses,
     routingConfig
   );
+
+  const V4tokenPairsRaw = _.map<
+    V4SubgraphPool,
+    [Token, Token, number, number, string] | undefined
+  >(V4sortedPools, (subgraphPool) => {
+    const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+    const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
+    let fee: FeeAmount;
+    try {
+      fee = Number(subgraphPool.feeTier);
+    } catch (err) {
+      log.info(
+        { subgraphPool },
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}/${subgraphPool.feeTier}/${subgraphPool.tickSpacing}/${subgraphPool.hooks} because fee tier not supported`
+      );
+      return undefined;
+    }
+
+    if (!tokenA || !tokenB) {
+      log.info(
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${
+          subgraphPool.token1.id
+        }/${fee}/${subgraphPool.tickSpacing}/${subgraphPool.hooks} because ${
+          tokenA ? subgraphPool.token1.id : subgraphPool.token0.id
+        } not found by token provider`
+      );
+      return undefined;
+    }
+
+    return [
+      tokenA,
+      tokenB,
+      fee,
+      Number(subgraphPool.tickSpacing),
+      subgraphPool.hooks,
+    ];
+  });
+
+  const V4tokenPairs = _.compact(V4tokenPairsRaw);
 
   const V3tokenPairsRaw = _.map<
     V3SubgraphPool,
@@ -1580,9 +2144,10 @@ export async function getMixedRouteCandidatePools({
 
   const beforePoolsLoad = Date.now();
 
-  const [V2poolAccessor, V3poolAccessor] = await Promise.all([
+  const [V2poolAccessor, V3poolAccessor, V4poolAccessor] = await Promise.all([
     v2poolProvider.getPools(V2tokenPairs, routingConfig),
     v3poolProvider.getPools(V3tokenPairs, routingConfig),
+    v4PoolProvider.getPools(V4tokenPairs, routingConfig),
   ]);
 
   metric.putMetric(
@@ -1599,6 +2164,7 @@ export async function getMixedRouteCandidatePools({
         V2candidatePools.selections[key].map((p) => p.id).includes(pool.id)
       ),
       ...V3candidatePools.selections[key],
+      ...V4candidatePools.selections[key],
     ];
   };
 
@@ -1624,6 +2190,7 @@ export async function getMixedRouteCandidatePools({
   return {
     V2poolAccessor,
     V3poolAccessor,
+    V4poolAccessor,
     candidatePools: poolsBySelection,
     subgraphPools,
   };

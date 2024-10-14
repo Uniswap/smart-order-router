@@ -9,6 +9,7 @@ import {
   FallbackTenderlySimulator,
   IV2PoolProvider,
   IV3PoolProvider,
+  IV4PoolProvider,
   nativeOnChain,
   RouteWithValidQuote,
   SimulationStatus,
@@ -17,11 +18,15 @@ import {
   SwapType,
   TenderlySimulator,
   USDC_MAINNET,
-  V2PoolProvider,
+  V2PoolProvider
 } from '../../../src';
-import { IPortionProvider, PortionProvider } from '../../../src/providers/portion-provider';
+import {
+  IPortionProvider,
+  PortionProvider
+} from '../../../src/providers/portion-provider';
 import { Erc20 } from '../../../src/types/other/Erc20';
 import { Permit2 } from '../../../src/types/other/Permit2';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 let tokenContract: Erc20;
 let permit2Contract: Permit2;
@@ -48,6 +53,7 @@ jest.mock('../../../src/util/gas-factory-helpers', () => ({
     swapRoute: SwapRoute,
     _v2PoolProvider: IV2PoolProvider,
     _v3PoolProvider: IV3PoolProvider,
+    _v4PoolProvider: IV4PoolProvider,
     _portionProvider: IPortionProvider,
     quoteGasAdjusted: CurrencyAmount,
     estimatedGasUsed: BigNumber,
@@ -70,9 +76,16 @@ const v2PoolProvider = sinon.createStubInstance(V2PoolProvider);
 const v3PoolAccessor = {
   getPool: () => undefined,
 };
+const v4PoolAccessor = {
+  getPool: () => undefined,
+};
 const v3PoolProvider = {
   getPools: jest.fn().mockImplementation(() => Promise.resolve(v3PoolAccessor)),
 } as unknown as IV3PoolProvider;
+const v4PoolProvider = {
+  getPools: jest.fn().mockImplementation(() => Promise.resolve(v4PoolAccessor)),
+  getPoolId: jest.fn().mockImplementation(() => Promise.resolve('0')),
+}
 const portionProvider = new PortionProvider();
 const fromAddress = 'fromAddress';
 const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 300);
@@ -84,6 +97,7 @@ const quote = {
 const blockNumber = BigNumber.from(0);
 const swapOptions: SwapOptions = {
   type: SwapType.UNIVERSAL_ROUTER,
+  version: UniversalRouterVersion.V1_2,
   slippageTolerance: new Percent(5, 100),
   deadlineOrPreviousBlockhash: 10000000,
   recipient: '0x0',
@@ -311,6 +325,7 @@ describe('Eth estimate gas simulator', () => {
       provider,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       portionProvider
     );
     permit2Contract = {

@@ -5,13 +5,13 @@ import {
   Trade,
 } from '@uniswap/router-sdk';
 import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
-import { CurrencyAmount as SDKCurrentAmount } from '@uniswap/sdk-core';
 import {
-  UNIVERSAL_ROUTER_ADDRESS,
   SwapRouter as UniversalRouter,
+  UNIVERSAL_ROUTER_ADDRESS,
 } from '@uniswap/universal-router-sdk';
 import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
-import { Route, Route as V3RouteRaw } from '@uniswap/v3-sdk';
+import { Route as V3RouteRaw } from '@uniswap/v3-sdk';
+import { Route as V4RouteRaw } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import {
@@ -19,11 +19,12 @@ import {
   MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
-  SWAP_ROUTER_02_ADDRESSES,
   SwapConfig,
   SwapType,
+  SWAP_ROUTER_02_ADDRESSES,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
 } from '..';
 
 export function buildTrade<TTradeType extends TradeType>(
@@ -33,6 +34,10 @@ export function buildTrade<TTradeType extends TradeType>(
   routeAmounts: RouteWithValidQuote[]
 ): Trade<Currency, Currency, TTradeType> {
   /// Removed partition because of new mixedRoutes
+  const v4RouteAmounts = _.filter(
+    routeAmounts,
+    (routeAmount) => routeAmount.protocol === Protocol.V4
+  );
   const v3RouteAmounts = _.filter(
     routeAmounts,
     (routeAmount) => routeAmount.protocol === Protocol.V3
@@ -46,8 +51,72 @@ export function buildTrade<TTradeType extends TradeType>(
     (routeAmount) => routeAmount.protocol === Protocol.MIXED
   );
 
-  // TODO: populate v4Routes
-  const v4Routes: {routev4: Route<Currency, Currency>, inputAmount: SDKCurrentAmount<Currency>, outputAmount: SDKCurrentAmount<Currency>}[] = []
+  // TODO: ROUTE-248 - refactor route objects for the trade object composition
+  const v4Routes = _.map<
+    V4RouteWithValidQuote,
+    {
+      routev4: V4RouteRaw<Currency, Currency>;
+      inputAmount: CurrencyAmount;
+      outputAmount: CurrencyAmount;
+    }
+  >(
+    v4RouteAmounts as V4RouteWithValidQuote[],
+    (routeAmount: V4RouteWithValidQuote) => {
+      const { route, amount, quote } = routeAmount;
+
+      // The route, amount and quote are all in terms of wrapped tokens.
+      // When constructing the Trade object the inputAmount/outputAmount must
+      // use native currencies if specified by the user. This is so that the Trade knows to wrap/unwrap.
+      if (tradeType == TradeType.EXACT_INPUT) {
+        const amountCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenInCurrency,
+          amount.numerator,
+          amount.denominator
+        );
+        const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenOutCurrency,
+          quote.numerator,
+          quote.denominator
+        );
+
+        const routeRaw = new V4RouteRaw(
+          route.pools,
+          amountCurrency.currency,
+          quoteCurrency.currency
+        );
+
+        return {
+          routev4: routeRaw,
+          inputAmount: amountCurrency,
+          outputAmount: quoteCurrency,
+        };
+      } else {
+        const quoteCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenInCurrency,
+          quote.numerator,
+          quote.denominator
+        );
+
+        const amountCurrency = CurrencyAmount.fromFractionalAmount(
+          tokenOutCurrency,
+          amount.numerator,
+          amount.denominator
+        );
+
+        const routeCurrency = new V4RouteRaw(
+          route.pools,
+          quoteCurrency.currency,
+          amountCurrency.currency
+        );
+
+        return {
+          routev4: routeCurrency,
+          inputAmount: quoteCurrency,
+          outputAmount: amountCurrency,
+        };
+      }
+    }
+  );
 
   const v3Routes = _.map<
     V3RouteWithValidQuote,
@@ -229,7 +298,13 @@ export function buildTrade<TTradeType extends TradeType>(
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  const trade = new Trade({ v2Routes, v3Routes, v4Routes, mixedRoutes, tradeType });
+  const trade = new Trade({
+    v2Routes,
+    v3Routes,
+    v4Routes,
+    mixedRoutes,
+    tradeType,
+  });
 
   return trade;
 }
@@ -241,8 +316,8 @@ export function buildSwapMethodParameters(
 ): MethodParameters {
   if (swapConfig.type == SwapType.UNIVERSAL_ROUTER) {
     return {
-      ...UniversalRouter.swapERC20CallParameters(trade, swapConfig),
-      to: UNIVERSAL_ROUTER_ADDRESS(chainId),
+      ...UniversalRouter.swapCallParameters(trade, swapConfig),
+      to: UNIVERSAL_ROUTER_ADDRESS(swapConfig.version, chainId),
     };
   } else if (swapConfig.type == SwapType.SWAP_ROUTER_02) {
     const { recipient, slippageTolerance, deadline, inputTokenPermit, fee } =
@@ -254,7 +329,7 @@ export function buildSwapMethodParameters(
         slippageTolerance,
         deadlineOrPreviousBlockhash: deadline,
         inputTokenPermit,
-        fee
+        fee,
       }),
       to: SWAP_ROUTER_02_ADDRESSES(chainId),
     };
