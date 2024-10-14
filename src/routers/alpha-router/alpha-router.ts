@@ -2455,7 +2455,12 @@ export class AlphaRouter
     );
 
     if (bestSwapRoute) {
-      this.emitPoolSelectionMetrics(bestSwapRoute, allCandidatePools);
+      this.emitPoolSelectionMetrics(
+        bestSwapRoute,
+        allCandidatePools,
+        currencyIn,
+        currencyOut
+      );
     }
 
     return bestSwapRoute;
@@ -2722,7 +2727,9 @@ export class AlphaRouter
       routes: RouteWithValidQuote[];
       estimatedGasUsed: BigNumber;
     },
-    allPoolsBySelection: CandidatePoolsBySelectionCriteria[]
+    allPoolsBySelection: CandidatePoolsBySelectionCriteria[],
+    currencyIn: Currency,
+    currencyOut: Currency
   ) {
     const poolAddressesUsed = new Set<string>();
     const { routes: routeAmounts } = swapRouteRaw;
@@ -2753,10 +2760,14 @@ export class AlphaRouter
       );
     }
 
+    let hasV4Route = false;
     let hasV3Route = false;
     let hasV2Route = false;
     let hasMixedRoute = false;
     for (const routeAmount of routeAmounts) {
+      if (routeAmount.protocol === Protocol.V4) {
+        hasV4Route = true;
+      }
       if (routeAmount.protocol === Protocol.V3) {
         hasV3Route = true;
       }
@@ -2768,40 +2779,62 @@ export class AlphaRouter
       }
     }
 
-    if (hasMixedRoute && (hasV3Route || hasV2Route)) {
-      if (hasV3Route && hasV2Route) {
+    if (hasMixedRoute && (hasV4Route || hasV3Route || hasV2Route)) {
+      let metricsPrefix = 'Mixed';
+
+      if (hasV4Route) {
+        metricsPrefix += 'AndV4';
+      }
+
+      if (hasV3Route) {
+        metricsPrefix += 'AndV3';
+      }
+
+      if (hasV2Route) {
+        metricsPrefix += 'AndV2';
+      }
+
+      metric.putMetric(`${metricsPrefix}SplitRoute`, 1, MetricLoggerUnit.Count);
+      metric.putMetric(
+        `${metricsPrefix}SplitRouteForChain${this.chainId}`,
+        1,
+        MetricLoggerUnit.Count
+      );
+
+      if (hasV4Route && (currencyIn.isNative || currencyOut.isNative)) {
+        // Keep track of this edge case https://linear.app/uniswap/issue/ROUTE-303/tech-debt-split-route-can-have-different-ethweth-input-or-output#comment-bba53758
         metric.putMetric(
-          `MixedAndV3AndV2SplitRoute`,
+          `${metricsPrefix}SplitRouteWithNativeToken`,
           1,
           MetricLoggerUnit.Count
         );
         metric.putMetric(
-          `MixedAndV3AndV2SplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      } else if (hasV3Route) {
-        metric.putMetric(`MixedAndV3SplitRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `MixedAndV3SplitRouteForChain${this.chainId}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      } else if (hasV2Route) {
-        metric.putMetric(`MixedAndV2SplitRoute`, 1, MetricLoggerUnit.Count);
-        metric.putMetric(
-          `MixedAndV2SplitRouteForChain${this.chainId}`,
+          `${metricsPrefix}SplitRouteWithNativeTokenForChain${this.chainId}`,
           1,
           MetricLoggerUnit.Count
         );
       }
-    } else if (hasV3Route && hasV2Route) {
-      metric.putMetric(`V3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
+    } else if (hasV4Route && hasV3Route && hasV2Route) {
+      metric.putMetric(`V4AndV3AndV2SplitRoute`, 1, MetricLoggerUnit.Count);
       metric.putMetric(
-        `V3AndV2SplitRouteForChain${this.chainId}`,
+        `V4AndV3AndV2SplitRouteForChain${this.chainId}`,
         1,
         MetricLoggerUnit.Count
       );
+
+      if (currencyIn.isNative || currencyOut.isNative) {
+        // Keep track of this edge case https://linear.app/uniswap/issue/ROUTE-303/tech-debt-split-route-can-have-different-ethweth-input-or-output#comment-bba53758
+        metric.putMetric(
+          `V4AndV3AndV2SplitRouteWithNativeToken`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `V4AndV3AndV2SplitRouteWithNativeTokenForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
     } else if (hasMixedRoute) {
       if (routeAmounts.length > 1) {
         metric.putMetric(`MixedSplitRoute`, 1, MetricLoggerUnit.Count);
@@ -2814,6 +2847,15 @@ export class AlphaRouter
         metric.putMetric(`MixedRoute`, 1, MetricLoggerUnit.Count);
         metric.putMetric(
           `MixedRouteForChain${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+    } else if (hasV4Route) {
+      if (routeAmounts.length > 1) {
+        metric.putMetric(`V4SplitRoute`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `V4SplitRouteForChain${this.chainId}`,
           1,
           MetricLoggerUnit.Count
         );
