@@ -3958,7 +3958,7 @@ describe('quote for other networks', () => {
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
-                  : parseAmount('10', tokenOut);
+                  : parseAmount(chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
