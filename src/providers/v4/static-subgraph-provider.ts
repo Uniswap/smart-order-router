@@ -1,9 +1,13 @@
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { ADDRESS_ZERO, FeeAmount } from '@uniswap/v3-sdk';
+import { ChainId, Currency } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
-import { getAddress, log, unparseFeeAmount } from '../../util';
+import {
+  getAddress,
+  getApplicableV4FeesTickspacingsHooks,
+  log,
+  unparseFeeAmount,
+} from '../../util';
 import { BASES_TO_CHECK_TRADES_AGAINST } from '../caching-subgraph-provider';
 
 import JSBI from 'jsbi';
@@ -14,46 +18,51 @@ import { IV4SubgraphProvider, V4SubgraphPool } from './subgraph-provider';
 export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
   constructor(
     private chainId: ChainId,
-    private poolProvider: IV4PoolProvider
+    private poolProvider: IV4PoolProvider,
+    private v4PoolParams: Array<
+      [number, number, string]
+    > = getApplicableV4FeesTickspacingsHooks(chainId)
   ) {}
 
   public async getPools(
-    currencyIn?: Token,
-    currencyOut?: Token,
+    currencyIn?: Currency,
+    currencyOut?: Currency,
     providerConfig?: ProviderConfig
   ): Promise<V4SubgraphPool[]> {
     log.info('In static subgraph provider for V4');
     const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
 
-    const basePairs: [Token, Token][] = _.flatMap(
+    const basePairs: [Currency, Currency][] = _.flatMap(
       bases,
-      (base): [Token, Token][] => bases.map((otherBase) => [base, otherBase])
+      (base): [Currency, Currency][] =>
+        bases.map((otherBase) => [base, otherBase])
     );
 
     if (currencyIn && currencyOut) {
       basePairs.push(
         [currencyIn, currencyOut],
-        ...bases.map((base): [Token, Token] => [currencyIn, base]),
-        ...bases.map((base): [Token, Token] => [currencyOut, base])
+        ...bases.map((base): [Currency, Currency] => [currencyIn, base]),
+        ...bases.map((base): [Currency, Currency] => [currencyOut, base])
       );
     }
 
     const pairs: V4PoolConstruct[] = _(basePairs)
-      .filter((tokens): tokens is [Token, Token] =>
+      .filter((tokens): tokens is [Currency, Currency] =>
         Boolean(tokens[0] && tokens[1])
       )
       .filter(
         ([tokenA, tokenB]) =>
-          tokenA.address !== tokenB.address && !tokenA.equals(tokenB)
+          tokenA.wrapped.address !== tokenB.wrapped.address &&
+          !tokenA.equals(tokenB)
       )
       .flatMap<V4PoolConstruct>(([tokenA, tokenB]) => {
-        // TODO: we will follow up with expanding the fee tiers and tick spacing from just hard-coding from v3 for now.
-        return [
-          [tokenA, tokenB, FeeAmount.LOWEST, 1, ADDRESS_ZERO],
-          [tokenA, tokenB, FeeAmount.LOW, 10, ADDRESS_ZERO],
-          [tokenA, tokenB, FeeAmount.MEDIUM, 60, ADDRESS_ZERO],
-          [tokenA, tokenB, FeeAmount.HIGH, 200, ADDRESS_ZERO],
-        ];
+        const tokensWithPoolParams: Array<
+          [Currency, Currency, number, number, string]
+        > = this.v4PoolParams.map(([feeAmount, tickSpacing, hooks]) => {
+          return [tokenA, tokenB, feeAmount, tickSpacing, hooks];
+        });
+
+        return tokensWithPoolParams;
       })
       .value();
 

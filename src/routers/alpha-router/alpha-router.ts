@@ -96,6 +96,7 @@ import {
   getAddress,
   getAddressLowerCase,
   MIXED_SUPPORTED,
+  getApplicableV4FeesTickspacingsHooks,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
@@ -327,6 +328,12 @@ export type AlphaRouterParams = {
    * The version of the universal router to use.
    */
   universalRouterVersion?: UniversalRouterVersion;
+
+  /**
+   * The v4 pool params to be used for the v4 pool provider.
+   * fee tiers, tickspacings, and hook addresses
+   */
+  v4PoolParams?: Array<[number, number, string]>;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -544,6 +551,7 @@ export class AlphaRouter
   protected v4Supported?: ChainId[];
   protected mixedSupported?: ChainId[];
   protected universalRouterVersion?: UniversalRouterVersion;
+  protected v4PoolParams?: Array<[number, number, string]>;
 
   constructor({
     chainId,
@@ -575,6 +583,7 @@ export class AlphaRouter
     v4Supported,
     mixedSupported,
     universalRouterVersion,
+    v4PoolParams,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -919,6 +928,8 @@ export class AlphaRouter
       ]);
     }
 
+    this.v4PoolParams =
+      v4PoolParams ?? getApplicableV4FeesTickspacingsHooks(chainId);
     if (v4SubgraphProvider) {
       this.v4SubgraphProvider = v4SubgraphProvider;
     } else {
@@ -933,7 +944,11 @@ export class AlphaRouter
           ),
           new NodeJSCache(new NodeCache({ stdTTL: 300, useClones: false }))
         ),
-        new StaticV4SubgraphProvider(chainId, this.v4PoolProvider),
+        new StaticV4SubgraphProvider(
+          chainId,
+          this.v4PoolProvider,
+          this.v4PoolParams
+        ),
       ]);
     }
 
@@ -2137,6 +2152,7 @@ export class AlphaRouter
         subgraphProvider: this.v4SubgraphProvider,
         routingConfig,
         chainId: this.chainId,
+        v4PoolParams: this.v4PoolParams,
       }).then((candidatePools) => {
         metric.putMetric(
           'GetV4CandidatePools',
