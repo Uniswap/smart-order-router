@@ -95,6 +95,7 @@ import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
   getAddress,
   getAddressLowerCase,
+  MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
@@ -318,6 +319,11 @@ export type AlphaRouterParams = {
   v4Supported?: ChainId[];
 
   /**
+   * All the supported mixed chains configuration
+   */
+  mixedSupported?: ChainId[];
+
+  /**
    * The version of the universal router to use.
    */
   universalRouterVersion?: UniversalRouterVersion;
@@ -536,6 +542,7 @@ export class AlphaRouter
   protected portionProvider: IPortionProvider;
   protected v2Supported?: ChainId[];
   protected v4Supported?: ChainId[];
+  protected mixedSupported?: ChainId[];
   protected universalRouterVersion?: UniversalRouterVersion;
 
   constructor({
@@ -566,6 +573,7 @@ export class AlphaRouter
     portionProvider,
     v2Supported,
     v4Supported,
+    mixedSupported,
     universalRouterVersion,
   }: AlphaRouterParams) {
     this.chainId = chainId;
@@ -613,21 +621,27 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              baseBlockOffset: -10,
-              rollback: {
-                enabled: true,
-                attemptsBeforeRollback: 1,
-                rollbackBlockOffset: -10,
-              },
+            (_) => {
+              return {
+                baseBlockOffset: -10,
+                rollback: {
+                  enabled: true,
+                  attemptsBeforeRollback: 1,
+                  rollbackBlockOffset: -10,
+                },
+              };
             }
           );
           break;
@@ -653,21 +667,27 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              gasLimitOverride: 3_000_000,
-              multicallChunk: 45,
+            (_) => {
+              return {
+                gasLimitOverride: 3_000_000,
+                multicallChunk: 45,
+              };
             },
-            {
-              baseBlockOffset: -10,
-              rollback: {
-                enabled: true,
-                attemptsBeforeRollback: 1,
-                rollbackBlockOffset: -10,
-              },
+            (_) => {
+              return {
+                baseBlockOffset: -10,
+                rollback: {
+                  enabled: true,
+                  attemptsBeforeRollback: 1,
+                  rollbackBlockOffset: -10,
+                },
+              };
             }
           );
           break;
@@ -688,21 +708,27 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 6_000_000,
-              multicallChunk: 13,
+            (_) => {
+              return {
+                gasLimitOverride: 6_000_000,
+                multicallChunk: 13,
+              };
             },
-            {
-              gasLimitOverride: 6_000_000,
-              multicallChunk: 13,
+            (_) => {
+              return {
+                gasLimitOverride: 6_000_000,
+                multicallChunk: 13,
+              };
             },
-            {
-              baseBlockOffset: -10,
-              rollback: {
-                enabled: true,
-                attemptsBeforeRollback: 1,
-                rollbackBlockOffset: -10,
-              },
+            (_) => {
+              return {
+                baseBlockOffset: -10,
+                rollback: {
+                  enabled: true,
+                  attemptsBeforeRollback: 1,
+                  rollbackBlockOffset: -10,
+                },
+              };
             }
           );
           break;
@@ -725,13 +751,17 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 30_000_000,
-              multicallChunk: 6,
+            (_) => {
+              return {
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 6,
+              };
             },
-            {
-              gasLimitOverride: 30_000_000,
-              multicallChunk: 6,
+            (_) => {
+              return {
+                gasLimitOverride: 30_000_000,
+                multicallChunk: 6,
+              };
             }
           );
           break;
@@ -753,13 +783,17 @@ export class AlphaRouter
                 quoteMinSuccessRate: 0.1,
               };
             },
-            {
-              gasLimitOverride: 5_000_000,
-              multicallChunk: 5,
+            (_) => {
+              return {
+                gasLimitOverride: 5_000_000,
+                multicallChunk: 5,
+              };
             },
-            {
-              gasLimitOverride: 6_250_000,
-              multicallChunk: 4,
+            (_) => {
+              return {
+                gasLimitOverride: 6_250_000,
+                multicallChunk: 4,
+              };
             }
           );
           break;
@@ -773,9 +807,9 @@ export class AlphaRouter
             this.multicall2Provider,
             RETRY_OPTIONS[chainId],
             (_) => BATCH_PARAMS[chainId]!,
-            GAS_ERROR_FAILURE_OVERRIDES[chainId],
-            SUCCESS_RATE_FAILURE_OVERRIDES[chainId],
-            BLOCK_NUMBER_CONFIGS[chainId]
+            (_) => GAS_ERROR_FAILURE_OVERRIDES[chainId]!,
+            (_) => SUCCESS_RATE_FAILURE_OVERRIDES[chainId]!,
+            (_) => BLOCK_NUMBER_CONFIGS[chainId]!
           );
           break;
         default:
@@ -785,9 +819,9 @@ export class AlphaRouter
             this.multicall2Provider,
             DEFAULT_RETRY_OPTIONS,
             (_) => DEFAULT_BATCH_PARAMS,
-            DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
-            DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
-            DEFAULT_BLOCK_NUMBER_CONFIGS
+            (_) => DEFAULT_GAS_ERROR_FAILURE_OVERRIDES,
+            (_) => DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
+            (_) => DEFAULT_BLOCK_NUMBER_CONFIGS
           );
           break;
       }
@@ -997,6 +1031,7 @@ export class AlphaRouter
 
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
     this.v4Supported = v4Supported ?? V4_SUPPORTED;
+    this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
     this.universalRouterVersion =
       universalRouterVersion ?? UniversalRouterVersion.V1_2;
   }
@@ -2078,9 +2113,8 @@ export class AlphaRouter
       protocols.includes(Protocol.MIXED) ||
       (noProtocolsSpecified && v2SupportedInChain && v4SupportedInChain);
     const mixedProtocolAllowed =
-      [ChainId.MAINNET, ChainId.SEPOLIA, ChainId.GOERLI].includes(
-        this.chainId
-      ) && tradeType === TradeType.EXACT_INPUT;
+      this.mixedSupported?.includes(this.chainId) &&
+      tradeType === TradeType.EXACT_INPUT;
 
     const beforeGetCandidates = Date.now();
 

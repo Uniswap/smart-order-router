@@ -40,11 +40,15 @@ export const V2_SUPPORTED = [
   ChainId.BASE,
   ChainId.BNB,
   ChainId.AVALANCHE,
-  ChainId.WORLDCHAIN,
-  ChainId.ASTROCHAIN_SEPOLIA,
 ];
 
 export const V4_SUPPORTED = [ChainId.SEPOLIA];
+
+export const MIXED_SUPPORTED = [
+  ChainId.MAINNET,
+  ChainId.SEPOLIA,
+  ChainId.GOERLI,
+];
 
 export const HAS_L1_FEE = [
   ChainId.OPTIMISM,
