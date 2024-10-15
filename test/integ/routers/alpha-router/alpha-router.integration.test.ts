@@ -50,6 +50,7 @@ import {
   DAI_ON,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
+  getApplicableV4FeesTickspacingsHooks,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
   MethodParameters,
@@ -3599,6 +3600,13 @@ describe('quote for other networks', () => {
               multicall2Provider,
               v4SubgraphProvider,
               simulator,
+              v4PoolParams: getApplicableV4FeesTickspacingsHooks(chain).concat(
+                [
+                  [500, 10, '0x0000000000000000000000000000000000000020'],
+                  [1500, 30, '0x0000000000000000000000000000000000000020'],
+                  [3000, 60, '0x0000000000000000000000000000000000000020'],
+                ]
+              ),
             });
           } else {
             alphaRouter = new AlphaRouter({
@@ -3606,6 +3614,13 @@ describe('quote for other networks', () => {
               provider,
               multicall2Provider,
               simulator,
+              v4PoolParams: getApplicableV4FeesTickspacingsHooks(chain).concat(
+                [
+                  [500, 10, '0x0000000000000000000000000000000000000020'],
+                  [1500, 30, '0x0000000000000000000000000000000000000020'],
+                  [3000, 60, '0x0000000000000000000000000000000000000020'],
+                ]
+              ),
             });
           }
         });
@@ -3650,7 +3665,7 @@ describe('quote for other networks', () => {
 
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3717,7 +3732,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3765,12 +3780,9 @@ describe('quote for other networks', () => {
                 ? tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('10', tokenIn)
                   : parseAmount('10', tokenOut)
-                : (chain !== ChainId.SEPOLIA ? tradeType == TradeType.EXACT_INPUT
+                : tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)
-                  : parseAmount('1', tokenOut) :
-                  tradeType == TradeType.EXACT_INPUT ?
-                  parseAmount('0.00000000000001', tokenIn):
-                  parseAmount('0.000001', tokenOut));
+                  : parseAmount('1', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3796,9 +3808,12 @@ describe('quote for other networks', () => {
             const tokenIn = USDC_NATIVE_SEPOLIA;
             const tokenOut = nativeOnChain(chain);
 
+            // as of now, in sepolia v4, v4 pools having > 1eth is only the ETH/USDC pools with hook address 0x0000000000000000000000000000000000000020
+            // this means if we try an exact in 1 ETH -> USDC quote against v4 sepolia, the only way is to route through v4 ETH/USDC pools with hook address 0x0000000000000000000000000000000000000020
+            // this validates that the getApplicableV4FeesTickspacingsHooks along with the hardcoded fees + tickspacings + hook address 0x0000000000000000000000000000000000000020 are working as expected
             const amount = tradeType == TradeType.EXACT_INPUT ?
-              parseAmount('0.000001', tokenIn):
-              parseAmount('0.00000000000001', tokenOut);
+              parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3827,7 +3842,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3873,7 +3888,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3943,7 +3958,7 @@ describe('quote for other networks', () => {
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
-                  : parseAmount('10', tokenOut);
+                  : parseAmount(chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
