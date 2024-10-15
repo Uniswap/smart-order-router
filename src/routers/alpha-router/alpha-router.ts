@@ -95,8 +95,8 @@ import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
   getAddress,
   getAddressLowerCase,
-  MIXED_SUPPORTED,
   getApplicableV4FeesTickspacingsHooks,
+  MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
