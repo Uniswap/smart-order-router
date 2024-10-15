@@ -565,7 +565,7 @@ export async function getV4CandidatePools({
         );
         return {
           id: poolId,
-          feeTier: unparseFeeAmount(fee),
+          feeTier: fee.toString(),
           tickSpacing: tickSpacing.toString(),
           hooks: hooks,
           liquidity: '10000',

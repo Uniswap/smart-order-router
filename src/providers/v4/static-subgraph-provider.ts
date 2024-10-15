@@ -6,7 +6,6 @@ import {
   getAddress,
   getApplicableV4FeesTickspacingsHooks,
   log,
-  unparseFeeAmount,
 } from '../../util';
 import { BASES_TO_CHECK_TRADES_AGAINST } from '../caching-subgraph-provider';
 
@@ -97,7 +96,7 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
 
         return {
           id: poolAddress,
-          feeTier: unparseFeeAmount(fee),
+          feeTier: fee.toString(),
           tickSpacing: tickSpacing.toString(),
           hooks: hooks,
           liquidity: liquidity.toString(),
