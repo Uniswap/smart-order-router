@@ -1,4 +1,4 @@
-import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
+import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
