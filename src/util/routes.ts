@@ -95,8 +95,8 @@ export const routeToString = (route: SupportedRoutes): string => {
         pool.token0,
         pool.token1,
         pool.fee,
-        0,
-        ADDRESS_ZERO
+        pool.tickSpacing,
+        pool.hooks
       )}]`;
     } else {
       throw new Error(`Unsupported pool ${JSON.stringify(pool)}`);
@@ -131,7 +131,7 @@ export const routeAmountsToString = (
     const percent = new Percent(portion.numerator, portion.denominator);
     /// @dev special case for MIXED routes we want to show user friendly V2+V3 instead
     return `[${
-      protocol == Protocol.MIXED ? 'V2 + V3' : protocol
+      protocol == Protocol.MIXED ? 'V2 + V3 + V4' : protocol
     }] ${percent.toFixed(2)}% = ${routeToString(route)}`;
   });
 
