@@ -50,8 +50,8 @@ export const poolToString = (pool: TPool): string => {
       pool.token0,
       pool.token1,
       pool.fee,
-      0,
-      ADDRESS_ZERO
+      pool.tickSpacing,
+      pool.hooks
     )}]`;
   } else if (pool instanceof V3Pool) {
     return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
