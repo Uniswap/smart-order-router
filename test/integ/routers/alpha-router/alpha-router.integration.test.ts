@@ -777,6 +777,7 @@ describe('alpha router integration', () => {
       v3PoolProvider,
       v4PoolProvider,
       simulator: ethEstimateGasSimulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
 
     feeOnTransferAlphaRouter = new AlphaRouter({
@@ -786,6 +787,7 @@ describe('alpha router integration', () => {
       v2PoolProvider: cachingV2PoolProvider,
       v3PoolProvider,
       simulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
   });
 
@@ -3120,6 +3122,7 @@ describe('alpha router integration', () => {
           provider: hardhat.providers[0]!,
           multicall2Provider,
           gasPriceProvider,
+          cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
         });
 
         const swap = await customAlphaRouter.route(
@@ -3679,6 +3682,7 @@ describe('quote for other networks', () => {
                   [3000, 60, '0x0000000000000000000000000000000000000020'],
                 ]
               ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
             });
           } else {
             alphaRouter = new AlphaRouter({
@@ -3693,6 +3697,7 @@ describe('quote for other networks', () => {
                   [3000, 60, '0x0000000000000000000000000000000000000020'],
                 ]
               ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
             });
           }
         });
