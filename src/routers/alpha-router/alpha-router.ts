@@ -334,6 +334,12 @@ export type AlphaRouterParams = {
    * fee tiers, tickspacings, and hook addresses
    */
   v4PoolParams?: Array<[number, number, string]>;
+
+  /**
+   * We want to rollout the cached routes cache invalidation carefully.
+   * Because a wrong fix might impact prod success rate and/or latency.
+   */
+  cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -511,6 +517,11 @@ export type AlphaRouterConfig = {
    * The version of the universal router to use.
    */
   universalRouterVersion?: UniversalRouterVersion;
+  /**
+   * We want to rollout the cached routes cache invalidation carefully.
+   * Because a wrong fix might impact prod success rate and/or latency.
+   */
+  cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
 };
 
 export class AlphaRouter
@@ -552,6 +563,7 @@ export class AlphaRouter
   protected mixedSupported?: ChainId[];
   protected universalRouterVersion?: UniversalRouterVersion;
   protected v4PoolParams?: Array<[number, number, string]>;
+  protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
 
   constructor({
     chainId,
@@ -584,6 +596,7 @@ export class AlphaRouter
     mixedSupported,
     universalRouterVersion,
     v4PoolParams,
+    cachedRoutesCacheInvalidationFixRolloutPercentage,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -1049,6 +1062,9 @@ export class AlphaRouter
     this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
     this.universalRouterVersion =
       universalRouterVersion ?? UniversalRouterVersion.V1_2;
+
+    this.cachedRoutesCacheInvalidationFixRolloutPercentage =
+      cachedRoutesCacheInvalidationFixRolloutPercentage;
   }
 
   public async routeToRatio(
@@ -1659,12 +1675,114 @@ export class AlphaRouter
       estimatedGasUsedGasToken,
     } = swapRouteRaw;
 
+    let newSetCachedRoutesPath = false;
+    const shouldEnableCachedRoutesCacheInvalidationFix =
+      Math.random() * 100 <
+      (this.cachedRoutesCacheInvalidationFixRolloutPercentage ?? 0);
+
+    if (shouldEnableCachedRoutesCacheInvalidationFix) {
+      // optimisticCachedRoutes === false means at routing-api level, we only want to set cached routes during intent=caching, not intent=quote
+      // this means during the online quote endpoint path, we should not reset cached routes
+      if (!routingConfig.optimisticCachedRoutes) {
+        // due to fire and forget nature, we already take note that we should set new cached routes during the new path
+        newSetCachedRoutesPath = true;
+        metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
+
+        // from above, there's a chance that swapRouteFromChain is populated, if we start to filter cached routes by blocks-to-live
+        // then in that case we already know that swapRouteFromChainPromise will resolve to swapRouteFromChain
+        // otherwise, we know that swapRouteFromChain didn't get populated, so we need to fetch it here.
+        // high level idea is that, in alpha-router class, this.getSwapRouteFromChain should only get awaited/resolved once, due to its expensiveness.
+        // this method relies on getCachedRoutes method can filter by blocks-to-live
+        const swapRouteFromChainAgainPromise = swapRouteFromChain
+          ? swapRouteFromChainPromise
+          : this.getSwapRouteFromChain(
+              amount,
+              currencyIn,
+              currencyOut,
+              protocols,
+              quoteCurrency,
+              tradeType,
+              routingConfig,
+              v3GasModel,
+              v4GasModel,
+              mixedRouteGasModel,
+              gasPriceWei,
+              v2GasModel,
+              swapConfig,
+              providerConfig
+            );
+
+        // intentionally a fire and forget, because getSwapRouteFromChain can be expensive
+        swapRouteFromChainAgainPromise.then(async (swapRouteFromChain) => {
+          if (swapRouteFromChain) {
+            const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+              swapRouteFromChain.routes,
+              this.chainId,
+              currencyIn,
+              currencyOut,
+              protocols.sort(),
+              await blockNumber,
+              tradeType,
+              amount.toExact()
+            );
+
+            if (routesToCache) {
+              // Attempt to insert the entry in cache. This is fire and forget promise.
+              // The catch method will prevent any exception from blocking the normal code execution.
+              this.routeCachingProvider
+                ?.setCachedRoute(routesToCache, amount)
+                .then((success) => {
+                  const status = success ? 'success' : 'rejected';
+                  metric.putMetric(
+                    `SetCachedRoute_NewPath_${status}`,
+                    1,
+                    MetricLoggerUnit.Count
+                  );
+                })
+                .catch((reason) => {
+                  log.error(
+                    {
+                      reason: reason,
+                      tokenPair: this.tokenPairSymbolTradeTypeChainId(
+                        currencyIn,
+                        currencyOut,
+                        tradeType
+                      ),
+                    },
+                    `SetCachedRoute NewPath failure`
+                  );
+
+                  metric.putMetric(
+                    `SetCachedRoute_NewPath_failure`,
+                    1,
+                    MetricLoggerUnit.Count
+                  );
+                });
+            }
+          }
+        });
+      }
+    }
+
+    // we intentionally dont add shouldEnableCachedRoutesCacheInvalidationFix in if condition below
+    // because we know cached routes in prod dont filter by blocks-to-live
+    // so that we know that swapRouteFromChain is always not populated, because
+    // if (!cachedRoutes || cacheMode !== CacheMode.Livemode) above always have the cachedRoutes as populated
     if (
       this.routeCachingProvider &&
       routingConfig.writeToCachedRoutes &&
       cacheMode !== CacheMode.Darkmode &&
       swapRouteFromChain
     ) {
+      if (newSetCachedRoutesPath) {
+        // SetCachedRoute_NewPath and SetCachedRoute_OldPath metrics might have counts during short timeframe.
+        // over time, we should expect to see less SetCachedRoute_OldPath metrics count.
+        // in AWS metrics, one can investigate, by:
+        // 1) seeing the overall metrics count of SetCachedRoute_NewPath and SetCachedRoute_OldPath. SetCachedRoute_NewPath should steadily go up, while SetCachedRoute_OldPath should go down.
+        // 2) using the same requestId, one should see eventually when SetCachedRoute_NewPath metric is logged, SetCachedRoute_OldPath metric should not be called.
+        metric.putMetric(`SetCachedRoute_OldPath`, 1, MetricLoggerUnit.Count);
+      }
+
       // Generate the object to be cached
       const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
         swapRouteFromChain.routes,

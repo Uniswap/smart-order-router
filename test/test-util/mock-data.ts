@@ -349,6 +349,22 @@ export const UNI_WETH_MEDIUM = new V3Pool(
   0
 );
 
+export const NONTOKEN = new Token(
+  ChainId.MAINNET,
+  ADDRESS_ZERO,
+  18,
+  'NONTOKEN',
+  'Non Token'
+)
+export const WETH_NONTOKEN_MEDIUM = new V3Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  NONTOKEN,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
 // Mock V2 Pools
 export const DAI_USDT = new Pair(
   CurrencyAmount.fromRawAmount(DAI, 10000000000),
