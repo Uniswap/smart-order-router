@@ -1795,7 +1795,7 @@ export class AlphaRouter
         // in AWS metrics, one can investigate, by:
         // 1) seeing the overall metrics count of SetCachedRoute_NewPath and SetCachedRoute_OldPath. SetCachedRoute_NewPath should steadily go up, while SetCachedRoute_OldPath should go down.
         // 2) using the same requestId, one should see eventually when SetCachedRoute_NewPath metric is logged, SetCachedRoute_OldPath metric should not be called.
-        metric.putMetric(`SetCachedRoute_OldPath`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(`SetCachedRoute_OldPath_INTENT_${routingConfig.intent}`, 1, MetricLoggerUnit.Count);
       }
 
       // Generate the object to be cached
