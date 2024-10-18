@@ -514,11 +514,6 @@ export type AlphaRouterConfig = {
    */
   universalRouterVersion?: UniversalRouterVersion;
   /**
-   * We want to rollout the cached routes cache invalidation carefully.
-   * Because a wrong fix might impact prod success rate and/or latency.
-   */
-  cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
-  /**
    * pass in routing-api intent to align the intent between routing-api and SOR
    */
   intent?: INTENT;
