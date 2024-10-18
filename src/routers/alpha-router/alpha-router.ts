@@ -149,6 +149,7 @@ import {
   V4Route,
 } from '../router';
 
+import { INTENT } from '../../util/intent';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -522,6 +523,10 @@ export type AlphaRouterConfig = {
    * Because a wrong fix might impact prod success rate and/or latency.
    */
   cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
+  /**
+   * pass in routing-api intent to align the intent between routing-api and SOR
+   */
+  intent?: INTENT;
 };
 
 export class AlphaRouter
@@ -1661,6 +1666,105 @@ export class AlphaRouter
       }
     }
 
+    let newSetCachedRoutesPath = false;
+    const shouldEnableCachedRoutesCacheInvalidationFix =
+      Math.random() * 100 <
+      (this.cachedRoutesCacheInvalidationFixRolloutPercentage ?? 0);
+
+    // we have to write cached routes right before checking swapRouteRaw is null or not
+    // because getCachedRoutes in routing-api do not use the blocks-to-live to filter out the expired routes at all
+    // there's a possibility the cachedRoutes is always populated, but swapRouteFromCache is always null, because we don't update cachedRoutes in this case at all,
+    // as long as it's within 24 hours sliding window TTL
+    if (shouldEnableCachedRoutesCacheInvalidationFix) {
+      // theoretically, when routingConfig.intent === INTENT.CACHING, optimisticCachedRoutes should be false
+      // so that we can always pass in cachedRoutes?.notExpired(await blockNumber, !routingConfig.optimisticCachedRoutes)
+      // but just to be safe, we just hardcode true when checking the cached routes expiry for write update
+      // we decide to not check cached routes expiry in the read path anyway
+      if (!cachedRoutes?.notExpired(await blockNumber, true)) {
+        // optimisticCachedRoutes === false means at routing-api level, we only want to set cached routes during intent=caching, not intent=quote
+        // this means during the online quote endpoint path, we should not reset cached routes
+        if (routingConfig.intent === INTENT.CACHING) {
+          // due to fire and forget nature, we already take note that we should set new cached routes during the new path
+          newSetCachedRoutesPath = true;
+          metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
+
+          // from above, there's a chance that swapRouteFromChain is populated, if we start to filter cached routes by blocks-to-live
+          // then in that case we already know that swapRouteFromChainPromise will resolve to swapRouteFromChain
+          // otherwise, we know that swapRouteFromChain didn't get populated, so we need to fetch it here.
+          // high level idea is that, in alpha-router class, this.getSwapRouteFromChain should only get awaited/resolved once, due to its expensiveness.
+          // this method relies on getCachedRoutes method can filter by blocks-to-live
+          const swapRouteFromChainAgainPromise = swapRouteFromChain
+            ? swapRouteFromChainPromise
+            : this.getSwapRouteFromChain(
+                amount,
+                currencyIn,
+                currencyOut,
+                protocols,
+                quoteCurrency,
+                tradeType,
+                routingConfig,
+                v3GasModel,
+                v4GasModel,
+                mixedRouteGasModel,
+                gasPriceWei,
+                v2GasModel,
+                swapConfig,
+                providerConfig
+              );
+
+          // intentionally a fire and forget, because getSwapRouteFromChain can be expensive
+          swapRouteFromChainAgainPromise.then(async (swapRouteFromChain) => {
+            if (swapRouteFromChain) {
+              const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+                swapRouteFromChain.routes,
+                this.chainId,
+                currencyIn,
+                currencyOut,
+                protocols.sort(),
+                await blockNumber,
+                tradeType,
+                amount.toExact()
+              );
+
+              if (routesToCache) {
+                // Attempt to insert the entry in cache. This is fire and forget promise.
+                // The catch method will prevent any exception from blocking the normal code execution.
+                this.routeCachingProvider
+                  ?.setCachedRoute(routesToCache, amount)
+                  .then((success) => {
+                    const status = success ? 'success' : 'rejected';
+                    metric.putMetric(
+                      `SetCachedRoute_NewPath_${status}`,
+                      1,
+                      MetricLoggerUnit.Count
+                    );
+                  })
+                  .catch((reason) => {
+                    log.error(
+                      {
+                        reason: reason,
+                        tokenPair: this.tokenPairSymbolTradeTypeChainId(
+                          currencyIn,
+                          currencyOut,
+                          tradeType
+                        ),
+                      },
+                      `SetCachedRoute NewPath failure`
+                    );
+
+                    metric.putMetric(
+                      `SetCachedRoute_NewPath_failure`,
+                      1,
+                      MetricLoggerUnit.Count
+                    );
+                  });
+              }
+            }
+          });
+        }
+      }
+    }
+
     if (!swapRouteRaw) {
       return null;
     }
@@ -1674,95 +1778,6 @@ export class AlphaRouter
       estimatedGasUsedUSD,
       estimatedGasUsedGasToken,
     } = swapRouteRaw;
-
-    let newSetCachedRoutesPath = false;
-    const shouldEnableCachedRoutesCacheInvalidationFix =
-      Math.random() * 100 <
-      (this.cachedRoutesCacheInvalidationFixRolloutPercentage ?? 0);
-
-    if (shouldEnableCachedRoutesCacheInvalidationFix) {
-      // optimisticCachedRoutes === false means at routing-api level, we only want to set cached routes during intent=caching, not intent=quote
-      // this means during the online quote endpoint path, we should not reset cached routes
-      if (!routingConfig.optimisticCachedRoutes) {
-        // due to fire and forget nature, we already take note that we should set new cached routes during the new path
-        newSetCachedRoutesPath = true;
-        metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
-
-        // from above, there's a chance that swapRouteFromChain is populated, if we start to filter cached routes by blocks-to-live
-        // then in that case we already know that swapRouteFromChainPromise will resolve to swapRouteFromChain
-        // otherwise, we know that swapRouteFromChain didn't get populated, so we need to fetch it here.
-        // high level idea is that, in alpha-router class, this.getSwapRouteFromChain should only get awaited/resolved once, due to its expensiveness.
-        // this method relies on getCachedRoutes method can filter by blocks-to-live
-        const swapRouteFromChainAgainPromise = swapRouteFromChain
-          ? swapRouteFromChainPromise
-          : this.getSwapRouteFromChain(
-              amount,
-              currencyIn,
-              currencyOut,
-              protocols,
-              quoteCurrency,
-              tradeType,
-              routingConfig,
-              v3GasModel,
-              v4GasModel,
-              mixedRouteGasModel,
-              gasPriceWei,
-              v2GasModel,
-              swapConfig,
-              providerConfig
-            );
-
-        // intentionally a fire and forget, because getSwapRouteFromChain can be expensive
-        swapRouteFromChainAgainPromise.then(async (swapRouteFromChain) => {
-          if (swapRouteFromChain) {
-            const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-              swapRouteFromChain.routes,
-              this.chainId,
-              currencyIn,
-              currencyOut,
-              protocols.sort(),
-              await blockNumber,
-              tradeType,
-              amount.toExact()
-            );
-
-            if (routesToCache) {
-              // Attempt to insert the entry in cache. This is fire and forget promise.
-              // The catch method will prevent any exception from blocking the normal code execution.
-              this.routeCachingProvider
-                ?.setCachedRoute(routesToCache, amount)
-                .then((success) => {
-                  const status = success ? 'success' : 'rejected';
-                  metric.putMetric(
-                    `SetCachedRoute_NewPath_${status}`,
-                    1,
-                    MetricLoggerUnit.Count
-                  );
-                })
-                .catch((reason) => {
-                  log.error(
-                    {
-                      reason: reason,
-                      tokenPair: this.tokenPairSymbolTradeTypeChainId(
-                        currencyIn,
-                        currencyOut,
-                        tradeType
-                      ),
-                    },
-                    `SetCachedRoute NewPath failure`
-                  );
-
-                  metric.putMetric(
-                    `SetCachedRoute_NewPath_failure`,
-                    1,
-                    MetricLoggerUnit.Count
-                  );
-                });
-            }
-          }
-        });
-      }
-    }
 
     // we intentionally dont add shouldEnableCachedRoutesCacheInvalidationFix in if condition below
     // because we know cached routes in prod dont filter by blocks-to-live
