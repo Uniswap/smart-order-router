@@ -10,7 +10,6 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
@@ -149,6 +148,7 @@ import {
   V4Route,
 } from '../router';
 
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { INTENT } from '../../util/intent';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
@@ -324,11 +324,6 @@ export type AlphaRouterParams = {
    * All the supported mixed chains configuration
    */
   mixedSupported?: ChainId[];
-
-  /**
-   * The version of the universal router to use.
-   */
-  universalRouterVersion?: UniversalRouterVersion;
 
   /**
    * The v4 pool params to be used for the v4 pool provider.
@@ -566,7 +561,6 @@ export class AlphaRouter
   protected v2Supported?: ChainId[];
   protected v4Supported?: ChainId[];
   protected mixedSupported?: ChainId[];
-  protected universalRouterVersion?: UniversalRouterVersion;
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
 
@@ -599,7 +593,6 @@ export class AlphaRouter
     v2Supported,
     v4Supported,
     mixedSupported,
-    universalRouterVersion,
     v4PoolParams,
     cachedRoutesCacheInvalidationFixRolloutPercentage,
   }: AlphaRouterParams) {
@@ -1065,8 +1058,6 @@ export class AlphaRouter
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
     this.v4Supported = v4Supported ?? V4_SUPPORTED;
     this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
-    this.universalRouterVersion =
-      universalRouterVersion ?? UniversalRouterVersion.V1_2;
 
     this.cachedRoutesCacheInvalidationFixRolloutPercentage =
       cachedRoutesCacheInvalidationFixRolloutPercentage;
@@ -1795,7 +1786,11 @@ export class AlphaRouter
         // in AWS metrics, one can investigate, by:
         // 1) seeing the overall metrics count of SetCachedRoute_NewPath and SetCachedRoute_OldPath. SetCachedRoute_NewPath should steadily go up, while SetCachedRoute_OldPath should go down.
         // 2) using the same requestId, one should see eventually when SetCachedRoute_NewPath metric is logged, SetCachedRoute_OldPath metric should not be called.
-        metric.putMetric(`SetCachedRoute_OldPath_INTENT_${routingConfig.intent}`, 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `SetCachedRoute_OldPath_INTENT_${routingConfig.intent}`,
+          1,
+          MetricLoggerUnit.Count
+        );
       }
 
       // Generate the object to be cached
