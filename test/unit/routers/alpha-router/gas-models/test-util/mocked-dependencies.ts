@@ -4,38 +4,50 @@ import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import sinon from 'sinon';
 import {
+  CachedRoutes,
   CurrencyAmount,
+  DAI_MAINNET,
   IGasModel,
   MixedRouteWithValidQuote,
   USDC_MAINNET as USDC,
   V2PoolProvider,
   V2RouteWithValidQuote,
   V3PoolProvider,
+  V3Route,
   V3RouteWithValidQuote,
+  V3RouteWithValidQuoteParams,
   V4PoolProvider,
 } from '../../../../../../src';
 import {
   buildMockV2PoolAccessor,
   buildMockV3PoolAccessor, buildMockV4PoolAccessor,
   DAI_USDT,
-  DAI_USDT_LOW, DAI_USDT_V4_LOW,
+  DAI_USDT_LOW,
+  DAI_USDT_V4_LOW,
   DAI_WETH,
-  DAI_WETH_MEDIUM, DAI_WETH_V4_MEDIUM,
+  DAI_WETH_MEDIUM,
+  DAI_WETH_V4_MEDIUM,
+  NONTOKEN,
   UNI_WETH_MEDIUM,
   UNI_WETH_V4_MEDIUM,
   USDC_DAI,
   USDC_DAI_LOW,
-  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW,
+  USDC_DAI_MEDIUM,
+  USDC_DAI_V4_LOW,
   USDC_DAI_V4_MEDIUM,
-  USDC_USDT_MEDIUM, USDC_USDT_V4_MEDIUM,
+  USDC_USDT_MEDIUM,
+  USDC_USDT_V4_MEDIUM,
   USDC_WETH,
   USDC_WETH_LOW,
   USDC_WETH_V4_LOW,
   WBTC_WETH,
   WETH9_USDT_LOW,
   WETH9_USDT_V4_LOW,
+  WETH_NONTOKEN_MEDIUM,
   WETH_USDT
 } from '../../../../../test-util/mock-data';
+import { ChainId, TradeType, WETH9 } from '@uniswap/sdk-core';
+import { Protocol } from '@uniswap/router-sdk';
 
 export function getMockedMixedGasModel(): IGasModel<MixedRouteWithValidQuote> {
   const mockMixedGasModel = {
@@ -144,3 +156,31 @@ export function getMockedV2PoolProvider(): V2PoolProvider {
   }));
   return mockV2PoolProvider;
 }
+
+export function getV3RouteWithInValidQuoteStub(
+  overrides?: Partial<V3RouteWithValidQuoteParams>
+): V3RouteWithValidQuote {
+  const route = new V3Route([WETH_NONTOKEN_MEDIUM], NONTOKEN, WETH9[ChainId.MAINNET]!);
+
+  return new V3RouteWithValidQuote({
+    amount: CurrencyAmount.fromRawAmount(WETH9[ChainId.MAINNET]!, 1),
+    rawQuote: BigNumber.from(100),
+    sqrtPriceX96AfterList: [BigNumber.from(1)],
+    initializedTicksCrossedList: [1],
+    quoterGasEstimate: BigNumber.from(100000), // unused
+    percent: 100,
+    route,
+    gasModel: getMockedV3GasModel(),
+    quoteToken: DAI_MAINNET,
+    tradeType: TradeType.EXACT_INPUT,
+    v3PoolProvider: getMockedV3PoolProvider(),
+    ...overrides,
+  });
+}
+
+export function getInvalidCachedRoutesStub(
+  blockNumber: number
+): CachedRoutes | undefined {
+  return CachedRoutes.fromRoutesWithValidQuotes([getV3RouteWithInValidQuoteStub()], ChainId.MAINNET, USDC, DAI_MAINNET, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
+}
+
