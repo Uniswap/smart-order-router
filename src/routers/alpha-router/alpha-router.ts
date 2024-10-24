@@ -1710,39 +1710,14 @@ export class AlphaRouter
               amount.toExact()
             );
 
-            if (routesToCache) {
-              // Attempt to insert the entry in cache. This is fire and forget promise.
-              // The catch method will prevent any exception from blocking the normal code execution.
-              this.routeCachingProvider
-                ?.setCachedRoute(routesToCache, amount)
-                .then((success) => {
-                  const status = success ? 'success' : 'rejected';
-                  metric.putMetric(
-                    `SetCachedRoute_NewPath_${status}`,
-                    1,
-                    MetricLoggerUnit.Count
-                  );
-                })
-                .catch((reason) => {
-                  log.error(
-                    {
-                      reason: reason,
-                      tokenPair: this.tokenPairSymbolTradeTypeChainId(
-                        currencyIn,
-                        currencyOut,
-                        tradeType
-                      ),
-                    },
-                    `SetCachedRoute NewPath failure`
-                  );
-
-                  metric.putMetric(
-                    `SetCachedRoute_NewPath_failure`,
-                    1,
-                    MetricLoggerUnit.Count
-                  );
-                });
-            }
+            this.setCachedRoutesAndLog(
+              amount,
+              currencyIn,
+              currencyOut,
+              tradeType,
+              'SetCachedRoute_NewPath',
+              routesToCache
+            );
           }
         }
       }
@@ -1766,12 +1741,7 @@ export class AlphaRouter
     // because we know cached routes in prod dont filter by blocks-to-live
     // so that we know that swapRouteFromChain is always not populated, because
     // if (!cachedRoutes || cacheMode !== CacheMode.Livemode) above always have the cachedRoutes as populated
-    if (
-      this.routeCachingProvider &&
-      routingConfig.writeToCachedRoutes &&
-      cacheMode !== CacheMode.Darkmode &&
-      swapRouteFromChain
-    ) {
+    if (this.routeCachingProvider && swapRouteFromChain) {
       if (newSetCachedRoutesPath) {
         // SetCachedRoute_NewPath and SetCachedRoute_OldPath metrics might have counts during short timeframe.
         // over time, we should expect to see less SetCachedRoute_OldPath metrics count.
@@ -1797,45 +1767,14 @@ export class AlphaRouter
         amount.toExact()
       );
 
-      if (routesToCache) {
-        // Attempt to insert the entry in cache. This is fire and forget promise.
-        // The catch method will prevent any exception from blocking the normal code execution.
-        this.routeCachingProvider
-          .setCachedRoute(routesToCache, amount)
-          .then((success) => {
-            const status = success ? 'success' : 'rejected';
-            metric.putMetric(
-              `SetCachedRoute_${status}`,
-              1,
-              MetricLoggerUnit.Count
-            );
-          })
-          .catch((reason) => {
-            log.error(
-              {
-                reason: reason,
-                tokenPair: this.tokenPairSymbolTradeTypeChainId(
-                  currencyIn,
-                  currencyOut,
-                  tradeType
-                ),
-              },
-              `SetCachedRoute failure`
-            );
-
-            metric.putMetric(
-              `SetCachedRoute_failure`,
-              1,
-              MetricLoggerUnit.Count
-            );
-          });
-      } else {
-        metric.putMetric(
-          `SetCachedRoute_unnecessary`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }
+      this.setCachedRoutesAndLog(
+        amount,
+        currencyIn,
+        currencyOut,
+        tradeType,
+        'SetCachedRoute_OldPath',
+        routesToCache
+      );
     }
 
     metric.putMetric(
@@ -1956,6 +1895,55 @@ export class AlphaRouter
     }
 
     return swapRoute;
+  }
+
+  private async setCachedRoutesAndLog(
+    amount: CurrencyAmount,
+    currencyIn: Currency,
+    currencyOut: Currency,
+    tradeType: TradeType,
+    metricsPrefix: string,
+    routesToCache?: CachedRoutes
+  ): Promise<void> {
+    if (routesToCache) {
+      // Attempt to insert the entry in cache. This is fire and forget promise.
+      // The catch method will prevent any exception from blocking the normal code execution.
+      this.routeCachingProvider
+        ?.setCachedRoute(routesToCache, amount)
+        .then((success) => {
+          const status = success ? 'success' : 'rejected';
+          metric.putMetric(
+            `${metricsPrefix}_${status}`,
+            1,
+            MetricLoggerUnit.Count
+          );
+        })
+        .catch((reason) => {
+          log.error(
+            {
+              reason: reason,
+              tokenPair: this.tokenPairSymbolTradeTypeChainId(
+                currencyIn,
+                currencyOut,
+                tradeType
+              ),
+            },
+            `SetCachedRoute failure`
+          );
+
+          metric.putMetric(
+            `${metricsPrefix}_failure`,
+            1,
+            MetricLoggerUnit.Count
+          );
+        });
+    } else {
+      metric.putMetric(
+        `${metricsPrefix}_unnecessary`,
+        1,
+        MetricLoggerUnit.Count
+      );
+    }
   }
 
   private async getSwapRouteFromCache(
