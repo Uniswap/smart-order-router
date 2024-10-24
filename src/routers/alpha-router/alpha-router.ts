@@ -1674,28 +1674,33 @@ export class AlphaRouter
           newSetCachedRoutesPath = true;
           metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
 
-          // we have to intentionally await here, because routing-api lambda has a chance to return the swapRoute/swapRouteWithSimulation
-          // before the routing-api quote handler can finish running getSwapRouteFromChain (getSwapRouteFromChain is runtime intensive)
-          const swapRouteFromChain = await this.getSwapRouteFromChain(
-            amount,
-            currencyIn,
-            currencyOut,
-            protocols,
-            quoteCurrency,
-            tradeType,
-            routingConfig,
-            v3GasModel,
-            v4GasModel,
-            mixedRouteGasModel,
-            gasPriceWei,
-            v2GasModel,
-            swapConfig,
-            providerConfig
-          );
+          // there's a chance that swapRouteFromChain might be populated already,
+          // when there's no cachedroutes in the dynamo DB.
+          // in that case, we don't try to swap route from chain again
+          const swapRouteFromChainAgain =
+            swapRouteFromChain ??
+            // we have to intentionally await here, because routing-api lambda has a chance to return the swapRoute/swapRouteWithSimulation
+            // before the routing-api quote handler can finish running getSwapRouteFromChain (getSwapRouteFromChain is runtime intensive)
+            (await this.getSwapRouteFromChain(
+              amount,
+              currencyIn,
+              currencyOut,
+              protocols,
+              quoteCurrency,
+              tradeType,
+              routingConfig,
+              v3GasModel,
+              v4GasModel,
+              mixedRouteGasModel,
+              gasPriceWei,
+              v2GasModel,
+              swapConfig,
+              providerConfig
+            ));
 
-          if (swapRouteFromChain) {
+          if (swapRouteFromChainAgain) {
             const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-              swapRouteFromChain.routes,
+              swapRouteFromChainAgain.routes,
               this.chainId,
               currencyIn,
               currencyOut,
