@@ -5,6 +5,7 @@ import { CachedRoutes, CacheMode, IRouteCachingProvider } from '../../../../../.
 export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
   public routesCache: Map<string, CachedRoutes> = new Map();
   public blocksToLive: number = 1;
+  public expired?: boolean = undefined;
   public cacheMode: CacheMode = CacheMode.Darkmode;
   public forceFail: boolean = false;
   public internalGetCacheRouteCalls: number = 0;
@@ -13,6 +14,14 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
 
   protected async _getBlocksToLive(_cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): Promise<number> {
     return this.blocksToLive;
+  }
+
+  protected override filterExpiredCachedRoutes(
+    cachedRoutes: CachedRoutes | undefined,
+    blockNumber: number,
+    optimistic: boolean
+  ): CachedRoutes | undefined {
+    return this.expired === undefined ? super.filterExpiredCachedRoutes(cachedRoutes, blockNumber, optimistic) : cachedRoutes;
   }
 
   protected override async _getCachedRoute(
