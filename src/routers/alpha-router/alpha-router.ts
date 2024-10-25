@@ -1741,7 +1741,12 @@ export class AlphaRouter
     // because we know cached routes in prod dont filter by blocks-to-live
     // so that we know that swapRouteFromChain is always not populated, because
     // if (!cachedRoutes || cacheMode !== CacheMode.Livemode) above always have the cachedRoutes as populated
-    if (this.routeCachingProvider && swapRouteFromChain) {
+    if (
+      this.routeCachingProvider &&
+      routingConfig.writeToCachedRoutes &&
+      cacheMode !== CacheMode.Darkmode &&
+      swapRouteFromChain
+    ) {
       if (newSetCachedRoutesPath) {
         // SetCachedRoute_NewPath and SetCachedRoute_OldPath metrics might have counts during short timeframe.
         // over time, we should expect to see less SetCachedRoute_OldPath metrics count.
