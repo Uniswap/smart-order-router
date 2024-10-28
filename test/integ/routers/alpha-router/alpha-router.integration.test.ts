@@ -98,7 +98,8 @@ import {
   WETH9,
   WLD_WORLDCHAIN,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
+  CacheMode
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -121,6 +122,12 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 import { V4SubgraphProvider } from '../../../../build/main';
+import {
+  InMemoryRouteCachingProvider
+} from '../../../unit/providers/caching/route/test-util/inmemory-route-caching-provider';
+import {
+  getInvalidCachedRoutesStub
+} from '../../../unit/routers/alpha-router/gas-models/test-util/mocked-dependencies';
 
 const FORK_BLOCK = 20444945;
 const UNIVERSAL_ROUTER_ADDRESS_V1_2 = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(UniversalRouterVersion.V1_2, 1);
@@ -770,6 +777,7 @@ describe('alpha router integration', () => {
       v3PoolProvider,
       v4PoolProvider,
       simulator: ethEstimateGasSimulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
 
     feeOnTransferAlphaRouter = new AlphaRouter({
@@ -779,6 +787,7 @@ describe('alpha router integration', () => {
       v2PoolProvider: cachingV2PoolProvider,
       v3PoolProvider,
       simulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
   });
 
@@ -3113,6 +3122,7 @@ describe('alpha router integration', () => {
           provider: hardhat.providers[0]!,
           multicall2Provider,
           gasPriceProvider,
+          cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
         });
 
         const swap = await customAlphaRouter.route(
@@ -3132,6 +3142,71 @@ describe('alpha router integration', () => {
         expect(gasPriceWei.eq(BigNumber.from(60000000000))).toBe(true);
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+      });
+
+      // This test is easy to set up at SOR level, but hard at routing-api level
+      // because at routing-api level, its difficult to trigger a quote to ensure an invalid cached routes get persisted into DB
+      // then we want to repro the invalid cached routes at SOR level
+      it(`erc20 -> erc20 cached routes cache invalidation`, async () => {
+        // invalid cached routes test setup is only set for exact-in in getInvalidCachedRoutesStub
+        if (tradeType !== TradeType.EXACT_INPUT) {
+          return
+        }
+
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = DAI_MAINNET;
+        const amount = parseAmount('1.1', tokenIn);
+        const routeCachingProvider = new InMemoryRouteCachingProvider();
+        routeCachingProvider.cacheMode = CacheMode.Livemode;
+        routeCachingProvider.blocksToLive = Number.MAX_VALUE;
+        routeCachingProvider.expired = false;
+
+        // Insert a invalid cached routes for this test purpose to make sure it can get cleaned up
+        await routeCachingProvider.setCachedRoute(getInvalidCachedRoutesStub(FORK_BLOCK)!, CurrencyAmount.fromRawAmount(USDC_MAINNET, 100));
+
+        // Create a new AlphaRouter
+        const customAlphaRouter: AlphaRouter = new AlphaRouter({
+          chainId: 1,
+          provider: hardhat.providers[0]!,
+          multicall2Provider,
+          routeCachingProvider,
+          cachedRoutesCacheInvalidationFixRolloutPercentage: 100
+        });
+
+        routeCachingProvider.expired = true;
+
+        let swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+            protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+            optimisticCachedRoutes: false // to trigger cache invalidation during intent=caching
+          },
+        );
+        // first time the swap is gonna be null, because even with the new set cached routes codepath,
+        // i intentionally made it a fire and forget, i.e. non-blocking on the aloha-router request processing path
+        // first time swap from cache from the request processing path will be null
+        expect(swap).toBeNull(); // first time expect swapRouteFromCache to be null
+
+        swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+            optimisticCachedRoutes: false // to make sure the updated in-memory cache contains the valid cached routes now
+          },
+        );
+
+        // second time we will ensure the quote exists
+        // because the first time we had the sets cached routes in the new code path
+        // with second time we will have the cache hit from the new codepath cached routes
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
       });
     });
   }
@@ -3607,6 +3682,7 @@ describe('quote for other networks', () => {
                   [3000, 60, '0x0000000000000000000000000000000000000020'],
                 ]
               ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
             });
           } else {
             alphaRouter = new AlphaRouter({
@@ -3621,6 +3697,7 @@ describe('quote for other networks', () => {
                   [3000, 60, '0x0000000000000000000000000000000000000020'],
                 ]
               ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
             });
           }
         });
