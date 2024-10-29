@@ -1710,7 +1710,7 @@ export class AlphaRouter
               amount.toExact()
             );
 
-            this.setCachedRoutesAndLog(
+            await this.setCachedRoutesAndLog(
               amount,
               currencyIn,
               currencyOut,
@@ -1772,7 +1772,7 @@ export class AlphaRouter
         amount.toExact()
       );
 
-      this.setCachedRoutesAndLog(
+      await this.setCachedRoutesAndLog(
         amount,
         currencyIn,
         currencyOut,
@@ -1911,9 +1911,7 @@ export class AlphaRouter
     routesToCache?: CachedRoutes
   ): Promise<void> {
     if (routesToCache) {
-      // Attempt to insert the entry in cache. This is fire and forget promise.
-      // The catch method will prevent any exception from blocking the normal code execution.
-      this.routeCachingProvider
+      await this.routeCachingProvider
         ?.setCachedRoute(routesToCache, amount)
         .then((success) => {
           const status = success ? 'success' : 'rejected';
