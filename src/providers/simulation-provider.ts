@@ -31,6 +31,7 @@ export enum SimulationStatus {
   Succeeded = 2,
   InsufficientBalance = 3,
   NotApproved = 4,
+  SystemDown = 5,
 }
 
 /**
