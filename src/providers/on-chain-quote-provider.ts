@@ -1245,9 +1245,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         protocol,
         optimisticCachedRoutes
       )}RoutesQuotesLength`,
-      routesQuotes
-        .map((routeWithQuotes) => routeWithQuotes[1].length)
-        .reduce((a, b) => a + b, 0),
+      successfulQuotes.length + failedQuotes.length,
       MetricLoggerUnit.Count
     );
 
