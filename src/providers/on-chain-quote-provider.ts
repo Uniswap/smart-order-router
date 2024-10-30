@@ -1223,6 +1223,58 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       } attempt loops. Total calls made to provider: ${totalCallsMade}. Have retried for timeout: ${haveRetriedForTimeout}`
     );
 
+    // Log total routes
+    metric.putMetric(
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
+        optimisticCachedRoutes
+      )}RoutesLength`,
+      routesQuotes.length,
+      MetricLoggerUnit.Count
+    );
+
+    // Log total quotes
+    metric.putMetric(
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
+        optimisticCachedRoutes
+      )}RoutesQuotesLength`,
+      successfulQuotes.length + failedQuotes.length,
+      MetricLoggerUnit.Count
+    );
+
+    // log successful quotes
+    metric.putMetric(
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
+        optimisticCachedRoutes
+      )}RoutesSuccessfulQuotesLength`,
+      successfulQuotes.length,
+      MetricLoggerUnit.Count
+    );
+
+    // log failed quotes
+    metric.putMetric(
+      `${this.metricsPrefix(
+        this.chainId,
+        useMixedRouteQuoter,
+        mixedRouteContainsV4Pool,
+        protocol,
+        optimisticCachedRoutes
+      )}RoutesFailedQuotesLength`,
+      failedQuotes.length,
+      MetricLoggerUnit.Count
+    );
+
     return {
       routesWithQuotes: routesQuotes,
       blockNumber,
