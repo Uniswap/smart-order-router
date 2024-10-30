@@ -175,11 +175,30 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
     );
 
     metric.putMetric(
+      `V3QuotesLoad_Chain_${this.chainId}`,
+      Date.now() - beforeQuotes
+    );
+
+    metric.putMetric(
       'V3QuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
       MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      `V3QuotesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum()
+    );
+
+    metric.putMetric(`V3RoutesFetched`, _(routesWithQuotes).sum());
+
+    metric.putMetric(
+      `V3RoutesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes).sum()
     );
 
     const routesWithValidQuotes = [];

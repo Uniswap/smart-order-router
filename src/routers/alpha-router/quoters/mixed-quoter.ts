@@ -242,11 +242,30 @@ export class MixedQuoter extends BaseQuoter<
     );
 
     metric.putMetric(
+      `MixedQuotesLoad_Chain_${this.chainId}`,
+      Date.now() - beforeQuotes
+    );
+
+    metric.putMetric(
       'MixedQuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
       MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      `MixedQuotesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum()
+    );
+
+    metric.putMetric(`MixedRoutesFetched`, _(routesWithQuotes).sum());
+
+    metric.putMetric(
+      `MixedRoutesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes).sum()
     );
 
     const routesWithValidQuotes = [];

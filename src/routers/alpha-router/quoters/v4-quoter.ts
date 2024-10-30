@@ -174,11 +174,30 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
     );
 
     metric.putMetric(
+      `V4QuotesLoad_Chain_${this.chainId}`,
+      Date.now() - beforeQuotes
+    );
+
+    metric.putMetric(
       'V4QuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
       MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      `V4QuotesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum()
+    );
+
+    metric.putMetric(`V4RoutesFetched`, _(routesWithQuotes).sum());
+
+    metric.putMetric(
+      `V4RoutesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes).sum()
     );
 
     const routesWithValidQuotes = [];

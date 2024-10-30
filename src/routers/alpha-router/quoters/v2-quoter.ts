@@ -206,11 +206,30 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
     );
 
     metric.putMetric(
+      `V2QuotesLoad_Chain_${this.chainId}`,
+      Date.now() - beforeQuotes
+    );
+
+    metric.putMetric(
       'V2QuotesFetched',
       _(routesWithQuotes)
         .map(([, quotes]) => quotes.length)
         .sum(),
       MetricLoggerUnit.Count
+    );
+
+    metric.putMetric(
+      `V2QuotesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes)
+        .map(([, quotes]) => quotes.length)
+        .sum()
+    );
+
+    metric.putMetric(`V2RoutesFetched`, _(routesWithQuotes).sum());
+
+    metric.putMetric(
+      `V2RoutesFetched_Chain_${this.chainId}`,
+      _(routesWithQuotes).sum()
     );
 
     const routesWithValidQuotes = [];
