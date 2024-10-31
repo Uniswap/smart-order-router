@@ -270,7 +270,7 @@ describe('Fallback Tenderly simulator', () => {
     );
     expect(tenderlySimulator.simulateTransaction.called).toBeTruthy();
     expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
-      SimulationStatus.Failed
+      SimulationStatus.SystemDown
     );
   });
   test('when eth estimate gas simulator throws, try tenderly anyway', async () => {
