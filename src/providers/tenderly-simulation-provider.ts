@@ -223,7 +223,7 @@ export class FallbackTenderlySimulator extends Simulator {
           MetricLoggerUnit.Count
         );
       }
-      return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+      return { ...swapRoute, simulationStatus: SimulationStatus.SystemDown };
     }
   }
 }
@@ -440,6 +440,12 @@ export class TenderlySimulator extends Simulator {
           1,
           MetricLoggerUnit.Count
         );
+        // technically, we can also early return SimulationStatus.SystemDown when http status is not 200.
+        // in reality, when tenderly is down for whatever reason, i see it always throw during axios http request
+        // so that it hits the catch block in https://github.com/Uniswap/smart-order-router/blob/8bfec299001d3204483f761f57a38be04512a948/src/providers/tenderly-simulation-provider.ts#L226
+        // which is where we want to actually return SimulationStatus.SystemDown
+        // in other words, I've never see a TenderlySimulationUniversalRouterResponseStatus metric with a non-200 status
+        // if there's downtime, it won't log metric at https://github.com/Uniswap/smart-order-router/blob/8bfec299001d3204483f761f57a38be04512a948/src/providers/tenderly-simulation-provider.ts#L434
 
         // Validate tenderly response body
         if (
