@@ -746,7 +746,7 @@ describe('alpha router integration', () => {
       // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
       3000,
       100,
-      [ChainId.MAINNET]
+      [ChainId.MAINNET, ChainId.BASE]
     );
 
     const simulator = new FallbackTenderlySimulator(
@@ -3644,7 +3644,16 @@ describe('quote for other networks', () => {
             v3PoolProvider,
             v4PoolProvider,
             provider,
-            portionProvider
+            portionProvider,
+            {
+              // Tenderly team has fixed all the nuances post Arbitrum nitro update,
+              // so we can use the gas limits returned from Tenderly for more accurate L2 gas estimate assertions.
+              [ChainId.ARBITRUM_ONE]: 1
+            },
+            // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
+            3000,
+            100,
+            [ChainId.MAINNET, ChainId.BASE]
           );
 
           const simulator = new FallbackTenderlySimulator(

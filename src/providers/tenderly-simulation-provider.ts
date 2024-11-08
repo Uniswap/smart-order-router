@@ -136,6 +136,8 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
   switch (chainId) {
     case ChainId.MAINNET:
       return `https://mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.BASE:
+      return `https://base.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     default:
       throw new Error(
         `ChainId ${chainId} does not correspond to a tenderly node endpoint`
