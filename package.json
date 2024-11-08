@@ -89,7 +89,7 @@
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.22.0",
-    "hardhat": "^2.12.2",
+    "hardhat": "^2.22.15",
     "husky": "^9.1.5",
     "jest": "^27.0.6",
     "jest-circus": "^27.5.1",
