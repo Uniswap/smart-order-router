@@ -992,13 +992,16 @@ export async function getV3CandidatePools({
     .value();
 
   if (top2DirectSwapPool.length == 0 && topNDirectSwaps > 0) {
-    // We don't want to re-add AMPL token pools for V3.
+    // We don't want to re-add AMPL token pools for V3 in Mainnet.
     // TODO: ROUTE-347, Remove this check once we have a better way to sync filters from subgraph cronjob <> routing path.
     if (
-      tokenIn.address.toLowerCase() !==
-        '0xd46ba6d942050d489dbd938a2c909a5d5039a161' &&
-      tokenOut.address.toLowerCase() !==
-        '0xd46ba6d942050d489dbd938a2c909a5d5039a161'
+      !(
+        chainId == ChainId.MAINNET &&
+        (tokenIn.address.toLowerCase() ===
+          '0xd46ba6d942050d489dbd938a2c909a5d5039a161' ||
+          tokenOut.address.toLowerCase() ===
+            '0xd46ba6d942050d489dbd938a2c909a5d5039a161')
+      )
     ) {
       // If we requested direct swap pools but did not find any in the subgraph query.
       // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
