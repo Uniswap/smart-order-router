@@ -489,7 +489,7 @@ describe('get candidate pools', () => {
           buildMockV3PoolAccessor([...poolsOnSubgraph, DAI_WETH_LOW])
         );
 
-        await getV3CandidatePools({
+        const candidatePools = await getV3CandidatePools({
           tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
           tokenOut: AMPL_MAINNET,
           routeType: TradeType.EXACT_INPUT,
@@ -507,9 +507,7 @@ describe('get candidate pools', () => {
           chainId: ChainId.MAINNET,
         });
 
-        expect(
-          mockV3PoolProvider.getPools.calledWithExactly([], { blockNumber: undefined })
-        ).toBeTruthy();
+        expect(candidatePools.candidatePools.selections.topByDirectSwapPool.length).toEqual(0);
       }
     });
 
