@@ -45,9 +45,11 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.ZKSYNC]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZKSYNC].v3CoreFactoryAddress,
   [ChainId.WORLDCHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].v3CoreFactoryAddress,
-  [ChainId.ASTROCHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].v3CoreFactoryAddress,
+  [ChainId.UNICHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
+  [ChainId.UNICHAIN]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v3CoreFactoryAddress,
 };
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
@@ -74,9 +76,10 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.ZKSYNC]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZKSYNC].quoterAddress,
   [ChainId.WORLDCHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress,
-  [ChainId.ASTROCHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].quoterAddress,
+  [ChainId.UNICHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
+  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].quoterAddress,
 };
 
 export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
@@ -95,8 +98,9 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.ZKSYNC]: '0x071Bd2063dF031EDd110E27C6F4CDe50A3DeF2d4',
   [ChainId.WORLDCHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].quoterAddress, // TODO: deploy view-only-quoter to worldchain
-  [ChainId.ASTROCHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].quoterAddress, // TODO: deploy view-only-quoter to astrochain
+  [ChainId.UNICHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].quoterAddress, // TODO: deploy view-only-quoter to astrochain
+  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].quoterAddress, // TODO: deploy view-only-quoter to unichain
 };
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
@@ -141,9 +145,10 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.ZKSYNC]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZKSYNC].multicallAddress,
   [ChainId.WORLDCHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].multicallAddress,
-  [ChainId.ASTROCHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.ASTROCHAIN_SEPOLIA].multicallAddress,
+  [ChainId.UNICHAIN_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
+  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].multicallAddress,
 };
 
 export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
@@ -312,8 +317,15 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.ASTROCHAIN_SEPOLIA]: new Token(
-    ChainId.ASTROCHAIN_SEPOLIA,
+  [ChainId.UNICHAIN_SEPOLIA]: new Token(
+    ChainId.UNICHAIN_SEPOLIA,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.UNICHAIN]: new Token(
+    ChainId.UNICHAIN,
     '0x4200000000000000000000000000000000000006',
     18,
     'WETH',

@@ -780,8 +780,8 @@ jobs:
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
-  integration-tests-quote-for-other-networks-astrochain:
-    name: Integration Tests - Quote For Other Networks AstroChain
+  integration-tests-quote-for-other-networks-unichain:
+    name: Integration Tests - Quote For Other Networks Unichain
     runs-on: ubuntu-latest
 
     steps:
@@ -805,9 +805,44 @@ jobs:
         run: npm run build
 
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * astrochain'
+        run: npm run integ-test  -- -t 'quote for other networks * unichain'
         env:
-          JSON_RPC_PROVIDER_ASTROCHAIN_SEPOLIA: ${{ secrets.JSON_RPC_PROVIDER_ASTROCHAIN_SEPOLIA }}
+          # TODO: add secret in github secrets
+          JSON_RPC_PROVIDER_UNICHAIN: ${{ secrets.JSON_RPC_PROVIDER_UNICHAIN }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+
+  integration-tests-quote-for-other-networks-unichain-sepolia:
+    name: Integration Tests - Quote For Other Networks Unichain Sepolia
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'quote for other networks * unichain sepolia'
+        env:
+          # TODO: add secret in github secrets, similar value to 'JSON_RPC_PROVIDER_ASTROCHAIN_SEPOLIA'
+          JSON_RPC_PROVIDER_UNICHAIN_SEPOLIA: ${{ secrets.JSON_RPC_PROVIDER_UNICHAIN_SEPOLIA }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}

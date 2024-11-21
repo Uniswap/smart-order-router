@@ -15,7 +15,7 @@ import {
   USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
-  USDC_ON,
+  USDC_ON, USDC_UNICHAIN,
   USDC_WORLDCHAIN,
   USDC_ZORA,
   USDT_MAINNET,
@@ -27,7 +27,7 @@ import {
 import { BULLET, BULLET_WITHOUT_TAX } from './mock-data';
 
 export const WHALES = (token: Currency): string => {
-  let USDC_ASTROCHAIN_SEPOLIA;
+  let USDC_UNICHAIN_SEPOLIA;
   switch (token) {
     case Ether.onChain(ChainId.MAINNET) as Currency:
       return '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
@@ -109,7 +109,7 @@ export const WHALES = (token: Currency): string => {
       return '0xbC59f8F3b275AA56A90D13bAE7cCe5e6e11A3b17';
     case USDC_NATIVE_BASE:
       return '0x20fe51a9229eef2cf8ad9e89d91cab9312cf3b7a';
-    case USDC_ON(ChainId.ASTROCHAIN_SEPOLIA):
+    case USDC_ON(ChainId.UNICHAIN_SEPOLIA):
       return '0xca8cA8840c77589981E63f4D8122fFEc4b74e2a1';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
@@ -145,12 +145,22 @@ export const WHALES = (token: Currency): string => {
       return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
     case WNATIVE_ON(ChainId.WORLDCHAIN):
       return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
-    case USDC_ASTROCHAIN_SEPOLIA:
+    case USDC_UNICHAIN_SEPOLIA:
       return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
-    case nativeOnChain(ChainId.ASTROCHAIN_SEPOLIA):
+    case nativeOnChain(ChainId.UNICHAIN_SEPOLIA):
       return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
-    case WNATIVE_ON(ChainId.ASTROCHAIN_SEPOLIA):
-      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
+    case WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA):
+      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';//
+    case USDC_UNICHAIN:
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case nativeOnChain(ChainId.UNICHAIN):
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case WNATIVE_ON(ChainId.UNICHAIN):
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

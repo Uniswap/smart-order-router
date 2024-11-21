@@ -14,7 +14,8 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     case ChainId.BASE_GOERLI:
     case ChainId.BLAST:
     case ChainId.WORLDCHAIN:
-    case ChainId.ASTROCHAIN_SEPOLIA:
+    case ChainId.UNICHAIN_SEPOLIA:
+    case ChainId.UNICHAIN:
       return {
         v2PoolSelection: {
           topN: 3,
