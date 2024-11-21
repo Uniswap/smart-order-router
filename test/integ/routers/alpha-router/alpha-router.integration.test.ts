@@ -3852,7 +3852,7 @@ describe('quote for other networks', () => {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
-              // astrochain sepolia doesn't have liquid USDC/DAI pool yet
+              // unichain sepolia doesn't have liquid USDC/DAI pool yet
               return;
             }
 
