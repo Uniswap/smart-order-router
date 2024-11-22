@@ -690,6 +690,48 @@ export class TenderlySimulator extends Simulator {
       this.provider,
       providerConfig
     );
+
+    // Log metrics about the diff between original estimatedGasUsed based on heuristics and the simulated gas used.
+    // This will help us track the quality of our gas estimation quality per chain.
+    // Wrap in try-catch to avoid failing the simulation if the logging fails for any reason.
+    try {
+      // Log the diff between original estimatedGasUsed and the simulated gas used
+      const originalEstimatedGasUsedUsd = swapRoute.estimatedGasUsedUSD;
+      const diff = estimatedGasUsedUSD.subtract(swapRoute.estimatedGasUsedUSD);
+      log.info(
+        {
+          originalEstimatedGasUsedUsd: originalEstimatedGasUsedUsd.toString(),
+          estimatedGasUsedUSD: estimatedGasUsedUSD.toString(),
+          diff: diff.toString(),
+        },
+        'Gas used diff in USD'
+      );
+      metric.putMetric(
+        `TenderlySimulationGasUsedDiffUSD_Chain_${chainId}`,
+        Number(diff.toExact()),
+        MetricLoggerUnit.Count
+      );
+      const misEstimatePercent = diff
+        .divide(originalEstimatedGasUsedUsd)
+        .multiply(100);
+      log.info(
+        {
+          misEstimatePercent: misEstimatePercent.toString(),
+        },
+        'Gas used mis-estimate percent'
+      );
+      metric.putMetric(
+        `TenderlySimulationGasUsedMisEstimatePercent_Chain_${chainId}`,
+        Number(misEstimatePercent.toExact()),
+        MetricLoggerUnit.Count
+      );
+    } catch (err) {
+      log.error(
+        { err: err },
+        'Failed to log diff between original estimatedGasUsed and the simulated gas used'
+      );
+    }
+
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
