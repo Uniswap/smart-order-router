@@ -127,11 +127,7 @@ export class EthEstimateGasSimulator extends Simulator {
       providerConfig
     );
 
-    logGasEstimationVsSimulationMetrics(
-      route,
-      estimatedGasUsedUSD,
-      this.chainId
-    );
+    logGasEstimationVsSimulationMetrics(route, estimatedGasUsed, this.chainId);
 
     return {
       ...initSwapRouteFromExisting(

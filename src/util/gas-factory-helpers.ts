@@ -697,30 +697,28 @@ export const calculateL1GasFeesHelper = async (
 // This will help us track the quality of our gas estimation quality per chain.
 export const logGasEstimationVsSimulationMetrics = (
   route: SwapRoute,
-  simulatedGasUsedUSDAmount: CurrencyAmount,
+  simulationGasUsed: BigNumber,
   chainId: ChainId
 ) => {
   try {
     // Log the diff between original estimatedGasUsed and the simulated gas used
-    const originalEstimatedGasUsedUSD = Number(
-      route.estimatedGasUsedUSD.toExact()
-    );
-    const simulatedGasUsedUSD = Number(simulatedGasUsedUSDAmount.toExact());
-    const absDiff = Math.abs(originalEstimatedGasUsedUSD - simulatedGasUsedUSD);
+    const estimatedGasUsed = route.estimatedGasUsed.toNumber();
+    const simulatedGasUsed = simulationGasUsed.toNumber();
+    const absDiff = Math.abs(estimatedGasUsed - simulatedGasUsed);
     log.info(
       {
-        estimatedGasUsedUSD: originalEstimatedGasUsedUSD,
-        simulatedGasUsedUSD: simulatedGasUsedUSD,
+        estimatedGasUsed: estimatedGasUsed,
+        simulatedGasUsed: simulatedGasUsed,
         absDiff: absDiff,
       },
-      'Gas used diff in USD'
+      'Gas used diff between estimatedGasUsed and simulatedGasUsed'
     );
     metric.putMetric(
-      `TenderlySimulationGasUsedDiffUSD_Chain_${chainId}`,
+      `TenderlySimulationGasUsedDiff_Chain_${chainId}`,
       absDiff,
       MetricLoggerUnit.Count
     );
-    const misEstimatePercent = (absDiff / originalEstimatedGasUsedUSD) * 100;
+    const misEstimatePercent = (absDiff / estimatedGasUsed) * 100;
     log.info(
       {
         misEstimatePercent: misEstimatePercent,

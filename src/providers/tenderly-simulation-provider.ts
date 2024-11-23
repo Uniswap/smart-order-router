@@ -692,11 +692,7 @@ export class TenderlySimulator extends Simulator {
       providerConfig
     );
 
-    logGasEstimationVsSimulationMetrics(
-      swapRoute,
-      estimatedGasUsedUSD,
-      chainId
-    );
+    logGasEstimationVsSimulationMetrics(swapRoute, estimatedGasUsed, chainId);
 
     return {
       ...initSwapRouteFromExisting(
