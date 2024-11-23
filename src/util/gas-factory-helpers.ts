@@ -704,29 +704,41 @@ export const logGasEstimationVsSimulationMetrics = (
     // Log the diff between original estimatedGasUsed and the simulated gas used
     const estimatedGasUsed = route.estimatedGasUsed.toNumber();
     const simulatedGasUsed = simulationGasUsed.toNumber();
+    const diff = estimatedGasUsed - simulatedGasUsed;
     const absDiff = Math.abs(estimatedGasUsed - simulatedGasUsed);
+    const misEstimatePercent = (diff / estimatedGasUsed) * 100;
+    const misEstimateAbsPercent = (absDiff / estimatedGasUsed) * 100;
+
     log.info(
       {
         estimatedGasUsed: estimatedGasUsed,
         simulatedGasUsed: simulatedGasUsed,
         absDiff: absDiff,
+        diff: diff,
       },
       'Gas used diff between estimatedGasUsed and simulatedGasUsed'
     );
-    metric.putMetric(
-      `TenderlySimulationGasUsedDiff_Chain_${chainId}`,
-      absDiff,
-      MetricLoggerUnit.Count
-    );
-    const misEstimatePercent = (absDiff / estimatedGasUsed) * 100;
     log.info(
       {
-        misEstimatePercent: misEstimatePercent,
+        misEstimateAbsPercent: misEstimateAbsPercent,
       },
       'Gas used mis-estimate percent'
     );
+
     metric.putMetric(
-      `TenderlySimulationGasUsedMisEstimatePercent_Chain_${chainId}`,
+      `TenderlySimulationGasUsed_AbsDiff_Chain_${chainId}`,
+      absDiff,
+      MetricLoggerUnit.Count
+    );
+    metric.putMetric(
+      `TenderlySimulationGasUsed_MisEstimateAbsPercent_Chain_${chainId}`,
+      misEstimateAbsPercent,
+      MetricLoggerUnit.Count
+    );
+
+    const label = diff >= 0 ? 'OverEstimate' : 'UnderEstimate';
+    metric.putMetric(
+      `TenderlySimulationGasUsed_${label}Percent_Chain_${chainId}`,
       misEstimatePercent,
       MetricLoggerUnit.Count
     );
