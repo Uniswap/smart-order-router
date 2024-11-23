@@ -19,6 +19,8 @@ import {
   GasModelProviderConfig,
   getQuoteThroughNativePool,
   MethodParameters,
+  metric,
+  MetricLoggerUnit,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   SwapOptions,
@@ -688,5 +690,52 @@ export const calculateL1GasFeesHelper = async (
       ChainId.ARBITRUM_ONE
     ).calldata;
     return calculateArbitrumToL1FeeFromCalldata(data, gasData, chainId);
+  }
+};
+
+// Logs metrics about the diff between original estimatedGasUsed based on heuristics and the simulated gas used.
+// This will help us track the quality of our gas estimation quality per chain.
+export const logGasEstimationVsSimulationMetrics = (
+  route: SwapRoute,
+  simulatedGasUsedUSDAmount: CurrencyAmount,
+  chainId: ChainId
+) => {
+  try {
+    // Log the diff between original estimatedGasUsed and the simulated gas used
+    const originalEstimatedGasUsedUSD = Number(
+      route.estimatedGasUsedUSD.toExact()
+    );
+    const simulatedGasUsedUSD = Number(simulatedGasUsedUSDAmount.toExact());
+    const absDiff = Math.abs(originalEstimatedGasUsedUSD - simulatedGasUsedUSD);
+    log.info(
+      {
+        estimatedGasUsedUSD: originalEstimatedGasUsedUSD,
+        simulatedGasUsedUSD: simulatedGasUsedUSD,
+        absDiff: absDiff,
+      },
+      'Gas used diff in USD'
+    );
+    metric.putMetric(
+      `TenderlySimulationGasUsedDiffUSD_Chain_${chainId}`,
+      absDiff,
+      MetricLoggerUnit.Count
+    );
+    const misEstimatePercent = (absDiff / originalEstimatedGasUsedUSD) * 100;
+    log.info(
+      {
+        misEstimatePercent: misEstimatePercent,
+      },
+      'Gas used mis-estimate percent'
+    );
+    metric.putMetric(
+      `TenderlySimulationGasUsedMisEstimatePercent_Chain_${chainId}`,
+      misEstimatePercent,
+      MetricLoggerUnit.Count
+    );
+  } catch (err) {
+    log.error(
+      { err: err },
+      'Failed to log diff between original estimatedGasUsed and the simulated gas used'
+    );
   }
 };
