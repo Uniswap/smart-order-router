@@ -663,12 +663,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         _providerConfig?.blockNumber ?? originalBlockNumber + baseBlockOffset,
     };
 
-    log.info(`routes length: ${routes.length}`);
-    log.info(`amounts length: ${amounts.length}`);
-    for (const amount of amounts) {
-      log.info(`amount: ${amount.quotient.toString()}`);
-    }
-
     const inputs: QuoteInputType[] = _(routes)
       .flatMap((route) => {
         const encodedRoute = this.encodeRouteToPath(route, functionName);
@@ -774,8 +768,6 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     let finalAttemptNumber = 1;
     const expectedCallsMade = quoteStates.length;
     let totalCallsMade = 0;
-
-    log.info(`----> Tooooootal quoteStates: ${quoteStates.length}`);
 
     const {
       results: quoteResults,
