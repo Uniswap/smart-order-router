@@ -246,14 +246,15 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
 
     // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
     const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
-    const VIRTUAL_BASE = '0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b';
+
+    // TODO: Remove. Temporary fix to allow VIRTUAL/GAME V2 pool to be included in the list.
+    const VIRTUAL_GAME_3PCT_BASE = '0xD418dfE7670c21F682E041F34250c114DB5D7789'.toLowerCase();
 
     const tracked = pools.filter(
       (pool) =>
         pool.token0.id == FEI ||
         pool.token1.id == FEI ||
-        (this.chainId === ChainId.BASE && pool.token0.id.toLowerCase() === VIRTUAL_BASE) ||
-        (this.chainId === ChainId.BASE && pool.token1.id.toLowerCase() === VIRTUAL_BASE) ||
+        (this.chainId === ChainId.BASE && pool.id.toLowerCase() === VIRTUAL_GAME_3PCT_BASE) ||
         parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
@@ -272,8 +273,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
-          (this.chainId === ChainId.BASE && pool.token0.id.toLowerCase() === VIRTUAL_BASE) ||
-          (this.chainId === ChainId.BASE && pool.token1.id.toLowerCase() === VIRTUAL_BASE) ||
+          (this.chainId === ChainId.BASE && pool.id.toLowerCase() === VIRTUAL_GAME_3PCT_BASE) ||
           parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
           parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
