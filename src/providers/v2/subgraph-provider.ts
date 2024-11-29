@@ -252,8 +252,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       (pool) =>
         pool.token0.id == FEI ||
         pool.token1.id == FEI ||
-        pool.token0.id.toLowerCase() == VIRTUAL_BASE ||
-        pool.token1.id.toLowerCase() == VIRTUAL_BASE ||
+        (this.chainId === ChainId.BASE && pool.token0.id.toLowerCase() === VIRTUAL_BASE) ||
+        (this.chainId === ChainId.BASE && pool.token1.id.toLowerCase() === VIRTUAL_BASE) ||
         parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
@@ -272,8 +272,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
-          pool.token0.id.toLowerCase() == VIRTUAL_BASE ||
-          pool.token1.id.toLowerCase() == VIRTUAL_BASE ||
+          (this.chainId === ChainId.BASE && pool.token0.id.toLowerCase() === VIRTUAL_BASE) ||
+          (this.chainId === ChainId.BASE && pool.token1.id.toLowerCase() === VIRTUAL_BASE) ||
           parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
           parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
