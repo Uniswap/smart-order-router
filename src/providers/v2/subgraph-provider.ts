@@ -245,12 +245,15 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     // Which helps filter pools with manipulated prices/liquidity.
 
     // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
-    const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
+    const FEI= '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
+    const VIRTUAL_BASE = '0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b';
 
     const tracked = pools.filter(
       (pool) =>
         pool.token0.id == FEI ||
         pool.token1.id == FEI ||
+        pool.token0.id.toLowerCase() == VIRTUAL_BASE ||
+        pool.token1.id.toLowerCase() == VIRTUAL_BASE ||
         parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
@@ -269,6 +272,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
+          pool.token0.id.toLowerCase() == VIRTUAL_BASE ||
+          pool.token1.id.toLowerCase() == VIRTUAL_BASE ||
           parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
           parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
