@@ -324,6 +324,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
   }
 
   // TODO: Remove. Temporary fix to allow VIRTUAL/* V2 top pools to be included in the list until the subgraph is re-indexed.
+  // Note: All addresses here should be in lowercase.
   private static readonly VirtualPairBaseV2PoolIds: Set<string> = new Set([
     // Pool ID for VIRTUAL / GAME
     '0xd418dfe7670c21f682e041f34250c114db5d7789',
