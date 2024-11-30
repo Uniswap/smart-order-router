@@ -251,7 +251,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       (pool) =>
         pool.token0.id == FEI ||
         pool.token1.id == FEI ||
-        this.isVirtualPairBaseV2Pool(pool) ||
+        this.isVirtualPairBaseV2Pool(pool.id) ||
         parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
@@ -270,7 +270,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
-          this.isVirtualPairBaseV2Pool(pool) ||
+          this.isVirtualPairBaseV2Pool(pool.id) ||
           parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
           parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
@@ -316,10 +316,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
   }
 
   // This method checks if a given pool is part of the Virtual Pair Base V2 Pool IDs.
-  private isVirtualPairBaseV2Pool(pool: RawV2SubgraphPool): boolean {
+  public isVirtualPairBaseV2Pool(poolId: string): boolean {
     return (
       this.chainId === ChainId.BASE &&
-      V2SubgraphProvider.VirtualPairBaseV2PoolIds.has(pool.id.toLowerCase())
+      V2SubgraphProvider.VirtualPairBaseV2PoolIds.has(poolId.toLowerCase())
     );
   }
 
