@@ -251,6 +251,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       (pool) =>
         pool.token0.id == FEI ||
         pool.token1.id == FEI ||
+        this.isVirtualPairBaseV2Pool(pool.id) ||
         parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
@@ -269,6 +270,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
+          this.isVirtualPairBaseV2Pool(pool.id) ||
           parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
           parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
@@ -312,4 +314,59 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
 
     return poolsSanitized;
   }
+
+  // This method checks if a given pool is part of the Virtual Pair Base V2 Pool IDs.
+  public isVirtualPairBaseV2Pool(poolId: string): boolean {
+    return (
+      this.chainId === ChainId.BASE &&
+      V2SubgraphProvider.VirtualPairBaseV2PoolIds.has(poolId.toLowerCase())
+    );
+  }
+
+  // TODO: Remove. Temporary fix to allow VIRTUAL/* V2 top pools to be included in the list until the subgraph is re-indexed.
+  // Note: All addresses here should be in lowercase.
+  private static readonly VirtualPairBaseV2PoolIds: Set<string> = new Set([
+    // Pool ID for VIRTUAL / GAME
+    '0xd418dfe7670c21f682e041f34250c114db5d7789',
+    // Pool ID for VIRTUAL / AIXBT
+    '0x7464850cc1cfb54a2223229b77b1bca2f888d946',
+    // Pool ID for VIRTUAL / LUNA
+    '0xa8e64fb120ce8796594670bae72279c8aa1e5359',
+    // Pool ID for VIRTUAL / TOSHI
+    '0x368ea6f645deb6d1a8692fe93c550d2834150865',
+    // Pool ID for VIRTUAL / KEYCAT
+    '0x3b9ddad7459fdfcfdb7117d53301182dd46b7042',
+    // Pool ID for VIRTUAL / VADER
+    '0xa1dddb82501e8fe2d92ad0e8ba331313f501de72',
+    // Pool ID for VIRTUAL / SEKOIA
+    '0x9e046c706f9ea6ce8f9287d30a15438c07f42d64',
+    // Pool ID for VIRTUAL / SAINT
+    '0x93d65a935e7c0f1aa153780e0db3ad08b9448c89',
+    // Pool ID for VIRTUAL / $mfer
+    '0xcaabcb34b48d29631c2b2c1d947d669fd8117a51',
+    // Pool ID for VIRTUAL / AIINU
+    '0xd2d670c91d14d9abcca7749f65e3181b2124e12d',
+    // Pool ID for VIRTUAL / CONVO
+    '0x3268d7efa254e648ffe968664e47ca226e27cd04',
+    // Pool ID for VIRTUAL / POLY
+    '0xde40586745a4e21efc0e8e0073cdd431ae88876a',
+    // Pool ID for VIRTUAL / GUAN
+    '0xff5bbda63e87210edd0ab9bc424086589d92e0af',
+    // Pool ID for VIRTUAL / SAM
+    '0xd72a82022134ba0d417c8d733139057e9bb9ea3f',
+    // Pool ID for VIRTUAL / VIRTU
+    '0xd9436bdaaf364181f1a39bb4c5e0a307c7353a01',
+    // Pool ID for VIRTUAL / CYI
+    '0x9d89c0cb73143927761534143747e26c47a1589f',
+    // Pool ID for VIRTUAL / VU
+    '0xfa65a76655f3c0641b79e89de3f51459c3727823',
+    // Pool ID for VIRTUAL / ECHO
+    '0x75cf1180ceb1cbef7508a4a4a0de940e2db4f087',
+    // Pool ID for VIRTUAL / MUSIC
+    '0xcef84d17513ede0ab951f7be9829e638a20bfba4',
+    // Pool ID for VIRTUAL / MISATO
+    '0x863e3a73c604d5038d41e2512272a73585f70017',
+    // Pool ID for VIRTUAL / NIKITA
+    '0xb9d782f2cfb755d47e2a5fa1350100c2ce3287ee',
+  ]);
 }
