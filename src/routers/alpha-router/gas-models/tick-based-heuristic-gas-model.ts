@@ -6,7 +6,7 @@ import {
   CurrencyAmount,
   log,
   STABLE_COINS_BY_CHAIN_ID,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../util';
 import { calculateL1GasFeesHelper } from '../../../util/gas-factory-helpers';
 import { V3RouteWithValidQuote, V4RouteWithValidQuote } from '../entities';
@@ -184,7 +184,7 @@ export abstract class TickBasedHeuristicGasModelFactory<
             routeWithValidQuote.amount.currency,
             routeWithValidQuote.quote.currency,
             routeWithValidQuote.amount.quotient,
-            routeWithValidQuote.amount.quotient,
+            routeWithValidQuote.amount.quotient
           );
         }
 
@@ -196,7 +196,8 @@ export abstract class TickBasedHeuristicGasModelFactory<
           : nativeAmountPool.token1Price;
 
         // gasCostInTermsOfAmountToken = 29.487425 | 11.0
-        const gasCostInTermsOfAmountToken = nativeAndAmountTokenPrice.quote( // nativeAndAmountTokenPrice = 3554.58
+        const gasCostInTermsOfAmountToken = nativeAndAmountTokenPrice.quote(
+          // nativeAndAmountTokenPrice = 3554.58
           totalGasCostNativeCurrency
         ) as CurrencyAmount;
 
@@ -204,7 +205,8 @@ export abstract class TickBasedHeuristicGasModelFactory<
         let syntheticGasCostInTermsOfQuoteToken: CurrencyAmount | null;
         try {
           // syntheticGasCostInTermsOfQuoteToken = 29 | 19 | 11
-          syntheticGasCostInTermsOfQuoteToken = executionPrice.quote( // executionPrice = 0.99
+          syntheticGasCostInTermsOfQuoteToken = executionPrice.quote(
+            // executionPrice = 0.99
             gasCostInTermsOfAmountToken
           );
         } catch (err) {
@@ -276,11 +278,18 @@ export abstract class TickBasedHeuristicGasModelFactory<
     };
   }
 
-  protected routeIsStableCoinPair(chainId: ChainId, routeWithValidQuote: TRouteWithValidQuote): boolean {
+  protected routeIsStableCoinPair(
+    chainId: ChainId,
+    routeWithValidQuote: TRouteWithValidQuote
+  ): boolean {
     const stableCoins = STABLE_COINS_BY_CHAIN_ID[chainId] || [];
     return (
-      stableCoins.includes(routeWithValidQuote.amount.currency.wrapped.address.toLowerCase()) &&
-      stableCoins.includes(routeWithValidQuote.quote.currency.wrapped.address.toLowerCase())
+      stableCoins.includes(
+        routeWithValidQuote.amount.currency.wrapped.address.toLowerCase()
+      ) &&
+      stableCoins.includes(
+        routeWithValidQuote.quote.currency.wrapped.address.toLowerCase()
+      )
     );
   }
 

@@ -173,7 +173,7 @@ export const STABLE_COINS_BY_CHAIN_ID: { [chainId: number]: string[] } = {
     '0x6b175474e89094c44da98b954eedeac495271d0f', // DAI
     '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT
   ],
-}
+};
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.MAINNET]: [
