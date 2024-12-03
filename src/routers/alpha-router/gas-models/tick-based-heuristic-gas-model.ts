@@ -195,18 +195,14 @@ export abstract class TickBasedHeuristicGasModelFactory<
           ? nativeAmountPool.token0Price
           : nativeAmountPool.token1Price;
 
-        // gasCostInTermsOfAmountToken = 29.487425 | 11.0
         const gasCostInTermsOfAmountToken = nativeAndAmountTokenPrice.quote(
-          // nativeAndAmountTokenPrice = 3554.58
           totalGasCostNativeCurrency
         ) as CurrencyAmount;
 
         // Convert gasCostInTermsOfAmountToken to quote token using execution price
         let syntheticGasCostInTermsOfQuoteToken: CurrencyAmount | null;
         try {
-          // syntheticGasCostInTermsOfQuoteToken = 29 | 19 | 11
           syntheticGasCostInTermsOfQuoteToken = executionPrice.quote(
-            // executionPrice = 0.99
             gasCostInTermsOfAmountToken
           );
         } catch (err) {
