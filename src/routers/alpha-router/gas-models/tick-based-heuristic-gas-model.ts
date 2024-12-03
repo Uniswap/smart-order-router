@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import { ChainId, Price } from '@uniswap/sdk-core';
+import { ChainId, Percent, Price } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { calculateL1GasFeesHelper } from '../../../util/gas-factory-helpers';
@@ -213,7 +213,7 @@ export abstract class TickBasedHeuristicGasModelFactory<
               gasCostInTermsOfQuoteToken.asFraction
             ) &&
             gasCostInTermsOfQuoteToken.subtract(syntheticGasCostInTermsOfQuoteToken)
-              .lessThan(gasCostInTermsOfQuoteToken.multiply(0.3).asFraction)
+              .lessThan(gasCostInTermsOfQuoteToken.multiply(new Percent(30, 100)).asFraction)
           ))
         ) {
           log.info(
