@@ -2,7 +2,12 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId, Price } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
-import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import {
+  CurrencyAmount,
+  log,
+  STABLE_COINS_BY_CHAIN_ID,
+  WRAPPED_NATIVE_CURRENCY
+} from '../../../util';
 import { calculateL1GasFeesHelper } from '../../../util/gas-factory-helpers';
 import { V3RouteWithValidQuote, V4RouteWithValidQuote } from '../entities';
 import {
@@ -165,12 +170,23 @@ export abstract class TickBasedHeuristicGasModelFactory<
       // A pool with the non quote token / ETH should not be required and errors should be handled separately
       if (nativeAmountPool) {
         // get current execution price (amountToken / quoteToken)
-        const executionPrice = new Price(
+        let executionPrice = new Price(
           routeWithValidQuote.amount.currency,
           routeWithValidQuote.quote.currency,
           routeWithValidQuote.amount.quotient,
           routeWithValidQuote.quote.quotient
         );
+
+        // If this is a stable pair, always use execution price of 1 for now.
+        // TODO: ROUTE-356 Use direct swap pool for swap execution price calculation.
+        if (this.routeIsStableCoinPair(chainId, routeWithValidQuote)) {
+          executionPrice = new Price(
+            routeWithValidQuote.amount.currency,
+            routeWithValidQuote.quote.currency,
+            routeWithValidQuote.amount.quotient,
+            routeWithValidQuote.amount.quotient,
+          );
+        }
 
         const inputIsToken0 =
           nativeAmountPool.token0.address == nativeCurrency.address;
@@ -179,14 +195,16 @@ export abstract class TickBasedHeuristicGasModelFactory<
           ? nativeAmountPool.token0Price
           : nativeAmountPool.token1Price;
 
-        const gasCostInTermsOfAmountToken = nativeAndAmountTokenPrice.quote(
+        // gasCostInTermsOfAmountToken = 29.487425 | 11.0
+        const gasCostInTermsOfAmountToken = nativeAndAmountTokenPrice.quote( // nativeAndAmountTokenPrice = 3554.58
           totalGasCostNativeCurrency
         ) as CurrencyAmount;
 
         // Convert gasCostInTermsOfAmountToken to quote token using execution price
         let syntheticGasCostInTermsOfQuoteToken: CurrencyAmount | null;
         try {
-          syntheticGasCostInTermsOfQuoteToken = executionPrice.quote(
+          // syntheticGasCostInTermsOfQuoteToken = 29 | 19 | 11
+          syntheticGasCostInTermsOfQuoteToken = executionPrice.quote( // executionPrice = 0.99
             gasCostInTermsOfAmountToken
           );
         } catch (err) {
@@ -256,6 +274,14 @@ export abstract class TickBasedHeuristicGasModelFactory<
       estimateGasCost: estimateGasCost.bind(this),
       calculateL1GasFees,
     };
+  }
+
+  protected routeIsStableCoinPair(chainId: ChainId, routeWithValidQuote: TRouteWithValidQuote): boolean {
+    const stableCoins = STABLE_COINS_BY_CHAIN_ID[chainId] || [];
+    return (
+      stableCoins.includes(routeWithValidQuote.amount.currency.wrapped.address.toLowerCase()) &&
+      stableCoins.includes(routeWithValidQuote.quote.currency.wrapped.address.toLowerCase())
+    );
   }
 
   protected estimateGas(
