@@ -213,7 +213,7 @@ export abstract class TickBasedHeuristicGasModelFactory<
               gasCostInTermsOfQuoteToken.asFraction
             ) &&
             gasCostInTermsOfQuoteToken.subtract(syntheticGasCostInTermsOfQuoteToken)
-              .lessThan(gasCostInTermsOfQuoteToken.multiply(0.3))
+              .lessThan(gasCostInTermsOfQuoteToken.multiply(0.3).asFraction)
           ))
         ) {
           log.info(
