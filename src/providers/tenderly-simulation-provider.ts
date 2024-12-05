@@ -781,9 +781,11 @@ export class TenderlySimulator extends Simulator {
       this.chainId,
       this.tenderlyNodeApiKey
     );
-    const blockNumber = swap.block_number
-      ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
-      : 'latest';
+    // TODO: ROUTE-362 - Revisit tenderly node simulation hardcode latest block number
+    // https://linear.app/uniswap/issue/ROUTE-362/revisit-tenderly-node-simulation-hardcode-latest-block-number
+    const blockNumber = // swap.block_number
+      // ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
+      'latest';
     const body: TenderlyNodeEstimateGasBundleBody = {
       id: 1,
       jsonrpc: '2.0',
