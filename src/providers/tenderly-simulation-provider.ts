@@ -781,7 +781,7 @@ export class TenderlySimulator extends Simulator {
       this.chainId,
       this.tenderlyNodeApiKey
     );
-    const blockNumber = swap.block_number
+    const blockNumber = swap.block_number && this.chainId !== ChainId.MAINNET
       ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
       : 'latest';
     const body: TenderlyNodeEstimateGasBundleBody = {
