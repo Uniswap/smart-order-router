@@ -12,6 +12,7 @@ import { BEACON_CHAIN_DEPOSIT_ADDRESS, log } from '../util';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
+  logGasEstimationVsSimulationMetrics,
 } from '../util/gas-factory-helpers';
 
 import { IPortionProvider } from './portion-provider';
@@ -125,6 +126,9 @@ export class EthEstimateGasSimulator extends Simulator {
       this.provider,
       providerConfig
     );
+
+    logGasEstimationVsSimulationMetrics(route, estimatedGasUsed, this.chainId);
+
     return {
       ...initSwapRouteFromExisting(
         route,

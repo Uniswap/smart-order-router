@@ -69,6 +69,7 @@ jest.mock('../../../src/util/gas-factory-helpers', () => ({
       quoteGasAdjusted,
     };
   },
+  logGasEstimationVsSimulationMetrics: jest.fn(),
 }));
 
 const provider = new JsonRpcProvider();

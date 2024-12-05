@@ -19,6 +19,8 @@ import {
   GasModelProviderConfig,
   getQuoteThroughNativePool,
   MethodParameters,
+  metric,
+  MetricLoggerUnit,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   SwapOptions,
@@ -688,5 +690,62 @@ export const calculateL1GasFeesHelper = async (
       ChainId.ARBITRUM_ONE
     ).calldata;
     return calculateArbitrumToL1FeeFromCalldata(data, gasData, chainId);
+  }
+};
+
+// Logs metrics about the diff between original estimatedGasUsed based on heuristics and the simulated gas used.
+// This will help us track the quality of our gas estimation quality per chain.
+export const logGasEstimationVsSimulationMetrics = (
+  route: SwapRoute,
+  simulationGasUsed: BigNumber,
+  chainId: ChainId
+) => {
+  try {
+    // Log the diff between original estimatedGasUsed and the simulated gas used
+    const estimatedGasUsed = route.estimatedGasUsed.toNumber();
+    const simulatedGasUsed = simulationGasUsed.toNumber();
+    const diff = estimatedGasUsed - simulatedGasUsed;
+    const absDiff = Math.abs(estimatedGasUsed - simulatedGasUsed);
+    const misEstimatePercent = (diff / estimatedGasUsed) * 100;
+    const misEstimateAbsPercent = (absDiff / estimatedGasUsed) * 100;
+
+    log.info(
+      {
+        estimatedGasUsed: estimatedGasUsed,
+        simulatedGasUsed: simulatedGasUsed,
+        absDiff: absDiff,
+        diff: diff,
+      },
+      'Gas used diff between estimatedGasUsed and simulatedGasUsed'
+    );
+    log.info(
+      {
+        misEstimateAbsPercent: misEstimateAbsPercent,
+      },
+      'Gas used mis-estimate percent'
+    );
+
+    metric.putMetric(
+      `TenderlySimulationGasUsed_AbsDiff_Chain_${chainId}`,
+      absDiff,
+      MetricLoggerUnit.Count
+    );
+    metric.putMetric(
+      `TenderlySimulationGasUsed_MisEstimateAbsPercent_Chain_${chainId}`,
+      misEstimateAbsPercent,
+      MetricLoggerUnit.Count
+    );
+
+    const label = diff >= 0 ? 'OverEstimate' : 'UnderEstimate';
+    metric.putMetric(
+      `TenderlySimulationGasUsed_${label}Percent_Chain_${chainId}`,
+      misEstimatePercent,
+      MetricLoggerUnit.Count
+    );
+  } catch (err) {
+    log.error(
+      { err: err },
+      'Failed to log diff between original estimatedGasUsed and the simulated gas used'
+    );
   }
 };

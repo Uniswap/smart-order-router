@@ -29,6 +29,7 @@ import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
+  logGasEstimationVsSimulationMetrics,
 } from '../util/gas-factory-helpers';
 
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
@@ -690,6 +691,9 @@ export class TenderlySimulator extends Simulator {
       this.provider,
       providerConfig
     );
+
+    logGasEstimationVsSimulationMetrics(swapRoute, estimatedGasUsed, chainId);
+
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
