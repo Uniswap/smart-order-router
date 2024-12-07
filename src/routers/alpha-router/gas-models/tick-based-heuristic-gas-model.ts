@@ -208,13 +208,16 @@ export abstract class TickBasedHeuristicGasModelFactory<
         // Only use syntheticGasCostInTermsOfQuoteToken if it's within 30% of the original gasCostInTermsOfQuoteToken as a safeguard.
         if (
           syntheticGasCostInTermsOfQuoteToken !== null &&
-          (gasCostInTermsOfQuoteToken === null || (
-            syntheticGasCostInTermsOfQuoteToken.lessThan(
+          (gasCostInTermsOfQuoteToken === null ||
+            (syntheticGasCostInTermsOfQuoteToken.lessThan(
               gasCostInTermsOfQuoteToken.asFraction
             ) &&
-            gasCostInTermsOfQuoteToken.subtract(syntheticGasCostInTermsOfQuoteToken)
-              .lessThan(gasCostInTermsOfQuoteToken.multiply(new Percent(30, 100)).asFraction)
-          ))
+              gasCostInTermsOfQuoteToken
+                .subtract(syntheticGasCostInTermsOfQuoteToken)
+                .lessThan(
+                  gasCostInTermsOfQuoteToken.multiply(new Percent(30, 100))
+                    .asFraction
+                )))
         ) {
           log.info(
             {
