@@ -31,6 +31,7 @@ import {
   initSwapRouteFromExisting,
 } from '../util/gas-factory-helpers';
 
+import { breakDownTenderlySimulationError } from '../util/tenderlySimulationErrorBreakDown';
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { IPortionProvider } from './portion-provider';
 import {
@@ -464,6 +465,22 @@ export class TenderlySimulator extends Simulator {
               2
             )}.`
           );
+
+          if (
+            resp &&
+            resp.result &&
+            resp.result.length >= 3 &&
+            (resp.result[2] as JsonRpcError).error &&
+            (resp.result[2] as JsonRpcError).error.data
+          ) {
+            return {
+              ...swapRoute,
+              simulationStatus: breakDownTenderlySimulationError(
+                (resp.result[2] as JsonRpcError).error.data
+              ),
+            };
+          }
+
           return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
         }
 
