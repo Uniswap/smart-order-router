@@ -466,7 +466,13 @@ export class TenderlySimulator extends Simulator {
             )}.`
           );
 
-          if ((resp.result[2] as JsonRpcError).error.data) {
+          if (
+            resp &&
+            resp.result &&
+            resp.result.length >= 3 &&
+            (resp.result[2] as JsonRpcError).error &&
+            (resp.result[2] as JsonRpcError).error.data
+          ) {
             return {
               ...swapRoute,
               simulationStatus: breakDownTenderlySimulationError(
