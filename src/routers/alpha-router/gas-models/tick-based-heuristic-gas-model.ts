@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import { ChainId, Price } from '@uniswap/sdk-core';
+import { ChainId, Percent, Price } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v3-sdk';
 import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { calculateL1GasFeesHelper } from '../../../util/gas-factory-helpers';
@@ -205,12 +205,16 @@ export abstract class TickBasedHeuristicGasModelFactory<
         // Note that the syntheticGasCost being lessThan the original quoted value is not always strictly better
         // e.g. the scenario where the amountToken/ETH pool is very illiquid as well and returns an extremely small number
         // however, it is better to have the gasEstimation be almost 0 than almost infinity, as the user will still receive a quote
+        // Only use syntheticGasCostInTermsOfQuoteToken if it's within 30% of the original gasCostInTermsOfQuoteToken as a safeguard.
         if (
           syntheticGasCostInTermsOfQuoteToken !== null &&
-          (gasCostInTermsOfQuoteToken === null ||
+          (gasCostInTermsOfQuoteToken === null || (
             syntheticGasCostInTermsOfQuoteToken.lessThan(
               gasCostInTermsOfQuoteToken.asFraction
-            ))
+            ) &&
+            gasCostInTermsOfQuoteToken.subtract(syntheticGasCostInTermsOfQuoteToken)
+              .lessThan(gasCostInTermsOfQuoteToken.multiply(new Percent(30, 100)).asFraction)
+          ))
         ) {
           log.info(
             {
