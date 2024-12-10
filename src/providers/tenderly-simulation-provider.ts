@@ -140,6 +140,18 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
       return `https://mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     case ChainId.BASE:
       return `https://base.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.ARBITRUM_ONE:
+      return `https://arbitrum-one.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.OPTIMISM:
+      return `https://optimism.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.POLYGON:
+      return `https://polygon.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.AVALANCHE:
+      return `https://avalanche.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.BLAST:
+      return `https://blast.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.WORLDCHAIN:
+      return `https://worldchain-mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     default:
       throw new Error(
         `ChainId ${chainId} does not correspond to a tenderly node endpoint`
@@ -151,6 +163,9 @@ export const TENDERLY_NOT_SUPPORTED_CHAINS = [
   ChainId.CELO,
   ChainId.CELO_ALFAJORES,
   ChainId.ZKSYNC,
+  // tenderly node RPC supports BNB and ZORA upon request, we will make them available
+  ChainId.BNB,
+  ChainId.ZORA,
 ];
 
 // We multiply tenderly gas limit by this to overestimate gas limit

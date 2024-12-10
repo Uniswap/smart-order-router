@@ -746,7 +746,7 @@ describe('alpha router integration', () => {
       // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
       3000,
       100,
-      [ChainId.MAINNET, ChainId.BASE]
+      [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
     );
 
     const simulator = new FallbackTenderlySimulator(
@@ -3653,7 +3653,7 @@ describe('quote for other networks', () => {
             // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
             3000,
             100,
-            [ChainId.MAINNET, ChainId.BASE]
+            [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
           );
 
           const simulator = new FallbackTenderlySimulator(
