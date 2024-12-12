@@ -141,7 +141,7 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
     case ChainId.BASE:
       return `https://base.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     case ChainId.ARBITRUM_ONE:
-      return `https://arbitrum-one.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+      return `https://arbitrum.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     case ChainId.OPTIMISM:
       return `https://optimism.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     case ChainId.POLYGON:
