@@ -307,6 +307,8 @@ export class TenderlySimulator extends Simulator {
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
+    const currencyOut = swapRoute.trade.outputAmount.currency;
+    const tokenOut = currencyOut.wrapped;
     const chainId = this.chainId;
 
     if (TENDERLY_NOT_SUPPORTED_CHAINS.includes(chainId)) {
@@ -492,6 +494,8 @@ export class TenderlySimulator extends Simulator {
             return {
               ...swapRoute,
               simulationStatus: breakDownTenderlySimulationError(
+                tokenIn,
+                tokenOut,
                 (resp.result[2] as JsonRpcError).error.data
               ),
             };

@@ -601,6 +601,13 @@ export const USDC_NATIVE_BASE = new Token(
   'USDbC',
   'USD Base Coin'
 );
+export const VIRTUAL_BASE = new Token(
+  ChainId.BASE,
+  '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b',
+  18,
+  'VIRTUAL',
+  'Virtual Protocol'
+);
 
 // Base Goerli Tokens
 export const USDC_BASE_GOERLI = new Token(
