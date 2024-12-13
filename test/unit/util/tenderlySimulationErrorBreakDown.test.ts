@@ -4,7 +4,8 @@ import {
 import {
   SimulationStatus,
   USDC_MAINNET,
-  USDT_MAINNET
+  USDT_MAINNET,
+  VIRTUAL_BASE
 } from '../../../build/main';
 
 describe('tenderly simulation error break down', () => {
@@ -41,6 +42,11 @@ describe('tenderly simulation error break down', () => {
   it('InsufficientToken', () => {
     const simulationStatus = breakDownTenderlySimulationError(USDC_MAINNET, USDT_MAINNET, '0x675cae38');
     expect(simulationStatus).toEqual(SimulationStatus.Failed);
+  });
+
+  it('InsufficientToken Virtual', () => {
+    const simulationStatus = breakDownTenderlySimulationError(USDC_MAINNET, VIRTUAL_BASE, '0x675cae38');
+    expect(simulationStatus).toEqual(SimulationStatus.SlippageTooLow);
   });
 
   it('unknown data', () => {
