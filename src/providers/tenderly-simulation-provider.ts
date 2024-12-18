@@ -29,8 +29,10 @@ import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
+  logGasEstimationVsSimulationMetrics,
 } from '../util/gas-factory-helpers';
 
+import { breakDownTenderlySimulationError } from '../util/tenderlySimulationErrorBreakDown';
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { IPortionProvider } from './portion-provider';
 import {
@@ -138,6 +140,18 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
       return `https://mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     case ChainId.BASE:
       return `https://base.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.ARBITRUM_ONE:
+      return `https://arbitrum.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.OPTIMISM:
+      return `https://optimism.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.POLYGON:
+      return `https://polygon.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.AVALANCHE:
+      return `https://avalanche.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.BLAST:
+      return `https://blast.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.WORLDCHAIN:
+      return `https://worldchain-mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     default:
       throw new Error(
         `ChainId ${chainId} does not correspond to a tenderly node endpoint`
@@ -149,6 +163,9 @@ export const TENDERLY_NOT_SUPPORTED_CHAINS = [
   ChainId.CELO,
   ChainId.CELO_ALFAJORES,
   ChainId.ZKSYNC,
+  // tenderly node RPC supports BNB and ZORA upon request, we will make them available
+  ChainId.BNB,
+  ChainId.ZORA,
 ];
 
 // We multiply tenderly gas limit by this to overestimate gas limit
@@ -290,6 +307,8 @@ export class TenderlySimulator extends Simulator {
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
+    const currencyOut = swapRoute.trade.outputAmount.currency;
+    const tokenOut = currencyOut.wrapped;
     const chainId = this.chainId;
 
     if (TENDERLY_NOT_SUPPORTED_CHAINS.includes(chainId)) {
@@ -464,6 +483,24 @@ export class TenderlySimulator extends Simulator {
               2
             )}.`
           );
+
+          if (
+            resp &&
+            resp.result &&
+            resp.result.length >= 3 &&
+            (resp.result[2] as JsonRpcError).error &&
+            (resp.result[2] as JsonRpcError).error.data
+          ) {
+            return {
+              ...swapRoute,
+              simulationStatus: breakDownTenderlySimulationError(
+                tokenIn,
+                tokenOut,
+                (resp.result[2] as JsonRpcError).error.data
+              ),
+            };
+          }
+
           return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
         }
 
@@ -690,6 +727,9 @@ export class TenderlySimulator extends Simulator {
       this.provider,
       providerConfig
     );
+
+    logGasEstimationVsSimulationMetrics(swapRoute, estimatedGasUsed, chainId);
+
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
@@ -781,9 +821,11 @@ export class TenderlySimulator extends Simulator {
       this.chainId,
       this.tenderlyNodeApiKey
     );
-    const blockNumber = swap.block_number
-      ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
-      : 'latest';
+    // TODO: ROUTE-362 - Revisit tenderly node simulation hardcode latest block number
+    // https://linear.app/uniswap/issue/ROUTE-362/revisit-tenderly-node-simulation-hardcode-latest-block-number
+    const blockNumber = // swap.block_number
+      // ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
+      'latest';
     const body: TenderlyNodeEstimateGasBundleBody = {
       id: 1,
       jsonrpc: '2.0',

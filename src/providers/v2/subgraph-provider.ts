@@ -251,6 +251,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       (pool) =>
         pool.token0.id == FEI ||
         pool.token1.id == FEI ||
+        this.isVirtualPairBaseV2Pool(pool) ||
         parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
@@ -269,6 +270,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
+          this.isVirtualPairBaseV2Pool(pool) ||
           parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
           parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
@@ -311,5 +313,16 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     );
 
     return poolsSanitized;
+  }
+
+  // This method checks if a given pool contains the VIRTUAL token.
+  public isVirtualPairBaseV2Pool(pool: RawV2SubgraphPool): boolean {
+    const virtualTokenAddress =
+      '0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b'.toLowerCase();
+    return (
+      this.chainId === ChainId.BASE &&
+      (pool.token0.id.toLowerCase() === virtualTokenAddress ||
+        pool.token1.id.toLowerCase() === virtualTokenAddress)
+    );
   }
 }

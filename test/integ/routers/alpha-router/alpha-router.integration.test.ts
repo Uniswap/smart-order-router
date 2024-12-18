@@ -140,7 +140,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.MAINNET]: 50,
   [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 75,
-  [ChainId.OPTIMISM]: 71,
+  [ChainId.OPTIMISM]: 75,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
   [ChainId.ARBITRUM_ONE]: 53,
@@ -747,7 +747,7 @@ describe('alpha router integration', () => {
       // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
       3000,
       100,
-      [ChainId.MAINNET, ChainId.BASE]
+      [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
     );
 
     const simulator = new FallbackTenderlySimulator(
@@ -3656,7 +3656,7 @@ describe('quote for other networks', () => {
             // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
             3000,
             100,
-            [ChainId.MAINNET, ChainId.BASE]
+            [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
           );
 
           const simulator = new FallbackTenderlySimulator(
