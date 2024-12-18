@@ -247,6 +247,12 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x31d0220469e10c4E71834a79b1f276d740d3768F --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 1301
 ```
 
+## Unichain Mainnet
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x???????????????????????????? --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 130
+```
+
 ## Adding a new Chain
 
 The main components to complete are:
