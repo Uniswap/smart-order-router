@@ -1,4 +1,4 @@
-import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
+import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
@@ -50,8 +50,8 @@ export const poolToString = (pool: TPool): string => {
       pool.token0,
       pool.token1,
       pool.fee,
-      0,
-      ADDRESS_ZERO
+      pool.tickSpacing,
+      pool.hooks
     )}]`;
   } else if (pool instanceof V3Pool) {
     return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
@@ -95,8 +95,8 @@ export const routeToString = (route: SupportedRoutes): string => {
         pool.token0,
         pool.token1,
         pool.fee,
-        0,
-        ADDRESS_ZERO
+        pool.tickSpacing,
+        pool.hooks
       )}]`;
     } else {
       throw new Error(`Unsupported pool ${JSON.stringify(pool)}`);
@@ -131,7 +131,7 @@ export const routeAmountsToString = (
     const percent = new Percent(portion.numerator, portion.denominator);
     /// @dev special case for MIXED routes we want to show user friendly V2+V3 instead
     return `[${
-      protocol == Protocol.MIXED ? 'V2 + V3' : protocol
+      protocol == Protocol.MIXED ? 'V2 + V3 + V4' : protocol
     }] ${percent.toFixed(2)}% = ${routeToString(route)}`;
   });
 

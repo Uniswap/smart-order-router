@@ -50,6 +50,7 @@ import {
   DAI_ON,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
+  getApplicableV4FeesTickspacingsHooks,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
   MethodParameters,
@@ -97,7 +98,8 @@ import {
   WETH9,
   WLD_WORLDCHAIN,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
+  CacheMode
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -120,6 +122,12 @@ import {
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
 import { V4SubgraphProvider } from '../../../../build/main';
+import {
+  InMemoryRouteCachingProvider
+} from '../../../unit/providers/caching/route/test-util/inmemory-route-caching-provider';
+import {
+  getInvalidCachedRoutesStub
+} from '../../../unit/routers/alpha-router/gas-models/test-util/mocked-dependencies';
 
 const FORK_BLOCK = 20444945;
 const UNIVERSAL_ROUTER_ADDRESS_V1_2 = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(UniversalRouterVersion.V1_2, 1);
@@ -132,7 +140,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.MAINNET]: 50,
   [ChainId.GOERLI]: 62,
   [ChainId.SEPOLIA]: 75,
-  [ChainId.OPTIMISM]: 61,
+  [ChainId.OPTIMISM]: 75,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
   [ChainId.ARBITRUM_ONE]: 53,
@@ -738,7 +746,7 @@ describe('alpha router integration', () => {
       // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
       3000,
       100,
-      [ChainId.MAINNET]
+      [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
     );
 
     const simulator = new FallbackTenderlySimulator(
@@ -769,6 +777,7 @@ describe('alpha router integration', () => {
       v3PoolProvider,
       v4PoolProvider,
       simulator: ethEstimateGasSimulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
 
     feeOnTransferAlphaRouter = new AlphaRouter({
@@ -778,6 +787,7 @@ describe('alpha router integration', () => {
       v2PoolProvider: cachingV2PoolProvider,
       v3PoolProvider,
       simulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
   });
 
@@ -3112,6 +3122,7 @@ describe('alpha router integration', () => {
           provider: hardhat.providers[0]!,
           multicall2Provider,
           gasPriceProvider,
+          cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
         });
 
         const swap = await customAlphaRouter.route(
@@ -3131,6 +3142,71 @@ describe('alpha router integration', () => {
         expect(gasPriceWei.eq(BigNumber.from(60000000000))).toBe(true);
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+      });
+
+      // This test is easy to set up at SOR level, but hard at routing-api level
+      // because at routing-api level, its difficult to trigger a quote to ensure an invalid cached routes get persisted into DB
+      // then we want to repro the invalid cached routes at SOR level
+      it(`erc20 -> erc20 cached routes cache invalidation`, async () => {
+        // invalid cached routes test setup is only set for exact-in in getInvalidCachedRoutesStub
+        if (tradeType !== TradeType.EXACT_INPUT) {
+          return
+        }
+
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = DAI_MAINNET;
+        const amount = parseAmount('1.1', tokenIn);
+        const routeCachingProvider = new InMemoryRouteCachingProvider();
+        routeCachingProvider.cacheMode = CacheMode.Livemode;
+        routeCachingProvider.blocksToLive = Number.MAX_VALUE;
+        routeCachingProvider.expired = false;
+
+        // Insert a invalid cached routes for this test purpose to make sure it can get cleaned up
+        await routeCachingProvider.setCachedRoute(getInvalidCachedRoutesStub(FORK_BLOCK)!, CurrencyAmount.fromRawAmount(USDC_MAINNET, 100));
+
+        // Create a new AlphaRouter
+        const customAlphaRouter: AlphaRouter = new AlphaRouter({
+          chainId: 1,
+          provider: hardhat.providers[0]!,
+          multicall2Provider,
+          routeCachingProvider,
+          cachedRoutesCacheInvalidationFixRolloutPercentage: 100
+        });
+
+        routeCachingProvider.expired = true;
+
+        let swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+            protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+            optimisticCachedRoutes: false // to trigger cache invalidation during intent=caching
+          },
+        );
+        // first time the swap is gonna be null, because even with the new set cached routes codepath,
+        // i intentionally made it a fire and forget, i.e. non-blocking on the aloha-router request processing path
+        // first time swap from cache from the request processing path will be null
+        expect(swap).toBeNull(); // first time expect swapRouteFromCache to be null
+
+        swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+            optimisticCachedRoutes: false // to make sure the updated in-memory cache contains the valid cached routes now
+          },
+        );
+
+        // second time we will ensure the quote exists
+        // because the first time we had the sets cached routes in the new code path
+        // with second time we will have the cache hit from the new codepath cached routes
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
       });
     });
   }
@@ -3568,7 +3644,16 @@ describe('quote for other networks', () => {
             v3PoolProvider,
             v4PoolProvider,
             provider,
-            portionProvider
+            portionProvider,
+            {
+              // Tenderly team has fixed all the nuances post Arbitrum nitro update,
+              // so we can use the gas limits returned from Tenderly for more accurate L2 gas estimate assertions.
+              [ChainId.ARBITRUM_ONE]: 1
+            },
+            // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
+            3000,
+            100,
+            [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
           );
 
           const simulator = new FallbackTenderlySimulator(
@@ -3599,6 +3684,14 @@ describe('quote for other networks', () => {
               multicall2Provider,
               v4SubgraphProvider,
               simulator,
+              v4PoolParams: getApplicableV4FeesTickspacingsHooks(chain).concat(
+                [
+                  [500, 10, '0x0000000000000000000000000000000000000020'],
+                  [1500, 30, '0x0000000000000000000000000000000000000020'],
+                  [3000, 60, '0x0000000000000000000000000000000000000020'],
+                ]
+              ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
             });
           } else {
             alphaRouter = new AlphaRouter({
@@ -3606,6 +3699,14 @@ describe('quote for other networks', () => {
               provider,
               multicall2Provider,
               simulator,
+              v4PoolParams: getApplicableV4FeesTickspacingsHooks(chain).concat(
+                [
+                  [500, 10, '0x0000000000000000000000000000000000000020'],
+                  [1500, 30, '0x0000000000000000000000000000000000000020'],
+                  [3000, 60, '0x0000000000000000000000000000000000000020'],
+                ]
+              ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
             });
           }
         });
@@ -3650,7 +3751,7 @@ describe('quote for other networks', () => {
 
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3717,7 +3818,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3765,12 +3866,9 @@ describe('quote for other networks', () => {
                 ? tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('10', tokenIn)
                   : parseAmount('10', tokenOut)
-                : (chain !== ChainId.SEPOLIA ? tradeType == TradeType.EXACT_INPUT
+                : tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('1', tokenIn)
-                  : parseAmount('1', tokenOut) :
-                  tradeType == TradeType.EXACT_INPUT ?
-                  parseAmount('0.00000000000001', tokenIn):
-                  parseAmount('0.000001', tokenOut));
+                  : parseAmount('1', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3796,9 +3894,12 @@ describe('quote for other networks', () => {
             const tokenIn = USDC_NATIVE_SEPOLIA;
             const tokenOut = nativeOnChain(chain);
 
+            // as of now, in sepolia v4, v4 pools having > 1eth is only the ETH/USDC pools with hook address 0x0000000000000000000000000000000000000020
+            // this means if we try an exact in 1 ETH -> USDC quote against v4 sepolia, the only way is to route through v4 ETH/USDC pools with hook address 0x0000000000000000000000000000000000000020
+            // this validates that the getApplicableV4FeesTickspacingsHooks along with the hardcoded fees + tickspacings + hook address 0x0000000000000000000000000000000000000020 are working as expected
             const amount = tradeType == TradeType.EXACT_INPUT ?
-              parseAmount('0.000001', tokenIn):
-              parseAmount('0.00000000000001', tokenOut);
+              parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
 
             const swap = await alphaRouter.route(
               amount,
@@ -3827,7 +3928,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3873,7 +3974,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
-            const amount = ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3943,7 +4044,7 @@ describe('quote for other networks', () => {
               const amount =
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
-                  : parseAmount('10', tokenOut);
+                  : parseAmount(chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =

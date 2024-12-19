@@ -69,6 +69,7 @@ jest.mock('../../../src/util/gas-factory-helpers', () => ({
       quoteGasAdjusted,
     };
   },
+  logGasEstimationVsSimulationMetrics: jest.fn(),
 }));
 
 const provider = new JsonRpcProvider();
@@ -270,7 +271,7 @@ describe('Fallback Tenderly simulator', () => {
     );
     expect(tenderlySimulator.simulateTransaction.called).toBeTruthy();
     expect(swapRouteWithGasEstimate.simulationStatus).toEqual(
-      SimulationStatus.Failed
+      SimulationStatus.SystemDown
     );
   });
   test('when eth estimate gas simulator throws, try tenderly anyway', async () => {
