@@ -1,6 +1,6 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
-import { ADDRESS_ZERO, FeeAmount } from '@uniswap/v3-sdk';
+import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { isNativeCurrency } from '@uniswap/universal-router-sdk';
@@ -82,6 +82,7 @@ import {
   getAddress,
   getAddressLowerCase,
   getApplicableV3FeeAmounts,
+  getApplicableV4FeesTickspacingsHooks,
   nativeOnChain,
   unparseFeeAmount,
   WRAPPED_NATIVE_CURRENCY,
@@ -135,6 +136,7 @@ export type V4GetCandidatePoolsParams = {
   poolProvider: IV4PoolProvider;
   blockedTokenListProvider?: ITokenListProvider;
   chainId: ChainId;
+  v4PoolParams?: Array<[number, number, string]>;
 };
 
 export type V3GetCandidatePoolsParams = {
@@ -414,6 +416,7 @@ export async function getV4CandidatePools({
   poolProvider,
   blockedTokenListProvider,
   chainId,
+  v4PoolParams = getApplicableV4FeesTickspacingsHooks(chainId),
 }: V4GetCandidatePoolsParams): Promise<V4CandidatePools> {
   const {
     blockNumber,
@@ -549,12 +552,7 @@ export async function getV4CandidatePools({
     // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
     // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
     top2DirectSwapPool = _.map(
-      [
-        [FeeAmount.HIGH, 200, ADDRESS_ZERO],
-        [FeeAmount.MEDIUM, 60, ADDRESS_ZERO],
-        [FeeAmount.LOW, 10, ADDRESS_ZERO],
-        [FeeAmount.LOWEST, 1, ADDRESS_ZERO],
-      ] as Array<[number, number, string]>,
+      v4PoolParams as Array<[number, number, string]>,
       (poolParams) => {
         const [fee, tickSpacing, hooks] = poolParams;
 
@@ -567,7 +565,7 @@ export async function getV4CandidatePools({
         );
         return {
           id: poolId,
-          feeTier: unparseFeeAmount(fee),
+          feeTier: fee.toString(),
           tickSpacing: tickSpacing.toString(),
           hooks: hooks,
           liquidity: '10000',
@@ -994,32 +992,44 @@ export async function getV3CandidatePools({
     .value();
 
   if (top2DirectSwapPool.length == 0 && topNDirectSwaps > 0) {
-    // If we requested direct swap pools but did not find any in the subgraph query.
-    // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
-    // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
-    top2DirectSwapPool = _.map(
-      getApplicableV3FeeAmounts(chainId),
-      (feeAmount) => {
-        const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
-          tokenIn,
-          tokenOut,
-          feeAmount
-        );
-        return {
-          id: poolAddress,
-          feeTier: unparseFeeAmount(feeAmount),
-          liquidity: '10000',
-          token0: {
-            id: token0.address,
-          },
-          token1: {
-            id: token1.address,
-          },
-          tvlETH: 10000,
-          tvlUSD: 10000,
-        };
-      }
-    );
+    // We don't want to re-add AMPL token pools for V3 in Mainnet.
+    // TODO: ROUTE-347, Remove this check once we have a better way to sync filters from subgraph cronjob <> routing path.
+    if (
+      !(
+        chainId == ChainId.MAINNET &&
+        (tokenIn.address.toLowerCase() ===
+          '0xd46ba6d942050d489dbd938a2c909a5d5039a161' ||
+          tokenOut.address.toLowerCase() ===
+            '0xd46ba6d942050d489dbd938a2c909a5d5039a161')
+      )
+    ) {
+      // If we requested direct swap pools but did not find any in the subgraph query.
+      // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
+      // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
+      top2DirectSwapPool = _.map(
+        getApplicableV3FeeAmounts(chainId),
+        (feeAmount) => {
+          const { token0, token1, poolAddress } = poolProvider.getPoolAddress(
+            tokenIn,
+            tokenOut,
+            feeAmount
+          );
+          return {
+            id: poolAddress,
+            feeTier: unparseFeeAmount(feeAmount),
+            liquidity: '10000',
+            token0: {
+              id: token0.address,
+            },
+            token1: {
+              id: token1.address,
+            },
+            tvlETH: 10000,
+            tvlUSD: 10000,
+          };
+        }
+      );
+    }
   }
 
   addToAddressSet(top2DirectSwapPool);

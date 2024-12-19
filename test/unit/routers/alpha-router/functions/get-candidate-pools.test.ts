@@ -8,6 +8,7 @@ import sinon from 'sinon';
 import { USDC_BASE } from '../../../../../build/main';
 import {
   AlphaRouterConfig,
+  AMPL_MAINNET,
   CachingTokenListProvider,
   DAI_MAINNET as DAI, sortsBefore,
   TokenProvider,
@@ -455,6 +456,58 @@ describe('get candidate pools', () => {
             [DAI, WRAPPED_NATIVE_CURRENCY[1]!, FeeAmount.LOWEST, 1, ADDRESS_ZERO],
           ], { blockNumber: undefined })
         ).toBeTruthy();
+      }
+    });
+
+    test(`AMPL token pools are not added by force to direct swap pools even if they dont exist in the subgraph for protocol ${protocol}`, async () => {
+      if (protocol === Protocol.V3) {
+        // Mock so that DAI_WETH exists on chain, but not in the subgraph
+        const poolsOnSubgraph = [
+          USDC_DAI_LOW,
+          USDC_DAI_MEDIUM,
+          USDC_WETH_LOW,
+          WETH9_USDT_LOW,
+          DAI_USDT_LOW,
+        ];
+
+        const subgraphPools: V3SubgraphPool[] = _.map(
+          poolsOnSubgraph,
+          poolToV3SubgraphPool
+        );
+
+        mockV3SubgraphProvider.getPools.resolves(subgraphPools);
+
+        const DAI_WETH_LOW = new V3Pool(
+          DAI,
+          WRAPPED_NATIVE_CURRENCY[1]!,
+          FeeAmount.LOW,
+          encodeSqrtRatioX96(1, 1),
+          10,
+          0
+        );
+        mockV3PoolProvider.getPools.resolves(
+          buildMockV3PoolAccessor([...poolsOnSubgraph, DAI_WETH_LOW])
+        );
+
+        const candidatePools = await getV3CandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: AMPL_MAINNET,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v3PoolSelection: {
+              ...ROUTING_CONFIG.v3PoolSelection,
+              topNDirectSwaps: 1,
+            },
+          },
+          poolProvider: mockV3PoolProvider,
+          subgraphProvider: mockV3SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+        });
+
+        expect(candidatePools.candidatePools.selections.topByDirectSwapPool.length).toEqual(0);
       }
     });
 

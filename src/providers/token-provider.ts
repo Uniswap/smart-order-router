@@ -65,6 +65,13 @@ export const DAI_MAINNET = new Token(
   'DAI',
   'Dai Stablecoin'
 );
+export const AMPL_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0xD46bA6D942050d489DBd938a2C909A5d5039A161',
+  9,
+  'AMPL',
+  'AMPL'
+);
 export const FEI_MAINNET = new Token(
   ChainId.MAINNET,
   '0x956F47F50A910163D8BF957Cf5846D573E7f87CA',
@@ -593,6 +600,13 @@ export const USDC_NATIVE_BASE = new Token(
   6,
   'USDbC',
   'USD Base Coin'
+);
+export const VIRTUAL_BASE = new Token(
+  ChainId.BASE,
+  '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b',
+  18,
+  'VIRTUAL',
+  'Virtual Protocol'
 );
 
 // Base Goerli Tokens
