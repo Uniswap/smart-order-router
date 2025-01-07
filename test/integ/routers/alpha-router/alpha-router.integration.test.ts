@@ -3542,6 +3542,7 @@ describe('quote for other networks', () => {
     [ChainId.WORLDCHAIN]: () => USDC_ON(ChainId.WORLDCHAIN),
     [ChainId.UNICHAIN_SEPOLIA]: () => USDC_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
+    [ChainId.MONAD_TESTNET]: () => USDC_ON(ChainId.MONAD_TESTNET),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3572,6 +3573,7 @@ describe('quote for other networks', () => {
     [ChainId.WORLDCHAIN]: () => WLD_WORLDCHAIN,
     [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => WNATIVE_ON(ChainId.UNICHAIN),
+    [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
