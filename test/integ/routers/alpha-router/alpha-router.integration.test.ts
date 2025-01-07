@@ -163,6 +163,8 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.ZKSYNC]: 40,
   [ChainId.WORLDCHAIN]: 50,
   [ChainId.UNICHAIN_SEPOLIA]: 50,
+  [ChainId.UNICHAIN]: 50,
+  [ChainId.MONAD_TESTNET]: 50,
 };
 
 const V2_SUPPORTED_PAIRS = [
@@ -3539,6 +3541,7 @@ describe('quote for other networks', () => {
     [ChainId.ZKSYNC]: () => USDC_ON(ChainId.ZKSYNC),
     [ChainId.WORLDCHAIN]: () => USDC_ON(ChainId.WORLDCHAIN),
     [ChainId.UNICHAIN_SEPOLIA]: () => USDC_ON(ChainId.UNICHAIN_SEPOLIA),
+    [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3568,6 +3571,7 @@ describe('quote for other networks', () => {
     [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
     [ChainId.WORLDCHAIN]: () => WLD_WORLDCHAIN,
     [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
+    [ChainId.UNICHAIN]: () => WNATIVE_ON(ChainId.UNICHAIN),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3582,7 +3586,9 @@ describe('quote for other networks', () => {
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA_SEPOLIA &&
-      c != ChainId.ROOTSTOCK
+      c != ChainId.ROOTSTOCK &&
+      c != ChainId.UNICHAIN &&
+      c != ChainId.MONAD_TESTNET
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
