@@ -601,6 +601,14 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WETH',
     'Wrapped Ether'
   ),
+  [ChainId.MONAD_TESTNET]: new Token(
+    ChainId.MONAD_TESTNET,
+    // from https://uniswapteam.slack.com/archives/C07EYH2UA5P/p1732234403613019?thread_ts=1732137936.163649&cid=C07EYH2UA5P
+    '0xaB88C8cf70a3bBb2CA3b2aed808963AB4c916B83',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
 };
 
 function isMatic(

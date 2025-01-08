@@ -241,7 +241,7 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 480
 ```
 
-## AstroChain Sepolia
+## UNICHAIN Sepolia
 
 ```
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x31d0220469e10c4E71834a79b1f276d740d3768F --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 1301

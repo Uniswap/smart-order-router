@@ -194,6 +194,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
     USDC_UNICHAIN,
   ],
+  [ChainId.MONAD_TESTNET]: [],
 };
 
 /**

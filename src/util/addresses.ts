@@ -203,6 +203,8 @@ export const WETH9: {
     | ChainId.AVALANCHE
     // TODO: remove ROOTSTOCK once we support both at the routing level
     | ChainId.ROOTSTOCK
+    // TODO: remove MONAD_TESTNET once we support both at the routing level
+    | ChainId.MONAD_TESTNET
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(
