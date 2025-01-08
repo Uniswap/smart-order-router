@@ -159,6 +159,7 @@ export enum ChainName {
   WORLDCHAIN = 'worldchain-mainnet',
   UNICHAIN_SEPOLIA = 'unichain-sepolia',
   UNICHAIN = 'unichain-mainnet',
+  MONAD_TESTNET = 'monad-testnet',
 }
 
 export enum NativeCurrencyName {
@@ -349,6 +350,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.UNICHAIN_SEPOLIA;
     case 130:
       return ChainName.UNICHAIN;
+    case 41454:
+      return ChainName.MONAD_TESTNET;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
