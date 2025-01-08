@@ -153,7 +153,7 @@ export enum ChainName {
   ZORA = 'zora-mainnet',
   ZKSYNC = 'zksync-mainnet',
   WORLDCHAIN = 'worldchain-mainnet',
-  UNICHAIN_SEPOLIA = 'UNICHAIN-sepolia',
+  UNICHAIN_SEPOLIA = 'unichain-sepolia',
 }
 
 export enum NativeCurrencyName {
