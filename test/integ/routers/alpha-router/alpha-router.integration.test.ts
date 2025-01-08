@@ -162,7 +162,9 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.BLAST]: 34,
   [ChainId.ZKSYNC]: 40,
   [ChainId.WORLDCHAIN]: 50,
-  [ChainId.ASTROCHAIN_SEPOLIA]: 50,
+  [ChainId.UNICHAIN_SEPOLIA]: 50,
+  [ChainId.UNICHAIN]: 50,
+  [ChainId.MONAD_TESTNET]: 50,
 };
 
 const V2_SUPPORTED_PAIRS = [
@@ -3538,7 +3540,9 @@ describe('quote for other networks', () => {
     [ChainId.BLAST]: () => USDB_BLAST,
     [ChainId.ZKSYNC]: () => USDC_ON(ChainId.ZKSYNC),
     [ChainId.WORLDCHAIN]: () => USDC_ON(ChainId.WORLDCHAIN),
-    [ChainId.ASTROCHAIN_SEPOLIA]: () => USDC_ON(ChainId.ASTROCHAIN_SEPOLIA),
+    [ChainId.UNICHAIN_SEPOLIA]: () => USDC_ON(ChainId.UNICHAIN_SEPOLIA),
+    [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
+    [ChainId.MONAD_TESTNET]: () => USDC_ON(ChainId.MONAD_TESTNET),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3567,7 +3571,9 @@ describe('quote for other networks', () => {
     [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
     [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
     [ChainId.WORLDCHAIN]: () => WLD_WORLDCHAIN,
-    [ChainId.ASTROCHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.ASTROCHAIN_SEPOLIA),
+    [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
+    [ChainId.UNICHAIN]: () => WNATIVE_ON(ChainId.UNICHAIN),
+    [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3582,7 +3588,9 @@ describe('quote for other networks', () => {
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA_SEPOLIA &&
-      c != ChainId.ROOTSTOCK
+      c != ChainId.ROOTSTOCK &&
+      c != ChainId.UNICHAIN &&
+      c != ChainId.MONAD_TESTNET
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
@@ -3751,7 +3759,7 @@ describe('quote for other networks', () => {
 
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
-            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3818,7 +3826,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3845,11 +3853,11 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.ASTROCHAIN_SEPOLIA) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
-              // astrochain sepolia doesn't have liquid USDC/DAI pool yet
+              // UNICHAIN sepolia doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -3928,7 +3936,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = '1';
-            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -3974,7 +3982,7 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
-            const amount = chain === ChainId.ASTROCHAIN_SEPOLIA ?
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
                 parseAmount('0.001', tokenOut) :
@@ -4043,8 +4051,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
-                  : parseAmount(chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '10', tokenOut);
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
+                  : parseAmount(chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -4250,8 +4258,8 @@ describe('quote for other networks', () => {
               const tokenOut = erc2;
               const amount =
                 tradeType === TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '1', tokenIn)
-                  : parseAmount(chain === ChainId.ZORA || chain === ChainId.ASTROCHAIN_SEPOLIA ? '0.001' : '1', tokenOut);
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '1', tokenIn)
+                  : parseAmount(chain === ChainId.ZORA || chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -4344,7 +4352,7 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA || chain === ChainId.ASTROCHAIN_SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
