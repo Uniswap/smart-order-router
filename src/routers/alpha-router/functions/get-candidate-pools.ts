@@ -11,7 +11,9 @@ import {
   IV4PoolProvider,
   IV4SubgraphProvider,
   USDC_ARBITRUM_SEPOLIA,
+  USDC_BASE_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
+  USDT_MONAD_TESTNET,
   USDT_OPTIMISM_SEPOLIA,
   V2SubgraphPool,
   V4PoolAccessor,
@@ -236,7 +238,17 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.ZORA]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZORA]!],
   [ChainId.ZKSYNC]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZKSYNC]!],
   [ChainId.WORLDCHAIN]: [WRAPPED_NATIVE_CURRENCY[ChainId.WORLDCHAIN]!],
-  [ChainId.UNICHAIN_SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.WORLDCHAIN]!],
+  [ChainId.UNICHAIN_SEPOLIA]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN_SEPOLIA]!,
+  ],
+  [ChainId.MONAD_TESTNET]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.MONAD_TESTNET]!,
+    USDT_MONAD_TESTNET,
+  ],
+  [ChainId.BASE_SEPOLIA]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
+    USDC_BASE_SEPOLIA,
+  ],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {
