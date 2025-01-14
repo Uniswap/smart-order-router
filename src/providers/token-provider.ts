@@ -725,6 +725,14 @@ export const USDC_WORLDCHAIN = new Token(
   'Bridged USDC (world-chain-mainnet)'
 );
 
+export const USDT_MONAD_TESTNET = new Token(
+  ChainId.MONAD_TESTNET,
+  '0xfBC2D240A5eD44231AcA3A9e9066bc4b33f01149',
+  6,
+  'USDT',
+  'USDT'
+);
+
 export const WLD_WORLDCHAIN = new Token(
   ChainId.WORLDCHAIN,
   '0x2cFc85d8E48F8EAB294be644d9E25C3030863003',
@@ -744,6 +752,14 @@ export const WBTC_WORLDCHAIN = new Token(
 export const USDC_UNICHAIN_SEPOLIA = new Token(
   ChainId.UNICHAIN_SEPOLIA,
   '0x31d0220469e10c4E71834a79b1f276d740d3768F',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
+export const USDC_BASE_SEPOLIA = new Token(
+  ChainId.BASE_SEPOLIA,
+  '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
   6,
   'USDC',
   'USDC Token'
@@ -977,6 +993,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_ARBITRUM;
     case ChainId.BNB:
       return USDT_BNB;
+    case ChainId.MONAD_TESTNET:
+      return USDT_MONAD_TESTNET;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -1026,6 +1044,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_WORLDCHAIN;
     case ChainId.UNICHAIN_SEPOLIA:
       return USDC_UNICHAIN_SEPOLIA;
+    case ChainId.BASE_SEPOLIA:
+      return USDC_BASE_SEPOLIA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

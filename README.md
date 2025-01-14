@@ -247,6 +247,18 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x31d0220469e10c4E71834a79b1f276d740d3768F --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 1301
 ```
 
+## Monad Testnet
+
+```
+./bin/cli quote --tokenIn 0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701 --tokenOut 0xfBC2D240A5eD44231AcA3A9e9066bc4b33f01149 --amount 0.1 --exactIn --minSplits 1 --protocols v2 --router alpha --chainId 10143
+```
+
+## Base Sepolia
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x036CbD53842c5426634e7929541eC2318f3dCF7e --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 84532
+```
+
 ## Adding a new Chain
 
 The main components to complete are:

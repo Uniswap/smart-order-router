@@ -27,6 +27,7 @@ import {
   USDC_ARBITRUM,
   USDC_AVAX,
   USDC_BASE,
+  USDC_BASE_SEPOLIA,
   USDC_BNB,
   USDC_MAINNET,
   USDC_MOONBEAM,
@@ -39,6 +40,7 @@ import {
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,
+  USDT_MONAD_TESTNET,
   USDT_OPTIMISM,
   WBTC_ARBITRUM,
   WBTC_MAINNET,
@@ -161,7 +163,16 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDC_UNICHAIN_SEPOLIA,
   ],
   [ChainId.UNICHAIN]: [],
-  [ChainId.MONAD_TESTNET]: [],
+  [ChainId.BASE_SEPOLIA]: [
+    nativeOnChain(ChainId.BASE_SEPOLIA),
+    WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
+    USDC_BASE_SEPOLIA,
+  ],
+  [ChainId.MONAD_TESTNET]: [
+    nativeOnChain(ChainId.MONAD_TESTNET),
+    WRAPPED_NATIVE_CURRENCY[ChainId.MONAD_TESTNET]!,
+    USDT_MONAD_TESTNET,
+  ],
 };
 
 export interface IV3SubgraphProvider {

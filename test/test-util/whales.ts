@@ -1,4 +1,5 @@
 import { ChainId, Currency, Ether } from '@uniswap/sdk-core';
+import { USDT_ON } from '../../build/main';
 import {
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
@@ -19,6 +20,7 @@ import {
   USDC_WORLDCHAIN,
   USDC_ZORA,
   USDT_MAINNET,
+  USDT_MONAD_TESTNET,
   V4_SEPOLIA_TEST_A,
   WETH9,
   WLD_WORLDCHAIN,
@@ -151,6 +153,15 @@ export const WHALES = (token: Currency): string => {
       return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
     case WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA):
       return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
+    case USDT_MONAD_TESTNET:
+      // TODO: get a real whale address for monad testnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case USDT_ON(ChainId.MONAD_TESTNET):
+      // TODO: get a real whale address for monad testnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case WNATIVE_ON(ChainId.MONAD_TESTNET):
+      // TODO: get a real whale address for monad testnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }
