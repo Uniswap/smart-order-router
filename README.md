@@ -250,7 +250,7 @@ Total ticks crossed: 7
 ## Unichain Mainnet
 
 ```
-./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x???????????????????????????? --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 130
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x078D782b760474a361dDA0AF3839290b0EF57AD6 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 130
 ```
 
 ## Monad Testnet
