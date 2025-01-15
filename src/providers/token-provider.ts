@@ -898,12 +898,19 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
+        let symbol;
+
         try {
-          isBytes32
+          symbol = isBytes32
             ? parseBytes32String(symbolResult.result[0]!)
             : symbolResult.result[0]!;
         } catch (error) {
-          if (error instanceof Error && error.message.includes('invalid bytes32 string - no null terminator')) {
+          if (
+            error instanceof Error &&
+            error.message.includes(
+              'invalid bytes32 string - no null terminator'
+            )
+          ) {
             log.error(
               {
                 symbolResult,
@@ -911,13 +918,10 @@ export class TokenProvider implements ITokenProvider {
               },
               `invalid bytes32 string - no null terminator`
             );
-            continue;
           }
-        }
 
-        const symbol = isBytes32
-          ? parseBytes32String(symbolResult.result[0]!)
-          : symbolResult.result[0]!;
+          throw error;
+        }
         const decimal = decimalResult.result[0]!;
 
         addressToToken[address.toLowerCase()] = new Token(
