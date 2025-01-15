@@ -165,6 +165,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.UNICHAIN_SEPOLIA]: 50,
   [ChainId.UNICHAIN]: 50,
   [ChainId.MONAD_TESTNET]: 50,
+  [ChainId.BASE_SEPOLIA]: 50,
 };
 
 const V2_SUPPORTED_PAIRS = [
@@ -3543,6 +3544,7 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN_SEPOLIA]: () => USDC_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => USDC_ON(ChainId.MONAD_TESTNET),
+    [ChainId.BASE_SEPOLIA]: () => USDC_ON(ChainId.BASE_SEPOLIA),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3574,6 +3576,7 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => WNATIVE_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
+    [ChainId.BASE_SEPOLIA]: () => WNATIVE_ON(ChainId.BASE_SEPOLIA),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3852,11 +3855,12 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
               // UNICHAIN sepolia doesn't have liquid USDC/DAI pool yet
+              // monad testnet doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -4351,7 +4355,7 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }

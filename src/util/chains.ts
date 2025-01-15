@@ -29,6 +29,8 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.WORLDCHAIN,
   ChainId.UNICHAIN,
   ChainId.UNICHAIN_SEPOLIA,
+  ChainId.MONAD_TESTNET,
+  ChainId.BASE_SEPOLIA,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -41,6 +43,7 @@ export const V2_SUPPORTED = [
   ChainId.BASE,
   ChainId.BNB,
   ChainId.AVALANCHE,
+  ChainId.MONAD_TESTNET,
 ];
 
 export const V4_SUPPORTED = [ChainId.SEPOLIA];
@@ -64,6 +67,7 @@ export const HAS_L1_FEE = [
   ChainId.ZORA,
   ChainId.WORLDCHAIN,
   ChainId.UNICHAIN_SEPOLIA,
+  ChainId.MONAD_TESTNET,
   ChainId.UNICHAIN,
 ];
 
@@ -116,6 +120,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.BASE;
     case 84531:
       return ChainId.BASE_GOERLI;
+    case 84532:
+      return ChainId.BASE_SEPOLIA;
     case 81457:
       return ChainId.BLAST;
     case 7777777:
@@ -126,6 +132,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.WORLDCHAIN;
     case 1301:
       return ChainId.UNICHAIN_SEPOLIA;
+    case 10143:
+      return ChainId.MONAD_TESTNET;
     case 130:
       return ChainId.UNICHAIN;
     default:
@@ -153,6 +161,7 @@ export enum ChainName {
   AVALANCHE = 'avalanche-mainnet',
   BASE = 'base-mainnet',
   BASE_GOERLI = 'base-goerli',
+  BASE_SEPOLIA = 'base-sepolia',
   BLAST = 'blast-mainnet',
   ZORA = 'zora-mainnet',
   ZKSYNC = 'zksync-mainnet',
@@ -171,6 +180,7 @@ export enum NativeCurrencyName {
   MOONBEAM = 'GLMR',
   BNB = 'BNB',
   AVALANCHE = 'AVAX',
+  MONAD = 'MON',
 }
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
@@ -264,6 +274,16 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.MONAD_TESTNET]: [
+    'MON',
+    'MONAD',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.BASE_SEPOLIA]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
   [ChainId.UNICHAIN]: [
     'ETH',
     'ETHER',
@@ -295,6 +315,8 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.ZKSYNC]: NativeCurrencyName.ETHER,
   [ChainId.WORLDCHAIN]: NativeCurrencyName.ETHER,
   [ChainId.UNICHAIN_SEPOLIA]: NativeCurrencyName.ETHER,
+  [ChainId.MONAD_TESTNET]: NativeCurrencyName.MONAD,
+  [ChainId.BASE_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.UNICHAIN]: NativeCurrencyName.ETHER,
 };
 
@@ -338,6 +360,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.BASE;
     case 84531:
       return ChainName.BASE_GOERLI;
+    case 84532:
+      return ChainName.BASE_SEPOLIA;
     case 81457:
       return ChainName.BLAST;
     case 7777777:
@@ -350,7 +374,7 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.UNICHAIN_SEPOLIA;
     case 130:
       return ChainName.UNICHAIN;
-    case 41454:
+    case 10143:
       return ChainName.MONAD_TESTNET;
     default:
       throw new Error(`Unknown chain id: ${id}`);
@@ -405,6 +429,10 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_WORLDCHAIN!;
     case ChainId.UNICHAIN_SEPOLIA:
       return process.env.JSON_RPC_PROVIDER_UNICHAIN_SEPOLIA!;
+    case ChainId.MONAD_TESTNET:
+      return process.env.JSON_RPC_PROVIDER_MONAD_TESTNET!;
+    case ChainId.BASE_SEPOLIA:
+      return process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA!;
     case ChainId.UNICHAIN:
       return process.env.JSON_RPC_PROVIDER_UNICHAIN!;
     default:
@@ -606,8 +634,14 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.MONAD_TESTNET]: new Token(
     ChainId.MONAD_TESTNET,
-    // from https://uniswapteam.slack.com/archives/C07EYH2UA5P/p1732234403613019?thread_ts=1732137936.163649&cid=C07EYH2UA5P
-    '0xaB88C8cf70a3bBb2CA3b2aed808963AB4c916B83',
+    '0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701',
+    18,
+    'WMON',
+    'Wrapped Monad'
+  ),
+  [ChainId.BASE_SEPOLIA]: new Token(
+    ChainId.BASE_SEPOLIA,
+    '0x4200000000000000000000000000000000000006',
     18,
     'WETH',
     'Wrapped Ether'
