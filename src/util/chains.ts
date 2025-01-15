@@ -65,6 +65,7 @@ export const HAS_L1_FEE = [
   ChainId.BLAST,
   ChainId.ZORA,
   ChainId.WORLDCHAIN,
+  ChainId.UNICHAIN,
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.MONAD_TESTNET,
 ];
@@ -128,6 +129,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.ZKSYNC;
     case 480:
       return ChainId.WORLDCHAIN;
+    case 130:
+      return ChainId.UNICHAIN;
     case 1301:
       return ChainId.UNICHAIN_SEPOLIA;
     case 10143:
@@ -265,6 +268,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.UNICHAIN]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
   [ChainId.UNICHAIN_SEPOLIA]: [
     'ETH',
     'ETHER',
@@ -305,6 +313,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.ZORA]: NativeCurrencyName.ETHER,
   [ChainId.ZKSYNC]: NativeCurrencyName.ETHER,
   [ChainId.WORLDCHAIN]: NativeCurrencyName.ETHER,
+  [ChainId.UNICHAIN]: NativeCurrencyName.ETHER,
   [ChainId.UNICHAIN_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.MONAD_TESTNET]: NativeCurrencyName.MONAD,
   [ChainId.BASE_SEPOLIA]: NativeCurrencyName.ETHER,
@@ -417,6 +426,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ZKSYNC!;
     case ChainId.WORLDCHAIN:
       return process.env.JSON_RPC_PROVIDER_WORLDCHAIN!;
+    case ChainId.UNICHAIN:
+      return process.env.JSON_RPC_PROVIDER_UNICHAIN!;
     case ChainId.UNICHAIN_SEPOLIA:
       return process.env.JSON_RPC_PROVIDER_UNICHAIN_SEPOLIA!;
     case ChainId.MONAD_TESTNET:
