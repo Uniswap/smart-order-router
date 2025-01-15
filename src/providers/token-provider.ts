@@ -898,6 +898,23 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
+        try {
+          isBytes32
+            ? parseBytes32String(symbolResult.result[0]!)
+            : symbolResult.result[0]!;
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('invalid bytes32 string - no null terminator')) {
+            log.error(
+              {
+                symbolResult,
+                error,
+              },
+              `invalid bytes32 string - no null terminator`
+            );
+            continue;
+          }
+        }
+
         const symbol = isBytes32
           ? parseBytes32String(symbolResult.result[0]!)
           : symbolResult.result[0]!;
