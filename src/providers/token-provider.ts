@@ -907,9 +907,31 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
-        const symbol = isBytes32
-          ? parseBytes32String(symbolResult.result[0]!)
-          : symbolResult.result[0]!;
+        let symbol;
+
+        try {
+          symbol = isBytes32
+            ? parseBytes32String(symbolResult.result[0]!)
+            : symbolResult.result[0]!;
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.message.includes(
+              'invalid bytes32 string - no null terminator'
+            )
+          ) {
+            log.error(
+              {
+                symbolResult,
+                error,
+                address,
+              },
+              `invalid bytes32 string - no null terminator`
+            );
+          }
+
+          throw error;
+        }
         const decimal = decimalResult.result[0]!;
 
         addressToToken[address.toLowerCase()] = new Token(
