@@ -915,6 +915,7 @@ export class TokenProvider implements ITokenProvider {
               {
                 symbolResult,
                 error,
+                address,
               },
               `invalid bytes32 string - no null terminator`
             );
