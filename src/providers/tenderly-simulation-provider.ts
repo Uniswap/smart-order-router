@@ -166,6 +166,7 @@ export const TENDERLY_NOT_SUPPORTED_CHAINS = [
   // tenderly node RPC supports BNB and ZORA upon request, we will make them available
   ChainId.BNB,
   ChainId.ZORA,
+  ChainId.MONAD_TESTNET,
 ];
 
 // We multiply tenderly gas limit by this to overestimate gas limit
