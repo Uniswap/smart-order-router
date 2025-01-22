@@ -6,12 +6,14 @@ import _ from 'lodash';
 import { isNativeCurrency } from '@uniswap/universal-router-sdk';
 import {
   DAI_OPTIMISM_SEPOLIA,
+  DAI_UNICHAIN,
   ITokenListProvider,
   IV2SubgraphProvider,
   IV4PoolProvider,
   IV4SubgraphProvider,
   USDC_ARBITRUM_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
+  USDC_UNICHAIN,
   USDT_OPTIMISM_SEPOLIA,
   V2SubgraphPool,
   V4PoolAccessor,
@@ -249,7 +251,11 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
     USDC_BASE_SEPOLIA,
   ],
-  [ChainId.UNICHAIN]: [WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!],
+  [ChainId.UNICHAIN]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
+    DAI_UNICHAIN,
+    USDC_UNICHAIN,
+  ],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {

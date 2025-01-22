@@ -20,6 +20,7 @@ import {
   DAI_MAINNET,
   DAI_MOONBEAM,
   DAI_OPTIMISM,
+  DAI_UNICHAIN,
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
@@ -166,6 +167,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.UNICHAIN]: [
     nativeOnChain(ChainId.UNICHAIN),
     WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
+    DAI_UNICHAIN,
     USDC_UNICHAIN,
   ],
   [ChainId.BASE_SEPOLIA]: [

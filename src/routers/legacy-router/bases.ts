@@ -7,6 +7,7 @@ import {
   DAI_AVAX,
   DAI_BNB,
   DAI_MAINNET,
+  DAI_UNICHAIN,
   ITokenProvider,
   USDB_BLAST,
   USDCE_ZKSYNC,
@@ -103,6 +104,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     ],
     [ChainId.UNICHAIN]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
+      DAI_UNICHAIN,
       USDC_UNICHAIN,
     ],
     [ChainId.MONAD_TESTNET]: [

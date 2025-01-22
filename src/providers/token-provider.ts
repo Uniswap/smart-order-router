@@ -774,6 +774,14 @@ export const USDC_UNICHAIN = new Token(
   'USD Token'
 );
 
+export const DAI_UNICHAIN = new Token(
+  ChainId.MAINNET,
+  '0x20CAb320A855b39F724131C69424240519573f81',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -1003,6 +1011,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_AVAX;
     case ChainId.ZKSYNC:
       return DAI_ZKSYNC;
+    case ChainId.UNICHAIN:
+      return DAI_UNICHAIN;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

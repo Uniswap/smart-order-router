@@ -21,6 +21,7 @@ import {
   DAI_OPTIMISM_SEPOLIA,
   DAI_POLYGON_MUMBAI,
   DAI_SEPOLIA,
+  DAI_UNICHAIN,
   DAI_ZKSYNC,
   USDB_BLAST,
   USDCE_ZKSYNC,
@@ -131,7 +132,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.UNICHAIN_SEPOLIA]: [USDC_UNICHAIN_SEPOLIA],
   [ChainId.MONAD_TESTNET]: [USDT_MONAD_TESTNET],
   [ChainId.BASE_SEPOLIA]: [USDC_BASE_SEPOLIA],
-  [ChainId.UNICHAIN]: [USDC_UNICHAIN],
+  [ChainId.UNICHAIN]: [DAI_UNICHAIN, USDC_UNICHAIN],
 };
 
 export type L1ToL2GasCosts = {
