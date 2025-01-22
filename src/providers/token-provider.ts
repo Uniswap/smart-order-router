@@ -775,7 +775,7 @@ export const USDC_UNICHAIN = new Token(
 );
 
 export const DAI_UNICHAIN = new Token(
-  ChainId.MAINNET,
+  ChainId.UNICHAIN,
   '0x20CAb320A855b39F724131C69424240519573f81',
   18,
   'DAI',
