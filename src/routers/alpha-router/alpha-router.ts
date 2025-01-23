@@ -667,6 +667,7 @@ export class AlphaRouter
         case ChainId.UNICHAIN_SEPOLIA:
         case ChainId.MONAD_TESTNET:
         case ChainId.BASE_SEPOLIA:
+        case ChainId.UNICHAIN:
         case ChainId.BASE_GOERLI:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,

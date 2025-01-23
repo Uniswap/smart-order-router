@@ -10,4 +10,5 @@ export const opStackChains = [
   ChainId.ZORA,
   ChainId.WORLDCHAIN,
   ChainId.UNICHAIN_SEPOLIA,
+  ChainId.UNICHAIN,
 ];

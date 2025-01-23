@@ -16,7 +16,7 @@ import {
   USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
-  USDC_ON,
+  USDC_ON, USDC_UNICHAIN,
   USDC_WORLDCHAIN,
   USDC_ZORA,
   USDT_MAINNET,
@@ -161,7 +161,17 @@ export const WHALES = (token: Currency): string => {
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
     case WNATIVE_ON(ChainId.MONAD_TESTNET):
       // TODO: get a real whale address for monad testnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c'
+    case USDC_UNICHAIN:
+      // TODO: get a real whale address for unichain mainnet
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case nativeOnChain(ChainId.UNICHAIN):
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case WNATIVE_ON(ChainId.UNICHAIN):
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

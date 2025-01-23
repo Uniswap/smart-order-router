@@ -3592,7 +3592,6 @@ describe('quote for other networks', () => {
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA_SEPOLIA &&
       c != ChainId.ROOTSTOCK &&
-      c != ChainId.UNICHAIN &&
       c != ChainId.MONAD_TESTNET
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {

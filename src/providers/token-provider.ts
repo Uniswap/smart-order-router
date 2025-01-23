@@ -765,6 +765,23 @@ export const USDC_BASE_SEPOLIA = new Token(
   'USDC Token'
 );
 
+export const USDC_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  // TODO: validate USDC address is final / validated
+  '0x078D782b760474a361dDA0AF3839290b0EF57AD6',
+  6,
+  'USDC',
+  'USD Token'
+);
+
+export const DAI_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  '0x20CAb320A855b39F724131C69424240519573f81',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -994,6 +1011,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_AVAX;
     case ChainId.ZKSYNC:
       return DAI_ZKSYNC;
+    case ChainId.UNICHAIN:
+      return DAI_UNICHAIN;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -1068,6 +1087,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_UNICHAIN_SEPOLIA;
     case ChainId.BASE_SEPOLIA:
       return USDC_BASE_SEPOLIA;
+    case ChainId.UNICHAIN:
+      return USDC_UNICHAIN;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
