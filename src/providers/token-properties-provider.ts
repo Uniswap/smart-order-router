@@ -123,8 +123,11 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
       await Promise.all(
         addressesToFetchFeesOnchain.map((address) => {
           const tokenFee = tokenFeeMap[address];
+          const hasFee =
+            tokenFee && (tokenFee.buyFeeBps || tokenFee.sellFeeBps);
+          const sellReverted = tokenFee && tokenFee.sellReverted;
           const tokenFeeResultExists: BigNumber | boolean | undefined =
-            tokenFee && ((tokenFee.buyFeeBps || tokenFee.sellFeeBps) || tokenFee.sellReverted);
+            hasFee || sellReverted;
 
           if (tokenFeeResultExists) {
             // we will leverage the metric to log the token fee result, if it exists
@@ -138,7 +141,10 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
               MetricLoggerUnit.Count
             );
 
-            const tokenValidationResult = tokenFee?.sellReverted ? TokenValidationResult.SR : TokenValidationResult.FOT;
+            const tokenValidationResult =
+              sellReverted && !hasFee
+                ? TokenValidationResult.SR
+                : TokenValidationResult.FOT;
 
             const tokenPropertiesResult = {
               tokenFeeResult: tokenFee,

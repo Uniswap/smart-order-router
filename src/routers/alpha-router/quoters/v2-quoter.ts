@@ -107,8 +107,10 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
           return false;
         }
 
-        return tokenValidation == TokenValidationResult.STF ||
-              tokenValidation == TokenValidationResult.SR
+        return (
+          tokenValidation == TokenValidationResult.STF ||
+          tokenValidation == TokenValidationResult.SR
+        );
       }
     );
 
