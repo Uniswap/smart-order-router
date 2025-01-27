@@ -97,7 +97,7 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
 
         return (
           tokenValidation == TokenValidationResult.FOT ||
-          tokenValidation == TokenValidationResult.STF
+          tokenValidation == TokenValidationResult.SR
         );
       }
     );

@@ -9,14 +9,14 @@ import {
   ITokenValidatorProvider,
   IV3PoolProvider,
   IV3SubgraphProvider,
-  TokenValidationResult,
+  TokenValidationResult
 } from '../../../providers';
 import {
   CurrencyAmount,
   log,
   metric,
   MetricLoggerUnit,
-  routeToString,
+  routeToString
 } from '../../../util';
 import { V3Route } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
@@ -24,7 +24,7 @@ import { V3RouteWithValidQuote } from '../entities';
 import { computeAllV3Routes } from '../functions/compute-all-routes';
 import {
   CandidatePoolsBySelectionCriteria,
-  V3CandidatePools,
+  V3CandidatePools
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
@@ -98,7 +98,8 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
 
         return (
           tokenValidation == TokenValidationResult.FOT ||
-          tokenValidation == TokenValidationResult.STF
+          tokenValidation == TokenValidationResult.STF ||
+          tokenValidation == TokenValidationResult.SR
         );
       }
     );

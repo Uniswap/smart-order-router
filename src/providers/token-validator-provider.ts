@@ -20,8 +20,9 @@ export const DEFAULT_ALLOWLIST = new Set<string>([
 
 export enum TokenValidationResult {
   UNKN = 0,
-  FOT = 1,
-  STF = 2,
+  FOT = 1, // Fee-on Transfer
+  STF = 2, // Safe Transfer Failed
+  SR = 3, // Sell reverted
 }
 
 export interface TokenValidationResults {
