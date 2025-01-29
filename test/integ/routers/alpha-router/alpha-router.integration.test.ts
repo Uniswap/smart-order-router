@@ -293,6 +293,13 @@ describe('alpha router integration', () => {
     saveTenderlySimulationIfFailed: true, // save tenderly simulation on integ-test runs, easier for debugging
   };
 
+  const ROUTING_CONFIG_WITH_V4: AlphaRouterConfig = {
+    // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+    ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[ChainId.MAINNET],
+    protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
+    saveTenderlySimulationIfFailed: true, // save tenderly simulation on integ-test runs, easier for debugging
+  };
+
   const executeSwap = async (
     swapType: SwapType,
     methodParameters: MethodParameters,
@@ -793,6 +800,203 @@ describe('alpha router integration', () => {
       cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
   });
+
+  // V4 related tests
+  for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
+    describe(`${ID_TO_NETWORK_NAME(1)} alpha - ${tradeType.toString()}`, () => {
+      describe(`+ Execute V4 related tests on Hardhat Fork`, () => {
+        it('v4 included - should swap ETH -> USDC', async () => {
+          const tokenIn = Ether.onChain(1) as Currency;
+          const tokenOut = USDC_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG_WITH_V4,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+          // Verify we are using V4 protocol
+          expect(route).toBeDefined();
+          expect(route.some((route) => route.protocol === Protocol.V4)).toBe(true);
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            undefined,
+            undefined
+          );
+        });
+
+        it('v4 included - should swap WETH -> USDC', async () => {
+          const tokenIn = WETH9[1];
+          const tokenOut = USDC_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('1', tokenIn)
+              : parseAmount('1000', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG_WITH_V4,
+            }
+          );
+
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+          // Verify we are using V4 protocol
+          expect(route).toBeDefined();
+          expect(route.some((route) => route.protocol === Protocol.V4)).toBe(true);
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            1,
+            1000
+          );
+        });
+
+        it('v4 only - should swap ETH -> USDC', async () => {
+          const tokenIn = Ether.onChain(1) as Currency;
+          const tokenOut = USDC_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('0.01', tokenIn)
+              : parseAmount('10', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V4],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+          // Verify we are using V4 protocol only
+          for (const r of route) {
+            expect(r.protocol).toEqual('V4');
+          }
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            undefined,
+            undefined
+          );
+        });
+
+        it('v4 only - should swap WETH -> USDC', async () => {
+          const tokenIn = WETH9[1];
+          const tokenOut = USDC_MAINNET;
+          const amount =
+            tradeType == TradeType.EXACT_INPUT
+              ? parseAmount('0.01', tokenIn)
+              : parseAmount('10', tokenOut);
+
+          const swap = await alphaRouter.route(
+            amount,
+            getQuoteToken(tokenIn, tokenOut, tradeType),
+            tradeType,
+            {
+              type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
+              recipient: alice._address,
+              slippageTolerance: SLIPPAGE,
+              deadlineOrPreviousBlockhash: parseDeadline(360),
+            },
+            {
+              ...ROUTING_CONFIG,
+              protocols: [Protocol.V4],
+            }
+          );
+          expect(swap).toBeDefined();
+          expect(swap).not.toBeNull();
+
+          const { quote, quoteGasAdjusted, methodParameters, route } = swap!;
+
+          // Verify we are using V4 protocol only
+          for (const r of route) {
+            expect(r.protocol).toEqual('V4');
+          }
+
+          await validateSwapRoute(quote, quoteGasAdjusted, tradeType);
+
+          await validateExecuteSwap(
+            SwapType.UNIVERSAL_ROUTER,
+            quote,
+            tokenIn,
+            tokenOut,
+            methodParameters,
+            tradeType,
+            0.01,
+            10
+          );
+        });
+      });
+    });
+  }
 
   /**
    *  tests are 1:1 with routing api integ tests
