@@ -146,6 +146,8 @@ export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
 export const MIXED_ROUTE_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].mixedRouteQuoterV2Address,
+  [ChainId.MAINNET]:
+    '0xE63C5F5005909E96b5aA9CE10744CCE70eC16CC3',
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
