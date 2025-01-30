@@ -4,7 +4,7 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
-import { getAddressLowerCase } from '../../../util';
+import { getAddressLowerCase, nativeOnChain } from '../../../util';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
@@ -14,6 +14,8 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
+
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -75,6 +77,18 @@ export function computeAllMixedRoutes(
   parts: TPool[],
   maxHops: number
 ): MixedRoute[] {
+  const v4EthWethFakePool = new V4Pool(
+    nativeOnChain(currencyIn.chainId),
+    nativeOnChain(currencyIn.chainId).wrapped,
+    0,
+    0,
+    ADDRESS_ZERO,
+    0,
+    0,
+    0
+  );
+  const poolsWithEthWethFakePoolConnection = parts.concat(v4EthWethFakePool);
+
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
     currencyIn,
     currencyOut,
@@ -85,7 +99,7 @@ export function computeAllMixedRoutes(
       currency.isNative
         ? (pool as V4Pool).involvesToken(currency.wrapped)
         : pool.involvesToken(currency),
-    parts,
+    poolsWithEthWethFakePoolConnection,
     maxHops
   );
   /// filter out pure v4 and v3 and v2 routes
@@ -156,10 +170,6 @@ export function computeAllRoutes<
       if (tokensVisited.has(getAddressLowerCase(currentTokenOut))) {
         continue;
       }
-
-      // PEPE -> v2 -> WETH
-      //                      ETH -> v4 -> USDC
-      //                      WETH -> v4 -> USDC
 
       tokensVisited.add(getAddressLowerCase(currentTokenOut));
       currentRoute.push(curPool);
