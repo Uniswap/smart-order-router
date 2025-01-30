@@ -860,7 +860,7 @@ const findFirstRouteNotUsingUsedPools = (
   return null;
 };
 
-const routeHasNativeTokenInputOrOutput = (
+export const routeHasNativeTokenInputOrOutput = (
   routeWithValidQuote: RouteWithValidQuote
 ): boolean => {
   return (
@@ -869,7 +869,7 @@ const routeHasNativeTokenInputOrOutput = (
   );
 };
 
-const routeHasWrappedNativeTokenInputOrOutput = (
+export const routeHasWrappedNativeTokenInputOrOutput = (
   routeWithValidQuote: RouteWithValidQuote
 ): boolean => {
   const chainId = routeWithValidQuote.route.chainId;
