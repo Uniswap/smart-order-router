@@ -1465,6 +1465,8 @@ export class AlphaRouter
               ),
             ]);
 
+        if ((wrappedNativeCachedRoutes && wrappedNativeCachedRoutes?.routes.length > 0) ||
+          (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)) {
           cachedRoutes = new CachedRoutes({
             routes: [
               ...(nativeCachedRoutes?.routes ?? []),
@@ -1485,17 +1487,17 @@ export class AlphaRouter
               nativeCachedRoutes?.blocksToLive ??
               DEFAULT_BLOCKS_TO_LIVE[this.chainId],
           });
-        } else {
-          cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
-            this.chainId,
-            amount,
-            quoteCurrency,
-            tradeType,
-            protocols,
-            await blockNumber,
-            routingConfig.optimisticCachedRoutes
-          );
         }
+      } else {
+        cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
+          this.chainId,
+          amount,
+          quoteCurrency,
+          tradeType,
+          protocols,
+          await blockNumber,
+          routingConfig.optimisticCachedRoutes
+        );
       }
     }
 
