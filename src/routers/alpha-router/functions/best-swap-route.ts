@@ -8,7 +8,12 @@ import Queue from 'mnemonist/queue';
 
 import { IPortionProvider } from '../../../providers/portion-provider';
 import { ProviderConfig } from '../../../providers/provider';
-import { HAS_L1_FEE, V2_SUPPORTED, V4_SUPPORTED } from '../../../util';
+import {
+  HAS_L1_FEE,
+  V2_SUPPORTED,
+  V4_SUPPORTED,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
@@ -831,8 +836,52 @@ const findFirstRouteNotUsingUsedPools = (
       continue;
     }
 
+    // Note: Below is a temporary fix until we have this logic handled in the SDK level.
+    // If any previous route has Native token, don't allow Wrapped Native token routes and vice versa
+    const hasNativeInUsedRoutes = usedRoutes.some(
+      routeHasNativeTokenInputOrOutput
+    );
+    const hasWrappedNativeInUsedRoutes = usedRoutes.some(
+      routeHasWrappedNativeTokenInputOrOutput
+    );
+
+    if (
+      (hasNativeInUsedRoutes &&
+        routeHasWrappedNativeTokenInputOrOutput(routeQuote)) ||
+      (hasWrappedNativeInUsedRoutes &&
+        routeHasNativeTokenInputOrOutput(routeQuote))
+    ) {
+      continue;
+    }
+
     return routeQuote;
   }
 
   return null;
+};
+
+const routeHasNativeTokenInputOrOutput = (
+  routeWithValidQuote: RouteWithValidQuote
+): boolean => {
+  return (
+    routeWithValidQuote.route.input.isNative ||
+    routeWithValidQuote.route.output.isNative
+  );
+};
+
+const routeHasWrappedNativeTokenInputOrOutput = (
+  routeWithValidQuote: RouteWithValidQuote
+): boolean => {
+  const chainId = routeWithValidQuote.route.chainId;
+  const wrappedNativeToken =
+    WRAPPED_NATIVE_CURRENCY[chainId as keyof typeof WRAPPED_NATIVE_CURRENCY];
+  if (!wrappedNativeToken) {
+    return false;
+  }
+  return (
+    (routeWithValidQuote.route.input.isToken &&
+      routeWithValidQuote.route.input.wrapped.equals(wrappedNativeToken)) ||
+    (routeWithValidQuote.route.output.isToken &&
+      routeWithValidQuote.route.output.wrapped.equals(wrappedNativeToken))
+  );
 };
