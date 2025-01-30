@@ -1426,66 +1426,76 @@ export class AlphaRouter
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
-    if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
-      if (
-        protocols.includes(Protocol.V4) &&
-        (currencyIn.isNative || currencyOut.isNative)
-      ) {
-        const [wrappedNativeCachedRoutes, nativeCachedRoutes] =
-          await Promise.all([
-            this.routeCachingProvider?.getCachedRoute(
-              this.chainId,
-              CurrencyAmount.fromRawAmount(
-                amount.currency.wrapped,
-                amount.quotient
-              ),
-              quoteCurrency.wrapped,
-              tradeType,
-              protocols,
-              await blockNumber,
-              routingConfig.optimisticCachedRoutes
-            ),
-            this.routeCachingProvider?.getCachedRoute(
-              this.chainId,
-              amount,
-              quoteCurrency,
-              tradeType,
-              [Protocol.V4],
-              await blockNumber,
-              routingConfig.optimisticCachedRoutes
-            ),
-          ]);
 
-        cachedRoutes = new CachedRoutes({
-          routes: [
-            ...(nativeCachedRoutes?.routes ?? []),
-            ...(wrappedNativeCachedRoutes?.routes ?? []),
-          ],
-          chainId: this.chainId,
-          currencyIn: currencyIn,
-          currencyOut: currencyOut,
-          protocolsCovered: protocols,
-          blockNumber: await blockNumber,
-          tradeType: tradeType,
-          originalAmount:
-            wrappedNativeCachedRoutes?.originalAmount ??
-            nativeCachedRoutes?.originalAmount ??
-            amount.quotient.toString(),
-          blocksToLive:
-            wrappedNativeCachedRoutes?.blocksToLive ??
-            nativeCachedRoutes?.blocksToLive ??
-            DEFAULT_BLOCKS_TO_LIVE[this.chainId],
-        });
-      } else {
-        cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
-          this.chainId,
-          amount,
-          quoteCurrency,
-          tradeType,
-          protocols,
-          await blockNumber,
-          routingConfig.optimisticCachedRoutes
-        );
+    if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
+      // Only use cache if all protocols are requested
+      // - Cache is optimized for global search, not for specific protocol search
+      if (
+        protocols.length == 0 ||
+        [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED].every((p) =>
+          protocols.includes(p)
+        )
+      ) {
+        if (
+          protocols.includes(Protocol.V4) &&
+          (currencyIn.isNative || currencyOut.isNative)
+        ) {
+          const [wrappedNativeCachedRoutes, nativeCachedRoutes] =
+            await Promise.all([
+              this.routeCachingProvider?.getCachedRoute(
+                this.chainId,
+                CurrencyAmount.fromRawAmount(
+                  amount.currency.wrapped,
+                  amount.quotient
+                ),
+                quoteCurrency.wrapped,
+                tradeType,
+                protocols,
+                await blockNumber,
+                routingConfig.optimisticCachedRoutes
+              ),
+              this.routeCachingProvider?.getCachedRoute(
+                this.chainId,
+                amount,
+                quoteCurrency,
+                tradeType,
+                [Protocol.V4],
+                await blockNumber,
+                routingConfig.optimisticCachedRoutes
+              ),
+            ]);
+
+          cachedRoutes = new CachedRoutes({
+            routes: [
+              ...(nativeCachedRoutes?.routes ?? []),
+              ...(wrappedNativeCachedRoutes?.routes ?? []),
+            ],
+            chainId: this.chainId,
+            currencyIn: currencyIn,
+            currencyOut: currencyOut,
+            protocolsCovered: protocols,
+            blockNumber: await blockNumber,
+            tradeType: tradeType,
+            originalAmount:
+              wrappedNativeCachedRoutes?.originalAmount ??
+              nativeCachedRoutes?.originalAmount ??
+              amount.quotient.toString(),
+            blocksToLive:
+              wrappedNativeCachedRoutes?.blocksToLive ??
+              nativeCachedRoutes?.blocksToLive ??
+              DEFAULT_BLOCKS_TO_LIVE[this.chainId],
+          });
+        } else {
+          cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
+            this.chainId,
+            amount,
+            quoteCurrency,
+            tradeType,
+            protocols,
+            await blockNumber,
+            routingConfig.optimisticCachedRoutes
+          );
+        }
       }
     }
 
