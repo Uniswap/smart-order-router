@@ -1116,14 +1116,14 @@ describe('get best swap route', () => {
           nativeRoute,
           TradeType.EXACT_INPUT,
           amount,
-          [100, 200], // Better quote
+          [100, 180], // Native route: 100 at 50%, 180 at 100%
           percents
         ),
         ...buildMixedRouteWithValidQuotes(
           wrappedRoute,
           TradeType.EXACT_INPUT,
           amount,
-          [90, 180], // Worse quote
+          [120, 170], // Wrapped route: 120 at 50%, 170 at 100%
           percents
         ),
       ];
@@ -1142,7 +1142,7 @@ describe('get best swap route', () => {
       // we expect only the native route to be chosen
       expect(swapRouteType!.routes).toHaveLength(1);
       expect(swapRouteType!.routes[0]!.route.output.isNative).toBe(true);
-      expect(swapRouteType!.quote.quotient.toString()).toBe('200');
+      expect(swapRouteType!.quote.quotient.toString()).toBe('180');
     });
 
     it('allows splitting between multiple wrapped native token routes', async () => {
@@ -1190,7 +1190,7 @@ describe('get best swap route', () => {
       )!;
 
       // We expect the route to be split 50/50 between the two WETH routes
-      // because the average of splitting (90 + 110)/2 = 100 is better than
+      // because splitting gives us 90 + 110 = 200 total tokens, which is better than
       // using either route alone at 100% (150 or 170)
       expect(swapRouteType!.routes).toHaveLength(2);
       expect(swapRouteType!.routes[0]!.route.output.isNative).toBe(false);
