@@ -182,7 +182,13 @@ export class MixedQuoter extends BaseQuoter<
     const routes = computeAllMixedRoutes(
       currencyIn,
       currencyOut,
-      pools,
+      pools, // ++ ETH/WETH fake pool // PEPE -> v2 -> WETH -> fake -> ETH -> v4 -> USDC
+      // pool path pool 1 (PEPE -> v2 -> WETH) -> pool 2 (ETH -> v4 -> USDC)
+      // token path PEPE -> WETH -> ETH -> USDC
+      // ur-sdk token path or pool path
+      // pool 1 PEPE -> v2 -> WETH
+      // pool 2 ETH -> v4 -> USDC
+      //
       maxSwapsPerPath
     );
 

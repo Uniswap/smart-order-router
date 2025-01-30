@@ -83,7 +83,7 @@ export function computeAllMixedRoutes(
     },
     (pool: TPool, currency: Currency) =>
       currency.isNative
-        ? (pool as V4Pool).involvesToken(currency)
+        ? (pool as V4Pool).involvesToken(currency.wrapped)
         : pool.involvesToken(currency),
     parts,
     maxHops
@@ -111,7 +111,7 @@ export function computeAllRoutes<
     tokenOut: TCurrency
   ) => TRoute,
   involvesToken: (pool: TypePool, token: TCurrency) => boolean,
-  pools: TypePool[],
+  pools: TypePool[], // + ETH/WETH V4Pool fake pool
   maxHops: number
 ): TRoute[] {
   const poolsUsed = Array<boolean>(pools.length).fill(false);
@@ -156,6 +156,10 @@ export function computeAllRoutes<
       if (tokensVisited.has(getAddressLowerCase(currentTokenOut))) {
         continue;
       }
+
+      // PEPE -> v2 -> WETH
+      //                      ETH -> v4 -> USDC
+      //                      WETH -> v4 -> USDC
 
       tokensVisited.add(getAddressLowerCase(currentTokenOut));
       currentRoute.push(curPool);
