@@ -1465,39 +1465,40 @@ export class AlphaRouter
               ),
             ]);
 
-        if ((wrappedNativeCachedRoutes && wrappedNativeCachedRoutes?.routes.length > 0) ||
-          (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)) {
-          cachedRoutes = new CachedRoutes({
-            routes: [
-              ...(nativeCachedRoutes?.routes ?? []),
-              ...(wrappedNativeCachedRoutes?.routes ?? []),
-            ],
-            chainId: this.chainId,
-            currencyIn: currencyIn,
-            currencyOut: currencyOut,
-            protocolsCovered: protocols,
-            blockNumber: await blockNumber,
-            tradeType: tradeType,
-            originalAmount:
-              wrappedNativeCachedRoutes?.originalAmount ??
-              nativeCachedRoutes?.originalAmount ??
-              amount.quotient.toString(),
-            blocksToLive:
-              wrappedNativeCachedRoutes?.blocksToLive ??
-              nativeCachedRoutes?.blocksToLive ??
-              DEFAULT_BLOCKS_TO_LIVE[this.chainId],
-          });
+          if ((wrappedNativeCachedRoutes && wrappedNativeCachedRoutes?.routes.length > 0) ||
+            (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)) {
+            cachedRoutes = new CachedRoutes({
+              routes: [
+                ...(nativeCachedRoutes?.routes ?? []),
+                ...(wrappedNativeCachedRoutes?.routes ?? []),
+              ],
+              chainId: this.chainId,
+              currencyIn: currencyIn,
+              currencyOut: currencyOut,
+              protocolsCovered: protocols,
+              blockNumber: await blockNumber,
+              tradeType: tradeType,
+              originalAmount:
+                wrappedNativeCachedRoutes?.originalAmount ??
+                nativeCachedRoutes?.originalAmount ??
+                amount.quotient.toString(),
+              blocksToLive:
+                wrappedNativeCachedRoutes?.blocksToLive ??
+                nativeCachedRoutes?.blocksToLive ??
+                DEFAULT_BLOCKS_TO_LIVE[this.chainId],
+            });
+          }
+        } else {
+          cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
+            this.chainId,
+            amount,
+            quoteCurrency,
+            tradeType,
+            protocols,
+            await blockNumber,
+            routingConfig.optimisticCachedRoutes
+          );
         }
-      } else {
-        cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
-          this.chainId,
-          amount,
-          quoteCurrency,
-          tradeType,
-          protocols,
-          await blockNumber,
-          routingConfig.optimisticCachedRoutes
-        );
       }
     }
 
