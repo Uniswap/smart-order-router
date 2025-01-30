@@ -1910,13 +1910,13 @@ describe('alpha router', () => {
         expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
       });
 
-      test('succeeds to fetch route from onchain and skips cache when only not all protocols are requested', async () => {
+      test('succeeds to fetch route from onchain and skips cache when only 1 protocol is requested', async () => {
         const swap = await alphaRouter.route(
           CurrencyAmount.fromRawAmount(USDC, 10000),
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
           undefined,
-          { ...ROUTING_CONFIG, ...{protocols: [Protocol.V3, Protocol.V4]} }
+          { ...ROUTING_CONFIG, ...{protocols: [Protocol.V3]} }
         );
         expect(swap).toBeDefined();
 

@@ -1428,14 +1428,9 @@ export class AlphaRouter
     let cachedRoutes: CachedRoutes | undefined;
 
     if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
-      // Only use cache if all protocols are requested
+      // Only use cache if 0 or more than 1 protocol is specified.
       // - Cache is optimized for global search, not for specific protocol search
-      if (
-        protocols.length == 0 ||
-        [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED].every((p) =>
-          protocols.includes(p)
-        )
-      ) {
+      if (protocols.length != 1) {
         if (
           protocols.includes(Protocol.V4) &&
           (currencyIn.isNative || currencyOut.isNative)
@@ -1465,8 +1460,11 @@ export class AlphaRouter
               ),
             ]);
 
-          if ((wrappedNativeCachedRoutes && wrappedNativeCachedRoutes?.routes.length > 0) ||
-            (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)) {
+          if (
+            (wrappedNativeCachedRoutes &&
+              wrappedNativeCachedRoutes?.routes.length > 0) ||
+            (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)
+          ) {
             cachedRoutes = new CachedRoutes({
               routes: [
                 ...(nativeCachedRoutes?.routes ?? []),
