@@ -13,7 +13,7 @@ import {
   SupportedRoutes,
   V2Route,
   V3Route,
-  V4Route
+  V4Route,
 } from '../../router';
 
 export function computeAllV4Routes(
@@ -84,7 +84,9 @@ export function computeAllMixedRoutes(
     },
     (pool: TPool, currency: Currency) =>
       // Use currency.wrapped to account for both native and wrapped tokens as the same edge
-      (pool as {involvesToken(currency: Currency): boolean}).involvesToken(currency.wrapped),
+      (pool as { involvesToken(currency: Currency): boolean }).involvesToken(
+        currency.wrapped
+      ),
     parts,
     maxHops
   );
@@ -98,17 +100,22 @@ export function computeAllMixedRoutes(
   });
   return mixedRoutes.map((route) => {
     return new MixedRoute(
-      route.pools.filter((pool) =>
-        !(pool as {
-          involvesToken(currency: Currency): boolean
-        }).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency0) &&
-        !(pool as {
-          involvesToken(currency: Currency): boolean
-        }).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency1)
+      route.pools.filter(
+        (pool) =>
+          !(
+            pool as {
+              involvesToken(currency: Currency): boolean;
+            }
+          ).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency0) &&
+          !(
+            pool as {
+              involvesToken(currency: Currency): boolean;
+            }
+          ).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency1)
       ),
       route.input,
       route.output
-    )
+    );
   });
 }
 

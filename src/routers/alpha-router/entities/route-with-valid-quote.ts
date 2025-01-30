@@ -10,6 +10,7 @@ import { IV4PoolProvider } from '../../../providers';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
+import { FAKE_TICK_SPACING } from '../../../util/pools';
 import { routeToString } from '../../../util/routes';
 import {
   MixedRoute,
@@ -19,7 +20,6 @@ import {
   V4Route,
 } from '../../router';
 import { IGasModel } from '../gas-models/gas-model';
-import { FAKE_HOOK_ADDRESS } from '../../../util/pools';
 
 /**
  * Represents a route, a quote for swapping some amount on it, and other
@@ -432,12 +432,12 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     v2PoolProvider,
   }: MixedRouteWithValidQuoteParams) {
     const routeWithoutEthWethFakePool = new MixedRoute(
-      route.pools.filter((p) => (p instanceof V4Pool) &&
-        p.hooks === FAKE_HOOK_ADDRESS
+      route.pools.filter(
+        (p) => !(p instanceof V4Pool && p.tickSpacing === FAKE_TICK_SPACING)
       ),
       route.input,
       route.output
-    )
+    );
 
     this.amount = amount;
     this.rawQuote = rawQuote;
