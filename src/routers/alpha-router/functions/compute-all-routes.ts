@@ -4,18 +4,17 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
-import { getAddressLowerCase, nativeOnChain } from '../../../util';
+import { getAddressLowerCase } from '../../../util';
 import { log } from '../../../util/log';
+import { v4EthWethFakePool } from '../../../util/pools';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
   MixedRoute,
   SupportedRoutes,
   V2Route,
   V3Route,
-  V4Route,
+  V4Route
 } from '../../router';
-
-import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -77,18 +76,6 @@ export function computeAllMixedRoutes(
   parts: TPool[],
   maxHops: number
 ): MixedRoute[] {
-  const v4EthWethFakePool = new V4Pool(
-    nativeOnChain(currencyIn.chainId),
-    nativeOnChain(currencyIn.chainId).wrapped,
-    0,
-    0,
-    ADDRESS_ZERO,
-    0,
-    0,
-    0
-  );
-  const poolsWithEthWethFakePoolConnection = parts.concat(v4EthWethFakePool);
-
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
     currencyIn,
     currencyOut,
@@ -96,19 +83,32 @@ export function computeAllMixedRoutes(
       return new MixedRoute(route, currencyIn, currencyOut);
     },
     (pool: TPool, currency: Currency) =>
-      currency.isNative
-        ? (pool as V4Pool).involvesToken(currency.wrapped)
-        : pool.involvesToken(currency),
-    poolsWithEthWethFakePoolConnection,
+      // Use currency.wrapped to account for both native and wrapped tokens as the same edge
+      (pool as {involvesToken(currency: Currency): boolean}).involvesToken(currency.wrapped),
+    parts,
     maxHops
   );
   /// filter out pure v4 and v3 and v2 routes
-  return routesRaw.filter((route) => {
+  const mixedRoutes = routesRaw.filter((route) => {
     return (
       !route.pools.every((pool) => pool instanceof V4Pool) &&
       !route.pools.every((pool) => pool instanceof V3Pool) &&
       !route.pools.every((pool) => pool instanceof Pair)
     );
+  });
+  return mixedRoutes.map((route) => {
+    return new MixedRoute(
+      route.pools.filter((pool) =>
+        !(pool as {
+          involvesToken(currency: Currency): boolean
+        }).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency0) &&
+        !(pool as {
+          involvesToken(currency: Currency): boolean
+        }).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency1)
+      ),
+      route.input,
+      route.output
+    )
   });
 }
 
