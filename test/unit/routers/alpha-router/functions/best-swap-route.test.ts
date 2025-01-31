@@ -1,7 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Ether, Fraction, TradeType } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  Ether,
+  Fraction,
+  TradeType
+} from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
+import { Pool as PoolV4 } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';
@@ -211,11 +217,13 @@ describe('get best swap route', () => {
     mockV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
     mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(mockV4Pools));
     // Mock getPoolId to return a pool info object with the required properties
-    mockV4PoolProvider.getPoolId.callsFake((pool: any) => ({
-      poolId: pool.poolId,
-      currency0: pool.token0 ?? pool.currency0,
-      currency1: pool.token1 ?? pool.currency1
-    }));
+    mockV4PoolProvider.getPoolId.callsFake((currency0, currency1, fee, tickSpacing, hooks) => {
+      return {
+        poolId: PoolV4.getPoolId(currency0, currency1, fee, tickSpacing, hooks),
+        currency0: currency0,
+        currency1: currency1
+      };
+    });
   });
 
   const buildV3RouteWithValidQuote = (
@@ -1099,15 +1107,15 @@ describe('get best swap route', () => {
 
       // Use ETH_USDT_V4_LOW which has native ETH
       const nativeRoute = new MixedRoute(
-        [USDC_WETH_LOW, ETH_USDT_V4_LOW],
-        USDC,
+        [ETH_USDT_V4_LOW],
+        USDT,
         Ether.onChain(ChainId.MAINNET)
       );
 
       // Use WETH9_USDT_V4_LOW which has wrapped ETH (WETH)
       const wrappedRoute = new MixedRoute(
-        [USDC_WETH_LOW, WETH9_USDT_V4_LOW],
-        USDC,
+        [WETH9_USDT_V4_LOW],
+        USDT,
         WRAPPED_NATIVE_CURRENCY[1]!.wrapped
       );
 
@@ -1116,14 +1124,14 @@ describe('get best swap route', () => {
           nativeRoute,
           TradeType.EXACT_INPUT,
           amount,
-          [100, 180], // Native route: 100 at 50%, 180 at 100%
+          [200, 210], // Native route: 200 at 50%, 210 at 100%
           percents
         ),
         ...buildMixedRouteWithValidQuotes(
           wrappedRoute,
           TradeType.EXACT_INPUT,
           amount,
-          [120, 170], // Wrapped route: 120 at 50%, 170 at 100%
+          [200, 205], // Wrapped route: 200 at 50%, 300 at 100% (much better than native)
           percents
         ),
       ];
@@ -1139,11 +1147,11 @@ describe('get best swap route', () => {
       )!;
 
       // Even though mixing native and wrapped native would give better quotes
-      // (50/50 split would give 100 + 120 = 220 tokens), we expect only the native
-      // route to be chosen at 100% (180 tokens) to avoid mixing native and wrapped tokens
+      // (50/50 split would give 200 + 200 = 400 tokens), we expect only the native
+      // route to be chosen at 100% (210 tokens) to avoid mixing native and wrapped tokens
       expect(swapRouteType!.routes).toHaveLength(1);
       expect(swapRouteType!.routes[0]!.route.output.isNative).toBe(true);
-      expect(swapRouteType!.quote.quotient.toString()).toBe('180');
+      expect(swapRouteType!.quote.quotient.toString()).toBe('210');
     });
 
     it('allows splitting between multiple wrapped native token routes', async () => {
