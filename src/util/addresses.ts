@@ -141,7 +141,6 @@ export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].mixedRouteQuoterV1Address,
   [ChainId.GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV1Address,
-  [ChainId.BASE]: '0xc7A3b85D43fF66AD98A895dE0EaE4b9e24C932D7',
 };
 
 export const MIXED_ROUTE_QUOTER_V2_ADDRESSES: AddressMap = {
