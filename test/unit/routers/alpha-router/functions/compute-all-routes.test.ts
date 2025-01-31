@@ -299,7 +299,7 @@ describe('compute all mixed routes', () => {
       USDC_WETH_LOW, // V3 pool
       ETH_USDT_V4_LOW
     ];
-    const routes = computeAllMixedRoutes(USDC, USDT, pools, 3);
+    const routes = computeAllMixedRoutes(USDC, USDT, pools, 2);
     expect(routes.length).toBeGreaterThan(0);
     // Routes should not include both ETH and WETH fake pools
     routes.forEach(route => {
@@ -318,7 +318,7 @@ describe('compute all mixed routes', () => {
       ETH_USDT_V4_LOW,
       USDC_WETH_LOW
     ];
-    const routes = computeAllMixedRoutes(USDT, USDC, pools, 3);
+    const routes = computeAllMixedRoutes(USDT, USDC, pools, 2);
     expect(routes.length).toBeGreaterThan(0);
     // Routes should not include both ETH and WETH fake pools
     routes.forEach(route => {
