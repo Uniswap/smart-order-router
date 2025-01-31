@@ -212,7 +212,7 @@ describe('get best swap route', () => {
     mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(mockV4Pools));
     // Mock getPoolId to return a pool info object with the required properties
     mockV4PoolProvider.getPoolId.callsFake((pool: any) => ({
-      poolId: '1',
+      poolId: pool.poolId,
       currency0: pool.token0 ?? pool.currency0,
       currency1: pool.token1 ?? pool.currency1
     }));
@@ -1138,8 +1138,9 @@ describe('get best swap route', () => {
         portionProvider
       )!;
 
-      // Even though mixing native and wrapped native would give better quotes,
-      // we expect only the native route to be chosen
+      // Even though mixing native and wrapped native would give better quotes
+      // (50/50 split would give 100 + 120 = 220 tokens), we expect only the native
+      // route to be chosen at 100% (180 tokens) to avoid mixing native and wrapped tokens
       expect(swapRouteType!.routes).toHaveLength(1);
       expect(swapRouteType!.routes[0]!.route.output.isNative).toBe(true);
       expect(swapRouteType!.quote.quotient.toString()).toBe('180');
