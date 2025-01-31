@@ -40,6 +40,7 @@ import {
 } from '../../../../test-util/mock-data';
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { ChainId, WETH9 } from '@uniswap/sdk-core';
+import { V4_ETH_WETH_FAKE_POOL } from '../../../../../src/util/pools';
 
 describe('compute all v4 routes', () => {
   test('succeeds to compute all routes', async () => {
@@ -302,11 +303,32 @@ describe('compute all mixed routes', () => {
     expect(routes.length).toBeGreaterThan(0);
     // Routes should not include both ETH and WETH fake pools
     routes.forEach(route => {
-      const ethPools = route.pools.filter(pool =>
-        pool.token0.equals(nativeOnChain(ChainId.MAINNET)) ||
-        pool.token1.equals(nativeOnChain(ChainId.MAINNET))
-      );
-      expect(ethPools.length).toBeLessThanOrEqual(1);
+      expect(route.pools).toEqual([USDC_WETH_LOW, V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET], ETH_USDT_V4_LOW])
+      expect(route.path).toEqual([USDC, nativeOnChain(ChainId.MAINNET).wrapped, nativeOnChain(ChainId.MAINNET), USDT])
+      expect(route.input).toEqual(USDC)
+      expect(route.output).toEqual(USDT)
+      expect(route.pathInput).toEqual(USDC)
+      expect(route.pathOutput).toEqual(USDT)
+      expect(route.chainId).toEqual(1)
+    });
+  });
+
+  test('handles WETH/ETH unwrapping in mixed routes', async () => {
+    const pools = [
+      ETH_USDT_V4_LOW,
+      USDC_WETH_LOW
+    ];
+    const routes = computeAllMixedRoutes(USDT, USDC, pools, 2);
+    expect(routes.length).toBeGreaterThan(0);
+    // Routes should not include both ETH and WETH fake pools
+    routes.forEach(route => {
+      expect(route.pools).toEqual([ETH_USDT_V4_LOW, V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET], USDC_WETH_LOW])
+      expect(route.path).toEqual([USDT, nativeOnChain(ChainId.MAINNET), nativeOnChain(ChainId.MAINNET).wrapped, USDC])
+      expect(route.input).toEqual(USDT)
+      expect(route.output).toEqual(USDC)
+      expect(route.pathInput).toEqual(USDT)
+      expect(route.pathOutput).toEqual(USDC)
+      expect(route.chainId).toEqual(1)
     });
   });
 });

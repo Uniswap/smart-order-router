@@ -6,7 +6,6 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
 import { getAddressLowerCase, nativeOnChain } from '../../../util';
 import { log } from '../../../util/log';
-import { v4EthWethFakePool } from '../../../util/pools';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
   MixedRoute,
@@ -15,6 +14,7 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
+import { V4_ETH_WETH_FAKE_POOL } from '../../../util/pools';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -116,7 +116,7 @@ export function computeAllMixedRoutes(
         const previousPoolWrappedNativeCurrentPoolNative = previousPool.involvesToken(wrappedNative) && currentPool.involvesToken(native);
 
         if (previousPoolNativeCurrentPoolWrappedNative || previousPoolWrappedNativeCurrentPoolNative) {
-          amendedPools.push(v4EthWethFakePool(currencyIn.chainId));
+          amendedPools.push(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId]!);
         }
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

@@ -6,15 +6,15 @@ import { nativeOnChain } from './chains';
 
 export const FAKE_TICK_SPACING = 0;
 
-export function v4EthWethFakePool(chainId: ChainId): V4Pool {
-  return new V4Pool(
-    nativeOnChain(chainId),
-    nativeOnChain(chainId).wrapped,
+export const V4_ETH_WETH_FAKE_POOL: { [chainId: number]: V4Pool } = {
+  [ChainId.MAINNET]: new V4Pool(
+    nativeOnChain(ChainId.MAINNET),
+    nativeOnChain(ChainId.MAINNET).wrapped,
     0,
     FAKE_TICK_SPACING,
     ADDRESS_ZERO,
     79228162514264337593543950336,
     0,
     0
-  );
+  )
 }
