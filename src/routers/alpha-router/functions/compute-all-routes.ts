@@ -15,7 +15,6 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
-import { USDC_ETH_V4_LOW } from '../../../../test/test-util/mock-data';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -124,8 +123,6 @@ export function computeAllMixedRoutes(
         amendedPools.push(route.pools[i]!);
       }
     }
-
-    amendedPools.push(USDC_ETH_V4_LOW)
 
     return new MixedRoute(amendedPools, currencyIn, currencyOut);
   });
