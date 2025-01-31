@@ -126,7 +126,7 @@ export const WETH9_USDT_V4_LOW = new V4Pool(
 );
 
 export const ETH_USDT_V4_LOW = new V4Pool(
-  Ether.onChain(ChainId.MAINNET),
+  WRAPPED_NATIVE_CURRENCY[1]!,
   USDT,
   FeeAmount.LOW,
   10,

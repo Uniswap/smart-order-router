@@ -4,6 +4,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import {
   CurrencyAmount,
   DAI_MAINNET as DAI,
+  nativeOnChain,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
   WBTC_MAINNET as WBTC,
@@ -290,6 +291,23 @@ describe('compute all mixed routes', () => {
     const routes = computeAllMixedRoutes(USDT, WETH9[ChainId.MAINNET]!, pools, 3);
 
     expect(routes).toHaveLength(1);
+  });
+
+  test('handles ETH/WETH wrapping in mixed routes', async () => {
+    const pools = [
+      USDC_WETH_LOW, // V3 pool
+      ETH_USDT_V4_LOW
+    ];
+    const routes = computeAllMixedRoutes(USDC, USDT, pools, 2);
+    expect(routes.length).toBeGreaterThan(0);
+    // Routes should not include both ETH and WETH fake pools
+    routes.forEach(route => {
+      const ethPools = route.pools.filter(pool =>
+        pool.token0.equals(nativeOnChain(ChainId.MAINNET)) ||
+        pool.token1.equals(nativeOnChain(ChainId.MAINNET))
+      );
+      expect(ethPools.length).toBeLessThanOrEqual(1);
+    });
   });
 });
 

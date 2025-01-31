@@ -4,7 +4,7 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
-import { getAddressLowerCase } from '../../../util';
+import { getAddressLowerCase, nativeOnChain } from '../../../util';
 import { log } from '../../../util/log';
 import { v4EthWethFakePool } from '../../../util/pools';
 import { poolToString, routeToString } from '../../../util/routes';
@@ -15,6 +15,7 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
+import { USDC_ETH_V4_LOW } from '../../../../test/test-util/mock-data';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -82,11 +83,13 @@ export function computeAllMixedRoutes(
     (route: TPool[], currencyIn: Currency, currencyOut: Currency) => {
       return new MixedRoute(route, currencyIn, currencyOut);
     },
-    (pool: TPool, currency: Currency) =>
+    (pool: TPool, currency: Currency) => {
+      const poolCasted = (pool as { involvesToken(currency: Currency): boolean })
       // Use currency.wrapped to account for both native and wrapped tokens as the same edge
-      (pool as { involvesToken(currency: Currency): boolean }).involvesToken(
-        currency.wrapped
-      ),
+      const isCurrencyWrappedNative = currency.wrapped.equals(nativeOnChain(currency.chainId).wrapped);
+      return poolCasted.involvesToken(currency.wrapped) || poolCasted.involvesToken(currency) ||
+        (isCurrencyWrappedNative && poolCasted.involvesToken(nativeOnChain(currency.chainId)));
+    },
     parts,
     maxHops
   );
@@ -99,23 +102,32 @@ export function computeAllMixedRoutes(
     );
   });
   return mixedRoutes.map((route) => {
-    return new MixedRoute(
-      route.pools.filter(
-        (pool) =>
-          !(
-            pool as {
-              involvesToken(currency: Currency): boolean;
-            }
-          ).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency0) &&
-          !(
-            pool as {
-              involvesToken(currency: Currency): boolean;
-            }
-          ).involvesToken(v4EthWethFakePool(currencyIn.chainId).currency1)
-      ),
-      route.input,
-      route.output
-    );
+    const amendedPools: TPool[] = []
+
+    for (let i = 0; i < route.pools.length; i++) {
+      if (i === 0) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        amendedPools.push(route.pools[i]!);
+      } else {
+        const previousPool = (amendedPools[amendedPools.length - 1]! as { involvesToken(currency: Currency): boolean });
+        const currentPool = (route.pools[i]! as { involvesToken(currency: Currency): boolean });
+        const native = nativeOnChain(currencyIn.chainId);
+        const wrappedNative = nativeOnChain(currencyIn.chainId).wrapped;
+        const previousPoolNativeCurrentPoolWrappedNative = previousPool.involvesToken(native) && currentPool.involvesToken(wrappedNative);
+        const previousPoolWrappedNativeCurrentPoolNative = previousPool.involvesToken(wrappedNative) && currentPool.involvesToken(native);
+
+        if (previousPoolNativeCurrentPoolWrappedNative || previousPoolWrappedNativeCurrentPoolNative) {
+          amendedPools.push(v4EthWethFakePool(currencyIn.chainId));
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        amendedPools.push(route.pools[i]!);
+      }
+    }
+
+    amendedPools.push(USDC_ETH_V4_LOW)
+
+    return new MixedRoute(amendedPools, currencyIn, currencyOut);
   });
 }
 
