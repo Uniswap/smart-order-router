@@ -6,6 +6,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
 import { getAddressLowerCase } from '../../../util';
 import { log } from '../../../util/log';
+import { V4_ETH_WETH_FAKE_POOL } from '../../../util/pools';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
   MixedRoute,
@@ -75,17 +76,20 @@ export function computeAllMixedRoutes(
   parts: TPool[],
   maxHops: number
 ): MixedRoute[] {
+  const amendedPools = parts.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId]!);
+
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
     currencyIn,
     currencyOut,
     (route: TPool[], currencyIn: Currency, currencyOut: Currency) => {
       return new MixedRoute(route, currencyIn, currencyOut);
     },
-    (pool: TPool, currency: Currency) =>
-      currency.isNative
+    (pool: TPool, currency: Currency) => {
+      return currency.isNative
         ? (pool as V4Pool).involvesToken(currency)
-        : pool.involvesToken(currency),
-    parts,
+        : pool.involvesToken(currency);
+    },
+    amendedPools,
     maxHops
   );
   /// filter out pure v4 and v3 and v2 routes
