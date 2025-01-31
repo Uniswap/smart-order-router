@@ -1,5 +1,5 @@
 import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
-import { Currency, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -15,6 +15,8 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
+
+import { amendMixedRoutesMaxHops } from './amend-mixed-routes-max-hops';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -76,7 +78,10 @@ export function computeAllMixedRoutes(
   parts: TPool[],
   maxHops: number
 ): MixedRoute[] {
-  const amendedPools = parts.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId]!);
+  const amendedPools = parts.concat(
+    V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId]
+  );
+  const amendedMaxHops = amendMixedRoutesMaxHops(parts, maxHops);
 
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
     currencyIn,
@@ -84,13 +89,12 @@ export function computeAllMixedRoutes(
     (route: TPool[], currencyIn: Currency, currencyOut: Currency) => {
       return new MixedRoute(route, currencyIn, currencyOut);
     },
-    (pool: TPool, currency: Currency) => {
-      return currency.isNative
+    (pool: TPool, currency: Currency) =>
+      currency.isNative
         ? (pool as V4Pool).involvesToken(currency)
-        : pool.involvesToken(currency);
-    },
+        : pool.involvesToken(currency),
     amendedPools,
-    maxHops
+    amendedMaxHops
   );
   /// filter out pure v4 and v3 and v2 routes
   return routesRaw.filter((route) => {

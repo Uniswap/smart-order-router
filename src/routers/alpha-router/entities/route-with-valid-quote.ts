@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -10,6 +10,7 @@ import { IV4PoolProvider } from '../../../providers';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
+import { V4_ETH_WETH_FAKE_POOL } from '../../../util/pools';
 import { routeToString } from '../../../util/routes';
 import {
   MixedRoute,
@@ -430,6 +431,14 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     v3PoolProvider,
     v2PoolProvider,
   }: MixedRouteWithValidQuoteParams) {
+    const routeWithoutEthWethFakePool = new MixedRoute(
+      route.pools.filter(
+        (p) => !(p === V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET]!)
+      ),
+      route.input,
+      route.output
+    );
+
     this.amount = amount;
     this.rawQuote = rawQuote;
     this.sqrtPriceX96AfterList = sqrtPriceX96AfterList;
@@ -437,7 +446,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     this.quoterGasEstimate = quoterGasEstimate;
     this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
     this.percent = percent;
-    this.route = route;
+    this.route = routeWithoutEthWethFakePool;
     this.gasModel = mixedRouteGasModel;
     this.quoteToken = quoteToken;
     this.tradeType = tradeType;
