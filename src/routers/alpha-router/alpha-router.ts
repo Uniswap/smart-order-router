@@ -1465,8 +1465,11 @@ export class AlphaRouter
               ),
             ]);
 
-          if ((wrappedNativeCachedRoutes && wrappedNativeCachedRoutes?.routes.length > 0) ||
-            (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)) {
+          if (
+            (wrappedNativeCachedRoutes &&
+              wrappedNativeCachedRoutes?.routes.length > 0) ||
+            (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)
+          ) {
             cachedRoutes = new CachedRoutes({
               routes: [
                 ...(nativeCachedRoutes?.routes ?? []),

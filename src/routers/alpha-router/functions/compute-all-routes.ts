@@ -4,7 +4,7 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
-import { getAddressLowerCase, nativeOnChain } from '../../../util';
+import { getAddressLowerCase } from '../../../util';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
@@ -14,7 +14,10 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
-import { V4_ETH_WETH_FAKE_POOL } from '../../../util/pools';
+
+import { ammendMixedRouteEthWeth } from './mixed-route-eth-weth-amend';
+import { nativePoolContainsWrappedNativeOrNative } from './native-pool-contains-wrapped-native-or-native';
+import { wrappedNativePoolContainsNativeOrWrappedNative } from './wrapped-native-pool-contains-native-or-wrapped-native';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -83,11 +86,10 @@ export function computeAllMixedRoutes(
       return new MixedRoute(route, currencyIn, currencyOut);
     },
     (pool: TPool, currency: Currency) => {
-      const poolCasted = (pool as { involvesToken(currency: Currency): boolean })
-      // Use currency.wrapped to account for both native and wrapped tokens as the same edge
-      const isCurrencyWrappedNative = currency.wrapped.equals(nativeOnChain(currency.chainId).wrapped);
-      return poolCasted.involvesToken(currency.wrapped) || poolCasted.involvesToken(currency) ||
-        (isCurrencyWrappedNative && poolCasted.involvesToken(nativeOnChain(currency.chainId)));
+      return (
+        nativePoolContainsWrappedNativeOrNative(currency, pool) ||
+        wrappedNativePoolContainsNativeOrWrappedNative(currency, pool)
+      );
     },
     parts,
     maxHops
@@ -101,30 +103,7 @@ export function computeAllMixedRoutes(
     );
   });
   return mixedRoutes.map((route) => {
-    const amendedPools: TPool[] = []
-
-    for (let i = 0; i < route.pools.length; i++) {
-      if (i === 0) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        amendedPools.push(route.pools[i]!);
-      } else {
-        const previousPool = (amendedPools[amendedPools.length - 1]! as { involvesToken(currency: Currency): boolean });
-        const currentPool = (route.pools[i]! as { involvesToken(currency: Currency): boolean });
-        const native = nativeOnChain(currencyIn.chainId);
-        const wrappedNative = nativeOnChain(currencyIn.chainId).wrapped;
-        const previousPoolNativeCurrentPoolWrappedNative = previousPool.involvesToken(native) && currentPool.involvesToken(wrappedNative);
-        const previousPoolWrappedNativeCurrentPoolNative = previousPool.involvesToken(wrappedNative) && currentPool.involvesToken(native);
-
-        if (previousPoolNativeCurrentPoolWrappedNative || previousPoolWrappedNativeCurrentPoolNative) {
-          amendedPools.push(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId]!);
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        amendedPools.push(route.pools[i]!);
-      }
-    }
-
-    return new MixedRoute(amendedPools, currencyIn, currencyOut);
+    return ammendMixedRouteEthWeth(currencyIn, currencyOut, route);
   });
 }
 

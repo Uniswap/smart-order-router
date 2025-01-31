@@ -10,7 +10,7 @@ import { IV4PoolProvider } from '../../../providers';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
-import { FAKE_TICK_SPACING, V4_ETH_WETH_FAKE_POOL } from '../../../util/pools';
+import { V4_ETH_WETH_FAKE_POOL } from '../../../util/pools';
 import { routeToString } from '../../../util/routes';
 import {
   MixedRoute,
