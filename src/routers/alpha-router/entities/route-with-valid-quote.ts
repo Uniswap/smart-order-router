@@ -1,15 +1,16 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
 import { Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
-import { Pair } from '@uniswap/v2-sdk';
 import { IV4PoolProvider } from '../../../providers';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import { IV3PoolProvider } from '../../../providers/v3/pool-provider';
 import { CurrencyAmount } from '../../../util/amounts';
+import { FAKE_TICK_SPACING } from '../../../util/pools';
 import { routeToString } from '../../../util/routes';
 import {
   MixedRoute,
@@ -430,6 +431,15 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     v3PoolProvider,
     v2PoolProvider,
   }: MixedRouteWithValidQuoteParams) {
+    const poolsWithoutFakePool = route.pools.filter(
+      (p) => !(p instanceof V4Pool && p.tickSpacing === FAKE_TICK_SPACING)
+    );
+    const routeWithoutEthWethFakePool = new MixedRoute(
+      poolsWithoutFakePool,
+      route.input,
+      route.output
+    );
+
     this.amount = amount;
     this.rawQuote = rawQuote;
     this.sqrtPriceX96AfterList = sqrtPriceX96AfterList;
@@ -437,7 +447,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
     this.quoterGasEstimate = quoterGasEstimate;
     this.quote = CurrencyAmount.fromRawAmount(quoteToken, rawQuote.toString());
     this.percent = percent;
-    this.route = route;
+    this.route = routeWithoutEthWethFakePool;
     this.gasModel = mixedRouteGasModel;
     this.quoteToken = quoteToken;
     this.tradeType = tradeType;
@@ -459,7 +469,7 @@ export class MixedRouteWithValidQuote implements IMixedRouteWithValidQuote {
       this.quoteAdjustedForGas = quoteGasAdjusted;
     }
 
-    this.poolIdentifiers = _.map(route.pools, (p) => {
+    this.poolIdentifiers = _.map(routeWithoutEthWethFakePool.pools, (p) => {
       if (p instanceof V4Pool) {
         return v4PoolProvider.getPoolId(
           p.token0,
