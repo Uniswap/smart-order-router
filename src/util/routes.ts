@@ -94,7 +94,7 @@ export const routeToString = (route: SupportedRoutes): string => {
         V3_CORE_FACTORY_ADDRESSES[pool.chainId]
       )}]`;
     } else if (pool instanceof V4Pool) {
-      // Kittycorn: Temporary hard code for easier to see on display
+      // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
       const chainId = pool.chainId as ChainId;
       const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
         return base.tokenize.address.toLocaleLowerCase();
