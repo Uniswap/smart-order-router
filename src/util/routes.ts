@@ -17,6 +17,9 @@ import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
 import { CurrencyAmount } from '.';
 
+import { ChainId, Token } from '@uniswap/sdk-core';
+import { BASE_TOKENIZE_UNDERLYING } from '../providers/token-provider';
+
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
     case Protocol.V4:
@@ -92,10 +95,17 @@ export const routeToString = (route: SupportedRoutes): string => {
       )}]`;
     } else if (pool instanceof V4Pool) {
       // Kittycorn: Temporary hard code for easier to see on display
-      const tokenize0 =
-        pool.token0.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
-      const tokenize1 =
-        pool.token1.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
+      const chainId = pool.chainId as ChainId;
+      const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
+        return base.tokenize.address.toLocaleLowerCase();
+      });
+
+      const tokenize0 = tokenizes?.includes(
+        (pool.token0 as Token).address.toLowerCase()
+      );
+      const tokenize1 = tokenizes?.includes(
+        (pool.token1 as Token).address.toLowerCase()
+      );
       if ((tokenize0 && !tokenize1) || (!tokenize0 && tokenize1)) {
         return ` -- ${0.0}% [0x0000000000000000000000000000000000000000000000000000000000000000]`;
       }
