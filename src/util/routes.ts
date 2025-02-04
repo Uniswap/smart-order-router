@@ -17,7 +17,7 @@ import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 import { TPool } from '@uniswap/router-sdk';
 import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { Token } from '@uniswap/sdk-core';
 import { BASE_TOKENIZE_UNDERLYING } from '../providers/token-provider';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
@@ -103,7 +103,7 @@ export const routeToString = (route: SupportedRoutes): string => {
         return ' --  ';
       }
 
-      // Kittycorn: Temporary hard code for easier to see on display
+      // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
       const chainId = pool.chainId as ChainId;
       const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
         return base.tokenize.address.toLocaleLowerCase();
