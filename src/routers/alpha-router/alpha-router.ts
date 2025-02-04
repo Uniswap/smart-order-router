@@ -10,6 +10,7 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
@@ -111,6 +112,7 @@ import {
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
 } from '../../util/gas-factory-helpers';
+import { INTENT } from '../../util/intent';
 import { log } from '../../util/log';
 import {
   buildSwapMethodParameters,
@@ -148,8 +150,6 @@ import {
   V4Route,
 } from '../router';
 
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { INTENT } from '../../util/intent';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,

@@ -31,8 +31,8 @@ import {
   initSwapRouteFromExisting,
   logGasEstimationVsSimulationMetrics,
 } from '../util/gas-factory-helpers';
-
 import { breakDownTenderlySimulationError } from '../util/tenderlySimulationErrorBreakDown';
+
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { IPortionProvider } from './portion-provider';
 import {

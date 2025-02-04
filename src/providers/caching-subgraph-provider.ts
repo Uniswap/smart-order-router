@@ -22,8 +22,9 @@ import {
   DAI_OPTIMISM,
   ETH_BNB,
   OP_OPTIMISM,
+  TUSDC_MAINNET,
+  TUSDT_MAINNET,
   USDB_BLAST,
-  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_AVAX,
   USDC_BASE,
@@ -37,6 +38,7 @@ import {
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
   USDC_ZKSYNC,
+  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,
@@ -51,8 +53,6 @@ import {
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WSTETH_MAINNET,
-  TUSDC_MAINNET,
-  TUSDT_MAINNET,
 } from './token-provider';
 import { V3SubgraphPool } from './v3/subgraph-provider';
 

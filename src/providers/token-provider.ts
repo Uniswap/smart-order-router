@@ -1099,17 +1099,19 @@ export const TUSDC_MAINNET = new Token(
   '0x88B9Ad010A699Cc0c8C5C5EA8bAF90A0C375df1a',
   6,
   'Kittycorn Tokenize USDC',
-  'tUSDC',
+  'tUSDC'
 );
 export const TUSDT_MAINNET = new Token(
   ChainId.MAINNET,
   '0xA343B1FC2897b8C49A72A9A0B2675cB9c7664e8c',
   6,
   'Kittycorn Tokenize USDT',
-  'tUSDT',
+  'tUSDT'
 );
 
-export const BASE_TOKENIZE_UNDERLYING: { [chainId in ChainId]?: { tokenize: Token, underlying: Token }[] } = {
+export const BASE_TOKENIZE_UNDERLYING: {
+  [chainId in ChainId]?: { tokenize: Token; underlying: Token }[];
+} = {
   [ChainId.MAINNET]: [
     { tokenize: TUSDC_MAINNET, underlying: USDC_MAINNET },
     { tokenize: TUSDT_MAINNET, underlying: USDT_MAINNET },

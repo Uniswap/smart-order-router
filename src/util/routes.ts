@@ -1,10 +1,12 @@
 import { Protocol } from '@uniswap/router-sdk';
+import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { Currency, Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
+import { CachedRoutes } from '../providers';
 import {
   AlphaRouterConfig,
   RouteWithValidQuote,
@@ -13,9 +15,7 @@ import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
 import { CurrencyAmount } from '.';
-import { CachedRoutes } from '../providers';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -91,10 +91,11 @@ export const routeToString = (route: SupportedRoutes): string => {
         V3_CORE_FACTORY_ADDRESSES[pool.chainId]
       )}]`;
     } else if (pool instanceof V4Pool) {
-
       // Kittycorn: Temporary hard code for easier to see on display
-      const tokenize0 = pool.token0.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
-      const tokenize1 = pool.token1.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
+      const tokenize0 =
+        pool.token0.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
+      const tokenize1 =
+        pool.token1.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
       if ((tokenize0 && !tokenize1) || (!tokenize0 && tokenize1)) {
         return ` -- ${0.0}% [0x0000000000000000000000000000000000000000000000000000000000000000]`;
       }
