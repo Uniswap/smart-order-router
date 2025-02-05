@@ -1432,10 +1432,12 @@ export class AlphaRouter
     // So take this into account when deciding whether to use cached routes or not.
     // We only want to use cache if all enabled protocols are specified (V2,V3,V4? + MIXED). In any other case, use onchain path.
     // - Cache is optimized for global search, not for specific protocol(s) search.
+    // For legacy systems (SWAP_ROUTER_02) or missing swapConfig, follow UniversalRouterVersion.V1_2 logic.
     const availableProtocolsSet = new Set(Object.values(Protocol));
     const requestedProtocolsSet = new Set(protocols);
     if (
       !swapConfig ||
+      swapConfig.type === SwapType.SWAP_ROUTER_02 ||
       (swapConfig.type === SwapType.UNIVERSAL_ROUTER &&
         swapConfig.version === UniversalRouterVersion.V1_2)
     ) {
