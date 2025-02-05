@@ -1428,9 +1428,9 @@ export class AlphaRouter
     let cachedRoutes: CachedRoutes | undefined;
 
     if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
-      // Only use cache if 0 or more than 1 protocol is specified.
-      // - Cache is optimized for global search, not for specific protocol search
-      if (protocols.length != 1) {
+      // Only use cache if all protocols are specified (V2,V3,V4,MIXED). In any other case, use onchain path.
+      // - Cache is optimized for global search, not for specific protocol(s) search.
+      if (protocols.length === Object.values(Protocol).length) {
         if (
           protocols.includes(Protocol.V4) &&
           (currencyIn.isNative || currencyOut.isNative)
@@ -2314,10 +2314,7 @@ export class AlphaRouter
       Promise.resolve(undefined);
 
     // we are explicitly requiring people to specify v4 for now
-    if (
-      (v4SupportedInChain && (v4ProtocolSpecified || noProtocolsSpecified)) ||
-      (shouldQueryMixedProtocol && mixedProtocolAllowed)
-    ) {
+    if (v4SupportedInChain && (v4ProtocolSpecified || noProtocolsSpecified)) {
       // if (v4ProtocolSpecified || noProtocolsSpecified) {
       v4CandidatePoolsPromise = getV4CandidatePools({
         currencyIn: currencyIn,
@@ -2343,11 +2340,7 @@ export class AlphaRouter
     let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> =
       Promise.resolve(undefined);
     if (!fotInDirectSwap) {
-      if (
-        v3ProtocolSpecified ||
-        noProtocolsSpecified ||
-        (shouldQueryMixedProtocol && mixedProtocolAllowed)
-      ) {
+      if (v3ProtocolSpecified || noProtocolsSpecified) {
         const tokenIn = currencyIn.wrapped;
         const tokenOut = currencyOut.wrapped;
 
@@ -2374,10 +2367,7 @@ export class AlphaRouter
 
     let v2CandidatePoolsPromise: Promise<V2CandidatePools | undefined> =
       Promise.resolve(undefined);
-    if (
-      (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) ||
-      (shouldQueryMixedProtocol && mixedProtocolAllowed)
-    ) {
+    if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
       const tokenIn = currencyIn.wrapped;
       const tokenOut = currencyOut.wrapped;
 
@@ -2534,7 +2524,12 @@ export class AlphaRouter
       // Maybe Quote mixed routes
       // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
       // AND is Mainnet or Gorli
-      if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
+      // Also make sure there are at least 2 protocols provided besides MIXED, before entering mixed quoter
+      if (
+        shouldQueryMixedProtocol &&
+        mixedProtocolAllowed &&
+        protocols.filter((protocol) => protocol !== Protocol.MIXED).length >= 2
+      ) {
         log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
 
         metric.putMetric(
@@ -2575,9 +2570,9 @@ export class AlphaRouter
                   percents,
                   quoteCurrency.wrapped,
                   [
-                    v4CandidatePools!,
-                    v3CandidatePools!,
-                    v2CandidatePools!,
+                    v4CandidatePools,
+                    v3CandidatePools,
+                    v2CandidatePools,
                     crossLiquidityPools,
                   ],
                   tradeType,

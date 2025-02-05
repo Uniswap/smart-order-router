@@ -168,9 +168,9 @@ export type V2GetCandidatePoolsParams = {
 };
 
 export type MixedRouteGetCandidatePoolsParams = {
-  v4CandidatePools: V4CandidatePools;
-  v3CandidatePools: V3CandidatePools;
-  v2CandidatePools: V2CandidatePools;
+  v4CandidatePools: V4CandidatePools | undefined;
+  v3CandidatePools: V3CandidatePools | undefined;
+  v2CandidatePools: V2CandidatePools | undefined;
   crossLiquidityPools: CrossLiquidityCandidatePools;
   routingConfig: AlphaRouterConfig;
   tokenProvider: ITokenProvider;
@@ -1928,11 +1928,66 @@ export async function getMixedRouteCandidatePools({
   v2poolProvider,
 }: MixedRouteGetCandidatePoolsParams): Promise<MixedCandidatePools> {
   const beforeSubgraphPools = Date.now();
-  const [
-    { subgraphPools: V4subgraphPools, candidatePools: V4candidatePools },
-    { subgraphPools: V3subgraphPools, candidatePools: V3candidatePools },
-    { subgraphPools: V2subgraphPools, candidatePools: V2candidatePools },
-  ] = [v4CandidatePools, v3CandidatePools, v2CandidatePools];
+  const [v4Results, v3Results, v2Results] = [
+    v4CandidatePools,
+    v3CandidatePools,
+    v2CandidatePools,
+  ];
+
+  // Create empty defaults for undefined results
+  const {
+    subgraphPools: V4subgraphPools = [],
+    candidatePools: V4candidatePools = {
+      protocol: Protocol.V4,
+      selections: {
+        topByBaseWithTokenIn: [],
+        topByBaseWithTokenOut: [],
+        topByDirectSwapPool: [],
+        topByEthQuoteTokenPool: [],
+        topByTVL: [],
+        topByTVLUsingTokenIn: [],
+        topByTVLUsingTokenOut: [],
+        topByTVLUsingTokenInSecondHops: [],
+        topByTVLUsingTokenOutSecondHops: [],
+      },
+    },
+  } = v4Results || {};
+
+  const {
+    subgraphPools: V3subgraphPools = [],
+    candidatePools: V3candidatePools = {
+      protocol: Protocol.V3,
+      selections: {
+        topByBaseWithTokenIn: [],
+        topByBaseWithTokenOut: [],
+        topByDirectSwapPool: [],
+        topByEthQuoteTokenPool: [],
+        topByTVL: [],
+        topByTVLUsingTokenIn: [],
+        topByTVLUsingTokenOut: [],
+        topByTVLUsingTokenInSecondHops: [],
+        topByTVLUsingTokenOutSecondHops: [],
+      },
+    },
+  } = v3Results || {};
+
+  const {
+    subgraphPools: V2subgraphPools = [],
+    candidatePools: V2candidatePools = {
+      protocol: Protocol.V2,
+      selections: {
+        topByBaseWithTokenIn: [],
+        topByBaseWithTokenOut: [],
+        topByDirectSwapPool: [],
+        topByEthQuoteTokenPool: [],
+        topByTVL: [],
+        topByTVLUsingTokenIn: [],
+        topByTVLUsingTokenOut: [],
+        topByTVLUsingTokenInSecondHops: [],
+        topByTVLUsingTokenOutSecondHops: [],
+      },
+    },
+  } = v2Results || {};
 
   // Injects the liquidity pools found by the getMixedCrossLiquidityCandidatePools function
   V2subgraphPools.push(...crossLiquidityPools.v2Pools);

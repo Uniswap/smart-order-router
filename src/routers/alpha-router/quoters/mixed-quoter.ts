@@ -41,9 +41,9 @@ import { GetQuotesResult, GetRoutesResult } from './model';
 
 export class MixedQuoter extends BaseQuoter<
   [
-    V4CandidatePools,
-    V3CandidatePools,
-    V2CandidatePools,
+    V4CandidatePools | undefined,
+    V3CandidatePools | undefined,
+    V2CandidatePools | undefined,
     CrossLiquidityCandidatePools
   ],
   MixedRoute,
@@ -90,9 +90,9 @@ export class MixedQuoter extends BaseQuoter<
     currencyIn: Currency,
     currencyOut: Currency,
     v4v3v2candidatePools: [
-      V4CandidatePools,
-      V3CandidatePools,
-      V2CandidatePools,
+      V4CandidatePools | undefined,
+      V3CandidatePools | undefined,
+      V2CandidatePools | undefined,
       CrossLiquidityCandidatePools
     ],
     tradeType: TradeType,

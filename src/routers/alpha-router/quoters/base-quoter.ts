@@ -44,9 +44,9 @@ export abstract class BaseQuoter<
   CandidatePools extends
     | SupportedCandidatePools
     | [
-        V4CandidatePools,
-        V3CandidatePools,
-        V2CandidatePools,
+        V4CandidatePools | undefined,
+        V3CandidatePools | undefined,
+        V2CandidatePools | undefined,
         CrossLiquidityCandidatePools
       ],
   Route extends SupportedRoutes,
