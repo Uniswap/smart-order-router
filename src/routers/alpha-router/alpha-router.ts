@@ -1427,10 +1427,41 @@ export class AlphaRouter
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
 
+    // By default, all protocols are enabled but for UniversalRouterVersion.V1_2, V4 is not.
+    // - ref: https://github.com/Uniswap/routing-api/blob/663b607d80d9249f85e7ab0925a611ec3701da2a/lib/util/supportedProtocolVersions.ts#L15
+    // So take this into account when deciding whether to use cached routes or not.
+    // We only want to use cache if all enabled protocols are specified (V2,V3,V4? + MIXED). In any other case, use onchain path.
+    // - Cache is optimized for global search, not for specific protocol(s) search.
+    const availableProtocolsSet = new Set(Object.values(Protocol));
+    const requestedProtocolsSet = new Set(protocols);
+    if (
+      swapConfig?.type === SwapType.UNIVERSAL_ROUTER &&
+      swapConfig.version === UniversalRouterVersion.V1_2
+    ) {
+      availableProtocolsSet.delete(Protocol.V4);
+      if (requestedProtocolsSet.has(Protocol.V4)) {
+        requestedProtocolsSet.delete(Protocol.V4);
+      }
+    }
+    const enabledAndRequestedProtocolsMatch =
+      availableProtocolsSet.size === requestedProtocolsSet.size &&
+      [...availableProtocolsSet].every((protocol) =>
+        requestedProtocolsSet.has(protocol)
+      );
+
+    log.debug('UniversalRouterVersion_CacheGate_Check', {
+      availableProtocolsSet: Array.from(availableProtocolsSet),
+      requestedProtocolsSet: Array.from(requestedProtocolsSet),
+      enabledAndRequestedProtocolsMatch,
+      swapConfigType: swapConfig?.type,
+      swapConfigUniversalRouterVersion:
+        swapConfig?.type === SwapType.UNIVERSAL_ROUTER
+          ? swapConfig?.version
+          : 'N/A',
+    });
+
     if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
-      // Only use cache if all protocols are specified (V2,V3,V4,MIXED). In any other case, use onchain path.
-      // - Cache is optimized for global search, not for specific protocol(s) search.
-      if (protocols.length === Object.values(Protocol).length) {
+      if (enabledAndRequestedProtocolsMatch) {
         if (
           protocols.includes(Protocol.V4) &&
           (currencyIn.isNative || currencyOut.isNative)
