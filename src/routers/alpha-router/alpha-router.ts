@@ -1435,8 +1435,9 @@ export class AlphaRouter
     const availableProtocolsSet = new Set(Object.values(Protocol));
     const requestedProtocolsSet = new Set(protocols);
     if (
-      swapConfig?.type === SwapType.UNIVERSAL_ROUTER &&
-      swapConfig.version === UniversalRouterVersion.V1_2
+      !swapConfig ||
+      (swapConfig.type === SwapType.UNIVERSAL_ROUTER &&
+        swapConfig.version === UniversalRouterVersion.V1_2)
     ) {
       availableProtocolsSet.delete(Protocol.V4);
       if (requestedProtocolsSet.has(Protocol.V4)) {
