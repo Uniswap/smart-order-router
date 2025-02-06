@@ -6,6 +6,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
 import { getAddressLowerCase, nativeOnChain } from '../../../util';
 import { log } from '../../../util/log';
+import { V4_ETH_WETH_FAKE_POOL } from '../../../util/pool';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
   MixedRoute,
@@ -14,7 +15,6 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
-import { FAKE_TICK_SPACING, V4_ETH_WETH_FAKE_POOL } from '../../../util/pool';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -80,7 +80,8 @@ export function computeAllMixedRoutes(
   const containsV4NativePools =
     parts.filter(
       (pool) =>
-        pool instanceof V4Pool && pool.v4InvolvesToken(nativeOnChain(currencyIn.chainId))
+        pool instanceof V4Pool &&
+        pool.v4InvolvesToken(nativeOnChain(currencyIn.chainId))
     ).length > 0;
   const amendedPools = containsV4NativePools
     ? parts.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId])
@@ -90,12 +91,18 @@ export function computeAllMixedRoutes(
     currencyIn,
     currencyOut,
     (route: TPool[], currencyIn: Currency, currencyOut: Currency) => {
-      return new MixedRoute(route, currencyIn, currencyOut);
+      // we only retake the fake v4 pool if the route contains a native v4 pool
+      return new MixedRoute(
+        route,
+        currencyIn,
+        currencyOut,
+        containsV4NativePools
+      );
     },
     (pool: TPool, currency: Currency) => {
       return currency.isNative
         ? (pool as V4Pool).involvesToken(currency)
-        : pool.involvesToken(currency)
+        : pool.involvesToken(currency);
     },
     amendedPools,
     maxHops
@@ -140,7 +147,9 @@ export function computeAllRoutes<
     const currentRouteContainsFakeV4Pool =
       currentRoute.filter(
         (pool) =>
-          pool instanceof V4Pool && pool.tickSpacing === FAKE_TICK_SPACING
+          pool instanceof V4Pool &&
+          pool.tickSpacing ===
+            V4_ETH_WETH_FAKE_POOL[tokenIn.chainId as ChainId].tickSpacing
       ).length > 0;
     const amendedMaxHops = currentRouteContainsFakeV4Pool
       ? maxHops + 1

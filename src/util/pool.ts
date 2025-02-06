@@ -4,7 +4,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
 import { nativeOnChain } from './chains';
 
-export const FAKE_TICK_SPACING = 0;
+const FAKE_TICK_SPACING = 0;
 
 export const V4_ETH_WETH_FAKE_POOL: { [chainId in ChainId]: V4Pool } = {
   [ChainId.MAINNET]: new V4Pool(

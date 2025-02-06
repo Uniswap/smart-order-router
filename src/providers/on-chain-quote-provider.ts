@@ -485,7 +485,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       case Protocol.MIXED:
         return encodeMixedRouteToPath(
           route instanceof V2Route
-            ? new MixedRouteSDK(route.pairs, route.input, route.output)
+            ? new MixedRouteSDK(route.pairs, route.input, route.output, true)
             : route
         ) as TPath;
       default:
