@@ -52,6 +52,7 @@ export const MIXED_SUPPORTED = [
   ChainId.MAINNET,
   ChainId.SEPOLIA,
   ChainId.GOERLI,
+  ChainId.BASE,
 ];
 
 export const HAS_L1_FEE = [
