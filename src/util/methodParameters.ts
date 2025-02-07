@@ -282,8 +282,6 @@ export function buildTrade<TTradeType extends TradeType>(
         quote.denominator
       );
 
-      // we cannot retain fake pools for mixed routes,
-      // when we generate the ur swap calldata
       const routeRaw = new MixedRouteSDK(
         route.pools,
         amountCurrency.currency,
