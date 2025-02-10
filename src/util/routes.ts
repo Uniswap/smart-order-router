@@ -100,6 +100,15 @@ export const routeToString = (route: SupportedRoutes): string => {
         return ' --  ';
       }
 
+      // Kittycorn: Temporary hard code for easier to see on display
+      const tokenize0 =
+        pool.token0.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
+      const tokenize1 =
+        pool.token1.symbol?.toLowerCase().indexOf('kittycorn') !== -1;
+      if ((tokenize0 && !tokenize1) || (!tokenize0 && tokenize1)) {
+        return ` -- ${0.0}% [0x0000000000000000000000000000000000000000000000000000000000000000]`;
+      }
+
       return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
         pool.token0,
         pool.token1,

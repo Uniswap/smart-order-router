@@ -1,3 +1,4 @@
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import {
   ChainId,
   CHAIN_TO_ADDRESSES_MAP,
@@ -7,7 +8,6 @@ import {
 } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
-import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
 export const BNB_TICK_LENS_ADDRESS =
@@ -52,10 +52,13 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
+<<<<<<< HEAD
   [ChainId.UNICHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v3CoreFactoryAddress,
   [ChainId.SONEIUM]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v3CoreFactoryAddress,
+=======
+>>>>>>> a045b5d (resolve conflict)
 };
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
@@ -139,6 +142,8 @@ export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v4QuoterAddress,
   [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4QuoterAddress,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v4QuoterAddress,
+  // Kittycorn: Using KittycornV4Quoter
+  [ChainId.MAINNET]: '0x905Ad472d7eeB94ed1Fc29D8ff4B53FD4D5a5Eb4',
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
@@ -235,6 +240,7 @@ export const STATE_VIEW_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v4StateView,
   [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4StateView,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v4StateView,
+  [ChainId.MAINNET]: '0xe3EF345391654121f385679613Cea79A692C2Dd8',
 };
 
 export const OVM_GASPRICE_ADDRESS =
@@ -278,6 +284,8 @@ export const WETH9: {
     | ChainId.MONAD_TESTNET
     // TODO: remove ROOTSTOCK once we support both at the routing level
     | ChainId.ROOTSTOCK
+    // TODO: remove UNICHAIN once we support both at the routing level
+    | ChainId.UNICHAIN
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(

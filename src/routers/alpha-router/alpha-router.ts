@@ -149,7 +149,6 @@ import {
 } from '../router';
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
@@ -678,7 +677,6 @@ export class AlphaRouter
         case ChainId.UNICHAIN_SEPOLIA:
         case ChainId.MONAD_TESTNET:
         case ChainId.BASE_SEPOLIA:
-        case ChainId.UNICHAIN:
         case ChainId.BASE_GOERLI:
         case ChainId.SONEIUM:
           this.onChainQuoteProvider = new OnChainQuoteProvider(

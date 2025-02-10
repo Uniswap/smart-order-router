@@ -3,8 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - main
-  pull_request:
+      - test
 
 jobs:
   unit-tests:

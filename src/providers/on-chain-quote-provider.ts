@@ -417,7 +417,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
       if (!quoterAddress) {
         throw new Error(
-          `No address for the quoter contract on chain id: ${this.chainId} ${useMixedRouteQuoter} ${mixedRouteContainsV4Pool} ${protocol}`
+          `No address for the quoter contract on chain id: ${this.chainId}`
         );
       }
       return quoterAddress;
