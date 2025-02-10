@@ -27,7 +27,6 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.ZORA,
   ChainId.ZKSYNC,
   ChainId.WORLDCHAIN,
-  ChainId.UNICHAIN,
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.MONAD_TESTNET,
   ChainId.BASE_SEPOLIA,
@@ -46,7 +45,7 @@ export const V2_SUPPORTED = [
   ChainId.MONAD_TESTNET,
 ];
 
-export const V4_SUPPORTED = [ChainId.SEPOLIA];
+export const V4_SUPPORTED = [ChainId.SEPOLIA, ChainId.MAINNET];
 
 export const MIXED_SUPPORTED = [
   ChainId.MAINNET,
@@ -70,7 +69,6 @@ export const HAS_L1_FEE = [
   ChainId.WORLDCHAIN,
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.MONAD_TESTNET,
-  ChainId.UNICHAIN,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -136,8 +134,6 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.UNICHAIN_SEPOLIA;
     case 10143:
       return ChainId.MONAD_TESTNET;
-    case 130:
-      return ChainId.UNICHAIN;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -286,11 +282,6 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
-  [ChainId.UNICHAIN]: [
-    'ETH',
-    'ETHER',
-    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  ],
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -319,7 +310,6 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.UNICHAIN_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.MONAD_TESTNET]: NativeCurrencyName.MONAD,
   [ChainId.BASE_SEPOLIA]: NativeCurrencyName.ETHER,
-  [ChainId.UNICHAIN]: NativeCurrencyName.ETHER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -435,8 +425,6 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_MONAD_TESTNET!;
     case ChainId.BASE_SEPOLIA:
       return process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA!;
-    case ChainId.UNICHAIN:
-      return process.env.JSON_RPC_PROVIDER_UNICHAIN!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }

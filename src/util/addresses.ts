@@ -1,3 +1,4 @@
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import {
   ChainId,
   CHAIN_TO_ADDRESSES_MAP,
@@ -7,7 +8,6 @@ import {
 } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
-import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
 export const BNB_TICK_LENS_ADDRESS =
@@ -52,8 +52,6 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
-  [ChainId.UNICHAIN]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v3CoreFactoryAddress,
 };
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
@@ -87,7 +85,6 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
-  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].quoterAddress,
 };
 
 export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
@@ -112,28 +109,13 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD_TESTNET].quoterAddress, // TODO: deploy view-only-quoter to monad testnet
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].quoterAddress,
-  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].quoterAddress, // TODO: deploy view-only-quoter to unichain
 };
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
-  [ChainId.ARBITRUM_ONE]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_ONE].v4QuoterAddress,
-  [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v4QuoterAddress,
-  [ChainId.POLYGON]: CHAIN_TO_ADDRESSES_MAP[ChainId.POLYGON].v4QuoterAddress,
-  [ChainId.BNB]: CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].v4QuoterAddress,
-  [ChainId.AVALANCHE]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.AVALANCHE].v4QuoterAddress,
-  [ChainId.OPTIMISM]: CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM].v4QuoterAddress,
-  [ChainId.WORLDCHAIN]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].v4QuoterAddress,
-  [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].v4QuoterAddress,
-  [ChainId.UNICHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].v4QuoterAddress,
-  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v4QuoterAddress,
-  [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v4QuoterAddress,
-  [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4QuoterAddress,
+  // Kittycorn: Using KittycornV4Quoter
+  [ChainId.MAINNET]: '0x905Ad472d7eeB94ed1Fc29D8ff4B53FD4D5a5Eb4',
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
@@ -185,7 +167,6 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
-  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].multicallAddress,
 };
 
 export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
@@ -198,20 +179,7 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
 export const STATE_VIEW_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4StateView,
-  [ChainId.ARBITRUM_ONE]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_ONE].v4StateView,
-  [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v4StateView,
-  [ChainId.POLYGON]: CHAIN_TO_ADDRESSES_MAP[ChainId.POLYGON].v4StateView,
-  [ChainId.BNB]: CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].v4StateView,
-  [ChainId.OPTIMISM]: CHAIN_TO_ADDRESSES_MAP[ChainId.OPTIMISM].v4StateView,
-  [ChainId.AVALANCHE]: CHAIN_TO_ADDRESSES_MAP[ChainId.AVALANCHE].v4StateView,
-  [ChainId.WORLDCHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].v4StateView,
-  [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].v4StateView,
-  [ChainId.UNICHAIN_SEPOLIA]:
-    CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].v4StateView,
-  [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v4StateView,
-  [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v4StateView,
-  [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4StateView,
+  [ChainId.MAINNET]: '0xe3EF345391654121f385679613Cea79A692C2Dd8',
 };
 
 export const OVM_GASPRICE_ADDRESS =
@@ -255,6 +223,8 @@ export const WETH9: {
     | ChainId.MONAD_TESTNET
     // TODO: remove ROOTSTOCK once we support both at the routing level
     | ChainId.ROOTSTOCK
+    // TODO: remove UNICHAIN once we support both at the routing level
+    | ChainId.UNICHAIN
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(
@@ -378,13 +348,6 @@ export const WETH9: {
   ),
   [ChainId.BASE_SEPOLIA]: new Token(
     ChainId.BASE_SEPOLIA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.UNICHAIN]: new Token(
-    ChainId.UNICHAIN,
     '0x4200000000000000000000000000000000000006',
     18,
     'WETH',

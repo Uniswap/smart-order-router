@@ -20,7 +20,6 @@ import {
   DAI_MAINNET,
   DAI_MOONBEAM,
   DAI_OPTIMISM,
-  DAI_UNICHAIN,
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
@@ -35,7 +34,6 @@ import {
   USDC_NATIVE_ARBITRUM,
   USDC_OPTIMISM,
   USDC_POLYGON,
-  USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
   USDC_ZKSYNC,
@@ -53,6 +51,8 @@ import {
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WSTETH_MAINNET,
+  TUSDC_MAINNET,
+  TUSDT_MAINNET,
 } from './token-provider';
 import { V3SubgraphPool } from './v3/subgraph-provider';
 
@@ -69,6 +69,8 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDT_MAINNET,
     WBTC_MAINNET,
     WSTETH_MAINNET,
+    TUSDC_MAINNET,
+    TUSDT_MAINNET,
   ],
   [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
   [ChainId.SEPOLIA]: [
@@ -164,12 +166,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN_SEPOLIA]!,
     USDC_UNICHAIN_SEPOLIA,
   ],
-  [ChainId.UNICHAIN]: [
-    nativeOnChain(ChainId.UNICHAIN),
-    WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
-    DAI_UNICHAIN,
-    USDC_UNICHAIN,
-  ],
+  [ChainId.UNICHAIN]: [],
   [ChainId.BASE_SEPOLIA]: [
     nativeOnChain(ChainId.BASE_SEPOLIA),
     WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,

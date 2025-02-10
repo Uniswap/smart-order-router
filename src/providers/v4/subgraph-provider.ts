@@ -41,6 +41,7 @@ export type V4RawSubgraphPool = {
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.SEPOLIA]: '',
+  [ChainId.MAINNET]: '',
 };
 
 /**

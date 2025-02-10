@@ -765,23 +765,6 @@ export const USDC_BASE_SEPOLIA = new Token(
   'USDC Token'
 );
 
-export const USDC_UNICHAIN = new Token(
-  ChainId.UNICHAIN,
-  // TODO: validate USDC address is final / validated
-  '0x078D782b760474a361dDA0AF3839290b0EF57AD6',
-  6,
-  'USDC',
-  'USD Token'
-);
-
-export const DAI_UNICHAIN = new Token(
-  ChainId.UNICHAIN,
-  '0x20CAb320A855b39F724131C69424240519573f81',
-  18,
-  'DAI',
-  'Dai Stablecoin'
-);
-
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -1011,8 +994,6 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_AVAX;
     case ChainId.ZKSYNC:
       return DAI_ZKSYNC;
-    case ChainId.UNICHAIN:
-      return DAI_UNICHAIN;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -1087,8 +1068,6 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_UNICHAIN_SEPOLIA;
     case ChainId.BASE_SEPOLIA:
       return USDC_BASE_SEPOLIA;
-    case ChainId.UNICHAIN:
-      return USDC_UNICHAIN;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -1113,3 +1092,26 @@ export const V4_SEPOLIA_TEST_B = new Token(
   'B',
   'MockB'
 );
+
+// Kittycorn: Setup Tokenize Token
+export const TUSDC_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x88B9Ad010A699Cc0c8C5C5EA8bAF90A0C375df1a',
+  6,
+  'Kittycorn Tokenize USDC',
+  'tUSDC',
+);
+export const TUSDT_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0xA343B1FC2897b8C49A72A9A0B2675cB9c7664e8c',
+  6,
+  'Kittycorn Tokenize USDT',
+  'tUSDT',
+);
+
+export const BASE_TOKENIZE_UNDERLYING: { [chainId in ChainId]?: { tokenize: Token, underlying: Token }[] } = {
+  [ChainId.MAINNET]: [
+    { tokenize: TUSDC_MAINNET, underlying: USDC_MAINNET },
+    { tokenize: TUSDT_MAINNET, underlying: USDT_MAINNET },
+  ],
+};
