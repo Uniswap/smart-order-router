@@ -765,6 +765,14 @@ export const USDC_UNICHAIN_SEPOLIA = new Token(
   'USDC Token'
 );
 
+export const USDC_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
 export const USDC_BASE_SEPOLIA = new Token(
   ChainId.BASE_SEPOLIA,
   '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
@@ -1137,14 +1145,14 @@ export const V4_SEPOLIA_TEST_B = new Token(
 // Kittycorn: Setup Tokenize Token
 export const TUSDC_MAINNET = new Token(
   ChainId.MAINNET,
-  '0x88B9Ad010A699Cc0c8C5C5EA8bAF90A0C375df1a',
+  '0xf975A646FCa589Be9fc4E0C28ea426A75645fB1f',
   6,
   'Kittycorn Tokenize USDC',
   'tUSDC'
 );
 export const TUSDT_MAINNET = new Token(
   ChainId.MAINNET,
-  '0xA343B1FC2897b8C49A72A9A0B2675cB9c7664e8c',
+  '0x88B9Ad010A699Cc0c8C5C5EA8bAF90A0C375df1a',
   6,
   'Kittycorn Tokenize USDT',
   'tUSDT'
