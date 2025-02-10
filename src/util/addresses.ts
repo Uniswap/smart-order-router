@@ -1,7 +1,8 @@
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import {
-  CHAIN_TO_ADDRESSES_MAP,
   ChainId,
+  // eslint-disable-next-line sort-imports
+  CHAIN_TO_ADDRESSES_MAP,
   Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
@@ -115,7 +116,7 @@ export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
   // Kittycorn: Using KittycornV4Quoter
-  [ChainId.MAINNET]: '0x905Ad472d7eeB94ed1Fc29D8ff4B53FD4D5a5Eb4',
+  [ChainId.MAINNET]: '0xA343B1FC2897b8C49A72A9A0B2675cB9c7664e8c',
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
@@ -179,7 +180,7 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
 export const STATE_VIEW_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4StateView,
-  [ChainId.MAINNET]: '0xe3EF345391654121f385679613Cea79A692C2Dd8',
+  [ChainId.MAINNET]: '0x23228469b3439d81DC64e3523068976201bA08C3',
 };
 
 export const OVM_GASPRICE_ADDRESS =
