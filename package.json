@@ -7,7 +7,7 @@
   "module": "build/module/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Uniswap/smart-order-router.git"
+    "url": "https://github.com/Crown-Labs/smart-order-router"
   },
   "license": "GPL",
   "keywords": [],
