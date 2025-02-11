@@ -54,6 +54,7 @@ export const MIXED_SUPPORTED = [
   ChainId.GOERLI,
   ChainId.BASE,
   ChainId.UNICHAIN,
+  ChainId.BASE,
 ];
 
 export const HAS_L1_FEE = [
