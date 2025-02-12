@@ -637,6 +637,7 @@ jobs:
         run: npm run integ-test  -- -t 'quote for other networks * base'
         env:
           JSON_RPC_PROVIDER_BASE: ${{ secrets.JSON_RPC_PROVIDER_BASE }}
+          JSON_RPC_PROVIDER_BASE_SEPOLIA: ${{ secrets.JSON_RPC_PROVIDER_BASE_SEPOLIA }}
           TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
           TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
@@ -848,39 +849,6 @@ jobs:
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
-  integration-tests-quote-for-other-networks-base-sepolia:
-    name: Integration Tests - Quote For Other Networks Base Sepolia
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 18.x
-          registry-url: https://registry.npmjs.org
-
-      - uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      - name: Install dependencies
-        run: npm install
-
-      # This is required separately from yarn test because it generates the typechain definitions
-      - name: Compile
-        run: npm run build
-
-      - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * base sepolia'
-        env:
-          JSON_RPC_PROVIDER_MONAD_TESTNET: ${{ secrets.JSON_RPC_PROVIDER_BASE_SEPOLIA }}
-          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
-          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
-          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
-          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
-
   integration-tests-quote-for-other-networks-remaining-networks:
     name: Integration Tests - Quote For Other Networks Remaining Networks
     runs-on: ubuntu-latest
@@ -908,7 +876,7 @@ jobs:
 
       # This is to capture any new networks added into the integ-test suite
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|sepolia|celo|bnb|avalanche|base|blast|zora|zksync|worldchain|UNICHAIN-sepolia|monad-testnet|base-sepolia))'
+        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|sepolia|celo|bnb|avalanche|base|blast|zora|zksync|worldchain|unichain|monad-testnet))'
         env:
           # We don't know which new networks will be added, so we have no way to provider RPC URL ahead of time
           # This will make remaining networks integ-test suite to fail, and dev is expected to manually add RPC URL for the new network

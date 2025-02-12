@@ -264,7 +264,7 @@ if (process.env.INTEG_TEST_DEBUG) {
   );
 }
 
-jest.retryTimes(10);
+jest.retryTimes(0);
 
 describe('alpha router integration', () => {
   let alice: JsonRpcSigner;
@@ -4035,12 +4035,13 @@ describe('quote for other networks', () => {
 
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
-            // Tenderly does not support Celo
+            // Tenderly Node RPC does not support Celo, Blast, Zksync, BNB
             if ([
               ChainId.CELO,
               ChainId.CELO_ALFAJORES,
               ChainId.BLAST,
-              ChainId.ZKSYNC
+              ChainId.ZKSYNC,
+              ChainId.BNB,
             ].includes(chain)) {
               return;
             }
