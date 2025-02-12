@@ -3719,6 +3719,8 @@ describe('quote for other networks', () => {
 
         if (chain === ChainId.MAINNET && tradeType === TradeType.EXACT_INPUT) {
           describe('Cross-protocol liquidity pools', () => {
+            // https://linear.app/uniswap/issue/ROUTE-395/eth-dog-returns-a-route-through-wsteth-test-failure-is-a-regression
+            // this test is failing, but it should not
             it('ETH -> DOG returns a route through wstETH', async () => {
               const tokenIn = wrappedNative;
               const dog = new Token(
