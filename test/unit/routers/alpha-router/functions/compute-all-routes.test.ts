@@ -313,6 +313,15 @@ describe('compute all mixed routes', () => {
     });
   });
 
+  test('disables ETH/WETH wrapping in mixed routes', async () => {
+    const pools = [
+      USDC_WETH_LOW, // V3 pool
+      ETH_USDT_V4_LOW
+    ];
+    const routes = computeAllMixedRoutes(USDC, USDT, pools, 2, false);
+    expect(routes.length).toEqual(0);
+  });
+
   test('handles WETH/ETH unwrapping in mixed routes', async () => {
     const pools = [
       ETH_USDT_V4_LOW,
@@ -330,6 +339,15 @@ describe('compute all mixed routes', () => {
       expect(route.pathOutput).toEqual(USDC)
       expect(route.chainId).toEqual(1)
     });
+  });
+
+  test('disables WETH/ETH unwrapping in mixed routes', async () => {
+    const pools = [
+      ETH_USDT_V4_LOW,
+      USDC_WETH_LOW
+    ];
+    const routes = computeAllMixedRoutes(USDT, USDC, pools, 2, false);
+    expect(routes.length).toEqual(0);
   });
 });
 
