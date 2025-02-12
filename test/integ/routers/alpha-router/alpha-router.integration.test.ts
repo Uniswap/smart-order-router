@@ -3574,7 +3574,7 @@ describe('quote for other networks', () => {
     [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
     [ChainId.WORLDCHAIN]: () => WLD_WORLDCHAIN,
     [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
-    [ChainId.UNICHAIN]: () => WNATIVE_ON(ChainId.UNICHAIN),
+    [ChainId.UNICHAIN]: () => DAI_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
     [ChainId.BASE_SEPOLIA]: () => WNATIVE_ON(ChainId.BASE_SEPOLIA),
   };
