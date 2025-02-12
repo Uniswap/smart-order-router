@@ -2151,6 +2151,7 @@ export async function getMixedRouteCandidatePools({
       );
       return undefined;
     }
+
     if (!tokenA || !tokenB) {
       log.info(
         `Dropping candidate pool for ${subgraphPool.token0.id}/${

@@ -183,7 +183,8 @@ export class MixedQuoter extends BaseQuoter<
       currencyIn,
       currencyOut,
       pools,
-      maxSwapsPerPath
+      maxSwapsPerPath,
+      routingConfig.shouldEnableMixedRouteEthWeth
     );
 
     metric.putMetric(

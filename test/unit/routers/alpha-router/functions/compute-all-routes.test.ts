@@ -7,6 +7,7 @@ import {
   nativeOnChain,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
+  V4_ETH_WETH_FAKE_POOL,
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
@@ -40,7 +41,6 @@ import {
 } from '../../../../test-util/mock-data';
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { ChainId, WETH9 } from '@uniswap/sdk-core';
-import { V4_ETH_WETH_FAKE_POOL } from '../../../../../src/util/pool';
 
 describe('compute all v4 routes', () => {
   test('succeeds to compute all routes', async () => {
@@ -299,7 +299,7 @@ describe('compute all mixed routes', () => {
       USDC_WETH_LOW, // V3 pool
       ETH_USDT_V4_LOW
     ];
-    const routes = computeAllMixedRoutes(USDC, USDT, pools, 2);
+    const routes = computeAllMixedRoutes(USDC, USDT, pools, 2, true);
     expect(routes.length).toBeGreaterThan(0);
     // Routes should not include both ETH and WETH fake pools
     routes.forEach(route => {
@@ -313,12 +313,21 @@ describe('compute all mixed routes', () => {
     });
   });
 
+  test('disables ETH/WETH wrapping in mixed routes', async () => {
+    const pools = [
+      USDC_WETH_LOW, // V3 pool
+      ETH_USDT_V4_LOW
+    ];
+    const routes = computeAllMixedRoutes(USDC, USDT, pools, 2, false);
+    expect(routes.length).toEqual(0);
+  });
+
   test('handles WETH/ETH unwrapping in mixed routes', async () => {
     const pools = [
       ETH_USDT_V4_LOW,
       USDC_WETH_LOW
     ];
-    const routes = computeAllMixedRoutes(USDT, USDC, pools, 2);
+    const routes = computeAllMixedRoutes(USDT, USDC, pools, 2, true);
     expect(routes.length).toBeGreaterThan(0);
     // Routes should not include both ETH and WETH fake pools
     routes.forEach(route => {
@@ -330,6 +339,15 @@ describe('compute all mixed routes', () => {
       expect(route.pathOutput).toEqual(USDC)
       expect(route.chainId).toEqual(1)
     });
+  });
+
+  test('disables WETH/ETH unwrapping in mixed routes', async () => {
+    const pools = [
+      ETH_USDT_V4_LOW,
+      USDC_WETH_LOW
+    ];
+    const routes = computeAllMixedRoutes(USDT, USDC, pools, 2, false);
+    expect(routes.length).toEqual(0);
   });
 });
 

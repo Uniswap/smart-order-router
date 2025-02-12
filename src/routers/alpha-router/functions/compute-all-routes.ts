@@ -4,9 +4,12 @@ import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
-import { getAddressLowerCase, nativeOnChain } from '../../../util';
+import {
+  getAddressLowerCase,
+  nativeOnChain,
+  V4_ETH_WETH_FAKE_POOL,
+} from '../../../util';
 import { log } from '../../../util/log';
-import { V4_ETH_WETH_FAKE_POOL } from '../../../util/pool';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
   MixedRoute,
@@ -74,7 +77,8 @@ export function computeAllMixedRoutes(
   currencyIn: Currency,
   currencyOut: Currency,
   parts: TPool[],
-  maxHops: number
+  maxHops: number,
+  shouldEnableMixedRouteEthWeth?: boolean
 ): MixedRoute[] {
   // only add fake v4 pool, if we see there's a native v4 pool in the candidate pool
   const containsV4NativePools =
@@ -83,9 +87,10 @@ export function computeAllMixedRoutes(
         pool instanceof V4Pool &&
         pool.v4InvolvesToken(nativeOnChain(currencyIn.chainId))
     ).length > 0;
-  const amendedPools = containsV4NativePools
-    ? parts.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId])
-    : parts;
+  const amendedPools =
+    containsV4NativePools && shouldEnableMixedRouteEthWeth
+      ? parts.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId])
+      : parts;
   // NOTE: we added a fake v4 pool, in order for mixed route to connect the v3 weth pool with v4 eth pool
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
     currencyIn,
@@ -99,11 +104,10 @@ export function computeAllMixedRoutes(
         containsV4NativePools
       );
     },
-    (pool: TPool, currency: Currency) => {
-      return currency.isNative
+    (pool: TPool, currency: Currency) =>
+      currency.isNative
         ? (pool as V4Pool).involvesToken(currency)
-        : pool.involvesToken(currency);
-    },
+        : pool.involvesToken(currency),
     amendedPools,
     maxHops
   );
