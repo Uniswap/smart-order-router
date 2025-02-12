@@ -159,7 +159,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.ROOTSTOCK]: 30,
   [ChainId.BLAST]: 34,
   [ChainId.ZKSYNC]: 40,
-  [ChainId.WORLDCHAIN]: 50,
+  [ChainId.WORLDCHAIN]: 75,
   [ChainId.UNICHAIN_SEPOLIA]: 50,
   [ChainId.UNICHAIN]: 50,
   [ChainId.MONAD_TESTNET]: 50,
