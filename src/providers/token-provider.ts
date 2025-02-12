@@ -393,7 +393,7 @@ export const DAI_BASE_SEPOLIA = new Token(
   18,
   'DAI',
   'Dai Stablecoin'
-)
+);
 
 //polygon mumbai tokens
 export const WMATIC_POLYGON_MUMBAI = new Token(

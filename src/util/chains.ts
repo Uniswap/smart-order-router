@@ -45,7 +45,7 @@ export const V2_SUPPORTED = [
   ChainId.AVALANCHE,
   ChainId.MONAD_TESTNET,
   ChainId.UNICHAIN_SEPOLIA,
-  ChainId.UNICHAIN
+  ChainId.UNICHAIN,
 ];
 
 export const V4_SUPPORTED = [ChainId.SEPOLIA];

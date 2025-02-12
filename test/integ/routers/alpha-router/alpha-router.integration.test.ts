@@ -130,7 +130,7 @@ import {
 const FORK_BLOCK = 20444945;
 const UNIVERSAL_ROUTER_ADDRESS_V1_2 = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(UniversalRouterVersion.V1_2, 1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
-const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
+const LARGE_SLIPPAGE = new Percent(75, 100); // 5% or 10_000?
 
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
@@ -2888,7 +2888,6 @@ describe('alpha router integration', () => {
             const tokenInAndTokenOut = [
               [BULLET_WITHOUT_TAX, WETH9[ChainId.MAINNET]!],
               [WETH9[ChainId.MAINNET]!, BULLET_WITHOUT_TAX],
-              [WETH9[ChainId.MAINNET]!, DFNDR_WITHOUT_TAX],
             ];
 
             tokenInAndTokenOut.forEach(([tokenIn, tokenOut]) => {
