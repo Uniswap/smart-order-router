@@ -48,9 +48,11 @@ export const WHALES = (token: Currency): string => {
     case nativeOnChain(ChainId.BNB):
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case nativeOnChain(ChainId.OPTIMISM):
-      return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
+      return '0xf977814e90da44bfa03b6295a0616a897441acec';
     case nativeOnChain(ChainId.ZORA):
       return '0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9';
+    case nativeOnChain(ChainId.UNICHAIN):
+      return '0x1f49a3fa2b5B5b61df8dE486aBb6F3b9df066d86';
     case WETH9[1]:
       return '0x6B44ba0a126a2A1a8aa6cD1AdeeD002e141Bcd44';
     case WNATIVE_ON(ChainId.MAINNET):
@@ -64,13 +66,15 @@ export const WHALES = (token: Currency): string => {
     case WNATIVE_ON(ChainId.BASE):
       return '0x0172e05392aba65366C4dbBb70D958BbF43304E4';
     case WNATIVE_ON(ChainId.OPTIMISM):
-      return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
+      return '0x274d9E726844AB52E351e8F1272e7fc3f58B7E5F';
     case WNATIVE_ON(ChainId.BNB):
       return '0x59d779BED4dB1E734D3fDa3172d45bc3063eCD69';
     case WNATIVE_ON(ChainId.AVALANCHE):
       return '0xba12222222228d8ba445958a75a0704d566bf2c8';
     case WNATIVE_ON(ChainId.ZORA):
       return '0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9';
+    case WNATIVE_ON(ChainId.UNICHAIN):
+      return '0x07aE8551Be970cB1cCa11Dd7a11F47Ae82e70E67';
     case USDC_MAINNET:
       return '0x8eb8a3b98659cce290402893d0123abb75e3ab28';
     case UNI_MAINNET:
@@ -113,6 +117,8 @@ export const WHALES = (token: Currency): string => {
       return '0x20fe51a9229eef2cf8ad9e89d91cab9312cf3b7a';
     case USDC_ON(ChainId.UNICHAIN_SEPOLIA):
       return '0xca8cA8840c77589981E63f4D8122fFEc4b74e2a1';
+    case USDC_UNICHAIN:
+      return '0xB5A2a236581dbd6BCECD8A25EeBFF140595f138C';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):

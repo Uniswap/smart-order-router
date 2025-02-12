@@ -518,6 +518,10 @@ export type AlphaRouterConfig = {
    * pass in routing-api intent to align the intent between routing-api and SOR
    */
   intent?: INTENT;
+  /**
+   * boolean flag to control whether we should enable mixed route that connects ETH <-> WETH
+   */
+  shouldEnableMixedRouteEthWeth?: boolean;
 };
 
 export class AlphaRouter
@@ -559,6 +563,7 @@ export class AlphaRouter
   protected mixedSupported?: ChainId[];
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
+  protected shouldEnableMixedRouteEthWeth?: boolean;
 
   constructor({
     chainId,
