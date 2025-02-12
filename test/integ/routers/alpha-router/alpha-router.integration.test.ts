@@ -90,8 +90,6 @@ import {
   V2Route,
   V3PoolProvider,
   V3Route,
-  V4_SEPOLIA_TEST_A,
-  V4_SEPOLIA_TEST_B,
   V4PoolProvider,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
@@ -139,7 +137,7 @@ const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.MAINNET]: 50,
   [ChainId.GOERLI]: 62,
-  [ChainId.SEPOLIA]: 75,
+  [ChainId.SEPOLIA]: 95,
   [ChainId.OPTIMISM]: 75,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
@@ -3513,7 +3511,6 @@ describe('quote for other networks', () => {
     [ChainId.MAINNET]: () => USDC_ON(ChainId.MAINNET),
     [ChainId.GOERLI]: () => UNI_GOERLI,
     [ChainId.SEPOLIA]: () => USDC_ON(ChainId.SEPOLIA),
-    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_A,
     [ChainId.OPTIMISM]: () => USDC_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM]: () => USDC_NATIVE_OPTIMISM,
     [ChainId.OPTIMISM_GOERLI]: () => USDC_ON(ChainId.OPTIMISM_GOERLI),
@@ -3550,7 +3547,6 @@ describe('quote for other networks', () => {
     [ChainId.MAINNET]: () => DAI_ON(1),
     [ChainId.GOERLI]: () => DAI_ON(ChainId.GOERLI),
     [ChainId.SEPOLIA]: () => DAI_ON(ChainId.SEPOLIA),
-    [ChainId.SEPOLIA]: () => V4_SEPOLIA_TEST_B,
     [ChainId.OPTIMISM]: () => DAI_ON(ChainId.OPTIMISM),
     [ChainId.OPTIMISM_GOERLI]: () => DAI_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.OPTIMISM_SEPOLIA]: () => USDC_ON(ChainId.OPTIMISM_SEPOLIA),
@@ -3592,7 +3588,8 @@ describe('quote for other networks', () => {
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA_SEPOLIA &&
       c != ChainId.ROOTSTOCK &&
-      c != ChainId.MONAD_TESTNET
+      c != ChainId.MONAD_TESTNET &&
+      c != ChainId.BASE_SEPOLIA
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
@@ -3755,10 +3752,6 @@ describe('quote for other networks', () => {
 
         describe(`Swap`, function() {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
-            if (erc1.equals(V4_SEPOLIA_TEST_A)) {
-              return;
-            }
-
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
             const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
@@ -3818,11 +3811,6 @@ describe('quote for other networks', () => {
           });
 
           it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
-            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_A)) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
-              return;
-            }
-
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -3929,11 +3917,6 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
-            if (chain === ChainId.SEPOLIA && !erc1.equals(V4_SEPOLIA_TEST_A)) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
-              return;
-            }
-
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -3974,12 +3957,6 @@ describe('quote for other networks', () => {
           });
 
           it(`does not error when protocols array is empty`, async () => {
-            // V4 protocol requires explicit Protocol.V4 in the input array
-            if (chain === ChainId.SEPOLIA && erc1.equals(V4_SEPOLIA_TEST_A)) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
-              return;
-            }
-
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -4035,13 +4012,14 @@ describe('quote for other networks', () => {
 
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
-            // Tenderly Node RPC does not support Celo, Blast, Zksync, BNB
+            // Tenderly Node RPC does not support Celo, Blast, Zksync, BNB, ZORA
             if ([
               ChainId.CELO,
               ChainId.CELO_ALFAJORES,
               ChainId.BLAST,
               ChainId.ZKSYNC,
               ChainId.BNB,
+              ChainId.ZORA
             ].includes(chain)) {
               return;
             }

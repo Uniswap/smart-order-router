@@ -387,6 +387,14 @@ export const DAI_POLYGON = new Token(
   'Dai Stablecoin'
 );
 
+export const DAI_BASE_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0xE6F6e27c0BF1a4841E3F09d03D7D31Da8eAd0a27',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+)
+
 //polygon mumbai tokens
 export const WMATIC_POLYGON_MUMBAI = new Token(
   ChainId.POLYGON_MUMBAI,
@@ -1013,6 +1021,8 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_ZKSYNC;
     case ChainId.UNICHAIN:
       return DAI_UNICHAIN;
+    case ChainId.BASE_SEPOLIA:
+      return DAI_BASE_SEPOLIA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
