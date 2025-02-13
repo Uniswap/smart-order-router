@@ -3324,7 +3324,7 @@ describe('alpha router integration', () => {
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.MIXED],
+              protocols: [Protocol.V3, Protocol.V2, Protocol.MIXED],
             }
           );
           expect(swap).toBeDefined();
