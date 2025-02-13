@@ -44,6 +44,8 @@ export const V2_SUPPORTED = [
   ChainId.BNB,
   ChainId.AVALANCHE,
   ChainId.MONAD_TESTNET,
+  ChainId.UNICHAIN_SEPOLIA,
+  ChainId.UNICHAIN,
 ];
 
 export const V4_SUPPORTED = [ChainId.SEPOLIA];
@@ -54,6 +56,7 @@ export const MIXED_SUPPORTED = [
   ChainId.GOERLI,
   ChainId.BASE,
   ChainId.UNICHAIN,
+  ChainId.BASE,
 ];
 
 export const HAS_L1_FEE = [
