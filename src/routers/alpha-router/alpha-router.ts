@@ -67,7 +67,11 @@ import {
 } from '../../providers/portion-provider';
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
-import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
+import {
+  BASE_TOKENIZE_UNDERLYING,
+  ITokenProvider,
+  TokenProvider,
+} from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
   TokenValidatorProvider,
@@ -1977,6 +1981,31 @@ export class AlphaRouter
       portionAmount: portionAmount,
       quoteGasAndPortionAdjusted: quoteGasAndPortionAdjusted,
     };
+
+    // Kittycorn: replace pool id with 0x for Tokenize pool in swapRoute.route.pools
+    const tokenizes = BASE_TOKENIZE_UNDERLYING[this.chainId]?.map((base) => {
+      return base.tokenize.address.toLocaleLowerCase();
+    });
+
+    swapRoute.route.forEach((route) => {
+      const pools = (route.route as any).pools;
+      for (let i = 0; i < pools.length; i++) {
+        const pool = pools[i];
+        if (pool.poolId) {
+          const tokenize0 = tokenizes?.includes(
+            (pool?.token0 as Token).address.toLowerCase()
+          );
+          const tokenize1 = tokenizes?.includes(
+            (pool?.token1 as Token).address.toLowerCase()
+          );
+          if ((tokenize0 && !tokenize1) || (!tokenize0 && tokenize1)) {
+            pools[i].poolId =
+              '0x0000000000000000000000000000000000000000000000000000000000000000';
+            pools[i].fee = 0;
+          }
+        }
+      }
+    });
 
     if (
       swapConfig &&
