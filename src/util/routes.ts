@@ -109,12 +109,12 @@ export const routeToString = (route: SupportedRoutes): string => {
         return base.tokenize.address.toLocaleLowerCase();
       });
 
-      const tokenize0 = tokenizes?.includes(
-        (pool.token0 as Token).address.toLowerCase()
-      );
-      const tokenize1 = tokenizes?.includes(
-        (pool.token1 as Token).address.toLowerCase()
-      );
+      const tokenize0 =
+        !(pool.token0 as Token).isNative &&
+        tokenizes?.includes((pool.token0 as Token).address.toLowerCase());
+      const tokenize1 =
+        !(pool.token0 as Token).isNative &&
+        tokenizes?.includes((pool.token1 as Token).address.toLowerCase());
       if ((tokenize0 && !tokenize1) || (!tokenize0 && tokenize1)) {
         return ` -- ${0.0}% [0x0000000000000000000000000000000000000000000000000000000000000000]`;
       }
