@@ -153,7 +153,7 @@ async function getQuote(payload: any) {
       protocols,
       maxSwapsPerPath: 6,
       minSplits: 1,
-      maxSplits: 3,
+      maxSplits: 5,
       distributionPercent: 5,
       debugRouting: false,
     },
@@ -209,7 +209,8 @@ async function getQuote(payload: any) {
 }
 
 dotenv.config();
-if (!!process.env.DEVELOP) {
+
+if (process.env.DEVELOP === 'true') {
   main().catch((error) => {
     console.error('Error:', error);
   });

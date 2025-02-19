@@ -1157,6 +1157,20 @@ export const TUSDT_MAINNET = new Token(
   'Kittycorn Tokenize USDT',
   'tUSDT'
 );
+export const TWETH_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x6C3F7ed79b9D75486D0250946f7a20BDA74844Ba',
+  6,
+  'Kittycorn Tokenize WETH',
+  'tWETH'
+);
+export const TWBTC_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x90A3B384F62f43Ba07938EA43aEEc35c2aBfeCa2',
+  6,
+  'Kittycorn Tokenize WBTC',
+  'tWBTC'
+);
 
 export const BASE_TOKENIZE_UNDERLYING: {
   [chainId in ChainId]?: { tokenize: Token; underlying: Token }[];
@@ -1164,5 +1178,7 @@ export const BASE_TOKENIZE_UNDERLYING: {
   [ChainId.MAINNET]: [
     { tokenize: TUSDC_MAINNET, underlying: USDC_MAINNET },
     { tokenize: TUSDT_MAINNET, underlying: USDT_MAINNET },
+    { tokenize: TWETH_MAINNET, underlying: WNATIVE_ON(ChainId.MAINNET) },
+    { tokenize: TWBTC_MAINNET, underlying: WBTC_MAINNET },
   ],
 };
