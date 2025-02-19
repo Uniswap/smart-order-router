@@ -1,6 +1,6 @@
 {
   "name": "@kittycorn-labs/smart-order-router",
-  "version": "4.17.12-1",
+  "version": "4.17.12-2",
   "description": "Uniswap Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
@@ -28,7 +28,8 @@
     "test": "jest test/unit",
     "integ-test": "TS_NODE=true jest test/integ --testRunner='jest-circus/runner'",
     "prepare": "husky",
-    "npm:publish": "npm publish --access public"
+    "npm:publish": "npm publish --access public",
+    "dev": "ts-node cli/commands/main.ts"
   },
   "engines": {
     "node": ">=10"
