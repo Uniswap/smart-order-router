@@ -57,6 +57,13 @@ export const MIXED_SUPPORTED = [
   ChainId.BASE,
   ChainId.UNICHAIN,
   ChainId.BASE,
+  ChainId.ARBITRUM_ONE,
+  ChainId.POLYGON,
+  ChainId.OPTIMISM,
+  ChainId.AVALANCHE,
+  ChainId.BNB,
+  ChainId.WORLDCHAIN,
+  ChainId.ZORA,
 ];
 
 export const HAS_L1_FEE = [
