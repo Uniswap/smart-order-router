@@ -111,12 +111,27 @@ export const WSTETH_MAINNET = new Token(
   'Wrapped liquid staked Ether'
 );
 
+// Using Aave deploy token
 export const USDC_SEPOLIA = new Token(
   ChainId.SEPOLIA,
-  '0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5',
-  18,
+  '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+  6,
   'USDC',
   'USDC Token'
+);
+export const USDT_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0',
+  6,
+  'USDT',
+  'USDT Token'
+);
+export const WBTC_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x29f2D40B0605204364af54EC677bD022dA425d03',
+  8,
+  'WBTC',
+  'WBTC Token'
 );
 export const USDC_NATIVE_SEPOLIA = new Token(
   ChainId.SEPOLIA,
@@ -125,6 +140,7 @@ export const USDC_NATIVE_SEPOLIA = new Token(
   'USDC',
   'USDC Token'
 );
+
 export const DAI_SEPOLIA = new Token(
   ChainId.SEPOLIA,
   '0x7AF17A48a6336F7dc1beF9D485139f7B6f4FB5C8',
@@ -1143,6 +1159,7 @@ export const V4_SEPOLIA_TEST_B = new Token(
 );
 
 // Kittycorn: Setup Tokenize Token
+// Mainnet
 export const TUSDC_MAINNET = new Token(
   ChainId.MAINNET,
   '0x39826E09f8efb9df4C56Aeb9eEC0D2B8164d3B36',
@@ -1172,6 +1189,36 @@ export const TWBTC_MAINNET = new Token(
   'tWBTC'
 );
 
+// Sepolia
+export const TUSDC_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x1E271DB8D8B446A0DEe8e9D774f4213e9Bc1C6ba',
+  6,
+  'Kittycorn Tokenize USDC',
+  'tUSDC'
+);
+export const TUSDT_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x137a906E06EC20808c8F156F9024196427429220',
+  6,
+  'Kittycorn Tokenize USDT',
+  'tUSDT'
+);
+export const TWETH_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x9fEcb19a660d1d6d3aD7a33A7e9BeB01A9EE24aB',
+  18,
+  'Kittycorn Tokenize WETH',
+  'tWETH'
+);
+export const TWBTC_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x3dd320984b954453D09F69B95d4c9F5Bc92a9a58',
+  8,
+  'Kittycorn Tokenize WBTC',
+  'tWBTC'
+);
+
 export const BASE_TOKENIZE_UNDERLYING: {
   [chainId in ChainId]?: { tokenize: Token; underlying: Token }[];
 } = {
@@ -1180,5 +1227,11 @@ export const BASE_TOKENIZE_UNDERLYING: {
     { tokenize: TUSDT_MAINNET, underlying: USDT_MAINNET },
     { tokenize: TWETH_MAINNET, underlying: WNATIVE_ON(ChainId.MAINNET) },
     { tokenize: TWBTC_MAINNET, underlying: WBTC_MAINNET },
+  ],
+  [ChainId.SEPOLIA]: [
+    { tokenize: TUSDC_SEPOLIA, underlying: USDC_SEPOLIA },
+    { tokenize: TUSDT_SEPOLIA, underlying: USDT_SEPOLIA },
+    { tokenize: TWETH_SEPOLIA, underlying: WNATIVE_ON(ChainId.SEPOLIA) },
+    { tokenize: TWBTC_SEPOLIA, underlying: WBTC_SEPOLIA },
   ],
 };

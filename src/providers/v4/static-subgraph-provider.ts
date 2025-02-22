@@ -68,6 +68,7 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
     log.info(
       `V4 Static subgraph provider about to get ${pairs.length} pools on-chain`
     );
+
     const poolAccessor = await this.poolProvider.getPools(
       pairs,
       providerConfig

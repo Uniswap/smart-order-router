@@ -32,6 +32,12 @@ import {
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../src/routers/alpha-router/config';
 import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
 
+dotenv.config();
+const RPC_URL: { [key: number]: string } = {
+  1: `${process.env.JSON_RPC_PROVIDER}`,
+  11155111: `${process.env.JSON_RPC_PROVIDER_SEPOLIA}`,
+};
+
 async function main() {
   const payload = {
     amount: '3500000000',
@@ -46,10 +52,10 @@ async function main() {
       },
     ],
     swapper: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
-    tokenIn: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    tokenInChainId: 1,
-    tokenOut: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-    tokenOutChainId: 1,
+    tokenIn: '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0', // USDT
+    tokenInChainId: 11155111,
+    tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC
+    tokenOutChainId: 11155111,
     type: 'EXACT_INPUT',
     urgency: 'normal',
     protocols: ['V4'],
@@ -73,7 +79,14 @@ async function getQuote(payload: any) {
   const protocolsStr = payload.protocols;
 
   // Initialize providers
-  const provider = new JsonRpcProvider(process.env.JSON_RPC_PROVIDER, chainId);
+  const rpcUrl = RPC_URL[Number(payload.tokenInChainId)];
+  if (!rpcUrl) {
+    throw new Error(
+      `RPC URL not defined for chainId ${payload.tokenInChainId}`
+    );
+  }
+
+  const provider = new JsonRpcProvider(rpcUrl, chainId);
   const blockNumber = await provider.getBlockNumber();
 
   const tokenCache = new NodeJSCache<Token>(
@@ -207,8 +220,6 @@ async function getQuote(payload: any) {
     return swapRoute;
   }
 }
-
-dotenv.config();
 
 if (process.env.DEVELOP === 'true') {
   main().catch((error) => {

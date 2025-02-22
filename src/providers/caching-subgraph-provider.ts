@@ -23,9 +23,13 @@ import {
   ETH_BNB,
   OP_OPTIMISM,
   TUSDC_MAINNET,
+  TUSDC_SEPOLIA,
   TUSDT_MAINNET,
+  TUSDT_SEPOLIA,
   TWBTC_MAINNET,
+  TWBTC_SEPOLIA,
   TWETH_MAINNET,
+  TWETH_SEPOLIA,
   USDB_BLAST,
   USDCE_ZKSYNC,
   USDC_ARBITRUM,
@@ -81,6 +85,10 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.SEPOLIA]: [
     nativeOnChain(ChainId.SEPOLIA),
     WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!,
+    TUSDC_SEPOLIA,
+    TUSDT_SEPOLIA,
+    TWBTC_SEPOLIA,
+    TWETH_SEPOLIA,
   ],
   //v2 not deployed on [arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
   [ChainId.OPTIMISM]: [
