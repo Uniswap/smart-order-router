@@ -33,6 +33,7 @@ export enum SimulationStatus {
   NotApproved = 4,
   SystemDown = 5,
   SlippageTooLow = 6,
+  TransferFromFailed = 7,
 }
 
 /**
