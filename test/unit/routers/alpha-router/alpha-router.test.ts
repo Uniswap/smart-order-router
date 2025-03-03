@@ -111,6 +111,7 @@ import {
 import {
   InMemoryRouteCachingProvider
 } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
+import { INTENT } from '../../../../src/util/intent';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
@@ -1616,9 +1617,9 @@ describe('alpha router', () => {
         });
 
         test('with V1.2 - skips cache when V2 is missing from requested protocols', async () => {
-          const v1_2Params = { 
-            ...swapParams, 
-            version: UniversalRouterVersion.V1_2 
+          const v1_2Params = {
+            ...swapParams,
+            version: UniversalRouterVersion.V1_2
           };
 
           const swap = await alphaRouter.route(
@@ -3085,6 +3086,34 @@ describe('alpha router', () => {
           throw 'swap was not successful';
         }
       });
+    });
+  });
+
+  describe('isAllowedToEnterCachedRoutes', () => {
+    let randomStub: sinon.SinonStub;
+
+    beforeEach(() => {
+      randomStub = sinon.stub(Math, 'random');
+    });
+
+    afterEach(() => {
+      randomStub.restore();
+    });
+
+    test('returns correct values based on random percentage and intent', () => {
+      // Test when random is below threshold (should always return true)
+      randomStub.returns(AlphaRouter.CACHED_ROUTES_EXPERIMENT_FLAG_ENABLED_DEFAULT_PERCENTAGE - 0.01);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.CACHING)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined)).toBe(true);
+
+      // Test when random is above threshold
+      randomStub.returns(AlphaRouter.CACHED_ROUTES_EXPERIMENT_FLAG_ENABLED_DEFAULT_PERCENTAGE + 0.001);
+      // Should return false only for CACHING intent
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.CACHING)).toBe(false);
+      // Should return true for other intents
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined)).toBe(true);
     });
   });
 });

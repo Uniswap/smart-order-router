@@ -1470,7 +1470,11 @@ export class AlphaRouter
           : 'N/A',
     });
 
-    if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
+    if (
+      routingConfig.useCachedRoutes &&
+      cacheMode !== CacheMode.Darkmode &&
+      AlphaRouter.isAllowedToEnterCachedRoutes(routingConfig.intent)
+    ) {
       if (enabledAndRequestedProtocolsMatch) {
         if (
           protocols.includes(Protocol.V4) &&
@@ -3194,5 +3198,23 @@ export class AlphaRouter
         maxTimeout: 1000,
       }
     );
+  }
+
+  // Percentage of time we allow using cached routes. We start with 99% to gradually roll out the change.
+  public static readonly CACHED_ROUTES_EXPERIMENT_FLAG_ENABLED_DEFAULT_PERCENTAGE = 0.99;
+
+  // We want to skip cached routes access whenever "intent === INTENT.CACHING".
+  // To verify this functionality though, we want to start by using a percentage of the time.
+  public static isAllowedToEnterCachedRoutes(intent?: INTENT): boolean {
+    // By default, we allow the access to cached routes (original functionality - 99% of the time)
+    const shouldAllow =
+      Math.random() <
+      AlphaRouter.CACHED_ROUTES_EXPERIMENT_FLAG_ENABLED_DEFAULT_PERCENTAGE;
+    if (shouldAllow) {
+      return true;
+    }
+
+    // For the remaining percent of the time, we want to skip the cached routes access if the intent is caching.
+    return intent !== INTENT.CACHING;
   }
 }
