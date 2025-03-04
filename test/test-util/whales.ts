@@ -177,7 +177,10 @@ export const WHALES = (token: Currency): string => {
     case WNATIVE_ON(ChainId.UNICHAIN):
       // TODO: get a real whale address for unichain mainnet
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
-
+    case WNATIVE_ON(ChainId.SONEIUM):
+      return '0xfdF6a5b37910fbDa8A52F566E4F3e224652C4818';
+    case USDC_ON(ChainId.SONEIUM):
+      return '0x07aE8551Be970cB1cCa11Dd7a11F47Ae82e70E67';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

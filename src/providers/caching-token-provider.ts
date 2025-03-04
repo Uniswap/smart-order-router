@@ -44,6 +44,7 @@ import {
   USDC_OPTIMISM_SEPOLIA,
   USDC_POLYGON,
   USDC_SEPOLIA,
+  USDC_SONEIUM,
   USDC_UNICHAIN,
   USDC_WORLDCHAIN,
   USDT_ARBITRUM,
@@ -200,6 +201,10 @@ export const CACHE_SEED_TOKENS: {
     DAI: DAI_UNICHAIN,
     USDC: USDC_UNICHAIN,
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN],
+  },
+  [ChainId.SONEIUM]: {
+    USDC: USDC_SONEIUM,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM],
   },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };

@@ -12,6 +12,7 @@ import {
   IV4SubgraphProvider,
   USDC_ARBITRUM_SEPOLIA,
   USDC_OPTIMISM_SEPOLIA,
+  USDC_SONEIUM,
   USDT_OPTIMISM_SEPOLIA,
   V2SubgraphPool,
   V4PoolAccessor,
@@ -256,6 +257,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     DAI_UNICHAIN,
     USDC_UNICHAIN,
   ],
+  [ChainId.SONEIUM]: [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!, USDC_SONEIUM],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {
