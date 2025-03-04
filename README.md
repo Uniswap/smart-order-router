@@ -265,6 +265,12 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x036CbD53842c5426634e7929541eC2318f3dCF7e --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 84532
 ```
 
+## Soneium
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 1868
+```
+
 ## Adding a new Chain
 
 The main components to complete are:

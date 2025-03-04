@@ -97,7 +97,8 @@ import {
   WLD_WORLDCHAIN,
   WNATIVE_ON,
   WRAPPED_NATIVE_CURRENCY,
-  CacheMode
+  CacheMode,
+  USDC_SONEIUM
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -174,6 +175,7 @@ const V2_SUPPORTED_PAIRS = [
   [WETH9[ChainId.BASE], USDC_NATIVE_BASE],
   [WRAPPED_NATIVE_CURRENCY[ChainId.BNB], USDC_BNB],
   [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE], USDC_NATIVE_AVAX],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM], USDC_SONEIUM]
 ];
 
 const checkQuoteToken = (

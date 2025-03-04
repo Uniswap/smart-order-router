@@ -50,7 +50,20 @@ export const V2_SUPPORTED = [
   ChainId.SONEIUM,
 ];
 
-export const V4_SUPPORTED = [ChainId.SEPOLIA];
+export const V4_SUPPORTED = [
+  ChainId.MAINNET,
+  ChainId.SEPOLIA,
+  ChainId.ARBITRUM_ONE,
+  ChainId.OPTIMISM,
+  ChainId.POLYGON,
+  ChainId.BASE,
+  ChainId.BNB,
+  ChainId.AVALANCHE,
+  ChainId.MONAD_TESTNET,
+  ChainId.UNICHAIN_SEPOLIA,
+  ChainId.UNICHAIN,
+  ChainId.SONEIUM,
+];
 
 export const MIXED_SUPPORTED = [
   ChainId.MAINNET,
