@@ -104,7 +104,7 @@ export const WHALES = (token: Currency): string => {
     case USDC_ON(ChainId.POLYGON_MUMBAI):
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
     case USDC_ON(ChainId.AVALANCHE):
-      return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
+      return '0x137B137B8C1b2050F78d2Ec53dE79D3b735806b4';
     case USDC_NATIVE_AVAX:
       return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
     case USDC_ON(ChainId.BNB):

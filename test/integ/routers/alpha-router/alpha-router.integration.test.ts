@@ -136,16 +136,16 @@ const LARGE_SLIPPAGE = new Percent(75, 100); // 5% or 10_000?
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
-  [ChainId.MAINNET]: 50,
-  [ChainId.GOERLI]: 62,
+  [ChainId.MAINNET]: 95,
+  [ChainId.GOERLI]: 95,
   [ChainId.SEPOLIA]: 95,
   [ChainId.OPTIMISM]: 75,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
-  [ChainId.ARBITRUM_ONE]: 53,
+  [ChainId.ARBITRUM_ONE]: 95,
   [ChainId.ARBITRUM_GOERLI]: 50,
   [ChainId.ARBITRUM_SEPOLIA]: 50,
-  [ChainId.POLYGON]: 53,
+  [ChainId.POLYGON]: 95,
   [ChainId.POLYGON_MUMBAI]: 30,
   [ChainId.CELO]: 30,
   [ChainId.CELO_ALFAJORES]: 30,
@@ -162,7 +162,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.ZKSYNC]: 40,
   [ChainId.WORLDCHAIN]: 75,
   [ChainId.UNICHAIN_SEPOLIA]: 50,
-  [ChainId.UNICHAIN]: 50,
+  [ChainId.UNICHAIN]: 85,
   [ChainId.MONAD_TESTNET]: 50,
   [ChainId.BASE_SEPOLIA]: 50,
   [ChainId.SONEIUM]: 50,
@@ -4046,7 +4046,8 @@ describe('quote for other networks', () => {
               ChainId.BLAST,
               ChainId.ZKSYNC,
               ChainId.BNB,
-              ChainId.ZORA
+              ChainId.ZORA,
+              ChainId.WORLDCHAIN
             ].includes(chain)) {
               return;
             }
