@@ -79,6 +79,7 @@ export const MIXED_SUPPORTED = [
   ChainId.BNB,
   ChainId.WORLDCHAIN,
   ChainId.ZORA,
+  ChainId.SONEIUM,
 ];
 
 export const HAS_L1_FEE = [
