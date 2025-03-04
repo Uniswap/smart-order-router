@@ -297,4 +297,14 @@ export const V4_ETH_WETH_FAKE_POOL: { [chainId in ChainId]: V4Pool } = {
     0,
     0
   ),
+  [ChainId.SONEIUM]: new V4Pool(
+    nativeOnChain(ChainId.SONEIUM),
+    nativeOnChain(ChainId.SONEIUM).wrapped,
+    0,
+    FAKE_TICK_SPACING,
+    ADDRESS_ZERO,
+    79228162514264337593543950336,
+    0,
+    0
+  )
 };
