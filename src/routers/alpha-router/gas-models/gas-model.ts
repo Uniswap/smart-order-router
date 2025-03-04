@@ -49,6 +49,7 @@ import {
   USDC_OPTIMISM_SEPOLIA,
   USDC_POLYGON,
   USDC_SEPOLIA,
+  USDC_SONEIUM,
   USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
@@ -133,6 +134,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.MONAD_TESTNET]: [USDT_MONAD_TESTNET],
   [ChainId.BASE_SEPOLIA]: [USDC_BASE_SEPOLIA],
   [ChainId.UNICHAIN]: [DAI_UNICHAIN, USDC_UNICHAIN],
+  [ChainId.SONEIUM]: [USDC_SONEIUM],
 };
 
 export type L1ToL2GasCosts = {
