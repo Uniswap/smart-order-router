@@ -301,6 +301,12 @@ export async function getBestSwapRouteBy(
       MetricLoggerUnit.Milliseconds
     );
 
+    metric.putMetric(
+      `Split${splits}Done_Chain${chainId}`,
+      Date.now() - startedSplit,
+      MetricLoggerUnit.Milliseconds
+    );
+
     startedSplit = Date.now();
 
     log.info(
