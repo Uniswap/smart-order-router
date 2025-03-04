@@ -3756,6 +3756,11 @@ describe('quote for other networks', () => {
 
         describe(`Swap`, function() {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
             const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
@@ -3815,6 +3820,11 @@ describe('quote for other networks', () => {
           });
 
           it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -3922,6 +3932,11 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -3962,6 +3977,11 @@ describe('quote for other networks', () => {
           });
 
           it(`does not error when protocols array is empty`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -4029,7 +4049,7 @@ describe('quote for other networks', () => {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.SONEIUM) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
@@ -4038,7 +4058,7 @@ describe('quote for other networks', () => {
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.SONEIUM ? '0.001' : '10', tokenIn)
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
                   : parseAmount(chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -4241,6 +4261,11 @@ describe('quote for other networks', () => {
             });
 
             it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+              if (chain === ChainId.SONEIUM) {
+                // Soneium only has weth/usdc pool
+                return;
+              }
+
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
@@ -4339,7 +4364,7 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
