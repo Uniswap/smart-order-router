@@ -193,6 +193,12 @@ export class MixedQuoter extends BaseQuoter<
       MetricLoggerUnit.Milliseconds
     );
 
+    metric.putMetric(
+      `MixedGetRoutesLoad_Chain${this.chainId}`,
+      Date.now() - beforeGetRoutes,
+      MetricLoggerUnit.Milliseconds
+    );
+
     return {
       routes: routes,
       candidatePools,

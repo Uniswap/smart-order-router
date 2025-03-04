@@ -90,6 +90,7 @@ export async function getBestSwapRoute(
   );
 
   // Given all the valid quotes for each percentage find the optimal route.
+  const getBestSwapRouteByStartTime = Date.now();
   const swapRoute = await getBestSwapRouteBy(
     routeType,
     percentToQuotes,
@@ -103,6 +104,19 @@ export async function getBestSwapRoute(
     v4GasModel,
     swapConfig,
     providerConfig
+  );
+  const getBestSwapRouteByLatencyMs = Date.now() - getBestSwapRouteByStartTime;
+
+  // Add latency metrics.
+  metric.putMetric(
+    'GetBestSwapRouteByLatency',
+    getBestSwapRouteByLatencyMs,
+    MetricLoggerUnit.Milliseconds
+  );
+  metric.putMetric(
+    `GetBestSwapRouteByLatency_Chain${chainId}`,
+    getBestSwapRouteByLatencyMs,
+    MetricLoggerUnit.Milliseconds
   );
 
   // It is possible we were unable to find any valid route given the quotes.

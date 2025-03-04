@@ -117,6 +117,12 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
       MetricLoggerUnit.Milliseconds
     );
 
+    metric.putMetric(
+      `V4GetRoutesLoad_Chain${this.chainId}`,
+      Date.now() - beforeGetRoutes,
+      MetricLoggerUnit.Milliseconds
+    );
+
     return {
       routes,
       candidatePools,

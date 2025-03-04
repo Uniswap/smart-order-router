@@ -118,6 +118,12 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
       MetricLoggerUnit.Milliseconds
     );
 
+    metric.putMetric(
+      `V3GetRoutesLoad_Chain${this.chainId}`,
+      Date.now() - beforeGetRoutes,
+      MetricLoggerUnit.Milliseconds
+    );
+
     return {
       routes,
       candidatePools,

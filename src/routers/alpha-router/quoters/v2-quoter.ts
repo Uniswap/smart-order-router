@@ -126,6 +126,12 @@ export class V2Quoter extends BaseQuoter<V2CandidatePools, V2Route, Token> {
       MetricLoggerUnit.Milliseconds
     );
 
+    metric.putMetric(
+      `V2GetRoutesLoad_Chain${this.chainId}`,
+      Date.now() - beforeGetRoutes,
+      MetricLoggerUnit.Milliseconds
+    );
+
     return {
       routes,
       candidatePools,
