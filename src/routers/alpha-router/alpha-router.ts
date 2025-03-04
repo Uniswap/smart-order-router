@@ -3201,8 +3201,8 @@ export class AlphaRouter
   }
 
   // Percentage of time we want to skip cached routes for the experiment.
-  // Starting with 1% to gradually roll out the change.
-  public static readonly CACHED_ROUTES_SKIP_EXPERIMENT_FLAG_PERCENTAGE = 0.01;
+  // Starting with 15% to gradually roll out the change.
+  public static readonly CACHED_ROUTES_SKIP_EXPERIMENT_FLAG_PERCENTAGE = 0.15;
 
   // We want to skip cached routes access whenever "intent === INTENT.CACHING".
   // To verify this functionality though, we want to start by using a percentage of the time.
