@@ -13,7 +13,7 @@ import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import { TPool } from '@uniswap/router-sdk';
 import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 import { CachedRoutes } from '../providers';
 

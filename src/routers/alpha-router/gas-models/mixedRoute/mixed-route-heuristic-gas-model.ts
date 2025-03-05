@@ -6,7 +6,7 @@ import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import { TPool } from '@uniswap/router-sdk';
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
