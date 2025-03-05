@@ -1,4 +1,4 @@
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import { TPool } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
