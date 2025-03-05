@@ -3101,14 +3101,6 @@ describe('alpha router', () => {
     });
 
     test('returns correct values based on random percentage and intent', () => {
-      // Test when random is above experiment threshold (control group - should always return true)
-      randomStub.returns(AlphaRouter.CACHED_ROUTES_SKIP_EXPERIMENT_FLAG_PERCENTAGE + 0.01);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.CACHING)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined)).toBe(true);
-
-      // Test when random is below experiment threshold (experiment group)
-      randomStub.returns(AlphaRouter.CACHED_ROUTES_SKIP_EXPERIMENT_FLAG_PERCENTAGE - 0.001);
       // Should return false only for CACHING intent
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.CACHING)).toBe(false);
       // Should return true for other intents

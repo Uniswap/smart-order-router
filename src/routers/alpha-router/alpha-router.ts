@@ -3200,22 +3200,9 @@ export class AlphaRouter
     );
   }
 
-  // Percentage of time we want to skip cached routes for the experiment.
-  // Starting with 50% to gradually roll out the change.
-  public static readonly CACHED_ROUTES_SKIP_EXPERIMENT_FLAG_PERCENTAGE = 0.5;
-
   // We want to skip cached routes access whenever "intent === INTENT.CACHING".
-  // To verify this functionality though, we want to start by using a percentage of the time.
+  // We keep this method as we might want to add more conditions in the future.
   public static isAllowedToEnterCachedRoutes(intent?: INTENT): boolean {
-    // Check if we should run the experiment
-    const shouldRunExperiment =
-      Math.random() < AlphaRouter.CACHED_ROUTES_SKIP_EXPERIMENT_FLAG_PERCENTAGE;
-    if (shouldRunExperiment) {
-      // For the experiment group, we want to skip the cached routes access if the intent is caching
-      return intent !== INTENT.CACHING;
-    }
-
-    // For the control group, we always allow access to cached routes.
-    return true;
+    return intent !== INTENT.CACHING;
   }
 }
