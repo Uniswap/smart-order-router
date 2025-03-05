@@ -37,7 +37,7 @@ import {
   getMockedV3PoolProvider,
 } from './test-util/mocked-dependencies';
 import { getPools } from './test-util/helpers';
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import { TPool } from '@uniswap/router-sdk';
 
 describe('mixed route gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
