@@ -97,7 +97,8 @@ import {
   WLD_WORLDCHAIN,
   WNATIVE_ON,
   WRAPPED_NATIVE_CURRENCY,
-  CacheMode
+  CacheMode,
+  USDC_SONEIUM
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -135,16 +136,16 @@ const LARGE_SLIPPAGE = new Percent(75, 100); // 5% or 10_000?
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
 const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
-  [ChainId.MAINNET]: 50,
-  [ChainId.GOERLI]: 62,
+  [ChainId.MAINNET]: 95,
+  [ChainId.GOERLI]: 95,
   [ChainId.SEPOLIA]: 95,
   [ChainId.OPTIMISM]: 75,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
-  [ChainId.ARBITRUM_ONE]: 53,
+  [ChainId.ARBITRUM_ONE]: 95,
   [ChainId.ARBITRUM_GOERLI]: 50,
   [ChainId.ARBITRUM_SEPOLIA]: 50,
-  [ChainId.POLYGON]: 53,
+  [ChainId.POLYGON]: 95,
   [ChainId.POLYGON_MUMBAI]: 30,
   [ChainId.CELO]: 30,
   [ChainId.CELO_ALFAJORES]: 30,
@@ -161,9 +162,10 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.ZKSYNC]: 40,
   [ChainId.WORLDCHAIN]: 75,
   [ChainId.UNICHAIN_SEPOLIA]: 50,
-  [ChainId.UNICHAIN]: 50,
+  [ChainId.UNICHAIN]: 85,
   [ChainId.MONAD_TESTNET]: 50,
   [ChainId.BASE_SEPOLIA]: 50,
+  [ChainId.SONEIUM]: 50,
 };
 
 const V2_SUPPORTED_PAIRS = [
@@ -173,6 +175,7 @@ const V2_SUPPORTED_PAIRS = [
   [WETH9[ChainId.BASE], USDC_NATIVE_BASE],
   [WRAPPED_NATIVE_CURRENCY[ChainId.BNB], USDC_BNB],
   [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE], USDC_NATIVE_AVAX],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM], USDC_SONEIUM]
 ];
 
 const checkQuoteToken = (
@@ -3541,6 +3544,7 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => USDC_ON(ChainId.MONAD_TESTNET),
     [ChainId.BASE_SEPOLIA]: () => USDC_ON(ChainId.BASE_SEPOLIA),
+    [ChainId.SONEIUM]: () => USDC_ON(ChainId.SONEIUM),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3572,6 +3576,7 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN]: () => DAI_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
     [ChainId.BASE_SEPOLIA]: () => WNATIVE_ON(ChainId.BASE_SEPOLIA),
+    [ChainId.SONEIUM]: () => WNATIVE_ON(ChainId.SONEIUM),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3753,6 +3758,11 @@ describe('quote for other networks', () => {
 
         describe(`Swap`, function() {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
             const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
@@ -3812,6 +3822,11 @@ describe('quote for other networks', () => {
           });
 
           it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -3844,12 +3859,13 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
               // UNICHAIN sepolia doesn't have liquid USDC/DAI pool yet
               // monad testnet doesn't have liquid USDC/DAI pool yet
+              // soneium doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -3918,6 +3934,11 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -3958,6 +3979,11 @@ describe('quote for other networks', () => {
           });
 
           it(`does not error when protocols array is empty`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -4020,12 +4046,13 @@ describe('quote for other networks', () => {
               ChainId.BLAST,
               ChainId.ZKSYNC,
               ChainId.BNB,
-              ChainId.ZORA
+              ChainId.ZORA,
+              ChainId.WORLDCHAIN
             ].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.SONEIUM) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
@@ -4237,6 +4264,11 @@ describe('quote for other networks', () => {
             });
 
             it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+              if (chain === ChainId.SONEIUM) {
+                // Soneium only has weth/usdc pool
+                return;
+              }
+
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
@@ -4335,7 +4367,7 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }

@@ -790,6 +790,14 @@ export const DAI_UNICHAIN = new Token(
   'Dai Stablecoin'
 );
 
+export const USDC_SONEIUM = new Token(
+  ChainId.SONEIUM,
+  '0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369',
+  6,
+  'USDCE',
+  'Soneium Bridged USDC Soneium'
+);
+
 export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
@@ -1099,6 +1107,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_BASE_SEPOLIA;
     case ChainId.UNICHAIN:
       return USDC_UNICHAIN;
+    case ChainId.SONEIUM:
+      return USDC_SONEIUM;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

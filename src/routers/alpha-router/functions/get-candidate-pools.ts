@@ -51,6 +51,7 @@ import {
   USDC_OPTIMISM_GOERLI,
   USDC_POLYGON,
   USDC_SEPOLIA,
+  USDC_SONEIUM,
   USDC_UNICHAIN,
   USDT_ARBITRUM,
   USDT_BNB,
@@ -255,6 +256,10 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
     DAI_UNICHAIN,
     USDC_UNICHAIN,
+  ],
+  [ChainId.SONEIUM]: [
+    USDC_SONEIUM,
+    WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!,
   ],
 };
 

@@ -104,7 +104,7 @@ export const WHALES = (token: Currency): string => {
     case USDC_ON(ChainId.POLYGON_MUMBAI):
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
     case USDC_ON(ChainId.AVALANCHE):
-      return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
+      return '0xC94bb9b883Ab642C1C3Ed07af4E36523e7DaF1Fe';
     case USDC_NATIVE_AVAX:
       return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
     case USDC_ON(ChainId.BNB):
@@ -177,7 +177,10 @@ export const WHALES = (token: Currency): string => {
     case WNATIVE_ON(ChainId.UNICHAIN):
       // TODO: get a real whale address for unichain mainnet
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
-
+    case WNATIVE_ON(ChainId.SONEIUM):
+      return '0xfdF6a5b37910fbDa8A52F566E4F3e224652C4818';
+    case USDC_ON(ChainId.SONEIUM):
+      return '0x07aE8551Be970cB1cCa11Dd7a11F47Ae82e70E67';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

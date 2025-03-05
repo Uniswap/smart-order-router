@@ -58,6 +58,8 @@ const FEE_DETECTOR_ADDRESS = (chainId: ChainId) => {
       return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
     case ChainId.UNICHAIN:
       return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
+    case ChainId.SONEIUM:
+      return '0x7A5299822b2cD9aC9A9f67756Aa2d62140e9A66f';
     default:
       // just default to mainnet contract
       return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
