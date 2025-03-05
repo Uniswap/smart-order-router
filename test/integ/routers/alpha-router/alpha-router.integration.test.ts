@@ -26,7 +26,7 @@ import {
 } from '@uniswap/universal-router-sdk';
 import {
   Permit2Permit
-} from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
+} from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
