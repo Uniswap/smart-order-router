@@ -302,7 +302,7 @@ export const WETH9: {
   ),
   [ChainId.SEPOLIA]: new Token(
     ChainId.SEPOLIA,
-    '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
+    '0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c',
     18,
     'WETH',
     'Wrapped Ether'
