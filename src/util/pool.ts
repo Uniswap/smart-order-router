@@ -306,5 +306,5 @@ export const V4_ETH_WETH_FAKE_POOL: { [chainId in ChainId]: V4Pool } = {
     79228162514264337593543950336,
     0,
     0
-  )
+  ),
 };

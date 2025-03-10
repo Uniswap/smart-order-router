@@ -522,6 +522,10 @@ export type AlphaRouterConfig = {
    * boolean flag to control whether we should enable mixed route that connects ETH <-> WETH
    */
   shouldEnableMixedRouteEthWeth?: boolean;
+  /**
+   * hashed router id of the cached route, if the online routing lambda uses the cached route to serve the quote
+   */
+  cachedRouteRouteId?: number;
 };
 
 export class AlphaRouter
@@ -1828,7 +1832,8 @@ export class AlphaRouter
               currencyOut,
               tradeType,
               'SetCachedRoute_NewPath',
-              routesToCache
+              routesToCache,
+              routingConfig.cachedRouteRouteId
             );
           }
         }
@@ -1890,7 +1895,8 @@ export class AlphaRouter
         currencyOut,
         tradeType,
         'SetCachedRoute_OldPath',
-        routesToCache
+        routesToCache,
+        routingConfig.cachedRouteRouteId
       );
     }
 
@@ -2020,9 +2026,28 @@ export class AlphaRouter
     currencyOut: Currency,
     tradeType: TradeType,
     metricsPrefix: string,
-    routesToCache?: CachedRoutes
+    routesToCache?: CachedRoutes,
+    cachedRouteRouteId?: number
   ): Promise<void> {
     if (routesToCache) {
+      const cachedRoutesChanged =
+        cachedRouteRouteId !== undefined &&
+        cachedRouteRouteId !== routesToCache.routes[0]?.routeId;
+
+      if (cachedRoutesChanged) {
+        metric.putMetric('cachedRoutesChanged', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `cachedRoutesChanged_chainId${currencyIn.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `cachedRoutesChanged_chainId${currencyOut.chainId}_pair${currencyIn.symbol}${currencyOut.symbol}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+
       await this.routeCachingProvider
         ?.setCachedRoute(routesToCache, amount)
         .then((success) => {
