@@ -2057,6 +2057,7 @@ export class AlphaRouter
           `cachedRoutesNotChanged_chainId${currencyOut.chainId}_pair${currencyIn.symbol}${currencyOut.symbol}`,
           1,
           MetricLoggerUnit.Count
+        );
       }
 
       await this.routeCachingProvider
