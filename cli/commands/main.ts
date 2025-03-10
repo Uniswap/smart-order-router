@@ -51,10 +51,10 @@ async function main() {
         maxPriorityFeeGwei: 9,
       },
     ],
-    swapper: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
-    tokenIn: '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0', // USDT
+    swapper: '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff',
+    tokenIn: '0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0',
     tokenInChainId: 11155111,
-    tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8', // USDC
+    tokenOut: '0x94a9d9ac8a22534e3faca9f4e7f2e2cf85d5e4c8',
     tokenOutChainId: 11155111,
     type: 'EXACT_INPUT',
     urgency: 'normal',
@@ -64,6 +64,11 @@ async function main() {
 
   const result = await getQuote(payload);
   console.log('result:', result);
+  console.log('route.length', result?.route.length);
+  // console.log('result.route.length', result?.route.routes);
+  // console.log('route:', result?.trade.routes[0]);
+  console.log('trade.routes.length:', result?.trade.routes.length);
+  console.log('result.quote:', result?.quote);
 }
 
 async function getQuote(payload: any) {

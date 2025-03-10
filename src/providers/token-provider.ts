@@ -1235,3 +1235,27 @@ export const BASE_TOKENIZE_UNDERLYING: {
     { tokenize: TWBTC_SEPOLIA, underlying: WBTC_SEPOLIA },
   ],
 };
+
+export function getSupportUnderlyingByTokenize(
+  chainId: ChainId,
+  tokenize: Token
+): Token | undefined {
+  const token = BASE_TOKENIZE_UNDERLYING[chainId]?.find(
+    (token) =>
+      token.tokenize.address.toLocaleLowerCase() ===
+      tokenize.address.toLocaleLowerCase()
+  );
+  return token ? token.underlying : undefined;
+}
+
+export function getSupportTokenizeByUnderlying(
+  chainId: ChainId,
+  underlying: Token
+): Token | undefined {
+  const token = BASE_TOKENIZE_UNDERLYING[chainId]?.find(
+    (token) =>
+      token.underlying.address.toLocaleLowerCase() ===
+      underlying.address.toLocaleLowerCase()
+  );
+  return token ? token.tokenize : undefined;
+}
