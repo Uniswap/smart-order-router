@@ -2046,6 +2046,17 @@ export class AlphaRouter
           1,
           MetricLoggerUnit.Count
         );
+      } else {
+        metric.putMetric('cachedRoutesNotChanged', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `cachedRoutesNotChanged_chainId${currencyIn.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `cachedRoutesNotChanged_chainId${currencyOut.chainId}_pair${currencyIn.symbol}${currencyOut.symbol}`,
+          1,
+          MetricLoggerUnit.Count
       }
 
       await this.routeCachingProvider
