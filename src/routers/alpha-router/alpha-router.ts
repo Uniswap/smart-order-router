@@ -151,6 +151,7 @@ import {
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import { INTENT } from '../../util/intent';
+import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -522,6 +523,10 @@ export type AlphaRouterConfig = {
    * boolean flag to control whether we should enable mixed route that connects ETH <-> WETH
    */
   shouldEnableMixedRouteEthWeth?: boolean;
+  /**
+   * hashed router ids of the cached route, if the online routing lambda uses the cached route to serve the quote
+   */
+  cachedRoutesRouteIds?: string;
 };
 
 export class AlphaRouter
@@ -1828,7 +1833,8 @@ export class AlphaRouter
               currencyOut,
               tradeType,
               'SetCachedRoute_NewPath',
-              routesToCache
+              routesToCache,
+              routingConfig.cachedRoutesRouteIds
             );
           }
         }
@@ -1890,7 +1896,8 @@ export class AlphaRouter
         currencyOut,
         tradeType,
         'SetCachedRoute_OldPath',
-        routesToCache
+        routesToCache,
+        routingConfig.cachedRoutesRouteIds
       );
     }
 
@@ -2020,9 +2027,42 @@ export class AlphaRouter
     currencyOut: Currency,
     tradeType: TradeType,
     metricsPrefix: string,
-    routesToCache?: CachedRoutes
+    routesToCache?: CachedRoutes,
+    cachedRoutesRouteIds?: string
   ): Promise<void> {
     if (routesToCache) {
+      const cachedRoutesChanged =
+        cachedRoutesRouteIds !== undefined &&
+        // it's possible that top cached routes may be split routes,
+        // so that we always serialize all the top 8 retrieved cached routes vs the top routes.
+        !cachedRoutesRouteIds.startsWith(serializeRouteIds(routesToCache.routes.map((r) => r.routeId)));
+
+      if (cachedRoutesChanged) {
+        metric.putMetric('cachedRoutesChanged', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `cachedRoutesChanged_chainId${currencyIn.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `cachedRoutesChanged_chainId${currencyOut.chainId}_pair${currencyIn.symbol}${currencyOut.symbol}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else {
+        metric.putMetric('cachedRoutesNotChanged', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `cachedRoutesNotChanged_chainId${currencyIn.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `cachedRoutesNotChanged_chainId${currencyOut.chainId}_pair${currencyIn.symbol}${currencyOut.symbol}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+
       await this.routeCachingProvider
         ?.setCachedRoute(routesToCache, amount)
         .then((success) => {

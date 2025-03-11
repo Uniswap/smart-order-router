@@ -257,10 +257,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     DAI_UNICHAIN,
     USDC_UNICHAIN,
   ],
-  [ChainId.SONEIUM]: [
-    USDC_SONEIUM,
-    WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!,
-  ],
+  [ChainId.SONEIUM]: [USDC_SONEIUM, WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!],
 };
 
 class SubcategorySelectionPools<SubgraphPool> {
