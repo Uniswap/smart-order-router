@@ -151,6 +151,7 @@ import {
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import { INTENT } from '../../util/intent';
+import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -523,9 +524,9 @@ export type AlphaRouterConfig = {
    */
   shouldEnableMixedRouteEthWeth?: boolean;
   /**
-   * hashed router id of the cached route, if the online routing lambda uses the cached route to serve the quote
+   * hashed router ids of the cached route, if the online routing lambda uses the cached route to serve the quote
    */
-  cachedRouteRouteId?: number;
+  cachedRouteRouteIds?: string;
 };
 
 export class AlphaRouter
@@ -1833,7 +1834,7 @@ export class AlphaRouter
               tradeType,
               'SetCachedRoute_NewPath',
               routesToCache,
-              routingConfig.cachedRouteRouteId
+              routingConfig.cachedRouteRouteIds
             );
           }
         }
@@ -1896,7 +1897,7 @@ export class AlphaRouter
         tradeType,
         'SetCachedRoute_OldPath',
         routesToCache,
-        routingConfig.cachedRouteRouteId
+        routingConfig.cachedRouteRouteIds
       );
     }
 
@@ -2027,12 +2028,13 @@ export class AlphaRouter
     tradeType: TradeType,
     metricsPrefix: string,
     routesToCache?: CachedRoutes,
-    cachedRouteRouteId?: number
+    cachedRouteRouteIds?: string
   ): Promise<void> {
     if (routesToCache) {
       const cachedRoutesChanged =
-        cachedRouteRouteId !== undefined &&
-        cachedRouteRouteId !== routesToCache.routes[0]?.routeId;
+        cachedRouteRouteIds !== undefined &&
+        cachedRouteRouteIds !==
+          serializeRouteIds(routesToCache.routes.map((r) => r.routeId));
 
       if (cachedRoutesChanged) {
         metric.putMetric('cachedRoutesChanged', 1, MetricLoggerUnit.Count);
