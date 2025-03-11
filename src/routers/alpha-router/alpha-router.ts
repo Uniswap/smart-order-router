@@ -151,10 +151,7 @@ import {
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import { INTENT } from '../../util/intent';
-import {
-  deserializeRouteIds,
-  serializeRouteIds
-} from '../../util/serializeRouteIds';
+import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -2036,10 +2033,10 @@ export class AlphaRouter
     if (routesToCache) {
       const cachedRoutesChanged =
         cachedRoutesRouteIds !== undefined &&
-        // it's the first cached route out of all retrieved cached routes,
-        // that might change when we try to re-calculate from onchain
-        deserializeRouteIds(cachedRoutesRouteIds)[0] !== routesToCache?.routes[0]?.routeId;
-      
+        // it's possible that top cached routes may be split routes,
+        // so that we always serialize all the top 8 retrieved cached routes vs the top routes.
+        !cachedRoutesRouteIds.startsWith(serializeRouteIds(routesToCache.routes.map((r) => r.routeId)));
+
       if (cachedRoutesChanged) {
         metric.putMetric('cachedRoutesChanged', 1, MetricLoggerUnit.Count);
         metric.putMetric(
