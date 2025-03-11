@@ -151,7 +151,10 @@ import {
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import { INTENT } from '../../util/intent';
-import { serializeRouteIds } from '../../util/serializeRouteIds';
+import {
+  deserializeRouteIds,
+  serializeRouteIds
+} from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -526,7 +529,7 @@ export type AlphaRouterConfig = {
   /**
    * hashed router ids of the cached route, if the online routing lambda uses the cached route to serve the quote
    */
-  cachedRouteRouteIds?: string;
+  cachedRoutesRouteIds?: string;
 };
 
 export class AlphaRouter
@@ -1834,7 +1837,7 @@ export class AlphaRouter
               tradeType,
               'SetCachedRoute_NewPath',
               routesToCache,
-              routingConfig.cachedRouteRouteIds
+              routingConfig.cachedRoutesRouteIds
             );
           }
         }
@@ -1897,7 +1900,7 @@ export class AlphaRouter
         tradeType,
         'SetCachedRoute_OldPath',
         routesToCache,
-        routingConfig.cachedRouteRouteIds
+        routingConfig.cachedRoutesRouteIds
       );
     }
 
@@ -2028,14 +2031,15 @@ export class AlphaRouter
     tradeType: TradeType,
     metricsPrefix: string,
     routesToCache?: CachedRoutes,
-    cachedRouteRouteIds?: string
+    cachedRoutesRouteIds?: string
   ): Promise<void> {
     if (routesToCache) {
       const cachedRoutesChanged =
-        cachedRouteRouteIds !== undefined &&
-        cachedRouteRouteIds !==
-          serializeRouteIds(routesToCache.routes.map((r) => r.routeId));
-
+        cachedRoutesRouteIds !== undefined &&
+        // it's the first cached route out of all retrieved cached routes,
+        // that might change when we try to re-calculate from onchain
+        deserializeRouteIds(cachedRoutesRouteIds)[0] !== routesToCache?.routes[0]?.routeId;
+      
       if (cachedRoutesChanged) {
         metric.putMetric('cachedRoutesChanged', 1, MetricLoggerUnit.Count);
         metric.putMetric(
