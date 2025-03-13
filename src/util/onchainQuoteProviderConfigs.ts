@@ -50,7 +50,7 @@ export function constructSameBatchParamsMap<T extends BatchParams>(
 }
 
 export const DEFAULT_BATCH_PARAMS: BatchParams = {
-  multicallChunk: 210,
+  multicallChunk: 120,
   gasLimitPerCall: 705_000,
   quoteMinSuccessRate: 0.15,
 };
