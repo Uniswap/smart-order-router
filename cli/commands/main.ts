@@ -40,7 +40,7 @@ const RPC_URL: { [key: number]: string } = {
 
 async function main() {
   const payload = {
-    amount: '3500000000',
+    amount: '150000000000',
     gasStrategies: [
       {
         limitInflationFactor: 1.15,
@@ -52,13 +52,13 @@ async function main() {
       },
     ],
     swapper: '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff',
-    tokenIn: '0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0',
+    tokenIn: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
     tokenInChainId: 11155111,
-    tokenOut: '0x94a9d9ac8a22534e3faca9f4e7f2e2cf85d5e4c8',
+    tokenOut: '0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c',
     tokenOutChainId: 11155111,
     type: 'EXACT_INPUT',
     urgency: 'normal',
-    protocols: ['V4'],
+    protocols: ['V4', 'V3', 'V2'],
     autoSlippage: 'DEFAULT',
   };
 
