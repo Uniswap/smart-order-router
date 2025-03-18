@@ -30,17 +30,44 @@ import {
   UniswapMulticallProvider,
 } from '../../src';
 import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../src/routers/alpha-router/config';
-import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
+import {
+  NATIVE_NAMES_BY_ID,
+  routeAmountsToString,
+  TO_PROTOCOL,
+} from '../../src/util';
 
 dotenv.config();
 const RPC_URL: { [key: number]: string } = {
   1: `${process.env.JSON_RPC_PROVIDER}`,
+  56: `${process.env.JSON_RPC_PROVIDER_BNB}`,
   11155111: `${process.env.JSON_RPC_PROVIDER_SEPOLIA}`,
 };
 
 async function main() {
+  // const payload = {
+  //   amount: '1000000000000000000',
+  //   gasStrategies: [
+  //     {
+  //       limitInflationFactor: 1.15,
+  //       displayLimitInflationFactor: 1.15,
+  //       priceInflationFactor: 1.5,
+  //       percentileThresholdFor1559Fee: 75,
+  //       minPriorityFeeGwei: 2,
+  //       maxPriorityFeeGwei: 9,
+  //     },
+  //   ],
+  //   swapper: '0xd7e7d82374b94a1d807C9bfb10Ce311335Cb39f3',
+  //   tokenIn: '0x0000000000000000000000000000000000000000',
+  //   tokenInChainId: 11155111,
+  //   tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+  //   tokenOutChainId: 11155111,
+  //   type: 'EXACT_INPUT',
+  //   urgency: 'normal',
+  //   protocols: ['V3'],
+  //   autoSlippage: 'DEFAULT',
+  // };
   const payload = {
-    amount: '150000000000',
+    amount: '1000000000000000000',
     gasStrategies: [
       {
         limitInflationFactor: 1.15,
@@ -51,24 +78,47 @@ async function main() {
         maxPriorityFeeGwei: 9,
       },
     ],
-    swapper: '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff',
-    tokenIn: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+    swapper: '0xd7e7d82374b94a1d807C9bfb10Ce311335Cb39f3',
+    tokenIn: '0x0000000000000000000000000000000000000000',
     tokenInChainId: 11155111,
-    tokenOut: '0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c',
+    tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
     tokenOutChainId: 11155111,
     type: 'EXACT_INPUT',
     urgency: 'normal',
-    protocols: ['V4', 'V3', 'V2'],
+    protocols: ['V3'],
     autoSlippage: 'DEFAULT',
   };
 
   const result = await getQuote(payload);
   console.log('result:', result);
-  console.log('route.length', result?.route.length);
+  // console.log('route.length', result?.route.length);
   // console.log('result.route.length', result?.route.routes);
   // console.log('route:', result?.trade.routes[0]);
-  console.log('trade.routes.length:', result?.trade.routes.length);
-  console.log('result.quote:', result?.quote);
+  // console.log('trade.routes.length:', result?.trade.routes.length);
+
+  if (result) {
+    const routeString = routeAmountsToString(result.route);
+    console.log('routeString:', routeString);
+
+    const firstRoute = result.route[0]?.route!;
+
+    console.log('------------------------------');
+    console.log('firstRoute:', firstRoute);
+    console.log('------------------------------');
+    // console.log('result:', result);
+    // console.log('------------------------------');
+
+    const tokenPath = (firstRoute as any).tokenPath;
+    console.log('tokenIn:', tokenPath[0]);
+    console.log('tokenOut:', tokenPath[tokenPath.length - 1]);
+    console.log('------------------------------');
+
+    // const pool =
+    //   firstRoute.protocol === Protocol.V2
+    //     ? (firstRoute as any).pairs
+    //     : (firstRoute as any).pools;
+    // console.log('pool[0]:', pool[0]);
+  }
 }
 
 async function getQuote(payload: any) {
@@ -126,6 +176,7 @@ async function getQuote(payload: any) {
     : (await tokenProvider.getTokens([tokenInAddress])).getTokenByAddress(
         tokenInAddress
       )!;
+  console.log('-> currencyIn:', currencyIn);
 
   const currencyOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
     // Replace to support old native eth address

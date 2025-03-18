@@ -1988,7 +1988,7 @@ export class AlphaRouter
     });
 
     swapRoute.route.forEach((route) => {
-      if (route.route.protocol === 'V4') {
+      if (route.route.protocol === Protocol.V4) {
         const pools = (route.route as any).pools;
         for (let i = 0; i < pools.length; i++) {
           const pool = pools[i];
