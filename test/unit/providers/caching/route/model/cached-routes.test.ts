@@ -1,6 +1,11 @@
+import { ChainId, TradeType } from '@kittycorn-labs/sdk-core';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, TradeType } from '@uniswap/sdk-core';
-import { CachedRoutes, DAI_MAINNET as DAI, USDC_MAINNET as USDC, V3RouteWithValidQuote } from '../../../../../../src';
+import {
+  CachedRoutes,
+  DAI_MAINNET as DAI,
+  USDC_MAINNET as USDC,
+  V3RouteWithValidQuote,
+} from '../../../../../../src';
 import { getV3RouteWithValidQuoteStub } from '../test-util/mocked-dependencies';
 
 describe('CachedRoutes', () => {
@@ -13,13 +18,31 @@ describe('CachedRoutes', () => {
 
   describe('#fromRoutesWithValidQuotes', () => {
     it('creates the instance', () => {
-      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes([v3RouteWithValidQuote], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
+      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
+        [v3RouteWithValidQuote],
+        ChainId.MAINNET,
+        USDC,
+        DAI,
+        [Protocol.V2, Protocol.V3, Protocol.MIXED],
+        blockNumber,
+        TradeType.EXACT_INPUT,
+        '1.1'
+      );
 
       expect(cachedRoutes).toBeInstanceOf(CachedRoutes);
     });
 
     it('returns undefined when routes are empty', () => {
-      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes([], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
+      const cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
+        [],
+        ChainId.MAINNET,
+        USDC,
+        DAI,
+        [Protocol.V2, Protocol.V3, Protocol.MIXED],
+        blockNumber,
+        TradeType.EXACT_INPUT,
+        '1.1'
+      );
 
       expect(cachedRoutes).toBeUndefined();
     });
@@ -29,7 +52,16 @@ describe('CachedRoutes', () => {
     let cachedRoutes: CachedRoutes;
 
     beforeEach(() => {
-      cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes([v3RouteWithValidQuote], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1')!;
+      cachedRoutes = CachedRoutes.fromRoutesWithValidQuotes(
+        [v3RouteWithValidQuote],
+        ChainId.MAINNET,
+        USDC,
+        DAI,
+        [Protocol.V2, Protocol.V3, Protocol.MIXED],
+        blockNumber,
+        TradeType.EXACT_INPUT,
+        '1.1'
+      )!;
     });
 
     describe('.blocksToLive', () => {
@@ -63,19 +95,33 @@ describe('CachedRoutes', () => {
           });
 
           it('returns true when blockNumber is still the same as the one in the cached routes', () => {
-            expect(cachedRoutes.notExpired(blockNumber, optimistic)).toBeTruthy();
+            expect(
+              cachedRoutes.notExpired(blockNumber, optimistic)
+            ).toBeTruthy();
           });
 
           it('returns true when blockNumber has advanced from the one in the cached routes less than BTL', () => {
-            expect(cachedRoutes.notExpired(blockNumber + 1, optimistic)).toBeTruthy();
+            expect(
+              cachedRoutes.notExpired(blockNumber + 1, optimistic)
+            ).toBeTruthy();
           });
 
           it('returns true when blockNumber has advanced as many as blocksToLive number of blocks', () => {
-            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive, optimistic)).toBeTruthy();
+            expect(
+              cachedRoutes.notExpired(
+                blockNumber + cachedRoutes.blocksToLive,
+                optimistic
+              )
+            ).toBeTruthy();
           });
 
           it('returns false when blockNumber has advanced one more than BTL', () => {
-            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive + 1, optimistic)).toBeFalsy();
+            expect(
+              cachedRoutes.notExpired(
+                blockNumber + cachedRoutes.blocksToLive + 1,
+                optimistic
+              )
+            ).toBeFalsy();
           });
         });
 
@@ -88,19 +134,33 @@ describe('CachedRoutes', () => {
           });
 
           it('returns true when blockNumber is still the same as the one in the cached routes', () => {
-            expect(cachedRoutes.notExpired(blockNumber, optimistic)).toBeTruthy();
+            expect(
+              cachedRoutes.notExpired(blockNumber, optimistic)
+            ).toBeTruthy();
           });
 
           it('returns false when blockNumber has advanced from the one in the cached routes less than BTL', () => {
-            expect(cachedRoutes.notExpired(blockNumber + 1, optimistic)).toBeFalsy();
+            expect(
+              cachedRoutes.notExpired(blockNumber + 1, optimistic)
+            ).toBeFalsy();
           });
 
           it('returns false when blockNumber has advanced as many as blocksToLive number of blocks', () => {
-            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive, optimistic)).toBeFalsy();
+            expect(
+              cachedRoutes.notExpired(
+                blockNumber + cachedRoutes.blocksToLive,
+                optimistic
+              )
+            ).toBeFalsy();
           });
 
           it('returns false when blockNumber has advanced one more than BTL', () => {
-            expect(cachedRoutes.notExpired(blockNumber + cachedRoutes.blocksToLive + 1, optimistic)).toBeFalsy();
+            expect(
+              cachedRoutes.notExpired(
+                blockNumber + cachedRoutes.blocksToLive + 1,
+                optimistic
+              )
+            ).toBeFalsy();
           });
         });
       });

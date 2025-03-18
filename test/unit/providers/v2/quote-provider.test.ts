@@ -1,11 +1,22 @@
-import { ChainId, CurrencyAmount, Fraction, Token } from '@uniswap/sdk-core';
+import {
+  ChainId,
+  CurrencyAmount,
+  Fraction,
+  Token,
+} from '@kittycorn-labs/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import { V2QuoteProvider, V2Route, WETH9 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import { computeAllV2Routes } from '../../../../src/routers/alpha-router/functions/compute-all-routes';
-import { BLAST, BLAST_WITHOUT_TAX, BULLET, BULLET_WITHOUT_TAX, STETH, } from '../../../test-util/mock-data';
+import {
+  BLAST,
+  BLAST_WITHOUT_TAX,
+  BULLET,
+  BULLET_WITHOUT_TAX,
+  STETH,
+} from '../../../test-util/mock-data';
 
 const tokenIn = BULLET_WITHOUT_TAX;
 const tokenOut = BLAST_WITHOUT_TAX;
@@ -128,7 +139,10 @@ describe('QuoteProvider', () => {
                 expect(pair.reserve1.currency.buyFeeBps).toBeDefined();
               }
 
-              const [outputAmount] = pair.getOutputAmount(currentInputAmount, enableFeeOnTransferFeeFetching === true);
+              const [outputAmount] = pair.getOutputAmount(
+                currentInputAmount,
+                enableFeeOnTransferFeeFetching === true
+              );
               currentInputAmount = outputAmount;
 
               if (enableFeeOnTransferFeeFetching) {
@@ -144,11 +158,11 @@ describe('QuoteProvider', () => {
                 if (!nextToken.equals(tokenOut)) {
                   expect(
                     nextToken.sellFeeBps === undefined ||
-                    nextToken.sellFeeBps.eq(BigNumber.from(0))
+                      nextToken.sellFeeBps.eq(BigNumber.from(0))
                   ).toBeTruthy();
                   expect(
                     nextToken.buyFeeBps === undefined ||
-                    nextToken.buyFeeBps.eq(BigNumber.from(0))
+                      nextToken.buyFeeBps.eq(BigNumber.from(0))
                   ).toBeTruthy();
                 }
               }
@@ -166,7 +180,8 @@ describe('QuoteProvider', () => {
               CurrencyAmount.fromRawAmount(
                 tokenOut,
                 quote[index]!.quote!.toString()
-              ).quotient.toString()).toEqual(currentInputAmount.quotient.toString());
+              ).quotient.toString()
+            ).toEqual(currentInputAmount.quotient.toString());
 
             expect(route.input.equals(tokenIn)).toBeTruthy();
             expect(route.output.equals(tokenOut)).toBeTruthy();

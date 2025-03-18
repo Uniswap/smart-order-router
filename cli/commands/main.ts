@@ -1,13 +1,13 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
-import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { Protocol } from '@uniswap/router-sdk';
 import {
   Currency,
   CurrencyAmount,
   Percent,
   Token,
   TradeType,
-} from '@uniswap/sdk-core';
+} from '@kittycorn-labs/sdk-core';
+import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
+import { Protocol } from '@uniswap/router-sdk';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import dotenv from 'dotenv';
 import JSBI from 'jsbi';

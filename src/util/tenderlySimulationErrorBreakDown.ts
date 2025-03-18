@@ -1,4 +1,4 @@
-import { Token } from '@uniswap/sdk-core';
+import { Token } from '@kittycorn-labs/sdk-core';
 
 import { SimulationStatus, VIRTUAL_BASE } from '../providers';
 

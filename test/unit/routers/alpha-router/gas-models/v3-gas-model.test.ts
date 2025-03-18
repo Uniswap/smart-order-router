@@ -1,5 +1,7 @@
-import { Currency, CurrencyAmount, Ether } from '@uniswap/sdk-core';
+import { BaseProvider } from '@ethersproject/providers';
+import { Currency, CurrencyAmount, Ether } from '@kittycorn-labs/sdk-core';
 import { BigNumber } from 'ethers';
+import sinon from 'sinon';
 import {
   DAI_MAINNET,
   UNI_MAINNET,
@@ -25,18 +27,18 @@ import {
   USDC_WETH_MEDIUM,
 } from '../../../../test-util/mock-data';
 import { getV3RouteWithValidQuoteStub } from '../../../providers/caching/route/test-util/mocked-dependencies';
+import { getPools } from './test-util/helpers';
 import {
   getMockedV2PoolProvider,
   getMockedV3PoolProvider,
 } from './test-util/mocked-dependencies';
-import { getPools } from './test-util/helpers';
-import sinon from 'sinon';
-import { BaseProvider } from '@ethersproject/providers';
 
 describe('v3 gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
   const chainId = 1;
-  const v3GasModelFactory = new V3HeuristicGasModelFactory(sinon.createStubInstance(BaseProvider));
+  const v3GasModelFactory = new V3HeuristicGasModelFactory(
+    sinon.createStubInstance(BaseProvider)
+  );
 
   const mockedV3PoolProvider = getMockedV3PoolProvider();
   const mockedV2PoolProvider = getMockedV2PoolProvider();
@@ -49,7 +51,7 @@ describe('v3 gas model tests', () => {
       amountToken,
       quoteToken,
       mockedV3PoolProvider,
-      {},
+      {}
     );
 
     const v3GasModel = await v3GasModelFactory.buildGasModel({
@@ -69,12 +71,17 @@ describe('v3 gas model tests', () => {
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < v3RouteWithQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          v3RouteWithQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -126,12 +133,17 @@ describe('v3 gas model tests', () => {
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < v3RouteWithQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          v3RouteWithQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -185,12 +197,17 @@ describe('v3 gas model tests', () => {
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < v3RouteWithQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          v3RouteWithQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -249,8 +266,7 @@ describe('v3 gas model tests', () => {
 
     const { gasEstimate } = v3GasModel.estimateGasCost(v3RouteWithQuote);
 
-    const expectedGasCost = BASE_SWAP_COST(chainId)
-      .add(gasOverheadFromHops);
+    const expectedGasCost = BASE_SWAP_COST(chainId).add(gasOverheadFromHops);
 
     expect(gasEstimate.toNumber()).toEqual(expectedGasCost.toNumber());
   });
@@ -296,12 +312,17 @@ describe('v3 gas model tests', () => {
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < v3RouteWithQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          v3RouteWithQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -364,12 +385,17 @@ describe('v3 gas model tests', () => {
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < v3RouteWithQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          v3RouteWithQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -396,10 +422,10 @@ describe('v3 gas model tests', () => {
 
     const amountToken = USDC_MAINNET;
     const quoteToken = DAI_MAINNET;
-    const gasToken = UNI_MAINNET
+    const gasToken = UNI_MAINNET;
     const providerConfig = {
-      gasToken
-    }
+      gasToken,
+    };
 
     const pools = await getPools(
       amountToken,
@@ -409,7 +435,9 @@ describe('v3 gas model tests', () => {
       gasToken
     );
 
-    expect(pools.nativeAndSpecifiedGasTokenV3Pool).toStrictEqual(UNI_WETH_MEDIUM);
+    expect(pools.nativeAndSpecifiedGasTokenV3Pool).toStrictEqual(
+      UNI_WETH_MEDIUM
+    );
 
     const v3GasModel = await v3GasModelFactory.buildGasModel({
       chainId: chainId,
@@ -419,7 +447,7 @@ describe('v3 gas model tests', () => {
       quoteToken,
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
-      providerConfig
+      providerConfig,
     });
 
     const v3RouteWithQuote = getV3RouteWithValidQuoteStub({
@@ -428,12 +456,17 @@ describe('v3 gas model tests', () => {
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < v3RouteWithQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          v3RouteWithQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -441,7 +474,8 @@ describe('v3 gas model tests', () => {
       totalInitializedTicksCrossed
     );
 
-    const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } = v3GasModel.estimateGasCost(v3RouteWithQuote);
+    const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } =
+      v3GasModel.estimateGasCost(v3RouteWithQuote);
 
     const expectedGasCost = BASE_SWAP_COST(chainId)
       .add(COST_PER_HOP(chainId))
@@ -452,16 +486,16 @@ describe('v3 gas model tests', () => {
     expect(gasCostInToken).toBeDefined();
     expect(gasCostInUSD).toBeDefined();
     expect(gasCostInGasToken).toBeDefined();
-  })
+  });
 
   it('if gasToken == quoteToken returned values are equal', async () => {
     // copied from `returns correct gas estimate for a v3 route | hops: 1 | ticks 1` test above
     const amountToken = USDC_MAINNET;
     const quoteToken = DAI_MAINNET;
-    const gasToken = DAI_MAINNET // same as quoteToken
+    const gasToken = DAI_MAINNET; // same as quoteToken
     const providerConfig = {
-      gasToken
-    }
+      gasToken,
+    };
 
     const pools = await getPools(
       amountToken,
@@ -471,7 +505,9 @@ describe('v3 gas model tests', () => {
       gasToken
     );
 
-    expect(pools.nativeAndSpecifiedGasTokenV3Pool).toStrictEqual(DAI_WETH_MEDIUM);
+    expect(pools.nativeAndSpecifiedGasTokenV3Pool).toStrictEqual(
+      DAI_WETH_MEDIUM
+    );
 
     const v3GasModel = await v3GasModelFactory.buildGasModel({
       chainId: chainId,
@@ -481,7 +517,7 @@ describe('v3 gas model tests', () => {
       quoteToken,
       v2poolProvider: mockedV2PoolProvider,
       l2GasDataProvider: undefined,
-      providerConfig
+      providerConfig,
     });
 
     const v3RouteWithQuote = getV3RouteWithValidQuoteStub({
@@ -490,12 +526,17 @@ describe('v3 gas model tests', () => {
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < v3RouteWithQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < v3RouteWithQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (v3RouteWithQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (v3RouteWithQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          v3RouteWithQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -503,7 +544,8 @@ describe('v3 gas model tests', () => {
       totalInitializedTicksCrossed
     );
 
-    const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } = v3GasModel.estimateGasCost(v3RouteWithQuote);
+    const { gasEstimate, gasCostInToken, gasCostInUSD, gasCostInGasToken } =
+      v3GasModel.estimateGasCost(v3RouteWithQuote);
 
     const expectedGasCost = BASE_SWAP_COST(chainId)
       .add(COST_PER_HOP(chainId))
@@ -515,7 +557,7 @@ describe('v3 gas model tests', () => {
     expect(gasCostInUSD).toBeDefined();
     expect(gasCostInGasToken).toBeDefined();
     expect(gasCostInToken.equalTo(gasCostInGasToken!)).toBeTruthy();
-  })
+  });
 
   // TODO: splits, multiple hops, token overheads, gasCostInToken, gasCostInUSD
 });

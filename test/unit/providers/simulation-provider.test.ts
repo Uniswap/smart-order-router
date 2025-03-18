@@ -1,6 +1,7 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { ChainId, Percent, TradeType } from '@kittycorn-labs/sdk-core';
 import { Trade } from '@uniswap/router-sdk';
-import { ChainId, Percent, TradeType } from '@uniswap/sdk-core';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { BigNumber } from 'ethers';
 import sinon from 'sinon';
 import {
@@ -18,15 +19,14 @@ import {
   SwapType,
   TenderlySimulator,
   USDC_MAINNET,
-  V2PoolProvider
+  V2PoolProvider,
 } from '../../../src';
 import {
   IPortionProvider,
-  PortionProvider
+  PortionProvider,
 } from '../../../src/providers/portion-provider';
 import { Erc20 } from '../../../src/types/other/Erc20';
 import { Permit2 } from '../../../src/types/other/Permit2';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 let tokenContract: Erc20;
 let permit2Contract: Permit2;
@@ -59,7 +59,7 @@ jest.mock('../../../src/util/gas-factory-helpers', () => ({
     estimatedGasUsed: BigNumber,
     estimatedGasUsedQuoteToken: CurrencyAmount,
     estimatedGasUsedUSD: CurrencyAmount,
-    _swapOptions?: SwapOptions,
+    _swapOptions?: SwapOptions
   ): SwapRoute => {
     return {
       ...swapRoute,
@@ -86,7 +86,7 @@ const v3PoolProvider = {
 const v4PoolProvider = {
   getPools: jest.fn().mockImplementation(() => Promise.resolve(v4PoolAccessor)),
   getPoolId: jest.fn().mockImplementation(() => Promise.resolve('0')),
-}
+};
 const portionProvider = new PortionProvider();
 const fromAddress = 'fromAddress';
 const amount = CurrencyAmount.fromRawAmount(USDC_MAINNET, 300);
@@ -210,7 +210,7 @@ describe('Fallback Tenderly simulator', () => {
         return BigNumber.from(0);
       },
     } as unknown as Erc20;
-    const ethInputAmount =  CurrencyAmount.fromRawAmount(nativeOnChain(1), 300)
+    const ethInputAmount = CurrencyAmount.fromRawAmount(nativeOnChain(1), 300);
     const swapRouteWithGasEstimate = await simulator.simulate(
       fromAddress,
       swapOptions,
@@ -218,7 +218,7 @@ describe('Fallback Tenderly simulator', () => {
         ...swaproute,
         trade: {
           inputAmount: ethInputAmount,
-          tradeType: 0
+          tradeType: 0,
         } as Trade<any, any, any>,
       },
       CurrencyAmount.fromRawAmount(nativeOnChain(1), 300),
@@ -376,9 +376,7 @@ describe('Eth estimate gas simulator', () => {
         return BigNumber.from(0);
       },
     } as unknown as Erc20;
-    sinon
-      .stub(provider, <any>'getBalance')
-      .resolves(BigNumber.from(325));
+    sinon.stub(provider, <any>'getBalance').resolves(BigNumber.from(325));
     const swapRouteWithGasEstimate = await simulator.simulate(
       fromAddress,
       swapOptions,
@@ -451,10 +449,10 @@ describe('Eth estimate gas simulator', () => {
     );
   });
   test('when provider.estimateGas throws', async () => {
-    sinon
-      .stub(provider, <any>'getBalance')
-      .resolves(BigNumber.from(325));
-    sinon.replace(provider, 'estimateGas', () => {throw new Error()})
+    sinon.stub(provider, <any>'getBalance').resolves(BigNumber.from(325));
+    sinon.replace(provider, 'estimateGas', () => {
+      throw new Error();
+    });
     const swapRouteWithGasEstimate = await simulator.simulate(
       fromAddress,
       swapOptions,

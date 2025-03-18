@@ -1,5 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Currency, Ether, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency, Ether, Token } from '@kittycorn-labs/sdk-core';
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
@@ -22,7 +23,6 @@ import {
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../src';
-import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
@@ -85,7 +85,7 @@ export const USDC_DAI_V4_MEDIUM = new V4Pool(
   USDC,
   DAI,
   FeeAmount.MEDIUM,
-60,
+  60,
   ADDRESS_ZERO,
   encodeSqrtRatioX96(1, 1),
   8,
@@ -355,7 +355,7 @@ export const NONTOKEN = new Token(
   18,
   'NONTOKEN',
   'Non Token'
-)
+);
 export const WETH_NONTOKEN_MEDIUM = new V3Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   NONTOKEN,
@@ -440,7 +440,7 @@ export const poolToV4SubgraphPool = (
     tvlETH: parseFloat(pool.liquidity.toString()),
     tvlUSD: parseFloat(pool.liquidity.toString()),
   };
-}
+};
 
 export const poolToV3SubgraphPool = (
   pool: V3Pool,
@@ -490,11 +490,16 @@ export const buildMockV4PoolAccessor: (pools: V4Pool[]) => V4PoolAccessor = (
       _.find(
         pools,
         (p) =>
-          V4Pool.getPoolId(p.currency0, p.currency1, p.fee, p.tickSpacing, p.hooks) ==
-          V4Pool.getPoolId(tokenA, tokenB, fee, tickSpacing, hooks)
+          V4Pool.getPoolId(
+            p.currency0,
+            p.currency1,
+            p.fee,
+            p.tickSpacing,
+            p.hooks
+          ) == V4Pool.getPoolId(tokenA, tokenB, fee, tickSpacing, hooks)
       ),
   };
-}
+};
 
 export const buildMockV3PoolAccessor: (pools: V3Pool[]) => V3PoolAccessor = (
   pools: V3Pool[]
@@ -611,7 +616,7 @@ export const BLAST_WITHOUT_TAX = new Token(
   '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
   18,
   'BLAST',
-  'BLAST',
+  'BLAST'
 );
 export const BLAST = new Token(
   ChainId.MAINNET,
@@ -668,7 +673,7 @@ export const BOYS = new Token(
   'Boysclub',
   false,
   BigNumber.from(0),
-  BigNumber.from(200),
+  BigNumber.from(200)
 );
 export const DFNDR = new Token(
   ChainId.MAINNET,
@@ -694,10 +699,10 @@ export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
 export const PORTION_TYPE = 'flat';
 
 export type Portion = {
-  bips: number,
-  recipient: string,
-  type: string,
-}
+  bips: number;
+  recipient: string;
+  type: string;
+};
 
 export const FLAT_PORTION: Portion = {
   bips: PORTION_BIPS,

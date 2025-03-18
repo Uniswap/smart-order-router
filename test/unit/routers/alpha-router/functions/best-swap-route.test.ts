@@ -1,10 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import {
-  ChainId,
-  Ether,
-  Fraction,
-  TradeType
-} from '@uniswap/sdk-core';
+import { ChainId, Ether, Fraction, TradeType } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool } from '@uniswap/v3-sdk';
 import { Pool as PoolV4 } from '@uniswap/v4-sdk';
@@ -14,56 +9,63 @@ import sinon from 'sinon';
 import {
   CurrencyAmount,
   DAI_MAINNET,
-  USDT_MAINNET as USDT,
   IGasModel,
+  MixedRoute,
+  MixedRouteWithValidQuote,
   RouteWithValidQuote,
   USDC_MAINNET as USDC,
+  USDT_MAINNET as USDT,
   V2Route,
   V2RouteWithValidQuote,
   V3PoolProvider,
   V3Route,
   V3RouteWithValidQuote,
-  WRAPPED_NATIVE_CURRENCY,
+  V4PoolProvider,
   V4Route,
   V4RouteWithValidQuote,
-  MixedRoute,
-  V4PoolProvider,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
-import { MixedRouteWithValidQuote } from '../../../../../src';
-import { IPortionProvider, PortionProvider } from '../../../../../src/providers/portion-provider';
+import {
+  IPortionProvider,
+  PortionProvider,
+} from '../../../../../src/providers/portion-provider';
 import { V2PoolProvider } from '../../../../../src/providers/v2/pool-provider';
-import { getBestSwapRoute, routeHasNativeTokenInputOrOutput, routeHasWrappedNativeTokenInputOrOutput } from '../../../../../src/routers/alpha-router/functions/best-swap-route';
+import {
+  getBestSwapRoute,
+  routeHasNativeTokenInputOrOutput,
+  routeHasWrappedNativeTokenInputOrOutput,
+} from '../../../../../src/routers/alpha-router/functions/best-swap-route';
 import {
   buildMockV2PoolAccessor,
   buildMockV3PoolAccessor,
   buildMockV4PoolAccessor,
+  DAI_ETH_V4_MEDIUM,
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_USDT_MEDIUM,
+  DAI_USDT_V4_LOW,
+  DAI_WETH_V4_MEDIUM,
+  ETH_USDT_V4_LOW,
   mockRoutingConfig,
+  UNI_ETH_V4_MEDIUM,
+  UNI_WETH_V4_MEDIUM,
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
+  USDC_DAI_V4_LOW,
+  USDC_DAI_V4_MEDIUM,
+  USDC_ETH_V4_LOW,
+  USDC_USDT_V4_MEDIUM,
   USDC_WETH,
   USDC_WETH_LOW,
   USDC_WETH_MEDIUM,
+  USDC_WETH_V4_LOW,
   WBTC_USDT_MEDIUM,
   WBTC_WETH,
   WBTC_WETH_MEDIUM,
   WETH9_USDT_LOW,
-  WETH_USDT,
-  ETH_USDT_V4_LOW,
-  USDC_DAI_V4_LOW,
-  USDC_DAI_V4_MEDIUM,
-  USDC_WETH_V4_LOW,
-  USDC_ETH_V4_LOW,
   WETH9_USDT_V4_LOW,
-  DAI_USDT_V4_LOW,
-  USDC_USDT_V4_MEDIUM,
-  UNI_WETH_V4_MEDIUM,
-  UNI_ETH_V4_MEDIUM,
-  DAI_WETH_V4_MEDIUM,
-  DAI_ETH_V4_MEDIUM,
+  WETH_USDT,
 } from '../../../../test-util/mock-data';
 
 const v3Route1 = new V3Route(
@@ -112,8 +114,12 @@ describe('get best swap route', () => {
   let mockV3GasModel: sinon.SinonStubbedInstance<
     IGasModel<V3RouteWithValidQuote>
   >;
-  let mockV4GasModel: sinon.SinonStubbedInstance<IGasModel<V4RouteWithValidQuote>>;
-  let mockMixedGasModel: sinon.SinonStubbedInstance<IGasModel<MixedRouteWithValidQuote>>;
+  let mockV4GasModel: sinon.SinonStubbedInstance<
+    IGasModel<V4RouteWithValidQuote>
+  >;
+  let mockMixedGasModel: sinon.SinonStubbedInstance<
+    IGasModel<MixedRouteWithValidQuote>
+  >;
   let mockV3PoolProvider: sinon.SinonStubbedInstance<V3PoolProvider>;
   let mockV2PoolProvider: sinon.SinonStubbedInstance<V2PoolProvider>;
   let mockV2GasModel: sinon.SinonStubbedInstance<
@@ -217,13 +223,21 @@ describe('get best swap route', () => {
     mockV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
     mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(mockV4Pools));
     // Mock getPoolId to return a pool info object with the required properties
-    mockV4PoolProvider.getPoolId.callsFake((currency0, currency1, fee, tickSpacing, hooks) => {
-      return {
-        poolId: PoolV4.getPoolId(currency0, currency1, fee, tickSpacing, hooks),
-        currency0: currency0,
-        currency1: currency1
-      };
-    });
+    mockV4PoolProvider.getPoolId.callsFake(
+      (currency0, currency1, fee, tickSpacing, hooks) => {
+        return {
+          poolId: PoolV4.getPoolId(
+            currency0,
+            currency1,
+            fee,
+            tickSpacing,
+            hooks
+          ),
+          currency0: currency0,
+          currency1: currency1,
+        };
+      }
+    );
   });
 
   const buildV3RouteWithValidQuote = (
@@ -1063,7 +1077,9 @@ describe('get best swap route', () => {
           100
         );
 
-        expect(routeHasWrappedNativeTokenInputOrOutput(routeWithQuote)).toBe(true);
+        expect(routeHasWrappedNativeTokenInputOrOutput(routeWithQuote)).toBe(
+          true
+        );
       });
 
       it('returns true when output is wrapped native', () => {
@@ -1081,11 +1097,17 @@ describe('get best swap route', () => {
           100
         );
 
-        expect(routeHasWrappedNativeTokenInputOrOutput(routeWithQuote)).toBe(true);
+        expect(routeHasWrappedNativeTokenInputOrOutput(routeWithQuote)).toBe(
+          true
+        );
       });
 
       it('returns false when neither input nor output is wrapped native', () => {
-        const nonWrappedRoute = new MixedRoute([USDC_DAI_LOW], USDC, DAI_MAINNET);
+        const nonWrappedRoute = new MixedRoute(
+          [USDC_DAI_LOW],
+          USDC,
+          DAI_MAINNET
+        );
 
         const routeWithQuote = buildMixedRouteWithValidQuote(
           nonWrappedRoute,
@@ -1095,7 +1117,9 @@ describe('get best swap route', () => {
           100
         );
 
-        expect(routeHasWrappedNativeTokenInputOrOutput(routeWithQuote)).toBe(false);
+        expect(routeHasWrappedNativeTokenInputOrOutput(routeWithQuote)).toBe(
+          false
+        );
       });
     });
   });

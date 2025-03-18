@@ -1,4 +1,4 @@
-import { ChainId, Currency, Ether } from '@uniswap/sdk-core';
+import { ChainId, Currency, Ether } from '@kittycorn-labs/sdk-core';
 import { USDT_ON } from '../../build/main';
 import {
   CEUR_CELO,
@@ -16,7 +16,8 @@ import {
   USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
-  USDC_ON, USDC_UNICHAIN,
+  USDC_ON,
+  USDC_UNICHAIN,
   USDC_WORLDCHAIN,
   USDC_ZORA,
   USDT_MAINNET,
@@ -24,7 +25,7 @@ import {
   V4_SEPOLIA_TEST_A,
   WETH9,
   WLD_WORLDCHAIN,
-  WNATIVE_ON
+  WNATIVE_ON,
 } from '../../src';
 import { BULLET, BULLET_WITHOUT_TAX } from './mock-data';
 
@@ -167,7 +168,7 @@ export const WHALES = (token: Currency): string => {
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
     case WNATIVE_ON(ChainId.MONAD_TESTNET):
       // TODO: get a real whale address for monad testnet
-      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c'
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
     case USDC_UNICHAIN:
       // TODO: get a real whale address for unichain mainnet
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';

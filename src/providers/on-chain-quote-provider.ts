@@ -2,12 +2,12 @@ import { Interface } from '@ethersproject/abi';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { BytesLike } from '@ethersproject/bytes';
 import { BaseProvider } from '@ethersproject/providers';
+import { ChainId } from '@kittycorn-labs/sdk-core';
 import {
   encodeMixedRouteToPath,
   MixedRouteSDK,
   Protocol,
 } from '@uniswap/router-sdk';
-import { ChainId } from '@uniswap/sdk-core';
 import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
 import {
   encodeRouteToPath as encodeV4RouteToPath,

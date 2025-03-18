@@ -1,5 +1,5 @@
-import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { Currency, CurrencyAmount, Ether } from '@uniswap/sdk-core';
+import { Currency, CurrencyAmount, Ether } from '@kittycorn-labs/sdk-core';
+import { partitionMixedRouteByProtocol, TPool } from '@uniswap/router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -11,11 +11,6 @@ import {
   USDC_MAINNET,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../../../../src';
-import { MixedRouteHeuristicGasModelFactory } from '../../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
-import {
-  BASE_SWAP_COST as BASE_SWAP_COST_V2,
-  COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
-} from '../../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   BASE_SWAP_COST,
   COST_PER_HOP,
@@ -25,6 +20,11 @@ import {
   NATIVE_UNWRAP_OVERHEAD,
   NATIVE_WRAP_OVERHEAD,
 } from '../../../../../src/routers/alpha-router/gas-models/gas-costs';
+import { MixedRouteHeuristicGasModelFactory } from '../../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
+import {
+  BASE_SWAP_COST as BASE_SWAP_COST_V2,
+  COST_PER_EXTRA_HOP as COST_PER_EXTRA_HOP_V2,
+} from '../../../../../src/routers/alpha-router/gas-models/v2/v2-heuristic-gas-model';
 import {
   USDC_DAI,
   USDC_DAI_MEDIUM,
@@ -32,12 +32,11 @@ import {
   WETH_DAI,
 } from '../../../../test-util/mock-data';
 import { getMixedRouteWithValidQuoteStub } from '../../../providers/caching/route/test-util/mocked-dependencies';
+import { getPools } from './test-util/helpers';
 import {
   getMockedV2PoolProvider,
   getMockedV3PoolProvider,
 } from './test-util/mocked-dependencies';
-import { getPools } from './test-util/helpers';
-import { TPool } from '@uniswap/router-sdk';
 
 describe('mixed route gas model tests', () => {
   const gasPriceWei = BigNumber.from(1000000000);
@@ -65,17 +64,24 @@ describe('mixed route gas model tests', () => {
           COST_PER_EXTRA_HOP_V2.mul(section.length - 1)
         );
       } else if (section.every((pool) => pool instanceof V4Pool)) {
-        throw new Error('V4 pools are not supported in the heuristic gas model');
+        throw new Error(
+          'V4 pools are not supported in the heuristic gas model'
+        );
       }
     });
 
     let totalInitializedTicksCrossed = 0;
-    for (let i = 0; i < routeWithValidQuote.initializedTicksCrossedList.length; i++) {
+    for (
+      let i = 0;
+      i < routeWithValidQuote.initializedTicksCrossedList.length;
+      i++
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (routeWithValidQuote.initializedTicksCrossedList[i]! > 0) {
         // Quoter returns Array<number of calls to crossTick + 1>, so we need to subtract 1 here.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        totalInitializedTicksCrossed += (routeWithValidQuote.initializedTicksCrossedList[i]! - 1);
+        totalInitializedTicksCrossed +=
+          routeWithValidQuote.initializedTicksCrossedList[i]! - 1;
       }
     }
 
@@ -144,7 +150,7 @@ describe('mixed route gas model tests', () => {
 
     const mixedRouteWithQuote = getMixedRouteWithValidQuoteStub({
       mixedRouteGasModel: mixedGasModel,
-      initializedTicksCrossedList: [3,2,5],
+      initializedTicksCrossedList: [3, 2, 5],
     });
 
     const { gasEstimate } = mixedGasModel.estimateGasCost(mixedRouteWithQuote);

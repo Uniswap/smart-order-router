@@ -1,17 +1,17 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import {
-  CondensedAddLiquidityOptions,
-  MixedRouteSDK,
-  Protocol,
-  Trade,
-} from '@uniswap/router-sdk';
-import {
   Currency,
   Fraction,
   Percent,
   Token,
   TradeType,
-} from '@uniswap/sdk-core';
+} from '@kittycorn-labs/sdk-core';
+import {
+  CondensedAddLiquidityOptions,
+  MixedRouteSDK,
+  Protocol,
+  Trade,
+} from '@uniswap/router-sdk';
 import {
   SwapOptions as UniversalRouterSwapOptions,
   UniversalRouterVersion,
