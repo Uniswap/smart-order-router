@@ -32,11 +32,11 @@ import {
   getAddress,
   ID_TO_NETWORK_NAME,
   metric,
-  MetricLoggerUnit,
+  MetricLoggerUnit, MIXED_HAS_V1_QUOTER,
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
-  PROTOCOL_V4_QUOTER_ADDRESSES,
+  PROTOCOL_V4_QUOTER_ADDRESSES
 } from '../util';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
@@ -502,10 +502,16 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protocol: Protocol
   ): Interface {
     if (useMixedRouteQuoter) {
-      if (mixedRouteContainsV4Pool) {
+      // If the mixed quoter does not have v1, which is most of the chains except for L1,
+      // then we know we need to use mixed quoter v2 ABI
+      if (!MIXED_HAS_V1_QUOTER.includes(this.chainId)) {
         return MixedRouteQuoterV2__factory.createInterface();
       } else {
-        return IMixedRouteQuoterV1__factory.createInterface();
+        if (mixedRouteContainsV4Pool) {
+          return MixedRouteQuoterV2__factory.createInterface();
+        } else {
+          return IMixedRouteQuoterV1__factory.createInterface();
+        }
       }
     }
 
