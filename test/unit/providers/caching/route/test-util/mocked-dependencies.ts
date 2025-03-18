@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { ChainId, TradeType } from '@kittycorn-labs/sdk-core';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, TradeType } from '@uniswap/sdk-core';
 import {
   CachedRoutes,
   CurrencyAmount,
@@ -29,7 +29,8 @@ import {
   getMockedV2GasModel,
   getMockedV2PoolProvider,
   getMockedV3GasModel,
-  getMockedV3PoolProvider, getMockedV4PoolProvider
+  getMockedV3PoolProvider,
+  getMockedV4PoolProvider,
 } from '../../../../routers/alpha-router/gas-models/test-util/mocked-dependencies';
 
 export function getV2RouteWithValidQuoteStub(
@@ -102,5 +103,14 @@ export function getMixedRouteWithValidQuoteStub(
 export function getCachedRoutesStub(
   blockNumber: number
 ): CachedRoutes | undefined {
-  return CachedRoutes.fromRoutesWithValidQuotes([getV3RouteWithValidQuoteStub()], ChainId.MAINNET, USDC, DAI, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
+  return CachedRoutes.fromRoutesWithValidQuotes(
+    [getV3RouteWithValidQuoteStub()],
+    ChainId.MAINNET,
+    USDC,
+    DAI,
+    [Protocol.V2, Protocol.V3, Protocol.MIXED],
+    blockNumber,
+    TradeType.EXACT_INPUT,
+    '1.1'
+  );
 }

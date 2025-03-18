@@ -1,6 +1,6 @@
 import { Logger } from '@ethersproject/logger';
+import { Currency, Ether, Fraction, Percent } from '@kittycorn-labs/sdk-core';
 import { flags } from '@oclif/command';
-import { Currency, Ether, Fraction, Percent } from '@uniswap/sdk-core';
 import { Position } from '@uniswap/v3-sdk';
 import dotenv from 'dotenv';
 import {

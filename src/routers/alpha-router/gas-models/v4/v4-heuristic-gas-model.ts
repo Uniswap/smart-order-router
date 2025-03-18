@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import { ChainId } from '@uniswap/sdk-core';
+import { ChainId } from '@kittycorn-labs/sdk-core';
 
 import { CurrencyAmount, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { V4RouteWithValidQuote } from '../../entities';

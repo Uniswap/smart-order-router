@@ -1,5 +1,5 @@
+import { ChainId, Currency, Percent } from '@kittycorn-labs/sdk-core';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -17,7 +17,7 @@ import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 import { TPool } from '@uniswap/router-sdk';
 import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 
-import { Token } from '@uniswap/sdk-core';
+import { Token } from '@kittycorn-labs/sdk-core';
 import { BASE_TOKENIZE_UNDERLYING } from '../providers/token-provider';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {

@@ -1,5 +1,5 @@
+import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 
 import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { nativeOnChain, WRAPPED_NATIVE_CURRENCY } from '../util';

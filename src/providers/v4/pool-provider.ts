@@ -1,4 +1,4 @@
-import { ChainId, Currency } from '@uniswap/sdk-core';
+import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
 import { NoTickDataProvider } from '@uniswap/v3-sdk';
 import { Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';

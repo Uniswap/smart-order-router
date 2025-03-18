@@ -1,5 +1,5 @@
+import { ChainId, WETH9 } from '@kittycorn-labs/sdk-core';
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
-import { ChainId, WETH9 } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -339,55 +339,67 @@ describe('compute all mixed routes', () => {
   test('handles ETH/WETH wrapping in mixed routes', async () => {
     const pools = [
       USDC_WETH_LOW, // V3 pool
-      ETH_USDT_V4_LOW
+      ETH_USDT_V4_LOW,
     ];
     const routes = computeAllMixedRoutes(USDC, USDT, pools, 2, true);
     expect(routes.length).toBeGreaterThan(0);
     // Routes should not include both ETH and WETH fake pools
-    routes.forEach(route => {
-      expect(route.pools).toEqual([USDC_WETH_LOW, V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET], ETH_USDT_V4_LOW])
-      expect(route.path).toEqual([USDC, nativeOnChain(ChainId.MAINNET).wrapped, nativeOnChain(ChainId.MAINNET), USDT])
-      expect(route.input).toEqual(USDC)
-      expect(route.output).toEqual(USDT)
-      expect(route.pathInput).toEqual(USDC)
-      expect(route.pathOutput).toEqual(USDT)
-      expect(route.chainId).toEqual(1)
+    routes.forEach((route) => {
+      expect(route.pools).toEqual([
+        USDC_WETH_LOW,
+        V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET],
+        ETH_USDT_V4_LOW,
+      ]);
+      expect(route.path).toEqual([
+        USDC,
+        nativeOnChain(ChainId.MAINNET).wrapped,
+        nativeOnChain(ChainId.MAINNET),
+        USDT,
+      ]);
+      expect(route.input).toEqual(USDC);
+      expect(route.output).toEqual(USDT);
+      expect(route.pathInput).toEqual(USDC);
+      expect(route.pathOutput).toEqual(USDT);
+      expect(route.chainId).toEqual(1);
     });
   });
 
   test('disables ETH/WETH wrapping in mixed routes', async () => {
     const pools = [
       USDC_WETH_LOW, // V3 pool
-      ETH_USDT_V4_LOW
+      ETH_USDT_V4_LOW,
     ];
     const routes = computeAllMixedRoutes(USDC, USDT, pools, 2, false);
     expect(routes.length).toEqual(0);
   });
 
   test('handles WETH/ETH unwrapping in mixed routes', async () => {
-    const pools = [
-      ETH_USDT_V4_LOW,
-      USDC_WETH_LOW
-    ];
+    const pools = [ETH_USDT_V4_LOW, USDC_WETH_LOW];
     const routes = computeAllMixedRoutes(USDT, USDC, pools, 2, true);
     expect(routes.length).toBeGreaterThan(0);
     // Routes should not include both ETH and WETH fake pools
-    routes.forEach(route => {
-      expect(route.pools).toEqual([ETH_USDT_V4_LOW, V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET], USDC_WETH_LOW])
-      expect(route.path).toEqual([USDT, nativeOnChain(ChainId.MAINNET), nativeOnChain(ChainId.MAINNET).wrapped, USDC])
-      expect(route.input).toEqual(USDT)
-      expect(route.output).toEqual(USDC)
-      expect(route.pathInput).toEqual(USDT)
-      expect(route.pathOutput).toEqual(USDC)
-      expect(route.chainId).toEqual(1)
+    routes.forEach((route) => {
+      expect(route.pools).toEqual([
+        ETH_USDT_V4_LOW,
+        V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET],
+        USDC_WETH_LOW,
+      ]);
+      expect(route.path).toEqual([
+        USDT,
+        nativeOnChain(ChainId.MAINNET),
+        nativeOnChain(ChainId.MAINNET).wrapped,
+        USDC,
+      ]);
+      expect(route.input).toEqual(USDT);
+      expect(route.output).toEqual(USDC);
+      expect(route.pathInput).toEqual(USDT);
+      expect(route.pathOutput).toEqual(USDC);
+      expect(route.chainId).toEqual(1);
     });
   });
 
   test('disables WETH/ETH unwrapping in mixed routes', async () => {
-    const pools = [
-      ETH_USDT_V4_LOW,
-      USDC_WETH_LOW
-    ];
+    const pools = [ETH_USDT_V4_LOW, USDC_WETH_LOW];
     const routes = computeAllMixedRoutes(USDT, USDC, pools, 2, false);
     expect(routes.length).toEqual(0);
   });

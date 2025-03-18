@@ -1,4 +1,4 @@
-import { ChainId } from '@uniswap/sdk-core';
+import { ChainId } from '@kittycorn-labs/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import { parseFeeAmount } from '../../../build/main';
 import { getApplicableV3FeeAmounts, unparseFeeAmount } from '../../../src';
@@ -6,7 +6,9 @@ import { getApplicableV3FeeAmounts, unparseFeeAmount } from '../../../src';
 describe('amount', () => {
   it('validate FeeAmount enum helpers', async () => {
     // Check that all enumes can be unparsed and parsed.
-    const feeAmountValues = Object.values(FeeAmount).filter(value => typeof value === 'number');
+    const feeAmountValues = Object.values(FeeAmount).filter(
+      (value) => typeof value === 'number'
+    );
     for (const feeAmount of feeAmountValues) {
       const feeAmountStr = unparseFeeAmount(feeAmount as FeeAmount);
       expect(feeAmountStr).toBeDefined();

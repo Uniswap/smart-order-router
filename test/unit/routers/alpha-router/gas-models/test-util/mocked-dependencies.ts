@@ -1,4 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { ChainId, TradeType, WETH9 } from '@kittycorn-labs/sdk-core';
+import { Protocol } from '@uniswap/router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -20,7 +22,8 @@ import {
 } from '../../../../../../src';
 import {
   buildMockV2PoolAccessor,
-  buildMockV3PoolAccessor, buildMockV4PoolAccessor,
+  buildMockV3PoolAccessor,
+  buildMockV4PoolAccessor,
   DAI_USDT,
   DAI_USDT_LOW,
   DAI_USDT_V4_LOW,
@@ -44,10 +47,8 @@ import {
   WETH9_USDT_LOW,
   WETH9_USDT_V4_LOW,
   WETH_NONTOKEN_MEDIUM,
-  WETH_USDT
+  WETH_USDT,
 } from '../../../../../test-util/mock-data';
-import { ChainId, TradeType, WETH9 } from '@uniswap/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
 
 export function getMockedMixedGasModel(): IGasModel<MixedRouteWithValidQuote> {
   const mockMixedGasModel = {
@@ -92,7 +93,7 @@ export function getMockedV4PoolProvider(): V4PoolProvider {
     DAI_USDT_V4_LOW,
     USDC_USDT_V4_MEDIUM,
     UNI_WETH_V4_MEDIUM,
-    DAI_WETH_V4_MEDIUM
+    DAI_WETH_V4_MEDIUM,
   ];
 
   mockV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
@@ -116,7 +117,7 @@ export function getMockedV3PoolProvider(): V3PoolProvider {
     DAI_USDT_LOW,
     USDC_USDT_MEDIUM,
     UNI_WETH_MEDIUM,
-    DAI_WETH_MEDIUM
+    DAI_WETH_MEDIUM,
   ];
 
   mockV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
@@ -147,7 +148,14 @@ export function getMockedV2GasModel(): IGasModel<V2RouteWithValidQuote> {
 
 export function getMockedV2PoolProvider(): V2PoolProvider {
   const mockV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
-  const v2MockPools: Pair[] = [DAI_USDT, USDC_WETH, WETH_USDT, USDC_DAI, WBTC_WETH, DAI_WETH];
+  const v2MockPools: Pair[] = [
+    DAI_USDT,
+    USDC_WETH,
+    WETH_USDT,
+    USDC_DAI,
+    WBTC_WETH,
+    DAI_WETH,
+  ];
   mockV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
   mockV2PoolProvider.getPoolAddress.callsFake((tA, tB) => ({
     poolAddress: Pair.getAddress(tA, tB),
@@ -160,7 +168,11 @@ export function getMockedV2PoolProvider(): V2PoolProvider {
 export function getV3RouteWithInValidQuoteStub(
   overrides?: Partial<V3RouteWithValidQuoteParams>
 ): V3RouteWithValidQuote {
-  const route = new V3Route([WETH_NONTOKEN_MEDIUM], NONTOKEN, WETH9[ChainId.MAINNET]!);
+  const route = new V3Route(
+    [WETH_NONTOKEN_MEDIUM],
+    NONTOKEN,
+    WETH9[ChainId.MAINNET]!
+  );
 
   return new V3RouteWithValidQuote({
     amount: CurrencyAmount.fromRawAmount(WETH9[ChainId.MAINNET]!, 1),
@@ -181,6 +193,14 @@ export function getV3RouteWithInValidQuoteStub(
 export function getInvalidCachedRoutesStub(
   blockNumber: number
 ): CachedRoutes | undefined {
-  return CachedRoutes.fromRoutesWithValidQuotes([getV3RouteWithInValidQuoteStub()], ChainId.MAINNET, USDC, DAI_MAINNET, [Protocol.V2, Protocol.V3, Protocol.MIXED], blockNumber, TradeType.EXACT_INPUT, '1.1');
+  return CachedRoutes.fromRoutesWithValidQuotes(
+    [getV3RouteWithInValidQuoteStub()],
+    ChainId.MAINNET,
+    USDC,
+    DAI_MAINNET,
+    [Protocol.V2, Protocol.V3, Protocol.MIXED],
+    blockNumber,
+    TradeType.EXACT_INPUT,
+    '1.1'
+  );
 }
-

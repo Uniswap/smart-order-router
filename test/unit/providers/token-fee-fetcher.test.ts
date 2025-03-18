@@ -1,13 +1,11 @@
-import { ID_TO_PROVIDER } from '../../../src';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { ChainId, Token, WETH9 } from '@uniswap/sdk-core';
-import {
-  OnChainTokenFeeFetcher
-} from '../../../src/providers/token-fee-fetcher';
-import { BITBOY, BOYS, BULLET, DFNDR } from '../../test-util/mock-data';
+import { ChainId, Token, WETH9 } from '@kittycorn-labs/sdk-core';
 import dotenv from 'dotenv';
+import { ID_TO_PROVIDER } from '../../../src';
 import { ProviderConfig } from '../../../src/providers/provider';
-const each = require("jest-each").default;
+import { OnChainTokenFeeFetcher } from '../../../src/providers/token-fee-fetcher';
+import { BITBOY, BOYS, BULLET, DFNDR } from '../../test-util/mock-data';
+const each = require('jest-each').default;
 
 dotenv.config();
 
@@ -16,38 +14,70 @@ describe('TokenFeeFetcher', () => {
     [ChainId.MAINNET, WETH9[ChainId.MAINNET]!, BITBOY, false, true],
     [ChainId.MAINNET, WETH9[ChainId.MAINNET]!, DFNDR, true, false],
     [ChainId.BASE, WETH9[ChainId.BASE]!, BOYS, false, false],
-  ]).it('Fetch non-FOT and FOT, should only return FOT', async (chain: ChainId, inputToken: Token, outputToken: Token, feeTakenOnTransfer?: boolean, externalTransferFailed?: boolean) => {
-    const providerConfig: ProviderConfig = {
-      blockNumber: chain === ChainId.MAINNET ? 20686752 : 19395859,
+  ]).it(
+    'Fetch non-FOT and FOT, should only return FOT',
+    async (
+      chain: ChainId,
+      inputToken: Token,
+      outputToken: Token,
+      feeTakenOnTransfer?: boolean,
+      externalTransferFailed?: boolean
+    ) => {
+      const providerConfig: ProviderConfig = {
+        blockNumber: chain === ChainId.MAINNET ? 20686752 : 19395859,
+      };
+      const chainProvider = ID_TO_PROVIDER(chain);
+      const provider = new JsonRpcProvider(chainProvider, chain);
+
+      const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+      const tokenFeeMap = await tokenFeeFetcher.fetchFees(
+        [inputToken.address, outputToken.address],
+        providerConfig
+      );
+
+      expect(tokenFeeMap).not.toContain(inputToken.address);
+      expect(tokenFeeMap[outputToken.address]).toBeDefined();
+      expect(tokenFeeMap[outputToken.address]?.buyFeeBps).toEqual(
+        outputToken.buyFeeBps
+      );
+      expect(tokenFeeMap[outputToken.address]?.sellFeeBps).toEqual(
+        outputToken.sellFeeBps
+      );
+      expect(tokenFeeMap[outputToken.address]?.feeTakenOnTransfer).toEqual(
+        feeTakenOnTransfer
+      );
+      expect(tokenFeeMap[outputToken.address]?.externalTransferFailed).toEqual(
+        externalTransferFailed
+      );
     }
-    const chainProvider = ID_TO_PROVIDER(chain);
-    const provider = new JsonRpcProvider(chainProvider, chain);
+  );
 
-    const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
-    const tokenFeeMap = await tokenFeeFetcher.fetchFees([inputToken.address, outputToken.address], providerConfig)
+  each([[ChainId.MAINNET, BULLET, BITBOY]]).it(
+    'Fetch FOT and FOT, should return BOTH',
+    async (chain: ChainId, inputToken: Token, outputToken: Token) => {
+      const chainProvider = ID_TO_PROVIDER(chain);
+      const provider = new JsonRpcProvider(chainProvider, chain);
 
-    expect(tokenFeeMap).not.toContain(inputToken.address)
-    expect(tokenFeeMap[outputToken.address]).toBeDefined()
-    expect(tokenFeeMap[outputToken.address]?.buyFeeBps).toEqual(outputToken.buyFeeBps)
-    expect(tokenFeeMap[outputToken.address]?.sellFeeBps).toEqual(outputToken.sellFeeBps)
-    expect(tokenFeeMap[outputToken.address]?.feeTakenOnTransfer).toEqual(feeTakenOnTransfer)
-    expect(tokenFeeMap[outputToken.address]?.externalTransferFailed).toEqual(externalTransferFailed)
-  });
+      const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+      const tokenFeeMap = await tokenFeeFetcher.fetchFees([
+        inputToken.address,
+        outputToken.address,
+      ]);
 
-  each([
-    [ChainId.MAINNET, BULLET, BITBOY],
-  ]).it('Fetch FOT and FOT, should return BOTH', async (chain: ChainId, inputToken: Token, outputToken: Token) => {
-    const chainProvider = ID_TO_PROVIDER(chain);
-    const provider = new JsonRpcProvider(chainProvider, chain);
-
-    const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
-    const tokenFeeMap = await tokenFeeFetcher.fetchFees([inputToken.address, outputToken.address])
-
-    expect(tokenFeeMap[inputToken.address]).toBeDefined()
-    expect(tokenFeeMap[inputToken.address]?.buyFeeBps).toEqual(inputToken.buyFeeBps)
-    expect(tokenFeeMap[inputToken.address]?.sellFeeBps).toEqual(inputToken.sellFeeBps)
-    expect(tokenFeeMap[outputToken.address]).toBeDefined()
-    expect(tokenFeeMap[outputToken.address]?.buyFeeBps).toEqual(outputToken.buyFeeBps)
-    expect(tokenFeeMap[outputToken.address]?.sellFeeBps).toEqual(outputToken.sellFeeBps)
-  });
+      expect(tokenFeeMap[inputToken.address]).toBeDefined();
+      expect(tokenFeeMap[inputToken.address]?.buyFeeBps).toEqual(
+        inputToken.buyFeeBps
+      );
+      expect(tokenFeeMap[inputToken.address]?.sellFeeBps).toEqual(
+        inputToken.sellFeeBps
+      );
+      expect(tokenFeeMap[outputToken.address]).toBeDefined();
+      expect(tokenFeeMap[outputToken.address]?.buyFeeBps).toEqual(
+        outputToken.buyFeeBps
+      );
+      expect(tokenFeeMap[outputToken.address]?.sellFeeBps).toEqual(
+        outputToken.sellFeeBps
+      );
+    }
+  );
 });

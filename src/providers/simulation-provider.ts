@@ -1,6 +1,6 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { ChainId, TradeType } from '@kittycorn-labs/sdk-core';
 import { permit2Address } from '@uniswap/permit2-sdk';
-import { ChainId, TradeType } from '@uniswap/sdk-core';
 import { BigNumber } from 'ethers/lib/ethers';
 
 import {

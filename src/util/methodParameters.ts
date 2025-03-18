@@ -1,10 +1,10 @@
+import { ChainId, Currency, TradeType } from '@kittycorn-labs/sdk-core';
 import {
   MixedRouteSDK,
   Protocol,
   SwapRouter as SwapRouter02,
   Trade,
 } from '@uniswap/router-sdk';
-import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
 import {
   SwapRouter as UniversalRouter,
   UNIVERSAL_ROUTER_ADDRESS,

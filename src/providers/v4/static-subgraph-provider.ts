@@ -1,4 +1,4 @@
-import { ChainId, Currency } from '@uniswap/sdk-core';
+import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
 import { Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';

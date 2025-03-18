@@ -1,3 +1,5 @@
+import { ChainId, TradeType } from '@kittycorn-labs/sdk-core';
+import { Protocol } from '@uniswap/router-sdk';
 import {
   AlphaRouterConfig,
   CachedRoute,
@@ -5,32 +7,40 @@ import {
   DAI_MAINNET,
   MixedRoute,
   shouldWipeoutCachedRoutes,
-  USDC_MAINNET
+  USDC_MAINNET,
 } from '../../../../../src';
-import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, TradeType } from '@uniswap/sdk-core';
+import { DEFAULT_ROUTING_CONFIG_BY_CHAIN } from '../../../../../src/routers/alpha-router/config';
 import {
   USDC_DAI,
   USDC_DAI_LOW,
   USDC_DAI_MEDIUM,
-  USDC_DAI_V4_LOW
+  USDC_DAI_V4_LOW,
 } from '../../../../test-util/mock-data';
-import {
-  DEFAULT_ROUTING_CONFIG_BY_CHAIN
-} from '../../../../../src/routers/alpha-router/config';
 
 describe('routes', () => {
-  const mixedRoutes1 = new MixedRoute([USDC_DAI, USDC_DAI_LOW], USDC_MAINNET, DAI_MAINNET);
+  const mixedRoutes1 = new MixedRoute(
+    [USDC_DAI, USDC_DAI_LOW],
+    USDC_MAINNET,
+    DAI_MAINNET
+  );
   const cachedRoute1 = new CachedRoute({
     route: mixedRoutes1,
     percent: 50,
   });
-  const mixedRoutes2 = new MixedRoute([USDC_DAI_V4_LOW, USDC_DAI_LOW], USDC_MAINNET, DAI_MAINNET);
+  const mixedRoutes2 = new MixedRoute(
+    [USDC_DAI_V4_LOW, USDC_DAI_LOW],
+    USDC_MAINNET,
+    DAI_MAINNET
+  );
   const cachedRoute2 = new CachedRoute({
     route: mixedRoutes2,
     percent: 50,
   });
-  const mixedRoutes3 = new MixedRoute([USDC_DAI, USDC_DAI_LOW, USDC_DAI_MEDIUM], USDC_MAINNET, DAI_MAINNET);
+  const mixedRoutes3 = new MixedRoute(
+    [USDC_DAI, USDC_DAI_LOW, USDC_DAI_MEDIUM],
+    USDC_MAINNET,
+    DAI_MAINNET
+  );
   const cachedRoute3 = new CachedRoute({
     route: mixedRoutes3,
     percent: 50,
@@ -45,7 +55,7 @@ describe('routes', () => {
     blockNumber: 1,
     tradeType: TradeType.EXACT_INPUT,
     originalAmount: '100',
-    blocksToLive: 100
+    blocksToLive: 100,
   });
 
   const cachedRoutesIncludeRouteWithoutV4Pool = new CachedRoutes({
@@ -57,7 +67,7 @@ describe('routes', () => {
     blockNumber: 1,
     tradeType: TradeType.EXACT_INPUT,
     originalAmount: '100',
-    blocksToLive: 100
+    blocksToLive: 100,
   });
 
   test(`do not exclude any cached route for empty excluded protocols list`, async () => {
@@ -69,7 +79,12 @@ describe('routes', () => {
       optimisticCachedRoutes: false,
     };
 
-    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithV4Pool, routingConfig)).toBeFalsy();
+    expect(
+      shouldWipeoutCachedRoutes(
+        cachedRoutesIncludeRouteWithV4Pool,
+        routingConfig
+      )
+    ).toBeFalsy();
   });
 
   test(`exclude cached route for V4 protocol`, async () => {
@@ -80,7 +95,12 @@ describe('routes', () => {
       excludedProtocolsFromMixed: [Protocol.V4],
       optimisticCachedRoutes: false,
     };
-    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithV4Pool, routingConfig)).toBeTruthy();
+    expect(
+      shouldWipeoutCachedRoutes(
+        cachedRoutesIncludeRouteWithV4Pool,
+        routingConfig
+      )
+    ).toBeTruthy();
   });
 
   test(`do not exclude cached route for V4 protocol`, async () => {
@@ -91,6 +111,11 @@ describe('routes', () => {
       excludedProtocolsFromMixed: [Protocol.V4],
       optimisticCachedRoutes: false,
     };
-    expect(shouldWipeoutCachedRoutes(cachedRoutesIncludeRouteWithoutV4Pool, routingConfig)).toBeFalsy();
+    expect(
+      shouldWipeoutCachedRoutes(
+        cachedRoutesIncludeRouteWithoutV4Pool,
+        routingConfig
+      )
+    ).toBeFalsy();
   });
 });
