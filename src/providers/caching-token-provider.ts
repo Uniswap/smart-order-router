@@ -24,6 +24,7 @@ import {
   DAI_OPTIMISM_GOERLI,
   DAI_OPTIMISM_SEPOLIA,
   DAI_POLYGON_MUMBAI,
+  DAI_UNICHAIN,
   ETH_BNB,
   ITokenProvider,
   TokenAccessor,

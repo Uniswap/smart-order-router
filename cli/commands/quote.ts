@@ -5,17 +5,17 @@ import { Currency, Percent, TradeType } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import _ from 'lodash';
 
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import {
   ID_TO_CHAIN_ID,
   MapWithLowerCaseKey,
   nativeOnChain,
   parseAmount,
   SwapRoute,
-  SwapType
+  SwapType,
 } from '../../src';
 import { NATIVE_NAMES_BY_ID, TO_PROTOCOL } from '../../src/util';
 import { BaseCommand } from '../base-command';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 
 dotenv.config();
 
@@ -43,7 +43,10 @@ export class Quote extends BaseCommand {
     }),
     simulate: flags.boolean({ required: false, default: false }),
     debugRouting: flags.boolean({ required: false, default: true }),
-    enableFeeOnTransferFeeFetching: flags.boolean({ required: false, default: false }),
+    enableFeeOnTransferFeeFetching: flags.boolean({
+      required: false,
+      default: false,
+    }),
     requestBlockNumber: flags.integer({ required: false }),
     gasToken: flags.string({ required: false }),
   };
@@ -78,7 +81,7 @@ export class Quote extends BaseCommand {
       debugRouting,
       enableFeeOnTransferFeeFetching,
       requestBlockNumber,
-      gasToken
+      gasToken,
     } = flags;
 
     const topNSecondHopForTokenAddress = new MapWithLowerCaseKey();
@@ -87,7 +90,8 @@ export class Quote extends BaseCommand {
         const entryParts = entry.split('|');
         if (entryParts.length != 2) {
           throw new Error(
-            'flag --topNSecondHopForTokenAddressRaw must be in format tokenAddress|topN,...');
+            'flag --topNSecondHopForTokenAddressRaw must be in format tokenAddress|topN,...'
+          );
         }
         const topNForTokenAddress: number = Number(entryParts[1]!);
         topNSecondHopForTokenAddress.set(entryParts[0]!, topNForTokenAddress);
@@ -121,16 +125,16 @@ export class Quote extends BaseCommand {
     const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
       ? nativeOnChain(chainId)
       : (await tokenProvider.getTokens([tokenInStr])).getTokenByAddress(
-        tokenInStr
-      )!;
+          tokenInStr
+        )!;
 
     const tokenOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
       tokenOutStr
     )
       ? nativeOnChain(chainId)
       : (await tokenProvider.getTokens([tokenOutStr])).getTokenByAddress(
-        tokenOutStr
-      )!;
+          tokenOutStr
+        )!;
 
     let swapRoutes: SwapRoute | null;
     if (exactIn) {
@@ -141,13 +145,13 @@ export class Quote extends BaseCommand {
         TradeType.EXACT_INPUT,
         recipient
           ? {
-            type: SwapType.UNIVERSAL_ROUTER,
-            deadlineOrPreviousBlockhash: 10000000000000,
-            recipient,
-            slippageTolerance: new Percent(5, 100),
-            simulate: simulate ? { fromAddress: recipient } : undefined,
-            version: UniversalRouterVersion.V2_0
-          }
+              type: SwapType.UNIVERSAL_ROUTER,
+              deadlineOrPreviousBlockhash: 10000000000000,
+              recipient,
+              slippageTolerance: new Percent(5, 100),
+              simulate: simulate ? { fromAddress: recipient } : undefined,
+              version: UniversalRouterVersion.V2_0,
+            }
           : undefined,
         {
           blockNumber: requestBlockNumber ?? this.blockNumber,
@@ -170,7 +174,7 @@ export class Quote extends BaseCommand {
           forceMixedRoutes,
           debugRouting,
           enableFeeOnTransferFeeFetching,
-          gasToken
+          gasToken,
         }
       );
     } else {
@@ -181,11 +185,11 @@ export class Quote extends BaseCommand {
         TradeType.EXACT_OUTPUT,
         recipient
           ? {
-            type: SwapType.SWAP_ROUTER_02,
-            deadline: 100,
-            recipient,
-            slippageTolerance: new Percent(5, 10_000),
-          }
+              type: SwapType.SWAP_ROUTER_02,
+              deadline: 100,
+              recipient,
+              slippageTolerance: new Percent(5, 10_000),
+            }
           : undefined,
         {
           blockNumber: this.blockNumber - 10,
@@ -208,7 +212,7 @@ export class Quote extends BaseCommand {
           forceMixedRoutes,
           debugRouting,
           enableFeeOnTransferFeeFetching,
-          gasToken
+          gasToken,
         }
       );
     }

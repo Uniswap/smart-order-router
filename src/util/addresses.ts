@@ -283,7 +283,7 @@ export const WETH9: {
     // TODO: remove ROOTSTOCK once we support both at the routing level
     | ChainId.ROOTSTOCK
     // TODO: remove UNICHAIN once we support both at the routing level
-    | ChainId.UNICHAIN
+    // | ChainId.UNICHAIN
   >]: Token;
 } = {
   [ChainId.MAINNET]: new Token(

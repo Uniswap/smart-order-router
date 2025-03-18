@@ -318,7 +318,7 @@ export function buildSwapMethodParameters(
 ): MethodParameters {
   if (swapConfig.type == SwapType.UNIVERSAL_ROUTER) {
     return {
-      ...UniversalRouter.swapCallParameters(trade, swapConfig),
+      ...UniversalRouter.swapCallParameters(trade as any, swapConfig),
       to: UNIVERSAL_ROUTER_ADDRESS(swapConfig.version, chainId),
     };
   } else if (swapConfig.type == SwapType.SWAP_ROUTER_02) {

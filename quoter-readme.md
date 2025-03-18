@@ -79,4 +79,8 @@ stateDiagram
         <td>PROTOCOL_V4_QUOTER_ADDRESSES</td>
         <td>src/util/addresses.ts</td>
     </tr>
+    <tr>
+        <td>buildSwapMethodParameters (calldata)</td>
+        <td>src/util/methodParameters.ts</td>
+    </tr>
 </table>

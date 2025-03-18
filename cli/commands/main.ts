@@ -89,35 +89,34 @@ async function main() {
     autoSlippage: 'DEFAULT',
   };
 
-  const result = await getQuote(payload);
-  console.log('result:', result);
-  // console.log('route.length', result?.route.length);
-  // console.log('result.route.length', result?.route.routes);
-  // console.log('route:', result?.trade.routes[0]);
-  // console.log('trade.routes.length:', result?.trade.routes.length);
+  const swapRoutes = await getQuote(payload);
 
-  if (result) {
-    const routeString = routeAmountsToString(result.route);
+  if (swapRoutes) {
+    const {
+      // blockNumber,
+      // estimatedGasUsed,
+      // estimatedGasUsedQuoteToken,
+      // estimatedGasUsedUSD,
+      // estimatedGasUsedGasToken,
+      // gasPriceWei,
+      // methodParameters,
+      // quote,
+      // quoteGasAdjusted,
+      route: routeAmounts,
+      // simulationStatus,
+      trade,
+    } = swapRoutes;
+
+    const routeString = routeAmountsToString(routeAmounts);
     console.log('routeString:', routeString);
 
-    const firstRoute = result.route[0]?.route!;
-
-    console.log('------------------------------');
-    console.log('firstRoute:', firstRoute);
-    console.log('------------------------------');
-    // console.log('result:', result);
-    // console.log('------------------------------');
-
-    const tokenPath = (firstRoute as any).tokenPath;
-    console.log('tokenIn:', tokenPath[0]);
-    console.log('tokenOut:', tokenPath[tokenPath.length - 1]);
-    console.log('------------------------------');
-
-    // const pool =
-    //   firstRoute.protocol === Protocol.V2
-    //     ? (firstRoute as any).pairs
-    //     : (firstRoute as any).pools;
-    // console.log('pool[0]:', pool[0]);
+    const currencyIn = trade.inputAmount.currency;
+    console.log('currencyIn:', currencyIn);
+    console.log('inputAmount:', trade.inputAmount.quotient.toString());
+    console.log(
+      'value:',
+      currencyIn.isNative ? trade.inputAmount.quotient.toString() : '0'
+    );
   }
 }
 
@@ -176,7 +175,6 @@ async function getQuote(payload: any) {
     : (await tokenProvider.getTokens([tokenInAddress])).getTokenByAddress(
         tokenInAddress
       )!;
-  console.log('-> currencyIn:', currencyIn);
 
   const currencyOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
     // Replace to support old native eth address
