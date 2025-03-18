@@ -1377,9 +1377,7 @@ export class AlphaRouter
       partialRoutingConfig,
       { blockNumber }
     );
-
-    log.error(`routingConfig ${JSON.stringify(routingConfig)}`);
-
+    
     if (routingConfig.debugRouting) {
       log.warn(`Finalized routing config is ${JSON.stringify(routingConfig)}`);
     }
