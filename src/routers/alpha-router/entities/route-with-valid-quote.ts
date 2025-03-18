@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { Currency, Token, TradeType } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
+import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import { IV4PoolProvider } from '../../../providers';

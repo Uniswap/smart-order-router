@@ -1,8 +1,8 @@
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { Currency } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
+import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk';
 
 import {
   MixedRoute,

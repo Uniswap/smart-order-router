@@ -1,5 +1,5 @@
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
 
 import { ProviderConfig } from '../provider';
 import { SubgraphProvider } from '../subgraph-provider';

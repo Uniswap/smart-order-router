@@ -1,3 +1,4 @@
+import { ADDRESS_ZERO } from '@kittycorn-labs/router-sdk';
 import {
   ChainId,
   // eslint-disable-next-line sort-imports
@@ -6,7 +7,6 @@ import {
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
 } from '@kittycorn-labs/sdk-core';
-import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';

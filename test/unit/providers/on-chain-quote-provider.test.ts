@@ -1,7 +1,7 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
+import { encodeRouteToPath, Pool } from '@kittycorn-labs/v4-sdk';
 import { ADDRESS_ZERO } from '@uniswap/v3-sdk';
-import { encodeRouteToPath, Pool } from '@uniswap/v4-sdk';
 import dotenv from 'dotenv';
 import JSBI from 'jsbi';
 import {

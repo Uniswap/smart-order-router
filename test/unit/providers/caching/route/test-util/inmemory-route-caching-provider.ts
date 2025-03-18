@@ -1,10 +1,10 @@
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import {
   ChainId,
   Currency,
   CurrencyAmount,
   TradeType,
 } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
 import {
   CachedRoutes,
   CacheMode,

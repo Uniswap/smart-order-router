@@ -1,5 +1,5 @@
 import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
-import { Pool } from '@uniswap/v4-sdk';
+import { Pool } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
 
 import { log, metric, MetricLoggerUnit } from '../../util';

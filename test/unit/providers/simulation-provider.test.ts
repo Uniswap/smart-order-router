@@ -1,6 +1,6 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { Trade } from '@kittycorn-labs/router-sdk';
 import { ChainId, Percent, TradeType } from '@kittycorn-labs/sdk-core';
-import { Trade } from '@uniswap/router-sdk';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { BigNumber } from 'ethers';
 import sinon from 'sinon';

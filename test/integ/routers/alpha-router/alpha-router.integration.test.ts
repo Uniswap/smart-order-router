@@ -3,6 +3,7 @@
  */
 
 import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import {
   ChainId,
   Currency,
@@ -19,7 +20,6 @@ import {
   permit2Address,
   PermitSingle,
 } from '@uniswap/permit2-sdk';
-import { Protocol } from '@uniswap/router-sdk';
 import {
   Permit2Permit,
   UniversalRouterVersion,

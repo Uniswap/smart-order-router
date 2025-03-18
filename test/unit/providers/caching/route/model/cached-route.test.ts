@@ -1,4 +1,4 @@
-import { Protocol } from '@uniswap/router-sdk';
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { DAI_MAINNET, MixedRoute, USDC_MAINNET, V2Route, V3Route } from '../../../../../../build/main';
 import { CachedRoute } from '../../../../../../src';
 import { USDC_DAI, USDC_DAI_MEDIUM, WETH_DAI } from '../../../../../test-util/mock-data';

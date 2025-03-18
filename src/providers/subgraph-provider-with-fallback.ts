@@ -1,5 +1,5 @@
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { Token } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
 
 import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { log } from '../util';

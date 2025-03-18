@@ -1,5 +1,5 @@
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';

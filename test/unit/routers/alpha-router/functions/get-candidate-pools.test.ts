@@ -1,8 +1,8 @@
+import { ADDRESS_ZERO, Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@kittycorn-labs/sdk-core';
-import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
+import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 import sinon from 'sinon';
 import { USDC_BASE } from '../../../../../build/main';

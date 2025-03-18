@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { ZERO } from '@kittycorn-labs/router-sdk';
 import { Fraction, TradeType } from '@kittycorn-labs/sdk-core';
-import { ZERO } from '@uniswap/router-sdk';
 
 import {
   RouteWithValidQuote,

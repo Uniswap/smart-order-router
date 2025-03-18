@@ -1,5 +1,5 @@
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
 import { isNativeCurrency } from '@uniswap/universal-router-sdk';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
