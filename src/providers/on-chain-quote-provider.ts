@@ -2,17 +2,17 @@ import { Interface } from '@ethersproject/abi';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { BytesLike } from '@ethersproject/bytes';
 import { BaseProvider } from '@ethersproject/providers';
-import { ChainId } from '@kittycorn-labs/sdk-core';
 import {
   encodeMixedRouteToPath,
   MixedRouteSDK,
   Protocol,
-} from '@uniswap/router-sdk';
-import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
+} from '@kittycorn-labs/router-sdk';
+import { ChainId } from '@kittycorn-labs/sdk-core';
 import {
   encodeRouteToPath as encodeV4RouteToPath,
   Pool as V4Pool,
-} from '@uniswap/v4-sdk';
+} from '@kittycorn-labs/v4-sdk';
+import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';

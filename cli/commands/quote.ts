@@ -1,7 +1,7 @@
 import { Logger } from '@ethersproject/logger';
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { Currency, Percent, TradeType } from '@kittycorn-labs/sdk-core';
 import { flags } from '@oclif/command';
-import { Protocol } from '@uniswap/router-sdk';
 import dotenv from 'dotenv';
 import _ from 'lodash';
 

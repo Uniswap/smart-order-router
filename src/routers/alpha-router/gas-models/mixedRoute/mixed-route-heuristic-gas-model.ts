@@ -1,10 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { partitionMixedRouteByProtocol } from '@kittycorn-labs/router-sdk';
+import { TPool } from '@kittycorn-labs/router-sdk/dist/utils/TPool';
 import { ChainId } from '@kittycorn-labs/sdk-core';
-import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../../..';

@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
-import { Protocol } from '@uniswap/router-sdk';
 
 import { AAVE_MAINNET, LIDO_MAINNET } from '../../../providers';
 import { V3Route, V4Route } from '../../router';

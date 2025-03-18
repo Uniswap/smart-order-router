@@ -1,6 +1,6 @@
+import { ADDRESS_ZERO } from '@kittycorn-labs/router-sdk';
 import { ChainId } from '@kittycorn-labs/sdk-core';
-import { ADDRESS_ZERO } from '@uniswap/router-sdk';
-import { Pool as V4Pool } from '@uniswap/v4-sdk';
+import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 
 import { nativeOnChain } from './chains';
 

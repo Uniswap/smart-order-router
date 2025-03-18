@@ -1,6 +1,6 @@
 import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
+import { Pool } from '@kittycorn-labs/v4-sdk';
 import { NoTickDataProvider } from '@uniswap/v3-sdk';
-import { Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import JSBI from 'jsbi';
 

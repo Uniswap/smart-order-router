@@ -1,4 +1,4 @@
-import { Protocol } from '@uniswap/router-sdk';
+import { Protocol } from '@kittycorn-labs/router-sdk';
 
 import { SubgraphProviderWithFallBacks } from '../subgraph-provider-with-fallback';
 
