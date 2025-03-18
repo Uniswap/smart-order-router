@@ -82,6 +82,8 @@ export const MIXED_SUPPORTED = [
   ChainId.SONEIUM,
 ];
 
+export const MIXED_HAS_V1_QUOTER = [ChainId.MAINNET, ChainId.GOERLI];
+
 export const HAS_L1_FEE = [
   ChainId.OPTIMISM,
   ChainId.OPTIMISM_GOERLI,
