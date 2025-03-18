@@ -32,11 +32,12 @@ import {
   getAddress,
   ID_TO_NETWORK_NAME,
   metric,
-  MetricLoggerUnit, MIXED_HAS_V1_QUOTER,
+  MetricLoggerUnit,
+  MIXED_HAS_V1_QUOTER,
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
-  PROTOCOL_V4_QUOTER_ADDRESSES
+  PROTOCOL_V4_QUOTER_ADDRESSES,
 } from '../util';
 import { CurrencyAmount } from '../util/amounts';
 import { log } from '../util/log';
@@ -422,8 +423,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       }
       return quoterAddress;
     }
+
     const quoterAddress = useMixedRouteQuoter
-      ? mixedRouteContainsV4Pool
+      ? !MIXED_HAS_V1_QUOTER.includes(this.chainId)
+        ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
+        : mixedRouteContainsV4Pool
         ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
         : MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
       : protocol === Protocol.V3
