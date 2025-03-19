@@ -1,6 +1,6 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+import { FeeAmount } from '@kittycorn-labs/v3-sdk';
 import dotenv from 'dotenv';
 import {
   ID_TO_PROVIDER,

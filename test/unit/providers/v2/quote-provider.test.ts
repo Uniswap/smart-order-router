@@ -4,7 +4,7 @@ import {
   Fraction,
   Token,
 } from '@kittycorn-labs/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
+import { Pair } from '@kittycorn-labs/v2-sdk';
 import { BigNumber } from 'ethers';
 import JSBI from 'jsbi';
 import { V2QuoteProvider, V2Route, WETH9 } from '../../../../src';

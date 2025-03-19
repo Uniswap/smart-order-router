@@ -4,8 +4,8 @@ import {
   CurrencyAmount as CurrencyAmountRaw,
   Token,
 } from '@kittycorn-labs/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
+import { Pair } from '@kittycorn-labs/v2-sdk';
+import { Pool } from '@kittycorn-labs/v3-sdk';
 
 import { ProviderConfig } from '../../../providers/provider';
 import {

@@ -7,10 +7,10 @@ import {
   CurrencyAmount,
   Token,
 } from '@kittycorn-labs/sdk-core';
+import { MethodParameters } from '@kittycorn-labs/v3-sdk';
 import { Command, flags } from '@oclif/command';
 import { ParserOutput } from '@oclif/parser/lib/parse';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { MethodParameters } from '@uniswap/v3-sdk';
 import bunyan, { default as Logger } from 'bunyan';
 import bunyanDebugStream from 'bunyan-debug-stream';
 import _ from 'lodash';

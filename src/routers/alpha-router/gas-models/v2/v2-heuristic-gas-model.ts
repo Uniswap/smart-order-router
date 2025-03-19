@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
+import { Pair } from '@kittycorn-labs/v2-sdk';
 import _ from 'lodash';
 
 import { ProviderConfig } from '../../../../providers/provider';

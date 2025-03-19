@@ -5,7 +5,7 @@ import {
   Currency,
   CurrencyAmount as CurrencyAmountRaw,
 } from '@kittycorn-labs/sdk-core';
-import { FeeAmount, TICK_SPACINGS } from '@uniswap/v3-sdk';
+import { FeeAmount, TICK_SPACINGS } from '@kittycorn-labs/v3-sdk';
 import JSBI from 'jsbi';
 
 export class CurrencyAmount extends CurrencyAmountRaw<Currency> {}

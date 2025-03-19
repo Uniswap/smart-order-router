@@ -7,8 +7,8 @@ import {
   Token,
   TradeType,
 } from '@kittycorn-labs/sdk-core';
+import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import dotenv from 'dotenv';
 import JSBI from 'jsbi';
 import NodeCache from 'node-cache';

@@ -1,4 +1,4 @@
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
 
 export type ProviderConfig = {
   /**

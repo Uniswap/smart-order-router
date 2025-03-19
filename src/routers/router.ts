@@ -12,18 +12,18 @@ import {
   Token,
   TradeType,
 } from '@kittycorn-labs/sdk-core';
-import { Route as V4RouteRaw } from '@kittycorn-labs/v4-sdk';
 import {
   SwapOptions as UniversalRouterSwapOptions,
   UniversalRouterVersion,
-} from '@uniswap/universal-router-sdk';
-import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
+} from '@kittycorn-labs/universal-router-sdk';
+import { Route as V2RouteRaw } from '@kittycorn-labs/v2-sdk';
 import {
   MethodParameters as SDKMethodParameters,
   Pool,
   Position,
   Route as V3RouteRaw,
-} from '@uniswap/v3-sdk';
+} from '@kittycorn-labs/v3-sdk';
+import { Route as V4RouteRaw } from '@kittycorn-labs/v4-sdk';
 
 import { SimulationStatus } from '../providers';
 import { CurrencyAmount } from '../util/amounts';

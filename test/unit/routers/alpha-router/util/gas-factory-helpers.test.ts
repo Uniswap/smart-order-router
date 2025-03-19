@@ -1,7 +1,7 @@
 import { BaseProvider } from '@ethersproject/providers';
 import { Trade } from '@kittycorn-labs/router-sdk';
 import { ChainId, TradeType } from '@kittycorn-labs/sdk-core';
-import { Route } from '@uniswap/v3-sdk';
+import { Route } from '@kittycorn-labs/v3-sdk';
 import { BigNumber } from 'ethers';
 import sinon from 'sinon';
 import {
