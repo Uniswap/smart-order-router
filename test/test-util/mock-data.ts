@@ -1,10 +1,14 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ADDRESS_ZERO } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Ether, Token } from '@kittycorn-labs/sdk-core';
+import { Pair } from '@kittycorn-labs/v2-sdk';
+import {
+  encodeSqrtRatioX96,
+  FeeAmount,
+  Pool as V3Pool,
+} from '@kittycorn-labs/v3-sdk';
 import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import { TokenList } from '@uniswap/token-lists';
-import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 import {
   AlphaRouterConfig,

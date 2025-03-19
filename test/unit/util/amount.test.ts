@@ -1,5 +1,5 @@
 import { ChainId } from '@kittycorn-labs/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+import { FeeAmount } from '@kittycorn-labs/v3-sdk';
 import { parseFeeAmount } from '../../../build/main';
 import { getApplicableV3FeeAmounts, unparseFeeAmount } from '../../../src';
 

@@ -1,8 +1,8 @@
 import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Percent } from '@kittycorn-labs/sdk-core';
+import { Pair } from '@kittycorn-labs/v2-sdk';
+import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
 import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
-import { Pair } from '@uniswap/v2-sdk';
-import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { CachedRoutes } from '../providers';

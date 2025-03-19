@@ -1,8 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Ether, Fraction, TradeType } from '@kittycorn-labs/sdk-core';
+import { Pair } from '@kittycorn-labs/v2-sdk';
+import { Pool } from '@kittycorn-labs/v3-sdk';
 import { Pool as PoolV4 } from '@kittycorn-labs/v4-sdk';
-import { Pair } from '@uniswap/v2-sdk';
-import { Pool } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';

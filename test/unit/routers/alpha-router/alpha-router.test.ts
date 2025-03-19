@@ -7,10 +7,14 @@ import {
   Percent,
   TradeType,
 } from '@kittycorn-labs/sdk-core';
+import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
+import { Pair } from '@kittycorn-labs/v2-sdk';
+import {
+  encodeSqrtRatioX96,
+  Pool as V3Pool,
+  Position,
+} from '@kittycorn-labs/v3-sdk';
 import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';

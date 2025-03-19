@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
-import { FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { FeeAmount, Pool } from '@kittycorn-labs/v3-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 

@@ -8,11 +8,11 @@ import {
   Protocol,
 } from '@kittycorn-labs/router-sdk';
 import { ChainId } from '@kittycorn-labs/sdk-core';
+import { encodeRouteToPath as encodeV3RouteToPath } from '@kittycorn-labs/v3-sdk';
 import {
   encodeRouteToPath as encodeV4RouteToPath,
   Pool as V4Pool,
 } from '@kittycorn-labs/v4-sdk';
-import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import _ from 'lodash';
 import stats from 'stats-lite';

@@ -1,5 +1,5 @@
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
-import { Pair } from '@uniswap/v2-sdk';
+import { Pair } from '@kittycorn-labs/v2-sdk';
 import _ from 'lodash';
 
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';

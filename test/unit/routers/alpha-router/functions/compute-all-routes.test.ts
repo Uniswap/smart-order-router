@@ -1,8 +1,12 @@
 import { ADDRESS_ZERO } from '@kittycorn-labs/router-sdk';
 import { ChainId, WETH9 } from '@kittycorn-labs/sdk-core';
+import { Pair } from '@kittycorn-labs/v2-sdk';
+import {
+  encodeSqrtRatioX96,
+  FeeAmount,
+  Pool as V3Pool,
+} from '@kittycorn-labs/v3-sdk';
 import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
-import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
 import {
   CurrencyAmount,
   DAI_MAINNET as DAI,

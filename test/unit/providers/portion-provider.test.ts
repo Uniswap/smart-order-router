@@ -7,7 +7,7 @@ import {
   Token,
   TradeType,
 } from '@kittycorn-labs/sdk-core';
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
 import {
   MixedRouteWithValidQuote,
   parseAmount,

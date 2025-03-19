@@ -5,7 +5,7 @@ import { flags } from '@oclif/command';
 import dotenv from 'dotenv';
 import _ from 'lodash';
 
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
 import {
   ID_TO_CHAIN_ID,
   MapWithLowerCaseKey,
