@@ -2,7 +2,10 @@ import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Percent } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
-import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
+import {
+  BASE_TOKENIZE_UNDERLYING,
+  Pool as V4Pool,
+} from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
 
 import { CachedRoutes } from '../providers';
@@ -18,7 +21,6 @@ import { TPool } from '@kittycorn-labs/router-sdk';
 import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 
 import { Token } from '@kittycorn-labs/sdk-core';
-import { BASE_TOKENIZE_UNDERLYING } from '../providers/token-provider';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
