@@ -33,7 +33,6 @@ import {
   ID_TO_NETWORK_NAME,
   metric,
   MetricLoggerUnit,
-  MIXED_HAS_V1_QUOTER,
   MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
@@ -423,11 +422,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       }
       return quoterAddress;
     }
-
     const quoterAddress = useMixedRouteQuoter
-      ? !MIXED_HAS_V1_QUOTER.includes(this.chainId)
-        ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
-        : mixedRouteContainsV4Pool
+      ? mixedRouteContainsV4Pool
         ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
         : MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
       : protocol === Protocol.V3
@@ -506,16 +502,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     protocol: Protocol
   ): Interface {
     if (useMixedRouteQuoter) {
-      // If the mixed quoter does not have v1, which is most of the chains except for L1,
-      // then we know we need to use mixed quoter v2 ABI
-      if (!MIXED_HAS_V1_QUOTER.includes(this.chainId)) {
+      if (mixedRouteContainsV4Pool) {
         return MixedRouteQuoterV2__factory.createInterface();
       } else {
-        if (mixedRouteContainsV4Pool) {
-          return MixedRouteQuoterV2__factory.createInterface();
-        } else {
-          return IMixedRouteQuoterV1__factory.createInterface();
-        }
+        return IMixedRouteQuoterV1__factory.createInterface();
       }
     }
 
