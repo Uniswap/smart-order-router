@@ -689,7 +689,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 },
               ] as QuoteExactParams[];
             case Protocol.MIXED:
-              if (!MIXED_HAS_V1_QUOTER.includes(this.chainId) || mixedRouteContainsV4Pool) {
+              if (mixedRouteContainsV4Pool) {
                 return [
                   encodedRoute as string,
                   {
