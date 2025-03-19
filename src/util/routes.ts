@@ -16,6 +16,9 @@ import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 import { TPool } from '@uniswap/router-sdk';
 import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 import { CachedRoutes } from '../providers';
+import {
+  mixedRouteContainsV4Pools,
+} from './mixedRouteFilterOutV4Pools';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -170,9 +173,9 @@ export function shouldWipeoutCachedRoutes(
             return poolIsInExcludedProtocols(
               pool,
               routingConfig?.excludedProtocolsFromMixed
-            );
+            )
           }).length > 0
-        );
+        ) || mixedRouteContainsV4Pools((route.route as MixedRoute));
       default:
         return false;
     }

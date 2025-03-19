@@ -13,14 +13,14 @@ import {
   IV3SubgraphProvider,
   IV4PoolProvider,
   IV4SubgraphProvider,
-  TokenValidationResult,
+  TokenValidationResult
 } from '../../../providers';
 import {
   CurrencyAmount,
   log,
   metric,
   MetricLoggerUnit,
-  routeToString,
+  routeToString
 } from '../../../util';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
@@ -32,12 +32,16 @@ import {
   getMixedRouteCandidatePools,
   V2CandidatePools,
   V3CandidatePools,
-  V4CandidatePools,
+  V4CandidatePools
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import {
+  mixedRouteFilterOutV4Pools
+} from '../../../util/mixedRouteFilterOutV4Pools';
 
 export class MixedQuoter extends BaseQuoter<
   [
@@ -179,13 +183,17 @@ export class MixedQuoter extends BaseQuoter<
 
     const { maxSwapsPerPath } = routingConfig;
 
-    const routes = computeAllMixedRoutes(
+    let routes = computeAllMixedRoutes(
       currencyIn,
       currencyOut,
       pools,
       maxSwapsPerPath,
-      routingConfig.shouldEnableMixedRouteEthWeth
+      routingConfig.shouldEnableMixedRouteEthWeth,
     );
+
+    if (routingConfig.universalRouterVersion === UniversalRouterVersion.V1_2 || !routingConfig.protocols?.includes(Protocol.V4)) {
+      routes = mixedRouteFilterOutV4Pools(routes);
+    }
 
     metric.putMetric(
       'MixedGetRoutesLoad',
