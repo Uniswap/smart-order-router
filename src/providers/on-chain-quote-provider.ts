@@ -24,7 +24,6 @@ import {
   V3Route,
   V4Route,
 } from '../routers/router';
-import { IMixedRouteQuoterV1__factory } from '../types/other/factories/IMixedRouteQuoterV1__factory';
 import { MixedRouteQuoterV2__factory } from '../types/other/factories/MixedRouteQuoterV2__factory';
 import { V4Quoter__factory } from '../types/other/factories/V4Quoter__factory';
 import { IQuoterV2__factory } from '../types/v3/factories/IQuoterV2__factory';
@@ -34,7 +33,6 @@ import {
   metric,
   MetricLoggerUnit,
   MIXED_HAS_V1_QUOTER,
-  MIXED_ROUTE_QUOTER_V1_ADDRESSES,
   MIXED_ROUTE_QUOTER_V2_ADDRESSES,
   NEW_QUOTER_V2_ADDRESSES,
   PROTOCOL_V4_QUOTER_ADDRESSES,
@@ -425,11 +423,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     }
 
     const quoterAddress = useMixedRouteQuoter
-      ? !MIXED_HAS_V1_QUOTER.includes(this.chainId)
-        ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
-        : mixedRouteContainsV4Pool
-        ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
-        : MIXED_ROUTE_QUOTER_V1_ADDRESSES[this.chainId]
+      ? MIXED_ROUTE_QUOTER_V2_ADDRESSES[this.chainId]
       : protocol === Protocol.V3
       ? NEW_QUOTER_V2_ADDRESSES[this.chainId]
       : PROTOCOL_V4_QUOTER_ADDRESSES[this.chainId];
@@ -502,21 +496,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
   private getContractInterface(
     useMixedRouteQuoter: boolean,
-    mixedRouteContainsV4Pool: boolean,
     protocol: Protocol
   ): Interface {
     if (useMixedRouteQuoter) {
-      // If the mixed quoter does not have v1, which is most of the chains except for L1,
-      // then we know we need to use mixed quoter v2 ABI
-      if (!MIXED_HAS_V1_QUOTER.includes(this.chainId)) {
-        return MixedRouteQuoterV2__factory.createInterface();
-      } else {
-        if (mixedRouteContainsV4Pool) {
-          return MixedRouteQuoterV2__factory.createInterface();
-        } else {
-          return IMixedRouteQuoterV1__factory.createInterface();
-        }
-      }
+      return MixedRouteQuoterV2__factory.createInterface();
     }
 
     switch (protocol) {
@@ -556,11 +539,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             mixedRouteContainsV4Pool,
             protocol
           ),
-          contractInterface: this.getContractInterface(
-            useMixedRouteQuoter,
-            mixedRouteContainsV4Pool,
-            protocol
-          ),
+          contractInterface: this.getContractInterface(useMixedRouteQuoter, protocol),
           functionName,
           functionParams: inputs as [
             string,
@@ -610,11 +589,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           mixedRouteContainsV4Pool,
           protocol
         ),
-        contractInterface: this.getContractInterface(
-          useMixedRouteQuoter,
-          mixedRouteContainsV4Pool,
-          protocol
-        ),
+        contractInterface: this.getContractInterface(useMixedRouteQuoter, protocol),
         functionName,
         functionParams: inputs as [string, string][],
         providerConfig,
@@ -689,21 +664,17 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 },
               ] as QuoteExactParams[];
             case Protocol.MIXED:
-              if (!MIXED_HAS_V1_QUOTER.includes(this.chainId) || mixedRouteContainsV4Pool) {
-                return [
-                  encodedRoute as string,
-                  {
-                    nonEncodableData: route.pools.map((_) => {
-                      return {
-                        hookData: '0x',
-                      };
-                    }) as NonEncodableData[],
-                  } as ExtraQuoteExactInputParams,
-                  amount.quotient.toString(),
-                ];
-              } else {
-                return [encodedRoute as string, amount.quotient.toString()];
-              }
+              return [
+                encodedRoute as string,
+                {
+                  nonEncodableData: route.pools.map((_) => {
+                    return {
+                      hookData: '0x',
+                    };
+                  }) as NonEncodableData[],
+                } as ExtraQuoteExactInputParams,
+                amount.quotient.toString(),
+              ];
             default:
               return [
                 encodedRoute as string,
