@@ -4,6 +4,16 @@ import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
 import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { nativeOnChain, WRAPPED_NATIVE_CURRENCY } from '../util';
 
+import {
+  TUSDC_MAINNET,
+  TUSDC_SEPOLIA,
+  TUSDT_MAINNET,
+  TUSDT_SEPOLIA,
+  TWBTC_MAINNET,
+  TWBTC_SEPOLIA,
+  TWETH_MAINNET,
+  TWETH_SEPOLIA,
+} from '@kittycorn-labs/v4-sdk';
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import {
@@ -22,14 +32,6 @@ import {
   DAI_OPTIMISM,
   ETH_BNB,
   OP_OPTIMISM,
-  TUSDC_MAINNET,
-  TUSDC_SEPOLIA,
-  TUSDT_MAINNET,
-  TUSDT_SEPOLIA,
-  TWBTC_MAINNET,
-  TWBTC_SEPOLIA,
-  TWETH_MAINNET,
-  TWETH_SEPOLIA,
   USDB_BLAST,
   USDCE_ZKSYNC,
   USDC_ARBITRUM,

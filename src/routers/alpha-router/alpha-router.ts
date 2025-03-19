@@ -72,11 +72,7 @@ import {
 } from '../../providers/portion-provider';
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
-import {
-  BASE_TOKENIZE_UNDERLYING,
-  ITokenProvider,
-  TokenProvider,
-} from '../../providers/token-provider';
+import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
   TokenValidatorProvider,
@@ -159,6 +155,7 @@ import {
   V4Route,
 } from '../router';
 
+import { BASE_TOKENIZE_UNDERLYING } from '@kittycorn-labs/v4-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
