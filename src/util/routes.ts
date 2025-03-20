@@ -170,7 +170,7 @@ export function shouldWipeoutCachedRoutes(
             return poolIsInExcludedProtocols(
               pool,
               routingConfig?.excludedProtocolsFromMixed
-            );
+            )
           }).length > 0
         );
       default:
