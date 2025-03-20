@@ -175,7 +175,7 @@ export function shouldWipeoutCachedRoutes(
               routingConfig?.excludedProtocolsFromMixed
             )
           }).length > 0
-        ) || mixedRouteContainsV4Pools((route.route as MixedRoute));
+        );
       default:
         return false;
     }
