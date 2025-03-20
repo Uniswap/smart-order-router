@@ -4,6 +4,7 @@ import {
   Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
+  WETH9 as WETH9_HELPER,
 } from '@uniswap/sdk-core';
 import { FACTORY_ADDRESS } from '@uniswap/v3-sdk';
 
@@ -280,34 +281,10 @@ export const WETH9: {
     | ChainId.ROOTSTOCK
   >]: Token;
 } = {
-  [ChainId.MAINNET]: new Token(
-    ChainId.MAINNET,
-    '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.GOERLI]: new Token(
-    ChainId.GOERLI,
-    '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.SEPOLIA]: new Token(
-    ChainId.SEPOLIA,
-    '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.OPTIMISM]: new Token(
-    ChainId.OPTIMISM,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.MAINNET]: WETH9_HELPER[ChainId.MAINNET],
+  [ChainId.GOERLI]: WETH9_HELPER[ChainId.GOERLI],
+  [ChainId.SEPOLIA]: WETH9_HELPER[ChainId.SEPOLIA],
+  [ChainId.OPTIMISM]: WETH9_HELPER[ChainId.OPTIMISM],
   [ChainId.OPTIMISM_GOERLI]: new Token(
     ChainId.OPTIMISM_GOERLI,
     '0x4200000000000000000000000000000000000006',
@@ -315,20 +292,8 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.OPTIMISM_SEPOLIA]: new Token(
-    ChainId.OPTIMISM_SEPOLIA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ARBITRUM_ONE]: new Token(
-    ChainId.ARBITRUM_ONE,
-    '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.OPTIMISM_SEPOLIA]: WETH9_HELPER[ChainId.OPTIMISM_SEPOLIA],
+  [ChainId.ARBITRUM_ONE]: WETH9_HELPER[ChainId.ARBITRUM_ONE],
   [ChainId.ARBITRUM_GOERLI]: new Token(
     ChainId.ARBITRUM_GOERLI,
     '0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3',
@@ -336,13 +301,7 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.ARBITRUM_SEPOLIA]: new Token(
-    ChainId.ARBITRUM_SEPOLIA,
-    '0xc556bAe1e86B2aE9c22eA5E036b07E55E7596074',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.ARBITRUM_SEPOLIA]: WETH9_HELPER[ChainId.ARBITRUM_SEPOLIA],
   [ChainId.BASE_GOERLI]: new Token(
     ChainId.BASE_GOERLI,
     '0x4200000000000000000000000000000000000006',
@@ -350,27 +309,9 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.BASE]: new Token(
-    ChainId.BASE,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.BLAST]: new Token(
-    ChainId.BLAST,
-    '0x4300000000000000000000000000000000000004',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ZORA]: new Token(
-    ChainId.ZORA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.BASE]: WETH9_HELPER[ChainId.BASE],
+  [ChainId.BLAST]: WETH9_HELPER[ChainId.BLAST],
+  [ChainId.ZORA]: WETH9_HELPER[ChainId.ZORA],
   [ChainId.ZORA_SEPOLIA]: new Token(
     ChainId.ZORA_SEPOLIA,
     '0x4200000000000000000000000000000000000006',
@@ -378,48 +319,12 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.ZKSYNC]: new Token(
-    ChainId.ZKSYNC,
-    '0x5aea5775959fbc2557cc8789bc1bf90a239d9a91',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.WORLDCHAIN]: new Token(
-    ChainId.WORLDCHAIN,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.UNICHAIN_SEPOLIA]: new Token(
-    ChainId.UNICHAIN_SEPOLIA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.BASE_SEPOLIA]: new Token(
-    ChainId.BASE_SEPOLIA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.UNICHAIN]: new Token(
-    ChainId.UNICHAIN,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.SONEIUM]: new Token(
-    ChainId.SONEIUM,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.ZKSYNC]: WETH9_HELPER[ChainId.ZKSYNC],
+  [ChainId.WORLDCHAIN]: WETH9_HELPER[ChainId.WORLDCHAIN],
+  [ChainId.UNICHAIN_SEPOLIA]: WETH9_HELPER[ChainId.UNICHAIN_SEPOLIA],
+  [ChainId.BASE_SEPOLIA]: WETH9_HELPER[ChainId.BASE_SEPOLIA],
+  [ChainId.UNICHAIN]: WETH9_HELPER[ChainId.UNICHAIN],
+  [ChainId.SONEIUM]: WETH9_HELPER[ChainId.SONEIUM],
 };
 
 export const BEACON_CHAIN_DEPOSIT_ADDRESS =
