@@ -151,17 +151,6 @@ export function shouldWipeoutCachedRoutes(
   cachedRoutes?: CachedRoutes,
   routingConfig?: AlphaRouterConfig
 ): boolean {
-  // In case of optimisticCachedRoutes, we don't want to wipe out the cache
-  // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
-  // such that we should still use the cached routes.
-  // In case of routing-api,
-  // when intent=quote, optimisticCachedRoutes will be true, it means it's an online quote request, and we should use the cached routes.
-  // when intent=caching, optimisticCachedRoutes will be false, it means it's an async routing lambda invocation for the benefit of
-  // non-perf-sensitive, so that we can nullify the retrieved cached routes, if certain condition meets.
-  if (routingConfig?.optimisticCachedRoutes) {
-    return false;
-  }
-
   const containsExcludedProtocolPools = cachedRoutes?.routes.find((route) => {
     switch (route.protocol) {
       case Protocol.MIXED:
