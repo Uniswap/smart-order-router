@@ -153,7 +153,7 @@ export function shouldWipeoutCachedRoutes(
 ): boolean {
   // We want to roll out the mixed route with UR v1_2 with percent control,
   // along with the cached routes so that we can test the performance of the mixed route with UR v1_2ss
-  if (routingConfig?.enableMixedRouteWithUR1_2Percent
+  if ((routingConfig?.enableMixedRouteWithUR1_2Percent ?? 0) >= (Math.random() * 100)
     &&
     // In case of optimisticCachedRoutes, we don't want to wipe out the cache
     // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
