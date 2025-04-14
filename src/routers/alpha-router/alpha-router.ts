@@ -527,6 +527,10 @@ export type AlphaRouterConfig = {
    * hashed router ids of the cached route, if the online routing lambda uses the cached route to serve the quote
    */
   cachedRoutesRouteIds?: string;
+  /**
+   * enable mixed route with UR1_2 version backward compatibility issue
+   */
+  enableMixedRouteWithUR1_2Percent?: number;
 };
 
 export class AlphaRouter
