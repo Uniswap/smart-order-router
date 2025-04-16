@@ -7,7 +7,7 @@ import {
   Currency,
   Fraction,
   Token,
-  TradeType,
+  TradeType
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
@@ -50,45 +50,45 @@ import {
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
-  V4SubgraphProviderWithFallBacks,
+  V4SubgraphProviderWithFallBacks
 } from '../../providers';
 import {
   CachingTokenListProvider,
-  ITokenListProvider,
+  ITokenListProvider
 } from '../../providers/caching-token-list-provider';
 import {
   GasPrice,
-  IGasPriceProvider,
+  IGasPriceProvider
 } from '../../providers/gas-price-provider';
 import {
   IPortionProvider,
-  PortionProvider,
+  PortionProvider
 } from '../../providers/portion-provider';
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
-  TokenValidatorProvider,
+  TokenValidatorProvider
 } from '../../providers/token-validator-provider';
 import {
   IV2PoolProvider,
-  V2PoolProvider,
+  V2PoolProvider
 } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
-  IL2GasDataProvider,
+  IL2GasDataProvider
 } from '../../providers/v3/gas-data-provider';
 import {
   IV3PoolProvider,
-  V3PoolProvider,
+  V3PoolProvider
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
 import {
   IV4PoolProvider,
-  V4PoolProvider,
+  V4PoolProvider
 } from '../../providers/v4/pool-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
@@ -99,22 +99,22 @@ import {
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
-  V2_SUPPORTED,
+  V2_SUPPORTED
 } from '../../util/chains';
 import {
   getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
+  getHighestLiquidityV3USDPool
 } from '../../util/gas-factory-helpers';
 import { log } from '../../util/log';
 import {
   buildSwapMethodParameters,
-  buildTrade,
+  buildTrade
 } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
@@ -127,7 +127,7 @@ import {
   DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
   GAS_ERROR_FAILURE_OVERRIDES,
   RETRY_OPTIONS,
-  SUCCESS_RATE_FAILURE_OVERRIDES,
+  SUCCESS_RATE_FAILURE_OVERRIDES
 } from '../../util/onchainQuoteProviderConfigs';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
@@ -145,7 +145,7 @@ import {
   SwapType,
   V2Route,
   V3Route,
-  V4Route,
+  V4Route
 } from '../router';
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
@@ -154,14 +154,14 @@ import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
-  ETH_GAS_STATION_API_URL,
+  ETH_GAS_STATION_API_URL
 } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
-  V4RouteWithValidQuote,
+  V4RouteWithValidQuote
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
@@ -174,7 +174,7 @@ import {
   SubgraphPool,
   V2CandidatePools,
   V3CandidatePools,
-  V4CandidatePools,
+  V4CandidatePools
 } from './functions/get-candidate-pools';
 import { NATIVE_OVERHEAD } from './gas-models/gas-costs';
 import {
@@ -183,7 +183,7 @@ import {
   IGasModel,
   IOnChainGasModelFactory,
   IV2GasModelFactory,
-  LiquidityCalculationPools,
+  LiquidityCalculationPools
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
@@ -1263,6 +1263,200 @@ export class AlphaRouter
       status: SwapToRatioStatus.SUCCESS,
       result: { ...swap, methodParameters, optimalRatio, postSwapTargetPool },
     };
+  }
+
+  public async fastRoutePath(
+    amount: CurrencyAmount,
+    quoteCurrency: Currency,
+    tradeType: TradeType,
+    swapConfig?: SwapOptions,
+    partialRoutingConfig: Partial<AlphaRouterConfig> = {}
+  ) {
+    const blockNumber =
+      partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
+
+    const routingConfig: AlphaRouterConfig = _.merge(
+      {
+        // These settings could be changed by the partialRoutingConfig
+        useCachedRoutes: true,
+        writeToCachedRoutes: true,
+        optimisticCachedRoutes: false,
+      },
+      DEFAULT_ROUTING_CONFIG_BY_CHAIN(this.chainId),
+      partialRoutingConfig,
+      { blockNumber }
+    );
+
+    const { currencyIn, currencyOut } =
+      this.determineCurrencyInOutFromTradeType(
+        tradeType,
+        amount,
+        quoteCurrency
+      );
+
+    const [percents, amounts] = this.getAmountDistribution(
+      amount,
+      routingConfig
+    );
+
+    const [v4CandidatePools, v3CandidatePools, v2CandidatePools] =
+      await Promise.all([
+        this.v4Supported?.includes(this.chainId)
+          ? getV4CandidatePools({
+              currencyIn,
+              currencyOut,
+              tokenProvider: this.tokenProvider,
+              blockedTokenListProvider: this.blockedTokenListProvider,
+              poolProvider: this.v4PoolProvider,
+              routeType: tradeType,
+              subgraphProvider: this.v4SubgraphProvider,
+              routingConfig,
+              chainId: this.chainId,
+              v4PoolParams: this.v4PoolParams,
+            })
+          : Promise.resolve(undefined),
+        getV3CandidatePools({
+          tokenIn: currencyIn.wrapped,
+          tokenOut: currencyOut.wrapped,
+          tokenProvider: this.tokenProvider,
+          blockedTokenListProvider: this.blockedTokenListProvider,
+          poolProvider: this.v3PoolProvider,
+          routeType: tradeType,
+          subgraphProvider: this.v3SubgraphProvider,
+          routingConfig,
+          chainId: this.chainId,
+        }),
+        this.v2Supported?.includes(this.chainId)
+          ? getV2CandidatePools({
+              tokenIn: currencyIn.wrapped,
+              tokenOut: currencyOut.wrapped,
+              tokenProvider: this.tokenProvider,
+              blockedTokenListProvider: this.blockedTokenListProvider,
+              poolProvider: this.v2PoolProvider,
+              routeType: tradeType,
+              subgraphProvider: this.v2SubgraphProvider,
+              routingConfig,
+              chainId: this.chainId,
+            })
+          : Promise.resolve(undefined),
+      ]);
+
+      const gasPriceWei = await this.getGasPriceWei(
+        await blockNumber,
+        await partialRoutingConfig.blockNumber
+      );
+
+      const gasToken = routingConfig.gasToken
+      ? (
+          await this.tokenProvider.getTokens([routingConfig.gasToken])
+        ).getTokenByAddress(routingConfig.gasToken)
+      : undefined;
+
+      const tokenOutProperties = await this.tokenPropertiesProvider.getTokensProperties(
+        [currencyOut],
+        partialRoutingConfig
+      );
+
+      const feeTakenOnTransfer =
+        tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
+          ?.feeTakenOnTransfer;
+      const externalTransferFailed =
+        tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
+          ?.externalTransferFailed;
+
+      const providerConfig: GasModelProviderConfig = {
+        ...routingConfig,
+        blockNumber,
+        additionalGasOverhead: NATIVE_OVERHEAD(
+          this.chainId,
+          amount.currency,
+          quoteCurrency
+        ),
+        gasToken,
+        externalTransferFailed,
+        feeTakenOnTransfer,
+      };
+
+      const {
+        v2GasModel: v2GasModel,
+        v3GasModel: v3GasModel,
+        v4GasModel: v4GasModel,
+        mixedRouteGasModel: mixedRouteGasModel,
+      } = await this.getGasModels(
+        gasPriceWei,
+        amount.currency.wrapped,
+        quoteCurrency.wrapped,
+        providerConfig
+      );
+
+    let bestRoute: RouteWithValidQuote | undefined;
+
+    if (v4CandidatePools) {
+      const subroutesResult = await this.v4Quoter.getRoutesThenQuotes(
+        currencyIn,
+        currencyOut,
+        amount,
+        amounts,
+        percents,
+        quoteCurrency,
+        v4CandidatePools,
+        tradeType,
+        routingConfig,
+        v4GasModel
+      );
+      if (subroutesResult.routesWithValidQuotes.length > 0) {
+        bestRoute = subroutesResult.routesWithValidQuotes[0];
+      }
+    }
+
+    if (!bestRoute && v3CandidatePools) {
+      const tokenIn = currencyIn.wrapped;
+      const tokenOut = currencyOut.wrapped;
+
+      const v3routesResult = await this.v3Quoter.getRoutesThenQuotes(
+        tokenIn,
+        tokenOut,
+        amount,
+        amounts,
+        percents,
+        quoteCurrency.wrapped,
+        v3CandidatePools,
+        tradeType,
+        routingConfig,
+        v3GasModel
+      );
+      if (v3routesResult.routesWithValidQuotes.length > 0) {
+        bestRoute = v3routesResult.routesWithValidQuotes[0];
+      }
+    }
+
+    if (!bestRoute && v2CandidatePools) {
+      const tokenIn = currencyIn.wrapped;
+      const tokenOut = currencyOut.wrapped;
+
+      const v2routesResult = await this.v2Quoter.getRoutesThenQuotes(
+        tokenIn,
+        tokenOut,
+        amount,
+        amounts,
+        percents,
+        quoteCurrency.wrapped,
+        v2CandidatePools,
+        tradeType,
+        routingConfig,
+        v2GasModel,
+        gasPriceWei
+      );
+      if (v2routesResult.routesWithValidQuotes.length > 0) {
+        bestRoute = v2routesResult.routesWithValidQuotes[0];
+      }
+    }
+
+    if (!bestRoute) {
+      return null;
+    }
+
+    return bestRoute;
   }
 
   /**
