@@ -530,7 +530,7 @@ export type AlphaRouterConfig = {
   /**
    * enable mixed route with UR1_2 version backward compatibility issue
    */
-  enableMixedRouteWithUR1_2Percent?: number;
+  enableMixedRouteWithUR1_2?: boolean;
 };
 
 export class AlphaRouter
@@ -2039,7 +2039,9 @@ export class AlphaRouter
         cachedRoutesRouteIds !== undefined &&
         // it's possible that top cached routes may be split routes,
         // so that we always serialize all the top 8 retrieved cached routes vs the top routes.
-        !cachedRoutesRouteIds.startsWith(serializeRouteIds(routesToCache.routes.map((r) => r.routeId)));
+        !cachedRoutesRouteIds.startsWith(
+          serializeRouteIds(routesToCache.routes.map((r) => r.routeId))
+        );
 
       if (cachedRoutesChanged) {
         metric.putMetric('cachedRoutesChanged', 1, MetricLoggerUnit.Count);

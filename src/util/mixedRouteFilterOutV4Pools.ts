@@ -1,9 +1,9 @@
-import { MixedRoute } from '../routers';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
+import { MixedRoute } from '../routers';
 
 export function mixedRouteContainsV4Pools(route: MixedRoute): boolean {
   return route.pools.some((pool) => {
-    return (pool instanceof V4Pool);
+    return pool instanceof V4Pool;
   });
 }
 

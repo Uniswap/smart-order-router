@@ -153,8 +153,8 @@ export function shouldWipeoutCachedRoutes(
 ): boolean {
   // We want to roll out the mixed route with UR v1_2 with percent control,
   // along with the cached routes so that we can test the performance of the mixed route with UR v1_2ss
-  if ((routingConfig?.enableMixedRouteWithUR1_2Percent ?? 0) >= (Math.random() * 100)
-    &&
+  if (
+    routingConfig?.enableMixedRouteWithUR1_2 &&
     // In case of optimisticCachedRoutes, we don't want to wipe out the cache
     // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
     // such that we should still use the cached routes.
@@ -162,7 +162,8 @@ export function shouldWipeoutCachedRoutes(
     // when intent=quote, optimisticCachedRoutes will be true, it means it's an online quote request, and we should use the cached routes.
     // when intent=caching, optimisticCachedRoutes will be false, it means it's an async routing lambda invocation for the benefit of
     // non-perf-sensitive, so that we can nullify the retrieved cached routes, if certain condition meets.
-    routingConfig?.optimisticCachedRoutes) {
+    routingConfig?.optimisticCachedRoutes
+  ) {
     return false;
   }
 
@@ -174,7 +175,7 @@ export function shouldWipeoutCachedRoutes(
             return poolIsInExcludedProtocols(
               pool,
               routingConfig?.excludedProtocolsFromMixed
-            )
+            );
           }).length > 0
         );
       default:
