@@ -7,7 +7,7 @@ import {
   Currency,
   Fraction,
   Token,
-  TradeType
+  TradeType,
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
@@ -50,45 +50,45 @@ import {
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
-  V4SubgraphProviderWithFallBacks
+  V4SubgraphProviderWithFallBacks,
 } from '../../providers';
 import {
   CachingTokenListProvider,
-  ITokenListProvider
+  ITokenListProvider,
 } from '../../providers/caching-token-list-provider';
 import {
   GasPrice,
-  IGasPriceProvider
+  IGasPriceProvider,
 } from '../../providers/gas-price-provider';
 import {
   IPortionProvider,
-  PortionProvider
+  PortionProvider,
 } from '../../providers/portion-provider';
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
-  TokenValidatorProvider
+  TokenValidatorProvider,
 } from '../../providers/token-validator-provider';
 import {
   IV2PoolProvider,
-  V2PoolProvider
+  V2PoolProvider,
 } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
-  IL2GasDataProvider
+  IL2GasDataProvider,
 } from '../../providers/v3/gas-data-provider';
 import {
   IV3PoolProvider,
-  V3PoolProvider
+  V3PoolProvider,
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
 import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
 import {
   IV4PoolProvider,
-  V4PoolProvider
+  V4PoolProvider,
 } from '../../providers/v4/pool-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
@@ -99,22 +99,22 @@ import {
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
-  V2_SUPPORTED
+  V2_SUPPORTED,
 } from '../../util/chains';
 import {
   getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool
+  getHighestLiquidityV3USDPool,
 } from '../../util/gas-factory-helpers';
 import { log } from '../../util/log';
 import {
   buildSwapMethodParameters,
-  buildTrade
+  buildTrade,
 } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
@@ -127,7 +127,7 @@ import {
   DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
   GAS_ERROR_FAILURE_OVERRIDES,
   RETRY_OPTIONS,
-  SUCCESS_RATE_FAILURE_OVERRIDES
+  SUCCESS_RATE_FAILURE_OVERRIDES,
 } from '../../util/onchainQuoteProviderConfigs';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
@@ -145,7 +145,7 @@ import {
   SwapType,
   V2Route,
   V3Route,
-  V4Route
+  V4Route,
 } from '../router';
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
@@ -154,16 +154,17 @@ import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
-  ETH_GAS_STATION_API_URL
+  ETH_GAS_STATION_API_URL,
 } from './config';
+import { dedupe } from './dedupe';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
-  V4RouteWithValidQuote
+  V4RouteWithValidQuote,
 } from './entities/route-with-valid-quote';
-import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
+import { BestSwapRoute, getBestSwapRoute, getBestSwapRouteWithoutEstimate } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
 import {
   CandidatePoolsBySelectionCriteria,
@@ -174,7 +175,7 @@ import {
   SubgraphPool,
   V2CandidatePools,
   V3CandidatePools,
-  V4CandidatePools
+  V4CandidatePools,
 } from './functions/get-candidate-pools';
 import { NATIVE_OVERHEAD } from './gas-models/gas-costs';
 import {
@@ -183,7 +184,7 @@ import {
   IGasModel,
   IOnChainGasModelFactory,
   IV2GasModelFactory,
-  LiquidityCalculationPools
+  LiquidityCalculationPools,
 } from './gas-models/gas-model';
 import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
 import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
@@ -191,6 +192,7 @@ import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-mod
 import { V4HeuristicGasModelFactory } from './gas-models/v4/v4-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
 import { V4Quoter } from './quoters/v4-quoter';
+import { markTime } from './simple-running-time';
 
 export type AlphaRouterParams = {
   /**
@@ -1272,6 +1274,9 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ) {
+    console.log(1275, swapConfig);
+
+    /// BLOCK AND CURRENCY
     const blockNumber =
       partialRoutingConfig.blockNumber ?? this.getBlockNumberPromise();
 
@@ -1287,6 +1292,10 @@ export class AlphaRouter
       { blockNumber }
     );
 
+    const protocols: Protocol[] = Array.from(
+      new Set(routingConfig.protocols).values()
+    );
+
     const { currencyIn, currencyOut } =
       this.determineCurrencyInOutFromTradeType(
         tradeType,
@@ -1294,169 +1303,376 @@ export class AlphaRouter
         quoteCurrency
       );
 
-    const [percents, amounts] = this.getAmountDistribution(
-      amount,
-      routingConfig
+    /// GAS MODEL
+    const gasPriceWei = await this.getGasPriceWei(
+      await blockNumber,
+      await partialRoutingConfig.blockNumber
     );
-
-    const [v4CandidatePools, v3CandidatePools, v2CandidatePools] =
-      await Promise.all([
-        this.v4Supported?.includes(this.chainId)
-          ? getV4CandidatePools({
-              currencyIn,
-              currencyOut,
-              tokenProvider: this.tokenProvider,
-              blockedTokenListProvider: this.blockedTokenListProvider,
-              poolProvider: this.v4PoolProvider,
-              routeType: tradeType,
-              subgraphProvider: this.v4SubgraphProvider,
-              routingConfig,
-              chainId: this.chainId,
-              v4PoolParams: this.v4PoolParams,
-            })
-          : Promise.resolve(undefined),
-        getV3CandidatePools({
-          tokenIn: currencyIn.wrapped,
-          tokenOut: currencyOut.wrapped,
-          tokenProvider: this.tokenProvider,
-          blockedTokenListProvider: this.blockedTokenListProvider,
-          poolProvider: this.v3PoolProvider,
-          routeType: tradeType,
-          subgraphProvider: this.v3SubgraphProvider,
-          routingConfig,
-          chainId: this.chainId,
-        }),
-        this.v2Supported?.includes(this.chainId)
-          ? getV2CandidatePools({
-              tokenIn: currencyIn.wrapped,
-              tokenOut: currencyOut.wrapped,
-              tokenProvider: this.tokenProvider,
-              blockedTokenListProvider: this.blockedTokenListProvider,
-              poolProvider: this.v2PoolProvider,
-              routeType: tradeType,
-              subgraphProvider: this.v2SubgraphProvider,
-              routingConfig,
-              chainId: this.chainId,
-            })
-          : Promise.resolve(undefined),
-      ]);
-
-      const gasPriceWei = await this.getGasPriceWei(
-        await blockNumber,
-        await partialRoutingConfig.blockNumber
-      );
-
-      const gasToken = routingConfig.gasToken
+    const gasToken = routingConfig.gasToken
       ? (
           await this.tokenProvider.getTokens([routingConfig.gasToken])
         ).getTokenByAddress(routingConfig.gasToken)
       : undefined;
 
-      const tokenOutProperties = await this.tokenPropertiesProvider.getTokensProperties(
+    const tokenOutProperties =
+      await this.tokenPropertiesProvider.getTokensProperties(
         [currencyOut],
         partialRoutingConfig
       );
+    const feeTakenOnTransfer =
+      tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
+        ?.feeTakenOnTransfer;
+    const externalTransferFailed =
+      tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
+        ?.externalTransferFailed;
 
-      const feeTakenOnTransfer =
-        tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
-          ?.feeTakenOnTransfer;
-      const externalTransferFailed =
-        tokenOutProperties[getAddressLowerCase(currencyOut)]?.tokenFeeResult
-          ?.externalTransferFailed;
+    const providerConfig: GasModelProviderConfig = {
+      ...routingConfig,
+      blockNumber,
+      additionalGasOverhead: NATIVE_OVERHEAD(
+        this.chainId,
+        amount.currency,
+        quoteCurrency
+      ),
+      gasToken,
+      externalTransferFailed,
+      feeTakenOnTransfer,
+    };
 
-      const providerConfig: GasModelProviderConfig = {
-        ...routingConfig,
-        blockNumber,
-        additionalGasOverhead: NATIVE_OVERHEAD(
-          this.chainId,
-          amount.currency,
-          quoteCurrency
-        ),
-        gasToken,
-        externalTransferFailed,
-        feeTakenOnTransfer,
-      };
+    const tokenPairProperties =
+      await this.tokenPropertiesProvider.getTokensProperties(
+        [currencyIn, currencyOut],
+        providerConfig
+      );
+    const sellTokenIsFot =
+      tokenPairProperties[
+        getAddressLowerCase(currencyIn)
+      ]?.tokenFeeResult?.sellFeeBps?.gt(0);
+    const buyTokenIsFot =
+      tokenPairProperties[
+        getAddressLowerCase(currencyOut)
+      ]?.tokenFeeResult?.buyFeeBps?.gt(0);
+    const fotInDirectSwap = sellTokenIsFot || buyTokenIsFot;
 
-      const {
-        v2GasModel: v2GasModel,
-        v3GasModel: v3GasModel,
-        v4GasModel: v4GasModel,
-        mixedRouteGasModel: mixedRouteGasModel,
-      } = await this.getGasModels(
+    const [percents, amounts] = this.getAmountDistribution(
+      amount,
+      routingConfig
+    );
+
+    /// TRADE TYPE
+    const elapsedTradeTypeMarker = markTime('tradeType');
+    const localdedupev4 = new Map<string, Promise<V4CandidatePools>>();
+    const localdedupev3 = new Map<string, Promise<V3CandidatePools>>();
+    const localdedudev2 = new Map<string, Promise<V2CandidatePools>>();
+
+    const v4CandidatePoolsPromise = dedupe(localdedupev4, 'v4', async () => {
+      if (!this.v4Supported?.includes(this.chainId)) {
+        return undefined;
+      }
+
+      if (protocols.length > 0 && !protocols.includes(Protocol.V4)) {
+        return undefined;
+      }
+
+      return await getV4CandidatePools({
+        currencyIn,
+        currencyOut,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v4PoolProvider,
+        routeType: tradeType,
+        subgraphProvider: this.v4SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+        v4PoolParams: this.v4PoolParams,
+      });
+    });
+
+    const v3CandidatePoolsPromise = dedupe(localdedupev3, 'v3', async () => {
+      if (protocols.length > 0 && !protocols.includes(Protocol.V3)) {
+        return undefined;
+      }
+
+      if (fotInDirectSwap) {
+        return undefined;
+      }
+
+      return await getV3CandidatePools({
+        tokenIn: currencyIn.wrapped,
+        tokenOut: currencyOut.wrapped,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v3PoolProvider,
+        routeType: tradeType,
+        subgraphProvider: this.v3SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+      });
+    });
+
+    const v2CandidatePoolsPromise = dedupe(localdedudev2, 'v2', async () => {
+      if (!this.v2Supported?.includes(this.chainId)) {
+        return undefined;
+      }
+
+      if (protocols.length > 0 && !protocols.includes(Protocol.V2)) {
+        return undefined;
+      }
+
+      return await getV2CandidatePools({
+        tokenIn: currencyIn.wrapped,
+        tokenOut: currencyOut.wrapped,
+        tokenProvider: this.tokenProvider,
+        blockedTokenListProvider: this.blockedTokenListProvider,
+        poolProvider: this.v2PoolProvider,
+        routeType: tradeType,
+        subgraphProvider: this.v2SubgraphProvider,
+        routingConfig,
+        chainId: this.chainId,
+      });
+    });
+
+    const mixedPromise = async () => {
+      if (fotInDirectSwap) {
+        return undefined;
+      }
+
+      const noProtocolsSpecified = protocols.length === 0;
+      const v2SupportedInChain = this.v2Supported?.includes(this.chainId);
+      const v4SupportedInChain = this.v4Supported?.includes(this.chainId);
+
+      const shouldQueryMixedProtocol =
+        protocols.includes(Protocol.MIXED) ||
+        (noProtocolsSpecified && v2SupportedInChain && v4SupportedInChain);
+
+      const mixedProtocolAllowed =
+        this.mixedSupported?.includes(this.chainId) &&
+        tradeType === TradeType.EXACT_INPUT;
+
+      if (!shouldQueryMixedProtocol || !mixedProtocolAllowed) {
+        return undefined;
+      }
+
+      if (
+        protocols.filter((protocol) => protocol !== Protocol.MIXED).length < 2
+      ) {
+        return undefined;
+      }
+
+      const [v4CandidatePools, v3CandidatePools, v2CandidatePools] =
+        await Promise.all([
+          v4CandidatePoolsPromise(),
+          v3CandidatePoolsPromise(),
+          v2CandidatePoolsPromise(),
+        ]);
+
+      const tokenIn = currencyIn.wrapped;
+      const tokenOut = currencyOut.wrapped;
+
+      const crossLiquidityPools = await getMixedCrossLiquidityCandidatePools({
+        tokenIn,
+        tokenOut,
+        blockNumber: routingConfig.blockNumber,
+        v2SubgraphProvider: this.v2SubgraphProvider,
+        v3SubgraphProvider: this.v3SubgraphProvider,
+        v2Candidates: v2CandidatePools,
+        v3Candidates: v3CandidatePools,
+        v4Candidates: v4CandidatePools,
+      });
+
+      return this.mixedQuoter.getRoutesThenQuotes(
+        tokenIn,
+        tokenOut,
+        amount,
+        amounts,
+        percents,
+        quoteCurrency.wrapped,
+        [
+          v4CandidatePools,
+          v3CandidatePools,
+          v2CandidatePools,
+          crossLiquidityPools,
+        ],
+        tradeType,
+        routingConfig,
+        mixedRouteGasModel
+      );
+    };
+
+    // const [v4CandidatePools, v3CandidatePools, v2CandidatePools] =
+    //   await Promise.all([
+    //     new Promise<V4CandidatePools | undefined>((resolve, reject) => {
+    //       if (!this.v4Supported?.includes(this.chainId)) {
+    //         return resolve(undefined);
+    //       }
+
+    //       getV4CandidatePools({
+    //         currencyIn,
+    //         currencyOut,
+    //         tokenProvider: this.tokenProvider,
+    //         blockedTokenListProvider: this.blockedTokenListProvider,
+    //         poolProvider: this.v4PoolProvider,
+    //         routeType: tradeType,
+    //         subgraphProvider: this.v4SubgraphProvider,
+    //         routingConfig,
+    //         chainId: this.chainId,
+    //         v4PoolParams: this.v4PoolParams,
+    //       })
+    //         .then(resolve)
+    //         .catch(reject);
+    //     }),
+    //     getV3CandidatePools({
+    //       tokenIn: currencyIn.wrapped,
+    //       tokenOut: currencyOut.wrapped,
+    //       tokenProvider: this.tokenProvider,
+    //       blockedTokenListProvider: this.blockedTokenListProvider,
+    //       poolProvider: this.v3PoolProvider,
+    //       routeType: tradeType,
+    //       subgraphProvider: this.v3SubgraphProvider,
+    //       routingConfig,
+    //       chainId: this.chainId,
+    //     }),
+    //     new Promise<V2CandidatePools | undefined>((resolve, reject) => {
+    //       if (!this.v2Supported?.includes(this.chainId)) {
+    //         return resolve(undefined);
+    //       }
+
+    //       getV2CandidatePools({
+    //         tokenIn: currencyIn.wrapped,
+    //         tokenOut: currencyOut.wrapped,
+    //         tokenProvider: this.tokenProvider,
+    //         blockedTokenListProvider: this.blockedTokenListProvider,
+    //         poolProvider: this.v2PoolProvider,
+    //         routeType: tradeType,
+    //         subgraphProvider: this.v2SubgraphProvider,
+    //         routingConfig,
+    //         chainId: this.chainId,
+    //       })
+    //         .then((result) => resolve(result))
+    //         .catch((error) => reject(error));
+    //     }),
+    //   ]);
+
+    elapsedTradeTypeMarker();
+
+    /// GAS MODEL
+    const reportGasModelElapsedTime = markTime('reportGasModelElapsedTime');
+    const { v2GasModel, v3GasModel, v4GasModel, mixedRouteGasModel } =
+      await this.getGasModels(
         gasPriceWei,
         amount.currency.wrapped,
         quoteCurrency.wrapped,
         providerConfig
       );
 
-    let bestRoute: RouteWithValidQuote | undefined;
+    reportGasModelElapsedTime();
 
-    if (v4CandidatePools) {
-      const subroutesResult = await this.v4Quoter.getRoutesThenQuotes(
-        currencyIn,
-        currencyOut,
-        amount,
-        amounts,
-        percents,
-        quoteCurrency,
-        v4CandidatePools,
-        tradeType,
-        routingConfig,
-        v4GasModel
-      );
-      if (subroutesResult.routesWithValidQuotes.length > 0) {
-        bestRoute = subroutesResult.routesWithValidQuotes[0];
+    console.log(1393, mixedRouteGasModel);
+
+    /// ROUTING
+    const reportGetQuotesElapsedTime = markTime('reportGetQuotesElapsedTime');
+    const getQuotesResults = await Promise.all([
+      v4CandidatePoolsPromise().then((v4CandidatePools) => {
+        if (!v4CandidatePools) {
+          return undefined;
+        }
+
+        return this.v4Quoter.getRoutesThenQuotes(
+          currencyIn,
+          currencyOut,
+          amount,
+          amounts,
+          percents,
+          quoteCurrency,
+          v4CandidatePools,
+          tradeType,
+          routingConfig,
+          v4GasModel
+        );
+      }),
+      v3CandidatePoolsPromise().then((v3CandidatePools) => {
+        if (!v3CandidatePools) {
+          return undefined;
+        }
+
+        const tokenIn = currencyIn.wrapped;
+        const tokenOut = currencyOut.wrapped;
+
+        return this.v3Quoter.getRoutesThenQuotes(
+          tokenIn,
+          tokenOut,
+          amount,
+          amounts,
+          percents,
+          quoteCurrency.wrapped,
+          v3CandidatePools,
+          tradeType,
+          routingConfig,
+          v3GasModel
+        );
+      }),
+      v2CandidatePoolsPromise().then((v2CandidatePools) => {
+        if (!v2CandidatePools) {
+          return undefined;
+        }
+
+        const tokenIn = currencyIn.wrapped;
+        const tokenOut = currencyOut.wrapped;
+
+        return this.v2Quoter.getRoutesThenQuotes(
+          tokenIn,
+          tokenOut,
+          amount,
+          amounts,
+          percents,
+          quoteCurrency.wrapped,
+          v2CandidatePools,
+          tradeType,
+          routingConfig,
+          v2GasModel,
+          gasPriceWei
+        );
+      }),
+      // mixed protocol
+      mixedPromise(),
+    ]);
+
+    reportGetQuotesElapsedTime();
+
+    const reportGetCandidatePoolsElapsedTime = markTime(
+      'reportGetCandidatePoolsElapsedTime'
+    );
+    const allRoutesWithValidQuotes: RouteWithValidQuote[] = [];
+    for (const getQuoteResult of getQuotesResults) {
+      if (!getQuoteResult) {
+        continue;
+      }
+
+      if (getQuoteResult.routesWithValidQuotes) {
+        allRoutesWithValidQuotes.push(...getQuoteResult.routesWithValidQuotes);
       }
     }
 
-    if (!bestRoute && v3CandidatePools) {
-      const tokenIn = currencyIn.wrapped;
-      const tokenOut = currencyOut.wrapped;
+    reportGetCandidatePoolsElapsedTime();
 
-      const v3routesResult = await this.v3Quoter.getRoutesThenQuotes(
-        tokenIn,
-        tokenOut,
-        amount,
-        amounts,
-        percents,
-        quoteCurrency.wrapped,
-        v3CandidatePools,
-        tradeType,
-        routingConfig,
-        v3GasModel
-      );
-      if (v3routesResult.routesWithValidQuotes.length > 0) {
-        bestRoute = v3routesResult.routesWithValidQuotes[0];
-      }
-    }
+    const reportGetBestSwapRouteElapsedTime = markTime('getBestSwapRoute');
+    const bestSwapRoute = await getBestSwapRouteWithoutEstimate(
+      amount,
+      percents,
+      allRoutesWithValidQuotes,
+      tradeType,
+      this.chainId,
+      routingConfig,
+      this.portionProvider,
+      v2GasModel,
+      v3GasModel,
+      v4GasModel,
+      swapConfig,
+      providerConfig,
+    );
+    reportGetBestSwapRouteElapsedTime();
 
-    if (!bestRoute && v2CandidatePools) {
-      const tokenIn = currencyIn.wrapped;
-      const tokenOut = currencyOut.wrapped;
-
-      const v2routesResult = await this.v2Quoter.getRoutesThenQuotes(
-        tokenIn,
-        tokenOut,
-        amount,
-        amounts,
-        percents,
-        quoteCurrency.wrapped,
-        v2CandidatePools,
-        tradeType,
-        routingConfig,
-        v2GasModel,
-        gasPriceWei
-      );
-      if (v2routesResult.routesWithValidQuotes.length > 0) {
-        bestRoute = v2routesResult.routesWithValidQuotes[0];
-      }
-    }
-
-    if (!bestRoute) {
-      return null;
-    }
-
-    return bestRoute;
+    return bestSwapRoute;
   }
 
   /**

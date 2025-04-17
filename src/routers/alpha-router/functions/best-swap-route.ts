@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId, TradeType } from '@uniswap/sdk-core';
+import { ChainId,TradeType } from '@uniswap/sdk-core';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import FixedReverseHeap from 'mnemonist/fixed-reverse-heap';
@@ -9,24 +9,24 @@ import Queue from 'mnemonist/queue';
 import { IPortionProvider } from '../../../providers/portion-provider';
 import { ProviderConfig } from '../../../providers/provider';
 import {
-  HAS_L1_FEE,
-  V2_SUPPORTED,
-  V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY,
+HAS_L1_FEE,
+V2_SUPPORTED,
+V4_SUPPORTED,
+WRAPPED_NATIVE_CURRENCY
 } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
-import { metric, MetricLoggerUnit } from '../../../util/metric';
-import { routeAmountsToString, routeToString } from '../../../util/routes';
+import { metric,MetricLoggerUnit } from '../../../util/metric';
+import { routeAmountsToString,routeToString } from '../../../util/routes';
 import { SwapOptions } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
-import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
+import { IGasModel,L1ToL2GasCosts,usdGasTokensByChain } from '../gas-models';
 
 import {
-  RouteWithValidQuote,
-  V2RouteWithValidQuote,
-  V3RouteWithValidQuote,
-  V4RouteWithValidQuote,
+RouteWithValidQuote,
+V2RouteWithValidQuote,
+V3RouteWithValidQuote,
+V4RouteWithValidQuote
 } from './../entities/route-with-valid-quote';
 
 export type BestSwapRoute = {
@@ -807,6 +807,425 @@ export async function getBestSwapRouteBy(
     estimatedGasUsedUSD,
     estimatedGasUsedQuoteToken,
     estimatedGasUsedGasToken,
+    routes: portionProvider.getRouteWithQuotePortionAdjusted(
+      routeType,
+      routeWithQuotes,
+      swapConfig,
+      providerConfig
+    ),
+  };
+}
+
+export async function getBestSwapRouteWithoutEstimate(
+  amount: CurrencyAmount,
+  percents: number[],
+  routesWithValidQuotes: RouteWithValidQuote[],
+  routeType: TradeType,
+  chainId: ChainId,
+  routingConfig: AlphaRouterConfig,
+  portionProvider: IPortionProvider,
+  v2GasModel?: IGasModel<V2RouteWithValidQuote>,
+  v3GasModel?: IGasModel<V3RouteWithValidQuote>,
+  v4GasModel?: IGasModel<V4RouteWithValidQuote>,
+  swapConfig?: SwapOptions,
+  providerConfig?: ProviderConfig
+) {
+  const now = Date.now();
+
+  const { forceMixedRoutes } = routingConfig;
+
+  /// Like with forceCrossProtocol, we apply that logic here when determining the bestSwapRoute
+  if (forceMixedRoutes) {
+    log.info(
+      {
+        forceMixedRoutes: forceMixedRoutes,
+      },
+      'Forcing mixed routes by filtering out other route types'
+    );
+    routesWithValidQuotes = _.filter(routesWithValidQuotes, (quotes) => {
+      return quotes.protocol === Protocol.MIXED;
+    });
+    if (!routesWithValidQuotes) {
+      return null;
+    }
+  }
+
+  // Build a map of percentage of the input to list of valid quotes.
+  // Quotes can be null for a variety of reasons (not enough liquidity etc), so we drop them here too.
+  const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
+  for (const routeWithValidQuote of routesWithValidQuotes) {
+    if (!percentToQuotes[routeWithValidQuote.percent]) {
+      percentToQuotes[routeWithValidQuote.percent] = [];
+    }
+    percentToQuotes[routeWithValidQuote.percent]!.push(routeWithValidQuote);
+  }
+
+  metric.putMetric(
+    'BuildRouteWithValidQuoteObjects',
+    Date.now() - now,
+    MetricLoggerUnit.Milliseconds
+  );
+
+  // Given all the valid quotes for each percentage find the optimal route.
+  const getBestSwapRouteByStartTime = Date.now();
+  const swapRoute = await getBestSwapRouteByWithoutEstimate(
+    routeType,
+    percentToQuotes,
+    percents,
+    chainId,
+    (rq: RouteWithValidQuote) => rq.quoteAdjustedForGas,
+    routingConfig,
+    portionProvider,
+    v2GasModel,
+    v3GasModel,
+    v4GasModel,
+    swapConfig,
+    providerConfig
+  );
+  const getBestSwapRouteByLatencyMs = Date.now() - getBestSwapRouteByStartTime;
+
+  // Add latency metrics.
+  metric.putMetric(
+    'GetBestSwapRouteByLatency',
+    getBestSwapRouteByLatencyMs,
+    MetricLoggerUnit.Milliseconds
+  );
+  metric.putMetric(
+    `GetBestSwapRouteByLatency_Chain${chainId}`,
+    getBestSwapRouteByLatencyMs,
+    MetricLoggerUnit.Milliseconds
+  );
+
+  // It is possible we were unable to find any valid route given the quotes.
+  if (!swapRoute) {
+    return null;
+  }
+
+  // Due to potential loss of precision when taking percentages of the input it is possible that the sum of the amounts of each
+  // route of our optimal quote may not add up exactly to exactIn or exactOut.
+  //
+  // We check this here, and if there is a mismatch
+  // add the missing amount to a random route. The missing amount size should be neglible so the quote should still be highly accurate.
+  const { routes: routeAmounts } = swapRoute;
+  const totalAmount = _.reduce(
+    routeAmounts,
+    (total, routeAmount) => total.add(routeAmount.amount),
+    CurrencyAmount.fromRawAmount(routeAmounts[0]!.amount.currency, 0)
+  );
+
+  const missingAmount = amount.subtract(totalAmount);
+  if (missingAmount.greaterThan(0)) {
+    log.info(
+      {
+        missingAmount: missingAmount.quotient.toString(),
+      },
+      `Optimal route's amounts did not equal exactIn/exactOut total. Adding missing amount to last route in array.`
+    );
+
+    routeAmounts[routeAmounts.length - 1]!.amount =
+      routeAmounts[routeAmounts.length - 1]!.amount.add(missingAmount);
+  }
+
+  return swapRoute;
+}
+
+export async function getBestSwapRouteByWithoutEstimate(
+  routeType: TradeType,
+  percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
+  percents: number[],
+  chainId: ChainId,
+  by: (routeQuote: RouteWithValidQuote) => CurrencyAmount,
+  routingConfig: AlphaRouterConfig,
+  portionProvider: IPortionProvider,
+  v2GasModel?: IGasModel<V2RouteWithValidQuote>,
+  v3GasModel?: IGasModel<V3RouteWithValidQuote>,
+  v4GasModel?: IGasModel<V4RouteWithValidQuote>,
+  swapConfig?: SwapOptions,
+  providerConfig?: ProviderConfig
+): Promise<{quote: CurrencyAmount, routes: RouteWithValidQuote[];} | undefined> {
+  // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
+  const percentToSortedQuotes = _.mapValues(
+    percentToQuotes,
+    (routeQuotes: RouteWithValidQuote[]) => {
+      return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
+        if (routeType == TradeType.EXACT_INPUT) {
+          return by(routeQuoteA).greaterThan(by(routeQuoteB)) ? -1 : 1;
+        } else {
+          return by(routeQuoteA).lessThan(by(routeQuoteB)) ? -1 : 1;
+        }
+      });
+    }
+  );
+
+  const quoteCompFn =
+    routeType == TradeType.EXACT_INPUT
+      ? (a: CurrencyAmount, b: CurrencyAmount) => a.greaterThan(b)
+      : (a: CurrencyAmount, b: CurrencyAmount) => a.lessThan(b);
+
+  const sumFn = (currencyAmounts: CurrencyAmount[]): CurrencyAmount => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    let sum = currencyAmounts[0]!;
+    for (let i = 1; i < currencyAmounts.length; i++) {
+      
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      sum = sum.add(currencyAmounts[i]!);
+    }
+    return sum;
+  };
+
+  let bestQuote: CurrencyAmount | undefined;
+  let bestSwap: RouteWithValidQuote[] | undefined;
+
+  // Min-heap for tracking the 5 best swaps given some number of splits.
+  const bestSwapsPerSplit = new FixedReverseHeap<{
+    quote: CurrencyAmount;
+    routes: RouteWithValidQuote[];
+  }>(
+    Array,
+    (a, b) => {
+      return quoteCompFn(a.quote, b.quote) ? -1 : 1;
+    },
+    3
+  );
+
+  const { minSplits, maxSplits, forceCrossProtocol } = routingConfig;
+
+  if (!percentToSortedQuotes[100] || minSplits > 1 || forceCrossProtocol) {
+    // Prev is only log
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    bestQuote = by(percentToSortedQuotes[100][0]!);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    bestSwap = [percentToSortedQuotes[100][0]!];
+
+    for (const routeWithQuote of percentToSortedQuotes[100].slice(0, 5)) {
+      bestSwapsPerSplit.push({
+        quote: by(routeWithQuote),
+        routes: [routeWithQuote],
+      });
+    }
+  }
+
+  // We do a BFS. Each additional node in a path represents us adding an additional split to the route.
+  const queue = new Queue<{
+    percentIndex: number;
+    curRoutes: RouteWithValidQuote[];
+    remainingPercent: number;
+    special: boolean;
+  }>();
+
+  // First we seed BFS queue with the best quotes for each percentage.
+  // i.e. [best quote when sending 10% of amount, best quote when sending 20% of amount, ...]
+  // We will explore the various combinations from each node.
+  for (let i = percents.length; i >= 0; i--) {
+    if (!percents[i]) {
+      continue
+    }
+
+    const percent = percents[i];
+    if (typeof percent === 'undefined') {
+      continue
+    }
+
+    if (!percentToSortedQuotes[percent]) {
+      continue;
+    }
+
+    queue.enqueue({
+      curRoutes: [percentToSortedQuotes[percent]![0]!],
+      percentIndex: i,
+      remainingPercent: 100 - percent,
+      special: false,
+    });
+
+    if (
+      !percentToSortedQuotes[percent] ||
+      !percentToSortedQuotes[percent]![1]
+    ) {
+      continue;
+    }
+
+    queue.enqueue({
+      curRoutes: [percentToSortedQuotes[percent]![1]!],
+      percentIndex: i,
+      remainingPercent: 100 - percent,
+      special: true,
+    });
+  }
+
+  let splits = 1;
+
+  while (queue.size > 0) {
+    bestSwapsPerSplit.clear();
+
+    // Size of the queue at this point is the number of potential routes we are investigating for the given number of splits.
+    let layer = queue.size;
+    splits++;
+
+    // If we didn't improve our quote by adding another split, very unlikely to improve it by splitting more after that.
+    if (splits >= 3 && bestSwap && bestSwap.length < splits - 1) {
+      break;
+    }
+
+    if (splits > maxSplits) {
+      break;
+    }
+
+    while (layer > 0) {
+      layer--;
+
+      const { remainingPercent, curRoutes, percentIndex, special } =
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        queue.dequeue()!;
+
+      // For all other percentages, add a new potential route.
+      // E.g. if our current aggregated route if missing 50%, we will create new nodes and add to the queue for:
+      // 50% + new 10% route, 50% + new 20% route, etc.
+      for (let i = percentIndex; i >= 0; i--) {
+        if (!percents[i]) {
+          continue;
+        }
+
+        const percentA = percents[i] ?? 0;
+
+        if (percentA > remainingPercent) {
+          continue;
+        }
+
+        // At some point the amount * percentage is so small that the quoter is unable to get
+        // a quote. In this case there could be no quotes for that percentage.
+        if (!percentToSortedQuotes[percentA]) {
+          continue;
+        }
+
+        const candidateRoutesA = percentToSortedQuotes[percentA];
+
+        // Find the best route in the complimentary percentage that doesn't re-use a pool already
+        // used in the current route. Re-using pools is not allowed as each swap through a pool changes its liquidity,
+        // so it would make the quotes inaccurate.
+        const routeWithQuoteA = findFirstRouteNotUsingUsedPools(
+          curRoutes,
+          candidateRoutesA!,
+          forceCrossProtocol
+        );
+
+        if (!routeWithQuoteA) {
+          continue;
+        }
+
+        const remainingPercentNew = remainingPercent - percentA;
+        const curRoutesNew = [...curRoutes, routeWithQuoteA];
+
+        // If we've found a route combination that uses all 100%, and it has at least minSplits, update our best route.
+        if (remainingPercentNew == 0 && splits >= minSplits) {
+          const quotesNew = _.map(curRoutesNew, (r) => by(r));
+          const quoteNew = sumFn(quotesNew);
+
+          let gasCostL1QuoteToken = CurrencyAmount.fromRawAmount(
+            quoteNew.currency,
+            0
+          );
+
+          if (HAS_L1_FEE.includes(chainId)) {
+            if (
+              v2GasModel == undefined &&
+              v3GasModel == undefined &&
+              v4GasModel == undefined
+            ) {
+              throw new Error("Can't compute L1 gas fees.");
+            }
+
+            // ROUTE-249: consoliate L1 + L2 gas fee adjustment within best-swap-route
+            const v2Routes = curRoutesNew.filter(
+              (routes) => routes.protocol === Protocol.V2
+            );
+            if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId)) {
+              if (v2GasModel && v2GasModel.calculateL1GasFees) {
+                const v2GasCostL1 = await v2GasModel.calculateL1GasFees(
+                  v2Routes as V2RouteWithValidQuote[]
+                );
+                gasCostL1QuoteToken = gasCostL1QuoteToken.add(
+                  v2GasCostL1.gasCostL1QuoteToken
+                );
+              }
+            }
+            const v3Routes = curRoutesNew.filter(
+              (routes) => routes.protocol === Protocol.V3
+            );
+
+            if (v3Routes.length > 0) {
+              if (v3GasModel && v3GasModel.calculateL1GasFees) {
+                const v3GasCostL1 = await v3GasModel.calculateL1GasFees(
+                  v3Routes as V3RouteWithValidQuote[]
+                );
+                gasCostL1QuoteToken = gasCostL1QuoteToken.add(
+                  v3GasCostL1.gasCostL1QuoteToken
+                );
+              }
+            }
+
+            const v4Routes = curRoutesNew.filter(
+              (routes) => routes.protocol === Protocol.V4
+            );
+            
+            if (v4Routes.length > 0 && V4_SUPPORTED.includes(chainId)) {
+              if (v4GasModel && v4GasModel.calculateL1GasFees) {
+                const v4GasCostL1 = await v4GasModel.calculateL1GasFees(
+                  v4Routes as V4RouteWithValidQuote[]
+                );
+                gasCostL1QuoteToken = gasCostL1QuoteToken.add(
+                  v4GasCostL1.gasCostL1QuoteToken
+                );
+              }
+            }
+          }
+
+          const quoteAfterL1Adjust =
+            routeType == TradeType.EXACT_INPUT
+              ? quoteNew.subtract(gasCostL1QuoteToken)
+              : quoteNew.add(gasCostL1QuoteToken);
+
+          bestSwapsPerSplit.push({
+            quote: quoteAfterL1Adjust,
+            routes: curRoutesNew,
+          });
+
+          if (!bestQuote || quoteCompFn(quoteAfterL1Adjust, bestQuote)) {
+            bestQuote = quoteAfterL1Adjust;
+            bestSwap = curRoutesNew;
+          }
+        } else {
+          queue.enqueue({
+            curRoutes: curRoutesNew,
+            remainingPercent: remainingPercentNew,
+            percentIndex: i,
+            special,
+          });
+        }
+      }
+    }
+  }
+
+  if (!bestSwap) {
+    return undefined;
+  }
+
+  const quote = sumFn(
+    _.map(bestSwap, (routeWithValidQuote) => routeWithValidQuote.quote)
+  );
+
+  const routeWithQuotes = bestSwap.sort((routeAmountA, routeAmountB) =>
+    routeAmountB.amount.greaterThan(routeAmountA.amount) ? 1 : -1
+  );
+
+  return {
+    quote,
+    // quoteGasAdjusted,
+    // estimatedGasUsed: estimatedGasUsed.add(gasUsedL1OnL2),
+    // estimatedGasUsedUSD,
+    // estimatedGasUsedQuoteToken,
+    // estimatedGasUsedGasToken,
     routes: portionProvider.getRouteWithQuotePortionAdjusted(
       routeType,
       routeWithQuotes,
