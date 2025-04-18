@@ -531,6 +531,10 @@ export type AlphaRouterConfig = {
    * enable mixed route with UR1_2 version backward compatibility issue
    */
   enableMixedRouteWithUR1_2?: boolean;
+  /**
+   * enable debug mode for async routing lambda
+   */
+  enableDebug?: boolean;
 };
 
 export class AlphaRouter
