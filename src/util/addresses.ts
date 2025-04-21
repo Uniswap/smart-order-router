@@ -141,8 +141,7 @@ export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4QuoterAddress,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v4QuoterAddress,
   // Kittycorn: Using KittycornV4Quoter
-  [ChainId.SEPOLIA]: '0x8a2D75bAadcd2C71b2aCF715fc3Da68964CEA48e', // CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
-  [ChainId.MAINNET]: '0x1F585372F116E1055AF2bED81a808DDf9638dCCD',
+  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {

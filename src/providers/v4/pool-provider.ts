@@ -1,10 +1,9 @@
 import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
 import { NoTickDataProvider } from '@kittycorn-labs/v3-sdk';
-import { Pool } from '@kittycorn-labs/v4-sdk';
+import { BASE_TOKENIZE_UNDERLYING, Pool } from '@kittycorn-labs/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import JSBI from 'jsbi';
 
-import { BASE_TOKENIZE_UNDERLYING } from '@kittycorn-labs/v4-sdk';
 import { StateView__factory } from '../../types/other/factories/StateView__factory';
 import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
 import { IMulticallProvider, Result } from '../multicall-provider';
