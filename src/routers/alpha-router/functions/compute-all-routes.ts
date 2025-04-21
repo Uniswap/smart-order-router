@@ -9,6 +9,7 @@ import {
   nativeOnChain,
   V4_ETH_WETH_FAKE_POOL,
 } from '../../../util';
+import { HooksOptions } from '../../../util/HooksOptions';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
@@ -18,7 +19,6 @@ import {
   V3Route,
   V4Route,
 } from '../../router';
-import { HooksOptions } from '../../../util/HooksOptions';
 
 export function computeAllV4Routes(
   currencyIn: Currency,
@@ -93,14 +93,25 @@ export function computeAllMixedRoutes(
   shouldEnableMixedRouteEthWeth?: boolean,
   hooksOptions?: HooksOptions
 ): MixedRoute[] {
-  let filteredPools: TPool[] = parts;
+  // first we need to filter non v4-pools
+  let filteredPools: TPool[] = parts.filter((pool) => !(pool instanceof V4Pool));
 
   if (hooksOptions === HooksOptions.HOOKS_ONLY) {
-    filteredPools = parts.filter((pool) => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO);
+    // we need to filter out v4-pools with hooks
+    // then concat the v4-pools with hooks
+    const v4HookslessPools = parts.filter(
+      (pool) => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO
+    );
+    filteredPools.concat(v4HookslessPools);
   }
 
   if (hooksOptions === HooksOptions.NO_HOOKS) {
-    filteredPools = parts.filter((pool) => pool instanceof V4Pool && pool.hooks === ADDRESS_ZERO);
+    // we need to filter out v4-pools without hooks
+    // then concat the v4-pools without hooks
+    const v4HookfulPools = parts.filter(
+      (pool) => pool instanceof V4Pool && pool.hooks === ADDRESS_ZERO
+    );
+    filteredPools.concat(v4HookfulPools);
   }
 
   // only add fake v4 pool, if we see there's a native v4 pool in the candidate pool
@@ -112,7 +123,9 @@ export function computeAllMixedRoutes(
     ).length > 0;
   const amendedPools =
     containsV4NativePools && shouldEnableMixedRouteEthWeth
-      ? filteredPools.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId])
+      ? filteredPools.concat(
+          V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId]
+        )
       : filteredPools;
   // NOTE: we added a fake v4 pool, in order for mixed route to connect the v3 weth pool with v4 eth pool
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
