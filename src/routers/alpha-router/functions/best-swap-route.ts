@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Protocol } from '@uniswap/router-sdk';
-import { ChainId,TradeType } from '@uniswap/sdk-core';
+import { ChainId, TradeType } from '@uniswap/sdk-core';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import FixedReverseHeap from 'mnemonist/fixed-reverse-heap';
@@ -9,25 +9,25 @@ import Queue from 'mnemonist/queue';
 import { IPortionProvider } from '../../../providers/portion-provider';
 import { ProviderConfig } from '../../../providers/provider';
 import {
-HAS_L1_FEE,
-V2_SUPPORTED,
-V4_SUPPORTED,
-WRAPPED_NATIVE_CURRENCY
+  HAS_L1_FEE,
+  V2_SUPPORTED,
+  V4_SUPPORTED,
+  WRAPPED_NATIVE_CURRENCY,
 } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
-import { metric,MetricLoggerUnit } from '../../../util/metric';
-import { routeAmountsToString,routeToString } from '../../../util/routes';
+import { metric, MetricLoggerUnit } from '../../../util/metric';
+import { routeAmountsToString, routeToString } from '../../../util/routes';
 import { SwapOptions } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
-import { IGasModel,L1ToL2GasCosts,usdGasTokensByChain } from '../gas-models';
+import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
 
 import {
-RouteWithValidQuote,
-V2RouteWithValidQuote,
-V3RouteWithValidQuote,
-V4RouteWithValidQuote
-} from './../entities/route-with-valid-quote';
+  RouteWithValidQuote,
+  V2RouteWithValidQuote,
+  V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
+} from '../entities/route-with-valid-quote';
 
 export type BestSwapRoute = {
   quote: CurrencyAmount;
@@ -942,7 +942,9 @@ export async function getBestSwapRouteByWithoutEstimate(
   v4GasModel?: IGasModel<V4RouteWithValidQuote>,
   swapConfig?: SwapOptions,
   providerConfig?: ProviderConfig
-): Promise<{quote: CurrencyAmount, routes: RouteWithValidQuote[];} | undefined> {
+): Promise<
+  { quote: CurrencyAmount; routes: RouteWithValidQuote[] } | undefined
+> {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
   const percentToSortedQuotes = _.mapValues(
     percentToQuotes,
@@ -966,7 +968,6 @@ export async function getBestSwapRouteByWithoutEstimate(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let sum = currencyAmounts[0]!;
     for (let i = 1; i < currencyAmounts.length; i++) {
-      
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       sum = sum.add(currencyAmounts[i]!);
     }
@@ -1020,12 +1021,12 @@ export async function getBestSwapRouteByWithoutEstimate(
   // We will explore the various combinations from each node.
   for (let i = percents.length; i >= 0; i--) {
     if (!percents[i]) {
-      continue
+      continue;
     }
 
     const percent = percents[i];
     if (typeof percent === 'undefined') {
-      continue
+      continue;
     }
 
     if (!percentToSortedQuotes[percent]) {
@@ -1168,7 +1169,7 @@ export async function getBestSwapRouteByWithoutEstimate(
             const v4Routes = curRoutesNew.filter(
               (routes) => routes.protocol === Protocol.V4
             );
-            
+
             if (v4Routes.length > 0 && V4_SUPPORTED.includes(chainId)) {
               if (v4GasModel && v4GasModel.calculateL1GasFees) {
                 const v4GasCostL1 = await v4GasModel.calculateL1GasFees(

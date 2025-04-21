@@ -2,7 +2,7 @@ import { ChainId } from '@uniswap/sdk-core';
 
 import { Protocol } from '@uniswap/router-sdk';
 import { CachingSubgraphProvider } from '../caching-subgraph-provider';
-import { ICache } from './../cache';
+import { ICache } from '../cache';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
 /**

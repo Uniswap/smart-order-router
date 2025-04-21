@@ -3,7 +3,7 @@ import { ChainId } from '@uniswap/sdk-core';
 
 import { CachingSubgraphProvider } from '../caching-subgraph-provider';
 
-import { ICache } from './../cache';
+import { ICache } from '../cache';
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
 
 /**

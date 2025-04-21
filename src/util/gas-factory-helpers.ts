@@ -37,7 +37,7 @@ import {
   getApplicableV3FeeAmounts,
   log,
   WRAPPED_NATIVE_CURRENCY,
-} from '../util';
+} from '.';
 
 import { opStackChains } from './l2FeeChains';
 import { buildSwapMethodParameters, buildTrade } from './methodParameters';

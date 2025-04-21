@@ -5,8 +5,8 @@ import _ from 'lodash';
 import { metric, MetricLoggerUnit } from '../../util';
 import { log } from '../../util/log';
 
-import { ICache } from './../cache';
-import { ProviderConfig } from './../provider';
+import { ICache } from '../cache';
+import { ProviderConfig } from '../provider';
 import { IV3PoolProvider, V3PoolAccessor } from './pool-provider';
 
 /**

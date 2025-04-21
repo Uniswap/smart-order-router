@@ -4,8 +4,8 @@ import _ from 'lodash';
 
 import { log } from '../../util/log';
 
-import { ICache } from './../cache';
-import { ProviderConfig } from './../provider';
+import { ICache } from '../cache';
+import { ProviderConfig } from '../provider';
 import { IV2PoolProvider, V2PoolAccessor } from './pool-provider';
 
 /**
