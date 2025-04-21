@@ -150,6 +150,7 @@ import {
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
+import { HooksOptions } from '../../util/hooksOptions';
 import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
@@ -535,6 +536,10 @@ export type AlphaRouterConfig = {
    * enable debug mode for async routing lambda
    */
   enableDebug?: boolean;
+  /**
+   * pass in hooks options for hooks routing toggles from the frontend
+   */
+  hooksOptions?: HooksOptions;
 };
 
 export class AlphaRouter
@@ -1473,6 +1478,16 @@ export class AlphaRouter
         requestedProtocolsSet.has(protocol)
       );
 
+    // If the requested protocols do not match the enabled protocols, we need to set the hooks options to NO_HOOKS.
+    if (!requestedProtocolsSet.has(Protocol.V4)) {
+      routingConfig.hooksOptions = HooksOptions.NO_HOOKS;
+    }
+
+    // If hooksOptions not specified, we should also set it to HOOKS_INCLUSIVE, as this is default behavior even without hooksOptions.
+    if (!routingConfig.hooksOptions) {
+      routingConfig.hooksOptions = HooksOptions.HOOKS_INCLUSIVE;
+    }
+
     log.debug('UniversalRouterVersion_CacheGate_Check', {
       availableProtocolsSet: Array.from(availableProtocolsSet),
       requestedProtocolsSet: Array.from(requestedProtocolsSet),
@@ -1487,7 +1502,10 @@ export class AlphaRouter
     if (
       routingConfig.useCachedRoutes &&
       cacheMode !== CacheMode.Darkmode &&
-      AlphaRouter.isAllowedToEnterCachedRoutes(routingConfig.intent)
+      AlphaRouter.isAllowedToEnterCachedRoutes(
+        routingConfig.intent,
+        routingConfig.hooksOptions
+      )
     ) {
       if (enabledAndRequestedProtocolsMatch) {
         if (
@@ -3251,9 +3269,12 @@ export class AlphaRouter
     );
   }
 
-  // We want to skip cached routes access whenever "intent === INTENT.CACHING".
+  // We want to skip cached routes access whenever "intent === INTENT.CACHING" or "hooksOption !== HooksOption.NO_HOOKS"
   // We keep this method as we might want to add more conditions in the future.
-  public static isAllowedToEnterCachedRoutes(intent?: INTENT): boolean {
-    return intent !== INTENT.CACHING;
+  public static isAllowedToEnterCachedRoutes(
+    intent?: INTENT,
+    hooksOptions?: HooksOptions
+  ): boolean {
+    return intent !== INTENT.CACHING || hooksOptions === HooksOptions.NO_HOOKS;
   }
 }
