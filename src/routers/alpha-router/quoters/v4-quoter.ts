@@ -108,7 +108,8 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
       currencyIn,
       currencyOut,
       pools,
-      maxSwapsPerPath
+      maxSwapsPerPath,
+      routingConfig.hooksOptions
     );
 
     metric.putMetric(

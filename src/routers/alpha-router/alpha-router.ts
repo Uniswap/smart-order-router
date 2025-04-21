@@ -7,7 +7,7 @@ import {
   Currency,
   Fraction,
   Token,
-  TradeType,
+  TradeType
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
@@ -50,45 +50,47 @@ import {
   V2QuoteProvider,
   V2SubgraphProviderWithFallBacks,
   V3SubgraphProviderWithFallBacks,
-  V4SubgraphProviderWithFallBacks,
+  V4SubgraphProviderWithFallBacks
 } from '../../providers';
 import {
   CachingTokenListProvider,
-  ITokenListProvider,
+  ITokenListProvider
 } from '../../providers/caching-token-list-provider';
 import {
   GasPrice,
-  IGasPriceProvider,
+  IGasPriceProvider
 } from '../../providers/gas-price-provider';
 import {
   IPortionProvider,
-  PortionProvider,
+  PortionProvider
 } from '../../providers/portion-provider';
 import { ProviderConfig } from '../../providers/provider';
 import { OnChainTokenFeeFetcher } from '../../providers/token-fee-fetcher';
 import { ITokenProvider, TokenProvider } from '../../providers/token-provider';
 import {
   ITokenValidatorProvider,
-  TokenValidatorProvider,
+  TokenValidatorProvider
 } from '../../providers/token-validator-provider';
 import {
   IV2PoolProvider,
-  V2PoolProvider,
+  V2PoolProvider
 } from '../../providers/v2/pool-provider';
 import {
   ArbitrumGasData,
   ArbitrumGasDataProvider,
-  IL2GasDataProvider,
+  IL2GasDataProvider
 } from '../../providers/v3/gas-data-provider';
 import {
   IV3PoolProvider,
-  V3PoolProvider,
+  V3PoolProvider
 } from '../../providers/v3/pool-provider';
 import { IV3SubgraphProvider } from '../../providers/v3/subgraph-provider';
-import { CachingV4PoolProvider } from '../../providers/v4/caching-pool-provider';
+import {
+  CachingV4PoolProvider
+} from '../../providers/v4/caching-pool-provider';
 import {
   IV4PoolProvider,
-  V4PoolProvider,
+  V4PoolProvider
 } from '../../providers/v4/pool-provider';
 import { Erc20__factory } from '../../types/other/factories/Erc20__factory';
 import {
@@ -99,22 +101,22 @@ import {
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY,
+  WRAPPED_NATIVE_CURRENCY
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
-  V2_SUPPORTED,
+  V2_SUPPORTED
 } from '../../util/chains';
 import {
   getHighestLiquidityV3NativePool,
-  getHighestLiquidityV3USDPool,
+  getHighestLiquidityV3USDPool
 } from '../../util/gas-factory-helpers';
 import { log } from '../../util/log';
 import {
   buildSwapMethodParameters,
-  buildTrade,
+  buildTrade
 } from '../../util/methodParameters';
 import { metric, MetricLoggerUnit } from '../../util/metric';
 import {
@@ -127,7 +129,7 @@ import {
   DEFAULT_SUCCESS_RATE_FAILURE_OVERRIDES,
   GAS_ERROR_FAILURE_OVERRIDES,
   RETRY_OPTIONS,
-  SUCCESS_RATE_FAILURE_OVERRIDES,
+  SUCCESS_RATE_FAILURE_OVERRIDES
 } from '../../util/onchainQuoteProviderConfigs';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
@@ -145,7 +147,7 @@ import {
   SwapType,
   V2Route,
   V3Route,
-  V4Route,
+  V4Route
 } from '../router';
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
@@ -154,14 +156,14 @@ import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
-  ETH_GAS_STATION_API_URL,
+  ETH_GAS_STATION_API_URL
 } from './config';
 import {
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
-  V4RouteWithValidQuote,
+  V4RouteWithValidQuote
 } from './entities/route-with-valid-quote';
 import { BestSwapRoute, getBestSwapRoute } from './functions/best-swap-route';
 import { calculateRatioAmountIn } from './functions/calculate-ratio-amount-in';
@@ -174,7 +176,7 @@ import {
   SubgraphPool,
   V2CandidatePools,
   V3CandidatePools,
-  V4CandidatePools,
+  V4CandidatePools
 } from './functions/get-candidate-pools';
 import { NATIVE_OVERHEAD } from './gas-models/gas-costs';
 import {
@@ -183,14 +185,23 @@ import {
   IGasModel,
   IOnChainGasModelFactory,
   IV2GasModelFactory,
-  LiquidityCalculationPools,
+  LiquidityCalculationPools
 } from './gas-models/gas-model';
-import { MixedRouteHeuristicGasModelFactory } from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
-import { V2HeuristicGasModelFactory } from './gas-models/v2/v2-heuristic-gas-model';
-import { V3HeuristicGasModelFactory } from './gas-models/v3/v3-heuristic-gas-model';
-import { V4HeuristicGasModelFactory } from './gas-models/v4/v4-heuristic-gas-model';
+import {
+  MixedRouteHeuristicGasModelFactory
+} from './gas-models/mixedRoute/mixed-route-heuristic-gas-model';
+import {
+  V2HeuristicGasModelFactory
+} from './gas-models/v2/v2-heuristic-gas-model';
+import {
+  V3HeuristicGasModelFactory
+} from './gas-models/v3/v3-heuristic-gas-model';
+import {
+  V4HeuristicGasModelFactory
+} from './gas-models/v4/v4-heuristic-gas-model';
 import { GetQuotesResult, MixedQuoter, V2Quoter, V3Quoter } from './quoters';
 import { V4Quoter } from './quoters/v4-quoter';
+import { HooksOptions } from '../../util/HooksOptions';
 
 export type AlphaRouterParams = {
   /**
@@ -535,6 +546,10 @@ export type AlphaRouterConfig = {
    * enable debug mode for async routing lambda
    */
   enableDebug?: boolean;
+  /**
+   * pass in hooks options for hooks routing toggles from the frontend
+   */
+  hooksOptions?: HooksOptions;
 };
 
 export class AlphaRouter
@@ -1473,6 +1488,16 @@ export class AlphaRouter
         requestedProtocolsSet.has(protocol)
       );
 
+    // If the requested protocols do not match the enabled protocols, we need to set the hooks options to NO_HOOKS.
+    if (!requestedProtocolsSet.has(Protocol.V4)) {
+      routingConfig.hooksOptions = HooksOptions.NO_HOOKS
+    }
+
+    // If hooksOptions not specified, we should also set it to HOOKS_INCLUSIVE, as this is default behavior even without hooksOptions.
+    if (!routingConfig.hooksOptions) {
+      routingConfig.hooksOptions = HooksOptions.HOOKS_INCLUSIVE;
+    }
+
     log.debug('UniversalRouterVersion_CacheGate_Check', {
       availableProtocolsSet: Array.from(availableProtocolsSet),
       requestedProtocolsSet: Array.from(requestedProtocolsSet),
@@ -1487,7 +1512,7 @@ export class AlphaRouter
     if (
       routingConfig.useCachedRoutes &&
       cacheMode !== CacheMode.Darkmode &&
-      AlphaRouter.isAllowedToEnterCachedRoutes(routingConfig.intent)
+      AlphaRouter.isAllowedToEnterCachedRoutes(routingConfig.intent, routingConfig.hooksOptions)
     ) {
       if (enabledAndRequestedProtocolsMatch) {
         if (
@@ -3251,9 +3276,9 @@ export class AlphaRouter
     );
   }
 
-  // We want to skip cached routes access whenever "intent === INTENT.CACHING".
+  // We want to skip cached routes access whenever "intent === INTENT.CACHING" or "hooksOption !== HooksOption.NO_HOOKS"
   // We keep this method as we might want to add more conditions in the future.
-  public static isAllowedToEnterCachedRoutes(intent?: INTENT): boolean {
-    return intent !== INTENT.CACHING;
+  public static isAllowedToEnterCachedRoutes(intent?: INTENT, hooksOptions?: HooksOptions): boolean {
+    return intent !== INTENT.CACHING || hooksOptions === HooksOptions.NO_HOOKS;
   }
 }

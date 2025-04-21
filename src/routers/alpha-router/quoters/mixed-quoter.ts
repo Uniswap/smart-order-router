@@ -186,7 +186,8 @@ export class MixedQuoter extends BaseQuoter<
       currencyOut,
       pools,
       maxSwapsPerPath,
-      routingConfig.shouldEnableMixedRouteEthWeth
+      routingConfig.shouldEnableMixedRouteEthWeth,
+      routingConfig.hooksOptions
     );
 
     if (
