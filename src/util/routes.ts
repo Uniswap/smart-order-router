@@ -1,5 +1,5 @@
-import { Protocol } from '@kittycorn-labs/router-sdk';
-import { ChainId, Currency, Percent } from '@kittycorn-labs/sdk-core';
+import { Protocol, TPool } from '@kittycorn-labs/router-sdk';
+import { ChainId, Currency, Percent, Token } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
 import {
@@ -17,10 +17,7 @@ import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
-import { TPool } from '@kittycorn-labs/router-sdk';
 import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
-
-import { Token } from '@kittycorn-labs/sdk-core';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {

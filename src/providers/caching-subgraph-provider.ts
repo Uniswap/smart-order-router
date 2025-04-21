@@ -1,9 +1,5 @@
 import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
-
-import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
-import { nativeOnChain, WRAPPED_NATIVE_CURRENCY } from '../util';
-
 import {
   TUSDC_MAINNET,
   TUSDC_SEPOLIA,
@@ -14,6 +10,10 @@ import {
   TWETH_MAINNET,
   TWETH_SEPOLIA,
 } from '@kittycorn-labs/v4-sdk';
+
+import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
+import { nativeOnChain, WRAPPED_NATIVE_CURRENCY } from '../util';
+
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
 import {
