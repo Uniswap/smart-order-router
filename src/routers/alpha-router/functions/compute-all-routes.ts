@@ -9,7 +9,7 @@ import {
   nativeOnChain,
   V4_ETH_WETH_FAKE_POOL,
 } from '../../../util';
-import { HooksOptions } from '../../../util/HooksOptions';
+import { HooksOptions } from '../../../util/hooksOptions';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import {

@@ -42,7 +42,7 @@ import {
 } from '../../../../test-util/mock-data';
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import { ChainId, WETH9 } from '@uniswap/sdk-core';
-import { HooksOptions } from '../../../../../src/util/HooksOptions';
+import { HooksOptions } from '../../../../../src/util/hooksOptions';
 
 describe('compute all v4 routes', () => {
   test('succeeds to compute all routes', async () => {

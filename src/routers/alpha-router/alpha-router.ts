@@ -150,7 +150,7 @@ import {
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
-import { HooksOptions } from '../../util/HooksOptions';
+import { HooksOptions } from '../../util/hooksOptions';
 import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
