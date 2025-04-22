@@ -605,10 +605,15 @@ export async function getV4CandidatePools({
     .slice(0, topNDirectSwaps)
     .value();
 
-  if (top2DirectSwapPool.length == 0 && topNDirectSwaps > 0) {
+  if (
+    top2DirectSwapPool.length == 0 &&
+    topNDirectSwaps > 0 &&
+    routingConfig.hooksOptions !== HooksOptions.HOOKS_ONLY
+  ) {
     // If we requested direct swap pools but did not find any in the subgraph query.
     // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
     // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
+    // Also we need to avoid adding hookless pools into the query, when upstream requested hooksOnly
     top2DirectSwapPool = _.map(
       v4PoolParams as Array<[number, number, string]>,
       (poolParams) => {

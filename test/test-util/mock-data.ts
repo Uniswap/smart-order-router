@@ -81,6 +81,17 @@ export const USDC_DAI_V4_LOW = new V4Pool(
   0
 );
 
+export const WETH_DAI_V4_LOW_HOOKS = new V4Pool(
+  WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
+  DAI,
+  FeeAmount.LOW,
+  10,
+  '0x00001f3b9712708127b1fcad61cb892535951888',
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+
 export const USDC_DAI_V4_MEDIUM = new V4Pool(
   USDC,
   DAI,
