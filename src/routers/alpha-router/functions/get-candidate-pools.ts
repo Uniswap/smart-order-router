@@ -1,4 +1,4 @@
-import { Protocol } from '@uniswap/router-sdk';
+import { ADDRESS_ZERO, Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
@@ -88,6 +88,7 @@ import {
   getAddressLowerCase,
   getApplicableV3FeeAmounts,
   getApplicableV4FeesTickspacingsHooks,
+  HooksOptions,
   nativeOnChain,
   unparseFeeAmount,
   WRAPPED_NATIVE_CURRENCY,
@@ -527,6 +528,18 @@ export async function getV4CandidatePools({
               subgraphPool.token0.id == tokenInAddress)
           );
         })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
+        })
         .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
         .slice(0, topNWithEachBaseToken)
         .value();
@@ -547,6 +560,18 @@ export async function getV4CandidatePools({
               subgraphPool.token0.id == tokenOutAddress)
           );
         })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
+        })
         .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
         .slice(0, topNWithEachBaseToken)
         .value();
@@ -564,6 +589,18 @@ export async function getV4CandidatePools({
           (subgraphPool.token1.id == tokenInAddress &&
             subgraphPool.token0.id == tokenOutAddress))
       );
+    })
+    .filter((subgraphPool) => {
+      // in case of hooks only, it means we want to filter out hookless pools
+      if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+        return subgraphPool.hooks !== ADDRESS_ZERO;
+      }
+      // in case of no hooks, it means we want to filter out hook pools
+      if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+        return subgraphPool.hooks === ADDRESS_ZERO;
+      }
+      // otherwise it's the default case, so we just return true
+      return true;
     })
     .slice(0, topNDirectSwaps)
     .value();
@@ -663,6 +700,18 @@ export async function getV4CandidatePools({
           subgraphPool.token1.id == tokenInAddress)
       );
     })
+    .filter((subgraphPool) => {
+      // in case of hooks only, it means we want to filter out hookless pools
+      if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+        return subgraphPool.hooks !== ADDRESS_ZERO;
+      }
+      // in case of no hooks, it means we want to filter out hook pools
+      if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+        return subgraphPool.hooks === ADDRESS_ZERO;
+      }
+      // otherwise it's the default case, so we just return true
+      return true;
+    })
     .slice(0, topNTokenInOut)
     .value();
 
@@ -675,6 +724,18 @@ export async function getV4CandidatePools({
         (subgraphPool.token0.id == tokenOutAddress ||
           subgraphPool.token1.id == tokenOutAddress)
       );
+    })
+    .filter((subgraphPool) => {
+      // in case of hooks only, it means we want to filter out hookless pools
+      if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+        return subgraphPool.hooks !== ADDRESS_ZERO;
+      }
+      // in case of no hooks, it means we want to filter out hook pools
+      if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+        return subgraphPool.hooks === ADDRESS_ZERO;
+      }
+      // otherwise it's the default case, so we just return true
+      return true;
     })
     .slice(0, topNTokenInOut)
     .value();
@@ -696,6 +757,18 @@ export async function getV4CandidatePools({
             (subgraphPool.token0.id == secondHopId ||
               subgraphPool.token1.id == secondHopId)
           );
+        })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
         })
         .slice(
           0,
@@ -723,6 +796,18 @@ export async function getV4CandidatePools({
             (subgraphPool.token0.id == secondHopId ||
               subgraphPool.token1.id == secondHopId)
           );
+        })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
         })
         .slice(
           0,
