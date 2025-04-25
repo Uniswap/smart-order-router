@@ -72,6 +72,7 @@ import {
 import {
   V4HeuristicGasModelFactory
 } from '../../../../src/routers/alpha-router/gas-models/v4/v4-heuristic-gas-model';
+import { INTENT } from '../../../../src/util/intent';
 import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,
@@ -111,7 +112,6 @@ import {
 import {
   InMemoryRouteCachingProvider
 } from '../../providers/caching/route/test-util/inmemory-route-caching-provider';
-import { INTENT } from '../../../../src/util/intent';
 
 const helper = require('../../../../src/routers/alpha-router/functions/calculate-ratio-amount-in');
 
@@ -3101,11 +3101,13 @@ describe('alpha router', () => {
     });
 
     test('returns correct values based on random percentage and intent', () => {
+      // Should return false for large swap
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(true, INTENT.QUOTE)).toBe(false);
       // Should return false only for CACHING intent
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.CACHING)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.CACHING)).toBe(false);
       // Should return true for other intents
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, undefined)).toBe(true);
     });
   });
 });

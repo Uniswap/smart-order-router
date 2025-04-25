@@ -95,3 +95,6 @@ export function getApplicableV4FeesTickspacingsHooks(
     ADDRESS_ZERO,
   ]);
 }
+
+// Used in order to skip cached routes if input amount is larger than this amount.
+export const LARGE_SWAP_USD_THRESHOLD = 10000;

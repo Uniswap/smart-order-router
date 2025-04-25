@@ -31,6 +31,7 @@ import {
   IOnChainQuoteProvider,
   IRouteCachingProvider,
   ISwapRouterProvider,
+  ITokenPricesProvider,
   ITokenPropertiesProvider,
   IV2QuoteProvider,
   IV2SubgraphProvider,
@@ -101,7 +102,7 @@ import {
   V4_SUPPORTED,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
-import { CurrencyAmount } from '../../util/amounts';
+import { CurrencyAmount, LARGE_SWAP_USD_THRESHOLD } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
@@ -339,6 +340,11 @@ export type AlphaRouterParams = {
    * Because a wrong fix might impact prod success rate and/or latency.
    */
   cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
+
+  /**
+   * The token prices provider to get the usd prices of tokens.
+   */
+  tokenPriceProvider?: ITokenPricesProvider;
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -582,6 +588,7 @@ export class AlphaRouter
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
   protected shouldEnableMixedRouteEthWeth?: boolean;
+  protected tokenPriceProvider?: ITokenPricesProvider;
 
   constructor({
     chainId,
@@ -614,6 +621,7 @@ export class AlphaRouter
     mixedSupported,
     v4PoolParams,
     cachedRoutesCacheInvalidationFixRolloutPercentage,
+    tokenPriceProvider,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -878,6 +886,9 @@ export class AlphaRouter
         this.multicall2Provider,
         new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
       );
+    }
+    if (tokenPriceProvider) {
+      this.tokenPriceProvider = tokenPriceProvider;
     }
     if (tokenPropertiesProvider) {
       this.tokenPropertiesProvider = tokenPropertiesProvider;
@@ -1499,10 +1510,15 @@ export class AlphaRouter
           : 'N/A',
     });
 
+    // Check if this is a large swap (input amount >= LARGE_SWAP_USD_THRESHOLD)
+    const inputAmountIsLargeSwap = await this.isLargeSwap(amount);
+
+    // Check if we should use cached routes.
     if (
       routingConfig.useCachedRoutes &&
       cacheMode !== CacheMode.Darkmode &&
       AlphaRouter.isAllowedToEnterCachedRoutes(
+        inputAmountIsLargeSwap,
         routingConfig.intent,
         routingConfig.hooksOptions
       )
@@ -3269,12 +3285,77 @@ export class AlphaRouter
     );
   }
 
-  // We want to skip cached routes access whenever "intent === INTENT.CACHING" or "hooksOption !== HooksOption.NO_HOOKS"
+  // Check if the given amount is considered a large swap (input amount >= LARGE_SWAP_USD_THRESHOLD)
+  private async isLargeSwap(amount: CurrencyAmount): Promise<boolean> {
+    let inputAmountIsLargeSwap = false;
+    try {
+      if (this.tokenPriceProvider) {
+        // get the amount token, if native use wrapped version
+        const amountToken = amount.currency.isNative
+          ? WRAPPED_NATIVE_CURRENCY[this.chainId]
+          : amount.currency.wrapped;
+        // Fetch usd token price for the amount token
+        const tokenPrices = await this.tokenPriceProvider.getTokensPrices([
+          amountToken,
+        ]);
+        if (tokenPrices) {
+          const tokenPrice = tokenPrices[getAddressLowerCase(amountToken)];
+          if (tokenPrice !== undefined && tokenPrice.price !== undefined) {
+            const inputAmountInUSD =
+              Number(amount.toExact()) * tokenPrice.price;
+            inputAmountIsLargeSwap =
+              inputAmountInUSD >= LARGE_SWAP_USD_THRESHOLD;
+
+            log.debug('tokenPriceProvider info', {
+              inputAmountIsLargeSwap,
+              inputAmountInUSD,
+              tokenPrice: tokenPrice.price,
+              tokenAddress: getAddressLowerCase(amountToken),
+            });
+          } else {
+            log.debug(
+              'tokenPriceProvider returned undefined token price for large swap check',
+              {
+                tokenPrice,
+                tokenAddress: getAddressLowerCase(amountToken),
+              }
+            );
+          }
+        } else {
+          log.debug(
+            'tokenPriceProvider returned undefined tokenPrices for large swap check'
+          );
+        }
+      } else {
+        log.debug(
+          'tokenPriceProvider not available, unable to fetch token prices for large swap check'
+        );
+      }
+    } catch (error) {
+      log.error(
+        { error },
+        'Error tokenPriceProvider fetching token prices for large swap check'
+      );
+    }
+    if (inputAmountIsLargeSwap) {
+      metric.putMetric('InputAmountIsLargeSwap', 1, MetricLoggerUnit.Count);
+    }
+
+    return inputAmountIsLargeSwap;
+  }
+
+  // We want to skip cached routes access whenever
+  // - "inputAmountIsLargeSwap" is true
+  // - "intent === INTENT.CACHING" or "hooksOption !== HooksOption.NO_HOOKS"
   // We keep this method as we might want to add more conditions in the future.
   public static isAllowedToEnterCachedRoutes(
+    inputAmountIsLargeSwap: boolean,
     intent?: INTENT,
     hooksOptions?: HooksOptions
   ): boolean {
+    if (inputAmountIsLargeSwap) {
+      return false;
+    }
     return intent !== INTENT.CACHING || hooksOptions === HooksOptions.NO_HOOKS;
   }
 }
