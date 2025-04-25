@@ -10,7 +10,9 @@ import {
   AlphaRouterConfig,
   AMPL_MAINNET,
   CachingTokenListProvider,
-  DAI_MAINNET as DAI, sortsBefore,
+  DAI_MAINNET as DAI,
+  HooksOptions,
+  sortsBefore,
   TokenProvider,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
@@ -38,18 +40,25 @@ import {
   buildMockV3PoolAccessor,
   buildMockV4PoolAccessor,
   DAI_USDT,
-  DAI_USDT_LOW, DAI_USDT_V4_LOW,
+  DAI_USDT_LOW,
+  DAI_USDT_V4_LOW,
   DAI_WETH,
   DAI_WETH_MEDIUM,
   pairToV2SubgraphPool,
-  poolToV3SubgraphPool, poolToV4SubgraphPool,
+  poolToV3SubgraphPool,
+  poolToV4SubgraphPool,
   USDC_DAI,
-  USDC_DAI_LOW, USDC_DAI_LOW_200,
-  USDC_DAI_MEDIUM, USDC_DAI_V4_LOW, USDC_DAI_V4_MEDIUM,
+  USDC_DAI_LOW,
+  USDC_DAI_LOW_200,
+  USDC_DAI_MEDIUM,
+  USDC_DAI_V4_LOW,
+  USDC_DAI_V4_MEDIUM,
   USDC_WETH,
-  USDC_WETH_LOW, USDC_WETH_V4_LOW,
-  WETH9_USDT_LOW, WETH9_USDT_V4_LOW,
-  WETH_DAI,
+  USDC_WETH_LOW,
+  USDC_WETH_V4_LOW,
+  WETH9_USDT_LOW,
+  WETH9_USDT_V4_LOW,
+  WETH_DAI, WETH_DAI_V4_LOW_HOOKS,
   WETH_USDT
 } from '../../../../test-util/mock-data';
 
@@ -558,6 +567,280 @@ describe('get candidate pools', () => {
             [WRAPPED_NATIVE_CURRENCY[8453]!, USDC_BASE, FeeAmount.LOW_400],
           ], { blockNumber: undefined })
         ).toBeTruthy();
+      }
+    });
+
+    test(`succeeds to filter out direct swap pools if they dont exist in the subgraph for protocol ${protocol} when HOOKS_ONLY option is requested`, async() => {
+      if (protocol === Protocol.V4) {
+        // Mock so that DAI_WETH exists on chain, but not in the subgraph
+        const poolsOnSubgraph = [
+          USDC_DAI_V4_LOW,
+          USDC_DAI_V4_MEDIUM,
+          USDC_WETH_V4_LOW,
+          WETH9_USDT_V4_LOW,
+          DAI_USDT_V4_LOW,
+          WETH_DAI_V4_LOW_HOOKS,
+        ];
+
+        const subgraphPools: V4SubgraphPool[] = _.map(
+          poolsOnSubgraph,
+          poolToV4SubgraphPool
+        );
+
+        mockV4SubgraphProvider.getPools.resolves(subgraphPools);
+
+        const DAI_WETH_V4_LOW = new V4Pool(
+          DAI,
+          WRAPPED_NATIVE_CURRENCY[1]!,
+          FeeAmount.LOW,
+          10,
+          ADDRESS_ZERO,
+          encodeSqrtRatioX96(1, 1),
+          10,
+          0
+        );
+        mockV4PoolProvider.getPools.resolves(
+          buildMockV4PoolAccessor([...poolsOnSubgraph, DAI_WETH_V4_LOW])
+        );
+
+        const candidatePools = await getV4CandidatePools({
+          currencyIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          currencyOut: DAI,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v4PoolSelection: {
+              ...ROUTING_CONFIG.v4PoolSelection,
+              topNDirectSwaps: 1,
+            },
+            hooksOptions: HooksOptions.HOOKS_ONLY
+          },
+          poolProvider: mockV4PoolProvider,
+          subgraphProvider: mockV4SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+        });
+
+        expect(candidatePools.subgraphPools).toStrictEqual([
+          {
+            "id": "5",
+            "feeTier": "500",
+            "tickSpacing": "10",
+            "hooks": "0x00001f3b9712708127b1fcad61cb892535951888",
+            "liquidity": "10",
+            "token0": {
+              "id": "0x6b175474e89094c44da98b954eedeac495271d0f"
+            },
+            "token1": {
+              "id": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+            },
+            "tvlETH": 10,
+            "tvlUSD": 10
+          } as V4SubgraphPool
+        ])
+      }
+    });
+
+    test(`succeeds to retain direct swap pools if they dont exist in the subgraph for protocol ${protocol} when NO_HOOKS option is requested`, async() => {
+      if (protocol === Protocol.V4) {
+        // Mock so that DAI_WETH exists on chain, but not in the subgraph
+        const poolsOnSubgraph = [
+          USDC_DAI_V4_LOW,
+          USDC_DAI_V4_MEDIUM,
+          USDC_WETH_V4_LOW,
+          WETH9_USDT_V4_LOW,
+          DAI_USDT_V4_LOW,
+          WETH_DAI_V4_LOW_HOOKS,
+        ];
+
+        const subgraphPools: V4SubgraphPool[] = _.map(
+          poolsOnSubgraph,
+          poolToV4SubgraphPool
+        );
+
+        mockV4SubgraphProvider.getPools.resolves(subgraphPools);
+
+        const DAI_WETH_V4_LOW = new V4Pool(
+          DAI,
+          WRAPPED_NATIVE_CURRENCY[1]!,
+          FeeAmount.LOW,
+          10,
+          ADDRESS_ZERO,
+          encodeSqrtRatioX96(1, 1),
+          10,
+          0
+        );
+        mockV4PoolProvider.getPools.resolves(
+          buildMockV4PoolAccessor([...poolsOnSubgraph, DAI_WETH_V4_LOW])
+        );
+
+        const candidatePools = await getV4CandidatePools({
+          currencyIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          currencyOut: DAI,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v4PoolSelection: {
+              ...ROUTING_CONFIG.v4PoolSelection,
+              topNDirectSwaps: 1,
+            },
+            hooksOptions: HooksOptions.NO_HOOKS
+          },
+          poolProvider: mockV4PoolProvider,
+          subgraphProvider: mockV4SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+        });
+
+        expect(candidatePools.subgraphPools).toEqual([{
+          "id": "0x1689fc9db621e25fc269a072fd1e77558aac5cd30f04aa296dc9f378869f272b",
+          "feeTier": "10000",
+          "tickSpacing": "200",
+          "hooks": "0x0000000000000000000000000000000000000000",
+          "liquidity": "10000",
+          "token0": {
+            "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+          },
+          "token1": {
+            "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+          },
+          "tvlETH": 10000,
+          "tvlUSD": 10000
+        },
+          {
+            "id": "0xf715497ed15f174ca37c77630729f74b95e853a1fdb2c08b7108ca1c9fad1395",
+            "feeTier": "3000",
+            "tickSpacing": "60",
+            "hooks": "0x0000000000000000000000000000000000000000",
+            "liquidity": "10000",
+            "token0": {
+              "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+            },
+            "token1": {
+              "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "tvlETH": 10000,
+            "tvlUSD": 10000
+          },
+          {
+            "id": "0x673b67028e33492f08cd23d097b1468bf36a9a53da53fdf0c53c55e26980ca78",
+            "feeTier": "500",
+            "tickSpacing": "10",
+            "hooks": "0x0000000000000000000000000000000000000000",
+            "liquidity": "10000",
+            "token0": {
+              "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+            },
+            "token1": {
+              "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "tvlETH": 10000,
+            "tvlUSD": 10000
+          },
+          {
+            "id": "0xb9774d3f1c9cd5c171cd41fbba057d27cd28667eda8d4f64712d00969a84475c",
+            "feeTier": "100",
+            "tickSpacing": "1",
+            "hooks": "0x0000000000000000000000000000000000000000",
+            "liquidity": "10000",
+            "token0": {
+              "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+            },
+            "token1": {
+              "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+            },
+            "tvlETH": 10000,
+            "tvlUSD": 10000
+          },
+          {
+            "id": "5",
+            "feeTier": "500",
+            "tickSpacing": "10",
+            "hooks": "0x00001f3b9712708127b1fcad61cb892535951888",
+            "liquidity": "10",
+            "token0": {
+              "id": "0x6b175474e89094c44da98b954eedeac495271d0f"
+            },
+            "token1": {
+              "id": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+            },
+            "tvlETH": 10,
+            "tvlUSD": 10
+          }])
+      }
+    });
+
+    test(`succeeds to retain direct swap pools if they dont exist in the subgraph for protocol ${protocol} when HOOKS_INCLUSIVE option is requested`, async() => {
+      if (protocol === Protocol.V4) {
+        // Mock so that DAI_WETH exists on chain, but not in the subgraph
+        const poolsOnSubgraph = [
+          USDC_DAI_V4_LOW,
+          USDC_DAI_V4_MEDIUM,
+          USDC_WETH_V4_LOW,
+          WETH9_USDT_V4_LOW,
+          DAI_USDT_V4_LOW,
+          WETH_DAI_V4_LOW_HOOKS,
+        ];
+
+        const subgraphPools: V4SubgraphPool[] = _.map(
+          poolsOnSubgraph,
+          poolToV4SubgraphPool
+        );
+
+        mockV4SubgraphProvider.getPools.resolves(subgraphPools);
+
+        const DAI_WETH_V4_LOW = new V4Pool(
+          DAI,
+          WRAPPED_NATIVE_CURRENCY[1]!,
+          FeeAmount.LOW,
+          10,
+          ADDRESS_ZERO,
+          encodeSqrtRatioX96(1, 1),
+          10,
+          0
+        );
+        mockV4PoolProvider.getPools.resolves(
+          buildMockV4PoolAccessor([...poolsOnSubgraph, DAI_WETH_V4_LOW])
+        );
+
+        const candidatePools = await getV4CandidatePools({
+          currencyIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          currencyOut: DAI,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v4PoolSelection: {
+              ...ROUTING_CONFIG.v4PoolSelection,
+              topNDirectSwaps: 1,
+            },
+            hooksOptions: HooksOptions.HOOKS_INCLUSIVE
+          },
+          poolProvider: mockV4PoolProvider,
+          subgraphProvider: mockV4SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+        });
+
+        expect(candidatePools.subgraphPools).toEqual([
+          {
+            "id": "5",
+            "feeTier": "500",
+            "tickSpacing": "10",
+            "hooks": "0x00001f3b9712708127b1fcad61cb892535951888",
+            "liquidity": "10",
+            "token0": {
+              "id": "0x6b175474e89094c44da98b954eedeac495271d0f"
+            },
+            "token1": {
+              "id": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+            },
+            "tvlETH": 10,
+            "tvlUSD": 10
+          } as V4SubgraphPool,
+        ])
       }
     });
   })

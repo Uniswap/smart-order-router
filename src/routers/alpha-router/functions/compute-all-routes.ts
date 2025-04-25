@@ -1,4 +1,4 @@
-import { TPool } from '@uniswap/router-sdk';
+import { ADDRESS_ZERO, TPool } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
@@ -9,6 +9,7 @@ import {
   nativeOnChain,
   V4_ETH_WETH_FAKE_POOL,
 } from '../../../util';
+import { HooksOptions } from '../../../util/hooksOptions';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
@@ -23,8 +24,19 @@ export function computeAllV4Routes(
   currencyIn: Currency,
   currencyOut: Currency,
   pools: V4Pool[],
-  maxHops: number
+  maxHops: number,
+  hooksOptions?: HooksOptions
 ): V4Route[] {
+  let filteredPools: V4Pool[] = pools;
+
+  if (hooksOptions === HooksOptions.HOOKS_ONLY) {
+    filteredPools = pools.filter((pool) => pool.hooks !== ADDRESS_ZERO);
+  }
+
+  if (hooksOptions === HooksOptions.NO_HOOKS) {
+    filteredPools = pools.filter((pool) => pool.hooks === ADDRESS_ZERO);
+  }
+
   return computeAllRoutes<V4Pool, V4Route, Currency>(
     currencyIn,
     currencyOut,
@@ -32,7 +44,7 @@ export function computeAllV4Routes(
       return new V4Route(route, currencyIn, currencyOut);
     },
     (pool: V4Pool, currency: Currency) => pool.involvesToken(currency),
-    pools,
+    filteredPools,
     maxHops
   );
 }
@@ -78,8 +90,33 @@ export function computeAllMixedRoutes(
   currencyOut: Currency,
   parts: TPool[],
   maxHops: number,
-  shouldEnableMixedRouteEthWeth?: boolean
+  shouldEnableMixedRouteEthWeth?: boolean,
+  hooksOptions?: HooksOptions
 ): MixedRoute[] {
+  // first we need to filter non v4-pools
+  const filteredPools: TPool[] =
+    !hooksOptions || hooksOptions === HooksOptions.HOOKS_INCLUSIVE
+      ? parts
+      : parts.filter((pool) => !(pool instanceof V4Pool));
+
+  if (hooksOptions === HooksOptions.HOOKS_ONLY) {
+    // we need to filter out v4-pools with hooks
+    // then concat the v4-pools with hooks
+    const v4HookslessPools = parts.filter(
+      (pool) => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO
+    );
+    parts = filteredPools.concat(v4HookslessPools);
+  }
+
+  if (hooksOptions === HooksOptions.NO_HOOKS) {
+    // we need to filter out v4-pools without hooks
+    // then concat the v4-pools without hooks
+    const v4HookfulPools = parts.filter(
+      (pool) => pool instanceof V4Pool && pool.hooks === ADDRESS_ZERO
+    );
+    parts = filteredPools.concat(v4HookfulPools);
+  }
+
   // only add fake v4 pool, if we see there's a native v4 pool in the candidate pool
   const containsV4NativePools =
     parts.filter(
