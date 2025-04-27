@@ -102,7 +102,7 @@ import {
   V4_SUPPORTED,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
-import { CurrencyAmount, LARGE_SWAP_USD_THRESHOLD } from '../../util/amounts';
+import { CurrencyAmount } from '../../util/amounts';
 import {
   ID_TO_CHAIN_ID,
   ID_TO_NETWORK_NAME,
@@ -546,6 +546,10 @@ export type AlphaRouterConfig = {
    * pass in hooks options for hooks routing toggles from the frontend
    */
   hooksOptions?: HooksOptions;
+  /**
+   * Used in order to skip cached routes if input amount is larger than this amount.
+   */
+  largeSwapUsdThreshold?: number;
 };
 
 export class AlphaRouter
@@ -1510,8 +1514,11 @@ export class AlphaRouter
           : 'N/A',
     });
 
-    // Check if this is a large swap (input amount >= LARGE_SWAP_USD_THRESHOLD)
-    const inputAmountIsLargeSwap = await this.isLargeSwap(amount);
+    // Check if this is a large swap (input amount in usd >= largeSwapUsdThreshold)
+    const inputAmountIsLargeSwap = await this.isLargeSwap(
+      amount,
+      routingConfig.largeSwapUsdThreshold
+    );
 
     // Check if we should use cached routes.
     if (
@@ -3285,11 +3292,14 @@ export class AlphaRouter
     );
   }
 
-  // Check if the given amount is considered a large swap (input amount >= LARGE_SWAP_USD_THRESHOLD)
-  private async isLargeSwap(amount: CurrencyAmount): Promise<boolean> {
+  // Check if the given amount is considered a large swap (input amount in usd >= largeSwapUsdThreshold)
+  private async isLargeSwap(
+    amount: CurrencyAmount,
+    largeSwapUsdThreshold: number | undefined
+  ): Promise<boolean> {
     let inputAmountIsLargeSwap = false;
     try {
-      if (this.tokenPriceProvider) {
+      if (this.tokenPriceProvider && largeSwapUsdThreshold !== undefined) {
         // get the amount token, if native use wrapped version
         const amountToken = amount.currency.isNative
           ? WRAPPED_NATIVE_CURRENCY[this.chainId]
@@ -3303,8 +3313,7 @@ export class AlphaRouter
           if (tokenPrice !== undefined && tokenPrice.price !== undefined) {
             const inputAmountInUSD =
               Number(amount.toExact()) * tokenPrice.price;
-            inputAmountIsLargeSwap =
-              inputAmountInUSD >= LARGE_SWAP_USD_THRESHOLD;
+            inputAmountIsLargeSwap = inputAmountInUSD >= largeSwapUsdThreshold;
 
             log.debug('tokenPriceProvider info', {
               inputAmountIsLargeSwap,
