@@ -147,16 +147,16 @@ export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].mixedRouteQuoterV1Address,
   [ChainId.GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV1Address,
-  [ChainId.BASE]: '0xe544efae946f0008ae9a8d64493efa7886b73776',
-  [ChainId.UNICHAIN]: '0x48C0648E357639B446C99a6c7316A3eaFEaB35aE',
-  [ChainId.ARBITRUM_ONE]: '0x003aa18c6E682dB80Cf4aa17261CcbFfd28690CE',
-  [ChainId.POLYGON]: '0x58ead433EA99708604C4dD7c9b7E80C70976E202',
-  [ChainId.OPTIMISM]: '0x204faca1764b154221e35c0d20abb3c525710498',
-  [ChainId.AVALANCHE]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
-  [ChainId.BNB]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
-  [ChainId.WORLDCHAIN]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
-  [ChainId.ZORA]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
-  [ChainId.SONEIUM]: '0x42c14CE921e85bf14467A82fAf8182546cf7c604',
+  [ChainId.BASE]: undefined,
+  [ChainId.UNICHAIN]: undefined,
+  [ChainId.ARBITRUM_ONE]: undefined,
+  [ChainId.POLYGON]: undefined,
+  [ChainId.OPTIMISM]: undefined,
+  [ChainId.AVALANCHE]: undefined,
+  [ChainId.BNB]: undefined,
+  [ChainId.WORLDCHAIN]: undefined,
+  [ChainId.ZORA]: undefined,
+  [ChainId.SONEIUM]: undefined,
 };
 
 export const MIXED_ROUTE_QUOTER_V2_ADDRESSES: AddressMap = {
