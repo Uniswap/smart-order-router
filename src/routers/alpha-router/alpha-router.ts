@@ -95,6 +95,7 @@ import {
   getAddress,
   getAddressLowerCase,
   getApplicableV4FeesTickspacingsHooks,
+  HooksOptions,
   MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
@@ -150,7 +151,6 @@ import {
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
-import { HooksOptions } from '../../util/hooksOptions';
 import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
@@ -3275,6 +3275,14 @@ export class AlphaRouter
     intent?: INTENT,
     hooksOptions?: HooksOptions
   ): boolean {
-    return intent !== INTENT.CACHING || hooksOptions === HooksOptions.HOOKS_INCLUSIVE;
+    if (intent !== INTENT.CACHING) {
+      return true;
+    }
+
+    if (hooksOptions === HooksOptions.HOOKS_INCLUSIVE) {
+      return true;
+    }
+
+    return false;
   }
 }
