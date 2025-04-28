@@ -3287,6 +3287,8 @@ export class AlphaRouter
     // in case we have URv1.2 request during QUOTE intent, we assume cached routes correctly returns mixed route w/o v4, if mixed is best
     // or v2/v3 is the best.
     // implicitly it means hooksOptions no longer matters for URv1.2
+    // swapRouter has higher precedence than hooksOptions, because in case of URv1.2, we set hooksOptions = NO_HOOKS as default,
+    // but swapRouter does not have any v4 pool for routing, so swapRouter should always use caching during QUOTE intent.
     if (swapRouter) {
       return true;
     }
