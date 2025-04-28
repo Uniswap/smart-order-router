@@ -3356,6 +3356,7 @@ export class AlphaRouter
   // We want to skip cached routes access whenever
   // - "inputAmountIsLargeSwap" is true
   // - "intent === INTENT.CACHING" or "hooksOption !== HooksOption.NO_HOOKS"
+  // We want to skip cached routes access whenever "intent === INTENT.CACHING" or "hooksOption !== HooksOption.HOOKS_INCLUSIVE"
   // We keep this method as we might want to add more conditions in the future.
   public static isAllowedToEnterCachedRoutes(
     inputAmountIsLargeSwap: boolean,
