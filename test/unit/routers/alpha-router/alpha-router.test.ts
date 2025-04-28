@@ -3127,6 +3127,11 @@ describe('alpha router', () => {
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined)).toBe(true);
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined, undefined)).toBe(true);
     });
+
+    test('returns correct values based on random percentage and swapRouter', () => {
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, true)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, false)).toBe(true);
+    })
   });
 });
 
