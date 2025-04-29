@@ -3367,6 +3367,10 @@ export class AlphaRouter
     hooksOptions?: HooksOptions,
     swapRouter?: boolean
   ): boolean {
+    if (inputAmountIsLargeSwap) {
+      return false;
+    }
+    
     // intent takes highest precedence, as we need to ensure during caching intent, we do not enter cache no matter what
     if (intent !== undefined && intent === INTENT.CACHING) {
       return false;
