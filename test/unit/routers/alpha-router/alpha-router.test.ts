@@ -21,7 +21,6 @@ import {
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
   HooksOptions,
-  INTENT,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
@@ -75,6 +74,7 @@ import {
 import {
   V4HeuristicGasModelFactory
 } from '../../../../src/routers/alpha-router/gas-models/v4/v4-heuristic-gas-model';
+import { INTENT } from '../../../../src/util/intent';
 import {
   buildMockTokenAccessor,
   buildMockV2PoolAccessor,
@@ -3110,24 +3110,26 @@ describe('alpha router', () => {
     });
 
     test('returns correct values based on random percentage and intent', () => {
+      // Should return false for large swap
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(true, INTENT.QUOTE)).toBe(false);
       // Should return false only for CACHING intent
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.CACHING)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.CACHING)).toBe(false);
       // Should return true for other intents
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, undefined)).toBe(true);
     });
 
     test('returns correct values based on random percentage and hooksOptions', () => {
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.HOOKS_INCLUSIVE)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.NO_HOOKS)).toBe(false);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.HOOKS_ONLY)).toBe(false);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined, undefined)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, HooksOptions.HOOKS_INCLUSIVE)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, HooksOptions.NO_HOOKS)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, HooksOptions.HOOKS_ONLY)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, undefined)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, undefined, undefined)).toBe(true);
     });
 
     test('returns correct values based on random percentage and swapRouter', () => {
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, true)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, false)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, undefined, true)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, undefined, false)).toBe(true);
     })
   });
 });
