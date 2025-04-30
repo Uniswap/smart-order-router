@@ -20,6 +20,8 @@ import {
   DEFAULT_TOKEN_PROPERTIES_RESULT,
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
+  HooksOptions,
+  INTENT,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
@@ -28,6 +30,7 @@ import {
   SupportedRoutes,
   SwapAndAddConfig,
   SwapAndAddOptions,
+  SwapOptions,
   SwapRouterProvider,
   SwapToRatioStatus,
   SwapType,
@@ -181,6 +184,12 @@ describe('alpha router', () => {
     distributionPercent: 25,
     forceCrossProtocol: false,
   };
+
+  const SWAP_CONFIG: SwapOptions = {
+    type: SwapType.UNIVERSAL_ROUTER,
+    version: UniversalRouterVersion.V2_0,
+    slippageTolerance: new Percent(5, 10_000),
+  }
 
   const SWAP_AND_ADD_CONFIG: SwapAndAddConfig = {
     ratioErrorTolerance: new Fraction(1, 100),
@@ -1481,7 +1490,7 @@ describe('alpha router', () => {
           CurrencyAmount.fromRawAmount(USDC, 10000),
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
-          undefined,
+          SWAP_CONFIG,
           {
             ...ROUTING_CONFIG,
             protocols: allProtocols
@@ -1496,7 +1505,7 @@ describe('alpha router', () => {
           CurrencyAmount.fromRawAmount(USDC, 100000),
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
-          undefined,
+          SWAP_CONFIG,
           {
             ...ROUTING_CONFIG,
             protocols: allProtocols
@@ -1527,7 +1536,7 @@ describe('alpha router', () => {
           CurrencyAmount.fromRawAmount(USDC, 10000),
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
-          undefined,
+          SWAP_CONFIG,
           {
             ...ROUTING_CONFIG,
             protocols: allProtocols,
@@ -1544,7 +1553,7 @@ describe('alpha router', () => {
           CurrencyAmount.fromRawAmount(USDC, 100000),
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
-          undefined,
+          SWAP_CONFIG,
           {
             ...ROUTING_CONFIG,
             protocols: allProtocols
@@ -1559,7 +1568,7 @@ describe('alpha router', () => {
           CurrencyAmount.fromRawAmount(USDC, 100000),
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
-          undefined,
+          SWAP_CONFIG,
           {
             ...ROUTING_CONFIG,
             protocols: allProtocols
@@ -1593,6 +1602,7 @@ describe('alpha router', () => {
             v1_2Params,
             {
               ...ROUTING_CONFIG,
+              intent: INTENT.QUOTE,
               protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED], // Excluding V4
             }
           );
@@ -3109,6 +3119,19 @@ describe('alpha router', () => {
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE)).toBe(true);
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, undefined)).toBe(true);
     });
+
+    test('returns correct values based on random percentage and hooksOptions', () => {
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.HOOKS_INCLUSIVE)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.NO_HOOKS)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.HOOKS_ONLY)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined, undefined)).toBe(true);
+    });
+
+    test('returns correct values based on random percentage and swapRouter', () => {
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, true)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, false)).toBe(true);
+    })
   });
 });
 

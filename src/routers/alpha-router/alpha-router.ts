@@ -96,6 +96,7 @@ import {
   getAddress,
   getAddressLowerCase,
   getApplicableV4FeesTickspacingsHooks,
+  HooksOptions,
   MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
@@ -151,7 +152,6 @@ import {
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
-import { HooksOptions } from '../../util/hooksOptions';
 import { INTENT } from '../../util/intent';
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
@@ -1476,12 +1476,12 @@ export class AlphaRouter
     // For legacy systems (SWAP_ROUTER_02) or missing swapConfig, follow UniversalRouterVersion.V1_2 logic.
     const availableProtocolsSet = new Set(Object.values(Protocol));
     const requestedProtocolsSet = new Set(protocols);
-    if (
+    const swapRouter =
       !swapConfig ||
       swapConfig.type === SwapType.SWAP_ROUTER_02 ||
       (swapConfig.type === SwapType.UNIVERSAL_ROUTER &&
-        swapConfig.version === UniversalRouterVersion.V1_2)
-    ) {
+        swapConfig.version === UniversalRouterVersion.V1_2);
+    if (swapRouter) {
       availableProtocolsSet.delete(Protocol.V4);
       if (requestedProtocolsSet.has(Protocol.V4)) {
         requestedProtocolsSet.delete(Protocol.V4);
@@ -1498,7 +1498,8 @@ export class AlphaRouter
       routingConfig.hooksOptions = HooksOptions.NO_HOOKS;
     }
 
-    // If hooksOptions not specified, we should also set it to HOOKS_INCLUSIVE, as this is default behavior even without hooksOptions.
+    // If hooksOptions not specified and it's not a swapRouter (i.e. Universal Router it is),
+    // we should also set it to HOOKS_INCLUSIVE, as this is default behavior even without hooksOptions.
     if (!routingConfig.hooksOptions) {
       routingConfig.hooksOptions = HooksOptions.HOOKS_INCLUSIVE;
     }
@@ -1527,7 +1528,8 @@ export class AlphaRouter
       AlphaRouter.isAllowedToEnterCachedRoutes(
         inputAmountIsLargeSwap,
         routingConfig.intent,
-        routingConfig.hooksOptions
+        routingConfig.hooksOptions,
+        swapRouter
       )
     ) {
       if (enabledAndRequestedProtocolsMatch) {
@@ -3353,18 +3355,42 @@ export class AlphaRouter
     return inputAmountIsLargeSwap;
   }
 
-  // We want to skip cached routes access whenever
-  // - "inputAmountIsLargeSwap" is true
-  // - "intent === INTENT.CACHING" or "hooksOption !== HooksOption.NO_HOOKS"
+  // If we are requesting URv1.2, we need to keep entering cache
+  // We want to skip cached routes access whenever "intent === INTENT.CACHING" or "hooksOption !== HooksOption.HOOKS_INCLUSIVE"
   // We keep this method as we might want to add more conditions in the future.
   public static isAllowedToEnterCachedRoutes(
     inputAmountIsLargeSwap: boolean,
     intent?: INTENT,
-    hooksOptions?: HooksOptions
+    hooksOptions?: HooksOptions,
+    swapRouter?: boolean
   ): boolean {
+    // intent takes highest precedence, as we need to ensure during caching intent, we do not enter cache no matter what
+    if (intent !== undefined && intent === INTENT.CACHING) {
+      return false;
+    }
+
+    // In case of large swap, we want to skip cache
     if (inputAmountIsLargeSwap) {
       return false;
     }
-    return intent !== INTENT.CACHING || hooksOptions === HooksOptions.NO_HOOKS;
+
+    // in case we have URv1.2 request during QUOTE intent, we assume cached routes correctly returns mixed route w/o v4, if mixed is best
+    // or v2/v3 is the best.
+    // implicitly it means hooksOptions no longer matters for URv1.2
+    // swapRouter has higher precedence than hooksOptions, because in case of URv1.2, we set hooksOptions = NO_HOOKS as default,
+    // but swapRouter does not have any v4 pool for routing, so swapRouter should always use caching during QUOTE intent.
+    if (swapRouter) {
+      return true;
+    }
+
+    // in case we have URv2.0, and we are in QUOTE intent, we only want to enter cache when hooksOptions is default, HOOKS_INCLUSIVE
+    if (
+      hooksOptions !== undefined &&
+      hooksOptions !== HooksOptions.HOOKS_INCLUSIVE
+    ) {
+      return false;
+    }
+
+    return true;
   }
 }
