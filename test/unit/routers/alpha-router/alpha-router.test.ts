@@ -21,7 +21,6 @@ import {
   ETHGasStationInfoProvider,
   FallbackTenderlySimulator,
   HooksOptions,
-  INTENT,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
@@ -3121,16 +3120,16 @@ describe('alpha router', () => {
     });
 
     test('returns correct values based on random percentage and hooksOptions', () => {
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.HOOKS_INCLUSIVE)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.NO_HOOKS)).toBe(false);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, HooksOptions.HOOKS_ONLY)).toBe(false);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(undefined, undefined)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, HooksOptions.HOOKS_INCLUSIVE)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, HooksOptions.NO_HOOKS)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, HooksOptions.HOOKS_ONLY)).toBe(false);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, undefined)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, undefined, undefined)).toBe(true);
     });
 
     test('returns correct values based on random percentage and swapRouter', () => {
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, true)).toBe(true);
-      expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, false)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, undefined, true)).toBe(true);
+      expect(AlphaRouter.isAllowedToEnterCachedRoutes(false, INTENT.QUOTE, undefined, false)).toBe(true);
     })
   });
 });
