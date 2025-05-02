@@ -68,6 +68,7 @@ export class V4SubgraphProvider
     rollback = true,
     trackedEthThreshold = 0.01,
     untrackedUsdThreshold = Number.MAX_VALUE,
+    liquidityThreshold = Number.MAX_VALUE,
     subgraphUrlOverride?: string
   ) {
     super(
@@ -78,6 +79,7 @@ export class V4SubgraphProvider
       rollback,
       trackedEthThreshold,
       untrackedUsdThreshold,
+      liquidityThreshold,
       subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
     );
   }
