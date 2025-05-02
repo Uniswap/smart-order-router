@@ -65,6 +65,7 @@ export abstract class SubgraphProvider<
     private rollback = true,
     private trackedEthThreshold = 0.01,
     private untrackedUsdThreshold = Number.MAX_VALUE,
+    private liquidityThreshold = Number.MAX_VALUE,
     private subgraphUrl?: string
   ) {
     this.protocol = protocol;
@@ -201,7 +202,7 @@ export abstract class SubgraphProvider<
 
     const untrackedPools = pools.filter(
       (pool) =>
-        parseInt(pool.liquidity) > 0 ||
+        parseInt(pool.liquidity) > this.liquidityThreshold ||
         parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
         parseFloat(pool.totalValueLockedUSDUntracked) >
           this.untrackedUsdThreshold
@@ -219,7 +220,7 @@ export abstract class SubgraphProvider<
     const poolsSanitized: TSubgraphPool[] = pools
       .filter(
         (pool) =>
-          parseInt(pool.liquidity) > 0 ||
+          parseInt(pool.liquidity) > this.liquidityThreshold ||
           parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
       )
       .map((pool) => {
