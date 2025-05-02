@@ -91,6 +91,8 @@ export class V2PoolProvider implements IV2PoolProvider {
     tokenPairs: [Token, Token][],
     providerConfig?: ProviderConfig
   ): Promise<V2PoolAccessor> {
+    let start = Date.now();
+
     const poolAddressSet: Set<string> = new Set<string>();
     const sortedTokenPairs: Array<[Token, Token]> = [];
     const sortedPoolAddresses: string[] = [];
@@ -112,6 +114,14 @@ export class V2PoolProvider implements IV2PoolProvider {
       sortedPoolAddresses.push(poolAddress);
     }
 
+    metric.putMetric(
+      'V2GetPoolsLatencyPart1',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    start = Date.now();
+
     log.debug(
       `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
     );
@@ -127,6 +137,14 @@ export class V2PoolProvider implements IV2PoolProvider {
       sortedPoolAddresses.length,
       MetricLoggerUnit.Count
     );
+
+    metric.putMetric(
+      'V2GetPoolsLatencyPart2',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    start = Date.now();
 
     const [reservesResults, tokenPropertiesMap] = await Promise.all([
       (async () => {
@@ -158,6 +176,14 @@ export class V2PoolProvider implements IV2PoolProvider {
       })(),
     ]);
 
+    metric.putMetric(
+      'V2GetPoolsLatencyPart3',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    start = Date.now();
+
     log.info(
       `Got reserves for ${poolAddressSet.size} pools ${
         providerConfig?.blockNumber
@@ -165,6 +191,14 @@ export class V2PoolProvider implements IV2PoolProvider {
           : ``
       }`
     );
+
+    metric.putMetric(
+      'V2GetPoolsLatencyPart4',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    start = Date.now();
 
     const poolAddressToPool: { [poolAddress: string]: Pair } = {};
 
@@ -233,6 +267,14 @@ export class V2PoolProvider implements IV2PoolProvider {
       poolAddressToPool[poolAddress] = pool;
     }
 
+    metric.putMetric(
+      'V2GetPoolsLatencyPart5',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    start = Date.now();
+
     if (invalidPools.length > 0) {
       log.info(
         {
@@ -245,11 +287,27 @@ export class V2PoolProvider implements IV2PoolProvider {
       );
     }
 
+    metric.putMetric(
+      'V2GetPoolsLatencyPart6',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    start = Date.now();
+
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
     log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
 
-    return {
+    metric.putMetric(
+      'V2GetPoolsLatencyPart7',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    start = Date.now();
+
+    const result = {
       getPool: (tokenA: Token, tokenB: Token): Pair | undefined => {
         const { poolAddress } = this.getPoolAddress(tokenA, tokenB);
         return poolAddressToPool[poolAddress];
@@ -258,6 +316,14 @@ export class V2PoolProvider implements IV2PoolProvider {
         poolAddressToPool[address],
       getAllPools: (): Pair[] => Object.values(poolAddressToPool),
     };
+
+    metric.putMetric(
+      'V2GetPoolsLatencyPart8',
+      Date.now() - start,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    return result;
   }
 
   public getPoolAddress(
