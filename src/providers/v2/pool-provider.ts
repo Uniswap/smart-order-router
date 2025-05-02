@@ -91,6 +91,8 @@ export class V2PoolProvider implements IV2PoolProvider {
     tokenPairs: [Token, Token][],
     providerConfig?: ProviderConfig
   ): Promise<V2PoolAccessor> {
+    const topPortionStart = Date.now();
+
     const poolAddressSet: Set<string> = new Set<string>();
     const sortedTokenPairs: Array<[Token, Token]> = [];
     const sortedPoolAddresses: string[] = [];
@@ -128,6 +130,12 @@ export class V2PoolProvider implements IV2PoolProvider {
       MetricLoggerUnit.Count
     );
 
+    metric.putMetric(
+      'V2GetPoolsTopPortionLatency',
+      Date.now() - topPortionStart,
+      MetricLoggerUnit.Milliseconds
+    );
+
     const [reservesResults, tokenPropertiesMap] = await Promise.all([
       (async () => {
         const beforeReserves = Date.now();
@@ -157,6 +165,8 @@ export class V2PoolProvider implements IV2PoolProvider {
         return result;
       })(),
     ]);
+
+    const bottomPortionStart = Date.now();
 
     log.info(
       `Got reserves for ${poolAddressSet.size} pools ${
@@ -248,6 +258,12 @@ export class V2PoolProvider implements IV2PoolProvider {
     const poolStrs = _.map(Object.values(poolAddressToPool), poolToString);
 
     log.debug({ poolStrs }, `Found ${poolStrs.length} valid pools`);
+
+    metric.putMetric(
+      'V2GetPoolsBottomPortionLatency',
+      Date.now() - bottomPortionStart,
+      MetricLoggerUnit.Milliseconds
+    );
 
     return {
       getPool: (tokenA: Token, tokenB: Token): Pair | undefined => {
