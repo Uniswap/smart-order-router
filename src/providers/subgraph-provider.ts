@@ -5,9 +5,7 @@ import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-import {
-  SubgraphPool
-} from '../routers/alpha-router/functions/get-candidate-pools';
+import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../util';
 
 import { ProviderConfig } from './provider';
@@ -221,16 +219,13 @@ export abstract class SubgraphProvider<
     let poolsSanitized: TSubgraphPool[] = [];
     if (this.chainId === ChainId.BASE && this.protocol === Protocol.V3) {
       // Special treatment for Base V3 pools in order to see if we can reduce latency due to thousands of pools with very low TVL locked
-      // Change to "parseInt(pool.liquidity) > 0 &&" requirement and set very low TVL threshold (0.0001 ETH).
-      // Also include "parseFloat(pool.totalValueLockedETH) === 0" as in certain occasions we have no way of calculating derivedETH so this is 0
+      // - Change to very low TVL threshold (0.0001 ETH).
+      // - Include "parseFloat(pool.totalValueLockedETH) === 0" as in certain occasions we have no way of calculating derivedETH so this is 0
       poolsSanitized = pools
         .filter(
           (pool) =>
-            parseInt(pool.liquidity) > 0 &&
-            (
-              parseFloat(pool.totalValueLockedETH) === 0 ||
-              parseFloat(pool.totalValueLockedETH) > 0.0001
-            )
+            parseFloat(pool.totalValueLockedETH) === 0 ||
+            parseFloat(pool.totalValueLockedETH) > 0.0001
         )
         .map((pool) => {
           return this.mapSubgraphPool(pool);
