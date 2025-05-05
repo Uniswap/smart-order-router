@@ -219,13 +219,13 @@ export abstract class SubgraphProvider<
     let poolsSanitized: TSubgraphPool[] = [];
     if (this.chainId === ChainId.BASE && this.protocol === Protocol.V3) {
       // Special treatment for Base V3 pools in order to see if we can reduce latency due to thousands of pools with very low TVL locked
-      // - Change to very low TVL threshold (0.0001 ETH).
       // - Include "parseFloat(pool.totalValueLockedETH) === 0" as in certain occasions we have no way of calculating derivedETH so this is 0
       poolsSanitized = pools
         .filter(
           (pool) =>
-            parseFloat(pool.totalValueLockedETH) === 0 ||
-            parseFloat(pool.totalValueLockedETH) > 0.0001
+            (parseInt(pool.liquidity) > 0 &&
+              parseFloat(pool.totalValueLockedETH) === 0) ||
+            parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
         )
         .map((pool) => {
           return this.mapSubgraphPool(pool);
