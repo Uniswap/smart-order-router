@@ -1088,8 +1088,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
           // To work around this and avoid throwing errors when really we just couldn't get a quote, we catch this
           // case and return 0 quotes found.
           if (
-            (this.chainId == ChainId.ARBITRUM_ONE ||
-              this.chainId == ChainId.ARBITRUM_GOERLI) &&
+            (
+              this.chainId == ChainId.ARBITRUM_ONE ||
+              this.chainId == ChainId.ARBITRUM_GOERLI ||
+              this.chainId == ChainId.ARBITRUM_SEPOLIA
+            ) &&
             _.every(
               failedQuoteStates,
               (failedQuoteState) =>
