@@ -129,15 +129,33 @@ export class V2PoolProvider implements IV2PoolProvider {
     );
 
     const [reservesResults, tokenPropertiesMap] = await Promise.all([
-      this.getPoolsData<IReserves>(
-        sortedPoolAddresses,
-        'getReserves',
-        providerConfig
-      ),
-      this.tokenPropertiesProvider.getTokensProperties(
-        this.flatten(tokenPairs),
-        providerConfig
-      ),
+      (async () => {
+        const beforeReserves = Date.now();
+        const result = await this.getPoolsData<IReserves>(
+          sortedPoolAddresses,
+          'getReserves',
+          providerConfig
+        );
+        metric.putMetric(
+          'V2GetReservesLatency',
+          Date.now() - beforeReserves,
+          MetricLoggerUnit.Milliseconds
+        );
+        return result;
+      })(),
+      (async () => {
+        const beforeTokenProperties = Date.now();
+        const result = await this.tokenPropertiesProvider.getTokensProperties(
+          this.flatten(tokenPairs),
+          providerConfig
+        );
+        metric.putMetric(
+          'V2GetTokenPropertiesLatency',
+          Date.now() - beforeTokenProperties,
+          MetricLoggerUnit.Milliseconds
+        );
+        return result;
+      })(),
     ]);
 
     log.info(

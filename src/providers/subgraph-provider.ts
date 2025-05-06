@@ -216,15 +216,31 @@ export abstract class SubgraphProvider<
     );
 
     const beforeFilter = Date.now();
-    const poolsSanitized: TSubgraphPool[] = pools
-      .filter(
-        (pool) =>
-          parseInt(pool.liquidity) > 0 ||
-          parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
-      )
-      .map((pool) => {
-        return this.mapSubgraphPool(pool);
-      });
+    let poolsSanitized: TSubgraphPool[] = [];
+    if (this.protocol === Protocol.V3) {
+      // Special treatment for all V3 pools in order to reduce latency due to thousands of pools with very low TVL locked
+      // - Include "parseFloat(pool.totalValueLockedETH) === 0" as in certain occasions we have no way of calculating derivedETH so this is 0
+      poolsSanitized = pools
+        .filter(
+          (pool) =>
+            (parseInt(pool.liquidity) > 0 &&
+              parseFloat(pool.totalValueLockedETH) === 0) ||
+            parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
+        )
+        .map((pool) => {
+          return this.mapSubgraphPool(pool);
+        });
+    } else {
+      poolsSanitized = pools
+        .filter(
+          (pool) =>
+            parseInt(pool.liquidity) > 0 ||
+            parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
+        )
+        .map((pool) => {
+          return this.mapSubgraphPool(pool);
+        });
+    }
 
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`,
