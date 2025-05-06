@@ -217,8 +217,8 @@ export abstract class SubgraphProvider<
 
     const beforeFilter = Date.now();
     let poolsSanitized: TSubgraphPool[] = [];
-    if (this.chainId === ChainId.BASE && this.protocol === Protocol.V3) {
-      // Special treatment for Base V3 pools in order to see if we can reduce latency due to thousands of pools with very low TVL locked
+    if (this.protocol === Protocol.V3) {
+      // Special treatment for all V3 pools in order to reduce latency due to thousands of pools with very low TVL locked
       // - Include "parseFloat(pool.totalValueLockedETH) === 0" as in certain occasions we have no way of calculating derivedETH so this is 0
       poolsSanitized = pools
         .filter(
