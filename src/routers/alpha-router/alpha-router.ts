@@ -1937,59 +1937,45 @@ export class AlphaRouter
         MetricLoggerUnit.Milliseconds
       );
 
-      const shouldEnableCachedRoutesCacheInvalidationFix =
-        Math.random() * 100 <
-        (this.cachedRoutesCacheInvalidationFixRolloutPercentage ?? 0);
-
       // we have to write cached routes right before checking swapRouteRaw is null or not
       // because getCachedRoutes in routing-api do not use the blocks-to-live to filter out the expired routes at all
       // there's a possibility the cachedRoutes is always populated, but swapRouteFromCache is always null, because we don't update cachedRoutes in this case at all,
       // as long as it's within 24 hours sliding window TTL
-      if (shouldEnableCachedRoutesCacheInvalidationFix) {
-        // theoretically, when routingConfig.intent === INTENT.CACHING, optimisticCachedRoutes should be false
-        // so that we can always pass in cachedRoutes?.notExpired(await blockNumber, !routingConfig.optimisticCachedRoutes)
-        // but just to be safe, we just hardcode true when checking the cached routes expiry for write update
-        // we decide to not check cached routes expiry in the read path anyway
-        if (!cachedRoutes?.notExpired(await blockNumber, true)) {
-          // optimisticCachedRoutes === false means at routing-api level, we only want to set cached routes during intent=caching, not intent=quote
-          // this means during the online quote endpoint path, we should not reset cached routes
-          if (routingConfig.intent === INTENT.CACHING) {
-            // due to fire and forget nature, we already take note that we should set new cached routes during the new path
-            metric.putMetric(
-              `SetCachedRoute_NewPath`,
-              1,
-              MetricLoggerUnit.Count
-            );
+      if (routingConfig.intent === INTENT.CACHING) {
+        // due to fire and forget nature, we already take note that we should set new cached routes during the new path
+        metric.putMetric(
+          `SetCachedRoute_NewPath`,
+          1,
+          MetricLoggerUnit.Count
+        );
 
-            // only when tenderly sim failed for unknown reason, then we do not want to cache the routes
-            // otherwise, if it fails for known reasons 1) insufficient balance 2) system down 3) slippage 4) transfer from failed
-            // we still want to cache the routes. since those are surfaced to FEs through trading-api, still worth caching the routes
-            if (swapRouteWithSimulation.simulationStatus !== SimulationStatus.Failed) {
-              const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-                swapRouteWithSimulation.route,
-                this.chainId,
-                currencyIn,
-                currencyOut,
-                protocols.sort(),
-                await blockNumber,
-                tradeType,
-                amount.toExact()
-              );
+        // only when tenderly sim failed for unknown reason, then we do not want to cache the routes
+        // otherwise, if it fails for known reasons 1) insufficient balance 2) system down 3) slippage 4) transfer from failed
+        // we still want to cache the routes. since those are surfaced to FEs through trading-api, still worth caching the routes
+        if (swapRouteWithSimulation.simulationStatus !== SimulationStatus.Failed) {
+          const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+            swapRouteWithSimulation.route,
+            this.chainId,
+            currencyIn,
+            currencyOut,
+            protocols.sort(),
+            await blockNumber,
+            tradeType,
+            amount.toExact()
+          );
 
-              await this.setCachedRoutesAndLog(
-                amount,
-                currencyIn,
-                currencyOut,
-                tradeType,
-                'SetCachedRoute_NewPath',
-                routesToCache,
-                routingConfig.cachedRoutesRouteIds
-              );
-            }
-          }
+          await this.setCachedRoutesAndLog(
+            amount,
+            currencyIn,
+            currencyOut,
+            tradeType,
+            'SetCachedRoute_NewPath',
+            routesToCache,
+            routingConfig.cachedRoutesRouteIds
+          );
         }
       }
-
+      
       return swapRouteWithSimulation;
     }
 
