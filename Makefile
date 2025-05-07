@@ -4,6 +4,12 @@
 build:
 	npm run build
 
+mainnet-v4-usdt-usdc:
+	./bin/cli quote --tokenIn 0xdAC17F958D2ee523a2206206994597C13D831ec7 --tokenOut 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 --amount 3500 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 1 $(p)
+
+mainnet-v4-tusdt-tusdc:
+	./bin/cli quote --tokenIn 0x561A87303005D9C83FbD94dDEb80D63528fCD448 --tokenOut 0xcc331eC1d6CF4542F9eB988B49249cfa163081dc --amount 3500 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 1 $(p)
+
 sepolia-v4-usdt-usdc:
 	./bin/cli quote --tokenIn 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0 --tokenOut 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8 --amount 3500 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)
 

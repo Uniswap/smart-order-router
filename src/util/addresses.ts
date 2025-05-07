@@ -122,7 +122,6 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
-  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
   [ChainId.ARBITRUM_ONE]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_ONE].v4QuoterAddress,
   [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v4QuoterAddress,
@@ -138,9 +137,9 @@ export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].v4QuoterAddress,
   [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v4QuoterAddress,
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v4QuoterAddress,
-  [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4QuoterAddress,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v4QuoterAddress,
   // Kittycorn: Using KittycornV4Quoter
+  [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4QuoterAddress,
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
 };
 
