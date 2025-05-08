@@ -1937,10 +1937,6 @@ export class AlphaRouter
         MetricLoggerUnit.Milliseconds
       );
 
-      // we have to write cached routes right before checking swapRouteRaw is null or not
-      // because getCachedRoutes in routing-api do not use the blocks-to-live to filter out the expired routes at all
-      // there's a possibility the cachedRoutes is always populated, but swapRouteFromCache is always null, because we don't update cachedRoutes in this case at all,
-      // as long as it's within 24 hours sliding window TTL
       if (routingConfig.intent === INTENT.CACHING) {
         // due to fire and forget nature, we already take note that we should set new cached routes during the new path
         metric.putMetric(
