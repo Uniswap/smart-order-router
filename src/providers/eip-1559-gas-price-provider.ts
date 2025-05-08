@@ -78,7 +78,7 @@ export class EIP1559GasPriceProvider extends IGasPriceProvider {
       feeHistory.reward,
       (sum: BigNumber, cur: BigNumber) => sum.add(cur),
       BigNumber.from(0)
-    ).div(feeHistory.reward.length);
+    ).div(feeHistory.reward.length || 1);
 
     log.info(
       {

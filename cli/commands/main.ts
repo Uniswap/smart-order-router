@@ -66,8 +66,32 @@ async function main() {
   //   protocols: ['V3'],
   //   autoSlippage: 'DEFAULT',
   // };
+
+  // const payload = {
+  //   amount: '1000000000000000000',
+  //   gasStrategies: [
+  //     {
+  //       limitInflationFactor: 1.15,
+  //       displayLimitInflationFactor: 1.15,
+  //       priceInflationFactor: 1.5,
+  //       percentileThresholdFor1559Fee: 75,
+  //       minPriorityFeeGwei: 2,
+  //       maxPriorityFeeGwei: 9,
+  //     },
+  //   ],
+  //   swapper: '0xd7e7d82374b94a1d807C9bfb10Ce311335Cb39f3',
+  //   tokenIn: '0x0000000000000000000000000000000000000000',
+  //   tokenInChainId: 11155111,
+  //   tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+  //   tokenOutChainId: 11155111,
+  //   type: 'EXACT_INPUT',
+  //   urgency: 'normal',
+  //   protocols: ['V3'],
+  //   autoSlippage: 'DEFAULT',
+  // };
+
   const payload = {
-    amount: '1000000000000000000',
+    amount: '11000000000000000000',
     gasStrategies: [
       {
         limitInflationFactor: 1.15,
@@ -78,11 +102,11 @@ async function main() {
         maxPriorityFeeGwei: 9,
       },
     ],
-    swapper: '0xd7e7d82374b94a1d807C9bfb10Ce311335Cb39f3',
+    swapper: '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff',
     tokenIn: '0x0000000000000000000000000000000000000000',
-    tokenInChainId: 11155111,
-    tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
-    tokenOutChainId: 11155111,
+    tokenInChainId: 1,
+    tokenOut: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    tokenOutChainId: 1,
     type: 'EXACT_INPUT',
     urgency: 'normal',
     protocols: ['V3'],
