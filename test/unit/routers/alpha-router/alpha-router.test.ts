@@ -1498,7 +1498,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
 
         const swap2 = await alphaRouter.route(
           CurrencyAmount.fromRawAmount(USDC, 100000),
@@ -1513,7 +1513,7 @@ describe('alpha router', () => {
         expect(swap2).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
       });
 
       test('succeeds to fetch route from onchain and skips cache when only 1 protocol is requested', async () => {
@@ -1527,7 +1527,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
       });
 
       test('fails to fetch from cache, so it inserts again, when blocknumber advances', async () => {
@@ -1544,7 +1544,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
 
         mockProvider.getBlockNumber.resolves(mockBlock + 5);
 
@@ -1561,7 +1561,7 @@ describe('alpha router', () => {
         expect(swap2).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
 
         const swap3 = await alphaRouter.route(
           CurrencyAmount.fromRawAmount(USDC, 100000),
@@ -1576,7 +1576,7 @@ describe('alpha router', () => {
         expect(swap3).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(3);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
       });
 
       describe('UniversalRouter version caching', () => {
@@ -1607,7 +1607,7 @@ describe('alpha router', () => {
           );
           expect(swap).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
 
           // Second call should hit cache
           const swap2 = await alphaRouter.route(
@@ -1622,7 +1622,7 @@ describe('alpha router', () => {
           );
           expect(swap2).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
         });
 
         test('with V1.2 - skips cache when V2 is missing from requested protocols', async () => {
@@ -1644,7 +1644,7 @@ describe('alpha router', () => {
           expect(swap).toBeDefined();
           // Should skip cache since V2 is missing but required for V1.2
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
         });
 
         test('with V2.0 - hits cache when all protocols are requested', async () => {
@@ -1666,7 +1666,7 @@ describe('alpha router', () => {
           );
           expect(swap).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
 
           // Second call should hit cache
           const swap2 = await alphaRouter.route(
@@ -1681,7 +1681,7 @@ describe('alpha router', () => {
           );
           expect(swap2).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
         });
 
         test('with V2.0 - skips cache when subset of protocols requested', async () => {
@@ -1703,7 +1703,7 @@ describe('alpha router', () => {
           expect(swap).toBeDefined();
           // Should skip cache since not all available protocols are requested
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
         });
       });
     });
