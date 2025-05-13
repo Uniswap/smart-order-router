@@ -125,7 +125,7 @@ export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
   [ChainId.ARBITRUM_ONE]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_ONE].v4QuoterAddress,
-  [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v4QuoterAddress,
+  [ChainId.BASE]: '0xe1a6c5803e3c44368b171bd680c7d32dfc92ca47', // BtcAcc hook local test
   [ChainId.POLYGON]: CHAIN_TO_ADDRESSES_MAP[ChainId.POLYGON].v4QuoterAddress,
   [ChainId.BNB]: CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].v4QuoterAddress,
   [ChainId.AVALANCHE]:
