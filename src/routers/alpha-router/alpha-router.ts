@@ -1928,17 +1928,21 @@ export class AlphaRouter
       );
 
       if (routingConfig.intent === INTENT.CACHING) {
-        await this.performCachingIntention(
-          currencyIn,
-          currencyOut,
-          tradeType,
-          amount,
-          protocols,
-          await blockNumber,
-          routingConfig,
-          swapRouteWithSimulation.simulationStatus!,
-          swapRouteWithSimulation.route
-        );
+        if (swapRouteWithSimulation.simulationStatus) {
+          await this.performCachingIntention(
+            currencyIn,
+            currencyOut,
+            tradeType,
+            amount,
+            protocols,
+            await blockNumber,
+            routingConfig,
+            swapRouteWithSimulation.simulationStatus!,
+            swapRouteWithSimulation.route
+          );
+        } else {
+          log.info('Simulation status is null');
+        }
       }
 
       return swapRouteWithSimulation;
@@ -1974,16 +1978,7 @@ export class AlphaRouter
     // due to fire and forget nature, we already take note that we should set new cached routes during the new path
     metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
 
-    if (simulationStatus) {
-      log.info(
-        {
-          simulationStatus: simulationStatus,
-        },
-        'Simulation status exists'
-      );
-    } else {
-      log.info('Simulation status is null');
-    }
+    log.info(simulationStatus, 'Simulation status');
 
     if (this.shouldCacheRoute(simulationStatus)) {
       const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
