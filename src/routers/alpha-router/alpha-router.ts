@@ -39,6 +39,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -1798,78 +1799,6 @@ export class AlphaRouter
       }
     }
 
-    let newSetCachedRoutesPath = false;
-    const shouldEnableCachedRoutesCacheInvalidationFix =
-      Math.random() * 100 <
-      (this.cachedRoutesCacheInvalidationFixRolloutPercentage ?? 0);
-
-    // we have to write cached routes right before checking swapRouteRaw is null or not
-    // because getCachedRoutes in routing-api do not use the blocks-to-live to filter out the expired routes at all
-    // there's a possibility the cachedRoutes is always populated, but swapRouteFromCache is always null, because we don't update cachedRoutes in this case at all,
-    // as long as it's within 24 hours sliding window TTL
-    if (shouldEnableCachedRoutesCacheInvalidationFix) {
-      // theoretically, when routingConfig.intent === INTENT.CACHING, optimisticCachedRoutes should be false
-      // so that we can always pass in cachedRoutes?.notExpired(await blockNumber, !routingConfig.optimisticCachedRoutes)
-      // but just to be safe, we just hardcode true when checking the cached routes expiry for write update
-      // we decide to not check cached routes expiry in the read path anyway
-      if (!cachedRoutes?.notExpired(await blockNumber, true)) {
-        // optimisticCachedRoutes === false means at routing-api level, we only want to set cached routes during intent=caching, not intent=quote
-        // this means during the online quote endpoint path, we should not reset cached routes
-        if (routingConfig.intent === INTENT.CACHING) {
-          // due to fire and forget nature, we already take note that we should set new cached routes during the new path
-          newSetCachedRoutesPath = true;
-          metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
-
-          // there's a chance that swapRouteFromChain might be populated already,
-          // when there's no cachedroutes in the dynamo DB.
-          // in that case, we don't try to swap route from chain again
-          const swapRouteFromChainAgain =
-            swapRouteFromChain ??
-            // we have to intentionally await here, because routing-api lambda has a chance to return the swapRoute/swapRouteWithSimulation
-            // before the routing-api quote handler can finish running getSwapRouteFromChain (getSwapRouteFromChain is runtime intensive)
-            (await this.getSwapRouteFromChain(
-              amount,
-              currencyIn,
-              currencyOut,
-              protocols,
-              quoteCurrency,
-              tradeType,
-              routingConfig,
-              v3GasModel,
-              v4GasModel,
-              mixedRouteGasModel,
-              gasPriceWei,
-              v2GasModel,
-              swapConfig,
-              providerConfig
-            ));
-
-          if (swapRouteFromChainAgain) {
-            const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-              swapRouteFromChainAgain.routes,
-              this.chainId,
-              currencyIn,
-              currencyOut,
-              protocols.sort(),
-              await blockNumber,
-              tradeType,
-              amount.toExact()
-            );
-
-            await this.setCachedRoutesAndLog(
-              amount,
-              currencyIn,
-              currencyOut,
-              tradeType,
-              'SetCachedRoute_NewPath',
-              routesToCache,
-              routingConfig.cachedRoutesRouteIds
-            );
-          }
-        }
-      }
-    }
-
     if (!swapRouteRaw) {
       return null;
     }
@@ -1883,52 +1812,6 @@ export class AlphaRouter
       estimatedGasUsedUSD,
       estimatedGasUsedGasToken,
     } = swapRouteRaw;
-
-    // we intentionally dont add shouldEnableCachedRoutesCacheInvalidationFix in if condition below
-    // because we know cached routes in prod dont filter by blocks-to-live
-    // so that we know that swapRouteFromChain is always not populated, because
-    // if (!cachedRoutes || cacheMode !== CacheMode.Livemode) above always have the cachedRoutes as populated
-    if (
-      this.routeCachingProvider &&
-      routingConfig.writeToCachedRoutes &&
-      cacheMode !== CacheMode.Darkmode &&
-      swapRouteFromChain
-    ) {
-      if (newSetCachedRoutesPath) {
-        // SetCachedRoute_NewPath and SetCachedRoute_OldPath metrics might have counts during short timeframe.
-        // over time, we should expect to see less SetCachedRoute_OldPath metrics count.
-        // in AWS metrics, one can investigate, by:
-        // 1) seeing the overall metrics count of SetCachedRoute_NewPath and SetCachedRoute_OldPath. SetCachedRoute_NewPath should steadily go up, while SetCachedRoute_OldPath should go down.
-        // 2) using the same requestId, one should see eventually when SetCachedRoute_NewPath metric is logged, SetCachedRoute_OldPath metric should not be called.
-        metric.putMetric(
-          `SetCachedRoute_OldPath_INTENT_${routingConfig.intent}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }
-
-      // Generate the object to be cached
-      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-        swapRouteFromChain.routes,
-        this.chainId,
-        currencyIn,
-        currencyOut,
-        protocols.sort(),
-        await blockNumber,
-        tradeType,
-        amount.toExact()
-      );
-
-      await this.setCachedRoutesAndLog(
-        amount,
-        currencyIn,
-        currencyOut,
-        tradeType,
-        'SetCachedRoute_OldPath',
-        routesToCache,
-        routingConfig.cachedRoutesRouteIds
-      );
-    }
 
     metric.putMetric(
       `QuoteFoundForChain${this.chainId}`,
@@ -2044,10 +1927,98 @@ export class AlphaRouter
         Date.now() - beforeSimulate,
         MetricLoggerUnit.Milliseconds
       );
+
+      if (routingConfig.intent === INTENT.CACHING) {
+        if (swapRouteWithSimulation.simulationStatus) {
+          await this.performCachingIntention(
+            currencyIn,
+            currencyOut,
+            tradeType,
+            amount,
+            protocols,
+            await blockNumber,
+            routingConfig,
+            swapRouteWithSimulation.simulationStatus!,
+            swapRouteWithSimulation.route
+          );
+        } else {
+          log.info('Simulation status is null');
+        }
+      }
+
       return swapRouteWithSimulation;
     }
 
     return swapRoute;
+  }
+
+  /**
+   * Performs the caching intention for the given simulation status and route.
+   *
+   * @param currencyIn the currency in
+   * @param currencyOut the currency out
+   * @param tradeType the trade type
+   * @param amount the amount
+   * @param protocols the protocols
+   * @param blockNumber the block number
+   * @param routingConfig the routing config
+   * @param simulationStatus the simulation status
+   * @param simulationRoute the simulation route
+   */
+  protected async performCachingIntention(
+    currencyIn: Currency,
+    currencyOut: Currency,
+    tradeType: TradeType,
+    amount: CurrencyAmount,
+    protocols: Protocol[],
+    blockNumber: number,
+    routingConfig: AlphaRouterConfig,
+    simulationStatus: SimulationStatus,
+    simulationRoute: RouteWithValidQuote[]
+  ) {
+    // due to fire and forget nature, we already take note that we should set new cached routes during the new path
+    metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
+
+    log.info(simulationStatus, 'Simulation status');
+
+    if (this.shouldCacheRoute(simulationStatus)) {
+      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+        simulationRoute,
+        this.chainId,
+        currencyIn,
+        currencyOut,
+        protocols.sort(),
+        blockNumber,
+        tradeType,
+        amount.toExact()
+      );
+
+      await this.setCachedRoutesAndLog(
+        amount,
+        currencyIn,
+        currencyOut,
+        tradeType,
+        'SetCachedRoute_NewPath',
+        routesToCache,
+        routingConfig.cachedRoutesRouteIds
+      );
+    }
+  }
+
+  /**
+   * @param simulationStatus the status of the simulation
+   * @returns true if the route should be cached, false otherwise
+   */
+  protected shouldCacheRoute(simulationStatus: SimulationStatus) {
+    // Do not cache the route for the following reasons:
+    // 1. failed when tenderly sim failed for unknown reason
+    // 2. slippage since we know swap is bound to fail
+    // 3. transfer from failed since we know swap is bound to fail
+    return (
+      simulationStatus !== SimulationStatus.Failed &&
+      simulationStatus !== SimulationStatus.SlippageTooLow &&
+      simulationStatus !== SimulationStatus.TransferFromFailed
+    );
   }
 
   private async setCachedRoutesAndLog(
