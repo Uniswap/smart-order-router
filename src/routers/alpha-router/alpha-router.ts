@@ -1527,7 +1527,9 @@ export class AlphaRouter
                 tradeType,
                 protocols,
                 await blockNumber,
-                routingConfig.optimisticCachedRoutes
+                routingConfig.optimisticCachedRoutes,
+                routingConfig,
+                swapConfig
               ),
               this.routeCachingProvider?.getCachedRoute(
                 this.chainId,
@@ -1536,7 +1538,9 @@ export class AlphaRouter
                 tradeType,
                 [Protocol.V4],
                 await blockNumber,
-                routingConfig.optimisticCachedRoutes
+                routingConfig.optimisticCachedRoutes,
+                routingConfig,
+                swapConfig
               ),
             ]);
 
@@ -1574,7 +1578,9 @@ export class AlphaRouter
             tradeType,
             protocols,
             await blockNumber,
-            routingConfig.optimisticCachedRoutes
+            routingConfig.optimisticCachedRoutes,
+            routingConfig,
+            swapConfig
           );
         }
       }
