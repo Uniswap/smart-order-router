@@ -29,7 +29,7 @@ import {
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
+import { TPool } from '@uniswap/router-sdk';
 import { GetQuotesResult, GetRoutesResult } from './model/results';
 
 /**
@@ -44,9 +44,9 @@ export abstract class BaseQuoter<
   CandidatePools extends
     | SupportedCandidatePools
     | [
-        V4CandidatePools,
-        V3CandidatePools,
-        V2CandidatePools,
+        V4CandidatePools | undefined,
+        V3CandidatePools | undefined,
+        V2CandidatePools | undefined,
         CrossLiquidityCandidatePools
       ],
   Route extends SupportedRoutes,

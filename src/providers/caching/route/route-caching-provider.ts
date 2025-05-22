@@ -12,6 +12,7 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 
+import { AlphaRouterConfig } from '../../../routers';
 import { CacheMode } from './model';
 import { CachedRoutes } from './model/cached-routes';
 
@@ -40,7 +41,8 @@ export abstract class IRouteCachingProvider {
     tradeType: TradeType,
     protocols: Protocol[],
     blockNumber: number,
-    optimistic = false
+    optimistic = false,
+    alphaRouterConfig?: AlphaRouterConfig
   ): Promise<CachedRoutes | undefined> => {
     if (
       (await this.getCacheMode(
@@ -61,7 +63,8 @@ export abstract class IRouteCachingProvider {
       tradeType,
       protocols,
       blockNumber,
-      optimistic
+      optimistic,
+      alphaRouterConfig
     );
 
     return this.filterExpiredCachedRoutes(cachedRoute, blockNumber, optimistic);
@@ -165,7 +168,8 @@ export abstract class IRouteCachingProvider {
     tradeType: TradeType,
     protocols: Protocol[],
     currentBlockNumber: number,
-    optimistic: boolean
+    optimistic: boolean,
+    alphaRouterConfig?: AlphaRouterConfig
   ): Promise<CachedRoutes | undefined>;
 
   /**

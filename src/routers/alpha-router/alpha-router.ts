@@ -39,6 +39,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -95,6 +96,7 @@ import {
   getAddress,
   getAddressLowerCase,
   getApplicableV4FeesTickspacingsHooks,
+  HooksOptions,
   MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
@@ -150,7 +152,9 @@ import {
 } from '../router';
 
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import { INTENT } from '../../util/intent';
+import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -518,6 +522,26 @@ export type AlphaRouterConfig = {
    * pass in routing-api intent to align the intent between routing-api and SOR
    */
   intent?: INTENT;
+  /**
+   * boolean flag to control whether we should enable mixed route that connects ETH <-> WETH
+   */
+  shouldEnableMixedRouteEthWeth?: boolean;
+  /**
+   * hashed router ids of the cached route, if the online routing lambda uses the cached route to serve the quote
+   */
+  cachedRoutesRouteIds?: string;
+  /**
+   * enable mixed route with UR1_2 version backward compatibility issue
+   */
+  enableMixedRouteWithUR1_2?: boolean;
+  /**
+   * enable debug mode for async routing lambda
+   */
+  enableDebug?: boolean;
+  /**
+   * pass in hooks options for hooks routing toggles from the frontend
+   */
+  hooksOptions?: HooksOptions;
 };
 
 export class AlphaRouter
@@ -559,6 +583,7 @@ export class AlphaRouter
   protected mixedSupported?: ChainId[];
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
+  protected shouldEnableMixedRouteEthWeth?: boolean;
 
   constructor({
     chainId,
@@ -665,8 +690,12 @@ export class AlphaRouter
         case ChainId.BLAST:
         case ChainId.ZORA:
         case ChainId.WORLDCHAIN:
-        case ChainId.ASTROCHAIN_SEPOLIA:
+        case ChainId.UNICHAIN_SEPOLIA:
+        case ChainId.MONAD_TESTNET:
+        case ChainId.BASE_SEPOLIA:
+        case ChainId.UNICHAIN:
         case ChainId.BASE_GOERLI:
+        case ChainId.SONEIUM:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
@@ -1423,16 +1452,133 @@ export class AlphaRouter
 
     // Fetch CachedRoutes
     let cachedRoutes: CachedRoutes | undefined;
-    if (routingConfig.useCachedRoutes && cacheMode !== CacheMode.Darkmode) {
-      cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
-        this.chainId,
-        amount,
-        quoteCurrency,
-        tradeType,
-        protocols,
-        await blockNumber,
-        routingConfig.optimisticCachedRoutes
+
+    // Decide whether to use cached routes or not - If |enabledAndRequestedProtocolsMatch| is true we are good to use cached routes.
+    // In order to use cached routes, we need to have all enabled protocols specified in the request.
+    // By default, all protocols are enabled but for UniversalRouterVersion.V1_2, V4 is not.
+    // - ref: https://github.com/Uniswap/routing-api/blob/663b607d80d9249f85e7ab0925a611ec3701da2a/lib/util/supportedProtocolVersions.ts#L15
+    // So we take this into account when deciding whether to use cached routes or not.
+    // We only want to use cache if all enabled protocols are specified (V2,V3,V4? + MIXED). In any other case, use onchain path.
+    // - Cache is optimized for global search, not for specific protocol(s) search.
+    // For legacy systems (SWAP_ROUTER_02) or missing swapConfig, follow UniversalRouterVersion.V1_2 logic.
+    const availableProtocolsSet = new Set(Object.values(Protocol));
+    const requestedProtocolsSet = new Set(protocols);
+    const swapRouter =
+      !swapConfig ||
+      swapConfig.type === SwapType.SWAP_ROUTER_02 ||
+      (swapConfig.type === SwapType.UNIVERSAL_ROUTER &&
+        swapConfig.version === UniversalRouterVersion.V1_2);
+    if (swapRouter) {
+      availableProtocolsSet.delete(Protocol.V4);
+      if (requestedProtocolsSet.has(Protocol.V4)) {
+        requestedProtocolsSet.delete(Protocol.V4);
+      }
+    }
+    const enabledAndRequestedProtocolsMatch =
+      availableProtocolsSet.size === requestedProtocolsSet.size &&
+      [...availableProtocolsSet].every((protocol) =>
+        requestedProtocolsSet.has(protocol)
       );
+
+    // If the requested protocols do not match the enabled protocols, we need to set the hooks options to NO_HOOKS.
+    if (!requestedProtocolsSet.has(Protocol.V4)) {
+      routingConfig.hooksOptions = HooksOptions.NO_HOOKS;
+    }
+
+    // If hooksOptions not specified and it's not a swapRouter (i.e. Universal Router it is),
+    // we should also set it to HOOKS_INCLUSIVE, as this is default behavior even without hooksOptions.
+    if (!routingConfig.hooksOptions) {
+      routingConfig.hooksOptions = HooksOptions.HOOKS_INCLUSIVE;
+    }
+
+    log.debug('UniversalRouterVersion_CacheGate_Check', {
+      availableProtocolsSet: Array.from(availableProtocolsSet),
+      requestedProtocolsSet: Array.from(requestedProtocolsSet),
+      enabledAndRequestedProtocolsMatch,
+      swapConfigType: swapConfig?.type,
+      swapConfigUniversalRouterVersion:
+        swapConfig?.type === SwapType.UNIVERSAL_ROUTER
+          ? swapConfig?.version
+          : 'N/A',
+    });
+
+    if (
+      routingConfig.useCachedRoutes &&
+      cacheMode !== CacheMode.Darkmode &&
+      AlphaRouter.isAllowedToEnterCachedRoutes(
+        routingConfig.intent,
+        routingConfig.hooksOptions,
+        swapRouter
+      )
+    ) {
+      if (enabledAndRequestedProtocolsMatch) {
+        if (
+          protocols.includes(Protocol.V4) &&
+          (currencyIn.isNative || currencyOut.isNative)
+        ) {
+          const [wrappedNativeCachedRoutes, nativeCachedRoutes] =
+            await Promise.all([
+              this.routeCachingProvider?.getCachedRoute(
+                this.chainId,
+                CurrencyAmount.fromRawAmount(
+                  amount.currency.wrapped,
+                  amount.quotient
+                ),
+                quoteCurrency.wrapped,
+                tradeType,
+                protocols,
+                await blockNumber,
+                routingConfig.optimisticCachedRoutes
+              ),
+              this.routeCachingProvider?.getCachedRoute(
+                this.chainId,
+                amount,
+                quoteCurrency,
+                tradeType,
+                [Protocol.V4],
+                await blockNumber,
+                routingConfig.optimisticCachedRoutes
+              ),
+            ]);
+
+          if (
+            (wrappedNativeCachedRoutes &&
+              wrappedNativeCachedRoutes?.routes.length > 0) ||
+            (nativeCachedRoutes && nativeCachedRoutes?.routes.length > 0)
+          ) {
+            cachedRoutes = new CachedRoutes({
+              routes: [
+                ...(nativeCachedRoutes?.routes ?? []),
+                ...(wrappedNativeCachedRoutes?.routes ?? []),
+              ],
+              chainId: this.chainId,
+              currencyIn: currencyIn,
+              currencyOut: currencyOut,
+              protocolsCovered: protocols,
+              blockNumber: await blockNumber,
+              tradeType: tradeType,
+              originalAmount:
+                wrappedNativeCachedRoutes?.originalAmount ??
+                nativeCachedRoutes?.originalAmount ??
+                amount.quotient.toString(),
+              blocksToLive:
+                wrappedNativeCachedRoutes?.blocksToLive ??
+                nativeCachedRoutes?.blocksToLive ??
+                DEFAULT_BLOCKS_TO_LIVE[this.chainId],
+            });
+          }
+        } else {
+          cachedRoutes = await this.routeCachingProvider?.getCachedRoute(
+            this.chainId,
+            amount,
+            quoteCurrency,
+            tradeType,
+            protocols,
+            await blockNumber,
+            routingConfig.optimisticCachedRoutes
+          );
+        }
+      }
     }
 
     if (shouldWipeoutCachedRoutes(cachedRoutes, routingConfig)) {
@@ -1738,51 +1884,6 @@ export class AlphaRouter
       estimatedGasUsedGasToken,
     } = swapRouteRaw;
 
-    // we intentionally dont add shouldEnableCachedRoutesCacheInvalidationFix in if condition below
-    // because we know cached routes in prod dont filter by blocks-to-live
-    // so that we know that swapRouteFromChain is always not populated, because
-    // if (!cachedRoutes || cacheMode !== CacheMode.Livemode) above always have the cachedRoutes as populated
-    if (
-      this.routeCachingProvider &&
-      routingConfig.writeToCachedRoutes &&
-      cacheMode !== CacheMode.Darkmode &&
-      swapRouteFromChain
-    ) {
-      if (newSetCachedRoutesPath) {
-        // SetCachedRoute_NewPath and SetCachedRoute_OldPath metrics might have counts during short timeframe.
-        // over time, we should expect to see less SetCachedRoute_OldPath metrics count.
-        // in AWS metrics, one can investigate, by:
-        // 1) seeing the overall metrics count of SetCachedRoute_NewPath and SetCachedRoute_OldPath. SetCachedRoute_NewPath should steadily go up, while SetCachedRoute_OldPath should go down.
-        // 2) using the same requestId, one should see eventually when SetCachedRoute_NewPath metric is logged, SetCachedRoute_OldPath metric should not be called.
-        metric.putMetric(
-          `SetCachedRoute_OldPath_INTENT_${routingConfig.intent}`,
-          1,
-          MetricLoggerUnit.Count
-        );
-      }
-
-      // Generate the object to be cached
-      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-        swapRouteFromChain.routes,
-        this.chainId,
-        currencyIn,
-        currencyOut,
-        protocols.sort(),
-        await blockNumber,
-        tradeType,
-        amount.toExact()
-      );
-
-      await this.setCachedRoutesAndLog(
-        amount,
-        currencyIn,
-        currencyOut,
-        tradeType,
-        'SetCachedRoute_OldPath',
-        routesToCache
-      );
-    }
-
     metric.putMetric(
       `QuoteFoundForChain${this.chainId}`,
       1,
@@ -1897,10 +1998,98 @@ export class AlphaRouter
         Date.now() - beforeSimulate,
         MetricLoggerUnit.Milliseconds
       );
+
+      if (routingConfig.intent === INTENT.CACHING) {
+        if (swapRouteWithSimulation.simulationStatus) {
+          await this.performCachingIntention(
+            currencyIn,
+            currencyOut,
+            tradeType,
+            amount,
+            protocols,
+            await blockNumber,
+            routingConfig,
+            swapRouteWithSimulation.simulationStatus!,
+            swapRouteWithSimulation.route
+          );
+        } else {
+          log.info('Simulation status is null');
+        }
+      }
+
       return swapRouteWithSimulation;
     }
 
     return swapRoute;
+  }
+
+  /**
+   * Performs the caching intention for the given simulation status and route.
+   *
+   * @param currencyIn the currency in
+   * @param currencyOut the currency out
+   * @param tradeType the trade type
+   * @param amount the amount
+   * @param protocols the protocols
+   * @param blockNumber the block number
+   * @param routingConfig the routing config
+   * @param simulationStatus the simulation status
+   * @param simulationRoute the simulation route
+   */
+  protected async performCachingIntention(
+    currencyIn: Currency,
+    currencyOut: Currency,
+    tradeType: TradeType,
+    amount: CurrencyAmount,
+    protocols: Protocol[],
+    blockNumber: number,
+    routingConfig: AlphaRouterConfig,
+    simulationStatus: SimulationStatus,
+    simulationRoute: RouteWithValidQuote[]
+  ) {
+    // due to fire and forget nature, we already take note that we should set new cached routes during the new path
+    metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
+
+    log.info(simulationStatus, 'Simulation status');
+
+    if (this.shouldCacheRoute(simulationStatus)) {
+      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+        simulationRoute,
+        this.chainId,
+        currencyIn,
+        currencyOut,
+        protocols.sort(),
+        blockNumber,
+        tradeType,
+        amount.toExact()
+      );
+
+      await this.setCachedRoutesAndLog(
+        amount,
+        currencyIn,
+        currencyOut,
+        tradeType,
+        'SetCachedRoute_NewPath',
+        routesToCache,
+        routingConfig.cachedRoutesRouteIds
+      );
+    }
+  }
+
+  /**
+   * @param simulationStatus the status of the simulation
+   * @returns true if the route should be cached, false otherwise
+   */
+  protected shouldCacheRoute(simulationStatus: SimulationStatus) {
+    // Do not cache the route for the following reasons:
+    // 1. failed when tenderly sim failed for unknown reason
+    // 2. slippage since we know swap is bound to fail
+    // 3. transfer from failed since we know swap is bound to fail
+    return (
+      simulationStatus !== SimulationStatus.Failed &&
+      simulationStatus !== SimulationStatus.SlippageTooLow &&
+      simulationStatus !== SimulationStatus.TransferFromFailed
+    );
   }
 
   private async setCachedRoutesAndLog(
@@ -1909,9 +2098,44 @@ export class AlphaRouter
     currencyOut: Currency,
     tradeType: TradeType,
     metricsPrefix: string,
-    routesToCache?: CachedRoutes
+    routesToCache?: CachedRoutes,
+    cachedRoutesRouteIds?: string
   ): Promise<void> {
     if (routesToCache) {
+      const cachedRoutesChanged =
+        cachedRoutesRouteIds !== undefined &&
+        // it's possible that top cached routes may be split routes,
+        // so that we always serialize all the top 8 retrieved cached routes vs the top routes.
+        !cachedRoutesRouteIds.startsWith(
+          serializeRouteIds(routesToCache.routes.map((r) => r.routeId))
+        );
+
+      if (cachedRoutesChanged) {
+        metric.putMetric('cachedRoutesChanged', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `cachedRoutesChanged_chainId${currencyIn.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `cachedRoutesChanged_chainId${currencyOut.chainId}_pair${currencyIn.symbol}${currencyOut.symbol}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      } else {
+        metric.putMetric('cachedRoutesNotChanged', 1, MetricLoggerUnit.Count);
+        metric.putMetric(
+          `cachedRoutesNotChanged_chainId${currencyIn.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `cachedRoutesNotChanged_chainId${currencyOut.chainId}_pair${currencyIn.symbol}${currencyOut.symbol}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+
       await this.routeCachingProvider
         ?.setCachedRoute(routesToCache, amount)
         .then((success) => {
@@ -2249,10 +2473,7 @@ export class AlphaRouter
       Promise.resolve(undefined);
 
     // we are explicitly requiring people to specify v4 for now
-    if (
-      (v4SupportedInChain && (v4ProtocolSpecified || noProtocolsSpecified)) ||
-      (shouldQueryMixedProtocol && mixedProtocolAllowed)
-    ) {
+    if (v4SupportedInChain && (v4ProtocolSpecified || noProtocolsSpecified)) {
       // if (v4ProtocolSpecified || noProtocolsSpecified) {
       v4CandidatePoolsPromise = getV4CandidatePools({
         currencyIn: currencyIn,
@@ -2278,11 +2499,7 @@ export class AlphaRouter
     let v3CandidatePoolsPromise: Promise<V3CandidatePools | undefined> =
       Promise.resolve(undefined);
     if (!fotInDirectSwap) {
-      if (
-        v3ProtocolSpecified ||
-        noProtocolsSpecified ||
-        (shouldQueryMixedProtocol && mixedProtocolAllowed)
-      ) {
+      if (v3ProtocolSpecified || noProtocolsSpecified) {
         const tokenIn = currencyIn.wrapped;
         const tokenOut = currencyOut.wrapped;
 
@@ -2309,10 +2526,7 @@ export class AlphaRouter
 
     let v2CandidatePoolsPromise: Promise<V2CandidatePools | undefined> =
       Promise.resolve(undefined);
-    if (
-      (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) ||
-      (shouldQueryMixedProtocol && mixedProtocolAllowed)
-    ) {
+    if (v2SupportedInChain && (v2ProtocolSpecified || noProtocolsSpecified)) {
       const tokenIn = currencyIn.wrapped;
       const tokenOut = currencyOut.wrapped;
 
@@ -2469,7 +2683,12 @@ export class AlphaRouter
       // Maybe Quote mixed routes
       // if MixedProtocol is specified or no protocol is specified and v2 is supported AND tradeType is ExactIn
       // AND is Mainnet or Gorli
-      if (shouldQueryMixedProtocol && mixedProtocolAllowed) {
+      // Also make sure there are at least 2 protocols provided besides MIXED, before entering mixed quoter
+      if (
+        shouldQueryMixedProtocol &&
+        mixedProtocolAllowed &&
+        protocols.filter((protocol) => protocol !== Protocol.MIXED).length >= 2
+      ) {
         log.info({ protocols, tradeType }, 'Routing across MixedRoutes');
 
         metric.putMetric(
@@ -2510,9 +2729,9 @@ export class AlphaRouter
                   percents,
                   quoteCurrency.wrapped,
                   [
-                    v4CandidatePools!,
-                    v3CandidatePools!,
-                    v2CandidatePools!,
+                    v4CandidatePools,
+                    v3CandidatePools,
+                    v2CandidatePools,
                     crossLiquidityPools,
                   ],
                   tradeType,
@@ -3093,5 +3312,38 @@ export class AlphaRouter
         maxTimeout: 1000,
       }
     );
+  }
+
+  // If we are requesting URv1.2, we need to keep entering cache
+  // We want to skip cached routes access whenever "intent === INTENT.CACHING" or "hooksOption !== HooksOption.HOOKS_INCLUSIVE"
+  // We keep this method as we might want to add more conditions in the future.
+  public static isAllowedToEnterCachedRoutes(
+    intent?: INTENT,
+    hooksOptions?: HooksOptions,
+    swapRouter?: boolean
+  ): boolean {
+    // intent takes highest precedence, as we need to ensure during caching intent, we do not enter cache no matter what
+    if (intent !== undefined && intent === INTENT.CACHING) {
+      return false;
+    }
+
+    // in case we have URv1.2 request during QUOTE intent, we assume cached routes correctly returns mixed route w/o v4, if mixed is best
+    // or v2/v3 is the best.
+    // implicitly it means hooksOptions no longer matters for URv1.2
+    // swapRouter has higher precedence than hooksOptions, because in case of URv1.2, we set hooksOptions = NO_HOOKS as default,
+    // but swapRouter does not have any v4 pool for routing, so swapRouter should always use caching during QUOTE intent.
+    if (swapRouter) {
+      return true;
+    }
+
+    // in case we have URv2.0, and we are in QUOTE intent, we only want to enter cache when hooksOptions is default, HOOKS_INCLUSIVE
+    if (
+      hooksOptions !== undefined &&
+      hooksOptions !== HooksOptions.HOOKS_INCLUSIVE
+    ) {
+      return false;
+    }
+
+    return true;
   }
 }

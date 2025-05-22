@@ -108,11 +108,18 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
       currencyIn,
       currencyOut,
       pools,
-      maxSwapsPerPath
+      maxSwapsPerPath,
+      routingConfig.hooksOptions
     );
 
     metric.putMetric(
       'V4GetRoutesLoad',
+      Date.now() - beforeGetRoutes,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    metric.putMetric(
+      `V4GetRoutesLoad_Chain${this.chainId}`,
       Date.now() - beforeGetRoutes,
       MetricLoggerUnit.Milliseconds
     );

@@ -417,7 +417,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
       if (!quoterAddress) {
         throw new Error(
-          `No address for the quoter contract on chain id: ${this.chainId}`
+          `No address for the quoter contract on chain id: ${this.chainId} ${useMixedRouteQuoter} ${mixedRouteContainsV4Pool} ${protocol}`
         );
       }
       return quoterAddress;
@@ -483,9 +483,10 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       // Hence in case of V2 or mixed, we explicitly encode into mixed routes.
       case Protocol.V2:
       case Protocol.MIXED:
+        // we need to retain the fake pool data for the mixed route
         return encodeMixedRouteToPath(
           route instanceof V2Route
-            ? new MixedRouteSDK(route.pairs, route.input, route.output)
+            ? new MixedRouteSDK(route.pairs, route.input, route.output, true)
             : route
         ) as TPath;
       default:

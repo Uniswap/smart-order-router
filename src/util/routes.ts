@@ -1,5 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk';
-import { Currency, Percent } from '@uniswap/sdk-core';
+import { ChainId, Currency, Percent } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
@@ -13,8 +13,8 @@ import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
-import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
-import { CurrencyAmount } from '.';
+import { TPool } from '@uniswap/router-sdk';
+import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 import { CachedRoutes } from '../providers';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
@@ -91,6 +91,15 @@ export const routeToString = (route: SupportedRoutes): string => {
         V3_CORE_FACTORY_ADDRESSES[pool.chainId]
       )}]`;
     } else if (pool instanceof V4Pool) {
+      // Special case in the case of ETH/WETH fake pool
+      // where we do not want to return the fake pool in the route string as it is not a real pool
+      if (
+        pool.tickSpacing ===
+        V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId].tickSpacing
+      ) {
+        return ' --  ';
+      }
+
       return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
         pool.token0,
         pool.token1,
@@ -142,14 +151,19 @@ export function shouldWipeoutCachedRoutes(
   cachedRoutes?: CachedRoutes,
   routingConfig?: AlphaRouterConfig
 ): boolean {
-  // In case of optimisticCachedRoutes, we don't want to wipe out the cache
-  // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
-  // such that we should still use the cached routes.
-  // In case of routing-api,
-  // when intent=quote, optimisticCachedRoutes will be true, it means it's an online quote request, and we should use the cached routes.
-  // when intent=caching, optimisticCachedRoutes will be false, it means it's an async routing lambda invocation for the benefit of
-  // non-perf-sensitive, so that we can nullify the retrieved cached routes, if certain condition meets.
-  if (routingConfig?.optimisticCachedRoutes) {
+  // We want to roll out the mixed route with UR v1_2 with percent control,
+  // along with the cached routes so that we can test the performance of the mixed route with UR v1_2ss
+  if (
+    routingConfig?.enableMixedRouteWithUR1_2 &&
+    // In case of optimisticCachedRoutes, we don't want to wipe out the cache
+    // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
+    // such that we should still use the cached routes.
+    // In case of routing-api,
+    // when intent=quote, optimisticCachedRoutes will be true, it means it's an online quote request, and we should use the cached routes.
+    // when intent=caching, optimisticCachedRoutes will be false, it means it's an async routing lambda invocation for the benefit of
+    // non-perf-sensitive, so that we can nullify the retrieved cached routes, if certain condition meets.
+    routingConfig?.optimisticCachedRoutes
+  ) {
     return false;
   }
 

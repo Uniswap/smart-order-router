@@ -105,9 +105,10 @@ export type SwapRoute = {
   methodParameters?: MethodParameters;
   /**
    * Enum that is returned if simulation was requested
-   * 0 if simulation was not attempted
+   * 0 if simulation was not supported
    * 1 if simulation was attempted and failed
    * 2 if simulation was successful (simulated gas estimates are returned)
+   * 3... rest of the simulation statuses
    */
   simulationStatus?: SimulationStatus;
   /**

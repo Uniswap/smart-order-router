@@ -36,14 +36,16 @@ import {
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { mixedRouteFilterOutV4Pools } from '../../../util/mixedRouteFilterOutV4Pools';
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
 
 export class MixedQuoter extends BaseQuoter<
   [
-    V4CandidatePools,
-    V3CandidatePools,
-    V2CandidatePools,
+    V4CandidatePools | undefined,
+    V3CandidatePools | undefined,
+    V2CandidatePools | undefined,
     CrossLiquidityCandidatePools
   ],
   MixedRoute,
@@ -90,9 +92,9 @@ export class MixedQuoter extends BaseQuoter<
     currencyIn: Currency,
     currencyOut: Currency,
     v4v3v2candidatePools: [
-      V4CandidatePools,
-      V3CandidatePools,
-      V2CandidatePools,
+      V4CandidatePools | undefined,
+      V3CandidatePools | undefined,
+      V2CandidatePools | undefined,
       CrossLiquidityCandidatePools
     ],
     tradeType: TradeType,
@@ -179,15 +181,30 @@ export class MixedQuoter extends BaseQuoter<
 
     const { maxSwapsPerPath } = routingConfig;
 
-    const routes = computeAllMixedRoutes(
+    let routes = computeAllMixedRoutes(
       currencyIn,
       currencyOut,
       pools,
-      maxSwapsPerPath
+      maxSwapsPerPath,
+      routingConfig.shouldEnableMixedRouteEthWeth,
+      routingConfig.hooksOptions
     );
+
+    if (
+      routingConfig.universalRouterVersion === UniversalRouterVersion.V1_2 ||
+      !routingConfig.protocols?.includes(Protocol.V4)
+    ) {
+      routes = mixedRouteFilterOutV4Pools(routes);
+    }
 
     metric.putMetric(
       'MixedGetRoutesLoad',
+      Date.now() - beforeGetRoutes,
+      MetricLoggerUnit.Milliseconds
+    );
+
+    metric.putMetric(
+      `MixedGetRoutesLoad_Chain${this.chainId}`,
       Date.now() - beforeGetRoutes,
       MetricLoggerUnit.Milliseconds
     );

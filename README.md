@@ -241,10 +241,34 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x79A02482A880bCE3F13e09Da970dC34db4CD24d1 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 480
 ```
 
-## AstroChain Sepolia
+## UNICHAIN Sepolia
 
 ```
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x31d0220469e10c4E71834a79b1f276d740d3768F --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 1301
+```
+
+## Unichain Mainnet
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x078D782b760474a361dDA0AF3839290b0EF57AD6 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 130
+```
+
+## Monad Testnet
+
+```
+./bin/cli quote --tokenIn 0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701 --tokenOut 0xfBC2D240A5eD44231AcA3A9e9066bc4b33f01149 --amount 0.1 --exactIn --minSplits 1 --protocols v2 --router alpha --chainId 10143
+```
+
+## Base Sepolia
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0x036CbD53842c5426634e7929541eC2318f3dCF7e --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 84532
+```
+
+## Soneium
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 1868
 ```
 
 ## Adding a new Chain
