@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { ChainId, Currency, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
@@ -26,8 +26,6 @@ import {
   OnChainQuoteProvider,
   parseAmount,
   RouteWithQuotes,
-  RouteWithValidQuote,
-  SimulationStatus,
   SupportedExactOutRoutes,
   SupportedRoutes,
   SwapAndAddConfig,
@@ -151,7 +149,6 @@ describe('alpha router', () => {
   let inMemoryRouteCachingProvider: InMemoryRouteCachingProvider;
 
   let alphaRouter: AlphaRouter;
-  let testAlphaRouter: TestAlphaRouter;
 
   const allProtocols = [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED];
 
@@ -523,66 +520,7 @@ describe('alpha router', () => {
       tokenPropertiesProvider: mockTokenPropertiesProvider,
       v4Supported: [ChainId.SEPOLIA, ChainId.MAINNET]
     });
-
-    // testAlphaRouter is used to test the protected methods of AlphaRouter
-    testAlphaRouter = new TestAlphaRouter({
-      chainId: 1,
-      provider: mockProvider,
-      multicall2Provider: mockMulticallProvider as any,
-      v4SubgraphProvider: mockV4SubgraphProvider,
-      v4PoolProvider: mockV4PoolProvider,
-      v4GasModelFactory: mockV4GasModelFactory,
-      v3SubgraphProvider: mockV3SubgraphProvider,
-      v3PoolProvider: mockV3PoolProvider,
-      onChainQuoteProvider: mockOnChainQuoteProvider,
-      tokenProvider: mockTokenProvider,
-      gasPriceProvider: mockGasPriceProvider,
-      v3GasModelFactory: mockV3GasModelFactory,
-      blockedTokenListProvider: mockBlockTokenListProvider,
-      v2GasModelFactory: mockV2GasModelFactory,
-      v2PoolProvider: mockV2PoolProvider,
-      v2QuoteProvider: mockV2QuoteProvider,
-      mixedRouteGasModelFactory: mockMixedRouteGasModelFactory,
-      v2SubgraphProvider: mockV2SubgraphProvider,
-      swapRouterProvider: mockSwapRouterProvider,
-      tokenValidatorProvider: mockTokenValidatorProvider,
-      simulator: mockFallbackTenderlySimulator,
-      routeCachingProvider: inMemoryRouteCachingProvider,
-      tokenPropertiesProvider: mockTokenPropertiesProvider,
-      v4Supported: [ChainId.SEPOLIA, ChainId.MAINNET]
-    });
   });
-
-  // TestAlphaRouter is used to test the protected methods of AlphaRouter
-  class TestAlphaRouter extends AlphaRouter {
-    public async testPerformCachingIntention(
-      currencyIn: Currency,
-      currencyOut: Currency,
-      tradeType: TradeType,
-      amount: CurrencyAmount,
-      protocols: Protocol[],
-      blockNumber: number,
-      routingConfig: AlphaRouterConfig,
-      simulationStatus: SimulationStatus,
-      simulationRoute: RouteWithValidQuote[]
-    ) {
-      await super.performCachingIntention(
-        currencyIn,
-        currencyOut,
-        tradeType,
-        amount,
-        protocols,
-        blockNumber,
-        routingConfig,
-        simulationStatus,
-        simulationRoute
-      );
-    }
-
-    public shouldCacheRoute(simulationStatus: SimulationStatus) {
-      return super.shouldCacheRoute(simulationStatus);
-    }
-  }
 
   describe('exact in', () => {
     test('find a favorable mixedRoute while routing across V2,V3,Mixed protocols', async () => {
@@ -1560,7 +1498,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
         const swap2 = await alphaRouter.route(
           CurrencyAmount.fromRawAmount(USDC, 100000),
@@ -1575,7 +1513,7 @@ describe('alpha router', () => {
         expect(swap2).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
       });
 
       test('succeeds to fetch route from onchain and skips cache when only 1 protocol is requested', async () => {
@@ -1584,76 +1522,12 @@ describe('alpha router', () => {
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
           undefined,
-          { ...ROUTING_CONFIG, ...{ protocols: [Protocol.V3] } }
+          { ...ROUTING_CONFIG, ...{protocols: [Protocol.V3]} }
         );
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
-      });
-
-      test('performCachingIntention tests', async () => {
-        const simulationStatusExpectNoCaching = [
-          SimulationStatus.Failed,
-          SimulationStatus.SlippageTooLow,
-          SimulationStatus.TransferFromFailed,
-        ];
-
-        const simulationStatusExpectCaching = [
-          SimulationStatus.Succeeded,
-          SimulationStatus.NotApproved,
-          SimulationStatus.SystemDown,
-          SimulationStatus.NotSupported,
-          SimulationStatus.InsufficientBalance
-        ];
-
-
-        for (const simulationStatus of simulationStatusExpectNoCaching) {
-          await testCachingBehavior(simulationStatus, false);
-        }
-
-        for (const simulationStatus of simulationStatusExpectCaching) {
-          await testCachingBehavior(simulationStatus, true);
-        }
-      });
-
-      // Helper method to test caching behavior for different simulation statuses
-      async function testCachingBehavior(
-        simulationStatus: SimulationStatus,
-        expectCaching: boolean
-      ) {
-        await testAlphaRouter.testPerformCachingIntention(
-          BULLET,
-          USDC,
-          TradeType.EXACT_INPUT,
-          CurrencyAmount.fromRawAmount(BULLET, 10000),
-          allProtocols,
-          mockBlock,
-          ROUTING_CONFIG,
-          simulationStatus,
-          [{}] as RouteWithValidQuote[]
-        );
-
-        expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-
-        if (expectCaching) {
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toBeGreaterThanOrEqual(1);
-        }
-        else {
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
-        }
-      }
-
-      test('shouldCacheRoute tests', () => {
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.Succeeded)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.NotApproved)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.SystemDown)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.NotSupported)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.InsufficientBalance)).toBe(true);
-
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.Failed)).toBe(false);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.SlippageTooLow)).toBe(false);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.TransferFromFailed)).toBe(false);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
       });
 
       test('fails to fetch from cache, so it inserts again, when blocknumber advances', async () => {
@@ -1670,7 +1544,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
         mockProvider.getBlockNumber.resolves(mockBlock + 5);
 
@@ -1687,7 +1561,7 @@ describe('alpha router', () => {
         expect(swap2).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
 
         const swap3 = await alphaRouter.route(
           CurrencyAmount.fromRawAmount(USDC, 100000),
@@ -1702,7 +1576,7 @@ describe('alpha router', () => {
         expect(swap3).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(3);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
       });
 
       describe('UniversalRouter version caching', () => {
@@ -1733,7 +1607,7 @@ describe('alpha router', () => {
           );
           expect(swap).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
           // Second call should hit cache
           const swap2 = await alphaRouter.route(
@@ -1748,7 +1622,7 @@ describe('alpha router', () => {
           );
           expect(swap2).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
 
         test('with V1.2 - skips cache when V2 is missing from requested protocols', async () => {
@@ -1770,7 +1644,7 @@ describe('alpha router', () => {
           expect(swap).toBeDefined();
           // Should skip cache since V2 is missing but required for V1.2
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
 
         test('with V2.0 - hits cache when all protocols are requested', async () => {
@@ -1792,7 +1666,7 @@ describe('alpha router', () => {
           );
           expect(swap).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
           // Second call should hit cache
           const swap2 = await alphaRouter.route(
@@ -1807,7 +1681,7 @@ describe('alpha router', () => {
           );
           expect(swap2).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
 
         test('with V2.0 - skips cache when subset of protocols requested', async () => {
@@ -1829,7 +1703,7 @@ describe('alpha router', () => {
           expect(swap).toBeDefined();
           // Should skip cache since not all available protocols are requested
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
       });
     });
@@ -3266,13 +3140,13 @@ type GetQuotesManyExactInFnParams = {
 function getQuotesManyExactInFn<TRoute extends SupportedRoutes>(
   options: GetQuotesManyExactInFnParams = {}
 ): (
-    amountIns: CurrencyAmount[],
-    routes: TRoute[],
-    _providerConfig?: ProviderConfig | undefined
-  ) => Promise<{
-    routesWithQuotes: RouteWithQuotes<TRoute>[];
-    blockNumber: BigNumber;
-  }> {
+  amountIns: CurrencyAmount[],
+  routes: TRoute[],
+  _providerConfig?: ProviderConfig | undefined
+) => Promise<{
+  routesWithQuotes: RouteWithQuotes<TRoute>[];
+  blockNumber: BigNumber;
+}> {
   return async (
     amountIns: CurrencyAmount[],
     routes: TRoute[],
