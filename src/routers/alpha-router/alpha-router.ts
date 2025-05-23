@@ -1,7 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { Protocol, SwapRouter, Trade, ZERO } from '@uniswap/router-sdk';
+import {
+  Protocol,
+  SwapRouter,
+  TPool as MixedPool,
+  Trade,
+  ZERO,
+} from '@uniswap/router-sdk';
 import {
   ChainId,
   Currency,
@@ -10,7 +16,16 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { Pair as V2Pool } from '@uniswap/v2-sdk';
+import {
+  Pool,
+  Pool as V3Pool,
+  Position,
+  SqrtPriceMath,
+  TickMath,
+} from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
@@ -108,10 +123,12 @@ import {
   ID_TO_NETWORK_NAME,
   V2_SUPPORTED,
 } from '../../util/chains';
+import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import {
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
 } from '../../util/gas-factory-helpers';
+import { INTENT } from '../../util/intent';
 import { log } from '../../util/log';
 import {
   buildSwapMethodParameters,
@@ -130,8 +147,13 @@ import {
   RETRY_OPTIONS,
   SUCCESS_RATE_FAILURE_OVERRIDES,
 } from '../../util/onchainQuoteProviderConfigs';
+import { serializeRouteIds } from '../../util/serializeRouteIds';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
+  cloneMixedRouteWithNewPools,
+  cloneV2RouteWithNewPools,
+  cloneV3RouteWithNewPools,
+  cloneV4RouteWithNewPools,
   IRouter,
   ISwapToRatio,
   MethodParameters,
@@ -149,10 +171,6 @@ import {
   V4Route,
 } from '../router';
 
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
-import { INTENT } from '../../util/intent';
-import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -1701,6 +1719,24 @@ export class AlphaRouter
     let swapRouteRaw: BestSwapRoute | null;
     let hitsCachedRoute = false;
     if (cacheMode === CacheMode.Livemode && swapRouteFromCache) {
+      // offline lambda is never in cache mode
+      // refresh pools to avoid stale data
+      const beforeRefreshPools = Date.now();
+
+      await this.refreshPools(
+        swapRouteFromCache.routes,
+        routingConfig,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        this.v4PoolProvider
+      );
+
+      metric.putMetric(
+        `Route_RefreshPools_Latency`,
+        Date.now() - beforeRefreshPools,
+        MetricLoggerUnit.Milliseconds
+      );
+
       log.info(
         `CacheMode is ${cacheMode}, and we are using swapRoute from cache`
       );
@@ -2053,6 +2089,277 @@ export class AlphaRouter
     }
 
     return swapRoute;
+  }
+
+  /**
+   * Refreshes the pools for the given routes.
+   *
+   * @param routes the routes to refresh the pools for
+   * @param routingConfig the routing config
+   */
+  protected async refreshPools(
+    routes: RouteWithValidQuote[],
+    routingConfig: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider
+  ) {
+    for (const route of routes) {
+      switch (route.protocol) {
+        case Protocol.V2:
+          route.route = await AlphaRouter.refreshV2Pools(
+            route.route as V2Route,
+            routingConfig,
+            v2PoolProvider
+          );
+          break;
+        case Protocol.V3:
+          route.route = await AlphaRouter.refreshV3Pools(
+            route.route as V3Route,
+            routingConfig,
+            v3PoolProvider
+          );
+          break;
+        case Protocol.V4:
+          route.route = await AlphaRouter.refreshV4Pools(
+            route.route as V4Route,
+            routingConfig,
+            v4PoolProvider
+          );
+          break;
+        case Protocol.MIXED:
+          route.route = await AlphaRouter.refreshMixedPools(
+            route.route as MixedRoute,
+            routingConfig,
+            v2PoolProvider,
+            v3PoolProvider,
+            v4PoolProvider
+          );
+          break;
+        default:
+          throw new Error(
+            `Unknown protocol: ${(route as { protocol: Protocol }).protocol}`
+          );
+      }
+    }
+  }
+
+  /**
+   * Refreshes the V2 pools for the given route.
+   *
+   * @param route the route to refresh the V2 pools for
+   * @param config the routing config
+   * @param v2PoolProvider the V2 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV2Pools(
+    route: V2Route,
+    config: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider
+  ): Promise<V2Route> {
+    const refreshedPairs: V2Pool[] = [];
+    for (const pair of route.pairs) {
+      const v2Pools = await v2PoolProvider.getPools(
+        [[pair.token0, pair.token1]],
+        config
+      );
+      const refreshed = v2Pools.getPool(pair.token0, pair.token1);
+      if (refreshed) refreshedPairs.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV2PoolRefreshError(pair);
+        refreshedPairs.push(pair);
+      }
+    }
+
+    return cloneV2RouteWithNewPools(route, refreshedPairs);
+  }
+
+  /**
+   * Refreshes the V3 pools for the given route.
+   *
+   * @param route the route to refresh the V3 pools for
+   * @param config the routing config
+   * @param v3PoolProvider the V3 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV3Pools(
+    route: V3Route,
+    config: AlphaRouterConfig,
+    v3PoolProvider: IV3PoolProvider
+  ): Promise<V3Route> {
+    const refreshedPools: V3Pool[] = [];
+    for (const pool of route.pools) {
+      const v3Pools = await v3PoolProvider.getPools(
+        [[pool.token0, pool.token1, pool.fee]],
+        config
+      );
+      const refreshed = v3Pools.getPool(pool.token0, pool.token1, pool.fee);
+      if (refreshed) refreshedPools.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV3PoolRefreshError(pool);
+        refreshedPools.push(pool);
+      }
+    }
+
+    return cloneV3RouteWithNewPools(route, refreshedPools);
+  }
+
+  /**
+   * Refreshes the V4 pools for the given route.
+   *
+   * @param route the route to refresh the V4 pools for
+   * @param config the routing config
+   * @param v4PoolProvider the V4 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV4Pools(
+    route: V4Route,
+    config: AlphaRouterConfig,
+    v4PoolProvider: IV4PoolProvider
+  ): Promise<V4Route> {
+    const refreshedPools: V4Pool[] = [];
+    for (const pool of route.pools) {
+      const v4Pools = await v4PoolProvider.getPools(
+        [
+          [
+            pool.currency0,
+            pool.currency1,
+            pool.fee,
+            pool.tickSpacing,
+            pool.hooks,
+          ],
+        ],
+        config
+      );
+      const refreshed = v4Pools.getPool(
+        pool.currency0,
+        pool.currency1,
+        pool.fee,
+        pool.tickSpacing,
+        pool.hooks
+      );
+      if (refreshed) refreshedPools.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV4PoolRefreshError(pool);
+        refreshedPools.push(pool);
+      }
+    }
+
+    return cloneV4RouteWithNewPools(route, refreshedPools);
+  }
+
+  /**
+   * Refreshes the mixed pools for the given route.
+   *
+   * @param route the route to refresh the mixed pools for
+   * @param config the routing config
+   * @param v2PoolProvider the V2 pool provider
+   * @param v3PoolProvider the V3 pool provider
+   * @param v4PoolProvider the V4 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshMixedPools(
+    route: MixedRoute,
+    config: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider
+  ): Promise<MixedRoute> {
+    const refreshedPools: MixedPool[] = [];
+    for (const pool of route.pools) {
+      if (pool instanceof V2Pool) {
+        const v2Pools = await v2PoolProvider.getPools(
+          [[pool.token0, pool.token1]],
+          config
+        );
+        const refreshed = v2Pools.getPool(pool.token0, pool.token1);
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV2PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else if (pool instanceof V3Pool) {
+        const v3Pools = await v3PoolProvider.getPools(
+          [[pool.token0, pool.token1, pool.fee]],
+          config
+        );
+        const refreshed = v3Pools.getPool(pool.token0, pool.token1, pool.fee);
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV3PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else if (pool instanceof V4Pool) {
+        const v4Pools = await v4PoolProvider.getPools(
+          [
+            [
+              pool.currency0,
+              pool.currency1,
+              pool.fee,
+              pool.tickSpacing,
+              pool.hooks,
+            ],
+          ],
+          config
+        );
+        const refreshed = v4Pools.getPool(
+          pool.currency0,
+          pool.currency1,
+          pool.fee,
+          pool.tickSpacing,
+          pool.hooks
+        );
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV4PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else {
+        throw new Error('Unknown pool type in mixed route');
+      }
+    }
+
+    return cloneMixedRouteWithNewPools(route, refreshedPools);
+  }
+
+  private static logV2PoolRefreshError(v2Pool: V2Pool) {
+    log.error(
+      {
+        token0: v2Pool.token0,
+        token1: v2Pool.token1,
+      },
+      'Failed to refresh V2 pool'
+    );
+  }
+
+  private static logV3PoolRefreshError(v3Pool: V3Pool) {
+    log.error(
+      {
+        token0: v3Pool.token0,
+        token1: v3Pool.token1,
+        fee: v3Pool.fee,
+      },
+      'Failed to refresh V3 pool'
+    );
+  }
+
+  private static logV4PoolRefreshError(v4Pool: V4Pool) {
+    log.error(
+      {
+        token0: v4Pool.currency0,
+        token1: v4Pool.currency1,
+        fee: v4Pool.fee,
+        tickSpacing: v4Pool.tickSpacing,
+        hooks: v4Pool.hooks,
+      },
+      'Failed to refresh V4 pool'
+    );
   }
 
   private async setCachedRoutesAndLog(

@@ -1,14 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import { Protocol, SwapRouter } from '@uniswap/router-sdk';
+import { ADDRESS_ZERO, Protocol, SwapRouter } from '@uniswap/router-sdk';
 import { ChainId, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';
+import { RouteWithValidQuote } from '../../../../build/main/routers/alpha-router/entities/route-with-valid-quote';
 import {
   AlphaRouter,
   AlphaRouterConfig,
@@ -22,6 +23,8 @@ import {
   FallbackTenderlySimulator,
   HooksOptions,
   INTENT,
+  IV3PoolProvider,
+  IV4PoolProvider,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
@@ -55,17 +58,20 @@ import {
   V3SubgraphPool,
   V3SubgraphProvider,
   V4PoolProvider,
+  V4Route,
+  MixedRoute,
   V4RouteWithValidQuote,
   V4SubgraphPool,
   V4SubgraphProvider,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
+  IGasModel
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import {
   TokenValidationResult,
   TokenValidatorProvider
 } from '../../../../src/providers/token-validator-provider';
-import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
+import { IV2PoolProvider, V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import {
   MixedRouteHeuristicGasModelFactory
 } from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
@@ -149,6 +155,7 @@ describe('alpha router', () => {
   let inMemoryRouteCachingProvider: InMemoryRouteCachingProvider;
 
   let alphaRouter: AlphaRouter;
+  let testAlphaRouter: TestAlphaRouter;
 
   const allProtocols = [Protocol.V2, Protocol.V3, Protocol.V4, Protocol.MIXED];
 
@@ -520,7 +527,97 @@ describe('alpha router', () => {
       tokenPropertiesProvider: mockTokenPropertiesProvider,
       v4Supported: [ChainId.SEPOLIA, ChainId.MAINNET]
     });
+
+    // testAlphaRouter is used to test the protected methods of AlphaRouter
+    testAlphaRouter = new TestAlphaRouter({
+      chainId: 1,
+      provider: mockProvider,
+      multicall2Provider: mockMulticallProvider as any,
+      v4SubgraphProvider: mockV4SubgraphProvider,
+      v4PoolProvider: mockV4PoolProvider,
+      v4GasModelFactory: mockV4GasModelFactory,
+      v3SubgraphProvider: mockV3SubgraphProvider,
+      v3PoolProvider: mockV3PoolProvider,
+      onChainQuoteProvider: mockOnChainQuoteProvider,
+      tokenProvider: mockTokenProvider,
+      gasPriceProvider: mockGasPriceProvider,
+      v3GasModelFactory: mockV3GasModelFactory,
+      blockedTokenListProvider: mockBlockTokenListProvider,
+      v2GasModelFactory: mockV2GasModelFactory,
+      v2PoolProvider: mockV2PoolProvider,
+      v2QuoteProvider: mockV2QuoteProvider,
+      mixedRouteGasModelFactory: mockMixedRouteGasModelFactory,
+      v2SubgraphProvider: mockV2SubgraphProvider,
+      swapRouterProvider: mockSwapRouterProvider,
+      tokenValidatorProvider: mockTokenValidatorProvider,
+      simulator: mockFallbackTenderlySimulator,
+      routeCachingProvider: inMemoryRouteCachingProvider,
+      tokenPropertiesProvider: mockTokenPropertiesProvider,
+      v4Supported: [ChainId.SEPOLIA, ChainId.MAINNET]
+    });
   });
+
+  // TestAlphaRouter is used to test the protected methods of AlphaRouter
+  class TestAlphaRouter extends AlphaRouter {
+    /**
+     * @dev test method for protected method
+     */
+    public async refreshPools(
+      routes: RouteWithValidQuote[],
+      routingConfig: AlphaRouterConfig,
+      v2PoolProvider: IV2PoolProvider,
+      v3PoolProvider: IV3PoolProvider,
+      v4PoolProvider: IV4PoolProvider
+    ) {
+      return super.refreshPools(routes, routingConfig, v2PoolProvider, v3PoolProvider, v4PoolProvider);
+    }
+
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshV2Pools(
+      route: V2Route,
+      routingConfig: AlphaRouterConfig,
+      v2PoolProvider: IV2PoolProvider
+    ) {
+      return super.refreshV2Pools(route, routingConfig, v2PoolProvider);
+    }
+
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshV3Pools(
+      route: V3Route,
+      routingConfig: AlphaRouterConfig,
+      v3PoolProvider: IV3PoolProvider
+    ) {
+      return super.refreshV3Pools(route, routingConfig, v3PoolProvider);
+    }
+
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshV4Pools(
+      route: V4Route,
+      routingConfig: AlphaRouterConfig,
+      v4PoolProvider: IV4PoolProvider
+    ) {
+      return super.refreshV4Pools(route, routingConfig, v4PoolProvider);
+    }
+
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshMixedPools(
+      route: MixedRoute,
+      routingConfig: AlphaRouterConfig,
+      v2PoolProvider: IV2PoolProvider,
+      v3PoolProvider: IV3PoolProvider,
+      v4PoolProvider: IV4PoolProvider
+    ) {
+      return super.refreshMixedPools(route, routingConfig, v2PoolProvider, v3PoolProvider, v4PoolProvider);
+    }
+  }
 
   describe('exact in', () => {
     test('find a favorable mixedRoute while routing across V2,V3,Mixed protocols', async () => {
@@ -1522,7 +1619,7 @@ describe('alpha router', () => {
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
           undefined,
-          { ...ROUTING_CONFIG, ...{protocols: [Protocol.V3]} }
+          { ...ROUTING_CONFIG, ...{ protocols: [Protocol.V3] } }
         );
         expect(swap).toBeDefined();
 
@@ -3129,6 +3226,313 @@ describe('alpha router', () => {
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, true)).toBe(true);
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, false)).toBe(true);
     })
+  });
+
+  describe('refreshPools tests', () => {
+    const DAI_USDT_V2_OLD = new Pair(
+      CurrencyAmount.fromRawAmount(DAI, 10000000000),
+      CurrencyAmount.fromRawAmount(USDT, 10000000000)
+    );
+    const DAI_USDT_V2_NEW = new Pair(
+      CurrencyAmount.fromRawAmount(DAI, 5000000000),
+      CurrencyAmount.fromRawAmount(USDT, 10000000000)
+    );
+    const USDT_DAI_V3_MEDIUM_OLD = new V3Pool(
+      USDT,
+      DAI,
+      FeeAmount.MEDIUM,
+      encodeSqrtRatioX96(1, 1),
+      8,
+      0
+    );
+    const USDT_DAI_V3_MEDIUM_NEW = new V3Pool(
+      USDT,
+      DAI,
+      FeeAmount.MEDIUM,
+      encodeSqrtRatioX96(1, 1),
+      5,
+      0
+    );
+    const USDT_DAI_V4_LOW_OLD = new V4Pool(
+      DAI,
+      USDT,
+      FeeAmount.LOW,
+      10,
+      ADDRESS_ZERO,
+      encodeSqrtRatioX96(1, 1),
+      10,
+      0
+    );
+    const USDT_DAI_V4_LOW_NEW = new V4Pool(
+      DAI,
+      USDT,
+      FeeAmount.LOW,
+      10,
+      ADDRESS_ZERO,
+      encodeSqrtRatioX96(1, 1),
+      5,
+      0
+    );
+
+    let mockV2GasModel: sinon.SinonStubbedInstance<IGasModel<V2RouteWithValidQuote>>;
+    let mockV3GasModel: sinon.SinonStubbedInstance<IGasModel<V3RouteWithValidQuote>>;
+    let mockV4GasModel: sinon.SinonStubbedInstance<IGasModel<V4RouteWithValidQuote>>;
+    let mockMixedGasModel: sinon.SinonStubbedInstance<IGasModel<MixedRouteWithValidQuote>>;
+
+    beforeEach(() => {
+      mockV2GasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockV2GasModel.estimateGasCost.callsFake((r: V2RouteWithValidQuote) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+
+      mockV3GasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockV3GasModel.estimateGasCost.callsFake((r) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+
+      mockV4GasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockV4GasModel.estimateGasCost.callsFake((r) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+
+      mockMixedGasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockMixedGasModel.estimateGasCost.callsFake((r) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+    });
+
+    test('V2 pools refresh', async () => {
+      const route = new V2Route(
+        [DAI_USDT_V2_OLD, DAI_USDT_V2_OLD],
+        DAI,
+        USDT
+      );
+
+      expect(route.pairs).toEqual([DAI_USDT_V2_OLD, DAI_USDT_V2_OLD]);
+
+      let v2MockPools = [DAI_USDT_V2_NEW];
+      let localV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+      localV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshV2Pools(route, ROUTING_CONFIG, localV2PoolProvider);
+      expect(localV2PoolProvider.getPools.called).toBe(true);
+      expect(refreshedRoute.pairs).toEqual([DAI_USDT_V2_NEW, DAI_USDT_V2_NEW]);
+    });
+
+    test('V3 pools refresh', async () => {
+      const route = new V3Route(
+        [USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V3_MEDIUM_OLD],
+        USDT,
+        DAI
+      );
+
+      expect(route.pools).toEqual([USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V3_MEDIUM_OLD]);
+
+      let v3MockPools = [USDT_DAI_V3_MEDIUM_NEW];
+      let localV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+      localV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshV3Pools(route, ROUTING_CONFIG, localV3PoolProvider);
+      expect(localV3PoolProvider.getPools.called).toBe(true);
+      expect(refreshedRoute.pools).toEqual([USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V3_MEDIUM_NEW]);
+    });
+
+    test('V4 pools refresh', async () => {
+      const route = new V4Route(
+        [USDT_DAI_V4_LOW_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      expect(route.pools).toEqual([USDT_DAI_V4_LOW_OLD, USDT_DAI_V4_LOW_OLD]);
+
+      let v4MockPools = [USDT_DAI_V4_LOW_NEW];
+      let localV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+      localV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshV4Pools(route, ROUTING_CONFIG, localV4PoolProvider);
+      expect(localV4PoolProvider.getPools.called).toBe(true);
+      expect(refreshedRoute.pools).toEqual([USDT_DAI_V4_LOW_NEW, USDT_DAI_V4_LOW_NEW]);
+    });
+
+    test('Mixed pools refresh', async () => {
+      const route = new MixedRoute(
+        [DAI_USDT_V2_OLD, USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      expect(route.pools).toEqual([DAI_USDT_V2_OLD, USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V4_LOW_OLD]);
+
+      let v2MockPools = [DAI_USDT_V2_NEW];
+      let localV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+      localV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
+
+      let v3MockPools = [USDT_DAI_V3_MEDIUM_NEW];
+      let localV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+      localV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
+
+      let v4MockPools = [USDT_DAI_V4_LOW_NEW];
+      let localV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+      localV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshMixedPools(route, ROUTING_CONFIG, localV2PoolProvider, localV3PoolProvider, localV4PoolProvider);
+      expect(localV2PoolProvider.getPools.called).toBe(true);
+      expect(localV3PoolProvider.getPools.called).toBe(true);
+      expect(localV4PoolProvider.getPools.called).toBe(true);
+
+      expect(refreshedRoute.pools).toEqual([DAI_USDT_V2_NEW, USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V4_LOW_NEW]);
+    });
+
+    test('testRefreshPools', async () => {
+      const v2Route = new V2Route(
+        [DAI_USDT_V2_OLD, DAI_USDT_V2_OLD],
+        DAI,
+        USDT
+      );
+
+      const v3Route = new V3Route(
+        [USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V3_MEDIUM_OLD],
+        USDT,
+        DAI
+      );
+
+      const v4Route = new V4Route(
+        [USDT_DAI_V4_LOW_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      const mixedRoute = new MixedRoute(
+        [DAI_USDT_V2_OLD, USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      const v2MockPools = [DAI_USDT_V2_NEW];
+      const v3MockPools = [USDT_DAI_V3_MEDIUM_NEW];
+      const v4MockPools = [USDT_DAI_V4_LOW_NEW];
+
+      const localV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+      localV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
+      localV2PoolProvider.getPoolAddress.callsFake((tA, tB) => ({
+        poolAddress: Pair.getAddress(tA, tB),
+        token0: tA,
+        token1: tB,
+      }));
+
+      const localV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+      localV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
+      localV3PoolProvider.getPoolAddress.callsFake((tA, tB, fee) => ({
+        poolAddress: Pool.getAddress(tA, tB, fee),
+        token0: tA,
+        token1: tB,
+      }));
+
+      const localV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+      localV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+      localV4PoolProvider.getPoolId.callsFake((currency0, currency1, fee, tickSpacing, hooks) => {
+        return {
+          poolId: V4Pool.getPoolId(currency0, currency1, fee, tickSpacing, hooks),
+          currency0: currency0,
+          currency1: currency1
+        };
+      });
+
+      const v2RouteWithValidQuote = new V2RouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        percent: 1,
+        route: v2Route,
+        gasModel: mockV2GasModel,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v2PoolProvider: localV2PoolProvider
+      });
+
+      const v3RouteWithValidQuote = new V3RouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        sqrtPriceX96AfterList: [BigNumber.from(1)],
+        initializedTicksCrossedList: [1],
+        quoterGasEstimate: BigNumber.from(100000),
+        percent: 1,
+        route: v3Route,
+        gasModel: mockV3GasModel,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v3PoolProvider: localV3PoolProvider,
+      });
+
+      const v4RouteWithValidQuote = new V4RouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        sqrtPriceX96AfterList: [BigNumber.from(1)],
+        initializedTicksCrossedList: [1],
+        quoterGasEstimate: BigNumber.from(100000),
+        percent: 1,
+        route: v4Route,
+        gasModel: mockV4GasModel,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v4PoolProvider: localV4PoolProvider,
+      });
+
+      const mixedRouteWithValidQuote = new MixedRouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        sqrtPriceX96AfterList: [BigNumber.from(1)],
+        initializedTicksCrossedList: [1],
+        quoterGasEstimate: BigNumber.from(100000),
+        percent: 1,
+        route: mixedRoute,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v4PoolProvider: mockV4PoolProvider,
+        v3PoolProvider: mockV3PoolProvider,
+        v2PoolProvider: mockV2PoolProvider,
+        mixedRouteGasModel: mockMixedGasModel,
+      });
+
+      const routingConfig = ROUTING_CONFIG;
+
+      // test the method
+      await testAlphaRouter.refreshPools([v2RouteWithValidQuote, v3RouteWithValidQuote, v4RouteWithValidQuote, mixedRouteWithValidQuote], routingConfig, localV2PoolProvider, localV3PoolProvider, localV4PoolProvider);
+
+      expect(localV2PoolProvider.getPools.called).toBe(true);
+      expect(localV3PoolProvider.getPools.called).toBe(true);
+      expect(localV4PoolProvider.getPools.called).toBe(true);
+
+      // check the pools are refreshed
+      expect(v2RouteWithValidQuote.route.pairs).toEqual([DAI_USDT_V2_NEW, DAI_USDT_V2_NEW]);
+      expect(v3RouteWithValidQuote.route.pools).toEqual([USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V3_MEDIUM_NEW]);
+      expect(v4RouteWithValidQuote.route.pools).toEqual([USDT_DAI_V4_LOW_NEW, USDT_DAI_V4_LOW_NEW]);
+      expect(mixedRouteWithValidQuote.route.pools).toEqual([DAI_USDT_V2_NEW, USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V4_LOW_NEW]);
+    });
   });
 });
 
