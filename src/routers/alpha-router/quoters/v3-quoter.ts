@@ -99,7 +99,8 @@ export class V3Quoter extends BaseQuoter<V3CandidatePools, V3Route, Token> {
         // ROUTE-495 - bypass v3 pool FOT check for $ELMO token
         if (
           tokenValidation == TokenValidationResult.FOT &&
-          token.wrapped.address.toLowerCase() === '0x335f4e66b9b61cee5ceade4e727fcec20156b2f0' &&
+          token.wrapped.address.toLowerCase() ===
+            '0x335f4e66b9b61cee5ceade4e727fcec20156b2f0' &&
           (token.equals(tokenIn) || token.equals(tokenOut))
         ) {
           return false;
