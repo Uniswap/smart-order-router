@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ADDRESS_ZERO, Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { ChainId, Currency, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
+import { ChainId, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
@@ -618,7 +618,6 @@ describe('alpha router', () => {
       return super.refreshMixedPools(route, routingConfig, v2PoolProvider, v3PoolProvider, v4PoolProvider);
     }
   }
-  });
 
   describe('exact in', () => {
     test('find a favorable mixedRoute while routing across V2,V3,Mixed protocols', async () => {
@@ -1620,7 +1619,7 @@ describe('alpha router', () => {
           MOCK_ZERO_DEC_TOKEN,
           TradeType.EXACT_INPUT,
           undefined,
-          { ...ROUTING_CONFIG, ...{protocols: [Protocol.V3]} }
+          { ...ROUTING_CONFIG, ...{ protocols: [Protocol.V3] } }
         );
         expect(swap).toBeDefined();
 
