@@ -3228,7 +3228,7 @@ describe('alpha router', () => {
     })
   });
 
-  describe('yucan refreshPools', () => {
+  describe('refreshPools tests', () => {
     const DAI_USDT_V2_OLD = new Pair(
       CurrencyAmount.fromRawAmount(DAI, 10000000000),
       CurrencyAmount.fromRawAmount(USDT, 10000000000)
