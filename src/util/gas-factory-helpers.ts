@@ -234,7 +234,8 @@ export async function calculateOptimismToL1FeeFromCalldata(
 export function getL2ToL1GasUsed(data: string, chainId: ChainId): BigNumber {
   switch (chainId) {
     case ChainId.ARBITRUM_ONE:
-    case ChainId.ARBITRUM_GOERLI: {
+    case ChainId.ARBITRUM_GOERLI:
+    case ChainId.ARBITRUM_SEPOLIA: {
       // calculates bytes of compressed calldata
       const l1ByteUsed = getArbitrumBytes(data);
       return l1ByteUsed.mul(16);
@@ -579,7 +580,8 @@ export const calculateL1GasFeesHelper = async (
     );
   } else if (
     chainId == ChainId.ARBITRUM_ONE ||
-    chainId == ChainId.ARBITRUM_GOERLI
+    chainId == ChainId.ARBITRUM_GOERLI ||
+    chainId == ChainId.ARBITRUM_SEPOLIA
   ) {
     [mainnetGasUsed, mainnetFeeInWei, gasUsedL1OnL2] =
       calculateArbitrumToL1SecurityFee(
