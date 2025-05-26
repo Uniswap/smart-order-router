@@ -1,6 +1,8 @@
 import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
 import {
+  TAAVE_SEPOLIA,
+  TLINK_SEPOLIA,
   TUSDC_MAINNET,
   TUSDC_SEPOLIA,
   TUSDT_MAINNET,
@@ -91,6 +93,8 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     TUSDT_SEPOLIA,
     TWBTC_SEPOLIA,
     TWETH_SEPOLIA,
+    TLINK_SEPOLIA,
+    TAAVE_SEPOLIA,
   ],
   //v2 not deployed on [arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
   [ChainId.OPTIMISM]: [

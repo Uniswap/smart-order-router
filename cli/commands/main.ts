@@ -90,8 +90,31 @@ async function main() {
   //   autoSlippage: 'DEFAULT',
   // };
 
+  // const payload = {
+  //   amount: '11000000000000000000',
+  //   gasStrategies: [
+  //     {
+  //       limitInflationFactor: 1.15,
+  //       displayLimitInflationFactor: 1.15,
+  //       priceInflationFactor: 1.5,
+  //       percentileThresholdFor1559Fee: 75,
+  //       minPriorityFeeGwei: 2,
+  //       maxPriorityFeeGwei: 9,
+  //     },
+  //   ],
+  //   swapper: '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff',
+  //   tokenIn: '0x0000000000000000000000000000000000000000',
+  //   tokenInChainId: 1,
+  //   tokenOut: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+  //   tokenOutChainId: 1,
+  //   type: 'EXACT_INPUT',
+  //   urgency: 'normal',
+  //   protocols: ['V3'],
+  //   autoSlippage: 'DEFAULT',
+  // };
+
   const payload = {
-    amount: '11000000000000000000',
+    amount: '1000000000',
     gasStrategies: [
       {
         limitInflationFactor: 1.15,
@@ -102,15 +125,14 @@ async function main() {
         maxPriorityFeeGwei: 9,
       },
     ],
-    swapper: '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff',
-    tokenIn: '0x0000000000000000000000000000000000000000',
-    tokenInChainId: 1,
-    tokenOut: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    tokenOutChainId: 1,
-    type: 'EXACT_INPUT',
+    swapper: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
+    tokenIn: '0x1E271DB8D8B446A0DEe8e9D774f4213e9Bc1C6ba',
+    tokenInChainId: 11155111,
+    tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
+    tokenOutChainId: 11155111,
+    type: 'EXACT_OUTPUT',
     urgency: 'normal',
-    protocols: ['V3'],
-    autoSlippage: 'DEFAULT',
+    protocols: ['V2', 'V3', 'V4'],
   };
 
   const swapRoutes = await getQuote(payload);
