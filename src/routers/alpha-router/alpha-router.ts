@@ -1,7 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
-import { Protocol, SwapRouter, Trade, ZERO } from '@uniswap/router-sdk';
+import {
+  Protocol,
+  SwapRouter,
+  TPool as MixedPool,
+  Trade,
+  ZERO,
+} from '@uniswap/router-sdk';
 import {
   ChainId,
   Currency,
@@ -10,7 +16,16 @@ import {
   TradeType,
 } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
-import { Pool, Position, SqrtPriceMath, TickMath } from '@uniswap/v3-sdk';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { Pair as V2Pool } from '@uniswap/v2-sdk';
+import {
+  Pool,
+  Pool as V3Pool,
+  Position,
+  SqrtPriceMath,
+  TickMath,
+} from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
@@ -39,7 +54,6 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
-  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -109,10 +123,12 @@ import {
   ID_TO_NETWORK_NAME,
   V2_SUPPORTED,
 } from '../../util/chains';
+import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
 import {
   getHighestLiquidityV3NativePool,
   getHighestLiquidityV3USDPool,
 } from '../../util/gas-factory-helpers';
+import { INTENT } from '../../util/intent';
 import { log } from '../../util/log';
 import {
   buildSwapMethodParameters,
@@ -131,8 +147,13 @@ import {
   RETRY_OPTIONS,
   SUCCESS_RATE_FAILURE_OVERRIDES,
 } from '../../util/onchainQuoteProviderConfigs';
+import { serializeRouteIds } from '../../util/serializeRouteIds';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
+  cloneMixedRouteWithNewPools,
+  cloneV2RouteWithNewPools,
+  cloneV3RouteWithNewPools,
+  cloneV4RouteWithNewPools,
   IRouter,
   ISwapToRatio,
   MethodParameters,
@@ -150,10 +171,6 @@ import {
   V4Route,
 } from '../router';
 
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { DEFAULT_BLOCKS_TO_LIVE } from '../../util/defaultBlocksToLive';
-import { INTENT } from '../../util/intent';
-import { serializeRouteIds } from '../../util/serializeRouteIds';
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   ETH_GAS_STATION_API_URL,
@@ -1528,7 +1545,9 @@ export class AlphaRouter
                 tradeType,
                 protocols,
                 await blockNumber,
-                routingConfig.optimisticCachedRoutes
+                routingConfig.optimisticCachedRoutes,
+                routingConfig,
+                swapConfig
               ),
               this.routeCachingProvider?.getCachedRoute(
                 this.chainId,
@@ -1537,7 +1556,9 @@ export class AlphaRouter
                 tradeType,
                 [Protocol.V4],
                 await blockNumber,
-                routingConfig.optimisticCachedRoutes
+                routingConfig.optimisticCachedRoutes,
+                routingConfig,
+                swapConfig
               ),
             ]);
 
@@ -1575,7 +1596,9 @@ export class AlphaRouter
             tradeType,
             protocols,
             await blockNumber,
-            routingConfig.optimisticCachedRoutes
+            routingConfig.optimisticCachedRoutes,
+            routingConfig,
+            swapConfig
           );
         }
       }
@@ -1697,6 +1720,24 @@ export class AlphaRouter
     let swapRouteRaw: BestSwapRoute | null;
     let hitsCachedRoute = false;
     if (cacheMode === CacheMode.Livemode && swapRouteFromCache) {
+      // offline lambda is never in cache mode
+      // refresh pools to avoid stale data
+      const beforeRefreshPools = Date.now();
+
+      await this.refreshPools(
+        swapRouteFromCache.routes,
+        routingConfig,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        this.v4PoolProvider
+      );
+
+      metric.putMetric(
+        `Route_RefreshPools_Latency`,
+        Date.now() - beforeRefreshPools,
+        MetricLoggerUnit.Milliseconds
+      );
+
       log.info(
         `CacheMode is ${cacheMode}, and we are using swapRoute from cache`
       );
@@ -1799,6 +1840,78 @@ export class AlphaRouter
       }
     }
 
+    let newSetCachedRoutesPath = false;
+    const shouldEnableCachedRoutesCacheInvalidationFix =
+      Math.random() * 100 <
+      (this.cachedRoutesCacheInvalidationFixRolloutPercentage ?? 0);
+
+    // we have to write cached routes right before checking swapRouteRaw is null or not
+    // because getCachedRoutes in routing-api do not use the blocks-to-live to filter out the expired routes at all
+    // there's a possibility the cachedRoutes is always populated, but swapRouteFromCache is always null, because we don't update cachedRoutes in this case at all,
+    // as long as it's within 24 hours sliding window TTL
+    if (shouldEnableCachedRoutesCacheInvalidationFix) {
+      // theoretically, when routingConfig.intent === INTENT.CACHING, optimisticCachedRoutes should be false
+      // so that we can always pass in cachedRoutes?.notExpired(await blockNumber, !routingConfig.optimisticCachedRoutes)
+      // but just to be safe, we just hardcode true when checking the cached routes expiry for write update
+      // we decide to not check cached routes expiry in the read path anyway
+      if (!cachedRoutes?.notExpired(await blockNumber, true)) {
+        // optimisticCachedRoutes === false means at routing-api level, we only want to set cached routes during intent=caching, not intent=quote
+        // this means during the online quote endpoint path, we should not reset cached routes
+        if (routingConfig.intent === INTENT.CACHING) {
+          // due to fire and forget nature, we already take note that we should set new cached routes during the new path
+          newSetCachedRoutesPath = true;
+          metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
+
+          // there's a chance that swapRouteFromChain might be populated already,
+          // when there's no cachedroutes in the dynamo DB.
+          // in that case, we don't try to swap route from chain again
+          const swapRouteFromChainAgain =
+            swapRouteFromChain ??
+            // we have to intentionally await here, because routing-api lambda has a chance to return the swapRoute/swapRouteWithSimulation
+            // before the routing-api quote handler can finish running getSwapRouteFromChain (getSwapRouteFromChain is runtime intensive)
+            (await this.getSwapRouteFromChain(
+              amount,
+              currencyIn,
+              currencyOut,
+              protocols,
+              quoteCurrency,
+              tradeType,
+              routingConfig,
+              v3GasModel,
+              v4GasModel,
+              mixedRouteGasModel,
+              gasPriceWei,
+              v2GasModel,
+              swapConfig,
+              providerConfig
+            ));
+
+          if (swapRouteFromChainAgain) {
+            const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+              swapRouteFromChainAgain.routes,
+              this.chainId,
+              currencyIn,
+              currencyOut,
+              protocols.sort(),
+              await blockNumber,
+              tradeType,
+              amount.toExact()
+            );
+
+            await this.setCachedRoutesAndLog(
+              amount,
+              currencyIn,
+              currencyOut,
+              tradeType,
+              'SetCachedRoute_NewPath',
+              routesToCache,
+              routingConfig.cachedRoutesRouteIds
+            );
+          }
+        }
+      }
+    }
+
     if (!swapRouteRaw) {
       return null;
     }
@@ -1812,6 +1925,52 @@ export class AlphaRouter
       estimatedGasUsedUSD,
       estimatedGasUsedGasToken,
     } = swapRouteRaw;
+
+    // we intentionally dont add shouldEnableCachedRoutesCacheInvalidationFix in if condition below
+    // because we know cached routes in prod dont filter by blocks-to-live
+    // so that we know that swapRouteFromChain is always not populated, because
+    // if (!cachedRoutes || cacheMode !== CacheMode.Livemode) above always have the cachedRoutes as populated
+    if (
+      this.routeCachingProvider &&
+      routingConfig.writeToCachedRoutes &&
+      cacheMode !== CacheMode.Darkmode &&
+      swapRouteFromChain
+    ) {
+      if (newSetCachedRoutesPath) {
+        // SetCachedRoute_NewPath and SetCachedRoute_OldPath metrics might have counts during short timeframe.
+        // over time, we should expect to see less SetCachedRoute_OldPath metrics count.
+        // in AWS metrics, one can investigate, by:
+        // 1) seeing the overall metrics count of SetCachedRoute_NewPath and SetCachedRoute_OldPath. SetCachedRoute_NewPath should steadily go up, while SetCachedRoute_OldPath should go down.
+        // 2) using the same requestId, one should see eventually when SetCachedRoute_NewPath metric is logged, SetCachedRoute_OldPath metric should not be called.
+        metric.putMetric(
+          `SetCachedRoute_OldPath_INTENT_${routingConfig.intent}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+      }
+
+      // Generate the object to be cached
+      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+        swapRouteFromChain.routes,
+        this.chainId,
+        currencyIn,
+        currencyOut,
+        protocols.sort(),
+        await blockNumber,
+        tradeType,
+        amount.toExact()
+      );
+
+      await this.setCachedRoutesAndLog(
+        amount,
+        currencyIn,
+        currencyOut,
+        tradeType,
+        'SetCachedRoute_OldPath',
+        routesToCache,
+        routingConfig.cachedRoutesRouteIds
+      );
+    }
 
     metric.putMetric(
       `QuoteFoundForChain${this.chainId}`,
@@ -1927,25 +2086,6 @@ export class AlphaRouter
         Date.now() - beforeSimulate,
         MetricLoggerUnit.Milliseconds
       );
-
-      if (routingConfig.intent === INTENT.CACHING) {
-        if (swapRouteWithSimulation.simulationStatus) {
-          await this.performCachingIntention(
-            currencyIn,
-            currencyOut,
-            tradeType,
-            amount,
-            protocols,
-            await blockNumber,
-            routingConfig,
-            swapRouteWithSimulation.simulationStatus!,
-            swapRouteWithSimulation.route
-          );
-        } else {
-          log.info('Simulation status is null');
-        }
-      }
-
       return swapRouteWithSimulation;
     }
 
@@ -1953,71 +2093,273 @@ export class AlphaRouter
   }
 
   /**
-   * Performs the caching intention for the given simulation status and route.
+   * Refreshes the pools for the given routes.
    *
-   * @param currencyIn the currency in
-   * @param currencyOut the currency out
-   * @param tradeType the trade type
-   * @param amount the amount
-   * @param protocols the protocols
-   * @param blockNumber the block number
+   * @param routes the routes to refresh the pools for
    * @param routingConfig the routing config
-   * @param simulationStatus the simulation status
-   * @param simulationRoute the simulation route
    */
-  protected async performCachingIntention(
-    currencyIn: Currency,
-    currencyOut: Currency,
-    tradeType: TradeType,
-    amount: CurrencyAmount,
-    protocols: Protocol[],
-    blockNumber: number,
+  protected async refreshPools(
+    routes: RouteWithValidQuote[],
     routingConfig: AlphaRouterConfig,
-    simulationStatus: SimulationStatus,
-    simulationRoute: RouteWithValidQuote[]
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider
   ) {
-    // due to fire and forget nature, we already take note that we should set new cached routes during the new path
-    metric.putMetric(`SetCachedRoute_NewPath`, 1, MetricLoggerUnit.Count);
-
-    log.info(simulationStatus, 'Simulation status');
-
-    if (this.shouldCacheRoute(simulationStatus)) {
-      const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
-        simulationRoute,
-        this.chainId,
-        currencyIn,
-        currencyOut,
-        protocols.sort(),
-        blockNumber,
-        tradeType,
-        amount.toExact()
-      );
-
-      await this.setCachedRoutesAndLog(
-        amount,
-        currencyIn,
-        currencyOut,
-        tradeType,
-        'SetCachedRoute_NewPath',
-        routesToCache,
-        routingConfig.cachedRoutesRouteIds
-      );
+    for (const route of routes) {
+      switch (route.protocol) {
+        case Protocol.V2:
+          route.route = await AlphaRouter.refreshV2Pools(
+            route.route as V2Route,
+            routingConfig,
+            v2PoolProvider
+          );
+          break;
+        case Protocol.V3:
+          route.route = await AlphaRouter.refreshV3Pools(
+            route.route as V3Route,
+            routingConfig,
+            v3PoolProvider
+          );
+          break;
+        case Protocol.V4:
+          route.route = await AlphaRouter.refreshV4Pools(
+            route.route as V4Route,
+            routingConfig,
+            v4PoolProvider
+          );
+          break;
+        case Protocol.MIXED:
+          route.route = await AlphaRouter.refreshMixedPools(
+            route.route as MixedRoute,
+            routingConfig,
+            v2PoolProvider,
+            v3PoolProvider,
+            v4PoolProvider
+          );
+          break;
+        default:
+          throw new Error(
+            `Unknown protocol: ${(route as { protocol: Protocol }).protocol}`
+          );
+      }
     }
   }
 
   /**
-   * @param simulationStatus the status of the simulation
-   * @returns true if the route should be cached, false otherwise
+   * Refreshes the V2 pools for the given route.
+   *
+   * @param route the route to refresh the V2 pools for
+   * @param config the routing config
+   * @param v2PoolProvider the V2 pool provider
+   * @returns the refreshed route
    */
-  protected shouldCacheRoute(simulationStatus: SimulationStatus) {
-    // Do not cache the route for the following reasons:
-    // 1. failed when tenderly sim failed for unknown reason
-    // 2. slippage since we know swap is bound to fail
-    // 3. transfer from failed since we know swap is bound to fail
-    return (
-      simulationStatus !== SimulationStatus.Failed &&
-      simulationStatus !== SimulationStatus.SlippageTooLow &&
-      simulationStatus !== SimulationStatus.TransferFromFailed
+  protected static async refreshV2Pools(
+    route: V2Route,
+    config: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider
+  ): Promise<V2Route> {
+    const refreshedPairs: V2Pool[] = [];
+    for (const pair of route.pairs) {
+      const v2Pools = await v2PoolProvider.getPools(
+        [[pair.token0, pair.token1]],
+        config
+      );
+      const refreshed = v2Pools.getPool(pair.token0, pair.token1);
+      if (refreshed) refreshedPairs.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV2PoolRefreshError(pair);
+        refreshedPairs.push(pair);
+      }
+    }
+
+    return cloneV2RouteWithNewPools(route, refreshedPairs);
+  }
+
+  /**
+   * Refreshes the V3 pools for the given route.
+   *
+   * @param route the route to refresh the V3 pools for
+   * @param config the routing config
+   * @param v3PoolProvider the V3 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV3Pools(
+    route: V3Route,
+    config: AlphaRouterConfig,
+    v3PoolProvider: IV3PoolProvider
+  ): Promise<V3Route> {
+    const refreshedPools: V3Pool[] = [];
+    for (const pool of route.pools) {
+      const v3Pools = await v3PoolProvider.getPools(
+        [[pool.token0, pool.token1, pool.fee]],
+        config
+      );
+      const refreshed = v3Pools.getPool(pool.token0, pool.token1, pool.fee);
+      if (refreshed) refreshedPools.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV3PoolRefreshError(pool);
+        refreshedPools.push(pool);
+      }
+    }
+
+    return cloneV3RouteWithNewPools(route, refreshedPools);
+  }
+
+  /**
+   * Refreshes the V4 pools for the given route.
+   *
+   * @param route the route to refresh the V4 pools for
+   * @param config the routing config
+   * @param v4PoolProvider the V4 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV4Pools(
+    route: V4Route,
+    config: AlphaRouterConfig,
+    v4PoolProvider: IV4PoolProvider
+  ): Promise<V4Route> {
+    const refreshedPools: V4Pool[] = [];
+    for (const pool of route.pools) {
+      const v4Pools = await v4PoolProvider.getPools(
+        [
+          [
+            pool.currency0,
+            pool.currency1,
+            pool.fee,
+            pool.tickSpacing,
+            pool.hooks,
+          ],
+        ],
+        config
+      );
+      const refreshed = v4Pools.getPool(
+        pool.currency0,
+        pool.currency1,
+        pool.fee,
+        pool.tickSpacing,
+        pool.hooks
+      );
+      if (refreshed) refreshedPools.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV4PoolRefreshError(pool);
+        refreshedPools.push(pool);
+      }
+    }
+
+    return cloneV4RouteWithNewPools(route, refreshedPools);
+  }
+
+  /**
+   * Refreshes the mixed pools for the given route.
+   *
+   * @param route the route to refresh the mixed pools for
+   * @param config the routing config
+   * @param v2PoolProvider the V2 pool provider
+   * @param v3PoolProvider the V3 pool provider
+   * @param v4PoolProvider the V4 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshMixedPools(
+    route: MixedRoute,
+    config: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider
+  ): Promise<MixedRoute> {
+    const refreshedPools: MixedPool[] = [];
+    for (const pool of route.pools) {
+      if (pool instanceof V2Pool) {
+        const v2Pools = await v2PoolProvider.getPools(
+          [[pool.token0, pool.token1]],
+          config
+        );
+        const refreshed = v2Pools.getPool(pool.token0, pool.token1);
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV2PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else if (pool instanceof V3Pool) {
+        const v3Pools = await v3PoolProvider.getPools(
+          [[pool.token0, pool.token1, pool.fee]],
+          config
+        );
+        const refreshed = v3Pools.getPool(pool.token0, pool.token1, pool.fee);
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV3PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else if (pool instanceof V4Pool) {
+        const v4Pools = await v4PoolProvider.getPools(
+          [
+            [
+              pool.currency0,
+              pool.currency1,
+              pool.fee,
+              pool.tickSpacing,
+              pool.hooks,
+            ],
+          ],
+          config
+        );
+        const refreshed = v4Pools.getPool(
+          pool.currency0,
+          pool.currency1,
+          pool.fee,
+          pool.tickSpacing,
+          pool.hooks
+        );
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV4PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else {
+        throw new Error('Unknown pool type in mixed route');
+      }
+    }
+
+    return cloneMixedRouteWithNewPools(route, refreshedPools);
+  }
+
+  private static logV2PoolRefreshError(v2Pool: V2Pool) {
+    log.error(
+      {
+        token0: v2Pool.token0,
+        token1: v2Pool.token1,
+      },
+      'Failed to refresh V2 pool'
+    );
+  }
+
+  private static logV3PoolRefreshError(v3Pool: V3Pool) {
+    log.error(
+      {
+        token0: v3Pool.token0,
+        token1: v3Pool.token1,
+        fee: v3Pool.fee,
+      },
+      'Failed to refresh V3 pool'
+    );
+  }
+
+  private static logV4PoolRefreshError(v4Pool: V4Pool) {
+    log.error(
+      {
+        token0: v4Pool.currency0,
+        token1: v4Pool.currency1,
+        fee: v4Pool.fee,
+        tickSpacing: v4Pool.tickSpacing,
+        hooks: v4Pool.hooks,
+      },
+      'Failed to refresh V4 pool'
     );
   }
 

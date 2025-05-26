@@ -13,6 +13,7 @@ import {
 } from '@uniswap/sdk-core';
 
 import { AlphaRouterConfig } from '../../../routers';
+import { SwapOptions } from '../../../routers/router';
 import { CacheMode } from './model';
 import { CachedRoutes } from './model/cached-routes';
 
@@ -32,6 +33,9 @@ export abstract class IRouteCachingProvider {
    * @param tradeType
    * @param protocols
    * @param blockNumber
+   * @param optimistic
+   * @param alphaRouterConfig
+   * @param swapOptions
    */
   public readonly getCachedRoute = async (
     // Defined as a readonly member instead of a regular function to make it final.
@@ -42,7 +46,8 @@ export abstract class IRouteCachingProvider {
     protocols: Protocol[],
     blockNumber: number,
     optimistic = false,
-    alphaRouterConfig?: AlphaRouterConfig
+    alphaRouterConfig?: AlphaRouterConfig,
+    swapOptions?: SwapOptions
   ): Promise<CachedRoutes | undefined> => {
     if (
       (await this.getCacheMode(
@@ -64,7 +69,8 @@ export abstract class IRouteCachingProvider {
       protocols,
       blockNumber,
       optimistic,
-      alphaRouterConfig
+      alphaRouterConfig,
+      swapOptions
     );
 
     return this.filterExpiredCachedRoutes(cachedRoute, blockNumber, optimistic);
@@ -159,6 +165,10 @@ export abstract class IRouteCachingProvider {
    * @param quoteCurrency
    * @param tradeType
    * @param protocols
+   * @param currentBlockNumber
+   * @param optimistic
+   * @param alphaRouterConfig
+   * @param swapOptions
    * @protected
    */
   protected abstract _getCachedRoute(
@@ -169,7 +179,8 @@ export abstract class IRouteCachingProvider {
     protocols: Protocol[],
     currentBlockNumber: number,
     optimistic: boolean,
-    alphaRouterConfig?: AlphaRouterConfig
+    alphaRouterConfig?: AlphaRouterConfig,
+    swapOptions?: SwapOptions
   ): Promise<CachedRoutes | undefined>;
 
   /**

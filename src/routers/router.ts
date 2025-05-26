@@ -3,6 +3,7 @@ import {
   CondensedAddLiquidityOptions,
   MixedRouteSDK,
   Protocol,
+  TPool,
   Trade,
 } from '@uniswap/router-sdk';
 import {
@@ -16,14 +17,15 @@ import {
   SwapOptions as UniversalRouterSwapOptions,
   UniversalRouterVersion,
 } from '@uniswap/universal-router-sdk';
-import { Route as V2RouteRaw } from '@uniswap/v2-sdk';
+import { Pair, Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
   MethodParameters as SDKMethodParameters,
   Pool,
+  Pool as V3Pool,
   Position,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
-import { Route as V4RouteRaw } from '@uniswap/v4-sdk';
+import { Pool as V4Pool, Route as V4RouteRaw } from '@uniswap/v4-sdk';
 
 import { SimulationStatus } from '../providers';
 import { CurrencyAmount } from '../util/amounts';
@@ -105,10 +107,9 @@ export type SwapRoute = {
   methodParameters?: MethodParameters;
   /**
    * Enum that is returned if simulation was requested
-   * 0 if simulation was not supported
+   * 0 if simulation was not attempted
    * 1 if simulation was attempted and failed
    * 2 if simulation was successful (simulated gas estimates are returned)
-   * 3... rest of the simulation statuses
    */
   simulationStatus?: SimulationStatus;
   /**
@@ -254,4 +255,52 @@ export abstract class ISwapToRatio<RoutingConfig, SwapAndAddConfig> {
     swapAndAddOptions?: SwapAndAddOptions,
     routingConfig?: RoutingConfig
   ): Promise<SwapToRatioResponse>;
+}
+
+export function cloneV2RouteWithNewPools(
+  originalRoute: V2Route,
+  newPools: Pair[]
+): V2Route {
+  // Reuse the original input and output currencies
+  const input = originalRoute.input;
+  const output = originalRoute.output;
+
+  // Construct a new Route instance with the new pairs
+  return new V2Route(newPools, input, output);
+}
+
+export function cloneV3RouteWithNewPools(
+  originalRoute: V3Route,
+  newPools: V3Pool[]
+): V3Route {
+  // Reuse the original input and output currencies
+  const input = originalRoute.input;
+  const output = originalRoute.output;
+
+  // Construct a new Route instance with the new pairs
+  return new V3Route(newPools, input, output);
+}
+
+export function cloneV4RouteWithNewPools(
+  originalRoute: V4Route,
+  newPools: V4Pool[]
+): V4Route {
+  // Reuse the original input and output currencies
+  const input = originalRoute.input;
+  const output = originalRoute.output;
+
+  // Construct a new Route instance with the new pairs
+  return new V4Route(newPools, input, output);
+}
+
+export function cloneMixedRouteWithNewPools(
+  originalRoute: MixedRoute,
+  newPools: TPool[]
+): MixedRoute {
+  // Reuse the original input and output currencies
+  const input = originalRoute.input;
+  const output = originalRoute.output;
+
+  // Construct a new Route instance with the new pairs
+  return new MixedRoute(newPools, input, output, /* retainFakePools = */ true);
 }

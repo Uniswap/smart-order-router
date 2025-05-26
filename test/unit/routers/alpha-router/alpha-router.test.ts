@@ -1,14 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
-import { Protocol, SwapRouter } from '@uniswap/router-sdk';
-import { ChainId, Currency, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
+import { ADDRESS_ZERO, Protocol, SwapRouter } from '@uniswap/router-sdk';
+import { ChainId, Fraction, Percent, TradeType } from '@uniswap/sdk-core';
 import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool, Pool as V3Pool, Position } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import sinon from 'sinon';
+import { RouteWithValidQuote } from '../../../../build/main/routers/alpha-router/entities/route-with-valid-quote';
 import {
   AlphaRouter,
   AlphaRouterConfig,
@@ -22,12 +23,12 @@ import {
   FallbackTenderlySimulator,
   HooksOptions,
   INTENT,
+  IV3PoolProvider,
+  IV4PoolProvider,
   MixedRouteWithValidQuote,
   OnChainQuoteProvider,
   parseAmount,
   RouteWithQuotes,
-  RouteWithValidQuote,
-  SimulationStatus,
   SupportedExactOutRoutes,
   SupportedRoutes,
   SwapAndAddConfig,
@@ -57,17 +58,20 @@ import {
   V3SubgraphPool,
   V3SubgraphProvider,
   V4PoolProvider,
+  V4Route,
+  MixedRoute,
   V4RouteWithValidQuote,
   V4SubgraphPool,
   V4SubgraphProvider,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
+  IGasModel
 } from '../../../../src';
 import { ProviderConfig } from '../../../../src/providers/provider';
 import {
   TokenValidationResult,
   TokenValidatorProvider
 } from '../../../../src/providers/token-validator-provider';
-import { V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
+import { IV2PoolProvider, V2PoolProvider } from '../../../../src/providers/v2/pool-provider';
 import {
   MixedRouteHeuristicGasModelFactory
 } from '../../../../src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model';
@@ -555,32 +559,63 @@ describe('alpha router', () => {
 
   // TestAlphaRouter is used to test the protected methods of AlphaRouter
   class TestAlphaRouter extends AlphaRouter {
-    public async testPerformCachingIntention(
-      currencyIn: Currency,
-      currencyOut: Currency,
-      tradeType: TradeType,
-      amount: CurrencyAmount,
-      protocols: Protocol[],
-      blockNumber: number,
+    /**
+     * @dev test method for protected method
+     */
+    public async refreshPools(
+      routes: RouteWithValidQuote[],
       routingConfig: AlphaRouterConfig,
-      simulationStatus: SimulationStatus,
-      simulationRoute: RouteWithValidQuote[]
+      v2PoolProvider: IV2PoolProvider,
+      v3PoolProvider: IV3PoolProvider,
+      v4PoolProvider: IV4PoolProvider
     ) {
-      await super.performCachingIntention(
-        currencyIn,
-        currencyOut,
-        tradeType,
-        amount,
-        protocols,
-        blockNumber,
-        routingConfig,
-        simulationStatus,
-        simulationRoute
-      );
+      return super.refreshPools(routes, routingConfig, v2PoolProvider, v3PoolProvider, v4PoolProvider);
     }
 
-    public shouldCacheRoute(simulationStatus: SimulationStatus) {
-      return super.shouldCacheRoute(simulationStatus);
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshV2Pools(
+      route: V2Route,
+      routingConfig: AlphaRouterConfig,
+      v2PoolProvider: IV2PoolProvider
+    ) {
+      return super.refreshV2Pools(route, routingConfig, v2PoolProvider);
+    }
+
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshV3Pools(
+      route: V3Route,
+      routingConfig: AlphaRouterConfig,
+      v3PoolProvider: IV3PoolProvider
+    ) {
+      return super.refreshV3Pools(route, routingConfig, v3PoolProvider);
+    }
+
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshV4Pools(
+      route: V4Route,
+      routingConfig: AlphaRouterConfig,
+      v4PoolProvider: IV4PoolProvider
+    ) {
+      return super.refreshV4Pools(route, routingConfig, v4PoolProvider);
+    }
+
+    /**
+     * @dev test method for protected method
+     */
+    public static refreshMixedPools(
+      route: MixedRoute,
+      routingConfig: AlphaRouterConfig,
+      v2PoolProvider: IV2PoolProvider,
+      v3PoolProvider: IV3PoolProvider,
+      v4PoolProvider: IV4PoolProvider
+    ) {
+      return super.refreshMixedPools(route, routingConfig, v2PoolProvider, v3PoolProvider, v4PoolProvider);
     }
   }
 
@@ -1560,7 +1595,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
         const swap2 = await alphaRouter.route(
           CurrencyAmount.fromRawAmount(USDC, 100000),
@@ -1575,7 +1610,7 @@ describe('alpha router', () => {
         expect(swap2).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
       });
 
       test('succeeds to fetch route from onchain and skips cache when only 1 protocol is requested', async () => {
@@ -1589,71 +1624,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
-      });
-
-      test('performCachingIntention tests', async () => {
-        const simulationStatusExpectNoCaching = [
-          SimulationStatus.Failed,
-          SimulationStatus.SlippageTooLow,
-          SimulationStatus.TransferFromFailed,
-        ];
-
-        const simulationStatusExpectCaching = [
-          SimulationStatus.Succeeded,
-          SimulationStatus.NotApproved,
-          SimulationStatus.SystemDown,
-          SimulationStatus.NotSupported,
-          SimulationStatus.InsufficientBalance
-        ];
-
-
-        for (const simulationStatus of simulationStatusExpectNoCaching) {
-          await testCachingBehavior(simulationStatus, false);
-        }
-
-        for (const simulationStatus of simulationStatusExpectCaching) {
-          await testCachingBehavior(simulationStatus, true);
-        }
-      });
-
-      // Helper method to test caching behavior for different simulation statuses
-      async function testCachingBehavior(
-        simulationStatus: SimulationStatus,
-        expectCaching: boolean
-      ) {
-        await testAlphaRouter.testPerformCachingIntention(
-          BULLET,
-          USDC,
-          TradeType.EXACT_INPUT,
-          CurrencyAmount.fromRawAmount(BULLET, 10000),
-          allProtocols,
-          mockBlock,
-          ROUTING_CONFIG,
-          simulationStatus,
-          [{}] as RouteWithValidQuote[]
-        );
-
-        expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-
-        if (expectCaching) {
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toBeGreaterThanOrEqual(1);
-        }
-        else {
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
-        }
-      }
-
-      test('shouldCacheRoute tests', () => {
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.Succeeded)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.NotApproved)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.SystemDown)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.NotSupported)).toBe(true);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.InsufficientBalance)).toBe(true);
-
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.Failed)).toBe(false);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.SlippageTooLow)).toBe(false);
-        expect(testAlphaRouter.shouldCacheRoute(SimulationStatus.TransferFromFailed)).toBe(false);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
       });
 
       test('fails to fetch from cache, so it inserts again, when blocknumber advances', async () => {
@@ -1670,7 +1641,7 @@ describe('alpha router', () => {
         expect(swap).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
         mockProvider.getBlockNumber.resolves(mockBlock + 5);
 
@@ -1687,7 +1658,7 @@ describe('alpha router', () => {
         expect(swap2).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
 
         const swap3 = await alphaRouter.route(
           CurrencyAmount.fromRawAmount(USDC, 100000),
@@ -1702,7 +1673,7 @@ describe('alpha router', () => {
         expect(swap3).toBeDefined();
 
         expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(3);
-        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+        expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(2);
       });
 
       describe('UniversalRouter version caching', () => {
@@ -1733,7 +1704,7 @@ describe('alpha router', () => {
           );
           expect(swap).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
           // Second call should hit cache
           const swap2 = await alphaRouter.route(
@@ -1748,7 +1719,7 @@ describe('alpha router', () => {
           );
           expect(swap2).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
 
         test('with V1.2 - skips cache when V2 is missing from requested protocols', async () => {
@@ -1770,7 +1741,7 @@ describe('alpha router', () => {
           expect(swap).toBeDefined();
           // Should skip cache since V2 is missing but required for V1.2
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
 
         test('with V2.0 - hits cache when all protocols are requested', async () => {
@@ -1792,7 +1763,7 @@ describe('alpha router', () => {
           );
           expect(swap).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(1);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
 
           // Second call should hit cache
           const swap2 = await alphaRouter.route(
@@ -1807,7 +1778,7 @@ describe('alpha router', () => {
           );
           expect(swap2).toBeDefined();
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(2);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
 
         test('with V2.0 - skips cache when subset of protocols requested', async () => {
@@ -1829,7 +1800,7 @@ describe('alpha router', () => {
           expect(swap).toBeDefined();
           // Should skip cache since not all available protocols are requested
           expect(inMemoryRouteCachingProvider.internalGetCacheRouteCalls).toEqual(0);
-          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(0);
+          expect(inMemoryRouteCachingProvider.internalSetCacheRouteCalls).toEqual(1);
         });
       });
     });
@@ -3256,6 +3227,313 @@ describe('alpha router', () => {
       expect(AlphaRouter.isAllowedToEnterCachedRoutes(INTENT.QUOTE, undefined, false)).toBe(true);
     })
   });
+
+  describe('refreshPools tests', () => {
+    const DAI_USDT_V2_OLD = new Pair(
+      CurrencyAmount.fromRawAmount(DAI, 10000000000),
+      CurrencyAmount.fromRawAmount(USDT, 10000000000)
+    );
+    const DAI_USDT_V2_NEW = new Pair(
+      CurrencyAmount.fromRawAmount(DAI, 5000000000),
+      CurrencyAmount.fromRawAmount(USDT, 10000000000)
+    );
+    const USDT_DAI_V3_MEDIUM_OLD = new V3Pool(
+      USDT,
+      DAI,
+      FeeAmount.MEDIUM,
+      encodeSqrtRatioX96(1, 1),
+      8,
+      0
+    );
+    const USDT_DAI_V3_MEDIUM_NEW = new V3Pool(
+      USDT,
+      DAI,
+      FeeAmount.MEDIUM,
+      encodeSqrtRatioX96(1, 1),
+      5,
+      0
+    );
+    const USDT_DAI_V4_LOW_OLD = new V4Pool(
+      DAI,
+      USDT,
+      FeeAmount.LOW,
+      10,
+      ADDRESS_ZERO,
+      encodeSqrtRatioX96(1, 1),
+      10,
+      0
+    );
+    const USDT_DAI_V4_LOW_NEW = new V4Pool(
+      DAI,
+      USDT,
+      FeeAmount.LOW,
+      10,
+      ADDRESS_ZERO,
+      encodeSqrtRatioX96(1, 1),
+      5,
+      0
+    );
+
+    let mockV2GasModel: sinon.SinonStubbedInstance<IGasModel<V2RouteWithValidQuote>>;
+    let mockV3GasModel: sinon.SinonStubbedInstance<IGasModel<V3RouteWithValidQuote>>;
+    let mockV4GasModel: sinon.SinonStubbedInstance<IGasModel<V4RouteWithValidQuote>>;
+    let mockMixedGasModel: sinon.SinonStubbedInstance<IGasModel<MixedRouteWithValidQuote>>;
+
+    beforeEach(() => {
+      mockV2GasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockV2GasModel.estimateGasCost.callsFake((r: V2RouteWithValidQuote) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+
+      mockV3GasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockV3GasModel.estimateGasCost.callsFake((r) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+
+      mockV4GasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockV4GasModel.estimateGasCost.callsFake((r) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+
+      mockMixedGasModel = {
+        estimateGasCost: sinon.stub(),
+      };
+      mockMixedGasModel.estimateGasCost.callsFake((r) => {
+        return {
+          gasEstimate: BigNumber.from(10000),
+          gasCostInToken: CurrencyAmount.fromRawAmount(r.quoteToken, 0),
+          gasCostInUSD: CurrencyAmount.fromRawAmount(USDC, 0),
+        };
+      });
+    });
+
+    test('V2 pools refresh', async () => {
+      const route = new V2Route(
+        [DAI_USDT_V2_OLD, DAI_USDT_V2_OLD],
+        DAI,
+        USDT
+      );
+
+      expect(route.pairs).toEqual([DAI_USDT_V2_OLD, DAI_USDT_V2_OLD]);
+
+      let v2MockPools = [DAI_USDT_V2_NEW];
+      let localV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+      localV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshV2Pools(route, ROUTING_CONFIG, localV2PoolProvider);
+      expect(localV2PoolProvider.getPools.called).toBe(true);
+      expect(refreshedRoute.pairs).toEqual([DAI_USDT_V2_NEW, DAI_USDT_V2_NEW]);
+    });
+
+    test('V3 pools refresh', async () => {
+      const route = new V3Route(
+        [USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V3_MEDIUM_OLD],
+        USDT,
+        DAI
+      );
+
+      expect(route.pools).toEqual([USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V3_MEDIUM_OLD]);
+
+      let v3MockPools = [USDT_DAI_V3_MEDIUM_NEW];
+      let localV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+      localV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshV3Pools(route, ROUTING_CONFIG, localV3PoolProvider);
+      expect(localV3PoolProvider.getPools.called).toBe(true);
+      expect(refreshedRoute.pools).toEqual([USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V3_MEDIUM_NEW]);
+    });
+
+    test('V4 pools refresh', async () => {
+      const route = new V4Route(
+        [USDT_DAI_V4_LOW_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      expect(route.pools).toEqual([USDT_DAI_V4_LOW_OLD, USDT_DAI_V4_LOW_OLD]);
+
+      let v4MockPools = [USDT_DAI_V4_LOW_NEW];
+      let localV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+      localV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshV4Pools(route, ROUTING_CONFIG, localV4PoolProvider);
+      expect(localV4PoolProvider.getPools.called).toBe(true);
+      expect(refreshedRoute.pools).toEqual([USDT_DAI_V4_LOW_NEW, USDT_DAI_V4_LOW_NEW]);
+    });
+
+    test('Mixed pools refresh', async () => {
+      const route = new MixedRoute(
+        [DAI_USDT_V2_OLD, USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      expect(route.pools).toEqual([DAI_USDT_V2_OLD, USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V4_LOW_OLD]);
+
+      let v2MockPools = [DAI_USDT_V2_NEW];
+      let localV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+      localV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
+
+      let v3MockPools = [USDT_DAI_V3_MEDIUM_NEW];
+      let localV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+      localV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
+
+      let v4MockPools = [USDT_DAI_V4_LOW_NEW];
+      let localV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+      localV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+
+      const refreshedRoute = await TestAlphaRouter.refreshMixedPools(route, ROUTING_CONFIG, localV2PoolProvider, localV3PoolProvider, localV4PoolProvider);
+      expect(localV2PoolProvider.getPools.called).toBe(true);
+      expect(localV3PoolProvider.getPools.called).toBe(true);
+      expect(localV4PoolProvider.getPools.called).toBe(true);
+
+      expect(refreshedRoute.pools).toEqual([DAI_USDT_V2_NEW, USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V4_LOW_NEW]);
+    });
+
+    test('testRefreshPools', async () => {
+      const v2Route = new V2Route(
+        [DAI_USDT_V2_OLD, DAI_USDT_V2_OLD],
+        DAI,
+        USDT
+      );
+
+      const v3Route = new V3Route(
+        [USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V3_MEDIUM_OLD],
+        USDT,
+        DAI
+      );
+
+      const v4Route = new V4Route(
+        [USDT_DAI_V4_LOW_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      const mixedRoute = new MixedRoute(
+        [DAI_USDT_V2_OLD, USDT_DAI_V3_MEDIUM_OLD, USDT_DAI_V4_LOW_OLD],
+        USDT,
+        DAI
+      );
+
+      const v2MockPools = [DAI_USDT_V2_NEW];
+      const v3MockPools = [USDT_DAI_V3_MEDIUM_NEW];
+      const v4MockPools = [USDT_DAI_V4_LOW_NEW];
+
+      const localV2PoolProvider = sinon.createStubInstance(V2PoolProvider);
+      localV2PoolProvider.getPools.resolves(buildMockV2PoolAccessor(v2MockPools));
+      localV2PoolProvider.getPoolAddress.callsFake((tA, tB) => ({
+        poolAddress: Pair.getAddress(tA, tB),
+        token0: tA,
+        token1: tB,
+      }));
+
+      const localV3PoolProvider = sinon.createStubInstance(V3PoolProvider);
+      localV3PoolProvider.getPools.resolves(buildMockV3PoolAccessor(v3MockPools));
+      localV3PoolProvider.getPoolAddress.callsFake((tA, tB, fee) => ({
+        poolAddress: Pool.getAddress(tA, tB, fee),
+        token0: tA,
+        token1: tB,
+      }));
+
+      const localV4PoolProvider = sinon.createStubInstance(V4PoolProvider);
+      localV4PoolProvider.getPools.resolves(buildMockV4PoolAccessor(v4MockPools));
+      localV4PoolProvider.getPoolId.callsFake((currency0, currency1, fee, tickSpacing, hooks) => {
+        return {
+          poolId: V4Pool.getPoolId(currency0, currency1, fee, tickSpacing, hooks),
+          currency0: currency0,
+          currency1: currency1
+        };
+      });
+
+      const v2RouteWithValidQuote = new V2RouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        percent: 1,
+        route: v2Route,
+        gasModel: mockV2GasModel,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v2PoolProvider: localV2PoolProvider
+      });
+
+      const v3RouteWithValidQuote = new V3RouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        sqrtPriceX96AfterList: [BigNumber.from(1)],
+        initializedTicksCrossedList: [1],
+        quoterGasEstimate: BigNumber.from(100000),
+        percent: 1,
+        route: v3Route,
+        gasModel: mockV3GasModel,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v3PoolProvider: localV3PoolProvider,
+      });
+
+      const v4RouteWithValidQuote = new V4RouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        sqrtPriceX96AfterList: [BigNumber.from(1)],
+        initializedTicksCrossedList: [1],
+        quoterGasEstimate: BigNumber.from(100000),
+        percent: 1,
+        route: v4Route,
+        gasModel: mockV4GasModel,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v4PoolProvider: localV4PoolProvider,
+      });
+
+      const mixedRouteWithValidQuote = new MixedRouteWithValidQuote({
+        amount: parseAmount('10', USDT),
+        rawQuote: BigNumber.from(10),
+        sqrtPriceX96AfterList: [BigNumber.from(1)],
+        initializedTicksCrossedList: [1],
+        quoterGasEstimate: BigNumber.from(100000),
+        percent: 1,
+        route: mixedRoute,
+        quoteToken: USDT,
+        tradeType: TradeType.EXACT_INPUT,
+        v4PoolProvider: mockV4PoolProvider,
+        v3PoolProvider: mockV3PoolProvider,
+        v2PoolProvider: mockV2PoolProvider,
+        mixedRouteGasModel: mockMixedGasModel,
+      });
+
+      const routingConfig = ROUTING_CONFIG;
+
+      // test the method
+      await testAlphaRouter.refreshPools([v2RouteWithValidQuote, v3RouteWithValidQuote, v4RouteWithValidQuote, mixedRouteWithValidQuote], routingConfig, localV2PoolProvider, localV3PoolProvider, localV4PoolProvider);
+
+      expect(localV2PoolProvider.getPools.called).toBe(true);
+      expect(localV3PoolProvider.getPools.called).toBe(true);
+      expect(localV4PoolProvider.getPools.called).toBe(true);
+
+      // check the pools are refreshed
+      expect(v2RouteWithValidQuote.route.pairs).toEqual([DAI_USDT_V2_NEW, DAI_USDT_V2_NEW]);
+      expect(v3RouteWithValidQuote.route.pools).toEqual([USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V3_MEDIUM_NEW]);
+      expect(v4RouteWithValidQuote.route.pools).toEqual([USDT_DAI_V4_LOW_NEW, USDT_DAI_V4_LOW_NEW]);
+      expect(mixedRouteWithValidQuote.route.pools).toEqual([DAI_USDT_V2_NEW, USDT_DAI_V3_MEDIUM_NEW, USDT_DAI_V4_LOW_NEW]);
+    });
+  });
 });
 
 type GetQuotesManyExactInFnParams = {
@@ -3266,13 +3544,13 @@ type GetQuotesManyExactInFnParams = {
 function getQuotesManyExactInFn<TRoute extends SupportedRoutes>(
   options: GetQuotesManyExactInFnParams = {}
 ): (
-    amountIns: CurrencyAmount[],
-    routes: TRoute[],
-    _providerConfig?: ProviderConfig | undefined
-  ) => Promise<{
-    routesWithQuotes: RouteWithQuotes<TRoute>[];
-    blockNumber: BigNumber;
-  }> {
+  amountIns: CurrencyAmount[],
+  routes: TRoute[],
+  _providerConfig?: ProviderConfig | undefined
+) => Promise<{
+  routesWithQuotes: RouteWithQuotes<TRoute>[];
+  blockNumber: BigNumber;
+}> {
   return async (
     amountIns: CurrencyAmount[],
     routes: TRoute[],
