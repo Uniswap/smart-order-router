@@ -1,21 +1,26 @@
+import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Percent, Token, TradeType } from '@uniswap/sdk-core';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
+import { Pair } from '@uniswap/v2-sdk';
 import { FeeAmount, Pool } from '@uniswap/v3-sdk';
 import brotli from 'brotli';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 
-import { IV2PoolProvider } from '../providers';
+import { IV2PoolProvider, IV4PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
-import {
-  ArbitrumGasData
-} from '../providers/v3/gas-data-provider';
+import { ProviderConfig } from '../providers/provider';
+import { ArbitrumGasData } from '../providers/v3/gas-data-provider';
 import { IV3PoolProvider } from '../providers/v3/pool-provider';
 import {
   GasModelProviderConfig,
   getQuoteThroughNativePool,
   MethodParameters,
+  metric,
+  MetricLoggerUnit,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
   SwapOptions,
@@ -25,14 +30,17 @@ import {
   usdGasTokensByChain,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
+  V4RouteWithValidQuote,
 } from '../routers';
-import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import {
+  CurrencyAmount,
+  getApplicableV3FeeAmounts,
+  log,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../util';
 
-import { Pair } from '@uniswap/v2-sdk';
 import { opStackChains } from './l2FeeChains';
 import { buildSwapMethodParameters, buildTrade } from './methodParameters';
-import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
-import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
 
 export async function getV2NativePool(
   token: Token,
@@ -72,12 +80,9 @@ export async function getHighestLiquidityV3NativePool(
 ): Promise<Pool | null> {
   const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
 
-  const nativePools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const feeAmounts = getApplicableV3FeeAmounts(token.chainId);
+
+  const nativePools = _(feeAmounts)
     .map<[Token, Token, FeeAmount]>((feeAmount) => {
       return [nativeCurrency, token, feeAmount];
     })
@@ -85,12 +90,7 @@ export async function getHighestLiquidityV3NativePool(
 
   const poolAccessor = await poolProvider.getPools(nativePools, providerConfig);
 
-  const pools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const pools = _(feeAmounts)
     .map((feeAmount) => {
       return poolAccessor.getPool(nativeCurrency, token, feeAmount);
     })
@@ -127,12 +127,9 @@ export async function getHighestLiquidityV3USDPool(
     );
   }
 
-  const usdPools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const feeAmounts = getApplicableV3FeeAmounts(chainId);
+
+  const usdPools = _(feeAmounts)
     .flatMap((feeAmount) => {
       return _.map<Token, [Token, Token, FeeAmount]>(usdTokens, (usdToken) => [
         wrappedCurrency,
@@ -144,12 +141,7 @@ export async function getHighestLiquidityV3USDPool(
 
   const poolAccessor = await poolProvider.getPools(usdPools, providerConfig);
 
-  const pools = _([
-    FeeAmount.HIGH,
-    FeeAmount.MEDIUM,
-    FeeAmount.LOW,
-    FeeAmount.LOWEST,
-  ])
+  const pools = _(feeAmounts)
     .flatMap((feeAmount) => {
       const pools = [];
 
@@ -230,16 +222,16 @@ export async function calculateOptimismToL1FeeFromCalldata(
   const tx: TransactionRequest = {
     data: calldata,
     chainId: chainId,
-    type: 2 // sign the transaction as EIP-1559, otherwise it will fail at maxFeePerGas
-  }
-  const [l1GasUsed, l1GasCost] = await Promise.all([estimateL1Gas(provider, tx), estimateL1GasCost(provider, tx)]);
+    type: 2, // sign the transaction as EIP-1559, otherwise it will fail at maxFeePerGas
+  };
+  const [l1GasUsed, l1GasCost] = await Promise.all([
+    estimateL1Gas(provider, tx),
+    estimateL1GasCost(provider, tx),
+  ]);
   return [l1GasUsed, l1GasCost];
 }
 
-export function getL2ToL1GasUsed(
-  data: string,
-  chainId: ChainId
-): BigNumber {
+export function getL2ToL1GasUsed(data: string, chainId: ChainId): BigNumber {
   switch (chainId) {
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI: {
@@ -264,7 +256,7 @@ export async function calculateGasUsed(
   estimatedGasUsedUSD: CurrencyAmount;
   estimatedGasUsedQuoteToken: CurrencyAmount;
   estimatedGasUsedGasToken?: CurrencyAmount;
-  quoteGasAdjusted: CurrencyAmount
+  quoteGasAdjusted: CurrencyAmount;
 }> {
   const quoteToken = route.quote.currency.wrapped;
   const gasPriceWei = route.gasPriceWei;
@@ -273,11 +265,13 @@ export async function calculateGasUsed(
   // Arbitrum charges L2 gas for L1 calldata posting costs.
   // See https://github.com/Uniswap/smart-order-router/pull/464/files#r1441376802
   if (opStackChains.includes(chainId)) {
-    l2toL1FeeInWei = (await calculateOptimismToL1FeeFromCalldata(
-      route.methodParameters!.calldata,
-      chainId,
-      provider
-    ))[1];
+    l2toL1FeeInWei = (
+      await calculateOptimismToL1FeeFromCalldata(
+        route.methodParameters!.calldata,
+        chainId,
+        provider
+      )
+    )[1];
   }
 
   // add l2 to l1 fee and wrap fee to native currency
@@ -381,13 +375,15 @@ export function initSwapRouteFromExisting(
   swapRoute: SwapRoute,
   v2PoolProvider: IV2PoolProvider,
   v3PoolProvider: IV3PoolProvider,
+  v4PoolProvider: IV4PoolProvider,
   portionProvider: IPortionProvider,
   quoteGasAdjusted: CurrencyAmount,
   estimatedGasUsed: BigNumber,
   estimatedGasUsedQuoteToken: CurrencyAmount,
   estimatedGasUsedUSD: CurrencyAmount,
   swapOptions: SwapOptions,
-  estimatedGasUsedGasToken?: CurrencyAmount
+  estimatedGasUsedGasToken?: CurrencyAmount,
+  providerConfig?: ProviderConfig
 ): SwapRoute {
   const currencyIn = swapRoute.trade.inputAmount.currency;
   const currencyOut = swapRoute.trade.outputAmount.currency;
@@ -396,6 +392,32 @@ export function initSwapRouteFromExisting(
     : TradeType.EXACT_INPUT;
   const routesWithValidQuote = swapRoute.route.map((route) => {
     switch (route.protocol) {
+      case Protocol.V4:
+        return new V4RouteWithValidQuote({
+          amount: CurrencyAmount.fromFractionalAmount(
+            route.amount.currency,
+            route.amount.numerator,
+            route.amount.denominator
+          ),
+          rawQuote: BigNumber.from(route.rawQuote),
+          sqrtPriceX96AfterList: route.sqrtPriceX96AfterList.map((num) =>
+            BigNumber.from(num)
+          ),
+          initializedTicksCrossedList: [...route.initializedTicksCrossedList],
+          quoterGasEstimate: BigNumber.from(route.gasEstimate),
+          percent: route.percent,
+          route: route.route,
+          gasModel: route.gasModel,
+          quoteToken: new Token(
+            currencyIn.chainId,
+            route.quoteToken.address,
+            route.quoteToken.decimals,
+            route.quoteToken.symbol,
+            route.quoteToken.name
+          ),
+          tradeType: tradeType,
+          v4PoolProvider: v4PoolProvider,
+        });
       case Protocol.V3:
         return new V3RouteWithValidQuote({
           amount: CurrencyAmount.fromFractionalAmount(
@@ -469,7 +491,10 @@ export function initSwapRouteFromExisting(
           ),
           tradeType: tradeType,
           v3PoolProvider: v3PoolProvider,
+          v4PoolProvider: v4PoolProvider,
         });
+      default:
+        throw new Error('Invalid protocol');
     }
   });
   const trade = buildTrade<typeof tradeType>(
@@ -490,7 +515,8 @@ export function initSwapRouteFromExisting(
     portionProvider.getRouteWithQuotePortionAdjusted(
       swapRoute.trade.tradeType,
       routesWithValidQuote,
-      swapOptions
+      swapOptions,
+      providerConfig
     );
 
   return {
@@ -514,6 +540,7 @@ export function initSwapRouteFromExisting(
       : undefined,
     simulationStatus: swapRoute.simulationStatus,
     portionAmount: swapRoute.portionAmount,
+    hitsCachedRoute: swapRoute.hitsCachedRoute,
   };
 }
 
@@ -524,7 +551,8 @@ export const calculateL1GasFeesHelper = async (
   quoteToken: Token,
   nativePool: Pair | Pool | null,
   provider: BaseProvider,
-  l2GasData?: ArbitrumGasData
+  l2GasData?: ArbitrumGasData,
+  providerConfig?: GasModelProviderConfig
 ): Promise<{
   gasUsedL1: BigNumber;
   gasUsedL1OnL2: BigNumber;
@@ -533,6 +561,8 @@ export const calculateL1GasFeesHelper = async (
 }> => {
   const swapOptions: SwapOptionsUniversalRouter = {
     type: SwapType.UNIVERSAL_ROUTER,
+    version:
+      providerConfig?.universalRouterVersion ?? UniversalRouterVersion.V1_2,
     recipient: '0x0000000000000000000000000000000000000001',
     deadlineOrPreviousBlockhash: 100,
     slippageTolerance: new Percent(5, 10_000),
@@ -541,7 +571,12 @@ export const calculateL1GasFeesHelper = async (
   let mainnetFeeInWei = BigNumber.from(0);
   let gasUsedL1OnL2 = BigNumber.from(0);
   if (opStackChains.includes(chainId)) {
-    [mainnetGasUsed, mainnetFeeInWei] = await calculateOptimismToL1SecurityFee(route, swapOptions, chainId, provider);
+    [mainnetGasUsed, mainnetFeeInWei] = await calculateOptimismToL1SecurityFee(
+      route,
+      swapOptions,
+      chainId,
+      provider
+    );
   } else if (
     chainId == ChainId.ARBITRUM_ONE ||
     chainId == ChainId.ARBITRUM_GOERLI
@@ -622,7 +657,11 @@ export const calculateL1GasFeesHelper = async (
       ChainId.OPTIMISM
     ).calldata;
 
-    const [l1GasUsed, l1GasCost] = await calculateOptimismToL1FeeFromCalldata(data, chainId, provider);
+    const [l1GasUsed, l1GasCost] = await calculateOptimismToL1FeeFromCalldata(
+      data,
+      chainId,
+      provider
+    );
     return [l1GasUsed, l1GasCost];
   }
 
@@ -651,5 +690,62 @@ export const calculateL1GasFeesHelper = async (
       ChainId.ARBITRUM_ONE
     ).calldata;
     return calculateArbitrumToL1FeeFromCalldata(data, gasData, chainId);
+  }
+};
+
+// Logs metrics about the diff between original estimatedGasUsed based on heuristics and the simulated gas used.
+// This will help us track the quality of our gas estimation quality per chain.
+export const logGasEstimationVsSimulationMetrics = (
+  route: SwapRoute,
+  simulationGasUsed: BigNumber,
+  chainId: ChainId
+) => {
+  try {
+    // Log the diff between original estimatedGasUsed and the simulated gas used
+    const estimatedGasUsed = route.estimatedGasUsed.toNumber();
+    const simulatedGasUsed = simulationGasUsed.toNumber();
+    const diff = estimatedGasUsed - simulatedGasUsed;
+    const absDiff = Math.abs(estimatedGasUsed - simulatedGasUsed);
+    const misEstimatePercent = (diff / estimatedGasUsed) * 100;
+    const misEstimateAbsPercent = (absDiff / estimatedGasUsed) * 100;
+
+    log.info(
+      {
+        estimatedGasUsed: estimatedGasUsed,
+        simulatedGasUsed: simulatedGasUsed,
+        absDiff: absDiff,
+        diff: diff,
+      },
+      'Gas used diff between estimatedGasUsed and simulatedGasUsed'
+    );
+    log.info(
+      {
+        misEstimateAbsPercent: misEstimateAbsPercent,
+      },
+      'Gas used mis-estimate percent'
+    );
+
+    metric.putMetric(
+      `TenderlySimulationGasUsed_AbsDiff_Chain_${chainId}`,
+      absDiff,
+      MetricLoggerUnit.Count
+    );
+    metric.putMetric(
+      `TenderlySimulationGasUsed_MisEstimateAbsPercent_Chain_${chainId}`,
+      misEstimateAbsPercent,
+      MetricLoggerUnit.Count
+    );
+
+    const label = diff >= 0 ? 'OverEstimate' : 'UnderEstimate';
+    metric.putMetric(
+      `TenderlySimulationGasUsed_${label}Percent_Chain_${chainId}`,
+      misEstimatePercent,
+      MetricLoggerUnit.Count
+    );
+  } catch (err) {
+    log.error(
+      { err: err },
+      'Failed to log diff between original estimatedGasUsed and the simulated gas used'
+    );
   }
 };

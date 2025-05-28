@@ -1,4 +1,5 @@
 import { ChainId, Currency, Ether } from '@uniswap/sdk-core';
+import { USDT_ON } from '../../build/main';
 import {
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
@@ -15,15 +16,20 @@ import {
   USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
-  USDC_ON,
+  USDC_ON, USDC_UNICHAIN,
+  USDC_WORLDCHAIN,
   USDC_ZORA,
   USDT_MAINNET,
+  USDT_MONAD_TESTNET,
+  V4_SEPOLIA_TEST_A,
   WETH9,
+  WLD_WORLDCHAIN,
   WNATIVE_ON
 } from '../../src';
 import { BULLET, BULLET_WITHOUT_TAX } from './mock-data';
 
 export const WHALES = (token: Currency): string => {
+  let USDC_UNICHAIN_SEPOLIA;
   switch (token) {
     case Ether.onChain(ChainId.MAINNET) as Currency:
       return '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
@@ -36,17 +42,19 @@ export const WHALES = (token: Currency): string => {
     case nativeOnChain(ChainId.GOERLI):
       return '0x08505F42D5666225d5d73B842dAdB87CCA44d1AE';
     case nativeOnChain(ChainId.BASE):
-      return '0x428ab2ba90eba0a4be7af34c9ac451ab061ac010';
+      return '0x66e4e30cf1eb6155c1bf0422879a470e582f3a50';
     case nativeOnChain(ChainId.AVALANCHE):
       return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
     case nativeOnChain(ChainId.BNB):
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case nativeOnChain(ChainId.OPTIMISM):
-      return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
+      return '0xf977814e90da44bfa03b6295a0616a897441acec';
     case nativeOnChain(ChainId.ZORA):
       return '0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9';
+    case nativeOnChain(ChainId.UNICHAIN):
+      return '0x1f49a3fa2b5B5b61df8dE486aBb6F3b9df066d86';
     case WETH9[1]:
-      return '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3';
+      return '0x6B44ba0a126a2A1a8aa6cD1AdeeD002e141Bcd44';
     case WNATIVE_ON(ChainId.MAINNET):
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
     case WNATIVE_ON(ChainId.ARBITRUM_ONE):
@@ -56,15 +64,17 @@ export const WHALES = (token: Currency): string => {
     case WNATIVE_ON(ChainId.POLYGON):
       return '0x369582d2010b6ed950b571f4101e3bb9b554876f';
     case WNATIVE_ON(ChainId.BASE):
-      return '0x4bb6b2efe7036020ba6f02a05602546c9f25bf28';
+      return '0x0172e05392aba65366C4dbBb70D958BbF43304E4';
     case WNATIVE_ON(ChainId.OPTIMISM):
-      return '0x12478d1a60a910C9CbFFb90648766a2bDD5918f5';
+      return '0x274d9E726844AB52E351e8F1272e7fc3f58B7E5F';
     case WNATIVE_ON(ChainId.BNB):
       return '0x59d779BED4dB1E734D3fDa3172d45bc3063eCD69';
     case WNATIVE_ON(ChainId.AVALANCHE):
       return '0xba12222222228d8ba445958a75a0704d566bf2c8';
     case WNATIVE_ON(ChainId.ZORA):
       return '0xBC698ce1933aFb2980D4A5a0F85feA1b02fbb1c9';
+    case WNATIVE_ON(ChainId.UNICHAIN):
+      return '0x07aE8551Be970cB1cCa11Dd7a11F47Ae82e70E67';
     case USDC_MAINNET:
       return '0x8eb8a3b98659cce290402893d0123abb75e3ab28';
     case UNI_MAINNET:
@@ -94,17 +104,21 @@ export const WHALES = (token: Currency): string => {
     case USDC_ON(ChainId.POLYGON_MUMBAI):
       return '0x48520ff9b32d8b5bf87abf789ea7b3c394c95ebe';
     case USDC_ON(ChainId.AVALANCHE):
-      return '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
+      return '0xC94bb9b883Ab642C1C3Ed07af4E36523e7DaF1Fe';
     case USDC_NATIVE_AVAX:
-      return '0x3A2434c698f8D79af1f5A9e43013157ca8B11a66';
+      return '0x4aeFa39caEAdD662aE31ab0CE7c8C2c9c0a013E8';
     case USDC_ON(ChainId.BNB):
       return '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3';
     case USDC_ON(ChainId.BASE):
       return '0x4a3636608d7bc5776cb19eb72caa36ebb9ea683b';
     case USDC_ZORA:
-      return '0x26eF03A20AaeDA8aaFCeE4E146DC6B328195947C';
+      return '0xbC59f8F3b275AA56A90D13bAE7cCe5e6e11A3b17';
     case USDC_NATIVE_BASE:
       return '0x20fe51a9229eef2cf8ad9e89d91cab9312cf3b7a';
+    case USDC_ON(ChainId.UNICHAIN_SEPOLIA):
+      return '0xca8cA8840c77589981E63f4D8122fFEc4b74e2a1';
+    case USDC_UNICHAIN:
+      return '0xB5A2a236581dbd6BCECD8A25EeBFF140595f138C';
     case DAI_ON(ChainId.GOERLI):
       return '0x20918f71e99c09ae2ac3e33dbde33457d3be01f4';
     case DAI_ON(ChainId.SEPOLIA):
@@ -129,6 +143,44 @@ export const WHALES = (token: Currency): string => {
       return '0xC32cBaf3D44dA6fbC761289b871af1A30cc7f993';
     case BULLET_WITHOUT_TAX || BULLET:
       return '0x171d311eAcd2206d21Cb462d661C33F0eddadC03';
+    case V4_SEPOLIA_TEST_A:
+      return '0xB7a249bdeFf39727B5Eb4C7AD458f682BAe6aDAD';
+    case WLD_WORLDCHAIN:
+      return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
+    case USDC_WORLDCHAIN:
+      return '0x45CED21E1d5eFB631997F2Fa1727d5577427d350';
+    case nativeOnChain(ChainId.WORLDCHAIN):
+      return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
+    case WNATIVE_ON(ChainId.WORLDCHAIN):
+      return '0x6348A4a4dF173F68eB28A452Ca6c13493e447aF1';
+    case USDC_UNICHAIN_SEPOLIA:
+      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
+    case nativeOnChain(ChainId.UNICHAIN_SEPOLIA):
+      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
+    case WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA):
+      return '0xE49ACc3B16c097ec88Dc9352CE4Cd57aB7e35B95';
+    case USDT_MONAD_TESTNET:
+      // TODO: get a real whale address for monad testnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case USDT_ON(ChainId.MONAD_TESTNET):
+      // TODO: get a real whale address for monad testnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case WNATIVE_ON(ChainId.MONAD_TESTNET):
+      // TODO: get a real whale address for monad testnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c'
+    case USDC_UNICHAIN:
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case nativeOnChain(ChainId.UNICHAIN):
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case WNATIVE_ON(ChainId.UNICHAIN):
+      // TODO: get a real whale address for unichain mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case WNATIVE_ON(ChainId.SONEIUM):
+      return '0xfdF6a5b37910fbDa8A52F566E4F3e224652C4818';
+    case USDC_ON(ChainId.SONEIUM):
+      return '0x07aE8551Be970cB1cCa11Dd7a11F47Ae82e70E67';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }

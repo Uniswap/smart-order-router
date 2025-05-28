@@ -12,7 +12,13 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     case ChainId.OPTIMISM_SEPOLIA:
     case ChainId.BASE:
     case ChainId.BASE_GOERLI:
+    case ChainId.BASE_SEPOLIA:
     case ChainId.BLAST:
+    case ChainId.WORLDCHAIN:
+    case ChainId.UNICHAIN_SEPOLIA:
+    case ChainId.MONAD_TESTNET:
+    case ChainId.UNICHAIN:
+    case ChainId.SONEIUM:
       return {
         v2PoolSelection: {
           topN: 3,
@@ -23,6 +29,14 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
           topNWithBaseToken: 6,
         },
         v3PoolSelection: {
+          topN: 2,
+          topNDirectSwaps: 2,
+          topNTokenInOut: 2,
+          topNSecondHop: 1,
+          topNWithEachBaseToken: 3,
+          topNWithBaseToken: 3,
+        },
+        v4PoolSelection: {
           topN: 2,
           topNDirectSwaps: 2,
           topNTokenInOut: 2,
@@ -61,6 +75,14 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
           topNWithEachBaseToken: 3,
           topNWithBaseToken: 2,
         },
+        v4PoolSelection: {
+          topN: 2,
+          topNDirectSwaps: 2,
+          topNTokenInOut: 2,
+          topNSecondHop: 1,
+          topNWithEachBaseToken: 3,
+          topNWithBaseToken: 2,
+        },
         maxSwapsPerPath: 2,
         minSplits: 1,
         maxSplits: 7,
@@ -81,6 +103,14 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
           topNWithBaseToken: 6,
         },
         v3PoolSelection: {
+          topN: 2,
+          topNDirectSwaps: 2,
+          topNTokenInOut: 3,
+          topNSecondHop: 1,
+          topNWithEachBaseToken: 3,
+          topNWithBaseToken: 5,
+        },
+        v4PoolSelection: {
           topN: 2,
           topNDirectSwaps: 2,
           topNTokenInOut: 3,

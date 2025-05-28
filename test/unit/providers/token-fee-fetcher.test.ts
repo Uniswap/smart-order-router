@@ -1,41 +1,53 @@
 import { ID_TO_PROVIDER } from '../../../src';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { ChainId, WETH9 } from '@uniswap/sdk-core';
+import { ChainId, Token, WETH9 } from '@uniswap/sdk-core';
 import {
-  ITokenFeeFetcher,
   OnChainTokenFeeFetcher
 } from '../../../src/providers/token-fee-fetcher';
-import { BITBOY, BULLET } from '../../test-util/mock-data';
+import { BITBOY, BOYS, BULLET, DFNDR } from '../../test-util/mock-data';
 import dotenv from 'dotenv';
+import { ProviderConfig } from '../../../src/providers/provider';
+const each = require("jest-each").default;
 
 dotenv.config();
 
 describe('TokenFeeFetcher', () => {
-  let tokenFeeFetcher: ITokenFeeFetcher;
-
-  beforeAll(async () => {
-    const chain = ChainId.MAINNET;
+  each([
+    [ChainId.MAINNET, WETH9[ChainId.MAINNET]!, BITBOY, false, true],
+    [ChainId.MAINNET, WETH9[ChainId.MAINNET]!, DFNDR, true, false],
+    [ChainId.BASE, WETH9[ChainId.BASE]!, BOYS, false, false],
+  ]).it('Fetch non-FOT and FOT, should only return FOT', async (chain: ChainId, inputToken: Token, outputToken: Token, feeTakenOnTransfer?: boolean, externalTransferFailed?: boolean) => {
+    const providerConfig: ProviderConfig = {
+      blockNumber: chain === ChainId.MAINNET ? 20686752 : 19395859,
+    }
     const chainProvider = ID_TO_PROVIDER(chain);
     const provider = new JsonRpcProvider(chainProvider, chain);
 
-    tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+    const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+    const tokenFeeMap = await tokenFeeFetcher.fetchFees([inputToken.address, outputToken.address], providerConfig)
+
+    expect(tokenFeeMap).not.toContain(inputToken.address)
+    expect(tokenFeeMap[outputToken.address]).toBeDefined()
+    expect(tokenFeeMap[outputToken.address]?.buyFeeBps).toEqual(outputToken.buyFeeBps)
+    expect(tokenFeeMap[outputToken.address]?.sellFeeBps).toEqual(outputToken.sellFeeBps)
+    expect(tokenFeeMap[outputToken.address]?.feeTakenOnTransfer).toEqual(feeTakenOnTransfer)
+    expect(tokenFeeMap[outputToken.address]?.externalTransferFailed).toEqual(externalTransferFailed)
   });
 
-  it('Fetch WETH and BITBOY, should only return BITBOY', async () => {
-    const tokenFeeMap = await tokenFeeFetcher.fetchFees([WETH9[ChainId.MAINNET]!.address, BITBOY.address])
-    expect(tokenFeeMap).not.toContain(WETH9[ChainId.MAINNET]!.address)
-    expect(tokenFeeMap[BITBOY.address]).toBeDefined()
-    expect(tokenFeeMap[BITBOY.address]?.buyFeeBps).toEqual(BITBOY.buyFeeBps)
-    expect(tokenFeeMap[BITBOY.address]?.sellFeeBps).toEqual(BITBOY.sellFeeBps)
-  });
+  each([
+    [ChainId.MAINNET, BULLET, BITBOY],
+  ]).it('Fetch FOT and FOT, should return BOTH', async (chain: ChainId, inputToken: Token, outputToken: Token) => {
+    const chainProvider = ID_TO_PROVIDER(chain);
+    const provider = new JsonRpcProvider(chainProvider, chain);
 
-  it('Fetch BULLET and BITBOY, should return BOTH', async () => {
-    const tokenFeeMap = await tokenFeeFetcher.fetchFees([BULLET.address, BITBOY.address])
-    expect(tokenFeeMap[BULLET.address]).toBeDefined()
-    expect(tokenFeeMap[BULLET.address]?.buyFeeBps).toEqual(BULLET.buyFeeBps)
-    expect(tokenFeeMap[BULLET.address]?.sellFeeBps).toEqual(BULLET.sellFeeBps)
-    expect(tokenFeeMap[BITBOY.address]).toBeDefined()
-    expect(tokenFeeMap[BITBOY.address]?.buyFeeBps).toEqual(BITBOY.buyFeeBps)
-    expect(tokenFeeMap[BITBOY.address]?.sellFeeBps).toEqual(BITBOY.sellFeeBps)
+    const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+    const tokenFeeMap = await tokenFeeFetcher.fetchFees([inputToken.address, outputToken.address])
+
+    expect(tokenFeeMap[inputToken.address]).toBeDefined()
+    expect(tokenFeeMap[inputToken.address]?.buyFeeBps).toEqual(inputToken.buyFeeBps)
+    expect(tokenFeeMap[inputToken.address]?.sellFeeBps).toEqual(inputToken.sellFeeBps)
+    expect(tokenFeeMap[outputToken.address]).toBeDefined()
+    expect(tokenFeeMap[outputToken.address]?.buyFeeBps).toEqual(outputToken.buyFeeBps)
+    expect(tokenFeeMap[outputToken.address]?.sellFeeBps).toEqual(outputToken.sellFeeBps)
   });
 });

@@ -65,6 +65,20 @@ export const DAI_MAINNET = new Token(
   'DAI',
   'Dai Stablecoin'
 );
+export const EGGS_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x2e516BA5Bf3b7eE47fb99B09eaDb60BDE80a82e0',
+  18,
+  'EGGS',
+  'EGGS'
+);
+export const AMPL_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0xD46bA6D942050d489DBd938a2C909A5d5039A161',
+  9,
+  'AMPL',
+  'AMPL'
+);
 export const FEI_MAINNET = new Token(
   ChainId.MAINNET,
   '0x956F47F50A910163D8BF957Cf5846D573E7f87CA',
@@ -96,10 +110,25 @@ export const LIDO_MAINNET = new Token(
   'Lido DAO Token'
 );
 
+export const WSTETH_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0',
+  18,
+  'wstETH',
+  'Wrapped liquid staked Ether'
+);
+
 export const USDC_SEPOLIA = new Token(
   ChainId.SEPOLIA,
   '0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5',
   18,
+  'USDC',
+  'USDC Token'
+);
+export const USDC_NATIVE_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
+  6,
   'USDC',
   'USDC Token'
 );
@@ -365,6 +394,14 @@ export const DAI_POLYGON = new Token(
   'Dai Stablecoin'
 );
 
+export const DAI_BASE_SEPOLIA = new Token(
+  ChainId.SEPOLIA,
+  '0xE6F6e27c0BF1a4841E3F09d03D7D31Da8eAd0a27',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
 //polygon mumbai tokens
 export const WMATIC_POLYGON_MUMBAI = new Token(
   ChainId.POLYGON_MUMBAI,
@@ -579,6 +616,13 @@ export const USDC_NATIVE_BASE = new Token(
   'USDbC',
   'USD Base Coin'
 );
+export const VIRTUAL_BASE = new Token(
+  ChainId.BASE,
+  '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b',
+  18,
+  'VIRTUAL',
+  'Virtual Protocol'
+);
 
 // Base Goerli Tokens
 export const USDC_BASE_GOERLI = new Token(
@@ -686,6 +730,79 @@ export const DAI_ZKSYNC = new Token(
   18,
   'DAI',
   'Dai Stablecoin'
+);
+
+export const USDC_WORLDCHAIN = new Token(
+  ChainId.WORLDCHAIN,
+  '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1',
+  6,
+  'USDC.e',
+  'Bridged USDC (world-chain-mainnet)'
+);
+
+export const USDT_MONAD_TESTNET = new Token(
+  ChainId.MONAD_TESTNET,
+  '0xfBC2D240A5eD44231AcA3A9e9066bc4b33f01149',
+  6,
+  'USDT',
+  'USDT'
+);
+
+export const WLD_WORLDCHAIN = new Token(
+  ChainId.WORLDCHAIN,
+  '0x2cFc85d8E48F8EAB294be644d9E25C3030863003',
+  18,
+  'WLD',
+  'Worldcoin'
+);
+
+export const WBTC_WORLDCHAIN = new Token(
+  ChainId.WORLDCHAIN,
+  '0x03C7054BCB39f7b2e5B2c7AcB37583e32D70Cfa3',
+  8,
+  'WBTC',
+  'Wrapped BTC'
+);
+
+export const USDC_UNICHAIN_SEPOLIA = new Token(
+  ChainId.UNICHAIN_SEPOLIA,
+  '0x31d0220469e10c4E71834a79b1f276d740d3768F',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
+export const USDC_BASE_SEPOLIA = new Token(
+  ChainId.BASE_SEPOLIA,
+  '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
+export const USDC_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  // TODO: validate USDC address is final / validated
+  '0x078D782b760474a361dDA0AF3839290b0EF57AD6',
+  6,
+  'USDC',
+  'USD Token'
+);
+
+export const DAI_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  '0x20CAb320A855b39F724131C69424240519573f81',
+  18,
+  'DAI',
+  'Dai Stablecoin'
+);
+
+export const USDC_SONEIUM = new Token(
+  ChainId.SONEIUM,
+  '0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369',
+  6,
+  'USDCE',
+  'Soneium Bridged USDC Soneium'
 );
 
 export class TokenProvider implements ITokenProvider {
@@ -821,9 +938,31 @@ export class TokenProvider implements ITokenProvider {
           continue;
         }
 
-        const symbol = isBytes32
-          ? parseBytes32String(symbolResult.result[0]!)
-          : symbolResult.result[0]!;
+        let symbol;
+
+        try {
+          symbol = isBytes32
+            ? parseBytes32String(symbolResult.result[0]!)
+            : symbolResult.result[0]!;
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.message.includes(
+              'invalid bytes32 string - no null terminator'
+            )
+          ) {
+            log.error(
+              {
+                symbolResult,
+                error,
+                address,
+              },
+              `invalid bytes32 string - no null terminator`
+            );
+          }
+
+          throw error;
+        }
         const decimal = decimalResult.result[0]!;
 
         addressToToken[address.toLowerCase()] = new Token(
@@ -895,6 +1034,10 @@ export const DAI_ON = (chainId: ChainId): Token => {
       return DAI_AVAX;
     case ChainId.ZKSYNC:
       return DAI_ZKSYNC;
+    case ChainId.UNICHAIN:
+      return DAI_UNICHAIN;
+    case ChainId.BASE_SEPOLIA:
+      return DAI_BASE_SEPOLIA;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -916,6 +1059,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_ARBITRUM;
     case ChainId.BNB:
       return USDT_BNB;
+    case ChainId.MONAD_TESTNET:
+      return USDT_MONAD_TESTNET;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -961,6 +1106,16 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_ZORA;
     case ChainId.ZKSYNC:
       return USDCE_ZKSYNC;
+    case ChainId.WORLDCHAIN:
+      return USDC_WORLDCHAIN;
+    case ChainId.UNICHAIN_SEPOLIA:
+      return USDC_UNICHAIN_SEPOLIA;
+    case ChainId.BASE_SEPOLIA:
+      return USDC_BASE_SEPOLIA;
+    case ChainId.UNICHAIN:
+      return USDC_UNICHAIN;
+    case ChainId.SONEIUM:
+      return USDC_SONEIUM;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
@@ -969,3 +1124,19 @@ export const USDC_ON = (chainId: ChainId): Token => {
 export const WNATIVE_ON = (chainId: ChainId): Token => {
   return WRAPPED_NATIVE_CURRENCY[chainId];
 };
+
+export const V4_SEPOLIA_TEST_A = new Token(
+  ChainId.SEPOLIA,
+  '0x0275C79896215a790dD57F436E1103D4179213be',
+  18,
+  'A',
+  'MockA'
+);
+
+export const V4_SEPOLIA_TEST_B = new Token(
+  ChainId.SEPOLIA,
+  '0x1a6990c77cfbba398beb230dd918e28aab71eec2',
+  18,
+  'B',
+  'MockB'
+);

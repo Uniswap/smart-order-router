@@ -70,7 +70,8 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     private untrackedUsdThreshold = Number.MAX_VALUE,
     private subgraphUrlOverride?: string
   ) {
-    const subgraphUrl = this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
+    const subgraphUrl =
+      this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
@@ -161,23 +162,31 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                 onRetry: (err, retry) => {
                   pools = [];
                   retries += 1;
-                  log.info(
-                    { err },
-                    `Failed request for page of pools from subgraph. Retry attempt: ${retry}`
+                  log.error(
+                    { err, lastId },
+                    `Failed request for page of pools from subgraph. Retry attempt: ${retry}. LastId: ${lastId}`
                   );
                 },
               }
             );
           } while (pairsPage.length > 0);
 
-          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.paginate`, totalPages);
-          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.pairs.length`, pairs.length);
-          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.retries`, retries);
+          metric.putMetric(
+            `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate`,
+            totalPages
+          );
+          metric.putMetric(
+            `V2SubgraphProvider.chain_${this.chainId}.getPools.pairs.length`,
+            pairs.length
+          );
+          metric.putMetric(
+            `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.retries`,
+            retries
+          );
 
           return pairs;
         };
 
-        /* eslint-disable no-useless-catch */
         try {
           const getPoolsPromise = getPools();
           const timerPromise = timeout.set(this.timeout).then(() => {
@@ -188,11 +197,11 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           pools = await Promise.race([getPoolsPromise, timerPromise]);
           return;
         } catch (err) {
+          log.error({ err }, 'Error fetching V2 Subgraph Pools.');
           throw err;
         } finally {
           timeout.clear();
         }
-        /* eslint-enable no-useless-catch */
       },
       {
         retries: this.retries,
@@ -203,13 +212,19 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             blockNumber &&
             _.includes(err.message, 'indexed up to')
           ) {
-            metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.indexError`, 1);
+            metric.putMetric(
+              `V2SubgraphProvider.chain_${this.chainId}.getPools.indexError`,
+              1
+            );
             blockNumber = blockNumber - 10;
             log.info(
               `Detected subgraph indexing error. Rolled back block number to: ${blockNumber}`
             );
           }
-          metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.timeout`, 1);
+          metric.putMetric(
+            `V2SubgraphProvider.chain_${this.chainId}.getPools.timeout`,
+            1
+          );
           pools = [];
           log.info(
             { err },
@@ -219,7 +234,10 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       }
     );
 
-    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.retries`, outerRetries);
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.retries`,
+      outerRetries
+    );
 
     // Filter pools that have tracked reserve ETH less than threshold.
     // trackedReserveETH filters pools that do not involve a pool from this allowlist:
@@ -229,13 +247,18 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
     const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
 
-    const tracked = pools.filter(pool =>
-      pool.token0.id == FEI ||
-      pool.token1.id == FEI ||
-      parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
+    const tracked = pools.filter(
+      (pool) =>
+        pool.token0.id == FEI ||
+        pool.token1.id == FEI ||
+        this.isVirtualPairBaseV2Pool(pool) ||
+        parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
     );
 
-    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.length`, tracked.length);
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.length`,
+      tracked.length
+    );
     metric.putMetric(
       `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
       (tracked.length / pools.length) * 100
@@ -247,6 +270,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         return (
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
+          this.isVirtualPairBaseV2Pool(pool) ||
           parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
           parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
         );
@@ -266,19 +290,39 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         };
       });
 
-    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`, Date.now() - beforeFilter);
-    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`, poolsSanitized.length);
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.latency`,
+      Date.now() - beforeFilter
+    );
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`,
+      poolsSanitized.length
+    );
     metric.putMetric(
       `V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
       (poolsSanitized.length / pools.length) * 100
     );
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools`, 1);
-    metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools.latency`, Date.now() - beforeAll);
+    metric.putMetric(
+      `V2SubgraphProvider.chain_${this.chainId}.getPools.latency`,
+      Date.now() - beforeAll
+    );
 
     log.info(
       `Got ${pools.length} V2 pools from the subgraph. ${poolsSanitized.length} after filtering`
     );
 
     return poolsSanitized;
+  }
+
+  // This method checks if a given pool contains the VIRTUAL token.
+  public isVirtualPairBaseV2Pool(pool: RawV2SubgraphPool): boolean {
+    const virtualTokenAddress =
+      '0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b'.toLowerCase();
+    return (
+      this.chainId === ChainId.BASE &&
+      (pool.token0.id.toLowerCase() === virtualTokenAddress ||
+        pool.token1.id.toLowerCase() === virtualTokenAddress)
+    );
   }
 }

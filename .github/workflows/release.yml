@@ -9,6 +9,9 @@ jobs:
       name: release
     runs-on:
       group: npm-deploy
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - name: Load Secrets
         uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0
@@ -40,7 +43,7 @@ jobs:
         run: npm run build
       
       - name: Publish
-        run: npm publish
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
 

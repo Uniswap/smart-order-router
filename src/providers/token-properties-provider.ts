@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ChainId, Token } from '@uniswap/sdk-core';
+import { ChainId, Currency } from '@uniswap/sdk-core';
 
-import { log, metric, MetricLoggerUnit } from '../util';
+import { getAddressLowerCase, log, metric, MetricLoggerUnit } from '../util';
 
 import { ICache } from './cache';
 import { ProviderConfig } from './provider';
@@ -31,7 +31,7 @@ export type TokenPropertiesMap = Record<Address, TokenPropertiesResult>;
 
 export interface ITokenPropertiesProvider {
   getTokensProperties(
-    tokens: Token[],
+    currencies: Currency[],
     providerConfig?: ProviderConfig
   ): Promise<TokenPropertiesMap>;
 }
@@ -50,21 +50,18 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
   ) {}
 
   public async getTokensProperties(
-    tokens: Token[],
+    currencies: Currency[],
     providerConfig?: ProviderConfig
   ): Promise<TokenPropertiesMap> {
     const tokenToResult: TokenPropertiesMap = {};
 
-    if (
-      !providerConfig?.enableFeeOnTransferFeeFetching ||
-      this.chainId !== ChainId.MAINNET
-    ) {
+    if (!providerConfig?.enableFeeOnTransferFeeFetching) {
       return tokenToResult;
     }
 
     const addressesToFetchFeesOnchain: string[] = [];
-    const addressesRaw = this.buildAddressesRaw(tokens);
-    const addressesCacheKeys = this.buildAddressesCacheKeys(tokens);
+    const addressesRaw = this.buildAddressesRaw(currencies);
+    const addressesCacheKeys = this.buildAddressesCacheKeys(currencies);
 
     const tokenProperties = await this.tokenPropertiesCache.batchGet(
       addressesCacheKeys
@@ -72,7 +69,8 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
 
     // Check if we have cached token validation results for any tokens.
     for (const address of addressesRaw) {
-      const cachedValue = tokenProperties[this.CACHE_KEY(this.chainId, address.toLowerCase())];
+      const cachedValue =
+        tokenProperties[this.CACHE_KEY(this.chainId, address.toLowerCase())];
       if (cachedValue) {
         metric.putMetric(
           'TokenPropertiesProviderBatchGetCacheHit',
@@ -185,11 +183,11 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     return tokenToResult;
   }
 
-  private buildAddressesRaw(tokens: Token[]): Set<string> {
+  private buildAddressesRaw(currencies: Currency[]): Set<string> {
     const addressesRaw = new Set<string>();
 
-    for (const token of tokens) {
-      const address = token.address.toLowerCase();
+    for (const currency of currencies) {
+      const address = getAddressLowerCase(currency);
       if (!addressesRaw.has(address)) {
         addressesRaw.add(address);
       }
@@ -198,11 +196,14 @@ export class TokenPropertiesProvider implements ITokenPropertiesProvider {
     return addressesRaw;
   }
 
-  private buildAddressesCacheKeys(tokens: Token[]): Set<string> {
+  private buildAddressesCacheKeys(currencies: Currency[]): Set<string> {
     const addressesCacheKeys = new Set<string>();
 
-    for (const token of tokens) {
-      const addressCacheKey = this.CACHE_KEY(this.chainId, token.address.toLowerCase());
+    for (const currency of currencies) {
+      const addressCacheKey = this.CACHE_KEY(
+        this.chainId,
+        getAddressLowerCase(currency)
+      );
       if (!addressesCacheKeys.has(addressCacheKey)) {
         addressesCacheKeys.add(addressCacheKey);
       }

@@ -498,6 +498,7 @@ export class LegacyRouter {
       );
 
       return new Trade({
+        v4Routes: [],
         v3Routes: [
           {
             routev3: routeCurrency,
@@ -528,6 +529,7 @@ export class LegacyRouter {
       );
 
       return new Trade({
+        v4Routes: [],
         v3Routes: [
           {
             routev3: routeCurrency,

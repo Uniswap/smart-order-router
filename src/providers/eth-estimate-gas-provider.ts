@@ -12,6 +12,7 @@ import { BEACON_CHAIN_DEPOSIT_ADDRESS, log } from '../util';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
+  logGasEstimationVsSimulationMetrics,
 } from '../util/gas-factory-helpers';
 
 import { IPortionProvider } from './portion-provider';
@@ -19,6 +20,7 @@ import { ProviderConfig } from './provider';
 import { SimulationStatus, Simulator } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
+import { IV4PoolProvider } from './v4/pool-provider';
 
 // We multiply eth estimate gas by this to add a buffer for gas limits
 const DEFAULT_ESTIMATE_MULTIPLIER = 1.2;
@@ -26,6 +28,7 @@ const DEFAULT_ESTIMATE_MULTIPLIER = 1.2;
 export class EthEstimateGasSimulator extends Simulator {
   v2PoolProvider: IV2PoolProvider;
   v3PoolProvider: IV3PoolProvider;
+  v4PoolProvider: IV4PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
 
   constructor(
@@ -33,12 +36,14 @@ export class EthEstimateGasSimulator extends Simulator {
     provider: JsonRpcProvider,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number }
   ) {
     super(provider, portionProvider, chainId);
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+    this.v4PoolProvider = v4PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
   }
 
@@ -112,19 +117,32 @@ export class EthEstimateGasSimulator extends Simulator {
       estimatedGasUsedQuoteToken,
       estimatedGasUsedGasToken,
       quoteGasAdjusted,
-    } = await calculateGasUsed(route.quote.currency.chainId, route, estimatedGasUsed, this.v2PoolProvider, this.v3PoolProvider, this.provider, providerConfig);
+    } = await calculateGasUsed(
+      route.quote.currency.chainId,
+      route,
+      estimatedGasUsed,
+      this.v2PoolProvider,
+      this.v3PoolProvider,
+      this.provider,
+      providerConfig
+    );
+
+    logGasEstimationVsSimulationMetrics(route, estimatedGasUsed, this.chainId);
+
     return {
       ...initSwapRouteFromExisting(
         route,
         this.v2PoolProvider,
         this.v3PoolProvider,
+        this.v4PoolProvider,
         this.portionProvider,
         quoteGasAdjusted,
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
         swapOptions,
-        estimatedGasUsedGasToken
+        estimatedGasUsedGasToken,
+        providerConfig
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };
@@ -158,7 +176,12 @@ export class EthEstimateGasSimulator extends Simulator {
         this.provider
       ))
     ) {
-      return await this.ethEstimateGas(fromAddress, swapOptions, swapRoute, _providerConfig);
+      return await this.ethEstimateGas(
+        fromAddress,
+        swapOptions,
+        swapRoute,
+        _providerConfig
+      );
     } else {
       log.info('Token not approved, skipping simulation');
       return {

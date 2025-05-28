@@ -27,6 +27,9 @@ type Address = string;
 export type TokenFeeResult = {
   buyFeeBps?: BigNumber;
   sellFeeBps?: BigNumber;
+  feeTakenOnTransfer?: boolean;
+  externalTransferFailed?: boolean;
+  sellReverted?: boolean;
 };
 export type TokenFeeMap = Record<Address, TokenFeeResult>;
 
@@ -34,24 +37,32 @@ export type TokenFeeMap = Record<Address, TokenFeeResult>;
 const FEE_DETECTOR_ADDRESS = (chainId: ChainId) => {
   switch (chainId) {
     case ChainId.MAINNET:
-      return '0x19C97dc2a25845C7f9d1d519c8C2d4809c58b43f';
+      return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
     case ChainId.OPTIMISM:
-      return '0xa7c17505B43955A474fb6AFE61E093907a7567c9';
+      return '0x95aDC98A949dCD94645A8cD56830D86e4Cf34Eff';
     case ChainId.BNB:
-      return '0x331f6D0AAB4A1F039f0d75A613a7F1593DbDE1BB';
+      return '0xCF6220e4496B091a6b391D48e770f1FbaC63E740';
     case ChainId.POLYGON:
-      return '0x92bCCCb6c8c199AAcA38408621E38Ab6dBfA00B5';
+      return '0xC988e19819a63C0e487c6Ad8d6668Ac773923BF2';
     case ChainId.BASE:
-      return '0x331f6D0AAB4A1F039f0d75A613a7F1593DbDE1BB';
+      return '0xCF6220e4496B091a6b391D48e770f1FbaC63E740';
     case ChainId.ARBITRUM_ONE:
-      return '0x64CF365CC5CCf5E64380bc05Acd5df7D0618c118';
+      return '0x37324D81e318260DC4f0fCb68035028eFdE6F50e';
     case ChainId.CELO:
-      return '0x3dfF0145E68a5880EAbE8F56b6Bc30C4AdCF3413';
+      return '0x8eEa35913DdeD795001562f9bA5b282d3ac04B60';
     case ChainId.AVALANCHE:
-      return '0xBF2B9F6A6eCc4541b31ab2dCF8156D33644Ca3F3';
+      return '0x8269d47c4910B8c87789aA0eC128C11A8614dfC8';
+    case ChainId.WORLDCHAIN:
+      return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
+    case ChainId.UNICHAIN_SEPOLIA:
+      return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
+    case ChainId.UNICHAIN:
+      return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
+    case ChainId.SONEIUM:
+      return '0x7A5299822b2cD9aC9A9f67756Aa2d62140e9A66f';
     default:
       // just default to mainnet contract
-      return '0x19C97dc2a25845C7f9d1d519c8C2d4809c58b43f';
+      return '0xbc708B192552e19A088b4C4B8772aEeA83bCf760';
   }
 };
 
@@ -140,16 +151,38 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
           // in case of FOT token fee fetch failure, we return null
           // so that they won't get returned from the token-fee-fetcher
           // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
-          return { address, buyFeeBps: undefined, sellFeeBps: undefined };
+          return {
+            address,
+            buyFeeBps: undefined,
+            sellFeeBps: undefined,
+            feeTakenOnTransfer: false,
+            externalTransferFailed: false,
+            sellReverted: false,
+          };
         }
       })
     );
 
-    results.forEach(({ address, buyFeeBps, sellFeeBps }) => {
-      if (buyFeeBps || sellFeeBps) {
-        tokenToResult[address] = { buyFeeBps, sellFeeBps };
+    results.forEach(
+      ({
+        address,
+        buyFeeBps,
+        sellFeeBps,
+        feeTakenOnTransfer,
+        externalTransferFailed,
+        sellReverted,
+      }) => {
+        if (buyFeeBps || sellFeeBps) {
+          tokenToResult[address] = {
+            buyFeeBps,
+            sellFeeBps,
+            feeTakenOnTransfer,
+            externalTransferFailed,
+            sellReverted,
+          };
+        }
       }
-    });
+    );
 
     return tokenToResult;
   }

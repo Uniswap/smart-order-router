@@ -2,7 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Currency, Ether, Token } from '@uniswap/sdk-core';
 import { TokenList } from '@uniswap/token-lists';
 import { Pair } from '@uniswap/v2-sdk';
-import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
+import { encodeSqrtRatioX96, FeeAmount, Pool as V3Pool } from '@uniswap/v3-sdk';
+import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 import {
   AlphaRouterConfig,
@@ -12,19 +13,30 @@ import {
   UNI_MAINNET,
   USDC_MAINNET as USDC,
   USDT_MAINNET as USDT,
+  V2PoolAccessor,
   V2SubgraphPool,
   V3PoolAccessor,
   V3SubgraphPool,
+  V4PoolAccessor,
+  V4SubgraphPool,
   WBTC_MAINNET as WBTC,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../src';
-import { V2PoolAccessor } from '../../src';
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 
 export const mockBlock = 123456789;
 export const mockGasPriceWeiBN = BigNumber.from(100000);
 export const mockBlockBN = BigNumber.from(mockBlock);
 
 export const mockRoutingConfig: AlphaRouterConfig = {
+  v4PoolSelection: {
+    topN: 0,
+    topNDirectSwaps: 0,
+    topNTokenInOut: 0,
+    topNSecondHop: 0,
+    topNWithEachBaseToken: 0,
+    topNWithBaseToken: 0,
+  },
   v3PoolSelection: {
     topN: 0,
     topNDirectSwaps: 0,
@@ -57,8 +69,152 @@ export const MOCK_ZERO_DEC_TOKEN = new Token(
   'Mock Zero Dec'
 );
 
+// Mock V4 Pools
+export const USDC_DAI_V4_LOW = new V4Pool(
+  USDC,
+  DAI,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+
+export const WETH_DAI_V4_LOW_HOOKS = new V4Pool(
+  WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
+  DAI,
+  FeeAmount.LOW,
+  10,
+  '0x00001f3b9712708127b1fcad61cb892535951888',
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+
+export const USDC_DAI_V4_MEDIUM = new V4Pool(
+  USDC,
+  DAI,
+  FeeAmount.MEDIUM,
+60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const USDC_WETH_V4_LOW = new V4Pool(
+  USDC,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
+export const USDC_ETH_V4_LOW = new V4Pool(
+  USDC,
+  Ether.onChain(ChainId.MAINNET),
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
+export const WETH9_USDT_V4_LOW = new V4Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  USDT,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  200,
+  0
+);
+
+export const ETH_USDT_V4_LOW = new V4Pool(
+  Ether.onChain(ChainId.MAINNET),
+  USDT,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  200,
+  0
+);
+
+export const DAI_USDT_V4_LOW = new V4Pool(
+  DAI,
+  USDT,
+  FeeAmount.LOW,
+  10,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+
+export const USDC_USDT_V4_MEDIUM = new V4Pool(
+  USDC,
+  USDT,
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const UNI_WETH_V4_MEDIUM = new V4Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  UNI_MAINNET,
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const UNI_ETH_V4_MEDIUM = new V4Pool(
+  Ether.onChain(ChainId.MAINNET),
+  UNI_MAINNET,
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const DAI_WETH_V4_MEDIUM = new V4Pool(
+  DAI,
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
+export const DAI_ETH_V4_MEDIUM = new V4Pool(
+  DAI,
+  Ether.onChain(ChainId.MAINNET),
+  FeeAmount.MEDIUM,
+  60,
+  ADDRESS_ZERO,
+  encodeSqrtRatioX96(1, 1),
+  8,
+  0
+);
+
 // Mock V3 Pools
-export const USDC_MOCK_LOW = new Pool(
+export const USDC_MOCK_LOW = new V3Pool(
   USDC,
   MOCK_ZERO_DEC_TOKEN,
   FeeAmount.LOW,
@@ -67,7 +223,7 @@ export const USDC_MOCK_LOW = new Pool(
   0
 );
 
-export const USDC_WETH_LOW = new Pool(
+export const USDC_WETH_LOW = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.LOW,
@@ -76,7 +232,7 @@ export const USDC_WETH_LOW = new Pool(
   0
 );
 
-export const USDC_WETH_MEDIUM = new Pool(
+export const USDC_WETH_MEDIUM = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.MEDIUM,
@@ -87,7 +243,7 @@ export const USDC_WETH_MEDIUM = new Pool(
 
 // Mock USDC weth pools with different liquidity
 
-export const USDC_WETH_LOW_LIQ_LOW = new Pool(
+export const USDC_WETH_LOW_LIQ_LOW = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.LOW,
@@ -96,7 +252,7 @@ export const USDC_WETH_LOW_LIQ_LOW = new Pool(
   0
 );
 
-export const USDC_WETH_MED_LIQ_MEDIUM = new Pool(
+export const USDC_WETH_MED_LIQ_MEDIUM = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.MEDIUM,
@@ -105,7 +261,7 @@ export const USDC_WETH_MED_LIQ_MEDIUM = new Pool(
   0
 );
 
-export const USDC_WETH_HIGH_LIQ_HIGH = new Pool(
+export const USDC_WETH_HIGH_LIQ_HIGH = new V3Pool(
   USDC,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.HIGH,
@@ -114,7 +270,7 @@ export const USDC_WETH_HIGH_LIQ_HIGH = new Pool(
   0
 );
 
-export const WETH9_USDT_LOW = new Pool(
+export const WETH9_USDT_LOW = new V3Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   USDT,
   FeeAmount.LOW,
@@ -122,7 +278,7 @@ export const WETH9_USDT_LOW = new Pool(
   200,
   0
 );
-export const USDC_DAI_LOW = new Pool(
+export const USDC_DAI_LOW = new V3Pool(
   USDC,
   DAI,
   FeeAmount.LOW,
@@ -130,7 +286,15 @@ export const USDC_DAI_LOW = new Pool(
   10,
   0
 );
-export const USDC_DAI_MEDIUM = new Pool(
+export const USDC_DAI_LOW_200 = new V3Pool(
+  USDC,
+  DAI,
+  FeeAmount.LOW_200,
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+export const USDC_DAI_MEDIUM = new V3Pool(
   USDC,
   DAI,
   FeeAmount.MEDIUM,
@@ -138,7 +302,7 @@ export const USDC_DAI_MEDIUM = new Pool(
   8,
   0
 );
-export const USDC_USDT_MEDIUM = new Pool(
+export const USDC_USDT_MEDIUM = new V3Pool(
   USDC,
   USDT,
   FeeAmount.MEDIUM,
@@ -147,7 +311,7 @@ export const USDC_USDT_MEDIUM = new Pool(
   0
 );
 
-export const DAI_USDT_LOW = new Pool(
+export const DAI_USDT_LOW = new V3Pool(
   DAI,
   USDT,
   FeeAmount.LOW,
@@ -155,7 +319,7 @@ export const DAI_USDT_LOW = new Pool(
   10,
   0
 );
-export const DAI_USDT_MEDIUM = new Pool(
+export const DAI_USDT_MEDIUM = new V3Pool(
   DAI,
   USDT,
   FeeAmount.MEDIUM,
@@ -163,7 +327,7 @@ export const DAI_USDT_MEDIUM = new Pool(
   10,
   0
 );
-export const DAI_WETH_MEDIUM = new Pool(
+export const DAI_WETH_MEDIUM = new V3Pool(
   DAI,
   WRAPPED_NATIVE_CURRENCY[1]!,
   FeeAmount.MEDIUM,
@@ -171,7 +335,7 @@ export const DAI_WETH_MEDIUM = new Pool(
   10,
   0
 );
-export const WBTC_USDT_MEDIUM = new Pool(
+export const WBTC_USDT_MEDIUM = new V3Pool(
   USDT,
   WBTC,
   FeeAmount.MEDIUM,
@@ -179,7 +343,7 @@ export const WBTC_USDT_MEDIUM = new Pool(
   500,
   0
 );
-export const WBTC_WETH_MEDIUM = new Pool(
+export const WBTC_WETH_MEDIUM = new V3Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   WBTC,
   FeeAmount.MEDIUM,
@@ -187,9 +351,25 @@ export const WBTC_WETH_MEDIUM = new Pool(
   500,
   0
 );
-export const UNI_WETH_MEDIUM = new Pool(
+export const UNI_WETH_MEDIUM = new V3Pool(
   WRAPPED_NATIVE_CURRENCY[1]!,
   UNI_MAINNET,
+  FeeAmount.MEDIUM,
+  encodeSqrtRatioX96(1, 1),
+  500,
+  0
+);
+
+export const NONTOKEN = new Token(
+  ChainId.MAINNET,
+  ADDRESS_ZERO,
+  18,
+  'NONTOKEN',
+  'Non Token'
+)
+export const WETH_NONTOKEN_MEDIUM = new V3Pool(
+  WRAPPED_NATIVE_CURRENCY[1]!,
+  NONTOKEN,
   FeeAmount.MEDIUM,
   encodeSqrtRatioX96(1, 1),
   500,
@@ -237,9 +417,45 @@ export const WBTC_WETH = new Pair(
   CurrencyAmount.fromRawAmount(WRAPPED_NATIVE_CURRENCY[1]!, 10000000000)
 );
 
+export const BULLET = new Token(
+  ChainId.MAINNET,
+  '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+  8,
+  'BULLET',
+  'Bullet Game Betting Token',
+  false,
+  BigNumber.from(500),
+  BigNumber.from(500)
+);
+export const BULLET_USDC = new Pair(
+  CurrencyAmount.fromRawAmount(BULLET, 10000000000),
+  CurrencyAmount.fromRawAmount(USDC, 10000000000)
+);
+
+export const poolToV4SubgraphPool = (
+  pool: V4Pool,
+  idx: number | string
+): V4SubgraphPool => {
+  return {
+    id: idx.toString(),
+    feeTier: pool.fee.toString(),
+    tickSpacing: pool.tickSpacing.toString(),
+    hooks: pool.hooks,
+    liquidity: pool.liquidity.toString(),
+    token0: {
+      id: pool.token0.wrapped.address,
+    },
+    token1: {
+      id: pool.token1.wrapped.address,
+    },
+    tvlETH: parseFloat(pool.liquidity.toString()),
+    tvlUSD: parseFloat(pool.liquidity.toString()),
+  };
+}
+
 export const poolToV3SubgraphPool = (
-  pool: Pool,
-  idx: number
+  pool: V3Pool,
+  idx: number | string
 ): V3SubgraphPool => {
   return {
     id: idx.toString(),
@@ -258,7 +474,7 @@ export const poolToV3SubgraphPool = (
 
 export const pairToV2SubgraphPool = (
   pool: Pair,
-  idx: number
+  idx: number | string
 ): V2SubgraphPool => {
   return {
     id: idx.toString(),
@@ -274,8 +490,25 @@ export const pairToV2SubgraphPool = (
   };
 };
 
-export const buildMockV3PoolAccessor: (pools: Pool[]) => V3PoolAccessor = (
-  pools: Pool[]
+export const buildMockV4PoolAccessor: (pools: V4Pool[]) => V4PoolAccessor = (
+  pools: V4Pool[]
+) => {
+  return {
+    getAllPools: () => pools,
+    getPoolById: (poolId: string) =>
+      _.find(pools, (p) => p.poolId.toLowerCase() == poolId.toLowerCase()),
+    getPool: (tokenA, tokenB, fee, tickSpacing, hooks) =>
+      _.find(
+        pools,
+        (p) =>
+          V4Pool.getPoolId(p.currency0, p.currency1, p.fee, p.tickSpacing, p.hooks) ==
+          V4Pool.getPoolId(tokenA, tokenB, fee, tickSpacing, hooks)
+      ),
+  };
+}
+
+export const buildMockV3PoolAccessor: (pools: V3Pool[]) => V3PoolAccessor = (
+  pools: V3Pool[]
 ) => {
   return {
     getAllPools: () => pools,
@@ -283,15 +516,15 @@ export const buildMockV3PoolAccessor: (pools: Pool[]) => V3PoolAccessor = (
       _.find(
         pools,
         (p) =>
-          Pool.getAddress(p.token0, p.token1, p.fee).toLowerCase() ==
+          V3Pool.getAddress(p.token0, p.token1, p.fee).toLowerCase() ==
           address.toLowerCase()
       ),
     getPool: (tokenA, tokenB, fee) =>
       _.find(
         pools,
         (p) =>
-          Pool.getAddress(p.token0, p.token1, p.fee) ==
-          Pool.getAddress(tokenA, tokenB, fee)
+          V3Pool.getAddress(p.token0, p.token1, p.fee) ==
+          V3Pool.getAddress(tokenA, tokenB, fee)
       ),
   };
 };
@@ -385,59 +618,49 @@ export const mockTokenList: TokenList = {
 };
 
 export const BLAST_WITHOUT_TAX = new Token(
-    ChainId.MAINNET,
-    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
-    18,
-    'BLAST',
-    'BLAST',
-)
+  ChainId.MAINNET,
+  '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+  18,
+  'BLAST',
+  'BLAST',
+);
 export const BLAST = new Token(
-    ChainId.MAINNET,
-    '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
-    18,
-    'BLAST',
-    'BLAST',
-    false,
-    BigNumber.from(400),
-    BigNumber.from(10000)
-)
+  ChainId.MAINNET,
+  '0x3ed643e9032230f01c6c36060e305ab53ad3b482',
+  18,
+  'BLAST',
+  'BLAST',
+  false,
+  BigNumber.from(400),
+  BigNumber.from(10000)
+);
 export const BULLET_WITHOUT_TAX = new Token(
-    ChainId.MAINNET,
-    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
-    8,
-    'BULLET',
-    'Bullet Game Betting Token',
-    false
-)
-export const BULLET = new Token(
-    ChainId.MAINNET,
-    '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
-    8,
-    'BULLET',
-    'Bullet Game Betting Token',
-    false,
-    BigNumber.from(500),
-    BigNumber.from(500)
-)
+  ChainId.MAINNET,
+  '0x8ef32a03784c8Fd63bBf027251b9620865bD54B6',
+  8,
+  'BULLET',
+  'Bullet Game Betting Token',
+  false
+);
 export const STETH_WITHOUT_TAX = new Token(
-    ChainId.MAINNET,
-    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
-    18,
-    'stETH',
-    'stETH',
-    false
-)
+  ChainId.MAINNET,
+  '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+  18,
+  'stETH',
+  'stETH',
+  false
+);
 // stETH is a special case (rebase token), that would make the token include buyFeeBps and sellFeeBps of 0 as always
 export const STETH = new Token(
-    ChainId.MAINNET,
-    '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
-    18,
-    'stETH',
-    'stETH',
-    false,
-    BigNumber.from(0),
-    BigNumber.from(0)
-)
+  ChainId.MAINNET,
+  '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+  18,
+  'stETH',
+  'stETH',
+  false,
+  BigNumber.from(0),
+  BigNumber.from(0)
+);
 export const BITBOY = new Token(
   ChainId.MAINNET,
   '0x4a500ed6add5994569e66426588168705fcc9767',
@@ -447,11 +670,39 @@ export const BITBOY = new Token(
   false,
   BigNumber.from(300),
   BigNumber.from(300)
-)
+);
+export const BOYS = new Token(
+  ChainId.BASE,
+  '0x4d58608EFf50b691A3B76189aF2a7A123dF1e9ba',
+  9,
+  'BOYS',
+  'Boysclub',
+  false,
+  BigNumber.from(0),
+  BigNumber.from(200),
+);
+export const DFNDR = new Token(
+  ChainId.MAINNET,
+  '0x3f57c35633cb29834bb7577ba8052eab90f52a02',
+  18,
+  'DFNDR',
+  'Defender Bot',
+  false,
+  BigNumber.from(500),
+  BigNumber.from(500)
+);
+export const DFNDR_WITHOUT_TAX = new Token(
+  ChainId.MAINNET,
+  '0x3f57c35633cb29834bb7577ba8052eab90f52a02',
+  18,
+  'DFNDR',
+  'Defender Bot',
+  false
+);
 
-export const PORTION_BIPS = 12
-export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
-export const PORTION_TYPE = 'flat'
+export const PORTION_BIPS = 12;
+export const PORTION_RECIPIENT = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
+export const PORTION_TYPE = 'flat';
 
 export type Portion = {
   bips: number,
@@ -463,7 +714,7 @@ export const FLAT_PORTION: Portion = {
   bips: PORTION_BIPS,
   recipient: PORTION_RECIPIENT,
   type: PORTION_TYPE,
-}
+};
 
 export const GREENLIST_TOKEN_PAIRS: Array<[Currency, Currency]> = [
   [Ether.onChain(ChainId.MAINNET), USDC],

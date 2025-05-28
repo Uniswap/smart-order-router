@@ -5,9 +5,7 @@ import { MaxUint256 } from '@ethersproject/constants';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { permit2Address } from '@uniswap/permit2-sdk';
 import { ChainId } from '@uniswap/sdk-core';
-import {
-  UNIVERSAL_ROUTER_ADDRESS,
-} from '@uniswap/universal-router-sdk';
+import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk';
 import axios, { AxiosRequestConfig } from 'axios';
 import { BigNumber } from 'ethers/lib/ethers';
 
@@ -31,8 +29,10 @@ import { APPROVE_TOKEN_FOR_TRANSFER } from '../util/callData';
 import {
   calculateGasUsed,
   initSwapRouteFromExisting,
+  logGasEstimationVsSimulationMetrics,
 } from '../util/gas-factory-helpers';
 
+import { breakDownTenderlySimulationError } from '../util/tenderlySimulationErrorBreakDown';
 import { EthEstimateGasSimulator } from './eth-estimate-gas-provider';
 import { IPortionProvider } from './portion-provider';
 import {
@@ -42,6 +42,7 @@ import {
 } from './simulation-provider';
 import { IV2PoolProvider } from './v2/pool-provider';
 import { IV3PoolProvider } from './v3/pool-provider';
+import { IV4PoolProvider } from './v4/pool-provider';
 
 export type TenderlyResponseUniversalRouter = {
   config: {
@@ -66,10 +67,19 @@ export type GasBody = {
   gasUsed: string;
 };
 
+// Standard JSON RPC error response https://www.jsonrpc.org/specification#error_object
+export type JsonRpcError = {
+  error: {
+    code: number;
+    message: string;
+    data: string;
+  };
+};
+
 export type TenderlyResponseEstimateGasBundle = {
   id: number;
   jsonrpc: string;
-  result: GasBody[];
+  result: Array<JsonRpcError | GasBody>;
 };
 
 enum TenderlySimulationType {
@@ -128,12 +138,40 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
   switch (chainId) {
     case ChainId.MAINNET:
       return `https://mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.BASE:
+      return `https://base.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.ARBITRUM_ONE:
+      return `https://arbitrum.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.OPTIMISM:
+      return `https://optimism.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.POLYGON:
+      return `https://polygon.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.AVALANCHE:
+      return `https://avalanche.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.BLAST:
+      return `https://blast.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.WORLDCHAIN:
+      return `https://worldchain-mainnet.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.UNICHAIN:
+      return `https://unichain.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.SONEIUM:
+      return `https://soneium.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     default:
       throw new Error(
         `ChainId ${chainId} does not correspond to a tenderly node endpoint`
       );
   }
 };
+
+export const TENDERLY_NOT_SUPPORTED_CHAINS = [
+  ChainId.CELO,
+  ChainId.CELO_ALFAJORES,
+  ChainId.ZKSYNC,
+  // tenderly node RPC supports BNB and ZORA upon request, we will make them available
+  ChainId.BNB,
+  ChainId.ZORA,
+  ChainId.MONAD_TESTNET,
+];
 
 // We multiply tenderly gas limit by this to overestimate gas limit
 const DEFAULT_ESTIMATE_MULTIPLIER = 1.3;
@@ -164,7 +202,7 @@ export class FallbackTenderlySimulator extends Simulator {
     const inputAmount = swapRoute.trade.inputAmount;
 
     if (
-      (inputAmount.currency.isNative && this.chainId == ChainId.MAINNET) ||
+      inputAmount.currency.isNative ||
       (await this.checkTokenApproved(
         fromAddress,
         inputAmount,
@@ -187,7 +225,8 @@ export class FallbackTenderlySimulator extends Simulator {
         return swapRouteWithGasEstimate;
       } catch (err) {
         log.info({ err: err }, 'Error simulating using eth_estimateGas');
-        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+        // If it fails, we should still try to simulate using Tenderly
+        // return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
       }
     }
 
@@ -208,7 +247,7 @@ export class FallbackTenderlySimulator extends Simulator {
           MetricLoggerUnit.Count
         );
       }
-      return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+      return { ...swapRoute, simulationStatus: SimulationStatus.SystemDown };
     }
   }
 }
@@ -221,9 +260,10 @@ export class TenderlySimulator extends Simulator {
   private tenderlyNodeApiKey: string;
   private v2PoolProvider: IV2PoolProvider;
   private v3PoolProvider: IV3PoolProvider;
+  private v4PoolProvider: IV4PoolProvider;
   private overrideEstimateMultiplier: { [chainId in ChainId]?: number };
   private tenderlyRequestTimeout?: number;
-  private tenderlyNodeApiSamplingPercent?: number;
+  private tenderlyNodeApiMigrationPercent?: number;
   private tenderlyNodeApiEnabledChains?: ChainId[] = [];
   private tenderlyServiceInstance = axios.create({
     // keep connections alive,
@@ -241,11 +281,12 @@ export class TenderlySimulator extends Simulator {
     tenderlyNodeApiKey: string,
     v2PoolProvider: IV2PoolProvider,
     v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider,
     provider: JsonRpcProvider,
     portionProvider: IPortionProvider,
     overrideEstimateMultiplier?: { [chainId in ChainId]?: number },
     tenderlyRequestTimeout?: number,
-    tenderlyNodeApiSamplingPercent?: number,
+    tenderlyNodeApiMigrationPercent?: number,
     tenderlyNodeApiEnabledChains?: ChainId[]
   ) {
     super(provider, portionProvider, chainId);
@@ -256,9 +297,10 @@ export class TenderlySimulator extends Simulator {
     this.tenderlyNodeApiKey = tenderlyNodeApiKey;
     this.v2PoolProvider = v2PoolProvider;
     this.v3PoolProvider = v3PoolProvider;
+    this.v4PoolProvider = v4PoolProvider;
     this.overrideEstimateMultiplier = overrideEstimateMultiplier ?? {};
     this.tenderlyRequestTimeout = tenderlyRequestTimeout;
-    this.tenderlyNodeApiSamplingPercent = tenderlyNodeApiSamplingPercent;
+    this.tenderlyNodeApiMigrationPercent = tenderlyNodeApiMigrationPercent;
     this.tenderlyNodeApiEnabledChains = tenderlyNodeApiEnabledChains;
   }
 
@@ -270,9 +312,12 @@ export class TenderlySimulator extends Simulator {
   ): Promise<SwapRoute> {
     const currencyIn = swapRoute.trade.inputAmount.currency;
     const tokenIn = currencyIn.wrapped;
+    const currencyOut = swapRoute.trade.outputAmount.currency;
+    const tokenOut = currencyOut.wrapped;
     const chainId = this.chainId;
-    if ([ChainId.CELO, ChainId.CELO_ALFAJORES].includes(chainId)) {
-      const msg = 'Celo not supported by Tenderly!';
+
+    if (TENDERLY_NOT_SUPPORTED_CHAINS.includes(chainId)) {
+      const msg = `${TENDERLY_NOT_SUPPORTED_CHAINS.toString()} not supported by Tenderly!`;
       log.info(msg);
       return { ...swapRoute, simulationStatus: SimulationStatus.NotSupported };
     }
@@ -319,7 +364,7 @@ export class TenderlySimulator extends Simulator {
       const approveUniversalRouterCallData =
         permit2Interface.encodeFunctionData('approve', [
           tokenIn.address,
-          UNIVERSAL_ROUTER_ADDRESS(this.chainId),
+          UNIVERSAL_ROUTER_ADDRESS(swapOptions.version, this.chainId),
           MAX_UINT160,
           Math.floor(new Date().getTime() / 1000) + 10000000,
         ]);
@@ -331,6 +376,7 @@ export class TenderlySimulator extends Simulator {
         to: tokenIn.address,
         value: '0',
         from: fromAddress,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
         save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
@@ -342,6 +388,7 @@ export class TenderlySimulator extends Simulator {
         to: permit2Address(this.chainId),
         value: '0',
         from: fromAddress,
+        block_number: blockNumber,
         simulation_type: TenderlySimulationType.QUICK,
         save_if_fails: providerConfig?.saveTenderlySimulationIfFailed,
       };
@@ -350,7 +397,7 @@ export class TenderlySimulator extends Simulator {
         network_id: chainId,
         input: calldata,
         estimate_gas: true,
-        to: UNIVERSAL_ROUTER_ADDRESS(this.chainId),
+        to: UNIVERSAL_ROUTER_ADDRESS(swapOptions.version, this.chainId),
         value: currencyIn.isNative ? swapRoute.methodParameters.value : '0',
         from: fromAddress,
         block_number: blockNumber,
@@ -382,91 +429,182 @@ export class TenderlySimulator extends Simulator {
 
       const before = Date.now();
 
-      const { data: resp, status: httpStatus } =
-        await this.tenderlyServiceInstance
-          .post<TenderlyResponseUniversalRouter>(url, body, opts)
-          .finally(() => {
-            metric.putMetric(
-              'TenderlySimulationLatencies',
-              Date.now() - before,
-              MetricLoggerUnit.Milliseconds
-            );
-          });
-
-      // fire tenderly node endpoint sampling and forget
-      this.sampleNodeEndpoint(
-        approvePermit2,
-        approveUniversalRouter,
-        swap,
-        body,
-        resp
-      );
-
-      const latencies = Date.now() - before;
-      log.info(
-        `Tenderly simulation universal router request body: ${JSON.stringify(
-          body,
-          null,
-          2
-        )} with result ${JSON.stringify(
-          resp,
-          null,
-          2
-        )}, having latencies ${latencies} in milliseconds.`
-      );
-      metric.putMetric(
-        'TenderlySimulationUniversalRouterLatencies',
-        Date.now() - before,
-        MetricLoggerUnit.Milliseconds
-      );
-      metric.putMetric(
-        `TenderlySimulationUniversalRouterResponseStatus${httpStatus}`,
-        1,
-        MetricLoggerUnit.Count
-      );
-
-      // Validate tenderly response body
       if (
-        !resp ||
-        resp.simulation_results.length < 3 ||
-        !resp.simulation_results[2].transaction ||
-        resp.simulation_results[2].transaction.error_message
+        Math.random() * 100 < (this.tenderlyNodeApiMigrationPercent ?? 0) &&
+        (this.tenderlyNodeApiEnabledChains ?? []).find(
+          (chainId) => chainId === this.chainId
+        )
       ) {
-        this.logTenderlyErrorResponse(resp);
-        return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+        const { data: resp, status: httpStatus } =
+          await this.requestNodeSimulation(
+            approvePermit2,
+            approveUniversalRouter,
+            swap
+          );
+        // We will maintain the original metrics TenderlySimulationUniversalRouterLatencies and TenderlySimulationUniversalRouterResponseStatus
+        // so that they don't provide the existing tenderly dashboard as well as simulation alerts
+        // In the meanwhile, we also add tenderly node metrics to distinguish from the tenderly api metrics
+        // Once we migrate to node endpoint 100%, original metrics TenderlySimulationUniversalRouterLatencies and TenderlySimulationUniversalRouterResponseStatus
+        // will work as is
+        metric.putMetric(
+          'TenderlySimulationUniversalRouterLatencies',
+          Date.now() - before,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
+          'TenderlyNodeSimulationUniversalRouterLatencies',
+          Date.now() - before,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
+          `TenderlySimulationUniversalRouterResponseStatus${httpStatus}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `TenderlyNodeSimulationUniversalRouterResponseStatus${httpStatus}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        // technically, we can also early return SimulationStatus.SystemDown when http status is not 200.
+        // in reality, when tenderly is down for whatever reason, i see it always throw during axios http request
+        // so that it hits the catch block in https://github.com/Uniswap/smart-order-router/blob/8bfec299001d3204483f761f57a38be04512a948/src/providers/tenderly-simulation-provider.ts#L226
+        // which is where we want to actually return SimulationStatus.SystemDown
+        // in other words, I've never see a TenderlySimulationUniversalRouterResponseStatus metric with a non-200 status
+        // if there's downtime, it won't log metric at https://github.com/Uniswap/smart-order-router/blob/8bfec299001d3204483f761f57a38be04512a948/src/providers/tenderly-simulation-provider.ts#L434
+
+        // Validate tenderly response body
+        if (
+          !resp ||
+          !resp.result ||
+          resp.result.length < 3 ||
+          (resp.result[2] as JsonRpcError).error
+        ) {
+          log.error(
+            { resp },
+            `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
+              body,
+              null,
+              2
+            )}.`
+          );
+
+          if (
+            resp &&
+            resp.result &&
+            resp.result.length >= 3 &&
+            (resp.result[2] as JsonRpcError).error &&
+            (resp.result[2] as JsonRpcError).error.data
+          ) {
+            return {
+              ...swapRoute,
+              simulationStatus: breakDownTenderlySimulationError(
+                tokenIn,
+                tokenOut,
+                (resp.result[2] as JsonRpcError).error.data
+              ),
+            };
+          }
+
+          return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+        }
+
+        // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
+        estimatedGasUsed = BigNumber.from(
+          (
+            Number((resp.result[2] as GasBody).gas) * estimateMultiplier
+          ).toFixed(0)
+        );
+
+        log.info(
+          {
+            body,
+            approvePermit2GasUsed: (resp.result[0] as GasBody).gasUsed,
+            approveUniversalRouterGasUsed: (resp.result[1] as GasBody).gasUsed,
+            swapGasUsed: (resp.result[2] as GasBody).gasUsed,
+            approvePermit2Gas: (resp.result[0] as GasBody).gas,
+            approveUniversalRouterGas: (resp.result[1] as GasBody).gas,
+            swapGas: (resp.result[2] as GasBody).gas,
+            swapWithMultiplier: estimatedGasUsed.toString(),
+          },
+          'Successfully Simulated Approvals + Swap via Tenderly node endpoint for Universal Router. Gas used.'
+        );
+      } else {
+        const { data: resp, status: httpStatus } =
+          await this.tenderlyServiceInstance
+            .post<TenderlyResponseUniversalRouter>(url, body, opts)
+            .finally(() => {
+              metric.putMetric(
+                'TenderlySimulationLatencies',
+                Date.now() - before,
+                MetricLoggerUnit.Milliseconds
+              );
+            });
+        metric.putMetric(
+          'TenderlySimulationUniversalRouterLatencies',
+          Date.now() - before,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
+          'TenderlyApiSimulationUniversalRouterLatencies',
+          Date.now() - before,
+          MetricLoggerUnit.Milliseconds
+        );
+        metric.putMetric(
+          `TenderlySimulationUniversalRouterResponseStatus${httpStatus}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+        metric.putMetric(
+          `TenderlyApiSimulationUniversalRouterResponseStatus${httpStatus}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+
+        // Validate tenderly response body
+        if (
+          !resp ||
+          resp.simulation_results.length < 3 ||
+          !resp.simulation_results[2].transaction ||
+          resp.simulation_results[2].transaction.error_message
+        ) {
+          this.logTenderlyErrorResponse(resp);
+          return { ...swapRoute, simulationStatus: SimulationStatus.Failed };
+        }
+
+        // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
+        estimatedGasUsed = BigNumber.from(
+          (
+            resp.simulation_results[2].transaction.gas * estimateMultiplier
+          ).toFixed(0)
+        );
+
+        log.info(
+          {
+            body,
+            approvePermit2GasUsed:
+              resp.simulation_results[0].transaction.gas_used,
+            approveUniversalRouterGasUsed:
+              resp.simulation_results[1].transaction.gas_used,
+            swapGasUsed: resp.simulation_results[2].transaction.gas_used,
+            approvePermit2Gas: resp.simulation_results[0].transaction.gas,
+            approveUniversalRouterGas:
+              resp.simulation_results[1].transaction.gas,
+            swapGas: resp.simulation_results[2].transaction.gas,
+            swapWithMultiplier: estimatedGasUsed.toString(),
+          },
+          'Successfully Simulated Approvals + Swap via Tenderly Api endpoint for Universal Router. Gas used.'
+        );
+
+        log.info(
+          {
+            body,
+            swapSimulation: resp.simulation_results[2].simulation,
+            swapTransaction: resp.simulation_results[2].transaction,
+          },
+          'Successful Tenderly Api endpoint Swap Simulation for Universal Router'
+        );
       }
-
-      // Parse the gas used in the simulation response object, and then pad it so that we overestimate.
-      estimatedGasUsed = BigNumber.from(
-        (
-          resp.simulation_results[2].transaction.gas * estimateMultiplier
-        ).toFixed(0)
-      );
-
-      log.info(
-        {
-          body,
-          approvePermit2GasUsed:
-            resp.simulation_results[0].transaction.gas_used,
-          approveUniversalRouterGasUsed:
-            resp.simulation_results[1].transaction.gas_used,
-          swapGasUsed: resp.simulation_results[2].transaction.gas_used,
-          approvePermit2Gas: resp.simulation_results[0].transaction.gas,
-          approveUniversalRouterGas: resp.simulation_results[1].transaction.gas,
-          swapGas: resp.simulation_results[2].transaction.gas,
-          swapWithMultiplier: estimatedGasUsed.toString(),
-        },
-        'Successfully Simulated Approvals + Swap via Tenderly for Universal Router. Gas used.'
-      );
-
-      log.info(
-        {
-          body,
-          swapSimulation: resp.simulation_results[2].simulation,
-          swapTransaction: resp.simulation_results[2].transaction,
-        },
-        'Successful Tenderly Swap Simulation for Universal Router'
-      );
     } else if (swapOptions.type == SwapType.SWAP_ROUTER_02) {
       const approve: TenderlySimulationRequest = {
         network_id: chainId,
@@ -594,18 +732,23 @@ export class TenderlySimulator extends Simulator {
       this.provider,
       providerConfig
     );
+
+    logGasEstimationVsSimulationMetrics(swapRoute, estimatedGasUsed, chainId);
+
     return {
       ...initSwapRouteFromExisting(
         swapRoute,
         this.v2PoolProvider,
         this.v3PoolProvider,
+        this.v4PoolProvider,
         this.portionProvider,
         quoteGasAdjusted,
         estimatedGasUsed,
         estimatedGasUsedQuoteToken,
         estimatedGasUsedUSD,
         swapOptions,
-        estimatedGasUsedGasToken
+        estimatedGasUsedGasToken,
+        providerConfig
       ),
       simulationStatus: SimulationStatus.Succeeded,
     };
@@ -674,175 +817,100 @@ export class TenderlySimulator extends Simulator {
     );
   }
 
-  private async sampleNodeEndpoint(
+  private async requestNodeSimulation(
     approvePermit2: TenderlySimulationRequest,
     approveUniversalRouter: TenderlySimulationRequest,
-    swap: TenderlySimulationRequest,
-    gatewayReq: TenderlySimulationBody,
-    gatewayResp: TenderlyResponseUniversalRouter
-  ): Promise<void> {
-    if (
-      Math.random() * 100 < (this.tenderlyNodeApiSamplingPercent ?? 0) &&
-      (this.tenderlyNodeApiEnabledChains ?? []).find(
-        (chainId) => chainId === this.chainId
-      )
-    ) {
-      const nodeEndpoint = TENDERLY_NODE_API(
-        this.chainId,
-        this.tenderlyNodeApiKey
-      );
-      const body: TenderlyNodeEstimateGasBundleBody = {
-        id: 1,
-        jsonrpc: '2.0',
-        method: 'tenderly_estimateGasBundle',
-        params: [
-          [
-            {
-              from: approvePermit2.from,
-              to: approvePermit2.to,
-              data: approvePermit2.input,
-            },
-            {
-              from: approveUniversalRouter.from,
-              to: approveUniversalRouter.to,
-              data: approveUniversalRouter.input,
-            },
-            { from: swap.from, to: swap.to, data: swap.input },
-          ],
-          swap.block_number
-            ? BigNumber.from(swap.block_number)
-              .toHexString()
-              .replace('0x0', '0x')
-            : 'latest',
+    swap: TenderlySimulationRequest
+  ): Promise<{ data: TenderlyResponseEstimateGasBundle; status: number }> {
+    const nodeEndpoint = TENDERLY_NODE_API(
+      this.chainId,
+      this.tenderlyNodeApiKey
+    );
+    // TODO: ROUTE-362 - Revisit tenderly node simulation hardcode latest block number
+    // https://linear.app/uniswap/issue/ROUTE-362/revisit-tenderly-node-simulation-hardcode-latest-block-number
+    const blockNumber = // swap.block_number
+      // ? BigNumber.from(swap.block_number).toHexString().replace('0x0', '0x')
+      'latest';
+    const body: TenderlyNodeEstimateGasBundleBody = {
+      id: 1,
+      jsonrpc: '2.0',
+      method: 'tenderly_estimateGasBundle',
+      params: [
+        [
+          {
+            from: approvePermit2.from,
+            to: approvePermit2.to,
+            data: approvePermit2.input,
+          },
+          {
+            from: approveUniversalRouter.from,
+            to: approveUniversalRouter.to,
+            data: approveUniversalRouter.input,
+          },
+          { from: swap.from, to: swap.to, data: swap.input },
         ],
-      };
+        blockNumber,
+      ],
+    };
 
-      log.info(
-        `About to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
+    const opts: AxiosRequestConfig = {
+      timeout: this.tenderlyRequestTimeout,
+    };
+
+    const before = Date.now();
+
+    try {
+      // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
+      const { data: resp, status: httpStatus } =
+        await this.tenderlyServiceInstance.post<TenderlyResponseEstimateGasBundle>(
+          nodeEndpoint,
           body,
-          null,
-          2
-        )}.`
+          opts
+        );
+
+      const latencies = Date.now() - before;
+      metric.putMetric(
+        'TenderlyNodeGasEstimateBundleLatencies',
+        latencies,
+        MetricLoggerUnit.Milliseconds
+      );
+      metric.putMetric(
+        'TenderlyNodeGasEstimateBundleSuccess',
+        1,
+        MetricLoggerUnit.Count
       );
 
-      const before = Date.now();
-
-      try {
-        // For now, we don't timeout tenderly node endpoint, but we should before we live switch to node endpoint
-        const { data: resp, status: httpStatus } =
-          await this.tenderlyServiceInstance.post<TenderlyResponseEstimateGasBundle>(
-            nodeEndpoint,
-            body
-          );
-
-        const latencies = Date.now() - before;
-        metric.putMetric(
-          'TenderlyNodeGasEstimateBundleLatencies',
-          latencies,
-          MetricLoggerUnit.Milliseconds
-        );
-        metric.putMetric(
-          'TenderlyNodeGasEstimateBundleSuccess',
-          1,
-          MetricLoggerUnit.Count
-        );
-
-        log.info(
-          `Tenderly estimate gas bundle request body: ${JSON.stringify(
-            body,
-            null,
-            2
-          )} with http status ${httpStatus} result ${JSON.stringify(
-            resp,
-            null,
-            2
-          )}, having latencies ${latencies} in milliseconds.`
-        );
-
-        if (gatewayResp.simulation_results.length !== resp.result.length) {
-          metric.putMetric(
-            'TenderlyNodeGasEstimateBundleLengthMismatch',
-            1,
-            MetricLoggerUnit.Count
-          );
-          return;
-        }
-
-        let gasEstimateMismatch = false;
-
-        for (
-          let i = 0;
-          i <
-          Math.min(gatewayResp.simulation_results.length, resp.result.length);
-          i++
-        ) {
-          const gatewayGas = gatewayResp.simulation_results[i]!.transaction.gas;
-          const nodeGas = Number(resp.result[i]!.gas);
-          const gatewayGasUsed =
-            gatewayResp.simulation_results[i]!.transaction.gas_used;
-          const nodeGasUsed = Number(resp.result[i]!.gasUsed);
-
-          if (gatewayGas !== nodeGas) {
-            log.error(
-              `Gateway gas and node gas estimates do not match for index ${i}
-              gateway request body ${JSON.stringify(
-                gatewayReq.simulations[i],
-                null,
-                2
-              )}
-              node request body ${JSON.stringify(body.params[i], null, 2)}`,
-              { gatewayGas, nodeGas }
-            );
-            metric.putMetric(
-              `TenderlyNodeGasEstimateBundleGasMismatch${i}`,
-              1,
-              MetricLoggerUnit.Count
-            );
-            gasEstimateMismatch = true;
-          }
-
-          if (gatewayGasUsed !== nodeGasUsed) {
-            log.error(
-              `Gateway gas and node gas used estimates do not match for index ${i}
-              gateway request body ${JSON.stringify(
-                gatewayReq.simulations[i],
-                null,
-                2
-              )}
-              node request body ${JSON.stringify(body.params[i], null, 2)}`,
-              { gatewayGasUsed, nodeGasUsed }
-            );
-            metric.putMetric(
-              `TenderlyNodeGasEstimateBundleGasUsedMismatch${i}`,
-              1,
-              MetricLoggerUnit.Count
-            );
-            gasEstimateMismatch = true;
-          }
-        }
-
-        if (!gasEstimateMismatch) {
-          metric.putMetric(
-            'TenderlyNodeGasEstimateBundleMatch',
-            1,
-            MetricLoggerUnit.Count
-          );
-        }
-      } catch (err) {
+      if (httpStatus !== 200) {
         log.error(
           `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
             body,
             null,
             2
-          )}. Error: ${err}`
+          )}. HTTP Status: ${httpStatus}`,
+          { resp }
         );
-
-        metric.putMetric(
-          'TenderlyNodeGasEstimateBundleFailure',
-          1,
-          MetricLoggerUnit.Count
-        );
+        return { data: resp, status: httpStatus };
       }
+
+      return { data: resp, status: httpStatus };
+    } catch (err) {
+      log.error(
+        { err },
+        `Failed to invoke Tenderly Node Endpoint for gas estimation bundle ${JSON.stringify(
+          body,
+          null,
+          2
+        )}. Error: ${err}`
+      );
+
+      metric.putMetric(
+        'TenderlyNodeGasEstimateBundleFailure',
+        1,
+        MetricLoggerUnit.Count
+      );
+
+      // we will have to re-throw the error, so that simulation-provider can catch the error, and return simulation status = failed
+      throw err;
     }
   }
 }

@@ -6,14 +6,14 @@ import {
   GasModelProviderConfig,
   SwapOptions,
   SwapRoute,
-  SwapType
+  SwapType,
 } from '../routers';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
 import { CurrencyAmount, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
 
-import { IPortionProvider } from './portion-provider';
 import { permit2Address } from '@uniswap/permit2-sdk';
+import { IPortionProvider } from './portion-provider';
 
 export type SimulationResult = {
   transaction: {
@@ -31,6 +31,9 @@ export enum SimulationStatus {
   Succeeded = 2,
   InsufficientBalance = 3,
   NotApproved = 4,
+  SystemDown = 5,
+  SlippageTooLow = 6,
+  TransferFromFailed = 7,
 }
 
 /**
@@ -67,6 +70,7 @@ export abstract class Simulator {
     const neededBalance =
       swapRoute.trade.tradeType == TradeType.EXACT_INPUT ? amount : quote;
     if (
+      // we assume we always have enough eth mainnet balance because we use beacon address later
       (neededBalance.currency.isNative && this.chainId == ChainId.MAINNET) ||
       (await this.userHasSufficientBalance(
         fromAddress,
@@ -79,7 +83,12 @@ export abstract class Simulator {
         'User has sufficient balance to simulate. Simulating transaction.'
       );
       try {
-        return this.simulateTransaction(fromAddress, swapOptions, swapRoute, providerConfig);
+        return this.simulateTransaction(
+          fromAddress,
+          swapOptions,
+          swapRoute,
+          providerConfig
+        );
       } catch (e) {
         log.error({ e }, 'Error simulating transaction');
         return {

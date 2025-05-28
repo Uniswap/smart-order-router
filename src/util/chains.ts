@@ -3,7 +3,7 @@ import {
   Currency,
   Ether,
   NativeCurrency,
-  Token
+  Token,
 } from '@uniswap/sdk-core';
 
 // WIP: Gnosis, Moonbeam
@@ -26,6 +26,12 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.BLAST,
   ChainId.ZORA,
   ChainId.ZKSYNC,
+  ChainId.WORLDCHAIN,
+  ChainId.UNICHAIN,
+  ChainId.UNICHAIN_SEPOLIA,
+  ChainId.MONAD_TESTNET,
+  ChainId.BASE_SEPOLIA,
+  ChainId.SONEIUM,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -38,6 +44,42 @@ export const V2_SUPPORTED = [
   ChainId.BASE,
   ChainId.BNB,
   ChainId.AVALANCHE,
+  ChainId.MONAD_TESTNET,
+  ChainId.UNICHAIN_SEPOLIA,
+  ChainId.UNICHAIN,
+  ChainId.SONEIUM,
+];
+
+export const V4_SUPPORTED = [
+  ChainId.MAINNET,
+  ChainId.SEPOLIA,
+  ChainId.ARBITRUM_ONE,
+  ChainId.OPTIMISM,
+  ChainId.POLYGON,
+  ChainId.BASE,
+  ChainId.BNB,
+  ChainId.AVALANCHE,
+  ChainId.MONAD_TESTNET,
+  ChainId.UNICHAIN_SEPOLIA,
+  ChainId.UNICHAIN,
+  ChainId.SONEIUM,
+];
+
+export const MIXED_SUPPORTED = [
+  ChainId.MAINNET,
+  ChainId.SEPOLIA,
+  ChainId.GOERLI,
+  ChainId.BASE,
+  ChainId.UNICHAIN,
+  ChainId.BASE,
+  ChainId.ARBITRUM_ONE,
+  ChainId.POLYGON,
+  ChainId.OPTIMISM,
+  ChainId.AVALANCHE,
+  ChainId.BNB,
+  ChainId.WORLDCHAIN,
+  ChainId.ZORA,
+  ChainId.SONEIUM,
 ];
 
 export const HAS_L1_FEE = [
@@ -51,6 +93,11 @@ export const HAS_L1_FEE = [
   ChainId.BASE_GOERLI,
   ChainId.BLAST,
   ChainId.ZORA,
+  ChainId.WORLDCHAIN,
+  ChainId.UNICHAIN_SEPOLIA,
+  ChainId.MONAD_TESTNET,
+  ChainId.UNICHAIN,
+  ChainId.SONEIUM,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -102,12 +149,24 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.BASE;
     case 84531:
       return ChainId.BASE_GOERLI;
+    case 84532:
+      return ChainId.BASE_SEPOLIA;
     case 81457:
       return ChainId.BLAST;
     case 7777777:
       return ChainId.ZORA;
     case 324:
       return ChainId.ZKSYNC;
+    case 480:
+      return ChainId.WORLDCHAIN;
+    case 1301:
+      return ChainId.UNICHAIN_SEPOLIA;
+    case 10143:
+      return ChainId.MONAD_TESTNET;
+    case 130:
+      return ChainId.UNICHAIN;
+    case 1868:
+      return ChainId.SONEIUM;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -133,9 +192,15 @@ export enum ChainName {
   AVALANCHE = 'avalanche-mainnet',
   BASE = 'base-mainnet',
   BASE_GOERLI = 'base-goerli',
+  BASE_SEPOLIA = 'base-sepolia',
   BLAST = 'blast-mainnet',
   ZORA = 'zora-mainnet',
   ZKSYNC = 'zksync-mainnet',
+  WORLDCHAIN = 'worldchain-mainnet',
+  UNICHAIN_SEPOLIA = 'unichain-sepolia',
+  UNICHAIN = 'unichain-mainnet',
+  MONAD_TESTNET = 'monad-testnet',
+  SONEIUM = 'soneium-mainnet',
 }
 
 export enum NativeCurrencyName {
@@ -147,6 +212,7 @@ export enum NativeCurrencyName {
   MOONBEAM = 'GLMR',
   BNB = 'BNB',
   AVALANCHE = 'AVAX',
+  MONAD = 'MON',
 }
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
@@ -230,6 +296,36 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.WORLDCHAIN]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.UNICHAIN_SEPOLIA]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.MONAD_TESTNET]: [
+    'MON',
+    'MONAD',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.BASE_SEPOLIA]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.UNICHAIN]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.SONEIUM]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -254,6 +350,12 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.BLAST]: NativeCurrencyName.ETHER,
   [ChainId.ZORA]: NativeCurrencyName.ETHER,
   [ChainId.ZKSYNC]: NativeCurrencyName.ETHER,
+  [ChainId.WORLDCHAIN]: NativeCurrencyName.ETHER,
+  [ChainId.UNICHAIN_SEPOLIA]: NativeCurrencyName.ETHER,
+  [ChainId.MONAD_TESTNET]: NativeCurrencyName.MONAD,
+  [ChainId.BASE_SEPOLIA]: NativeCurrencyName.ETHER,
+  [ChainId.UNICHAIN]: NativeCurrencyName.ETHER,
+  [ChainId.SONEIUM]: NativeCurrencyName.ETHER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -296,12 +398,24 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.BASE;
     case 84531:
       return ChainName.BASE_GOERLI;
+    case 84532:
+      return ChainName.BASE_SEPOLIA;
     case 81457:
       return ChainName.BLAST;
     case 7777777:
       return ChainName.ZORA;
     case 324:
       return ChainName.ZKSYNC;
+    case 480:
+      return ChainName.WORLDCHAIN;
+    case 1301:
+      return ChainName.UNICHAIN_SEPOLIA;
+    case 130:
+      return ChainName.UNICHAIN;
+    case 10143:
+      return ChainName.MONAD_TESTNET;
+    case 1868:
+      return ChainName.SONEIUM;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -351,6 +465,18 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_ZORA!;
     case ChainId.ZKSYNC:
       return process.env.JSON_RPC_PROVIDER_ZKSYNC!;
+    case ChainId.WORLDCHAIN:
+      return process.env.JSON_RPC_PROVIDER_WORLDCHAIN!;
+    case ChainId.UNICHAIN_SEPOLIA:
+      return process.env.JSON_RPC_PROVIDER_UNICHAIN_SEPOLIA!;
+    case ChainId.MONAD_TESTNET:
+      return process.env.JSON_RPC_PROVIDER_MONAD_TESTNET!;
+    case ChainId.BASE_SEPOLIA:
+      return process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA!;
+    case ChainId.UNICHAIN:
+      return process.env.JSON_RPC_PROVIDER_UNICHAIN!;
+    case ChainId.SONEIUM:
+      return process.env.JSON_RPC_PROVIDER_SONEIUM!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -422,7 +548,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.ARBITRUM_SEPOLIA]: new Token(
     ChainId.ARBITRUM_SEPOLIA,
-    '0xc556bAe1e86B2aE9c22eA5E036b07E55E7596074',
+    '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
     18,
     'WETH',
     'Wrapped Ether'
@@ -523,6 +649,48 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   [ChainId.ZKSYNC]: new Token(
     ChainId.ZKSYNC,
     '0x5aea5775959fbc2557cc8789bc1bf90a239d9a91',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.WORLDCHAIN]: new Token(
+    ChainId.WORLDCHAIN,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.UNICHAIN_SEPOLIA]: new Token(
+    ChainId.UNICHAIN_SEPOLIA,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.UNICHAIN]: new Token(
+    ChainId.UNICHAIN,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.MONAD_TESTNET]: new Token(
+    ChainId.MONAD_TESTNET,
+    '0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701',
+    18,
+    'WMON',
+    'Wrapped Monad'
+  ),
+  [ChainId.BASE_SEPOLIA]: new Token(
+    ChainId.BASE_SEPOLIA,
+    '0x4200000000000000000000000000000000000006',
+    18,
+    'WETH',
+    'Wrapped Ether'
+  ),
+  [ChainId.SONEIUM]: new Token(
+    ChainId.SONEIUM,
+    '0x4200000000000000000000000000000000000006',
     18,
     'WETH',
     'Wrapped Ether'

@@ -1,9 +1,11 @@
 import { parseUnits } from '@ethersproject/units';
+import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import {
+  ChainId,
   Currency,
   CurrencyAmount as CurrencyAmountRaw,
 } from '@uniswap/sdk-core';
-import { FeeAmount } from '@uniswap/v3-sdk';
+import { FeeAmount, TICK_SPACINGS } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
 
 export class CurrencyAmount extends CurrencyAmountRaw<Currency> {}
@@ -24,6 +26,12 @@ export function parseFeeAmount(feeAmountStr: string) {
       return FeeAmount.MEDIUM;
     case '500':
       return FeeAmount.LOW;
+    case '400':
+      return FeeAmount.LOW_400;
+    case '300':
+      return FeeAmount.LOW_300;
+    case '200':
+      return FeeAmount.LOW_200;
     case '100':
       return FeeAmount.LOWEST;
     default:
@@ -39,9 +47,51 @@ export function unparseFeeAmount(feeAmount: FeeAmount) {
       return '3000';
     case FeeAmount.LOW:
       return '500';
+    case FeeAmount.LOW_400:
+      return '400';
+    case FeeAmount.LOW_300:
+      return '300';
+    case FeeAmount.LOW_200:
+      return '200';
     case FeeAmount.LOWEST:
       return '100';
     default:
       throw new Error(`Fee amount ${feeAmount} not supported.`);
   }
+}
+
+export function getApplicableV3FeeAmounts(chainId: ChainId): FeeAmount[] {
+  const feeAmounts = [
+    FeeAmount.HIGH,
+    FeeAmount.MEDIUM,
+    FeeAmount.LOW,
+    FeeAmount.LOWEST,
+  ];
+
+  if (chainId === ChainId.BASE) {
+    feeAmounts.push(FeeAmount.LOW_200, FeeAmount.LOW_300, FeeAmount.LOW_400);
+  }
+
+  return feeAmounts;
+}
+
+export function getApplicableV4FeesTickspacingsHooks(
+  chainId: ChainId
+): Array<[number, number, string]> {
+  const feeAmounts = [
+    FeeAmount.HIGH,
+    FeeAmount.MEDIUM,
+    FeeAmount.LOW,
+    FeeAmount.LOWEST,
+  ];
+
+  if (chainId === ChainId.BASE) {
+    feeAmounts.push(FeeAmount.LOW_200, FeeAmount.LOW_300, FeeAmount.LOW_400);
+  }
+
+  return feeAmounts.map((feeAmount) => [
+    feeAmount as number,
+    TICK_SPACINGS[feeAmount],
+    ADDRESS_ZERO,
+  ]);
 }

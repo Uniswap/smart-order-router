@@ -21,11 +21,12 @@ import {
   TradeType
 } from '@uniswap/sdk-core';
 import {
-  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN
+  UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
+  UniversalRouterVersion
 } from '@uniswap/universal-router-sdk';
 import {
   Permit2Permit
-} from '@uniswap/universal-router-sdk/dist/utils/inputTokens';
+} from '@uniswap/universal-router-sdk';
 import { Pair } from '@uniswap/v2-sdk';
 import { encodeSqrtRatioX96, FeeAmount, Pool } from '@uniswap/v3-sdk';
 import bunyan from 'bunyan';
@@ -40,6 +41,7 @@ import {
   AlphaRouterConfig,
   CachingV2PoolProvider,
   CachingV3PoolProvider,
+  CachingV4PoolProvider,
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
   CUSD_CELO,
@@ -48,6 +50,7 @@ import {
   DAI_ON,
   EthEstimateGasSimulator,
   FallbackTenderlySimulator,
+  getApplicableV4FeesTickspacingsHooks,
   ID_TO_NETWORK_NAME,
   ID_TO_PROVIDER,
   MethodParameters,
@@ -78,6 +81,7 @@ import {
   USDC_NATIVE_BASE,
   USDC_NATIVE_OPTIMISM,
   USDC_NATIVE_POLYGON,
+  USDC_NATIVE_SEPOLIA,
   USDC_ON,
   USDT_BNB,
   USDT_MAINNET,
@@ -86,11 +90,15 @@ import {
   V2Route,
   V3PoolProvider,
   V3Route,
+  V4PoolProvider,
   WBTC_GNOSIS,
   WBTC_MOONBEAM,
   WETH9,
+  WLD_WORLDCHAIN,
   WNATIVE_ON,
-  WRAPPED_NATIVE_CURRENCY
+  WRAPPED_NATIVE_CURRENCY,
+  CacheMode,
+  USDC_SONEIUM
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -106,45 +114,59 @@ import { getBalanceAndApprove } from '../../../test-util/getBalanceAndApprove';
 import {
   BULLET,
   BULLET_WITHOUT_TAX,
+  DFNDR_WITHOUT_TAX,
   FLAT_PORTION,
   GREENLIST_TOKEN_PAIRS,
   Portion
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
+import { V4SubgraphProvider } from '../../../../build/main';
+import {
+  InMemoryRouteCachingProvider
+} from '../../../unit/providers/caching/route/test-util/inmemory-route-caching-provider';
+import {
+  getInvalidCachedRoutesStub
+} from '../../../unit/routers/alpha-router/gas-models/test-util/mocked-dependencies';
 
-const FORK_BLOCK = 20071566;
-const UNIVERSAL_ROUTER_ADDRESS = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(1);
+const FORK_BLOCK = 20444945;
+const UNIVERSAL_ROUTER_ADDRESS_V1_2 = UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN(UniversalRouterVersion.V1_2, 1);
 const SLIPPAGE = new Percent(15, 100); // 5% or 10_000?
-const LARGE_SLIPPAGE = new Percent(45, 100); // 5% or 10_000?
+const LARGE_SLIPPAGE = new Percent(75, 100); // 5% or 10_000?
 
 // Those are the worst deviation (we intend to keep them low and strict) tested manually with FORK_BLOCK = 18222746
 // We may need to tune them if we change the FORK_BLOCK
-const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number }  = {
-  [ChainId.MAINNET]: 40,
-  [ChainId.GOERLI]: 62,
-  [ChainId.SEPOLIA]: 50,
-  [ChainId.OPTIMISM]: 61,
+const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
+  [ChainId.MAINNET]: 95,
+  [ChainId.GOERLI]: 95,
+  [ChainId.SEPOLIA]: 95,
+  [ChainId.OPTIMISM]: 75,
   [ChainId.OPTIMISM_GOERLI]: 30,
   [ChainId.OPTIMISM_SEPOLIA]: 30,
-  [ChainId.ARBITRUM_ONE]: 53,
+  [ChainId.ARBITRUM_ONE]: 95,
   [ChainId.ARBITRUM_GOERLI]: 50,
   [ChainId.ARBITRUM_SEPOLIA]: 50,
-  [ChainId.POLYGON]: 38,
+  [ChainId.POLYGON]: 95,
   [ChainId.POLYGON_MUMBAI]: 30,
   [ChainId.CELO]: 30,
   [ChainId.CELO_ALFAJORES]: 30,
   [ChainId.GNOSIS]: 30,
   [ChainId.MOONBEAM]: 30,
-  [ChainId.BNB]: 63,
-  [ChainId.AVALANCHE]: 36,
-  [ChainId.BASE]: 39,
+  [ChainId.BNB]: 82,
+  [ChainId.AVALANCHE]: 45,
+  [ChainId.BASE]: 53,
   [ChainId.BASE_GOERLI]: 30,
-  [ChainId.ZORA]: 40,
+  [ChainId.ZORA]: 50,
   [ChainId.ZORA_SEPOLIA]: 30,
   [ChainId.ROOTSTOCK]: 30,
   [ChainId.BLAST]: 34,
   [ChainId.ZKSYNC]: 40,
-}
+  [ChainId.WORLDCHAIN]: 75,
+  [ChainId.UNICHAIN_SEPOLIA]: 50,
+  [ChainId.UNICHAIN]: 85,
+  [ChainId.MONAD_TESTNET]: 50,
+  [ChainId.BASE_SEPOLIA]: 50,
+  [ChainId.SONEIUM]: 50,
+};
 
 const V2_SUPPORTED_PAIRS = [
   [WETH9[ChainId.ARBITRUM_ONE], USDC_NATIVE_ARBITRUM],
@@ -153,6 +175,7 @@ const V2_SUPPORTED_PAIRS = [
   [WETH9[ChainId.BASE], USDC_NATIVE_BASE],
   [WRAPPED_NATIVE_CURRENCY[ChainId.BNB], USDC_BNB],
   [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE], USDC_NATIVE_AVAX],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM], USDC_SONEIUM]
 ];
 
 const checkQuoteToken = (
@@ -242,7 +265,7 @@ if (process.env.INTEG_TEST_DEBUG) {
   );
 }
 
-jest.retryTimes(10);
+jest.retryTimes(0);
 
 describe('alpha router integration', () => {
   let alice: JsonRpcSigner;
@@ -311,7 +334,7 @@ describe('alpha router integration', () => {
         const aliceP2 = Permit2__factory.connect(permit2Address(ChainId.MAINNET), alice);
         const approveNarwhal = await aliceP2.approve(
           tokenIn.wrapped.address,
-          UNIVERSAL_ROUTER_ADDRESS,
+          UNIVERSAL_ROUTER_ADDRESS_V1_2,
           MAX_UINT160,
           20_000_000_000_000
         );
@@ -432,7 +455,7 @@ describe('alpha router integration', () => {
     }
 
     if (targetQuoteGasAndPortionAdjustedDecimalsAmount && quoteGasAndPortionAdjusted) {
-      acceptablePortionDifference = acceptablePortionDifference ?? 0
+      acceptablePortionDifference = acceptablePortionDifference ?? 0;
 
       expect(
         quoteGasAndPortionAdjusted.greaterThan(
@@ -501,7 +524,14 @@ describe('alpha router integration', () => {
     skipQuoteTokenCheck?: boolean,
   ) => {
     expect(methodParameters).not.toBeUndefined();
-    const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter, tokenOutPortionRecipientBefore, tokenOutPortionRecipientAfter } =
+    const {
+      tokenInBefore,
+      tokenInAfter,
+      tokenOutBefore,
+      tokenOutAfter,
+      tokenOutPortionRecipientBefore,
+      tokenOutPortionRecipientAfter
+    } =
       await executeSwap(
         swapType,
         methodParameters!,
@@ -592,7 +622,7 @@ describe('alpha router integration', () => {
     await hardhat.fund(
       alice._address,
       [parseAmount('5000000', USDT_MAINNET)],
-      ['0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503']
+      ['0xf4a3b00E806c9525B079c67A457897535E258651']
     );
 
     await hardhat.fund(
@@ -611,7 +641,7 @@ describe('alpha router integration', () => {
       alice._address,
       [parseAmount('4000', WETH9[1])],
       [
-        '0x2fEb1512183545f48f6b9C5b4EbfCaF49CfCa6F3', // WETH whale
+        '0x6B44ba0a126a2A1a8aa6cD1AdeeD002e141Bcd44', // WETH whale
       ]
     );
 
@@ -657,9 +687,14 @@ describe('alpha router integration', () => {
     const aliceBULLETBalance = await hardhat.getBalance(
       alice._address,
       BULLET
-    )
-    expect(aliceBULLETBalance).toEqual(parseAmount('735871', BULLET))
+    );
+    expect(aliceBULLETBalance).toEqual(parseAmount('735871', BULLET));
 
+    const v4PoolProvider = new CachingV4PoolProvider(
+      ChainId.MAINNET,
+      new V4PoolProvider(ChainId.MAINNET, multicall2Provider),
+      new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+    );
     const v3PoolProvider = new CachingV3PoolProvider(
       ChainId.MAINNET,
       new V3PoolProvider(ChainId.MAINNET, multicall2Provider),
@@ -668,12 +703,12 @@ describe('alpha router integration', () => {
     const tokenFeeFetcher = new OnChainTokenFeeFetcher(
       ChainId.MAINNET,
       hardhat.provider
-    )
+    );
     const tokenPropertiesProvider = new TokenPropertiesProvider(
       ChainId.MAINNET,
       new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
       tokenFeeFetcher
-    )
+    );
     const v2PoolProvider = new V2PoolProvider(
       ChainId.MAINNET,
       multicall2Provider,
@@ -683,7 +718,7 @@ describe('alpha router integration', () => {
       ChainId.MAINNET,
       v2PoolProvider,
       new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
-    )
+    );
 
     const portionProvider = new PortionProvider();
     const ethEstimateGasSimulator = new EthEstimateGasSimulator(
@@ -691,6 +726,7 @@ describe('alpha router integration', () => {
       hardhat.providers[0]!,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       portionProvider
     );
 
@@ -703,6 +739,7 @@ describe('alpha router integration', () => {
       process.env.TENDERLY_NODE_API_KEY!,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       hardhat.providers[0]!,
       portionProvider,
       {
@@ -710,6 +747,10 @@ describe('alpha router integration', () => {
         // so we can use the gas limits returned from Tenderly for more accurate L2 gas estimate assertions.
         [ChainId.ARBITRUM_ONE]: 1
       },
+      // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
+      3000,
+      100,
+      [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
     );
 
     const simulator = new FallbackTenderlySimulator(
@@ -726,6 +767,7 @@ describe('alpha router integration', () => {
       multicall2Provider,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       simulator,
     });
 
@@ -737,7 +779,9 @@ describe('alpha router integration', () => {
       multicall2Provider,
       v2PoolProvider,
       v3PoolProvider,
+      v4PoolProvider,
       simulator: ethEstimateGasSimulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
 
     feeOnTransferAlphaRouter = new AlphaRouter({
@@ -747,6 +791,7 @@ describe('alpha router integration', () => {
       v2PoolProvider: cachingV2PoolProvider,
       v3PoolProvider,
       simulator,
+      cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
     });
   });
 
@@ -771,6 +816,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -831,8 +877,8 @@ describe('alpha router integration', () => {
             getQuoteToken(tokenIn, tokenOut, tradeType),
             tradeType,
             {
-
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -909,7 +955,7 @@ describe('alpha router integration', () => {
               ).toString(),
               nonce,
             },
-            spender: UNIVERSAL_ROUTER_ADDRESS,
+            spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
             sigDeadline: Math.floor(
               new Date().getTime() / 1000 + 100000
             ).toString(),
@@ -934,6 +980,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -985,7 +1032,7 @@ describe('alpha router integration', () => {
               ).toString(),
               nonce,
             },
-            spender: UNIVERSAL_ROUTER_ADDRESS,
+            spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
             sigDeadline: Math.floor(
               new Date().getTime() / 1000 + 1000
             ).toString(),
@@ -1010,6 +1057,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1062,6 +1110,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1102,6 +1151,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1195,7 +1245,7 @@ describe('alpha router integration', () => {
               ).toString(),
               nonce,
             },
-            spender: UNIVERSAL_ROUTER_ADDRESS,
+            spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
             sigDeadline: Math.floor(
               new Date().getTime() / 1000 + 1000
             ).toString(),
@@ -1220,6 +1270,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE.multiply(10),
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1268,6 +1319,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1407,6 +1459,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1446,6 +1499,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1485,6 +1539,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1533,6 +1588,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1581,6 +1637,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1639,6 +1696,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1686,6 +1744,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1735,6 +1794,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1857,7 +1917,7 @@ describe('alpha router integration', () => {
                   ).toString(),
                   nonce,
                 },
-                spender: UNIVERSAL_ROUTER_ADDRESS,
+                spender: UNIVERSAL_ROUTER_ADDRESS_V1_2,
                 sigDeadline: Math.floor(
                   new Date().getTime() / 1000 + 100000
                 ).toString(),
@@ -1888,6 +1948,7 @@ describe('alpha router integration', () => {
                 tradeType,
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: wallet.address,
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1922,6 +1983,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -1981,6 +2043,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2067,6 +2130,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: new Percent(50, 100),
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2124,6 +2188,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: LARGE_SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2181,6 +2246,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2238,6 +2304,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2296,6 +2363,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2355,6 +2423,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2417,6 +2486,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2568,6 +2638,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2599,6 +2670,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2649,6 +2721,7 @@ describe('alpha router integration', () => {
               tradeType,
               {
                 type: SwapType.UNIVERSAL_ROUTER,
+                version: UniversalRouterVersion.V1_2,
                 recipient: alice._address,
                 slippageTolerance: SLIPPAGE,
                 deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2693,7 +2766,7 @@ describe('alpha router integration', () => {
                 tradeType == TradeType.EXACT_INPUT
                   ? parseAmount(originalAmount, tokenIn)
                   : parseAmount(originalAmount, tokenOut);
-              const bps = new Percent(FLAT_PORTION.bips, 10_000)
+              const bps = new Percent(FLAT_PORTION.bips, 10_000);
 
               const swap = await alphaRouter.route(
                 amount,
@@ -2701,12 +2774,16 @@ describe('alpha router integration', () => {
                 tradeType,
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: alice._address,
                   slippageTolerance: LARGE_SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
                   simulate: { fromAddress: WHALES(tokenIn) },
                   fee: tradeType == TradeType.EXACT_INPUT ? { fee: bps, recipient: FLAT_PORTION.recipient } : undefined,
-                  flatFee: tradeType == TradeType.EXACT_OUTPUT ? { amount: amount.multiply(bps).quotient.toString(), recipient: FLAT_PORTION.recipient } : undefined
+                  flatFee: tradeType == TradeType.EXACT_OUTPUT ? {
+                    amount: amount.multiply(bps).quotient.toString(),
+                    recipient: FLAT_PORTION.recipient
+                  } : undefined
                 },
                 {
                   ...ROUTING_CONFIG,
@@ -2721,42 +2798,53 @@ describe('alpha router integration', () => {
               expect(swap!.methodParameters).toBeDefined();
               expect(swap!.methodParameters!.to).toBeDefined();
 
-              const { quote, quoteGasAdjusted, quoteGasAndPortionAdjusted, methodParameters, portionAmount, route } = swap!;
+              const {
+                quote,
+                quoteGasAdjusted,
+                quoteGasAndPortionAdjusted,
+                methodParameters,
+                portionAmount,
+                route
+              } = swap!;
 
               // The most strict way to ensure the output amount from route path is correct with respect to portion
               // is to make sure the output amount from route path is exactly portion bps different from the quote
-              const allQuotesAcrossRoutes = route.map(route => route.quote).reduce((sum, quote) => quote.add(sum))
+              const allQuotesAcrossRoutes = route.map(route => route.quote).reduce((sum, quote) => quote.add(sum));
               if (tradeType === TradeType.EXACT_INPUT) {
-                const tokensDiff = quote.subtract(allQuotesAcrossRoutes)
+                const tokensDiff = quote.subtract(allQuotesAcrossRoutes);
                 const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
-                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10));
               } else {
                 expect(allQuotesAcrossRoutes.greaterThan(quote)).toBe(true);
 
-                const tokensDiff = allQuotesAcrossRoutes.subtract(quote)
+                const tokensDiff = allQuotesAcrossRoutes.subtract(quote);
                 const percentDiff = tokensDiff.asFraction.divide(quote.asFraction);
-                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10))
+                expect(percentDiff.toFixed(10)).toEqual(new Fraction(FLAT_PORTION.bips, 10_000).toFixed(10));
               }
 
               expect(quoteGasAndPortionAdjusted).toBeDefined();
               expect(portionAmount).toBeDefined();
 
-              const expectedPortionAmount = tradeType === TradeType.EXACT_INPUT ? quote.multiply(new Fraction(FLAT_PORTION.bips, 10_000)) : amount.multiply(new Fraction(FLAT_PORTION.bips, 10_000))
-              expect(portionAmount?.toExact()).toEqual(expectedPortionAmount.toExact())
+              const expectedPortionAmount = tradeType === TradeType.EXACT_INPUT ? quote.multiply(new Fraction(
+                FLAT_PORTION.bips,
+                10_000
+              )) : amount.multiply(new Fraction(FLAT_PORTION.bips, 10_000));
+              expect(portionAmount?.toExact()).toEqual(expectedPortionAmount.toExact());
 
               // We must have very strict difference tolerance to not hide any bug.
               // the only difference can be due to rounding,
               // so regardless of token decimals & amounts,
               // the difference will always be at most 1
-              const acceptableDifference = 1
-              const acceptablePortionDifference = 1
-              const portionQuoteAmount = tradeType === TradeType.EXACT_OUTPUT ? quoteGasAndPortionAdjusted!.subtract(quoteGasAdjusted) : portionAmount
+              const acceptableDifference = 1;
+              const acceptablePortionDifference = 1;
+              const portionQuoteAmount = tradeType === TradeType.EXACT_OUTPUT ? quoteGasAndPortionAdjusted!.subtract(
+                quoteGasAdjusted) : portionAmount;
               expect(portionQuoteAmount).toBeDefined();
 
               const targetQuoteGasAndPortionAdjustedDecimalsAmount =
                 tradeType === TradeType.EXACT_OUTPUT ?
                   quoteGasAdjusted.add(portionQuoteAmount!) :
-                  quoteGasAdjusted.subtract(expectedPortionAmount)
+                  quoteGasAdjusted.subtract(expectedPortionAmount);
               await validateSwapRoute(
                 quote,
                 quoteGasAdjusted,
@@ -2769,16 +2857,16 @@ describe('alpha router integration', () => {
               );
 
               // skip checking token in amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
-              const checkTokenInAmount = tokenIn.isNative ? undefined: parseFloat(amount.toFixed(0))
+              const checkTokenInAmount = tokenIn.isNative ? undefined : parseFloat(amount.toFixed(0));
               // skip checking token out amount for native ETH, since we have no way to know the exact gas cost in terms of ETH token
-              const checkTokenOutAmount = tokenOut.isNative ? undefined : parseFloat(amount.toFixed(0))
-              const checkPortionAmount = parseFloat(expectedPortionAmount.toFixed(0))
+              const checkTokenOutAmount = tokenOut.isNative ? undefined : parseFloat(amount.toFixed(0));
+              const checkPortionAmount = parseFloat(expectedPortionAmount.toFixed(0));
 
               const skipQuoteTokenCheck =
                 // If token out is native, and trade type is exact in, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
                 tokenOut.isNative && tradeType === TradeType.EXACT_INPUT
                 // If token in is native, and trade type is exact out, check quote token will fail due to unable to know the exact gas cost in terms of ETH token
-                || tokenIn.isNative && tradeType === TradeType.EXACT_OUTPUT
+                || tokenIn.isNative && tradeType === TradeType.EXACT_OUTPUT;
 
               await validateExecuteSwap(
                 SwapType.UNIVERSAL_ROUTER,
@@ -2803,13 +2891,13 @@ describe('alpha router integration', () => {
             const tokenInAndTokenOut = [
               [BULLET_WITHOUT_TAX, WETH9[ChainId.MAINNET]!],
               [WETH9[ChainId.MAINNET]!, BULLET_WITHOUT_TAX],
-            ]
+            ];
 
             tokenInAndTokenOut.forEach(([tokenIn, tokenOut]) => {
               it(`fee-on-transfer ${tokenIn?.symbol} -> ${tokenOut?.symbol}`, async () => {
-                const enableFeeOnTransferFeeFetching = [true, false, undefined]
+                const enableFeeOnTransferFeeFetching = [true, false, undefined];
                 // we want to swap the tokenIn/tokenOut order so that we can test both sellFeeBps and buyFeeBps for exactIn vs exactOut
-                const originalAmount = tokenIn?.equals(WETH9[ChainId.MAINNET]!) ? '10' : '2924'
+                const originalAmount = tokenIn?.equals(WETH9[ChainId.MAINNET]!) ? '10' : '2924';
                 const amount = parseAmount(originalAmount, tokenIn!);
 
                 // Parallelize the FOT quote requests, because we notice there might be tricky race condition that could cause quote to not include FOT tax
@@ -2818,7 +2906,7 @@ describe('alpha router integration', () => {
                     if (enableFeeOnTransferFeeFetching) {
                       // if it's FOT flag enabled request, we delay it so that it's more likely to repro the race condition in
                       // https://github.com/Uniswap/smart-order-router/pull/415#issue-1914604864
-                      await new Promise((f) => setTimeout(f, 1000))
+                      await new Promise((f) => setTimeout(f, 1000));
                     }
 
                     const swap = await feeOnTransferAlphaRouter.route(
@@ -2827,6 +2915,7 @@ describe('alpha router integration', () => {
                       tradeType,
                       {
                         type: SwapType.UNIVERSAL_ROUTER,
+                        version: UniversalRouterVersion.V1_2,
                         recipient: alice._address,
                         slippageTolerance: LARGE_SLIPPAGE,
                         deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -2838,29 +2927,38 @@ describe('alpha router integration', () => {
                       },
                       {
                         ...ROUTING_CONFIG,
-                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching
+                        enableFeeOnTransferFeeFetching: enableFeeOnTransferFeeFetching,
+                        saveTenderlySimulationIfFailed: true
                       }
                     );
 
                     expect(swap).toBeDefined();
                     expect(swap).not.toBeNull();
 
-                    // Expect tenderly simulation to be successful
-                    expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    // DFNDR_WITHOUT_TAX won't have tenderly simulation successful,
+                    // because of no token approval, hence the need to get permit2 approval.
+                    // permit2 approval has to have the universal router in custody,
+                    // hence it will trigger the token cool down error https://www.tdly.co/shared/simulation/cde9f5cd-7976-44f8-8baa-4bbe8fc913d6.
+                    if (tokenOut?.address !== DFNDR_WITHOUT_TAX.address) {
+                      // Expect tenderly simulation to be successful
+                      expect(swap!.simulationStatus).toEqual(SimulationStatus.Succeeded);
+                    }
+
                     expect(swap!.methodParameters).toBeDefined();
                     expect(swap!.methodParameters!.to).toBeDefined();
 
-                    if (enableFeeOnTransferFeeFetching && tokenOut?.address === BULLET_WITHOUT_TAX.address) {
+                    // DFNDR fails with feeTakenOnTransfer, so we cannot take portion/fee
+                    if (enableFeeOnTransferFeeFetching && tokenOut?.address === DFNDR_WITHOUT_TAX.address) {
                       expect(swap?.portionAmount?.quotient).toBeUndefined();
                     } else {
-                      expect(swap?.portionAmount?.quotient?.toString()).not.toEqual("0");
+                      expect(swap?.portionAmount?.quotient?.toString()).not.toEqual('0');
                     }
 
-                    return { enableFeeOnTransferFeeFetching, ...swap! }
+                    return { enableFeeOnTransferFeeFetching, ...swap! };
                   })
-                )
+                );
 
-                const quoteWithFlagOn = responses.find((r) => r.enableFeeOnTransferFeeFetching === true)
+                const quoteWithFlagOn = responses.find((r) => r.enableFeeOnTransferFeeFetching === true);
                 expect(quoteWithFlagOn).toBeDefined();
                 responses
                   .filter((r) => r.enableFeeOnTransferFeeFetching !== true)
@@ -2874,15 +2972,27 @@ describe('alpha router integration', () => {
                       const tokensDiff = r.quote.subtract(quoteWithFlagOn!.quote);
                       const percentDiff = tokensDiff.asFraction.divide(r.quote.asFraction);
                       if (tokenIn?.equals(BULLET_WITHOUT_TAX)) {
-                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.sellFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP))
+                          .toEqual((new Fraction(
+                            BigNumber.from(BULLET.sellFeeBps ?? 0).toString(),
+                            10_000
+                          )).toFixed(3));
                       } else if (tokenOut?.equals(BULLET_WITHOUT_TAX)) {
-                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP)).toEqual((new Fraction(BigNumber.from(BULLET.buyFeeBps ?? 0).toString(), 10_000)).toFixed(3));
+                        expect(percentDiff.toFixed(3, undefined, Rounding.ROUND_HALF_UP))
+                          .toEqual((new Fraction(BigNumber.from(BULLET.buyFeeBps ?? 0).toString(), 10_000)).toFixed(3));
                       }
                     }
-                  })
+                  });
 
                 for (const response of responses) {
-                  const { enableFeeOnTransferFeeFetching, quote, quoteGasAdjusted, methodParameters, route, estimatedGasUsed } = response
+                  const {
+                    enableFeeOnTransferFeeFetching,
+                    quote,
+                    quoteGasAdjusted,
+                    methodParameters,
+                    route,
+                    estimatedGasUsed
+                  } = response;
 
                   if (tradeType == TradeType.EXACT_INPUT) {
                     expect(quoteGasAdjusted.lessThan(quote)).toBeTruthy();
@@ -2893,10 +3003,10 @@ describe('alpha router integration', () => {
                   expect(methodParameters).toBeDefined();
 
                   for (const r of route) {
-                    expect(r.route).toBeInstanceOf(V2Route)
-                    const tokenIn = (r.route as V2Route).input
-                    const tokenOut = (r.route as V2Route).output
-                    const pools = (r.route as V2Route).pairs
+                    expect(r.route).toBeInstanceOf(V2Route);
+                    const tokenIn = (r.route as V2Route).input;
+                    const tokenOut = (r.route as V2Route).output;
+                    const pools = (r.route as V2Route).pairs;
 
                     for (const pool of pools) {
                       if (enableFeeOnTransferFeeFetching) {
@@ -2914,15 +3024,15 @@ describe('alpha router integration', () => {
                         }
                         if (pool.reserve0.currency.address === BULLET.address) {
                           expect(pool.reserve0.currency.sellFeeBps).toBeDefined();
-                          expect(pool.reserve0.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString())
+                          expect(pool.reserve0.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString());
                           expect(pool.reserve0.currency.buyFeeBps).toBeDefined();
-                          expect(pool.reserve0.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString())
+                          expect(pool.reserve0.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString());
                         }
                         if (pool.reserve1.currency.address === BULLET.address) {
                           expect(pool.reserve1.currency.sellFeeBps).toBeDefined();
-                          expect(pool.reserve1.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString())
+                          expect(pool.reserve1.currency.sellFeeBps?.toString()).toEqual(BULLET.sellFeeBps?.toString());
                           expect(pool.reserve1.currency.buyFeeBps).toBeDefined();
-                          expect(pool.reserve1.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString())
+                          expect(pool.reserve1.currency.buyFeeBps?.toString()).toEqual(BULLET.buyFeeBps?.toString());
                         }
                       } else {
                         expect(tokenOut.sellFeeBps).toBeUndefined();
@@ -2949,8 +3059,8 @@ describe('alpha router integration', () => {
                   // which is equivalent of what was happening in prod, before interface supports FOT
                   // we only care about hardhat fork swap execution success after we enable fee-on-transfer
                   if (enableFeeOnTransferFeeFetching) {
-                    const checkTokenInAmount = parseFloat(amount.toFixed(0))
-                    const checkTokenOutAmount = parseFloat(amount.toFixed(0))
+                    const checkTokenInAmount = parseFloat(amount.toFixed(0));
+                    const checkTokenOutAmount = parseFloat(amount.toFixed(0));
 
                     // We don't have a bullet proof way to asser the fot-involved quote is post tax
                     // so the best way is to execute the swap on hardhat mainnet fork,
@@ -2968,7 +3078,7 @@ describe('alpha router integration', () => {
                     );
                   }
                 }
-              })
+              });
             });
           }
         });
@@ -3015,6 +3125,7 @@ describe('alpha router integration', () => {
           provider: hardhat.providers[0]!,
           multicall2Provider,
           gasPriceProvider,
+          cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
         });
 
         const swap = await customAlphaRouter.route(
@@ -3034,6 +3145,71 @@ describe('alpha router integration', () => {
         expect(gasPriceWei.eq(BigNumber.from(60000000000))).toBe(true);
 
         await validateSwapRoute(quote, quoteGasAdjusted, tradeType, 100, 10);
+      });
+
+      // This test is easy to set up at SOR level, but hard at routing-api level
+      // because at routing-api level, its difficult to trigger a quote to ensure an invalid cached routes get persisted into DB
+      // then we want to repro the invalid cached routes at SOR level
+      it(`erc20 -> erc20 cached routes cache invalidation`, async () => {
+        // invalid cached routes test setup is only set for exact-in in getInvalidCachedRoutesStub
+        if (tradeType !== TradeType.EXACT_INPUT) {
+          return
+        }
+
+        const tokenIn = USDC_MAINNET;
+        const tokenOut = DAI_MAINNET;
+        const amount = parseAmount('1.1', tokenIn);
+        const routeCachingProvider = new InMemoryRouteCachingProvider();
+        routeCachingProvider.cacheMode = CacheMode.Livemode;
+        routeCachingProvider.blocksToLive = Number.MAX_VALUE;
+        routeCachingProvider.expired = false;
+
+        // Insert a invalid cached routes for this test purpose to make sure it can get cleaned up
+        await routeCachingProvider.setCachedRoute(getInvalidCachedRoutesStub(FORK_BLOCK)!, CurrencyAmount.fromRawAmount(USDC_MAINNET, 100));
+
+        // Create a new AlphaRouter
+        const customAlphaRouter: AlphaRouter = new AlphaRouter({
+          chainId: 1,
+          provider: hardhat.providers[0]!,
+          multicall2Provider,
+          routeCachingProvider,
+          cachedRoutesCacheInvalidationFixRolloutPercentage: 100
+        });
+
+        routeCachingProvider.expired = true;
+
+        let swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+            protocols: [Protocol.V2, Protocol.V3, Protocol.MIXED],
+            optimisticCachedRoutes: false // to trigger cache invalidation during intent=caching
+          },
+        );
+        // first time the swap is gonna be null, because even with the new set cached routes codepath,
+        // i intentionally made it a fire and forget, i.e. non-blocking on the aloha-router request processing path
+        // first time swap from cache from the request processing path will be null
+        expect(swap).toBeNull(); // first time expect swapRouteFromCache to be null
+
+        swap = await customAlphaRouter.route(
+          amount,
+          getQuoteToken(tokenIn, tokenOut, tradeType),
+          tradeType,
+          undefined,
+          {
+            ...ROUTING_CONFIG,
+            optimisticCachedRoutes: false // to make sure the updated in-memory cache contains the valid cached routes now
+          },
+        );
+
+        // second time we will ensure the quote exists
+        // because the first time we had the sets cached routes in the new code path
+        // with second time we will have the cache hit from the new codepath cached routes
+        expect(swap).toBeDefined();
+        expect(swap).not.toBeNull();
       });
     });
   }
@@ -3096,6 +3272,7 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: new Percent(50, 100),
               deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3143,13 +3320,14 @@ describe('alpha router integration', () => {
             tradeType,
             {
               type: SwapType.UNIVERSAL_ROUTER,
+              version: UniversalRouterVersion.V1_2,
               recipient: alice._address,
               slippageTolerance: SLIPPAGE,
               deadlineOrPreviousBlockhash: parseDeadline(360),
             },
             {
               ...ROUTING_CONFIG,
-              protocols: [Protocol.MIXED],
+              protocols: [Protocol.V3, Protocol.V2, Protocol.MIXED],
             }
           );
           expect(swap).toBeDefined();
@@ -3361,6 +3539,12 @@ describe('quote for other networks', () => {
     [ChainId.ROOTSTOCK]: () => USDC_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => USDB_BLAST,
     [ChainId.ZKSYNC]: () => USDC_ON(ChainId.ZKSYNC),
+    [ChainId.WORLDCHAIN]: () => USDC_ON(ChainId.WORLDCHAIN),
+    [ChainId.UNICHAIN_SEPOLIA]: () => USDC_ON(ChainId.UNICHAIN_SEPOLIA),
+    [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
+    [ChainId.MONAD_TESTNET]: () => USDC_ON(ChainId.MONAD_TESTNET),
+    [ChainId.BASE_SEPOLIA]: () => USDC_ON(ChainId.BASE_SEPOLIA),
+    [ChainId.SONEIUM]: () => USDC_ON(ChainId.SONEIUM),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3387,6 +3571,12 @@ describe('quote for other networks', () => {
     [ChainId.ROOTSTOCK]: () => WNATIVE_ON(ChainId.ROOTSTOCK),
     [ChainId.BLAST]: () => WNATIVE_ON(ChainId.BLAST),
     [ChainId.ZKSYNC]: () => WNATIVE_ON(ChainId.ZKSYNC),
+    [ChainId.WORLDCHAIN]: () => WLD_WORLDCHAIN,
+    [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
+    [ChainId.UNICHAIN]: () => DAI_ON(ChainId.UNICHAIN),
+    [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
+    [ChainId.BASE_SEPOLIA]: () => WNATIVE_ON(ChainId.BASE_SEPOLIA),
+    [ChainId.SONEIUM]: () => WNATIVE_ON(ChainId.SONEIUM),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3401,7 +3591,9 @@ describe('quote for other networks', () => {
       // Tests are failing https://github.com/Uniswap/smart-order-router/issues/104
       c != ChainId.CELO_ALFAJORES &&
       c != ChainId.ZORA_SEPOLIA &&
-      c != ChainId.ROOTSTOCK
+      c != ChainId.ROOTSTOCK &&
+      c != ChainId.MONAD_TESTNET &&
+      c != ChainId.BASE_SEPOLIA
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
       const erc1 = TEST_ERC20_1[chain]();
@@ -3421,6 +3613,11 @@ describe('quote for other networks', () => {
             provider
           );
 
+          const v4PoolProvider = new CachingV4PoolProvider(
+            chain,
+            new V4PoolProvider(chain, multicall2Provider),
+            new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false }))
+          )
           const v3PoolProvider = new CachingV3PoolProvider(
             chain,
             new V3PoolProvider(chain, multicall2Provider),
@@ -3429,12 +3626,12 @@ describe('quote for other networks', () => {
           const tokenFeeFetcher = new OnChainTokenFeeFetcher(
             ChainId.MAINNET,
             hardhat.provider
-          )
+          );
           const tokenPropertiesProvider = new TokenPropertiesProvider(
             ChainId.MAINNET,
             new NodeJSCache(new NodeCache({ stdTTL: 360, useClones: false })),
             tokenFeeFetcher
-          )
+          );
           const v2PoolProvider = new V2PoolProvider(chain, multicall2Provider, tokenPropertiesProvider);
 
           const portionProvider = new PortionProvider();
@@ -3443,6 +3640,7 @@ describe('quote for other networks', () => {
             provider,
             v2PoolProvider,
             v3PoolProvider,
+            v4PoolProvider,
             portionProvider
           );
 
@@ -3455,8 +3653,18 @@ describe('quote for other networks', () => {
             process.env.TENDERLY_NODE_API_KEY!,
             v2PoolProvider,
             v3PoolProvider,
+            v4PoolProvider,
             provider,
-            portionProvider
+            portionProvider,
+            {
+              // Tenderly team has fixed all the nuances post Arbitrum nitro update,
+              // so we can use the gas limits returned from Tenderly for more accurate L2 gas estimate assertions.
+              [ChainId.ARBITRUM_ONE]: 1
+            },
+            // we will start using the new tenderly node endpoint in SOR integ-test suite at 100%
+            3000,
+            100,
+            [ChainId.MAINNET, ChainId.BASE, ChainId.ARBITRUM_ONE, ChainId.OPTIMISM, ChainId.POLYGON, ChainId.AVALANCHE, ChainId.BLAST, ChainId.WORLDCHAIN]
           );
 
           const simulator = new FallbackTenderlySimulator(
@@ -3466,20 +3674,101 @@ describe('quote for other networks', () => {
             tenderlySimulator,
             ethEstimateGasSimulator
           );
+          const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+            [ChainId.SEPOLIA]: process.env.SUBGRAPH_URL_SEPOLIA,
+          };
 
-          alphaRouter = new AlphaRouter({
-            chainId: chain,
-            provider,
-            multicall2Provider,
-            simulator,
-          });
+          if (SUBGRAPH_URL_BY_CHAIN[chain]) {
+            const v4SubgraphProvider = new V4SubgraphProvider(
+              chain,
+              2,
+              30000,
+              true,
+              0.01,
+              Number.MAX_VALUE,
+              SUBGRAPH_URL_BY_CHAIN[chain],
+            );
+
+            alphaRouter = new AlphaRouter({
+              chainId: chain,
+              provider,
+              multicall2Provider,
+              v4SubgraphProvider,
+              simulator,
+              v4PoolParams: getApplicableV4FeesTickspacingsHooks(chain).concat(
+                [
+                  [500, 10, '0x0000000000000000000000000000000000000020'],
+                  [1500, 30, '0x0000000000000000000000000000000000000020'],
+                  [3000, 60, '0x0000000000000000000000000000000000000020'],
+                ]
+              ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
+            });
+          } else {
+            alphaRouter = new AlphaRouter({
+              chainId: chain,
+              provider,
+              multicall2Provider,
+              simulator,
+              v4PoolParams: getApplicableV4FeesTickspacingsHooks(chain).concat(
+                [
+                  [500, 10, '0x0000000000000000000000000000000000000020'],
+                  [1500, 30, '0x0000000000000000000000000000000000000020'],
+                  [3000, 60, '0x0000000000000000000000000000000000000020'],
+                ]
+              ),
+              cachedRoutesCacheInvalidationFixRolloutPercentage: 100,
+            });
+          }
         });
+
+        if (chain === ChainId.MAINNET && tradeType === TradeType.EXACT_INPUT) {
+          describe('Cross-protocol liquidity pools', () => {
+            // https://linear.app/uniswap/issue/ROUTE-395/eth-dog-returns-a-route-through-wsteth-test-failure-is-a-regression
+            // this test is failing, but it should not
+            it('ETH -> DOG returns a route through wstETH', async () => {
+              const tokenIn = wrappedNative;
+              const dog = new Token(
+                1,
+                '0xBAac2B4491727D78D2b78815144570b9f2Fe8899',
+                18,
+                'DOG',
+                'The Doge NFT'
+              );
+              const amount = parseAmount('10', tokenIn);
+
+              const swap = await alphaRouter.route(
+                amount,
+                dog,
+                tradeType,
+                undefined,
+                {
+                  // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                  ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                  protocols: [Protocol.V3, Protocol.V2, Protocol.MIXED],
+                }
+              );
+              expect(swap).toBeDefined();
+              expect(swap).not.toBeNull();
+              expect(swap!.route.map(r => r.tokenPath.map(t => t.symbol))[0])
+                .toEqual(['WETH', 'wstETH', 'DOG']);
+            });
+          });
+        }
 
         describe(`Swap`, function() {
           it(`${wrappedNative.symbol} -> erc20`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
+              return;
+            }
+
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
-            const amount =
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('10', tokenIn)
                 : parseAmount('10', tokenOut);
@@ -3532,9 +3821,9 @@ describe('quote for other networks', () => {
             expect(swap).not.toBeNull();
           });
 
-          it(`erc20 -> erc20`, async () => {
-            if (chain === ChainId.SEPOLIA) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+          it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
               return;
             }
 
@@ -3542,8 +3831,11 @@ describe('quote for other networks', () => {
             const tokenOut = erc2;
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
-            const exactOutAmount = chain === ChainId.BLAST || chain === ChainId.ZORA ? '0.002' : '1';
-            const amount =
+            const exactOutAmount = '1';
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3556,7 +3848,8 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
+                protocols: [Protocol.MIXED, Protocol.V4, Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0,
               }
             );
             expect(swap).toBeDefined();
@@ -3566,22 +3859,20 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.SEPOLIA) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
-              return;
-            }
-
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
+              // UNICHAIN sepolia doesn't have liquid USDC/DAI pool yet
+              // monad testnet doesn't have liquid USDC/DAI pool yet
+              // soneium doesn't have liquid USDC/DAI pool yet
               return;
             }
 
             const tokenIn = nativeOnChain(chain);
             // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
             // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
-            const tokenOut = chain == ChainId.BASE ? USDC_ON(ChainId.BASE) : erc2
+            const tokenOut = [ChainId.BASE, ChainId.SEPOLIA].includes(chain) ? (chain !== ChainId.SEPOLIA ? USDC_ON(chain) : USDC_NATIVE_SEPOLIA) : erc2;
 
             // Celo currently has low liquidity and will not be able to find route for
             // large input amounts
@@ -3603,7 +3894,39 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
+                protocols: chain === ChainId.SEPOLIA ? [Protocol.V4] : [Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0
+              }
+            );
+            expect(swap).toBeDefined();
+            expect(swap).not.toBeNull();
+          });
+
+          it(`erc20 -> ${native}`, async () => {
+            if (chain !== ChainId.SEPOLIA) {
+              return;
+            }
+
+            const tokenIn = USDC_NATIVE_SEPOLIA;
+            const tokenOut = nativeOnChain(chain);
+
+            // as of now, in sepolia v4, v4 pools having > 1eth is only the ETH/USDC pools with hook address 0x0000000000000000000000000000000000000020
+            // this means if we try an exact in 1 ETH -> USDC quote against v4 sepolia, the only way is to route through v4 ETH/USDC pools with hook address 0x0000000000000000000000000000000000000020
+            // this validates that the getApplicableV4FeesTickspacingsHooks along with the hardcoded fees + tickspacings + hook address 0x0000000000000000000000000000000000000020 are working as expected
+            const amount = tradeType == TradeType.EXACT_INPUT ?
+              parseAmount('1', tokenIn)
+              : parseAmount('1', tokenOut);
+
+            const swap = await alphaRouter.route(
+              amount,
+              getQuoteToken(tokenIn, tokenOut, tradeType),
+              tradeType,
+              undefined,
+              {
+                // @ts-ignore[TS7053] - complaining about switch being non exhaustive
+                ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
+                protocols: chain === ChainId.SEPOLIA ? [Protocol.V4] : [Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0
               }
             );
             expect(swap).toBeDefined();
@@ -3611,8 +3934,8 @@ describe('quote for other networks', () => {
           });
 
           it(`has quoteGasAdjusted values`, async () => {
-            if (chain === ChainId.SEPOLIA) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
               return;
             }
 
@@ -3620,8 +3943,11 @@ describe('quote for other networks', () => {
             const tokenOut = erc2;
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
-            const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
-            const amount =
+            const exactOutAmount = '1';
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3634,7 +3960,8 @@ describe('quote for other networks', () => {
               {
                 // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                 ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                protocols: [Protocol.V3, Protocol.V2],
+                protocols: [Protocol.MIXED, Protocol.V4, Protocol.V3, Protocol.V2],
+                universalRouterVersion: UniversalRouterVersion.V2_0,
               }
             );
             expect(swap).toBeDefined();
@@ -3652,8 +3979,8 @@ describe('quote for other networks', () => {
           });
 
           it(`does not error when protocols array is empty`, async () => {
-            if (chain === ChainId.SEPOLIA) {
-              // Sepolia doesn't have sufficient liquidity on DAI pools yet
+            if (chain === ChainId.SONEIUM) {
+              // Soneium only has weth/usdc pool
               return;
             }
 
@@ -3662,7 +3989,10 @@ describe('quote for other networks', () => {
 
             // Current WETH/USDB pool (https://blastscan.io/address/0xf52b4b69123cbcf07798ae8265642793b2e8990c) has low WETH amount
             const exactOutAmount = chain === ChainId.BLAST ? '0.002' : '1';
-            const amount =
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
+              tradeType == TradeType.EXACT_INPUT ?
+                parseAmount('0.001', tokenIn):
+                parseAmount('0.001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('1', tokenIn)
                 : parseAmount(exactOutAmount, tokenOut);
@@ -3709,17 +4039,30 @@ describe('quote for other networks', () => {
 
         if (isTenderlyEnvironmentSet()) {
           describe(`Simulate + Swap ${tradeType.toString()}`, function() {
-            // Tenderly does not support Celo
-            if ([ChainId.CELO, ChainId.CELO_ALFAJORES, ChainId.SEPOLIA, ChainId.BLAST, ChainId.ZKSYNC].includes(chain)) {
+            // Tenderly Node RPC does not support Celo, Blast, Zksync, BNB, ZORA
+            if ([
+              ChainId.CELO,
+              ChainId.CELO_ALFAJORES,
+              ChainId.BLAST,
+              ChainId.ZKSYNC,
+              ChainId.BNB,
+              ChainId.ZORA,
+              ChainId.WORLDCHAIN
+            ].includes(chain)) {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.SONEIUM) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = wrappedNative;
               const tokenOut = erc1;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA ? '0.1': '10', tokenIn)
-                  : parseAmount('10', tokenOut);
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.WORLDCHAIN || chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '10', tokenIn)
+                  : parseAmount(chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '10', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -3733,6 +4076,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V1_2,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3758,6 +4102,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3789,7 +4134,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed.toNumber()} ${swap!.estimatedGasUsed.toNumber()}`);
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
@@ -3809,6 +4154,11 @@ describe('quote for other networks', () => {
             });
 
             it(`${wrappedNative.symbol} -> ${erc1.symbol} v2 only`, async () => {
+              if (chain === ChainId.SEPOLIA) {
+                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+                return;
+              }
+
               const tokenIn = wrappedNative;
               const tokenOut = erc1;
 
@@ -3836,6 +4186,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V1_2,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3861,6 +4212,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3892,7 +4244,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed.toNumber()} ${swap!.estimatedGasUsed.toNumber()}`);
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
               if (swapWithSimulation) {
@@ -3911,18 +4263,18 @@ describe('quote for other networks', () => {
               // Scope limited for non mainnet network tests to validating the swap
             });
 
-            it(`erc20 -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA) {
-                // Sepolia doesn't have sufficient liquidity on DAI pools yet
+            it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
+              if (chain === ChainId.SONEIUM) {
+                // Soneium only has weth/usdc pool
                 return;
               }
 
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
-                tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount(chain === ChainId.ZORA ? '0.1': '1', tokenIn)
-                  : parseAmount(chain === ChainId.ZORA ? '0.1': '1', tokenOut);
+                tradeType === TradeType.EXACT_INPUT
+                  ? parseAmount(chain === ChainId.ZORA || chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '1', tokenIn)
+                  : parseAmount(chain === ChainId.ZORA || chain === ChainId.UNICHAIN_SEPOLIA ? '0.001' : '1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
               const swapWithSimulationOptions: SwapOptions =
@@ -3936,6 +4288,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V2_0,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3950,7 +4303,7 @@ describe('quote for other networks', () => {
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
+                  protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
                   saveTenderlySimulationIfFailed: true,
                 }
               );
@@ -3961,6 +4314,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V2_0,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -3974,7 +4328,7 @@ describe('quote for other networks', () => {
                 {
                   // @ts-ignore[TS7053] - complaining about switch being non exhaustive
                   ...DEFAULT_ROUTING_CONFIG_BY_CHAIN[chain],
-                  protocols: [Protocol.V3, Protocol.V2],
+                  protocols: [Protocol.V4, Protocol.V3, Protocol.V2],
                   saveTenderlySimulationIfFailed: true,
                 }
               );
@@ -3992,7 +4346,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed.toNumber()} ${swap!.estimatedGasUsed.toNumber()}`);
 
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
@@ -4013,7 +4367,7 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
@@ -4021,10 +4375,10 @@ describe('quote for other networks', () => {
               const tokenIn = nativeOnChain(chain);
               // TODO ROUTE-64: Remove this once smart-order-router supports ETH native currency on BASE
               // see https://uniswapteam.slack.com/archives/C021SU4PMR7/p1691593679108459?thread_ts=1691532336.742419&cid=C021SU4PMR7
-              const tokenOut = chain == ChainId.BASE || chain == ChainId.ZORA ? USDC_ON(chain) : erc2
+              const tokenOut = chain == ChainId.BASE || chain == ChainId.ZORA ? USDC_ON(chain) : erc2;
               const amount =
                 tradeType == TradeType.EXACT_INPUT
-                  ? parseAmount('1', tokenIn)
+                  ? parseAmount(chain === ChainId.WORLDCHAIN ? '0.001' : '1', tokenIn)
                   : parseAmount('1', tokenOut);
 
               // Universal Router is not deployed on Gorli.
@@ -4039,6 +4393,7 @@ describe('quote for other networks', () => {
                   }
                   : {
                     type: SwapType.UNIVERSAL_ROUTER,
+                    version: UniversalRouterVersion.V1_2,
                     recipient: WHALES(tokenIn),
                     slippageTolerance: SLIPPAGE,
                     deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4064,6 +4419,7 @@ describe('quote for other networks', () => {
               const swapOptions: SwapOptions =
                 {
                   type: SwapType.UNIVERSAL_ROUTER,
+                  version: UniversalRouterVersion.V1_2,
                   recipient: WHALES(tokenIn),
                   slippageTolerance: SLIPPAGE,
                   deadlineOrPreviousBlockhash: parseDeadline(360),
@@ -4095,7 +4451,7 @@ describe('quote for other networks', () => {
               // due to gas cost per compressed calldata byte dropping from 16 to 3.
               // Relying on Tenderly gas estimate is the only way our github CI can auto catch this.
               const percentDiff = gasEstimateDiff.mul(BigNumber.from(100)).div(swapWithSimulation!.estimatedGasUsed);
-              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()}`)
+              console.log(`chain ${chain} GAS_ESTIMATE_DEVIATION_PERCENT ${percentDiff.toNumber()} expected ${GAS_ESTIMATE_DEVIATION_PERCENT[chain]} ${swapWithSimulation!.estimatedGasUsed} ${swap!.estimatedGasUsed}`);
 
               expect(percentDiff.lte(BigNumber.from(GAS_ESTIMATE_DEVIATION_PERCENT[chain]))).toBe(true);
 
