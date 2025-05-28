@@ -1041,7 +1041,8 @@ export class AlphaRouter
 
     if (
       chainId === ChainId.ARBITRUM_ONE ||
-      chainId === ChainId.ARBITRUM_GOERLI
+      chainId === ChainId.ARBITRUM_GOERLI ||
+      chainId === ChainId.ARBITRUM_SEPOLIA
     ) {
       this.l2GasDataProvider =
         arbitrumGasDataProvider ??
