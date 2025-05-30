@@ -160,6 +160,40 @@ describe('compute all v4 routes', () => {
 
     expect(routes).toHaveLength(1);
   })
+
+  test('succeeds to compute routes avoiding duplicate wrapped tokens', async () => {
+    const pools = [
+      // Create a pool with native ETH and USDC
+      new V4Pool(
+        nativeOnChain(ChainId.MAINNET),
+        USDC,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      // Create a pool with wrapped ETH (WETH) and USDC
+      new V4Pool(
+        WRAPPED_NATIVE_CURRENCY[1]!,
+        USDC,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      USDC_DAI_V4_LOW
+    ];
+
+    const routes = computeAllV4Routes(DAI, WRAPPED_NATIVE_CURRENCY[1]!, pools, 2);
+
+    // Should only find 1 route since native ETH and WETH pools should not both be used
+    expect(routes).toHaveLength(1);
+    expect(routes[0]?.pools).toHaveLength(2);
+  })
 })
 
 describe('compute all v3 routes', () => {

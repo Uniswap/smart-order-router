@@ -1,4 +1,4 @@
-import { ADDRESS_ZERO, TPool } from '@uniswap/router-sdk';
+import { ADDRESS_ZERO, Protocol, TPool } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
@@ -7,7 +7,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import {
   getAddressLowerCase,
   nativeOnChain,
-  V4_ETH_WETH_FAKE_POOL,
+  V4_ETH_WETH_FAKE_POOL
 } from '../../../util';
 import { HooksOptions } from '../../../util/hooksOptions';
 import { log } from '../../../util/log';
@@ -17,7 +17,7 @@ import {
   SupportedRoutes,
   V2Route,
   V3Route,
-  V4Route,
+  V4Route
 } from '../../router';
 
 export function computeAllV4Routes(
@@ -45,7 +45,8 @@ export function computeAllV4Routes(
     },
     (pool: V4Pool, currency: Currency) => pool.involvesToken(currency),
     filteredPools,
-    maxHops
+    maxHops,
+    Protocol.V4
   );
 }
 
@@ -63,7 +64,8 @@ export function computeAllV3Routes(
     },
     (pool: V3Pool, token: Token) => pool.involvesToken(token),
     pools,
-    maxHops
+    maxHops,
+    Protocol.V3
   );
 }
 
@@ -81,7 +83,8 @@ export function computeAllV2Routes(
     },
     (pool: Pair, token: Token) => pool.involvesToken(token),
     pools,
-    maxHops
+    maxHops,
+    Protocol.V2
   );
 }
 
@@ -146,7 +149,8 @@ export function computeAllMixedRoutes(
         ? (pool as V4Pool).involvesToken(currency)
         : pool.involvesToken(currency),
     amendedPools,
-    maxHops
+    maxHops,
+    Protocol.MIXED
   );
   /// filter out pure v4 and v3 and v2 routes
   return routesRaw.filter((route) => {
@@ -172,7 +176,8 @@ export function computeAllRoutes<
   ) => TRoute,
   involvesToken: (pool: TypePool, token: TCurrency) => boolean,
   pools: TypePool[],
-  maxHops: number
+  maxHops: number,
+  protocol: Protocol
 ): TRoute[] {
   const poolsUsed = Array<boolean>(pools.length).fill(false);
   const routes: TRoute[] = [];
@@ -230,11 +235,22 @@ export function computeAllRoutes<
         ? curPool.token1
         : curPool.token0;
 
-      if (tokensVisited.has(getAddressLowerCase(currentTokenOut))) {
+      // In case of protocol mixed, we need to ensure we distinguish between native and wrapped native
+      // because we inject ETH-WETH fake pool to connect mixed routes
+      // Otherwise, in v2,v3,v4, we can just use the wrapped address
+      // we have existing unit test 'handles ETH/WETH wrapping in mixed routes' coverage
+      // in case someone changes the logic to remove MIXED special case
+      const currentTokenVisited = protocol === Protocol.MIXED ? getAddressLowerCase(currentTokenOut) : currentTokenOut.wrapped.address;
+
+      // Here we need to keep track of the visited wrapped token,
+      // because in v4, it's possible to go through both native pool and wrapped native pool,
+      // causing invariant token error.
+      // see https://linear.app/uniswap/issue/ROUTE-437/invariant-token-error#comment-b1a1cb1e for more details
+      if (tokensVisited.has(currentTokenVisited)) {
         continue;
       }
 
-      tokensVisited.add(getAddressLowerCase(currentTokenOut));
+      tokensVisited.add(currentTokenVisited);
       currentRoute.push(curPool);
       poolsUsed[i] = true;
       computeRoutes(
@@ -247,16 +263,18 @@ export function computeAllRoutes<
       );
       poolsUsed[i] = false;
       currentRoute.pop();
-      tokensVisited.delete(getAddressLowerCase(currentTokenOut));
+      tokensVisited.delete(currentTokenVisited);
     }
   };
+
+  const firstTokenVisited = protocol === Protocol.MIXED ? getAddressLowerCase(tokenIn) : tokenIn.wrapped.address;
 
   computeRoutes(
     tokenIn,
     tokenOut,
     [],
     poolsUsed,
-    new Set([getAddressLowerCase(tokenIn)])
+    new Set([firstTokenVisited])
   );
 
   log.info(
