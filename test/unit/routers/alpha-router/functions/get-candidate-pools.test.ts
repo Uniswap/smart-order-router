@@ -11,6 +11,7 @@ import {
   AMPL_MAINNET,
   CachingTokenListProvider,
   DAI_MAINNET as DAI,
+  EGGS_MAINNET,
   HooksOptions,
   sortsBefore,
   TokenProvider,
@@ -841,6 +842,72 @@ describe('get candidate pools', () => {
             "tvlUSD": 10
           } as V4SubgraphPool,
         ])
+      }
+    });
+
+    test(`succeeds to exclude specific pool IDs for protocol ${protocol}`, async () => {
+      if (protocol === Protocol.V3) {
+        // Mock pools including one that should be excluded
+        const poolsOnSubgraph = [
+          USDC_DAI_LOW,
+          USDC_DAI_MEDIUM,
+          USDC_WETH_LOW,
+          WETH9_USDT_LOW,
+          DAI_USDT_LOW,
+        ];
+
+        const subgraphPools: V3SubgraphPool[] = _.map(
+          poolsOnSubgraph,
+          poolToV3SubgraphPool
+        );
+
+        mockV3SubgraphProvider.getPools.resolves(subgraphPools);
+
+        // Create a pool that matches the excluded ID - EGGS/WETH V3 10000 fee
+        const excludedPool = new V3Pool(
+          EGGS_MAINNET,
+          WRAPPED_NATIVE_CURRENCY[1]!,
+          FeeAmount.HIGH,
+          encodeSqrtRatioX96(1, 1),
+          10,
+          0
+        );
+        const excludedPoolAddress = V3Pool.getAddress(
+          EGGS_MAINNET,
+          WRAPPED_NATIVE_CURRENCY[1]!,
+          FeeAmount.HIGH
+        ).toLowerCase();
+
+        mockV3PoolProvider.getPools.resolves(
+          buildMockV3PoolAccessor([...poolsOnSubgraph, excludedPool])
+        );
+
+        const candidatePools = await getV3CandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: DAI,
+          routeType: TradeType.EXACT_INPUT,
+          routingConfig: {
+            ...ROUTING_CONFIG,
+            v3PoolSelection: {
+              ...ROUTING_CONFIG.v3PoolSelection,
+              topNDirectSwaps: 1,
+            },
+          },
+          poolProvider: mockV3PoolProvider,
+          subgraphProvider: mockV3SubgraphProvider,
+          tokenProvider: mockTokenProvider,
+          blockedTokenListProvider: mockBlockTokenListProvider,
+          chainId: ChainId.MAINNET,
+        });
+
+        // Verify that the excluded pool is not in the candidate pools
+        const excludedPoolInCandidates = candidatePools.subgraphPools.some(
+          pool => pool.id.toLowerCase() === excludedPoolAddress
+        );
+        expect(excludedPoolInCandidates).toBeFalsy();
+
+        // Verify that other pools are still included
+        expect(candidatePools.subgraphPools.length).toBeGreaterThan(0);
       }
     });
   })

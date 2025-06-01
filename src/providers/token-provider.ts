@@ -65,6 +65,13 @@ export const DAI_MAINNET = new Token(
   'DAI',
   'Dai Stablecoin'
 );
+export const EGGS_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x2e516BA5Bf3b7eE47fb99B09eaDb60BDE80a82e0',
+  18,
+  'EGGS',
+  'EGGS'
+);
 export const AMPL_MAINNET = new Token(
   ChainId.MAINNET,
   '0xD46bA6D942050d489DBd938a2C909A5d5039A161',

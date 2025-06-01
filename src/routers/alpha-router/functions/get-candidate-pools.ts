@@ -266,6 +266,11 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.SONEIUM]: [USDC_SONEIUM, WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!],
 };
 
+const excludedV3PoolIds = new Set([
+  // https://linear.app/uniswap/issue/CX-1005
+  '0x0f681f10ab1aa1cde04232a199fe3c6f2652a80c'.toLowerCase(),
+]);
+
 class SubcategorySelectionPools<SubgraphPool> {
   constructor(
     public pools: SubgraphPool[],
@@ -1144,6 +1149,10 @@ export async function getV3CandidatePools({
             tvlUSD: 10000,
           };
         }
+      );
+
+      top2DirectSwapPool = top2DirectSwapPool.filter(
+        (pool) => !excludedV3PoolIds.has(pool.id.toLowerCase())
       );
     }
   }
