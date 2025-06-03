@@ -17,7 +17,11 @@ import {
 import { CurrencyAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
-import { routeAmountsToString, routeToString } from '../../../util/routes';
+import {
+  isTokenizeRoute,
+  routeAmountsToString,
+  routeToString,
+} from '../../../util/routes';
 import { SwapOptions } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { IGasModel, L1ToL2GasCosts, usdGasTokensByChain } from '../gas-models';
@@ -228,6 +232,46 @@ export async function getBestSwapRouteBy(
   );
 
   const { minSplits, maxSplits, forceCrossProtocol } = routingConfig;
+
+  // Kittycorn: Added algorithm to split the 100% amount into tokenize smaller amounts
+  // Note: Check if we have a route for 100% amount that is not tokenize route,
+  // we will try to split the amount needed to swap through tokenize route
+  if (
+    percentToSortedQuotes[100] &&
+    !isTokenizeRoute(percentToSortedQuotes[100][0]!.route)
+  ) {
+    // Try to make split percent 5%, 10%, 15%, ..., 45%, and find a tokenize route
+    for (let percent = 5; percent < 50; percent += 5) {
+      const basePercent = 100 - percent;
+      if (!isTokenizeRoute(percentToSortedQuotes[basePercent]![0]!.route)) {
+        // Base percent is not tokenize route, need to look for a tokenize route in split percent
+        for (let i = 0; i < percentToSortedQuotes[percent]!.length; i++) {
+          const percentToSortedQuote = percentToSortedQuotes[percent]![i]!;
+          if (isTokenizeRoute(percentToSortedQuote.route)) {
+            // Found a tokenize route for the split percent, so we need to remove all routes over base percent
+            for (let remove = 100; remove > basePercent; remove -= 5) {
+              delete percentToSortedQuotes[remove];
+            }
+
+            // And remove all routes in the split percent before the found tokenize route
+            percentToSortedQuotes[percent]!.splice(0, i);
+
+            // Break now, break all the loop by set percent value to over for condition
+            percent = 999;
+            break;
+          }
+        }
+      } else {
+        // We found a tokenize route for the base percent, so we need to remove routes over base percent
+        for (let remove = 100; remove > basePercent; remove -= 5) {
+          delete percentToSortedQuotes[remove];
+        }
+
+        // Break now, as we found a tokenize route for the base percent
+        break;
+      }
+    }
+  }
 
   if (!percentToSortedQuotes[100] || minSplits > 1 || forceCrossProtocol) {
     log.info(

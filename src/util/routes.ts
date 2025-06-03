@@ -142,6 +142,44 @@ export const routeToString = (route: SupportedRoutes): string => {
   return routeStr.join('');
 };
 
+export const isTokenizeRoute = (route: SupportedRoutes): boolean => {
+  const pools = routeToPools(route);
+  if (!pools || pools.length === 0) {
+    return false;
+  }
+
+  const chainId = pools[0]?.chainId as ChainId;
+  const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
+    return base.tokenize.address.toLocaleLowerCase();
+  });
+
+  for (const pool of pools) {
+    if (pool instanceof V4Pool) {
+      // Special case in the case of ETH/WETH fake pool
+      // where we do not want to return the fake pool in the route string as it is not a real pool
+      if (
+        pool.tickSpacing ===
+        V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId].tickSpacing
+      ) {
+        continue;
+      }
+
+      // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
+
+      const tokenize0 =
+        !(pool.token0 as Token).isNative &&
+        tokenizes?.includes((pool.token0 as Token).address.toLowerCase());
+      const tokenize1 =
+        !(pool.token0 as Token).isNative &&
+        tokenizes?.includes((pool.token1 as Token).address.toLowerCase());
+      if (tokenize0 || tokenize1) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 export const routeAmountsToString = (
   routeAmounts: RouteWithValidQuote[]
 ): string => {
