@@ -59,6 +59,7 @@ import {
   WBTC_MAINNET,
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
+  WBTC_SEPOLIA,
   WBTC_WORLDCHAIN,
   WETH_POLYGON,
   WLD_WORLDCHAIN,
@@ -95,6 +96,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     TWETH_SEPOLIA,
     TLINK_SEPOLIA,
     TAAVE_SEPOLIA,
+    WBTC_SEPOLIA,
   ],
   //v2 not deployed on [arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
   [ChainId.OPTIMISM]: [
