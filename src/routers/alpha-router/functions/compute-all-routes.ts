@@ -7,7 +7,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import {
   getAddressLowerCase,
   nativeOnChain,
-  V4_ETH_WETH_FAKE_POOL
+  V4_ETH_WETH_FAKE_POOL,
 } from '../../../util';
 import { HooksOptions } from '../../../util/hooksOptions';
 import { log } from '../../../util/log';
@@ -17,7 +17,7 @@ import {
   SupportedRoutes,
   V2Route,
   V3Route,
-  V4Route
+  V4Route,
 } from '../../router';
 
 export function computeAllV4Routes(
@@ -37,6 +37,14 @@ export function computeAllV4Routes(
     filteredPools = pools.filter((pool) => pool.hooks === ADDRESS_ZERO);
   }
 
+  const containsV4NativePools =
+    filteredPools.filter((pool) =>
+      pool.v4InvolvesToken(nativeOnChain(currencyIn.chainId))
+    ).length > 0;
+  const amendedFilteredPools = containsV4NativePools
+    ? filteredPools.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId])
+    : filteredPools;
+
   return computeAllRoutes<V4Pool, V4Route, Currency>(
     currencyIn,
     currencyOut,
@@ -44,7 +52,7 @@ export function computeAllV4Routes(
       return new V4Route(route, currencyIn, currencyOut);
     },
     (pool: V4Pool, currency: Currency) => pool.involvesToken(currency),
-    filteredPools,
+    amendedFilteredPools,
     maxHops,
     Protocol.V4
   );
@@ -235,12 +243,15 @@ export function computeAllRoutes<
         ? curPool.token1
         : curPool.token0;
 
-      // In case of protocol mixed, we need to ensure we distinguish between native and wrapped native
+      // In case of protocol mixed or v4, we need to ensure we distinguish between native and wrapped native
       // because we inject ETH-WETH fake pool to connect mixed routes
       // Otherwise, in v2,v3,v4, we can just use the wrapped address
       // we have existing unit test 'handles ETH/WETH wrapping in mixed routes' coverage
       // in case someone changes the logic to remove MIXED special case
-      const currentTokenVisited = protocol === Protocol.MIXED ? getAddressLowerCase(currentTokenOut) : currentTokenOut.wrapped.address;
+      const currentTokenVisited =
+        protocol === Protocol.MIXED || protocol === Protocol.V4
+          ? getAddressLowerCase(currentTokenOut)
+          : currentTokenOut.wrapped.address;
 
       // Here we need to keep track of the visited wrapped token,
       // because in v4, it's possible to go through both native pool and wrapped native pool,
@@ -267,15 +278,12 @@ export function computeAllRoutes<
     }
   };
 
-  const firstTokenVisited = protocol === Protocol.MIXED ? getAddressLowerCase(tokenIn) : tokenIn.wrapped.address;
+  const firstTokenVisited =
+    protocol === Protocol.MIXED
+      ? getAddressLowerCase(tokenIn)
+      : tokenIn.wrapped.address;
 
-  computeRoutes(
-    tokenIn,
-    tokenOut,
-    [],
-    poolsUsed,
-    new Set([firstTokenVisited])
-  );
+  computeRoutes(tokenIn, tokenOut, [], poolsUsed, new Set([firstTokenVisited]));
 
   log.info(
     {
