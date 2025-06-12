@@ -5,7 +5,14 @@ import retry, { Options as RetryOptions } from 'async-retry';
 import JSBI from 'jsbi';
 
 import { StateView__factory } from '../../types/other/factories/StateView__factory';
-import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
+import {
+  getAddress,
+  log,
+  nativeOnChain,
+  STATE_VIEW_ADDRESSES,
+  WRAPPED_NATIVE_CURRENCY,
+} from '../../util';
+
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 import { ProviderConfig } from '../provider';
@@ -202,12 +209,24 @@ export class V4PoolProvider
     [p: string]: Pool;
   }): V4PoolAccessor {
     // Kittycorn: implements a custom pool accessor that allows for supported Tokenize token path
-    BASE_TOKENIZE_UNDERLYING[this.chainId]?.forEach((base) => {
-      const currencyA = base.tokenize as Currency;
-      const currencyB = base.underlying as Currency;
-      const [currency0, currency1] = sortsBefore(currencyA, currencyB)
-        ? [currencyA, currencyB]
-        : [currencyB, currencyA];
+    const pairs = BASE_TOKENIZE_UNDERLYING[this.chainId]?.map((base) => {
+      return {
+        currencyA: base.tokenize as Currency,
+        currencyB: base.underlying as Currency,
+      };
+    });
+
+    // Add native currency pair with wrapped native currency
+    pairs?.push({
+      currencyA: nativeOnChain(this.chainId) as Currency,
+      currencyB: WRAPPED_NATIVE_CURRENCY[this.chainId]! as Currency,
+    });
+
+    // Make a pool for each pair
+    pairs?.forEach((base) => {
+      const [currency0, currency1] = sortsBefore(base.currencyA, base.currencyB)
+        ? [base.currencyA, base.currencyB]
+        : [base.currencyB, base.currencyA];
 
       const pool = new Pool(
         currency0,
@@ -218,7 +237,7 @@ export class V4PoolProvider
         JSBI.BigInt('79228162514264337593543950336'), // sqrtRatioX96 1:1
         JSBI.BigInt('100000000000000000'), // liquidity
         0, // tickCurrent
-        new NoTickDataProvider() // ticks?: TickDataProvider
+        new NoTickDataProvider()
       );
 
       const { poolId } = this.getPoolId(

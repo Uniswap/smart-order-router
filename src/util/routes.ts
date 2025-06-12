@@ -7,17 +7,15 @@ import {
   Pool as V4Pool,
 } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
-
+import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 import { CachedRoutes } from '../providers';
 import {
   AlphaRouterConfig,
   RouteWithValidQuote,
 } from '../routers/alpha-router';
 import { MixedRoute, SupportedRoutes } from '../routers/router';
-
+import { WRAPPED_NATIVE_CURRENCY } from '../util';
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
-
-import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -78,6 +76,10 @@ export const routeToString = (route: SupportedRoutes): string => {
   const tokens = routeToTokens(route);
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools = routeToPools(route);
+
+  const cacheTokenizes: { [chainId: number]: string[] } = {};
+  const cacheWethAddress: { [chainId: number]: string } = {};
+
   const poolFeePath = _.map(pools, (pool) => {
     if (pool instanceof Pair) {
       return ` -- [${Pair.getAddress(
@@ -104,17 +106,46 @@ export const routeToString = (route: SupportedRoutes): string => {
 
       // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
       const chainId = pool.chainId as ChainId;
-      const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
+
+      // Store Tokenize addresses into cache first
+      if (!cacheTokenizes[chainId]) {
+        cacheTokenizes[chainId] =
+          BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
         return base.tokenize.address.toLocaleLowerCase();
-      });
+          }) || [];
+      }
+
+      // Store WETH address into cache first
+      if (!cacheWethAddress[chainId]) {
+        cacheWethAddress[chainId] =
+          WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLocaleLowerCase() || '';
+      }
 
       const tokenize0 =
         !(pool.token0 as Token).isNative &&
-        tokenizes?.includes((pool.token0 as Token).address.toLowerCase());
+        cacheTokenizes[chainId]?.includes(
+          (pool.token0 as Token).address.toLowerCase()
+        );
       const tokenize1 =
         !(pool.token0 as Token).isNative &&
-        tokenizes?.includes((pool.token1 as Token).address.toLowerCase());
-      if ((tokenize0 && !tokenize1) || (!tokenize0 && tokenize1)) {
+        cacheTokenizes[chainId]?.includes(
+          (pool.token1 as Token).address.toLowerCase()
+        );
+      const wrap =
+        (pool.token0 as Token).isNative &&
+        (pool.token1 as Token).address.toLowerCase() ===
+          cacheWethAddress[chainId];
+      const unwrap =
+        (pool.token1 as Token).isNative &&
+        (pool.token0 as Token).address.toLowerCase() ===
+          cacheWethAddress[chainId];
+
+      if (
+        (tokenize0 && !tokenize1) ||
+        (!tokenize0 && tokenize1) ||
+        wrap ||
+        unwrap
+      ) {
         return ` -- ${0.0}% [0x0000000000000000000000000000000000000000000000000000000000000000]`;
       }
 

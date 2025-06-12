@@ -51,7 +51,7 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
       )
       .filter(
         ([tokenA, tokenB]) =>
-          tokenA.wrapped.address !== tokenB.wrapped.address &&
+          // tokenA.wrapped.address !== tokenB.wrapped.address && // Allow pair native and wrapped tokens
           !tokenA.equals(tokenB)
       )
       .flatMap<V4PoolConstruct>(([tokenA, tokenB]) => {

@@ -10,6 +10,15 @@ mainnet-v4-usdt-usdc:
 mainnet-v4-tusdt-tusdc:
 	./bin/cli quote --tokenIn 0x561A87303005D9C83FbD94dDEb80D63528fCD448 --tokenOut 0xcc331eC1d6CF4542F9eB988B49249cfa163081dc --amount 3500 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 1 $(p)
 
+sepolia-v4-eth-link:
+	./bin/cli quote --tokenIn 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee --tokenOut 0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5 --amount 0.01 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)	
+
+sepolia-v4-eth-wbtc:
+	./bin/cli quote --tokenIn 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee --tokenOut 0x29f2D40B0605204364af54EC677bD022dA425d03 --amount 0.01 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)	
+
+sepolia-v4-wbtc-eth:
+	./bin/cli quote --tokenIn 0x29f2D40B0605204364af54EC677bD022dA425d03 --tokenOut 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee --amount 1 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)	
+
 sepolia-v4-wbtc-weth:
 	./bin/cli quote --tokenIn 0x29f2D40B0605204364af54EC677bD022dA425d03 --tokenOut 0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c --amount 1 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)	
 

@@ -247,7 +247,10 @@ export async function getBestSwapRouteBy(
         // Base percent is not tokenize route, need to look for a tokenize route in split percent
         for (let i = 0; i < percentToSortedQuotes[percent]!.length; i++) {
           const percentToSortedQuote = percentToSortedQuotes[percent]![i]!;
-          if (isTokenizeRoute(percentToSortedQuote.route)) {
+          if (
+            isTokenizeRoute(percentToSortedQuote.route) &&
+            +percentToSortedQuote.quoteAdjustedForGas.toSignificant() > 0
+          ) {
             // Found a tokenize route for the split percent, so we need to remove all routes over base percent
             for (let remove = 100; remove > basePercent; remove -= 5) {
               delete percentToSortedQuotes[remove];
