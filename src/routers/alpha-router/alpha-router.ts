@@ -22,6 +22,7 @@ import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
+import { WRAPPED_NATIVE_CURRENCY } from '../../util';
 
 import {
   CachedRoutes,
@@ -1990,6 +1991,9 @@ export class AlphaRouter
       return base.tokenize.address.toLocaleLowerCase();
     });
 
+    const wethAddress =
+      WRAPPED_NATIVE_CURRENCY[this.chainId]?.address.toLocaleLowerCase() || '';
+
     swapRoute.route.forEach((route) => {
       if (route.route.protocol === Protocol.V4) {
         const pools = (route.route as any).pools;
@@ -2006,10 +2010,24 @@ export class AlphaRouter
               tokenizes?.includes(
                 (pool?.token1 as Token).address.toLowerCase()
               );
-            if ((tokenize0 && !tokenize1) || (!tokenize0 && tokenize1)) {
+            const wrap =
+              (pool.token0 as Token).isNative &&
+              (pool.token1 as Token).address.toLowerCase() === wethAddress;
+            const unwrap =
+              (pool.token1 as Token).isNative &&
+              (pool.token0 as Token).address.toLowerCase() === wethAddress;
+
+            if (
+              (tokenize0 && !tokenize1) ||
+              (!tokenize0 && tokenize1) ||
+              wrap ||
+              unwrap
+            ) {
               pools[i].poolId =
                 '0x0000000000000000000000000000000000000000000000000000000000000000';
               pools[i].fee = 0;
+              pools[i].tickSpacing = 0;
+              pools[i].liquidity = 0;
             }
           }
         }
