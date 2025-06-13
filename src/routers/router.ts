@@ -18,9 +18,9 @@ import {
 } from '@kittycorn-labs/universal-router-sdk';
 import { Route as V2RouteRaw } from '@kittycorn-labs/v2-sdk';
 import {
+  MethodParameters as SDKMethodParameters,
   Pool,
   Position,
-  MethodParameters as SDKMethodParameters,
   Route as V3RouteRaw,
 } from '@kittycorn-labs/v3-sdk';
 import { Route as V4RouteRaw } from '@kittycorn-labs/v4-sdk';

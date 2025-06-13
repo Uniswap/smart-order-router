@@ -12,7 +12,6 @@ import {
   STATE_VIEW_ADDRESSES,
   WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
-
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 import { ProviderConfig } from '../provider';

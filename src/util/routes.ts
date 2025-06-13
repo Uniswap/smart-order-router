@@ -7,7 +7,7 @@ import {
   Pool as V4Pool,
 } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
-import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
+
 import { CachedRoutes } from '../providers';
 import {
   AlphaRouterConfig,
@@ -15,7 +15,10 @@ import {
 } from '../routers/alpha-router';
 import { MixedRoute, SupportedRoutes } from '../routers/router';
 import { WRAPPED_NATIVE_CURRENCY } from '../util';
+
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
+
+import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {

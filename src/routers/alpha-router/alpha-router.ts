@@ -22,7 +22,6 @@ import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
-import { WRAPPED_NATIVE_CURRENCY } from '../../util';
 
 import {
   CachedRoutes,

@@ -6,8 +6,8 @@ import {
 } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, TradeType } from '@kittycorn-labs/sdk-core';
 import {
-  UNIVERSAL_ROUTER_ADDRESS,
   SwapRouter as UniversalRouter,
+  UNIVERSAL_ROUTER_ADDRESS,
 } from '@kittycorn-labs/universal-router-sdk';
 import { Route as V2RouteRaw } from '@kittycorn-labs/v2-sdk';
 import { Route as V3RouteRaw } from '@kittycorn-labs/v3-sdk';
@@ -19,9 +19,9 @@ import {
   MethodParameters,
   MixedRouteWithValidQuote,
   RouteWithValidQuote,
-  SWAP_ROUTER_02_ADDRESSES,
   SwapOptions,
   SwapType,
+  SWAP_ROUTER_02_ADDRESSES,
   V2RouteWithValidQuote,
   V3RouteWithValidQuote,
   V4RouteWithValidQuote,
