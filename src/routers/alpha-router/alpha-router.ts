@@ -2027,6 +2027,8 @@ export class AlphaRouter
               pools[i].fee = 0;
               pools[i].tickSpacing = 0;
               pools[i].liquidity = 0;
+              pools[i].sqrtRatioX96 = 0;
+              pools[i].tickCurrent = 0;
             }
           }
         }
