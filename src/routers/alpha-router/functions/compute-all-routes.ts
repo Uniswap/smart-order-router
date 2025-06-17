@@ -7,7 +7,7 @@ import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import {
   getAddressLowerCase,
   nativeOnChain,
-  V4_ETH_WETH_FAKE_POOL
+  V4_ETH_WETH_FAKE_POOL,
 } from '../../../util';
 import { HooksOptions } from '../../../util/hooksOptions';
 import { log } from '../../../util/log';
@@ -17,7 +17,7 @@ import {
   SupportedRoutes,
   V2Route,
   V3Route,
-  V4Route
+  V4Route,
 } from '../../router';
 
 export function computeAllV4Routes(
@@ -240,7 +240,10 @@ export function computeAllRoutes<
       // Otherwise, in v2,v3,v4, we can just use the wrapped address
       // we have existing unit test 'handles ETH/WETH wrapping in mixed routes' coverage
       // in case someone changes the logic to remove MIXED special case
-      const currentTokenVisited = protocol === Protocol.MIXED ? getAddressLowerCase(currentTokenOut) : currentTokenOut.wrapped.address;
+      const currentTokenVisited =
+        protocol === Protocol.MIXED
+          ? getAddressLowerCase(currentTokenOut)
+          : currentTokenOut.wrapped.address;
 
       // Here we need to keep track of the visited wrapped token,
       // because in v4, it's possible to go through both native pool and wrapped native pool,
@@ -267,15 +270,12 @@ export function computeAllRoutes<
     }
   };
 
-  const firstTokenVisited = protocol === Protocol.MIXED ? getAddressLowerCase(tokenIn) : tokenIn.wrapped.address;
+  const firstTokenVisited =
+    protocol === Protocol.MIXED
+      ? getAddressLowerCase(tokenIn)
+      : tokenIn.wrapped.address;
 
-  computeRoutes(
-    tokenIn,
-    tokenOut,
-    [],
-    poolsUsed,
-    new Set([firstTokenVisited])
-  );
+  computeRoutes(tokenIn, tokenOut, [], poolsUsed, new Set([firstTokenVisited]));
 
   log.info(
     {

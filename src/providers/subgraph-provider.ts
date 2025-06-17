@@ -18,7 +18,7 @@ export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
   ): Promise<TSubgraphPool[]>;
 }
 
-const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
+export const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
 
 export type V3V4SubgraphPool = {
   id: string;

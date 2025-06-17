@@ -83,6 +83,7 @@ import {
   IV3SubgraphProvider,
   V3SubgraphPool,
 } from '../../../providers/v3/subgraph-provider';
+import { EulerSwapHooks } from '../../../providers/v4/euler-swap-hooks-subgraph-provider';
 import {
   getAddress,
   getAddressLowerCase,
@@ -99,6 +100,7 @@ import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
 
 export type SubgraphPool = V2SubgraphPool | V3SubgraphPool | V4SubgraphPool;
+export type SubgraphHooks = EulerSwapHooks;
 export type CandidatePoolsBySelectionCriteria = {
   protocol: Protocol;
   selections: CandidatePoolsSelections;
