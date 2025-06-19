@@ -18,7 +18,8 @@ export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
   ): Promise<TSubgraphPool[]>;
 }
 
-const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
+const PAGE_SIZE = 1000;
+const MAX_PAGE_SIZE = 1000; // 10k is max possible query size from subgraph.
 
 export type V3V4SubgraphPool = {
   id: string;
@@ -90,10 +91,17 @@ export abstract class SubgraphProvider<
 
     let pools: TRawSubgraphPool[] = [];
 
+    // For Base, we need to fetch more pools at once as V3 pools size is >1.6m as of 6/19/2025.
+    // TODO: This is temporary to unblock timeouts. Come up with a long term fix: https://linear.app/uniswap/issue/ROUTE-551
+    const finalPageSize =
+      this.chainId === ChainId.BASE && this.protocol === Protocol.V3
+        ? MAX_PAGE_SIZE
+        : PAGE_SIZE;
+
     log.info(
       `Getting ${
         this.protocol
-      } pools from the subgraph with page size ${PAGE_SIZE}${
+      } pools from the subgraph with page size ${finalPageSize}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
@@ -117,10 +125,15 @@ export abstract class SubgraphProvider<
           do {
             totalPages += 1;
 
+            const start = Date.now();
+            log.info(
+              `Starting fetching for page ${totalPages} with page size ${finalPageSize}`
+            );
+
             const poolsResult = await this.client.request<{
               pools: TRawSubgraphPool[];
             }>(query, {
-              pageSize: PAGE_SIZE,
+              pageSize: finalPageSize,
               id: lastId,
             });
 
@@ -132,6 +145,9 @@ export abstract class SubgraphProvider<
             metric.putMetric(
               `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.paginate.pageSize`,
               poolsPage.length
+            );
+            log.info(
+              `Fetched ${poolsPage.length} pools in ${Date.now() - start}ms`
             );
           } while (poolsPage.length > 0);
 
