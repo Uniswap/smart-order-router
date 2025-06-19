@@ -101,13 +101,24 @@ export class V3SubgraphProvider
     );
   }
 
-  protected override subgraphQuery(blockNumber?: number): string {
+  protected override subgraphQuery(blockNumber?: number, trackedEthThreshold?: number): string {
+    // Only apply V3 filtering for Base chain
+    const v3FilterCondition = (trackedEthThreshold !== undefined && this.chainId === ChainId.BASE)
+      ? `, or: [
+          { liquidity_gt: "0", totalValueLockedETH: "0" },
+          { totalValueLockedETH_gt: "${trackedEthThreshold}" }
+        ]`
+      : '';
+
     return `
     query getPools($pageSize: Int!, $id: String) {
       pools(
         first: $pageSize
         ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
+        where: { 
+          id_gt: $id
+          ${v3FilterCondition}
+        }
         ) {
           id
           token0 {

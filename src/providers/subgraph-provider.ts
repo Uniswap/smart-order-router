@@ -59,7 +59,7 @@ export abstract class SubgraphProvider<
 
   constructor(
     private protocol: Protocol,
-    private chainId: ChainId,
+    protected chainId: ChainId,
     private retries = 2,
     private timeout = 30000,
     private rollback = true,
@@ -85,7 +85,7 @@ export abstract class SubgraphProvider<
       : undefined;
 
     const query = gql`
-      ${this.subgraphQuery(blockNumber)}
+      ${this.subgraphQuery(blockNumber, this.trackedEthThreshold)}
     `;
 
     let pools: TRawSubgraphPool[] = [];
@@ -270,7 +270,7 @@ export abstract class SubgraphProvider<
     return poolsSanitized;
   }
 
-  protected abstract subgraphQuery(blockNumber?: number): string;
+  protected abstract subgraphQuery(blockNumber?: number, trackedEthThreshold?: number): string;
 
   protected abstract mapSubgraphPool(
     rawSubgraphPool: TRawSubgraphPool

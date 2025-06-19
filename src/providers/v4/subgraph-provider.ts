@@ -82,7 +82,7 @@ export class V4SubgraphProvider
     );
   }
 
-  protected override subgraphQuery(blockNumber?: number): string {
+  protected override subgraphQuery(blockNumber?: number, _trackedEthThreshold?: number): string {
     return `
     query getPools($pageSize: Int!, $id: String) {
       pools(
