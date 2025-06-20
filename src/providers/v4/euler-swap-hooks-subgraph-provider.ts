@@ -4,10 +4,12 @@ import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
-import { SubgraphHooks } from '../../routers/alpha-router/functions/get-candidate-pools';
+
+import { SubgraphPool } from '../../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../../util';
 import { ProviderConfig } from '../provider';
 import { PAGE_SIZE } from '../subgraph-provider';
+
 import { SUBGRAPH_URL_BY_CHAIN } from './subgraph-provider';
 
 export interface EulerSwapHooks {
@@ -18,13 +20,15 @@ export interface EulerSwapHooks {
   eulerAccount: string; // euler account address
 }
 
-export interface ISubgraphProvider<TSubgraphHooks extends SubgraphHooks> {
-  getHooks(providerConfig?: ProviderConfig): Promise<TSubgraphHooks[]>;
+export interface ISubgraphProvider {
+  getHooks(providerConfig?: ProviderConfig): Promise<EulerSwapHooks[]>;
+  getPoolByHook(
+    hook: string,
+    providerConfig?: ProviderConfig
+  ): Promise<SubgraphPool | undefined>;
 }
 
-export class EulerSwapHooksSubgraphProvider
-  implements ISubgraphProvider<EulerSwapHooks>
-{
+export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
   private client: GraphQLClient;
   private protocol = Protocol.V4;
 
@@ -91,29 +95,29 @@ export class EulerSwapHooksSubgraphProvider
             totalPages += 1;
 
             const hooksResult = await this.client.request<{
-              pools: EulerSwapHooks[];
+              eulerSwapHooks: EulerSwapHooks[];
             }>(query, {
               pageSize: PAGE_SIZE,
               id: lastId,
             });
 
-            hooksPage = hooksResult.pools;
+            hooksPage = hooksResult.eulerSwapHooks;
 
             hooks = hooks.concat(hooksPage);
 
             lastId = hooks[hooks.length - 1]!.id;
             metric.putMetric(
-              `SubgraphProvider.chain_${this.chainId}.getPools.paginate.pageSize`,
+              `SubgraphProvider.chain_${this.chainId}.getHooks.paginate.pageSize`,
               hooksPage.length
             );
           } while (hooksPage.length > 0);
 
           metric.putMetric(
-            `SubgraphProvider.chain_${this.chainId}.getPools.paginate`,
+            `SubgraphProvider.chain_${this.chainId}.getHooks.paginate`,
             totalPages
           );
           metric.putMetric(
-            `SubgraphProvider.chain_${this.chainId}.getPools.pools.length`,
+            `SubgraphProvider.chain_${this.chainId}.getHooks.hooks.length`,
             hooks.length
           );
 
@@ -121,13 +125,13 @@ export class EulerSwapHooksSubgraphProvider
         };
 
         try {
-          const getPoolsPromise = getHooks();
+          const getHooksPromise = getHooks();
           const timerPromise = timeout.set(this.timeout).then(() => {
             throw new Error(
-              `Timed out getting pools from subgraph: ${this.timeout}`
+              `Timed out getting hooks from subgraph: ${this.timeout}`
             );
           });
-          hooks = await Promise.race([getPoolsPromise, timerPromise]);
+          hooks = await Promise.race([getHooksPromise, timerPromise]);
           return;
         } catch (err) {
           log.error({ err }, `Error fetching ${this.protocol} Subgraph Hooks.`);
@@ -146,7 +150,7 @@ export class EulerSwapHooksSubgraphProvider
             _.includes(err.message, 'indexed up to')
           ) {
             metric.putMetric(
-              `SubgraphProvider.chain_${this.chainId}.getPools.indexError`,
+              `SubgraphProvider.chain_${this.chainId}.getHooks.indexError`,
               1
             );
             blockNumber = blockNumber - 10;
@@ -155,13 +159,13 @@ export class EulerSwapHooksSubgraphProvider
             );
           }
           metric.putMetric(
-            `SubgraphProvider.chain_${this.chainId}.getPools.timeout`,
+            `SubgraphProvider.chain_${this.chainId}.getHooks.timeout`,
             1
           );
           hooks = [];
           log.info(
             { err },
-            `Failed to get pools from subgraph. Retry attempt: ${retry}`
+            `Failed to get hooks from subgraph. Retry attempt: ${retry}`
           );
         },
       }
@@ -177,5 +181,76 @@ export class EulerSwapHooksSubgraphProvider
     );
 
     return hooks;
+  }
+
+  async getPoolByHook(
+    hook: string,
+    providerConfig?: ProviderConfig
+  ): Promise<SubgraphPool | undefined> {
+    const beforeAll = Date.now();
+    const blockNumber = providerConfig?.blockNumber
+      ? await providerConfig.blockNumber
+      : undefined;
+
+    const query = gql`
+      query getPools($pageSize: Int!, $hooks: String) {
+        pools(
+          first: $pageSize,
+          ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+          where: {hooks: $hooks}
+        ) {
+          id
+          token0 {
+            symbol
+            id
+            derivedETH
+          }
+          token1 {
+            symbol
+            id
+            derivedETH
+          }
+          feeTier
+          tick
+          liquidity
+          hooks
+          totalValueLockedUSD
+          totalValueLockedETH
+          totalValueLockedUSDUntracked
+          sqrtPrice
+        }
+      }
+    `;
+
+    let pool: SubgraphPool | undefined = undefined;
+
+    log.info(
+      `Getting pool by hook from the subgraph with page size ${PAGE_SIZE}${
+        providerConfig?.blockNumber
+          ? ` as of block ${providerConfig?.blockNumber}`
+          : ''
+      }.`
+    );
+
+    const poolResult = await this.client.request<{
+      pools: SubgraphPool[];
+    }>(query, {
+      pageSize: PAGE_SIZE,
+      hooks: hook.toLowerCase(),
+    });
+
+    pool = poolResult.pools[0];
+
+    metric.putMetric(
+      `SubgraphProvider.chain_${this.chainId}.getPoolByHook.pools.length`,
+      poolResult.pools.length
+    );
+
+    metric.putMetric(
+      `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPoolByHook.latency`,
+      Date.now() - beforeAll
+    );
+
+    return pool;
   }
 }
