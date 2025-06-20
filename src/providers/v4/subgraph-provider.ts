@@ -39,7 +39,7 @@ export type V4RawSubgraphPool = {
   totalValueLockedUSDUntracked: string;
 };
 
-const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
+export const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.SEPOLIA]: '',
 };
 

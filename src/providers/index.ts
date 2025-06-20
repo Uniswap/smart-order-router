@@ -39,6 +39,7 @@ export * from './v3/subgraph-provider-with-fallback';
 export * from './v3/uri-subgraph-provider';
 export * from './v4/caching-pool-provider';
 export * from './v4/caching-subgraph-provider';
+export * from './v4/euler-swap-hooks-subgraph-provider';
 export * from './v4/pool-provider';
 export * from './v4/static-subgraph-provider';
 export * from './v4/subgraph-provider';
