@@ -202,10 +202,12 @@ export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
           token0 {
             symbol
             id
+            derivedETH
           }
           token1 {
             symbol
             id
+            derivedETH
           }
           feeTier
           tick
