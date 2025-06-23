@@ -208,12 +208,14 @@ export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
             id
           }
           feeTier
+          tick
           tickSpacing
-          hooks
           liquidity
+          hooks
           totalValueLockedUSD
           totalValueLockedETH
           totalValueLockedUSDUntracked
+          sqrtPrice
         }
       }
     `;
