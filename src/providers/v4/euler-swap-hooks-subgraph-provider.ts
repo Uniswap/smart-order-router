@@ -5,12 +5,11 @@ import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-import { SubgraphPool } from '../../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../../util';
 import { ProviderConfig } from '../provider';
 import { PAGE_SIZE } from '../subgraph-provider';
 
-import { SUBGRAPH_URL_BY_CHAIN } from './subgraph-provider';
+import { SUBGRAPH_URL_BY_CHAIN, V4SubgraphPool } from './subgraph-provider';
 
 export interface EulerSwapHooks {
   id: string; // euler id
@@ -25,7 +24,7 @@ export interface ISubgraphProvider {
   getPoolByHook(
     hook: string,
     providerConfig?: ProviderConfig
-  ): Promise<SubgraphPool | undefined>;
+  ): Promise<V4SubgraphPool | undefined>;
 }
 
 export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
@@ -186,7 +185,7 @@ export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
   async getPoolByHook(
     hook: string,
     providerConfig?: ProviderConfig
-  ): Promise<SubgraphPool | undefined> {
+  ): Promise<V4SubgraphPool | undefined> {
     const beforeAll = Date.now();
     const blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
@@ -212,6 +211,7 @@ export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
           }
           feeTier
           tick
+          tickSpacing
           liquidity
           hooks
           totalValueLockedUSD
@@ -222,7 +222,7 @@ export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
       }
     `;
 
-    let pool: SubgraphPool | undefined = undefined;
+    let pool: V4SubgraphPool | undefined = undefined;
 
     log.info(
       `Getting pool by hook from the subgraph with page size ${PAGE_SIZE}${
@@ -233,7 +233,7 @@ export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
     );
 
     const poolResult = await this.client.request<{
-      pools: SubgraphPool[];
+      pools: V4SubgraphPool[];
     }>(query, {
       pageSize: PAGE_SIZE,
       hooks: hook.toLowerCase(),
