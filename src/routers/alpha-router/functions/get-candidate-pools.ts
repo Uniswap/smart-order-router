@@ -4,8 +4,10 @@ import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { isNativeCurrency } from '@uniswap/universal-router-sdk';
+import { DYNAMIC_FEE_FLAG } from '@uniswap/v4-sdk';
 import {
-  DAI_OPTIMISM_SEPOLIA, isPoolFeeDynamic,
+  DAI_OPTIMISM_SEPOLIA,
+  isPoolFeeDynamic,
   ITokenListProvider,
   IV2SubgraphProvider,
   IV4PoolProvider,
@@ -16,7 +18,7 @@ import {
   V2SubgraphPool,
   V4PoolAccessor,
   V4SubgraphPool,
-  WBTC_OPTIMISM_SEPOLIA
+  WBTC_OPTIMISM_SEPOLIA,
 } from '../../../providers';
 import {
   CELO,
@@ -97,7 +99,6 @@ import { parseFeeAmount } from '../../../util/amounts';
 import { log } from '../../../util/log';
 import { metric, MetricLoggerUnit } from '../../../util/metric';
 import { AlphaRouterConfig } from '../alpha-router';
-import { DYNAMIC_FEE_FLAG, Pool } from '@uniswap/v4-sdk';
 
 export type SubgraphPool = V2SubgraphPool | V3SubgraphPool | V4SubgraphPool;
 export type CandidatePoolsBySelectionCriteria = {
@@ -896,9 +897,9 @@ export async function getV4CandidatePools({
     let fee: number;
     try {
       fee = Number(subgraphPool.feeTier);
-      fee = isPoolFeeDynamic(tokenA!, tokenB!, subgraphPool) ?
-        DYNAMIC_FEE_FLAG :
-        fee;
+      fee = isPoolFeeDynamic(tokenA!, tokenB!, subgraphPool)
+        ? DYNAMIC_FEE_FLAG
+        : fee;
     } catch (err) {
       log.info(
         { subgraphPool },

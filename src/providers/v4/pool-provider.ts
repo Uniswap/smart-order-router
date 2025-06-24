@@ -54,8 +54,20 @@ export function sortsBefore(currencyA: Currency, currencyB: Currency): boolean {
   return currencyA.wrapped.sortsBefore(currencyB.wrapped);
 }
 
-export function isPoolFeeDynamic(tokenA: Currency, tokenB: Currency, subgraphPool: V4SubgraphPool): boolean {
-  return Pool.getPoolId(tokenA!, tokenB!, DYNAMIC_FEE_FLAG, Number(subgraphPool.tickSpacing), subgraphPool.hooks) === subgraphPool.id
+export function isPoolFeeDynamic(
+  tokenA: Currency,
+  tokenB: Currency,
+  subgraphPool: V4SubgraphPool
+): boolean {
+  return (
+    Pool.getPoolId(
+      tokenA!,
+      tokenB!,
+      DYNAMIC_FEE_FLAG,
+      Number(subgraphPool.tickSpacing),
+      subgraphPool.hooks
+    ) === subgraphPool.id
+  );
 }
 
 export class V4PoolProvider
