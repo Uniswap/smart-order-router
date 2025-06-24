@@ -1,5 +1,5 @@
 import { ChainId, Currency } from '@uniswap/sdk-core';
-import { Pool } from '@uniswap/v4-sdk';
+import { DYNAMIC_FEE_FLAG, Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
 import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
 import { IMulticallProvider, Result } from '../multicall-provider';
@@ -7,6 +7,7 @@ import { ProviderConfig } from '../provider';
 
 import { StateView__factory } from '../../types/other/factories/StateView__factory';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
+import { V4SubgraphPool } from './subgraph-provider';
 
 type V4ISlot0 = ISlot0 & {
   poolId: string;
@@ -51,6 +52,22 @@ export function sortsBefore(currencyA: Currency, currencyB: Currency): boolean {
   if (currencyA.isNative) return true;
   if (currencyB.isNative) return false;
   return currencyA.wrapped.sortsBefore(currencyB.wrapped);
+}
+
+export function isPoolFeeDynamic(
+  tokenA: Currency,
+  tokenB: Currency,
+  subgraphPool: V4SubgraphPool
+): boolean {
+  return (
+    Pool.getPoolId(
+      tokenA!,
+      tokenB!,
+      DYNAMIC_FEE_FLAG,
+      Number(subgraphPool.tickSpacing),
+      subgraphPool.hooks
+    ).toLowerCase() === subgraphPool.id.toLowerCase()
+  );
 }
 
 export class V4PoolProvider

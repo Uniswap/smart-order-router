@@ -4,8 +4,10 @@ import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
 import { isNativeCurrency } from '@uniswap/universal-router-sdk';
+import { DYNAMIC_FEE_FLAG } from '@uniswap/v4-sdk';
 import {
   DAI_OPTIMISM_SEPOLIA,
+  isPoolFeeDynamic,
   ITokenListProvider,
   IV2SubgraphProvider,
   IV4PoolProvider,
@@ -892,9 +894,12 @@ export async function getV4CandidatePools({
     const tokenB = isNativeCurrency(subgraphPool.token1.id)
       ? nativeOnChain(chainId)
       : tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
-    let fee: FeeAmount;
+    let fee: number;
     try {
       fee = Number(subgraphPool.feeTier);
+      fee = isPoolFeeDynamic(tokenA!, tokenB!, subgraphPool)
+        ? DYNAMIC_FEE_FLAG
+        : fee;
     } catch (err) {
       log.info(
         { subgraphPool },
