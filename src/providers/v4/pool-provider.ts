@@ -66,7 +66,7 @@ export function isPoolFeeDynamic(
       DYNAMIC_FEE_FLAG,
       Number(subgraphPool.tickSpacing),
       subgraphPool.hooks
-    ) === subgraphPool.id
+    ).toLowerCase() === subgraphPool.id.toLowerCase()
   );
 }
 
