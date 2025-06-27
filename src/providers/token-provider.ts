@@ -623,6 +623,13 @@ export const VIRTUAL_BASE = new Token(
   'VIRTUAL',
   'Virtual Protocol'
 );
+export const PBTC_BASE = new Token(
+  ChainId.BASE,
+  '0x31705474c1f2de7f738e34233c49522ca1e3c53c',
+  18,
+  'PBTC',
+  'PepeBitcoin'
+);
 
 // Base Goerli Tokens
 export const USDC_BASE_GOERLI = new Token(
