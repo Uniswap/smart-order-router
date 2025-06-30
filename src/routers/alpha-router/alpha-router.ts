@@ -562,8 +562,8 @@ export type AlphaRouterConfig = {
 
 export class AlphaRouter
   implements
-    IRouter<AlphaRouterConfig>,
-    ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
+  IRouter<AlphaRouterConfig>,
+  ISwapToRatio<AlphaRouterConfig, SwapAndAddConfig>
 {
   protected chainId: ChainId;
   protected provider: BaseProvider;
@@ -1421,8 +1421,8 @@ export class AlphaRouter
     // const gasTokenAccessor = await this.tokenProvider.getTokens([routingConfig.gasToken!]);
     const gasToken = routingConfig.gasToken
       ? (
-          await this.tokenProvider.getTokens([routingConfig.gasToken])
-        ).getTokenByAddress(routingConfig.gasToken)
+        await this.tokenProvider.getTokens([routingConfig.gasToken])
+      ).getTokenByAddress(routingConfig.gasToken)
       : undefined;
 
     const providerConfig: GasModelProviderConfig = {
@@ -3039,6 +3039,35 @@ export class AlphaRouter
       return null;
     }
 
+    log.info(
+      {
+        allRoutesWithValidQuotes: allRoutesWithValidQuotes.length,
+        allCandidatePools: allCandidatePools.length,
+        amount: amount.toExact(),
+        currencyIn: currencyIn.symbol,
+        currencyOut: currencyOut.symbol,
+        tradeType: this.tradeTypeStr(tradeType),
+        chainId: this.chainId,
+        percents: percents.length,
+        amounts: amounts.length,
+        fotInDirectSwap,
+        sellTokenIsFot,
+        buyTokenIsFot,
+        protocols,
+        noProtocolsSpecified,
+        v4ProtocolSpecified,
+        v3ProtocolSpecified,
+        v2ProtocolSpecified,
+        v2SupportedInChain,
+        v4SupportedInChain,
+        shouldQueryMixedProtocol,
+        mixedProtocolAllowed,
+        quotePromisesLength: quotePromises.length,
+        getQuotesResultsLength: getQuotesResults.length,
+      },
+      'yucan debug: getSwapRouteFromChain debug information'
+    );
+
     // Given all the quotes for all the amounts for all the routes, find the best combination.
     const bestSwapRoute = await getBestSwapRoute(
       amount,
@@ -3137,31 +3166,31 @@ export class AlphaRouter
     const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
     const nativeAndQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
-          quoteToken,
-          this.v3PoolProvider,
-          providerConfig
-        )
+        quoteToken,
+        this.v3PoolProvider,
+        providerConfig
+      )
       : Promise.resolve(null);
     const nativeAndAmountTokenV3PoolPromise = !amountToken.equals(
       nativeCurrency
     )
       ? getHighestLiquidityV3NativePool(
-          amountToken,
-          this.v3PoolProvider,
-          providerConfig
-        )
+        amountToken,
+        this.v3PoolProvider,
+        providerConfig
+      )
       : Promise.resolve(null);
 
     // If a specific gas token is specified in the provider config
     // fetch the highest liq V3 pool with it and the native currency
     const nativeAndSpecifiedGasTokenV3PoolPromise =
       providerConfig?.gasToken &&
-      !providerConfig?.gasToken.equals(nativeCurrency)
+        !providerConfig?.gasToken.equals(nativeCurrency)
         ? getHighestLiquidityV3NativePool(
-            providerConfig?.gasToken,
-            this.v3PoolProvider,
-            providerConfig
-          )
+          providerConfig?.gasToken,
+          this.v3PoolProvider,
+          providerConfig
+        )
         : Promise.resolve(null);
 
     const [
@@ -3185,15 +3214,15 @@ export class AlphaRouter
 
     const v2GasModelPromise = this.v2Supported?.includes(this.chainId)
       ? this.v2GasModelFactory
-          .buildGasModel({
-            chainId: this.chainId,
-            gasPriceWei,
-            poolProvider: this.v2PoolProvider,
-            token: quoteToken,
-            l2GasDataProvider: this.l2GasDataProvider,
-            providerConfig: providerConfig,
-          })
-          .catch((_) => undefined) // If v2 model throws uncaught exception, we return undefined v2 gas model, so there's a chance v3 route can go through
+        .buildGasModel({
+          chainId: this.chainId,
+          gasPriceWei,
+          poolProvider: this.v2PoolProvider,
+          token: quoteToken,
+          l2GasDataProvider: this.l2GasDataProvider,
+          providerConfig: providerConfig,
+        })
+        .catch((_) => undefined) // If v2 model throws uncaught exception, we return undefined v2 gas model, so there's a chance v3 route can go through
       : Promise.resolve(undefined);
 
     const v3GasModelPromise = this.v3GasModelFactory.buildGasModel({
