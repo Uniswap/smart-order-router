@@ -12,3 +12,4 @@ types
 types/*
 .env
 cache/
+CLAUDE.md
