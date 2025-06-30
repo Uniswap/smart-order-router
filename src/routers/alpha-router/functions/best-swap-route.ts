@@ -185,6 +185,21 @@ export async function getBestSwapRouteBy(
   swapConfig?: SwapOptions,
   providerConfig?: ProviderConfig
 ): Promise<BestSwapRoute | undefined> {
+  log.info(
+    {
+      percentToQuotes: _.mapValues(
+        percentToQuotes,
+        (routes) => routes.map((route) => ({
+          percent: route.percent,
+          protocol: route.protocol,
+          quote: route.quote.toExact(),
+          quoteAdjustedForGas: route.quoteAdjustedForGas.toExact(),
+          route: routeToString(route.route),
+        }))
+      ),
+    },
+    'yucan debug 4: percentToQuotes details'
+  );
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
   const percentToSortedQuotes = _.mapValues(
     percentToQuotes,
@@ -248,6 +263,19 @@ export async function getBestSwapRouteBy(
         quote: by(routeWithQuote),
         routes: [routeWithQuote],
       });
+    log.info(
+      {
+        quote: by(routeWithQuote).toExact(),
+        routes: [routeWithQuote].map((route) => ({
+          percent: route.percent,
+          protocol: route.protocol,
+          quote: route.quote.toExact(),
+          quoteAdjustedForGas: route.quoteAdjustedForGas.toExact(),
+          route: routeToString(route.route),
+        })),
+      },
+      'yucan debug 7: single route details'
+    );
     }
   }
 
@@ -290,6 +318,23 @@ export async function getBestSwapRouteBy(
       special: true,
     });
   }
+
+  log.info(
+    {
+      queueRoutes: queue.toArray().map((item) => ({
+        percentIndex: item.percentIndex,
+        remainingPercent: item.remainingPercent,
+        special: item.special,
+        routes: item.curRoutes.map((route) => ({
+          percent: route.percent,
+          protocol: route.protocol,
+          quote: route.quote.toExact(),
+          route: routeToString(route.route),
+        })),
+      })),
+    },
+    'yucan debug 6: Routes in queue before BFS processing'
+  );
 
   let splits = 1;
   let startedSplit = Date.now();
@@ -428,6 +473,20 @@ export async function getBestSwapRouteBy(
               const v4Routes = curRoutesNew.filter(
                 (routes) => routes.protocol === Protocol.V4
               );
+
+              log.info(
+                {
+                  v4Routes: v4Routes.map((route) => ({
+                    percent: route.percent,
+                    protocol: route.protocol,
+                    quote: route.quote.toExact(),
+                    quoteAdjustedForGas: route.quoteAdjustedForGas.toExact(),
+                    route: routeToString(route.route),
+                  })),
+                },
+                'yucan debug 3: v4 routes details'
+              );
+
               if (v4Routes.length > 0 && V4_SUPPORTED.includes(chainId)) {
                 if (v4GasModel) {
                   const v4GasCostL1 = await v4GasModel.calculateL1GasFees!(
@@ -450,6 +509,24 @@ export async function getBestSwapRouteBy(
             quote: quoteAfterL1Adjust,
             routes: curRoutesNew,
           });
+
+          log.info(
+            {
+              curRoutesNew: curRoutesNew.map((route) => ({
+                percent: route.percent,
+                protocol: route.protocol,
+                quote: route.quote.toExact(),
+                quoteAdjustedForGas: route.quoteAdjustedForGas.toExact(),
+                route: routeToString(route.route),
+              })),
+              quoteNew: quoteNew.toExact(),
+              quoteAfterL1Adjust: quoteAfterL1Adjust.toExact(),
+              remainingPercentNew,
+              percentIndex: i,
+              special,
+            },
+            'yucan debug 2: curRoutesNew details'
+          );
 
           if (!bestQuote || quoteCompFn(quoteAfterL1Adjust, bestQuote)) {
             bestQuote = quoteAfterL1Adjust;
