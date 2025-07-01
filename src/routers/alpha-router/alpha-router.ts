@@ -54,6 +54,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -2080,6 +2081,34 @@ export class AlphaRouter
         CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
         providerConfig
       );
+
+      if (
+        swapRouteWithSimulation.simulationStatus === SimulationStatus.Failed
+      ) {
+        // invalidate cached route if simulation failed
+        log.info(
+          {
+            simulationStatus: swapRouteWithSimulation.simulationStatus,
+            swapRoute: swapRouteWithSimulation,
+          },
+          `Simulation failed - detailed failure information: CacheInvalidationCount_${this.chainId}`
+        );
+        metric.putMetric(
+          `CacheInvalidationCount_${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+
+        await this.routeCachingProvider?.deleteCachedRoute(
+          this.chainId,
+          amount,
+          quoteCurrency,
+          tradeType,
+          protocols,
+          await blockNumber
+        );
+      }
+
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
