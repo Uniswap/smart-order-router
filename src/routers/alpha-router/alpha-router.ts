@@ -2091,7 +2091,12 @@ export class AlphaRouter
             simulationStatus: swapRouteWithSimulation.simulationStatus,
             swapRoute: swapRouteWithSimulation,
           },
-          'Simulation failed - detailed failure information'
+          `Simulation failed - detailed failure information: CacheInvalidationCount_${this.chainId}`
+        );
+        metric.putMetric(
+          `CacheInvalidationCount_${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
         );
 
         await this.routeCachingProvider?.deleteCachedRoute(
