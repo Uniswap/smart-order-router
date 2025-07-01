@@ -467,7 +467,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
   private encodeRouteToPath<
     TRoute extends SupportedRoutes,
     TPath extends SupportedPath
-  >(route: TRoute, functionName: string): TPath {
+  >(route: TRoute, functionName: string, mixedRouteContainsV4Pool: boolean): TPath {
     switch (route.protocol) {
       case Protocol.V3:
         return encodeV3RouteToPath(
@@ -487,7 +487,8 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
         return encodeMixedRouteToPath(
           route instanceof V2Route
             ? new MixedRouteSDK(route.pairs, route.input, route.output, true)
-            : route
+            : route,
+          mixedRouteContainsV4Pool
         ) as TPath;
       default:
         throw new Error(
@@ -666,7 +667,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
     const inputs: QuoteInputType[] = _(routes)
       .flatMap((route) => {
-        const encodedRoute = this.encodeRouteToPath(route, functionName);
+        const encodedRoute = this.encodeRouteToPath(route, functionName, mixedRouteContainsV4Pool);
 
         const routeInputs: QuoteInputType[] = amounts.map((amount) => {
           switch (route.protocol) {
