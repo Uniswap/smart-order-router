@@ -146,5 +146,51 @@ describe('RouteCachingProvider', () => {
         expect(routeCachingProvider.internalGetCacheRouteCalls).toEqual(1);
       });
     });
+
+    describe('.deleteCachedRoute', () => {
+      let cachedRoute: CachedRoutes;
+
+      beforeEach(async () => {
+        routeCachingProvider.cacheMode = CacheMode.Livemode;
+        cachedRoute = getCachedRoutesStub(blockNumber)!;
+        await routeCachingProvider.setCachedRoute(cachedRoute, CurrencyAmount.fromRawAmount(USDC, 100));
+      });
+
+      it('deletes the route from the cache', async () => {
+        // Ensure route is in cache
+        let route = await routeCachingProvider.getCachedRoute(
+          cachedRoute.chainId,
+          CurrencyAmount.fromRawAmount(USDC, 100),
+          DAI,
+          TradeType.EXACT_INPUT,
+          [Protocol.V2, Protocol.MIXED, Protocol.V3],
+          blockNumber
+        );
+        expect(route).toBeDefined();
+
+        // Delete the route
+        const deleted = await routeCachingProvider.deleteCachedRoute(
+          cachedRoute.chainId,
+          CurrencyAmount.fromRawAmount(USDC, 100),
+          DAI,
+          TradeType.EXACT_INPUT,
+          [Protocol.V2, Protocol.MIXED, Protocol.V3],
+          blockNumber
+        );
+        expect(deleted).toBe(true);
+        expect(routeCachingProvider.internalDeleteCacheRouteCalls).toEqual(1);
+
+        // Ensure route is no longer in cache
+        route = await routeCachingProvider.getCachedRoute(
+          cachedRoute.chainId,
+          CurrencyAmount.fromRawAmount(USDC, 100),
+          DAI,
+          TradeType.EXACT_INPUT,
+          [Protocol.V2, Protocol.MIXED, Protocol.V3],
+          blockNumber
+        );
+        expect(route).toBeUndefined();
+      });
+    });
   });
 });
