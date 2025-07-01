@@ -358,6 +358,12 @@ export type AlphaRouterParams = {
    * Because a wrong fix might impact prod success rate and/or latency.
    */
   cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
+
+  /**
+   * All the chains that have the cache invalidation enabled
+   * https://linear.app/uniswap/issue/ROUTE-467/tenderly-simulation-during-caching-lambda
+   */
+  deleteCacheEnabledChains?: ChainId[];
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -601,6 +607,7 @@ export class AlphaRouter
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
   protected shouldEnableMixedRouteEthWeth?: boolean;
+  protected deleteCacheEnabledChains?: ChainId[];
 
   constructor({
     chainId,
@@ -633,6 +640,7 @@ export class AlphaRouter
     mixedSupported,
     v4PoolParams,
     cachedRoutesCacheInvalidationFixRolloutPercentage,
+    deleteCacheEnabledChains,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -1103,6 +1111,9 @@ export class AlphaRouter
 
     this.cachedRoutesCacheInvalidationFixRolloutPercentage =
       cachedRoutesCacheInvalidationFixRolloutPercentage;
+
+    // https://linear.app/uniswap/issue/ROUTE-467/tenderly-simulation-during-caching-lambda
+    this.deleteCacheEnabledChains = deleteCacheEnabledChains;
   }
 
   public async routeToRatio(
@@ -2083,6 +2094,7 @@ export class AlphaRouter
       );
 
       if (
+        this.deleteCacheEnabledChains?.includes(this.chainId) &&
         swapRouteWithSimulation.simulationStatus === SimulationStatus.Failed
       ) {
         // invalidate cached route if simulation failed
