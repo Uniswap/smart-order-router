@@ -2111,14 +2111,33 @@ export class AlphaRouter
           MetricLoggerUnit.Count
         );
 
-        await this.routeCachingProvider?.deleteCachedRoute(
+        // Generate the object to be cached
+        const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+          swapRouteWithSimulation.route,
           this.chainId,
-          amount,
-          quoteCurrency,
+          currencyIn,
+          currencyOut,
+          protocols.sort(),
+          await blockNumber,
           tradeType,
-          protocols,
-          await blockNumber
+          amount.toExact()
         );
+
+        if (!routesToCache) {
+          log.error(
+            { swapRouteWithSimulation },
+            'Failed to generate cached routes after simulation failure'
+          );
+        } else {
+          try {
+            await this.routeCachingProvider?.deleteCachedRoute(routesToCache);
+          } catch (err) {
+            log.error(
+              { err, routesToCache },
+              'Failed to delete cached route after simulation failure'
+            );
+          }
+        }
       }
 
       metric.putMetric(
