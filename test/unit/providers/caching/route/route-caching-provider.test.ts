@@ -170,12 +170,7 @@ describe('RouteCachingProvider', () => {
 
         // Delete the route
         const deleted = await routeCachingProvider.deleteCachedRoute(
-          cachedRoute.chainId,
-          CurrencyAmount.fromRawAmount(USDC, 100),
-          DAI,
-          TradeType.EXACT_INPUT,
-          [Protocol.V2, Protocol.MIXED, Protocol.V3],
-          blockNumber
+          cachedRoute
         );
         expect(deleted).toBe(true);
         expect(routeCachingProvider.internalDeleteCacheRouteCalls).toEqual(1);

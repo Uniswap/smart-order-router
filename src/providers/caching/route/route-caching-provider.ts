@@ -111,30 +111,12 @@ export abstract class IRouteCachingProvider {
    *
    * @public
    * @readonly
-   * @param chainId the chain id
-   * @param amount the amount of the currency
-   * @param quoteCurrency the quote currency
-   * @param tradeType the trade type
-   * @param protocols the protocols
-   * @param blockNumber the block number
-   * @returns true if the route was deleted, false otherwise
+   * @param cachedRoutes the cached routes to delete
    */
   public readonly deleteCachedRoute = async (
-    chainId: ChainId,
-    amount: CurrencyAmount<Currency>,
-    quoteCurrency: Currency,
-    tradeType: TradeType,
-    protocols: Protocol[],
-    blockNumber: number
+    cachedRoutes: CachedRoutes
   ): Promise<boolean> => {
-    return this._deleteCachedRoute(
-      chainId,
-      amount,
-      quoteCurrency,
-      tradeType,
-      protocols,
-      blockNumber
-    );
+    return this._deleteCachedRoute(cachedRoutes);
   };
 
   /**
@@ -247,13 +229,6 @@ export abstract class IRouteCachingProvider {
    * Must be implemented by subclasses.
    */
   protected abstract _deleteCachedRoute(
-    chainId: ChainId,
-    amount: CurrencyAmount<Currency>,
-    quoteCurrency: Currency,
-    tradeType: TradeType,
-    protocols: Protocol[],
-    blockNumber: number,
-    alphaRouterConfig?: AlphaRouterConfig,
-    swapOptions?: SwapOptions
+    cachedRoutes: CachedRoutes
   ): Promise<boolean>;
 }

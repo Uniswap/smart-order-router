@@ -51,15 +51,11 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
   }
 
   protected async _deleteCachedRoute(
-    chainId: ChainId,
-    amount: CurrencyAmount<Currency>,
-    quoteCurrency: Currency,
-    tradeType: TradeType,
-    protocols: Protocol[]
+    cachedRoutes: CachedRoutes
   ): Promise<boolean> {
     this.internalDeleteCacheRouteCalls += 1;
 
-    const cacheKey = `${amount.currency.wrapped.symbol}/${quoteCurrency.symbol}/${chainId}/${tradeType}/${protocols.sort()}`;
+    const cacheKey = `${cachedRoutes.currencyIn.symbol}/${cachedRoutes.currencyOut.symbol}/${cachedRoutes.chainId}/${cachedRoutes.tradeType}/${cachedRoutes.protocolsCovered.sort()}`;
     return this.routesCache.delete(cacheKey);
   }
 
