@@ -58,6 +58,8 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     case ChainId.ARBITRUM_SEPOLIA:
     case ChainId.CELO:
     case ChainId.CELO_ALFAJORES:
+    case 2741 as ChainId: // Abstract mainnet
+    case 11124 as ChainId: // Abstract testnet
       return {
         v2PoolSelection: {
           topN: 3,

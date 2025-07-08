@@ -29,6 +29,8 @@ import {
   ITokenProvider,
   TokenAccessor,
   USDB_BLAST,
+  USDC_ABSTRACT,
+  USDC_ABSTRACT_TESTNET,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
@@ -47,6 +49,7 @@ import {
   USDC_SONEIUM,
   USDC_UNICHAIN,
   USDC_WORLDCHAIN,
+  USDT_ABSTRACT,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,
@@ -61,6 +64,8 @@ import {
   WBTC_OPTIMISM_GOERLI,
   WBTC_OPTIMISM_SEPOLIA,
   WBTC_WORLDCHAIN,
+  WETH_ABSTRACT,
+  WETH_ABSTRACT_TESTNET,
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
@@ -69,7 +74,7 @@ import {
 // These tokens will added to the Token cache on initialization.
 export const CACHE_SEED_TOKENS: {
   [chainId in ChainId]?: { [symbol: string]: Token };
-} = {
+} & { [key: number]: { [symbol: string]: Token } } = {
   [ChainId.MAINNET]: {
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
     USDC: USDC_MAINNET,
@@ -205,6 +210,15 @@ export const CACHE_SEED_TOKENS: {
   [ChainId.SONEIUM]: {
     USDC: USDC_SONEIUM,
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM],
+  },
+  [2741]: {
+    USDC: USDC_ABSTRACT,
+    USDT: USDT_ABSTRACT,
+    WETH: WETH_ABSTRACT,
+  },
+  [11124]: {
+    USDC: USDC_ABSTRACT_TESTNET,
+    WETH: WETH_ABSTRACT_TESTNET,
   },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };

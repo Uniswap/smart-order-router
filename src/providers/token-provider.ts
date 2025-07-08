@@ -691,6 +691,48 @@ export const WBTC_MOONBEAM = new Token(
   'Wrapped BTC bridged using Multichain'
 );
 
+// Abstract Mainnet Tokens
+export const WETH_ABSTRACT = new Token(
+  2741,
+  '0x3439153EB7AF838Ad19d56E1571FBD09333C2809',
+  18,
+  'WETH',
+  'Wrapped Ether'
+);
+
+export const USDC_ABSTRACT = new Token(
+  2741,
+  '0x84A71ccD554Cc1b02749b35d22F684CC8ec987e1',
+  6,
+  'USDC',
+  'USD Coin'
+);
+
+export const USDT_ABSTRACT = new Token(
+  2741,
+  '0x0709F39376dEEe2A2dfC94A58EdEb2Eb9DF012bD',
+  6,
+  'USDT',
+  'Tether USD'
+);
+
+// Abstract Testnet Tokens
+export const WETH_ABSTRACT_TESTNET = new Token(
+  11124,
+  '0x9EDCde0257F2386Ce177C3a7FCdd97787F0D841d',
+  18,
+  'WETH',
+  'Wrapped Ether'
+);
+
+export const USDC_ABSTRACT_TESTNET = new Token(
+  11124,
+  '0xe4C7fBB0a626ed208021ccabA6Be1566905E2dFc',
+  6,
+  'USDC',
+  'USD Coin'
+);
+
 // Blast Tokens
 export const USDB_BLAST = new Token(
   ChainId.BLAST,
@@ -1116,13 +1158,17 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_UNICHAIN;
     case ChainId.SONEIUM:
       return USDC_SONEIUM;
+    case 2741 as ChainId:
+      return USDC_ABSTRACT;
+    case 11124 as ChainId:
+      return USDC_ABSTRACT_TESTNET;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
 };
 
 export const WNATIVE_ON = (chainId: ChainId): Token => {
-  return WRAPPED_NATIVE_CURRENCY[chainId];
+  return WRAPPED_NATIVE_CURRENCY[chainId]!;
 };
 
 export const V4_SEPOLIA_TEST_A = new Token(

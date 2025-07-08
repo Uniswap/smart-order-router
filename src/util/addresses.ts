@@ -57,6 +57,8 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v3CoreFactoryAddress,
   [ChainId.SONEIUM]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v3CoreFactoryAddress,
+  [2741]: '0xA1160e73B63F322ae88cC2d8E700833e71D0b2a1', // Abstract mainnet
+  [11124]: '0x2E17FF9b877661bDFEF8879a4B31665157a960F0', // Abstract testnet
 };
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
@@ -92,6 +94,8 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
   // TODO: Gnosis + Moonbeam contracts to be deployed
   [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].quoterAddress,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].quoterAddress,
+  [2741]: '0x728BD3eC25D5EDBafebB84F3d67367Cd9EBC7693', // Abstract mainnet
+  [11124]: '0xdE41045eb15C8352413199f35d6d1A32803DaaE2', // Abstract testnet
 };
 
 export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
@@ -198,6 +202,8 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].multicallAddress,
   [ChainId.ZORA]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZORA].multicallAddress,
   [ChainId.ZKSYNC]: CHAIN_TO_ADDRESSES_MAP[ChainId.ZKSYNC].multicallAddress,
+  [2741]: '0x9CA4dcb2505fbf536F6c54AA0a77C79f4fBC35C0', // Abstract mainnet
+  [11124]: '0x84B11838e53f53DBc1fca7a6413cDd2c7Ab15DB8', // Abstract testnet
   [ChainId.WORLDCHAIN]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.WORLDCHAIN].multicallAddress,
   [ChainId.UNICHAIN_SEPOLIA]:
