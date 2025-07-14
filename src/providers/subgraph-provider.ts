@@ -91,13 +91,10 @@ export abstract class SubgraphProvider<
 
     let pools: TRawSubgraphPool[] = [];
 
-    // For Base, we need to fetch more pools at once as V3 pools size is >1.6m as of 6/19/2025.
+    // For Base, we need to fetch more pools at once as V3 pools size is >1.6m as of 6/19/2025 (similar for V2/V4)
     // TODO: This is temporary to unblock timeouts. Come up with a long term fix: https://linear.app/uniswap/issue/ROUTE-551
     const finalPageSize =
-      this.chainId === ChainId.BASE &&
-      (this.protocol === Protocol.V3 || this.protocol === Protocol.V4)
-        ? MAX_PAGE_SIZE
-        : PAGE_SIZE;
+      this.chainId === ChainId.BASE ? MAX_PAGE_SIZE : PAGE_SIZE;
 
     log.info(
       `Getting ${
