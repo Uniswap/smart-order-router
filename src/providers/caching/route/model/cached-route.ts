@@ -59,7 +59,9 @@ export class CachedRoute<Route extends SupportedRoutes> {
         return (this.route as V4Route).pools
           .map(
             (pool) =>
-              `[V4]${getAddress(pool.token0)}/${getAddress(pool.token1)}`
+              `[V4]${getAddress(pool.token0)}/${getAddress(pool.token1)}/${
+                pool.fee
+              }/${pool.hooks}/${pool.tickSpacing}`
           )
           .join('->');
       case Protocol.V3:
