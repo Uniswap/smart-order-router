@@ -43,8 +43,9 @@ const CFX_MULTICALL_ADDRESS = "0xeff0078910f638cd81996cc117bccd3edf2b072f"; // T
 
 const CFX_TEST_V3_CORE_FACTORY_ADDRESSES =
   "0x22ed7ae8299dffc0bedebd7dd0640688e8ad5c3b"; // TODO: update
-const CFX_TEST_QUOTER_ADDRESSES = "0xbb7d0b29977e037aef542959dd10c289f3747547"; // TODO: update
+const CFX_TEST_QUOTER_ADDRESSES = "0xd7abd193b6d47c629d865069cbb14bb20a93cd38"; // TODO: update
 const CFX_TEST_MULTICALL_ADDRESS = "0x075edb56248a4d5af9d1f38cb413fcf3927d7a28"; // TODO: update
+export const CFX_TEST_POOL_INIT_CODE_HASH = "0x21f9fbd4afc79e76492f571c11dd0bcb3b6b948b580e367c86487b679b037db4";
 
 export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
   ...constructSameAddressMap(FACTORY_ADDRESS),
@@ -221,7 +222,7 @@ export const WETH9: {
     18,
     "WCFX",
     "Wrapped CFX"
-    ),
+  ),
   [ChainId.CFX_TEST]: new Token(
     ChainId.CFX_TEST,
     "0x2ed3dddae5b2f321af0806181fbfa6d049be47d8",

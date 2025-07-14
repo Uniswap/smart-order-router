@@ -6,7 +6,7 @@ import _ from 'lodash';
 
 import { IUniswapV3PoolState__factory } from '../../types/v3/factories/IUniswapV3PoolState__factory';
 import { ChainId } from '../../util';
-import { V3_CORE_FACTORY_ADDRESSES } from '../../util/addresses';
+import { V3_CORE_FACTORY_ADDRESSES, CFX_TEST_POOL_INIT_CODE_HASH } from '../../util/addresses';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
@@ -89,7 +89,7 @@ export class V3PoolProvider implements IV3PoolProvider {
       minTimeout: 50,
       maxTimeout: 500,
     }
-  ) {}
+  ) { }
 
   public async getPools(
     tokenPairs: [Token, Token, FeeAmount][],
@@ -118,7 +118,7 @@ export class V3PoolProvider implements IV3PoolProvider {
     }
 
     log.debug(
-      `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}`
+      `getPools called with ${tokenPairs.length} token pairs. Deduped down to ${poolAddressSet.size}. token pairs: ${JSON.stringify(sortedTokenPairs)}, pool addresses: ${sortedPoolAddresses}`
     );
 
     const [slot0Results, liquidityResults] = await Promise.all([
@@ -131,10 +131,9 @@ export class V3PoolProvider implements IV3PoolProvider {
     ]);
 
     log.info(
-      `Got liquidity and slot0s for ${poolAddressSet.size} pools ${
-        providerConfig?.blockNumber
-          ? `as of block: ${providerConfig?.blockNumber}.`
-          : ``
+      `Got liquidity and slot0s for ${poolAddressSet.size} pools ${providerConfig?.blockNumber
+        ? `as of block: ${providerConfig?.blockNumber}.`
+        : ``
       }`
     );
 
@@ -230,7 +229,9 @@ export class V3PoolProvider implements IV3PoolProvider {
       tokenA: token0,
       tokenB: token1,
       fee: feeAmount,
+      initCodeHashManualOverride: CFX_TEST_POOL_INIT_CODE_HASH,
     });
+    log.info(`Computed pool address for factory ${V3_CORE_FACTORY_ADDRESSES[this.chainId]!} token0: ${token0.address}, token1: ${token1.address}, fee: ${feeAmount}. pool address is ${poolAddress}`);
 
     this.POOL_ADDRESS_CACHE[cacheKey] = poolAddress;
 
