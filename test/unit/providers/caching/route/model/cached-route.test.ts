@@ -82,6 +82,20 @@ describe('CachedRoute', () => {
       expect(cachedRoute.routePath)
         .toEqual('[V4]0x6B175474E89094C44Da98b954EedeAC495271d0F/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/500/0x0000000000000000000000000000000000000000/10->[V4]0x6B175474E89094C44Da98b954EedeAC495271d0F/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/3000/0x0000000000000000000000000000000000000000/60');
     });
+
+    it('is correctly returned when using MixedRoute with a V4Pool', () => {
+      const route = new MixedRoute([
+        USDC_DAI_V4_LOW, // V4
+        WETH_DAI         // V2
+      ], USDC_MAINNET, DAI_MAINNET);
+      const cachedRoute = new CachedRoute({ route: route, percent: 100 });
+
+      expect(cachedRoute.routePath).toEqual(
+        '[V4]0x6B175474E89094C44Da98b954EedeAC495271d0F/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/500/0x0000000000000000000000000000000000000000/10->' +
+        '[V2]0x6B175474E89094C44Da98b954EedeAC495271d0F/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+      );
+      expect(cachedRoute.routeId).toEqual(-569080591);
+    });
   });
 
   describe('#routeId', () => {
