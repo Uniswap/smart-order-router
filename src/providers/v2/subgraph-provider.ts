@@ -133,6 +133,11 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           do {
             totalPages += 1;
 
+            const start = Date.now();
+            log.info(
+              `Starting fetching for page ${totalPages} with page size ${this.pageSize}`
+            );
+
             await retry(
               async () => {
                 const before = Date.now();
@@ -168,6 +173,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                   );
                 },
               }
+            );
+            log.info(
+              `Fetched ${pairsPage.length} pools in ${Date.now() - start}ms`
             );
           } while (pairsPage.length > 0);
 
