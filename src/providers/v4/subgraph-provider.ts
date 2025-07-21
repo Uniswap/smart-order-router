@@ -82,35 +82,6 @@ export class V4SubgraphProvider
     );
   }
 
-  protected override subgraphQuery(blockNumber?: number): string {
-    return `
-    query getPools($pageSize: Int!, $id: String) {
-      pools(
-        first: $pageSize
-        ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
-        ) {
-          id
-          token0 {
-            symbol
-            id
-          }
-          token1 {
-            symbol
-            id
-          }
-          feeTier
-          tickSpacing
-          hooks
-          liquidity
-          totalValueLockedUSD
-          totalValueLockedETH
-          totalValueLockedUSDUntracked
-        }
-      }
-   `;
-  }
-
   protected override mapSubgraphPool(
     rawPool: V4RawSubgraphPool
   ): V4SubgraphPool {
@@ -129,5 +100,26 @@ export class V4SubgraphProvider
       tvlETH: parseFloat(rawPool.totalValueLockedETH),
       tvlUSD: parseFloat(rawPool.totalValueLockedUSD),
     };
+  }
+
+  // Override to include V4-specific fields
+  protected override getPoolFields(): string {
+    return `
+      id
+      token0 {
+        symbol
+        id
+      }
+      token1 {
+        symbol
+        id
+      }
+      feeTier
+      tickSpacing
+      hooks
+      liquidity
+      totalValueLockedUSD
+      totalValueLockedETH
+    `;
   }
 }

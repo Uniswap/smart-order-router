@@ -87,26 +87,6 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     let blockNumber = providerConfig?.blockNumber
       ? await providerConfig.blockNumber
       : undefined;
-    // Due to limitations with the Subgraph API this is the only way to parameterize the query.
-    const query2 = gql`
-        query getPools($pageSize: Int!, $id: String) {
-            pairs(
-                first: $pageSize
-                ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-                where: { id_gt: $id }
-            ) {
-                id
-                token0 { id, symbol }
-                token1 { id, symbol }
-                totalSupply
-                trackedReserveETH
-                reserveETH
-                reserveUSD
-            }
-        }
-    `;
-
-    let pools: RawV2SubgraphPool[] = [];
 
     log.info(
       `Getting V2 pools from the subgraph with page size ${this.pageSize}${
@@ -116,17 +96,181 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       }.`
     );
 
+    // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
+    const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
+    const virtualTokenAddress =
+      '0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b'.toLowerCase();
+
+    // Define separate queries for each filtering condition
+    // Note: GraphQL doesn't support OR conditions, so we need separate queries for each condition
+    const queries = [
+      // 1. FEI token pools - split into two queries since OR is not supported
+      {
+        name: 'FEI pools (token0)',
+        query: gql`
+          query getFEIPoolsToken0($pageSize: Int!, $id: String, $feiToken: String!) {
+            pairs(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: { 
+                id_gt: $id,
+                token0: $feiToken
+              }
+            ) {
+              id
+              token0 { id, symbol }
+              token1 { id, symbol }
+              totalSupply
+              trackedReserveETH
+              reserveETH
+              reserveUSD
+            }
+          }
+        `,
+        variables: { feiToken: FEI },
+      },
+      {
+        name: 'FEI pools (token1)',
+        query: gql`
+          query getFEIPoolsToken1($pageSize: Int!, $id: String, $feiToken: String!) {
+            pairs(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: { 
+                id_gt: $id,
+                token1: $feiToken
+              }
+            ) {
+              id
+              token0 { id, symbol }
+              token1 { id, symbol }
+              totalSupply
+              trackedReserveETH
+              reserveETH
+              reserveUSD
+            }
+          }
+        `,
+        variables: { feiToken: FEI },
+      },
+      // 2. Virtual pair pools (only for BASE chain) - split into two queries
+      ...(this.chainId === ChainId.BASE
+        ? [
+            {
+              name: 'Virtual pair pools (token0)',
+              query: gql`
+            query getVirtualPoolsToken0($pageSize: Int!, $id: String, $virtualToken: String!) {
+              pairs(
+                first: $pageSize
+                ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+                where: { 
+                  id_gt: $id,
+                  token0: $virtualToken
+                }
+              ) {
+                id
+                token0 { id, symbol }
+                token1 { id, symbol }
+                totalSupply
+                trackedReserveETH
+                reserveETH
+                reserveUSD
+              }
+            }
+          `,
+              variables: { virtualToken: virtualTokenAddress },
+            },
+            {
+              name: 'Virtual pair pools (token1)',
+              query: gql`
+            query getVirtualPoolsToken1($pageSize: Int!, $id: String, $virtualToken: String!) {
+              pairs(
+                first: $pageSize
+                ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+                where: { 
+                  id_gt: $id,
+                  token1: $virtualToken
+                }
+              ) {
+                id
+                token0 { id, symbol }
+                token1 { id, symbol }
+                totalSupply
+                trackedReserveETH
+                reserveETH
+                reserveUSD
+              }
+            }
+          `,
+              variables: { virtualToken: virtualTokenAddress },
+            },
+          ]
+        : []),
+      // 3. High tracked reserve ETH pools
+      {
+        name: 'High tracked reserve ETH pools',
+        query: gql`
+          query getHighTrackedReservePools($pageSize: Int!, $id: String, $threshold: String!) {
+            pairs(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: { 
+                id_gt: $id,
+                trackedReserveETH_gt: $threshold
+              }
+            ) {
+              id
+              token0 { id, symbol }
+              token1 { id, symbol }
+              totalSupply
+              trackedReserveETH
+              reserveETH
+              reserveUSD
+            }
+          }
+        `,
+        variables: { threshold: this.trackedEthThreshold.toString() },
+      },
+      // 4. High untracked USD pools
+      {
+        name: 'High untracked USD pools',
+        query: gql`
+          query getHighUSDReservePools($pageSize: Int!, $id: String, $threshold: String!) {
+            pairs(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: { 
+                id_gt: $id,
+                reserveUSD_gt: $threshold
+              }
+            ) {
+              id
+              token0 { id, symbol }
+              token1 { id, symbol }
+              totalSupply
+              trackedReserveETH
+              reserveETH
+              reserveUSD
+            }
+          }
+        `,
+        variables: { threshold: this.untrackedUsdThreshold.toString() },
+      },
+    ];
+
+    let allPools: RawV2SubgraphPool[] = [];
     let outerRetries = 0;
+
     await retry(
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<RawV2SubgraphPool[]> => {
+        const fetchPoolsForQuery = async (
+          queryConfig: any
+        ): Promise<RawV2SubgraphPool[]> => {
           let lastId = '';
-          let pairs: RawV2SubgraphPool[] = [];
-          let pairsPage: RawV2SubgraphPool[] = [];
-
-          // metrics variables
+          let pools: RawV2SubgraphPool[] = [];
+          let poolsPage: RawV2SubgraphPool[] = [];
           let totalPages = 0;
           let retries = 0;
 
@@ -135,7 +279,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
 
             const start = Date.now();
             log.info(
-              `Starting fetching for page ${totalPages} with page size ${this.pageSize}`
+              `Starting fetching for ${queryConfig.name} page ${totalPages} with page size ${this.pageSize}`
             );
 
             await retry(
@@ -143,66 +287,106 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
                 const before = Date.now();
                 const poolsResult = await this.client.request<{
                   pairs: RawV2SubgraphPool[];
-                }>(query2, {
+                }>(queryConfig.query, {
                   pageSize: this.pageSize,
                   id: lastId,
+                  ...queryConfig.variables,
                 });
                 metric.putMetric(
-                  `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.latency`,
+                  `V2SubgraphProvider.chain_${
+                    this.chainId
+                  }.getPools.${queryConfig.name
+                    .replace(/\s+/g, '_')
+                    .toLowerCase()}.paginate.latency`,
                   Date.now() - before
                 );
 
-                pairsPage = poolsResult.pairs;
+                poolsPage = poolsResult.pairs;
 
-                pairs = pairs.concat(pairsPage);
-                lastId = pairs[pairs.length - 1]!.id;
+                pools = pools.concat(poolsPage);
+                if (pools.length > 0) {
+                  lastId = pools[pools.length - 1]!.id;
+                }
 
                 metric.putMetric(
-                  `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.pageSize`,
-                  pairsPage.length
+                  `V2SubgraphProvider.chain_${
+                    this.chainId
+                  }.getPools.${queryConfig.name
+                    .replace(/\s+/g, '_')
+                    .toLowerCase()}.paginate.pageSize`,
+                  poolsPage.length
                 );
               },
               {
                 retries: this.retries,
                 onRetry: (err, retry) => {
-                  pools = [];
                   retries += 1;
                   log.error(
                     { err, lastId },
-                    `Failed request for page of pools from subgraph. Retry attempt: ${retry}. LastId: ${lastId}`
+                    `Failed request for ${queryConfig.name} page of pools from subgraph. Retry attempt: ${retry}. LastId: ${lastId}`
                   );
                 },
               }
             );
             log.info(
-              `Fetched ${pairsPage.length} pools in ${Date.now() - start}ms`
+              `Fetched ${poolsPage.length} pools for ${queryConfig.name} in ${
+                Date.now() - start
+              }ms`
             );
-          } while (pairsPage.length > 0);
+          } while (poolsPage.length > 0);
 
           metric.putMetric(
-            `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate`,
+            `V2SubgraphProvider.chain_${
+              this.chainId
+            }.getPools.${queryConfig.name
+              .replace(/\s+/g, '_')
+              .toLowerCase()}.paginate`,
             totalPages
           );
           metric.putMetric(
-            `V2SubgraphProvider.chain_${this.chainId}.getPools.pairs.length`,
-            pairs.length
+            `V2SubgraphProvider.chain_${
+              this.chainId
+            }.getPools.${queryConfig.name
+              .replace(/\s+/g, '_')
+              .toLowerCase()}.pairs.length`,
+            pools.length
           );
           metric.putMetric(
-            `V2SubgraphProvider.chain_${this.chainId}.getPools.paginate.retries`,
+            `V2SubgraphProvider.chain_${
+              this.chainId
+            }.getPools.${queryConfig.name
+              .replace(/\s+/g, '_')
+              .toLowerCase()}.paginate.retries`,
             retries
           );
 
-          return pairs;
+          return pools;
         };
 
         try {
-          const getPoolsPromise = getPools();
+          // Fetch pools for each query in parallel
+          const poolPromises = queries.map((queryConfig) =>
+            fetchPoolsForQuery(queryConfig)
+          );
+          const allPoolsArrays = await Promise.all(poolPromises);
+
+          // Merge all results and deduplicate by pool ID
+          const poolMap = new Map<string, RawV2SubgraphPool>();
+          allPoolsArrays.forEach((pools) => {
+            pools.forEach((pool) => {
+              poolMap.set(pool.id, pool);
+            });
+          });
+
+          allPools = Array.from(poolMap.values());
+
+          const getPoolsPromise = Promise.resolve(allPools);
           const timerPromise = timeout.set(this.timeout).then(() => {
             throw new Error(
               `Timed out getting pools from subgraph: ${this.timeout}`
             );
           });
-          pools = await Promise.race([getPoolsPromise, timerPromise]);
+          allPools = await Promise.race([getPoolsPromise, timerPromise]);
           return;
         } catch (err) {
           log.error({ err }, 'Error fetching V2 Subgraph Pools.');
@@ -233,7 +417,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             `V2SubgraphProvider.chain_${this.chainId}.getPools.timeout`,
             1
           );
-          pools = [];
+          allPools = [];
           log.info(
             { err },
             `Failed to get pools from subgraph. Retry attempt: ${retry}`
@@ -247,33 +431,9 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
       outerRetries
     );
 
-    // Filter pools that have tracked reserve ETH less than threshold.
-    // trackedReserveETH filters pools that do not involve a pool from this allowlist:
-    // https://github.com/Uniswap/v2-subgraph/blob/7c82235cad7aee4cfce8ea82f0030af3d224833e/src/mappings/pricing.ts#L43
-    // Which helps filter pools with manipulated prices/liquidity.
-
-    // TODO: Remove. Temporary fix to ensure tokens without trackedReserveETH are in the list.
-    const FEI = '0x956f47f50a910163d8bf957cf5846d573e7f87ca';
-
-    const tracked = pools.filter(
-      (pool) =>
-        pool.token0.id == FEI ||
-        pool.token1.id == FEI ||
-        this.isVirtualPairBaseV2Pool(pool) ||
-        parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
-    );
-
-    metric.putMetric(
-      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.length`,
-      tracked.length
-    );
-    metric.putMetric(
-      `V2SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
-      (tracked.length / pools.length) * 100
-    );
-
+    // Apply the same filtering logic to ensure consistency
     const beforeFilter = Date.now();
-    const poolsSanitized: V2SubgraphPool[] = pools
+    const poolsSanitized: V2SubgraphPool[] = allPools
       .filter((pool) => {
         return (
           pool.token0.id == FEI ||
@@ -308,7 +468,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     );
     metric.putMetric(
       `V2SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
-      (poolsSanitized.length / pools.length) * 100
+      (poolsSanitized.length / allPools.length) * 100
     );
     metric.putMetric(`V2SubgraphProvider.chain_${this.chainId}.getPools`, 1);
     metric.putMetric(
@@ -317,7 +477,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     );
 
     log.info(
-      `Got ${pools.length} V2 pools from the subgraph. ${poolsSanitized.length} after filtering`
+      `Got ${allPools.length} V2 pools from the subgraph (after deduplication). ${poolsSanitized.length} after filtering`
     );
 
     return poolsSanitized;
