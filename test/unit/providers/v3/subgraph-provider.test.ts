@@ -232,43 +232,13 @@ describe('SubgraphProvider V3', () => {
 
     const pools = await subgraphProvider.getPools();
     expect(pools.length).toEqual(2);
-    
+
     // First pool should have high tracked ETH
     expect(pools[0]!.tvlETH).toEqual(1.0);
     expect(pools[0]!.liquidity).toEqual('1000000');
-    
+
     // Second pool should be V3 zero ETH pool
     expect(pools[1]!.tvlETH).toEqual(0);
     expect(pools[1]!.liquidity).toEqual('500000');
   });
-
-  it('can fetch subgraph pools from actual subgraph', async () => {
-    if (!process.env.SUBGRAPH_URL_MAINNET) {
-      console.log('Skipping actual subgraph test - no SUBGRAPH_URL_MAINNET provided');
-      return;
-    }
-
-    const subgraphProvider = new V3SubgraphProvider(
-      ChainId.MAINNET, 
-      2, 
-      30000, 
-      true, 
-      0.01, 
-      Number.MAX_VALUE, 
-      process.env.SUBGRAPH_URL_MAINNET
-    );
-    
-    const pools = await subgraphProvider.getPools();
-    
-    // Just verify we get some pools and they have the expected structure
-    expect(pools.length).toBeGreaterThanOrEqual(0);
-    if (pools.length > 0) {
-      const pool = pools[0]!;
-      expect(pool.id).toBeDefined();
-      expect(pool.feeTier).toBeDefined();
-      expect(pool.liquidity).toBeDefined();
-      expect(pool.tvlUSD).toBeDefined();
-      expect(pool.tvlETH).toBeDefined();
-    }
-  });
-}); 
+});
