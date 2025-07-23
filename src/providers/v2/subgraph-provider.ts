@@ -112,7 +112,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             pairs(
               first: $pageSize
               ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-              where: { 
+              where: {
                 id_gt: $id,
                 token0: $feiToken
               }
@@ -136,7 +136,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             pairs(
               first: $pageSize
               ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-              where: { 
+              where: {
                 id_gt: $id,
                 token1: $feiToken
               }
@@ -163,7 +163,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
               pairs(
                 first: $pageSize
                 ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-                where: { 
+                where: {
                   id_gt: $id,
                   token0: $virtualToken
                 }
@@ -187,7 +187,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
               pairs(
                 first: $pageSize
                 ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-                where: { 
+                where: {
                   id_gt: $id,
                   token1: $virtualToken
                 }
@@ -214,7 +214,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
             pairs(
               first: $pageSize
               ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-              where: { 
+              where: {
                 id_gt: $id,
                 trackedReserveETH_gt: $threshold
               }
@@ -231,15 +231,15 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
         `,
         variables: { threshold: this.trackedEthThreshold.toString() },
       },
-      // 4. High untracked USD pools
+      // 4. High reserveUSD pools
       {
-        name: 'High untracked USD pools',
+        name: 'High reserveUSD pools',
         query: gql`
           query getHighUSDReservePools($pageSize: Int!, $id: String, $threshold: String!) {
             pairs(
               first: $pageSize
               ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-              where: { 
+              where: {
                 id_gt: $id,
                 reserveUSD_gt: $threshold
               }
