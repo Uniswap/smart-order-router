@@ -65,9 +65,10 @@ describe('SubgraphProvider V2', () => {
     const emptyResponse = { pairs: [] };
 
     // Stub all the different query types that will be made
-    // For BASE chain, we expect 5 queries: FEI (token0), FEI (token1), Virtual (token0), Virtual (token1), High tracked reserve
+    // For BASE chain, we expect 6 queries: FEI (token0), FEI (token1), Virtual (token0), Virtual (token1), High tracked reserve, High USD
     requestStubBase.resolves(emptyResponse); // Default response for most queries
     requestStubBase.onCall(4).resolves(highTrackedReserveResponse); // High tracked reserve query
+    requestStubBase.onCall(5).resolves(emptyResponse); // High USD query
 
     const pools = await subgraphProviderBase.getPools();
     expect(pools.length).toEqual(1);
@@ -118,9 +119,10 @@ describe('SubgraphProvider V2', () => {
     };
     const emptyResponse = { pairs: [] };
 
-    // For MAINNET chain, we expect 3 queries: FEI (token0), FEI (token1), High tracked reserve
+    // For MAINNET chain, we expect 4 queries: FEI (token0), FEI (token1), High tracked reserve, High USD
     requestStubMainnet.resolves(emptyResponse);
     requestStubMainnet.onCall(2).resolves(highTrackedReserveResponse); // High tracked reserve query
+    requestStubMainnet.onCall(3).resolves(emptyResponse); // High USD query
 
     const pools = await subgraphProviderMainnet.getPools();
     expect(pools.length).toEqual(1);
@@ -173,7 +175,30 @@ describe('SubgraphProvider V2', () => {
     expect(pools[0]!.token0.id).toEqual(FEI.toLowerCase());
   });
 
+  it('fetches high USD reserve pools correctly', async () => {
+    requestStubMainnet = sinon.stub(GraphQLClient.prototype, 'request');
+    subgraphProviderMainnet = new V2SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 1000, 0.01, 0.0001, 'test_url'); // Low USD threshold
 
+    const highUSDPoolResponse = {
+      pairs: [{
+        id: '0xAddress3',
+        token0: { id: '0xToken0', symbol: 'TOKEN0' },
+        token1: { id: '0xToken1', symbol: 'TOKEN1' },
+        totalSupply: '100000',
+        trackedReserveETH: '0.001',
+        reserveETH: '0.001',
+        reserveUSD: '1.0', // High USD value
+      }],
+    };
+    const emptyResponse = { pairs: [] };
+
+    requestStubMainnet.resolves(emptyResponse);
+    requestStubMainnet.onCall(3).resolves(highUSDPoolResponse); // High USD query
+
+    const pools = await subgraphProviderMainnet.getPools();
+    expect(pools.length).toEqual(1);
+    expect(pools[0]!.reserveUSD).toEqual(1.0);
+  });
 
   it('deduplicates pools that match multiple criteria', async () => {
     requestStubMainnet = sinon.stub(GraphQLClient.prototype, 'request');
@@ -219,6 +244,7 @@ describe('SubgraphProvider V2', () => {
       requestStubMainnet.onCall(0).resolves(highTrackedReserveResponse); // FEI (token0) query succeeds
       requestStubMainnet.onCall(1).rejects(new Error('Network error')); // FEI (token1) query fails
       requestStubMainnet.onCall(2).resolves(emptyResponse); // High tracked reserve query
+      requestStubMainnet.onCall(3).resolves(emptyResponse); // High USD query
 
       await expect(subgraphProviderMainnet.getPools()).rejects.toThrow('Network error');
     });
@@ -233,6 +259,7 @@ describe('SubgraphProvider V2', () => {
       requestStubMainnet.onCall(0).resolves(emptyResponse); // FEI (token0) query succeeds
       requestStubMainnet.onCall(1).rejects(new Error('timeout')); // FEI (token1) query times out
       requestStubMainnet.onCall(2).resolves(emptyResponse); // High tracked reserve query
+      requestStubMainnet.onCall(3).resolves(emptyResponse); // High USD query
 
       await expect(subgraphProviderMainnet.getPools()).rejects.toThrow('timeout');
     });
@@ -250,14 +277,17 @@ describe('SubgraphProvider V2', () => {
       requestStubMainnet.onCall(0).rejects(new Error('Network error'));
       requestStubMainnet.onCall(1).rejects(new Error('Network error'));
       requestStubMainnet.onCall(2).rejects(new Error('Network error'));
+      requestStubMainnet.onCall(3).rejects(new Error('Network error'));
 
       // Second attempt: queries succeed
-      requestStubMainnet.onCall(3).resolves(emptyResponse); // FEI (token0) query
-      requestStubMainnet.onCall(4).resolves(emptyResponse); // FEI (token1) query
-      requestStubMainnet.onCall(5).resolves(highTrackedReserveResponse); // High tracked reserve query
-      requestStubMainnet.onCall(6).resolves(emptyResponse); // End pagination for first query
-      requestStubMainnet.onCall(7).resolves(emptyResponse); // End pagination for second query
-      requestStubMainnet.onCall(8).resolves(emptyResponse); // End pagination for third query
+      requestStubMainnet.onCall(4).resolves(emptyResponse); // FEI (token0) query
+      requestStubMainnet.onCall(5).resolves(emptyResponse); // FEI (token1) query
+      requestStubMainnet.onCall(6).resolves(highTrackedReserveResponse); // High tracked reserve query
+      requestStubMainnet.onCall(7).resolves(emptyResponse); // High USD query
+      requestStubMainnet.onCall(8).resolves(emptyResponse); // End pagination for first query
+      requestStubMainnet.onCall(9).resolves(emptyResponse); // End pagination for second query
+      requestStubMainnet.onCall(10).resolves(emptyResponse); // End pagination for third query
+      requestStubMainnet.onCall(11).resolves(emptyResponse); // End pagination for fourth query
 
       const pools = await subgraphProviderMainnet.getPools();
       expect(pools.length).toEqual(1);
