@@ -67,6 +67,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     private rollback = true,
     private pageSize = PAGE_SIZE,
     private trackedEthThreshold = 0.025,
+    // @ts-expect-error - kept for backward compatibility
     private untrackedUsdThreshold = Number.MAX_VALUE,
     private subgraphUrlOverride?: string
   ) {
@@ -230,31 +231,6 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           }
         `,
         variables: { threshold: this.trackedEthThreshold.toString() },
-      },
-      // 4. High reserveUSD pools
-      {
-        name: 'High reserveUSD pools',
-        query: gql`
-          query getHighUSDReservePools($pageSize: Int!, $id: String, $threshold: String!) {
-            pairs(
-              first: $pageSize
-              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-              where: {
-                id_gt: $id,
-                reserveUSD_gt: $threshold
-              }
-            ) {
-              id
-              token0 { id, symbol }
-              token1 { id, symbol }
-              totalSupply
-              trackedReserveETH
-              reserveETH
-              reserveUSD
-            }
-          }
-        `,
-        variables: { threshold: this.untrackedUsdThreshold.toString() },
       },
     ];
 
@@ -439,8 +415,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
           pool.token0.id == FEI ||
           pool.token1.id == FEI ||
           this.isVirtualPairBaseV2Pool(pool) ||
-          parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold ||
-          parseFloat(pool.reserveUSD) > this.untrackedUsdThreshold
+          parseFloat(pool.trackedReserveETH) > this.trackedEthThreshold
         );
       })
       .map((pool) => {
