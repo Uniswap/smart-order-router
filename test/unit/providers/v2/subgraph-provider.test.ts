@@ -229,4 +229,79 @@ describe('SubgraphProvider V2', () => {
     expect(baseSubgraphProviderV2.isVirtualPairBaseV2Pool(constructPool(true, '1'))).toBe(true);
     expect(baseSubgraphProviderV2.isVirtualPairBaseV2Pool(constructPool(false, '1'))).toBe(false);
   });
+
+  describe('parallel query error handling', () => {
+    it('fails entire operation when one query throws an error', async () => {
+      requestStubMainnet = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProviderMainnet = new V2SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 1000, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const highTrackedReserveResponse = {
+        pairs: [constructPool(false, '1')],
+      };
+      const emptyResponse = { pairs: [] };
+
+      // First query succeeds, second query fails
+      requestStubMainnet.onCall(0).resolves(highTrackedReserveResponse); // FEI (token0) query succeeds
+      requestStubMainnet.onCall(1).rejects(new Error('Network error')); // FEI (token1) query fails
+      requestStubMainnet.onCall(2).resolves(emptyResponse); // High tracked reserve query
+      requestStubMainnet.onCall(3).resolves(emptyResponse); // High USD query
+
+      await expect(subgraphProviderMainnet.getPools()).rejects.toThrow('Network error');
+    });
+
+    it('fails entire operation when one query times out', async () => {
+      requestStubMainnet = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProviderMainnet = new V2SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 1000, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const emptyResponse = { pairs: [] };
+
+      // First query succeeds, second query times out
+      requestStubMainnet.onCall(0).resolves(emptyResponse); // FEI (token0) query succeeds
+      requestStubMainnet.onCall(1).rejects(new Error('timeout')); // FEI (token1) query times out
+      requestStubMainnet.onCall(2).resolves(emptyResponse); // High tracked reserve query
+      requestStubMainnet.onCall(3).resolves(emptyResponse); // High USD query
+
+      await expect(subgraphProviderMainnet.getPools()).rejects.toThrow('timeout');
+    });
+
+    it('retries entire operation when parallel queries fail', async () => {
+      requestStubMainnet = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProviderMainnet = new V2SubgraphProvider(ChainId.MAINNET, 1, 1000, true, 1000, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const highTrackedReserveResponse = {
+        pairs: [constructPool(false, '1')],
+      };
+      const emptyResponse = { pairs: [] };
+
+      // First attempt: all queries fail
+      requestStubMainnet.onCall(0).rejects(new Error('Network error'));
+      requestStubMainnet.onCall(1).rejects(new Error('Network error'));
+      requestStubMainnet.onCall(2).rejects(new Error('Network error'));
+      requestStubMainnet.onCall(3).rejects(new Error('Network error'));
+
+      // Second attempt: queries succeed
+      requestStubMainnet.onCall(4).resolves(emptyResponse); // FEI (token0) query
+      requestStubMainnet.onCall(5).resolves(emptyResponse); // FEI (token1) query
+      requestStubMainnet.onCall(6).resolves(highTrackedReserveResponse); // High tracked reserve query
+      requestStubMainnet.onCall(7).resolves(emptyResponse); // High USD query
+      requestStubMainnet.onCall(8).resolves(emptyResponse); // End pagination for first query
+      requestStubMainnet.onCall(9).resolves(emptyResponse); // End pagination for second query
+      requestStubMainnet.onCall(10).resolves(emptyResponse); // End pagination for third query
+      requestStubMainnet.onCall(11).resolves(emptyResponse); // End pagination for fourth query
+
+      const pools = await subgraphProviderMainnet.getPools();
+      expect(pools.length).toEqual(1);
+      expect(pools[0]!.reserve).toEqual(1);
+    });
+
+    it('fails after all retries when parallel queries consistently fail', async () => {
+      requestStubMainnet = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProviderMainnet = new V2SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 1000, 0.01, Number.MAX_VALUE, 'test_url'); // No retries
+
+      // All attempts fail
+      requestStubMainnet.rejects(new Error('Persistent network error'));
+
+      await expect(subgraphProviderMainnet.getPools()).rejects.toThrow('Persistent network error');
+    });
+  });
 })

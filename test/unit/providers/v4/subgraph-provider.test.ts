@@ -199,6 +199,73 @@ describe('SubgraphProvider V4', () => {
     expect(pools[1]!.tvlETH).toEqual(2.0);
   });
 
+  describe('parallel query error handling', () => {
+    it('fails entire operation when one query throws an error', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const highTrackedETHResponse = {
+        pools: [constructPool('0xAddress1', '1000000', '1.0')],
+      };
+      const emptyResponse = { pools: [] };
+
+      // First query succeeds, second query fails
+      requestStub.onCall(0).resolves(highTrackedETHResponse); // High tracked ETH query succeeds
+      requestStub.onCall(1).rejects(new Error('Network error')); // High liquidity query fails
+      requestStub.onCall(2).resolves(emptyResponse); // End pagination for first query
+
+      await expect(subgraphProvider.getPools()).rejects.toThrow('Network error');
+    });
+
+    it('fails entire operation when one query times out', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const emptyResponse = { pools: [] };
+
+      // First query succeeds, second query times out
+      requestStub.onCall(0).resolves(emptyResponse); // High tracked ETH query succeeds
+      requestStub.onCall(1).rejects(new Error('timeout')); // High liquidity query times out
+      requestStub.onCall(2).resolves(emptyResponse); // End pagination for first query
+
+      await expect(subgraphProvider.getPools()).rejects.toThrow('timeout');
+    });
+
+    it('retries entire operation when parallel queries fail', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 1, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const highTrackedETHResponse = {
+        pools: [constructPool('0xAddress2', '1000000', '1.0')],
+      };
+      const emptyResponse = { pools: [] };
+
+      // First attempt: all queries fail
+      requestStub.onCall(0).rejects(new Error('Network error'));
+      requestStub.onCall(1).rejects(new Error('Network error'));
+
+      // Second attempt: queries succeed
+      requestStub.onCall(2).resolves(highTrackedETHResponse); // High tracked ETH query
+      requestStub.onCall(3).resolves(emptyResponse); // End pagination for first query
+      requestStub.onCall(4).resolves(emptyResponse); // High liquidity query
+      requestStub.onCall(5).resolves(emptyResponse); // End pagination for second query
+
+      const pools = await subgraphProvider.getPools();
+      expect(pools.length).toEqual(1);
+      expect(pools[0]!.tvlETH).toEqual(1.0);
+    });
+
+    it('fails after all retries when parallel queries consistently fail', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url'); // No retries
+
+      // All attempts fail
+      requestStub.rejects(new Error('Persistent network error'));
+
+      await expect(subgraphProvider.getPools()).rejects.toThrow('Persistent network error');
+    });
+  });
+
   // Keep the original test but unskip it and update it to work with the new structure
   it.skip('can fetch subgraph pools from actual subgraph', async () => {
     if (!process.env.SUBGRAPH_URL_SEPOLIA) {
