@@ -101,33 +101,6 @@ export class V3SubgraphProvider
     );
   }
 
-  protected override subgraphQuery(blockNumber?: number): string {
-    return `
-    query getPools($pageSize: Int!, $id: String) {
-      pools(
-        first: $pageSize
-        ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
-        ) {
-          id
-          token0 {
-            symbol
-            id
-          }
-          token1 {
-            symbol
-            id
-          }
-          feeTier
-          liquidity
-          totalValueLockedUSD
-          totalValueLockedETH
-          totalValueLockedUSDUntracked
-        }
-      }
-   `;
-  }
-
   protected override mapSubgraphPool(
     rawPool: V3RawSubgraphPool
   ): V3SubgraphPool {
