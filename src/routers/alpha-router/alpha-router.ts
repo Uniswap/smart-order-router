@@ -3052,8 +3052,8 @@ export class AlphaRouter
 
               return this.mixedQuoter
                 .getRoutesThenQuotes(
-                  tokenIn,
-                  tokenOut,
+                  currencyIn,
+                  currencyOut,
                   amount,
                   amounts,
                   percents,
