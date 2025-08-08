@@ -66,13 +66,23 @@ export abstract class SubgraphProvider<
     private trackedEthThreshold = 0.01,
     // @ts-expect-error - kept for backward compatibility
     private untrackedUsdThreshold = Number.MAX_VALUE,
-    private subgraphUrl?: string
+    private subgraphUrl?: string,
+    private useNewEndpoint = false,
+    private bearerToken?: string
   ) {
     this.protocol = protocol;
     if (!this.subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
-    this.client = new GraphQLClient(this.subgraphUrl);
+    if (this.useNewEndpoint) {
+      this.client = new GraphQLClient(this.subgraphUrl, {
+        headers: {
+          authorization: `Bearer ${this.bearerToken}`
+        },
+      });
+    } else {
+      this.client = new GraphQLClient(this.subgraphUrl);
+    }
   }
 
   public async getPools(
