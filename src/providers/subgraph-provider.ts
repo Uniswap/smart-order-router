@@ -67,14 +67,13 @@ export abstract class SubgraphProvider<
     // @ts-expect-error - kept for backward compatibility
     private untrackedUsdThreshold = Number.MAX_VALUE,
     private subgraphUrl?: string,
-    private useNewEndpoint = false,
     private bearerToken?: string
   ) {
     this.protocol = protocol;
     if (!this.subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
-    if (this.useNewEndpoint) {
+    if (this.bearerToken) {
       this.client = new GraphQLClient(this.subgraphUrl, {
         headers: {
           authorization: `Bearer ${this.bearerToken}`
