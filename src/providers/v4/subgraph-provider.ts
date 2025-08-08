@@ -68,7 +68,8 @@ export class V4SubgraphProvider
     rollback = true,
     trackedEthThreshold = 0.01,
     untrackedUsdThreshold = Number.MAX_VALUE,
-    subgraphUrlOverride?: string
+    subgraphUrlOverride?: string,
+    bearerToken?: string
   ) {
     super(
       Protocol.V4,
@@ -78,7 +79,8 @@ export class V4SubgraphProvider
       rollback,
       trackedEthThreshold,
       untrackedUsdThreshold,
-      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
+      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId],
+      bearerToken
     );
   }
 
