@@ -342,7 +342,7 @@ export abstract class SubgraphProvider<
       if (this.chainId === ChainId.BASE && this.protocol === Protocol.V4) {
         v4FilteredPoools = v4FilteredPoools.filter((pool) => {
           if (
-            parseFloat(pool.totalValueLockedETH) <= ZORA_ETH_TVL_THRESHOLD &&
+            parseFloat(pool.totalValueLockedETH) < ZORA_ETH_TVL_THRESHOLD &&
             hasZoraHooks(pool as any)
           ) {
             return false;
