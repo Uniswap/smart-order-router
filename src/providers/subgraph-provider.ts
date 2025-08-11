@@ -19,6 +19,7 @@ export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
 }
 
 export const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
+export const BASE_V4_PAGE_SIZE = 3500; // TheGraph v4 base max pagesize is 3600.
 
 export type V3V4SubgraphPool = {
   id: string;
@@ -76,7 +77,7 @@ export abstract class SubgraphProvider<
     if (this.bearerToken) {
       this.client = new GraphQLClient(this.subgraphUrl, {
         headers: {
-          authorization: `Bearer ${this.bearerToken}`
+          authorization: `Bearer ${this.bearerToken}`,
         },
       });
     } else {
@@ -94,10 +95,15 @@ export abstract class SubgraphProvider<
       ? await providerConfig.blockNumber
       : undefined;
 
+    const pageSizeToUse =
+      this.protocol === Protocol.V4 && this.chainId == ChainId.BASE
+        ? BASE_V4_PAGE_SIZE
+        : PAGE_SIZE;
+
     log.info(
       `Getting ${
         this.protocol
-      } pools from the subgraph with page size ${PAGE_SIZE}${
+      } pools from the subgraph with page size ${pageSizeToUse}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
@@ -194,13 +200,13 @@ export abstract class SubgraphProvider<
 
             const start = Date.now();
             log.info(
-              `Starting fetching for ${queryConfig.name} page ${totalPages} with page size ${PAGE_SIZE}`
+              `Starting fetching for ${queryConfig.name} page ${totalPages} with page size ${pageSizeToUse}`
             );
 
             const poolsResult = await this.client.request<{
               pools: TRawSubgraphPool[];
             }>(queryConfig.query, {
-              pageSize: PAGE_SIZE,
+              pageSize: pageSizeToUse,
               id: lastId,
               ...queryConfig.variables,
             });
