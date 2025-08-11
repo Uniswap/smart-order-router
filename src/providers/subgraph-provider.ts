@@ -7,7 +7,7 @@ import _ from 'lodash';
 
 import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../util';
-import { hasZoraHooks } from '../util/zora-hooks';
+import { hasZoraHooks, ZORA_ETH_TVL_THRESHOLD } from '../util/zora-hooks';
 
 import { ProviderConfig } from './provider';
 
@@ -341,10 +341,13 @@ export abstract class SubgraphProvider<
 
       if (this.chainId === ChainId.BASE && this.protocol === Protocol.V4) {
         v4FilteredPoools = v4FilteredPoools.filter((pool) => {
-          return !(
-            parseFloat(pool.totalValueLockedETH) === 0 &&
+          if (
+            parseFloat(pool.totalValueLockedETH) <= ZORA_ETH_TVL_THRESHOLD &&
             hasZoraHooks(pool as any)
-          );
+          ) {
+            return false;
+          }
+          return true;
         });
       }
 
