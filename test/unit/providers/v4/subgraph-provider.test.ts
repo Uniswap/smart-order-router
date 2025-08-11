@@ -266,6 +266,267 @@ describe('SubgraphProvider V4', () => {
     });
   });
 
+  describe('Zora hooks filtering on Base', () => {
+    it('filters out Zora hooks pools with zero TVL on Base', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.BASE, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      // Create pools with Zora hooks and zero TVL
+      const zoraCreatorHookPool = {
+        id: '0xZoraCreatorPool',
+        token0: { id: '0xToken0', symbol: 'TOKEN0' },
+        token1: { id: '0xToken1', symbol: 'TOKEN1' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0xd61A675F8a0c67A73DC3B54FB7318B4D91409040', // Zora creator hook
+        liquidity: '1000000',
+        totalValueLockedUSD: '1000.0',
+        totalValueLockedETH: '0.0', // Zero TVL
+      };
+
+      const zoraPostHookPool = {
+        id: '0xZoraPostPool',
+        token0: { id: '0xToken2', symbol: 'TOKEN2' },
+        token1: { id: '0xToken3', symbol: 'TOKEN3' },
+        feeTier: '500',
+        tickSpacing: '10',
+        hooks: '0x9ea932730A7787000042e34390B8E435dD839040', // Zora post hook
+        liquidity: '500000',
+        totalValueLockedUSD: '500.0',
+        totalValueLockedETH: '0.0', // Zero TVL
+      };
+
+      const normalPool = {
+        id: '0xNormalPool',
+        token0: { id: '0xToken4', symbol: 'TOKEN4' },
+        token1: { id: '0xToken5', symbol: 'TOKEN5' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0x0000000000000000000000000000000000000000', // No hooks
+        liquidity: '2000000',
+        totalValueLockedUSD: '2000.0',
+        totalValueLockedETH: '0.0', // Zero TVL but no Zora hooks
+      };
+
+      const highTVLPool = {
+        id: '0xHighTVLPool',
+        token0: { id: '0xToken6', symbol: 'TOKEN6' },
+        token1: { id: '0xToken7', symbol: 'TOKEN7' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0xd61A675F8a0c67A73DC3B54FB7318B4D91409040', // Zora creator hook
+        liquidity: '3000000',
+        totalValueLockedUSD: '3000.0',
+        totalValueLockedETH: '1.0', // High TVL
+      };
+
+      const response = {
+        pools: [zoraCreatorHookPool, zoraPostHookPool, normalPool, highTVLPool],
+      };
+      const emptyResponse = { pools: [] };
+
+      // Mock responses for the two V4 queries
+      requestStub.onCall(0).resolves(response); // High tracked ETH query
+      requestStub.onCall(1).resolves(emptyResponse); // End pagination for first query
+      requestStub.onCall(2).resolves(emptyResponse); // High liquidity query
+      requestStub.onCall(3).resolves(emptyResponse); // End pagination for second query
+
+      const pools = await subgraphProvider.getPools();
+
+      // Should filter out Zora hooks pools with zero TVL, but keep others
+      expect(pools.length).toEqual(2);
+      
+      // Should keep normal pool (no Zora hooks, zero TVL)
+      const normalPoolResult = pools.find(p => p.id === '0xNormalPool');
+      expect(normalPoolResult).toBeDefined();
+      expect(normalPoolResult!.hooks).toEqual('0x0000000000000000000000000000000000000000');
+      
+      // Should keep high TVL pool (Zora hooks but high TVL)
+      const highTVLPoolResult = pools.find(p => p.id === '0xHighTVLPool');
+      expect(highTVLPoolResult).toBeDefined();
+      expect(highTVLPoolResult!.hooks).toEqual('0xd61A675F8a0c67A73DC3B54FB7318B4D91409040');
+      expect(highTVLPoolResult!.tvlETH).toEqual(1.0);
+
+      // Should filter out Zora creator hook pool with zero TVL
+      const zoraCreatorPoolResult = pools.find(p => p.id === '0xZoraCreatorPool');
+      expect(zoraCreatorPoolResult).toBeUndefined();
+
+      // Should filter out Zora post hook pool with zero TVL
+      const zoraPostPoolResult = pools.find(p => p.id === '0xZoraPostPool');
+      expect(zoraPostPoolResult).toBeUndefined();
+    });
+
+    it('allows Zora hooks pools with non-zero TVL on Base', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.BASE, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const zoraCreatorHookPool = {
+        id: '0xZoraCreatorPool',
+        token0: { id: '0xToken0', symbol: 'TOKEN0' },
+        token1: { id: '0xToken1', symbol: 'TOKEN1' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0xd61A675F8a0c67A73DC3B54FB7318B4D91409040', // Zora creator hook
+        liquidity: '1000000',
+        totalValueLockedUSD: '1000.0',
+        totalValueLockedETH: '0.5', // Non-zero TVL
+      };
+
+      const response = {
+        pools: [zoraCreatorHookPool],
+      };
+      const emptyResponse = { pools: [] };
+
+      requestStub.onCall(0).resolves(response); // High tracked ETH query
+      requestStub.onCall(1).resolves(emptyResponse); // End pagination for first query
+      requestStub.onCall(2).resolves(emptyResponse); // High liquidity query
+      requestStub.onCall(3).resolves(emptyResponse); // End pagination for second query
+
+      const pools = await subgraphProvider.getPools();
+
+      // Should allow Zora hooks pool with non-zero TVL
+      expect(pools.length).toEqual(1);
+      expect(pools[0]!.id).toEqual('0xZoraCreatorPool');
+      expect(pools[0]!.hooks).toEqual('0xd61A675F8a0c67A73DC3B54FB7318B4D91409040');
+      expect(pools[0]!.tvlETH).toEqual(0.5);
+    });
+
+    it('filters out Zora hooks pools with zero TVL on Base even if they have high liquidity', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.BASE, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const zoraCreatorHookPool = {
+        id: '0xZoraCreatorPool',
+        token0: { id: '0xToken0', symbol: 'TOKEN0' },
+        token1: { id: '0xToken1', symbol: 'TOKEN1' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0xd61A675F8a0c67A73DC3B54FB7318B4D91409040', // Zora creator hook
+        liquidity: '1000000', // High liquidity
+        totalValueLockedUSD: '1000.0',
+        totalValueLockedETH: '0.0', // Zero TVL
+      };
+
+      const normalPool = {
+        id: '0xNormalPool',
+        token0: { id: '0xToken2', symbol: 'TOKEN2' },
+        token1: { id: '0xToken3', symbol: 'TOKEN3' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0x0000000000000000000000000000000000000000', // No hooks
+        liquidity: '2000000', // High liquidity
+        totalValueLockedUSD: '2000.0',
+        totalValueLockedETH: '0.0', // Zero TVL but no Zora hooks
+      };
+
+      const response = {
+        pools: [zoraCreatorHookPool, normalPool],
+      };
+      const emptyResponse = { pools: [] };
+
+      // Mock responses for the two V4 queries
+      requestStub.onCall(0).resolves(response); // High tracked ETH query
+      requestStub.onCall(1).resolves(emptyResponse); // End pagination for first query
+      requestStub.onCall(2).resolves(emptyResponse); // High liquidity query
+      requestStub.onCall(3).resolves(emptyResponse); // End pagination for second query
+
+      const pools = await subgraphProvider.getPools();
+
+      // Should filter out Zora hooks pool with zero TVL even if it has high liquidity
+      expect(pools.length).toEqual(1);
+      
+      // Should keep normal pool (no Zora hooks, high liquidity, zero TVL)
+      const normalPoolResult = pools.find(p => p.id === '0xNormalPool');
+      expect(normalPoolResult).toBeDefined();
+      expect(normalPoolResult!.hooks).toEqual('0x0000000000000000000000000000000000000000');
+      expect(normalPoolResult!.liquidity).toEqual('2000000');
+
+      // Should filter out Zora creator hook pool with zero TVL
+      const zoraCreatorPoolResult = pools.find(p => p.id === '0xZoraCreatorPool');
+      expect(zoraCreatorPoolResult).toBeUndefined();
+    });
+
+
+
+    it('does not apply Zora hooks filtering on non-Base chains', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const zoraCreatorHookPool = {
+        id: '0xZoraCreatorPool',
+        token0: { id: '0xToken0', symbol: 'TOKEN0' },
+        token1: { id: '0xToken1', symbol: 'TOKEN1' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0xd61A675F8a0c67A73DC3B54FB7318B4D91409040', // Zora creator hook
+        liquidity: '1000000',
+        totalValueLockedUSD: '1000.0',
+        totalValueLockedETH: '0.0', // Zero TVL
+      };
+
+      const response = {
+        pools: [zoraCreatorHookPool],
+      };
+      const emptyResponse = { pools: [] };
+
+      requestStub.onCall(0).resolves(response); // High tracked ETH query
+      requestStub.onCall(1).resolves(emptyResponse); // End pagination for first query
+      requestStub.onCall(2).resolves(emptyResponse); // High liquidity query
+      requestStub.onCall(3).resolves(emptyResponse); // End pagination for second query
+
+      const pools = await subgraphProvider.getPools();
+
+      // Should allow Zora hooks pool on non-Base chains (no filtering applied)
+      expect(pools.length).toEqual(1);
+      expect(pools[0]!.id).toEqual('0xZoraCreatorPool');
+      expect(pools[0]!.hooks).toEqual('0xd61A675F8a0c67A73DC3B54FB7318B4D91409040');
+    });
+
+    it('handles case-insensitive Zora hook addresses', async () => {
+      requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+      subgraphProvider = new V4SubgraphProvider(ChainId.BASE, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+
+      const zoraCreatorHookPoolUpperCase = {
+        id: '0xZoraCreatorPoolUpper',
+        token0: { id: '0xToken0', symbol: 'TOKEN0' },
+        token1: { id: '0xToken1', symbol: 'TOKEN1' },
+        feeTier: '3000',
+        tickSpacing: '60',
+        hooks: '0XD61A675F8A0C67A73DC3B54FB7318B4D91409040', // Zora creator hook (uppercase)
+        liquidity: '1000000',
+        totalValueLockedUSD: '1000.0',
+        totalValueLockedETH: '0.0', // Zero TVL
+      };
+
+      const zoraPostHookPoolMixedCase = {
+        id: '0xZoraPostPoolMixed',
+        token0: { id: '0xToken2', symbol: 'TOKEN2' },
+        token1: { id: '0xToken3', symbol: 'TOKEN3' },
+        feeTier: '500',
+        tickSpacing: '10',
+        hooks: '0x9EA932730A7787000042E34390B8E435DD839040', // Zora post hook (mixed case)
+        liquidity: '500000',
+        totalValueLockedUSD: '500.0',
+        totalValueLockedETH: '0.0', // Zero TVL
+      };
+
+      const response = {
+        pools: [zoraCreatorHookPoolUpperCase, zoraPostHookPoolMixedCase],
+      };
+      const emptyResponse = { pools: [] };
+
+      requestStub.onCall(0).resolves(response); // High tracked ETH query
+      requestStub.onCall(1).resolves(emptyResponse); // End pagination for first query
+      requestStub.onCall(2).resolves(emptyResponse); // High liquidity query
+      requestStub.onCall(3).resolves(emptyResponse); // End pagination for second query
+
+      const pools = await subgraphProvider.getPools();
+
+      // Should filter out both Zora hooks pools with zero TVL (case-insensitive)
+      expect(pools.length).toEqual(0);
+    });
+  });
+
   // Keep the original test but unskip it and update it to work with the new structure
   it.skip('can fetch subgraph pools from actual subgraph', async () => {
     if (!process.env.SUBGRAPH_URL_SEPOLIA) {
