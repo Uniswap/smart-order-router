@@ -11,10 +11,16 @@ export interface V4SubgraphPool {
   hooks: string;
   liquidity: string;
   token0: {
+    symbol: string;
     id: string;
+    name: string;
+    decimals: number;
   };
   token1: {
+    symbol: string;
     id: string;
+    name: string;
+    decimals: number;
   };
   tvlETH: number;
   tvlUSD: number;
@@ -29,10 +35,14 @@ export type V4RawSubgraphPool = {
   token0: {
     symbol: string;
     id: string;
+    name: string;
+    decimals: number;
   };
   token1: {
     symbol: string;
     id: string;
+    name: string;
+    decimals: number;
   };
   totalValueLockedUSD: string;
   totalValueLockedETH: string;
@@ -94,10 +104,16 @@ export class V4SubgraphProvider
       hooks: rawPool.hooks,
       liquidity: rawPool.liquidity,
       token0: {
+        symbol: rawPool.token0.symbol,
         id: rawPool.token0.id,
+        name: rawPool.token0.name,
+        decimals: rawPool.token0.decimals,
       },
       token1: {
+        symbol: rawPool.token1.symbol,
         id: rawPool.token1.id,
+        name: rawPool.token1.name,
+        decimals: rawPool.token1.decimals,
       },
       tvlETH: parseFloat(rawPool.totalValueLockedETH),
       tvlUSD: parseFloat(rawPool.totalValueLockedUSD),
@@ -111,10 +127,14 @@ export class V4SubgraphProvider
       token0 {
         symbol
         id
+        name
+        decimals
       }
       token1 {
         symbol
         id
+        name
+        decimals
       }
       feeTier
       tickSpacing
