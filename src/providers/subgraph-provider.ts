@@ -7,6 +7,7 @@ import _ from 'lodash';
 
 import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { log, metric } from '../util';
+import { hasZoraHooks } from '../util/zora-hooks';
 
 import { ProviderConfig } from './provider';
 
@@ -76,7 +77,7 @@ export abstract class SubgraphProvider<
     if (this.bearerToken) {
       this.client = new GraphQLClient(this.subgraphUrl, {
         headers: {
-          authorization: `Bearer ${this.bearerToken}`
+          authorization: `Bearer ${this.bearerToken}`,
         },
       });
     } else {
@@ -332,15 +333,24 @@ export abstract class SubgraphProvider<
           return this.mapSubgraphPool(pool);
         });
     } else {
-      poolsSanitized = allPools
-        .filter(
-          (pool) =>
-            parseInt(pool.liquidity) > 0 ||
-            parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
-        )
-        .map((pool) => {
-          return this.mapSubgraphPool(pool);
+      let v4FilteredPoools: TRawSubgraphPool[] = allPools.filter(
+        (pool) =>
+          parseInt(pool.liquidity) > 0 ||
+          parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
+      );
+
+      if (this.chainId === ChainId.BASE && this.protocol === Protocol.V4) {
+        v4FilteredPoools = v4FilteredPoools.filter((pool) => {
+          return !(
+            parseFloat(pool.totalValueLockedETH) === 0 &&
+            hasZoraHooks(pool as any)
+          );
         });
+      }
+
+      poolsSanitized = v4FilteredPoools.map((pool) => {
+        return this.mapSubgraphPool(pool);
+      });
     }
 
     metric.putMetric(
