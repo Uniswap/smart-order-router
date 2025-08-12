@@ -1160,5 +1160,148 @@ describe('get candidate pools', () => {
         }
       );
     });
+    describe('fetching cross protocol missing v4', () => {
+      test('Obtains the highest liquidity pools missing from the cross protocol selection', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW]);
+        const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
+        const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
+
+        const crossLiquidityCandidatePools = await getMixedCrossLiquidityCandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: DAI,
+          v2SubgraphProvider: mockV2SubgraphProvider,
+          v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
+          v2Candidates,
+          v3Candidates,
+          v4Candidates,
+        });
+
+        expect(crossLiquidityCandidatePools).toEqual({
+          v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
+          v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+        });
+      });
+
+      test('Ignores already selected pools when finding highest liquidity pools', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW], [DAI_USDT_V4_LOW]);
+        const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
+        const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
+
+        const crossLiquidityCandidatePools = await getMixedCrossLiquidityCandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: DAI,
+          v2SubgraphProvider: mockV2SubgraphProvider,
+          v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
+          v2Candidates,
+          v3Candidates,
+          v4Candidates,
+        });
+
+        expect(crossLiquidityCandidatePools).toEqual({
+          v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
+          v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(USDC_WETH_V4_LOW)],
+        });
+      });
+    });
+
+    describe('fetching cross protocol missing v4 and v2', () => {
+      test('Obtains the highest liquidity pools missing from the cross protocol selection', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW]);
+        const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
+        const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
+
+        const crossLiquidityCandidatePools = await getMixedCrossLiquidityCandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: DAI,
+          v2SubgraphProvider: mockV2SubgraphProvider,
+          v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
+          v2Candidates,
+          v3Candidates,
+          v4Candidates,
+        });
+
+        expect(crossLiquidityCandidatePools).toEqual({
+          v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
+          v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+        });
+      });
+
+      test('Ignores already selected pools when finding highest liquidity pools', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW], [DAI_USDT_V4_LOW]);
+        const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
+        const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI], [USDC_WETH]);
+
+        const crossLiquidityCandidatePools = await getMixedCrossLiquidityCandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: DAI,
+          v2SubgraphProvider: mockV2SubgraphProvider,
+          v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
+          v2Candidates,
+          v3Candidates,
+          v4Candidates,
+        });
+
+        expect(crossLiquidityCandidatePools).toEqual({
+          v2Pools: [pairToV2Subgraph(DAI_USDT)],
+          v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(USDC_WETH_V4_LOW)],
+        });
+      });
+    });
+
+    describe('fetching cross protocol missing v4 and v3', () => {
+      test('Obtains the highest liquidity pools missing from the cross protocol selection', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW]);
+        const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
+        const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
+
+        const crossLiquidityCandidatePools = await getMixedCrossLiquidityCandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: DAI,
+          v2SubgraphProvider: mockV2SubgraphProvider,
+          v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
+          v2Candidates,
+          v3Candidates,
+          v4Candidates,
+        });
+
+        expect(crossLiquidityCandidatePools).toEqual({
+          v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
+          v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+        });
+      });
+
+      test('Ignores already selected pools when finding highest liquidity pools', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW], [DAI_USDT_V4_LOW]);
+        const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW], [USDC_WETH_LOW]);
+        const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
+
+        const crossLiquidityCandidatePools = await getMixedCrossLiquidityCandidatePools({
+          tokenIn: WRAPPED_NATIVE_CURRENCY[1]!,
+          tokenOut: DAI,
+          v2SubgraphProvider: mockV2SubgraphProvider,
+          v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
+          v2Candidates,
+          v3Candidates,
+          v4Candidates,
+        });
+
+        expect(crossLiquidityCandidatePools).toEqual({
+          v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
+          v3Pools: [poolToV3Subgraph(DAI_USDT_LOW)],
+          v4Pools: [poolToV4Subgraph(USDC_WETH_V4_LOW)],
+        });
+      });
+    });
   });
 });
