@@ -443,10 +443,16 @@ export const poolToV4SubgraphPool = (
     hooks: pool.hooks,
     liquidity: pool.liquidity.toString(),
     token0: {
+      symbol: pool.token0.symbol,
       id: pool.token0.wrapped.address,
+      name: pool.token0.wrapped.name,
+      decimals: pool.token0.wrapped.decimals,
     },
     token1: {
+      symbol: pool.token1.symbol,
       id: pool.token1.wrapped.address,
+      name: pool.token1.wrapped.name,
+      decimals: pool.token1.wrapped.decimals,
     },
     tvlETH: parseFloat(pool.liquidity.toString()),
     tvlUSD: parseFloat(pool.liquidity.toString()),
