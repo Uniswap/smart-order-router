@@ -640,10 +640,16 @@ export async function getV4CandidatePools({
           hooks: hooks,
           liquidity: '10000',
           token0: {
+            symbol: currency0.symbol,
             id: getAddress(currency0),
+            name: currency0.name,
+            decimals: currency0.decimals,
           },
           token1: {
+            symbol: currency1.symbol,
             id: getAddress(currency1),
+            name: currency1.name,
+            decimals: currency1.decimals,
           },
           tvlETH: 10000,
           tvlUSD: 10000,
