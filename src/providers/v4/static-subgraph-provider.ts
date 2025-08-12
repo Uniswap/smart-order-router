@@ -101,10 +101,16 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
           hooks: hooks,
           liquidity: liquidity.toString(),
           token0: {
+            symbol: token0.symbol,
             id: getAddress(token0),
+            name: token0.name,
+            decimals: token0.decimals,
           },
           token1: {
+            symbol: token1.symbol,
             id: getAddress(token1),
+            name: token1.name,
+            decimals: token1.decimals,
           },
           // As a very rough proxy we just use liquidity for TVL.
           tvlETH: liquidityNumber,

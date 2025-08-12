@@ -11,15 +11,15 @@ export interface V4SubgraphPool {
   hooks: string;
   liquidity: string;
   token0: {
-    symbol: string;
+    symbol?: string;
     id: string;
-    name: string;
+    name?: string;
     decimals: number;
   };
   token1: {
-    symbol: string;
+    symbol?: string;
     id: string;
-    name: string;
+    name?: string;
     decimals: number;
   };
   tvlETH: number;
