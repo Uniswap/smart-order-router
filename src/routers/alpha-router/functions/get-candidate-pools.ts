@@ -128,6 +128,7 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   tokenOut: Token;
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
+  v4SubgraphProvider: IV4SubgraphProvider;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
   v4Candidates?: V4CandidatePools;
@@ -282,6 +283,7 @@ class SubcategorySelectionPools<SubgraphPool> {
 export type CrossLiquidityCandidatePools = {
   v2Pools: V2SubgraphPool[];
   v3Pools: V3SubgraphPool[];
+  v4Pools: V4SubgraphPool[];
 };
 
 /**
@@ -299,8 +301,10 @@ export async function getMixedCrossLiquidityCandidatePools({
   blockNumber,
   v2SubgraphProvider,
   v3SubgraphProvider,
+  v4SubgraphProvider,
   v2Candidates,
   v3Candidates,
+  v4Candidates,
 }: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossLiquidityCandidatePools> {
   const v2Pools = (
     await v2SubgraphProvider.getPools(tokenIn, tokenOut, {
@@ -309,6 +313,11 @@ export async function getMixedCrossLiquidityCandidatePools({
   ).sort((a, b) => b.reserve - a.reserve);
   const v3Pools = (
     await v3SubgraphProvider.getPools(tokenIn, tokenOut, {
+      blockNumber,
+    })
+  ).sort((a, b) => b.tvlUSD - a.tvlUSD);
+  const v4Pools = (
+    await v4SubgraphProvider.getPools(tokenIn, tokenOut, {
       blockNumber,
     })
   ).sort((a, b) => b.tvlUSD - a.tvlUSD);
@@ -324,7 +333,7 @@ export async function getMixedCrossLiquidityCandidatePools({
     v3Candidates
   );
 
-  const v3SelectedPools = findCrossProtocolMissingPools(
+  const v3AgainstV2SelectedPools = findCrossProtocolMissingPools(
     tokenInAddress,
     tokenOutAddress,
     v3Pools,
@@ -332,25 +341,54 @@ export async function getMixedCrossLiquidityCandidatePools({
     v2Candidates
   );
 
+  const v3AgainstV4SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v3Pools,
+    v3Candidates,
+    v4Candidates
+  );
+
+  const v4SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v4Pools,
+    v4Candidates,
+    v3Candidates
+  );
+
   const selectedV2Pools = [
     v2SelectedPools.forTokenIn,
     v2SelectedPools.forTokenOut,
   ].filter((pool) => pool !== undefined) as V2SubgraphPool[];
   const selectedV3Pools = [
-    v3SelectedPools.forTokenIn,
-    v3SelectedPools.forTokenOut,
+    v3AgainstV2SelectedPools.forTokenIn,
+    v3AgainstV2SelectedPools.forTokenOut,
+    v3AgainstV4SelectedPools.forTokenIn,
+    v3AgainstV4SelectedPools.forTokenOut,
   ].filter((pool) => pool !== undefined) as V3SubgraphPool[];
+  const selectedV4Pools = [
+    v4SelectedPools.forTokenIn,
+    v4SelectedPools.forTokenOut,
+  ].filter((pool) => pool !== undefined) as V4SubgraphPool[];
 
   return {
     v2Pools: selectedV2Pools,
     v3Pools: selectedV3Pools,
+    v4Pools: selectedV4Pools,
   };
 }
 
 function findCrossProtocolMissingPools<
   TSubgraphPool extends SubgraphPool,
-  CandidatePoolsProtocolToSearch extends V2CandidatePools | V3CandidatePools,
-  CandidatePoolsContextualProtocol extends V2CandidatePools | V3CandidatePools
+  CandidatePoolsProtocolToSearch extends
+    | V2CandidatePools
+    | V3CandidatePools
+    | V4CandidatePools,
+  CandidatePoolsContextualProtocol extends
+    | V2CandidatePools
+    | V3CandidatePools
+    | V4CandidatePools
 >(
   tokenInAddress: string,
   tokenOutAddress: string,
