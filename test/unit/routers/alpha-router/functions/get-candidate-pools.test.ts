@@ -33,7 +33,8 @@ import {
   getV3CandidatePools,
   getV4CandidatePools,
   V2CandidatePools,
-  V3CandidatePools
+  V3CandidatePools,
+  V4CandidatePools,
 } from '../../../../../src/routers/alpha-router/functions/get-candidate-pools';
 import {
   buildMockTokenAccessor,
@@ -45,6 +46,7 @@ import {
   DAI_USDT_V4_LOW,
   DAI_WETH,
   DAI_WETH_MEDIUM,
+  DAI_WETH_V4_MEDIUM,
   pairToV2SubgraphPool,
   poolToV3SubgraphPool,
   poolToV4SubgraphPool,
@@ -955,6 +957,23 @@ describe('get candidate pools', () => {
   })
 
   describe('getMixedCrossLiquidityCandidatePools', () => {
+    const mockV4CandidatePools = (withTokenIn: V4Pool[], withTokenOut: V4Pool[], selectedPools: V4Pool[] = []) => {
+      const poolsWithTokenIn = withTokenIn.map(poolToV4Subgraph);
+      const poolsWithTokenOut = withTokenOut.map(poolToV4Subgraph);
+      const subgraphPools = [...selectedPools, ...withTokenIn, ...withTokenOut].map(poolToV4Subgraph);
+
+      return {
+        subgraphPools: subgraphPools,
+        candidatePools: {
+          protocol: Protocol.V4,
+          selections: {
+            topByTVLUsingTokenIn: poolsWithTokenIn,
+            topByTVLUsingTokenOut: poolsWithTokenOut,
+          } as any
+        },
+      } as unknown as V4CandidatePools;
+    }
+
     const mockV3CandidatePools = (withTokenIn: V3Pool[], withTokenOut: V3Pool[], selectedPools: V3Pool[] = []) => {
       const poolsWithTokenIn = withTokenIn.map(poolToV3Subgraph);
       const poolsWithTokenOut = withTokenOut.map(poolToV3Subgraph);
@@ -991,6 +1010,7 @@ describe('get candidate pools', () => {
 
     describe('fetching cross protocol missing v2', () => {
       test('Obtains the highest liquidity pools missing from the cross protocol selection', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW]);
         const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
         const v2Candidates = mockV2CandidatePools([WETH_DAI], [WETH_DAI]);
 
@@ -999,19 +1019,23 @@ describe('get candidate pools', () => {
           tokenOut: DAI,
           v2SubgraphProvider: mockV2SubgraphProvider,
           v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
           v2Candidates,
-          v3Candidates
+          v3Candidates,
+          v4Candidates,
         });
 
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
-          v3Pools: [],
+          v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
         });
       });
 
       test(
         'Obtains the highest liquidity pools missing from the cross protocol selection, but ignores already selected pools',
         async () => {
+          const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW]);
           const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
           const v2Candidates = mockV2CandidatePools([WETH_DAI], [WETH_DAI], [DAI_USDT]);
 
@@ -1020,13 +1044,16 @@ describe('get candidate pools', () => {
             tokenOut: DAI,
             v2SubgraphProvider: mockV2SubgraphProvider,
             v3SubgraphProvider: mockV3SubgraphProvider,
+            v4SubgraphProvider: mockV4SubgraphProvider,
             v2Candidates,
-            v3Candidates
+            v3Candidates,
+            v4Candidates,
           });
 
           expect(crossLiquidityCandidatePools).toEqual({
             v2Pools: [pairToV2Subgraph(USDC_WETH)],
-            v3Pools: [],
+            v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+            v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
           });
         }
       );
@@ -1034,6 +1061,7 @@ describe('get candidate pools', () => {
 
     describe('fetching cross protocol missing v3', () => {
       test('Obtains the highest liquidity pools missing from the cross protocol selection', async () => {
+        const v4Candidates = mockV4CandidatePools([DAI_WETH_V4_MEDIUM], [DAI_WETH_V4_MEDIUM]);
         const v3Candidates = mockV3CandidatePools([DAI_WETH_MEDIUM], [DAI_WETH_MEDIUM]);
         const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
 
@@ -1042,19 +1070,23 @@ describe('get candidate pools', () => {
           tokenOut: DAI,
           v2SubgraphProvider: mockV2SubgraphProvider,
           v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
           v2Candidates,
-          v3Candidates
+          v3Candidates,
+          v4Candidates,
         });
 
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
         });
       });
 
       test(
         'Obtains the highest liquidity pools missing from the cross protocol selection, but ignores already selected pools',
         async () => {
+          const v4Candidates = mockV4CandidatePools([DAI_WETH_V4_MEDIUM], [DAI_WETH_V4_MEDIUM], [USDC_WETH_V4_LOW]);
           const v3Candidates = mockV3CandidatePools([DAI_WETH_MEDIUM], [DAI_WETH_MEDIUM], [USDC_WETH_LOW]);
           const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
 
@@ -1063,13 +1095,16 @@ describe('get candidate pools', () => {
             tokenOut: DAI,
             v2SubgraphProvider: mockV2SubgraphProvider,
             v3SubgraphProvider: mockV3SubgraphProvider,
+            v4SubgraphProvider: mockV4SubgraphProvider,
             v2Candidates,
-            v3Candidates
+            v3Candidates,
+            v4Candidates
           });
 
           expect(crossLiquidityCandidatePools).toEqual({
             v2Pools: [],
             v3Pools: [poolToV3Subgraph(DAI_USDT_LOW)],
+            v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW)],
           });
         }
       );
@@ -1077,6 +1112,7 @@ describe('get candidate pools', () => {
 
     describe('fetching cross protocol missing v3 and v2', () => {
       test('Obtains the highest liquidity pools missing from the cross protocol selection', async () => {
+        const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW]);
         const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW]);
         const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI]);
 
@@ -1085,19 +1121,23 @@ describe('get candidate pools', () => {
           tokenOut: DAI,
           v2SubgraphProvider: mockV2SubgraphProvider,
           v3SubgraphProvider: mockV3SubgraphProvider,
+          v4SubgraphProvider: mockV4SubgraphProvider,
           v2Candidates,
-          v3Candidates
+          v3Candidates,
+          v4Candidates,
         });
 
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
+          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
         });
       });
 
       test(
         'Obtains the highest liquidity pools missing from the cross protocol selection, but ignores already selected pools',
         async () => {
+          const v4Candidates = mockV4CandidatePools([WETH9_USDT_V4_LOW], [USDC_DAI_V4_LOW], [USDC_WETH_V4_LOW]);
           const v3Candidates = mockV3CandidatePools([WETH9_USDT_LOW], [USDC_DAI_LOW], [USDC_WETH_LOW]);
           const v2Candidates = mockV2CandidatePools([WETH_USDT], [USDC_DAI], [DAI_USDT]);
 
@@ -1106,13 +1146,16 @@ describe('get candidate pools', () => {
             tokenOut: DAI,
             v2SubgraphProvider: mockV2SubgraphProvider,
             v3SubgraphProvider: mockV3SubgraphProvider,
+            v4SubgraphProvider: mockV4SubgraphProvider,
             v2Candidates,
-            v3Candidates
+            v3Candidates,
+            v4Candidates,
           });
 
           expect(crossLiquidityCandidatePools).toEqual({
             v2Pools: [pairToV2Subgraph(USDC_WETH)],
             v3Pools: [poolToV3Subgraph(DAI_USDT_LOW)],
+            v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW)],
           });
         }
       );

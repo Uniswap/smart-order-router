@@ -325,13 +325,38 @@ export async function getMixedCrossLiquidityCandidatePools({
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
 
-  const v2SelectedPools = findCrossProtocolMissingPools(
+  const v2AgainstV3SelectedPools = findCrossProtocolMissingPools(
     tokenInAddress,
     tokenOutAddress,
     v2Pools,
     v2Candidates,
     v3Candidates
   );
+  const v2AgainstV4SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v2Pools,
+    v2Candidates,
+    v4Candidates
+  );
+
+  // this is for deduplicate v2 pools, in case both v4 and v3 select the same v2 pools for tokenIn/tokenOut
+  if (
+    v2AgainstV4SelectedPools.forTokenIn?.id ===
+      v2AgainstV3SelectedPools.forTokenIn?.id ||
+    v2AgainstV4SelectedPools.forTokenIn?.id ===
+      v2AgainstV3SelectedPools.forTokenOut?.id
+  ) {
+    v2AgainstV4SelectedPools.forTokenIn = undefined;
+  }
+  if (
+    v2AgainstV4SelectedPools.forTokenOut?.id ===
+      v2AgainstV3SelectedPools.forTokenIn?.id ||
+    v2AgainstV4SelectedPools.forTokenOut?.id ===
+      v2AgainstV3SelectedPools.forTokenOut?.id
+  ) {
+    v2AgainstV4SelectedPools.forTokenOut = undefined;
+  }
 
   const v3AgainstV2SelectedPools = findCrossProtocolMissingPools(
     tokenInAddress,
@@ -340,7 +365,6 @@ export async function getMixedCrossLiquidityCandidatePools({
     v3Candidates,
     v2Candidates
   );
-
   const v3AgainstV4SelectedPools = findCrossProtocolMissingPools(
     tokenInAddress,
     tokenOutAddress,
@@ -349,7 +373,32 @@ export async function getMixedCrossLiquidityCandidatePools({
     v4Candidates
   );
 
-  const v4SelectedPools = findCrossProtocolMissingPools(
+  // this is for deduplicate v3 pools, in case both v4 and v2 select the same v3 pools for tokenIn/tokenOut
+  if (
+    v3AgainstV4SelectedPools.forTokenIn?.id ===
+      v3AgainstV2SelectedPools.forTokenIn?.id ||
+    v3AgainstV4SelectedPools.forTokenIn?.id ===
+      v3AgainstV2SelectedPools.forTokenOut?.id
+  ) {
+    v3AgainstV4SelectedPools.forTokenIn = undefined;
+  }
+  if (
+    v3AgainstV4SelectedPools.forTokenOut?.id ===
+      v3AgainstV2SelectedPools.forTokenIn?.id ||
+    v3AgainstV4SelectedPools.forTokenOut?.id ===
+      v3AgainstV2SelectedPools.forTokenOut?.id
+  ) {
+    v3AgainstV4SelectedPools.forTokenOut = undefined;
+  }
+
+  const v4AgainstV2SelectedPools = findCrossProtocolMissingPools(
+    tokenInAddress,
+    tokenOutAddress,
+    v4Pools,
+    v4Candidates,
+    v2Candidates
+  );
+  const v4AgainstV3SelectedPools = findCrossProtocolMissingPools(
     tokenInAddress,
     tokenOutAddress,
     v4Pools,
@@ -357,9 +406,29 @@ export async function getMixedCrossLiquidityCandidatePools({
     v3Candidates
   );
 
+  // this is for deduplicate v4 pools, in case both v2 and v3 select the same v4 pools for tokenIn/tokenOut
+  if (
+    v4AgainstV2SelectedPools.forTokenIn?.id ===
+      v4AgainstV3SelectedPools.forTokenIn?.id ||
+    v4AgainstV2SelectedPools.forTokenIn?.id ===
+      v4AgainstV3SelectedPools.forTokenOut?.id
+  ) {
+    v4AgainstV2SelectedPools.forTokenIn = undefined;
+  }
+  if (
+    v4AgainstV2SelectedPools.forTokenOut?.id ===
+      v4AgainstV3SelectedPools.forTokenIn?.id ||
+    v4AgainstV2SelectedPools.forTokenOut?.id ===
+      v4AgainstV3SelectedPools.forTokenOut?.id
+  ) {
+    v4AgainstV2SelectedPools.forTokenOut = undefined;
+  }
+
   const selectedV2Pools = [
-    v2SelectedPools.forTokenIn,
-    v2SelectedPools.forTokenOut,
+    v2AgainstV3SelectedPools.forTokenIn,
+    v2AgainstV3SelectedPools.forTokenOut,
+    v2AgainstV4SelectedPools.forTokenIn,
+    v2AgainstV4SelectedPools.forTokenOut,
   ].filter((pool) => pool !== undefined) as V2SubgraphPool[];
   const selectedV3Pools = [
     v3AgainstV2SelectedPools.forTokenIn,
@@ -368,8 +437,10 @@ export async function getMixedCrossLiquidityCandidatePools({
     v3AgainstV4SelectedPools.forTokenOut,
   ].filter((pool) => pool !== undefined) as V3SubgraphPool[];
   const selectedV4Pools = [
-    v4SelectedPools.forTokenIn,
-    v4SelectedPools.forTokenOut,
+    v4AgainstV2SelectedPools.forTokenIn,
+    v4AgainstV2SelectedPools.forTokenOut,
+    v4AgainstV3SelectedPools.forTokenIn,
+    v4AgainstV3SelectedPools.forTokenOut,
   ].filter((pool) => pool !== undefined) as V4SubgraphPool[];
 
   return {
@@ -2143,6 +2214,7 @@ export async function getMixedRouteCandidatePools({
   // Injects the liquidity pools found by the getMixedCrossLiquidityCandidatePools function
   V2subgraphPools.push(...crossLiquidityPools.v2Pools);
   V3subgraphPools.push(...crossLiquidityPools.v3Pools);
+  V4subgraphPools.push(...crossLiquidityPools.v4Pools);
 
   metric.putMetric(
     'MixedSubgraphPoolsLoad',
