@@ -3045,6 +3045,7 @@ export class AlphaRouter
                   blockNumber: routingConfig.blockNumber,
                   v2SubgraphProvider: this.v2SubgraphProvider,
                   v3SubgraphProvider: this.v3SubgraphProvider,
+                  v4SubgraphProvider: this.v4SubgraphProvider,
                   v2Candidates: v2CandidatePools,
                   v3Candidates: v3CandidatePools,
                   v4Candidates: v4CandidatePools,
