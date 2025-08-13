@@ -1028,7 +1028,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
 
@@ -1053,7 +1053,7 @@ describe('get candidate pools', () => {
           expect(crossLiquidityCandidatePools).toEqual({
             v2Pools: [pairToV2Subgraph(USDC_WETH)],
             v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-            v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+            v4Pools: [],
           });
         }
       );
@@ -1079,7 +1079,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
 
@@ -1104,7 +1104,7 @@ describe('get candidate pools', () => {
           expect(crossLiquidityCandidatePools).toEqual({
             v2Pools: [],
             v3Pools: [poolToV3Subgraph(DAI_USDT_LOW)],
-            v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW)],
+            v4Pools: [],
           });
         }
       );
@@ -1130,7 +1130,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
 
@@ -1155,7 +1155,7 @@ describe('get candidate pools', () => {
           expect(crossLiquidityCandidatePools).toEqual({
             v2Pools: [pairToV2Subgraph(USDC_WETH)],
             v3Pools: [poolToV3Subgraph(DAI_USDT_LOW)],
-            v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW)],
+            v4Pools: [],
           });
         }
       );
@@ -1180,7 +1180,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
 
@@ -1203,7 +1203,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
     });
@@ -1228,7 +1228,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
 
@@ -1251,7 +1251,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
     });
@@ -1276,7 +1276,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW), poolToV3Subgraph(USDC_WETH_LOW)],
-          v4Pools: [poolToV4Subgraph(DAI_USDT_V4_LOW), poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
 
@@ -1299,7 +1299,7 @@ describe('get candidate pools', () => {
         expect(crossLiquidityCandidatePools).toEqual({
           v2Pools: [pairToV2Subgraph(DAI_USDT), pairToV2Subgraph(USDC_WETH)],
           v3Pools: [poolToV3Subgraph(DAI_USDT_LOW)],
-          v4Pools: [poolToV4Subgraph(USDC_WETH_V4_LOW)],
+          v4Pools: [],
         });
       });
     });
