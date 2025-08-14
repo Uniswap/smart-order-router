@@ -14,13 +14,13 @@ export interface V4SubgraphPool {
     symbol?: string;
     id: string;
     name?: string;
-    decimals: number;
+    decimals: string;
   };
   token1: {
     symbol?: string;
     id: string;
     name?: string;
-    decimals: number;
+    decimals: string;
   };
   tvlETH: number;
   tvlUSD: number;
@@ -36,13 +36,13 @@ export type V4RawSubgraphPool = {
     symbol: string;
     id: string;
     name: string;
-    decimals: number;
+    decimals: string;
   };
   token1: {
     symbol: string;
     id: string;
     name: string;
-    decimals: number;
+    decimals: string;
   };
   totalValueLockedUSD: string;
   totalValueLockedETH: string;

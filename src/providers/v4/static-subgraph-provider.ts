@@ -104,13 +104,13 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
             symbol: token0.symbol,
             id: getAddress(token0),
             name: token0.name,
-            decimals: token0.decimals,
+            decimals: token0.decimals.toString(),
           },
           token1: {
             symbol: token1.symbol,
             id: getAddress(token1),
             name: token1.name,
-            decimals: token1.decimals,
+            decimals: token1.decimals.toString(),
           },
           // As a very rough proxy we just use liquidity for TVL.
           tvlETH: liquidityNumber,

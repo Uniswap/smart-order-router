@@ -633,13 +633,13 @@ describe('get candidate pools', () => {
             "hooks": "0x00001f3b9712708127b1fcad61cb892535951888",
             "liquidity": "10",
             "token0": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0x6b175474e89094c44da98b954eedeac495271d0f",
               "name": "Dai Stablecoin",
               "symbol": "DAI"
             },
             "token1": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
               "name": "Wrapped Ether",
               "symbol": "WETH"
@@ -710,13 +710,13 @@ describe('get candidate pools', () => {
           "hooks": "0x0000000000000000000000000000000000000000",
           "liquidity": "10000",
           "token0": {
-            "decimals": 18,
+            "decimals": "18",
             "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
             "name": "Dai Stablecoin",
             "symbol": "DAI"
           },
           "token1": {
-            "decimals": 18,
+            "decimals": "18",
             "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
             "name": "Wrapped Ether",
             "symbol": "WETH"
@@ -731,13 +731,13 @@ describe('get candidate pools', () => {
             "hooks": "0x0000000000000000000000000000000000000000",
             "liquidity": "10000",
             "token0": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
               "name": "Dai Stablecoin",
               "symbol": "DAI"
             },
             "token1": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
               "name": "Wrapped Ether",
               "symbol": "WETH"
@@ -752,13 +752,13 @@ describe('get candidate pools', () => {
             "hooks": "0x0000000000000000000000000000000000000000",
             "liquidity": "10000",
             "token0": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
               "name": "Dai Stablecoin",
               "symbol": "DAI"
             },
             "token1": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
               "name": "Wrapped Ether",
               "symbol": "WETH"
@@ -773,13 +773,13 @@ describe('get candidate pools', () => {
             "hooks": "0x0000000000000000000000000000000000000000",
             "liquidity": "10000",
             "token0": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
               "name": "Dai Stablecoin",
               "symbol": "DAI"
             },
             "token1": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
               "name": "Wrapped Ether",
               "symbol": "WETH"
@@ -794,13 +794,13 @@ describe('get candidate pools', () => {
             "hooks": "0x00001f3b9712708127b1fcad61cb892535951888",
             "liquidity": "10",
             "token0": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0x6b175474e89094c44da98b954eedeac495271d0f",
               "name": "Dai Stablecoin",
               "symbol": "DAI"
             },
             "token1": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
               "name": "Wrapped Ether",
               "symbol": "WETH"
@@ -871,13 +871,13 @@ describe('get candidate pools', () => {
             "hooks": "0x00001f3b9712708127b1fcad61cb892535951888",
             "liquidity": "10",
             "token0": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0x6b175474e89094c44da98b954eedeac495271d0f",
               "name": "Dai Stablecoin",
               "symbol": "DAI"
             },
             "token1": {
-              "decimals": 18,
+              "decimals": "18",
               "id": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
               "name": "Wrapped Ether",
               "symbol": "WETH"
