@@ -129,10 +129,12 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
   v4SubgraphProvider: IV4SubgraphProvider;
+  chainId: ChainId;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
   v4Candidates?: V4CandidatePools;
   blockNumber?: number | Promise<number>;
+  mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
 };
 
 export type V4GetCandidatePoolsParams = {
@@ -304,6 +306,8 @@ export async function getMixedCrossLiquidityCandidatePools({
   v2Candidates,
   v3Candidates,
   v4Candidates,
+  mixedCrossLiquidityV3AgainstV4Supported,
+  chainId,
 }: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossLiquidityCandidatePools> {
   const v2Pools = (
     await v2SubgraphProvider.getPools(tokenIn, tokenOut, {
@@ -335,13 +339,16 @@ export async function getMixedCrossLiquidityCandidatePools({
     v2Candidates
   );
 
-  const v3AgainstV4SelectedPools = findCrossProtocolMissingPools(
-    tokenInAddress,
-    tokenOutAddress,
-    v3Pools,
-    v3Candidates,
-    v4Candidates
-  );
+  const v3AgainstV4SelectedPools =
+    mixedCrossLiquidityV3AgainstV4Supported?.includes(chainId)
+      ? findCrossProtocolMissingPools(
+          tokenInAddress,
+          tokenOutAddress,
+          v3Pools,
+          v3Candidates,
+          v4Candidates
+        )
+      : { forTokenIn: undefined, forTokenOut: undefined };
 
   // this is for deduplicate v3 pools, in case both v4 and v2 select the same v3 pools for tokenIn/tokenOut
   if (
