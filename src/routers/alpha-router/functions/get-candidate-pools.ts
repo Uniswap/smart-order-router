@@ -129,7 +129,7 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
   v4SubgraphProvider: IV4SubgraphProvider;
-  chainId: ChainId;
+  chainId?: ChainId;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
   v4Candidates?: V4CandidatePools;
@@ -340,7 +340,7 @@ export async function getMixedCrossLiquidityCandidatePools({
   );
 
   const v3AgainstV4SelectedPools =
-    mixedCrossLiquidityV3AgainstV4Supported?.includes(chainId)
+    chainId && mixedCrossLiquidityV3AgainstV4Supported?.includes(chainId)
       ? findCrossProtocolMissingPools(
           tokenInAddress,
           tokenOutAddress,

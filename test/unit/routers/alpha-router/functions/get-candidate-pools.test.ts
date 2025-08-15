@@ -1023,6 +1023,8 @@ describe('get candidate pools', () => {
           v2Candidates,
           v3Candidates,
           v4Candidates,
+          chainId: ChainId.BASE,
+          mixedCrossLiquidityV3AgainstV4Supported: [ChainId.BASE],
         });
 
         expect(crossLiquidityCandidatePools).toEqual({
@@ -1048,6 +1050,8 @@ describe('get candidate pools', () => {
             v2Candidates,
             v3Candidates,
             v4Candidates,
+            chainId: ChainId.BASE,
+            mixedCrossLiquidityV3AgainstV4Supported: [ChainId.BASE],
           });
 
           expect(crossLiquidityCandidatePools).toEqual({
