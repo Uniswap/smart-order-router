@@ -112,6 +112,7 @@ import {
   getAddressLowerCase,
   getApplicableV4FeesTickspacingsHooks,
   HooksOptions,
+  MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED,
   MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
@@ -346,6 +347,11 @@ export type AlphaRouterParams = {
    * All the supported mixed chains configuration
    */
   mixedSupported?: ChainId[];
+
+  /**
+   * All the supported mixed cross-liquidity high v3 tvl pools against low-to-mid v4 pools chains configuration
+   */
+  mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
 
   /**
    * The v4 pool params to be used for the v4 pool provider.
@@ -604,6 +610,7 @@ export class AlphaRouter
   protected v2Supported?: ChainId[];
   protected v4Supported?: ChainId[];
   protected mixedSupported?: ChainId[];
+  protected mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
   protected shouldEnableMixedRouteEthWeth?: boolean;
@@ -638,6 +645,7 @@ export class AlphaRouter
     v2Supported,
     v4Supported,
     mixedSupported,
+    mixedCrossLiquidityV3AgainstV4Supported,
     v4PoolParams,
     cachedRoutesCacheInvalidationFixRolloutPercentage,
     deleteCacheEnabledChains,
@@ -1108,6 +1116,9 @@ export class AlphaRouter
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
     this.v4Supported = v4Supported ?? V4_SUPPORTED;
     this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
+    this.mixedCrossLiquidityV3AgainstV4Supported =
+      mixedCrossLiquidityV3AgainstV4Supported ??
+      MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED;
 
     this.cachedRoutesCacheInvalidationFixRolloutPercentage =
       cachedRoutesCacheInvalidationFixRolloutPercentage;
@@ -3049,6 +3060,9 @@ export class AlphaRouter
                   v2Candidates: v2CandidatePools,
                   v3Candidates: v3CandidatePools,
                   v4Candidates: v4CandidatePools,
+                  mixedCrossLiquidityV3AgainstV4Supported:
+                    this.mixedCrossLiquidityV3AgainstV4Supported,
+                  chainId: this.chainId,
                 });
 
               return this.mixedQuoter
