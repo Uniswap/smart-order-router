@@ -35,7 +35,7 @@ describe('SubgraphProvider V4', () => {
 
   it('fetches subgraph pools if totalValueLockedETH is above threshold', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001,Number.MAX_VALUE, 'test_url');
 
     const highTrackedETHResponse = {
       pools: [constructPool('0xAddress1', '1000000', '1.0')], // High tracked ETH
@@ -54,7 +54,7 @@ describe('SubgraphProvider V4', () => {
 
   it('fetches 0 subgraph pools if totalValueLockedETH is below threshold and liquidity is 0', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
     const lowTrackedETHResponse = {
       pools: [constructPool('0xAddress2', '0', '0.001')], // Low tracked ETH and zero liquidity
@@ -71,7 +71,7 @@ describe('SubgraphProvider V4', () => {
 
   it('fetches subgraph pools if liquidity is above 0', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
     const highLiquidityResponse = {
       pools: [constructPool('0xAddress3', '1000000', '0.001')], // High liquidity, low tracked ETH
@@ -88,7 +88,7 @@ describe('SubgraphProvider V4', () => {
 
   it('fetches 0 subgraph pools if liquidity is 0', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
     const zeroLiquidityResponse = {
       pools: [constructPool('0xAddress4', '0', '0.001')], // Zero liquidity
@@ -102,9 +102,47 @@ describe('SubgraphProvider V4', () => {
     expect(pools.length).toEqual(0);
   });
 
+  it('filters zora pools based on trackedZoraEthThreshold', async () => {
+    requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+
+    const zoraHooksResponse = {
+      pools: [
+        // Zora pools
+        {
+          ...constructPool('0xZora1', '0', '0.002'), // Above threshold
+          hooks: '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040' // Zora Creator Hook
+        },
+        {
+          ...constructPool('0xZora2', '0', '0.0005'), // Below threshold
+          hooks: '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040'
+        },
+        {
+          ...constructPool('0xZora3', '0', '0.003'), // Above threshold
+          hooks: '0x9ea932730a7787000042e34390b8e435dd839040' // Zora Post Hook
+        },
+        // Non-Zora pool
+        {
+          ...constructPool('0xNonZora', '0', '0.005'), // Above ETH threshold but no liquidity
+          hooks: '0x1234567890123456789012345678901234567890'
+        }
+      ]
+    };
+    const emptyResponse = { pools: [] };
+
+    requestStub.resolves(emptyResponse);
+    requestStub.onCall(0).resolves(zoraHooksResponse);
+    requestStub.onCall(1).resolves(emptyResponse);
+
+    const pools = await subgraphProvider.getPools();
+    expect(pools.length).toEqual(2);
+    expect(pools[0]!.id).toEqual('0xZora1');
+    expect(pools[1]!.id).toEqual('0xZora3');
+  });
+
   it('deduplicates pools that match multiple criteria', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
     const samePool = constructPool('0xAddress5', '1000000', '1.0'); // Pool with high liquidity and high tracked ETH
     const highTrackedETHResponse = { pools: [samePool] };
@@ -123,7 +161,7 @@ describe('SubgraphProvider V4', () => {
 
   it('correctly maps V4-specific fields', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
     const v4PoolResponse = {
       pools: [{
@@ -156,7 +194,7 @@ describe('SubgraphProvider V4', () => {
 
   it('handles empty responses from all queries', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
     const emptyResponse = { pools: [] };
 
@@ -169,7 +207,7 @@ describe('SubgraphProvider V4', () => {
 
   it('handles multiple pools from different queries', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
     const highTrackedETHResponse = {
       pools: [constructPool('0xAddress6', '1000000', '1.0')],
@@ -202,7 +240,7 @@ describe('SubgraphProvider V4', () => {
   describe('parallel query error handling', () => {
     it('fails entire operation when one query throws an error', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
       const highTrackedETHResponse = {
         pools: [constructPool('0xAddress1', '1000000', '1.0')],
@@ -219,7 +257,7 @@ describe('SubgraphProvider V4', () => {
 
     it('fails entire operation when one query times out', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
       const emptyResponse = { pools: [] };
 
@@ -233,7 +271,7 @@ describe('SubgraphProvider V4', () => {
 
     it('retries entire operation when parallel queries fail', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 1, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 1, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
 
       const highTrackedETHResponse = {
         pools: [constructPool('0xAddress2', '1000000', '1.0')],
@@ -257,7 +295,7 @@ describe('SubgraphProvider V4', () => {
 
     it('fails after all retries when parallel queries consistently fail', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url'); // No retries
+      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url'); // No retries
 
       // All attempts fail
       requestStub.rejects(new Error('Persistent network error'));
@@ -279,6 +317,7 @@ describe('SubgraphProvider V4', () => {
       30000,
       true,
       0.01,
+      0.001,
       Number.MAX_VALUE,
       process.env.SUBGRAPH_URL_SEPOLIA
     );

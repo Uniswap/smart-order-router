@@ -98,7 +98,8 @@ import {
   WNATIVE_ON,
   WRAPPED_NATIVE_CURRENCY,
   CacheMode,
-  USDC_SONEIUM
+  USDC_SONEIUM,
+  V4SubgraphProvider
 } from '../../../../src';
 import { PortionProvider } from '../../../../src/providers/portion-provider';
 import {
@@ -120,7 +121,6 @@ import {
   Portion
 } from '../../../test-util/mock-data';
 import { WHALES } from '../../../test-util/whales';
-import { V4SubgraphProvider } from '../../../../build/main';
 import {
   InMemoryRouteCachingProvider
 } from '../../../unit/providers/caching/route/test-util/inmemory-route-caching-provider';
@@ -3685,6 +3685,7 @@ describe('quote for other networks', () => {
               30000,
               true,
               0.01,
+              0.001,
               Number.MAX_VALUE,
               SUBGRAPH_URL_BY_CHAIN[chain],
             );
