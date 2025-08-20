@@ -341,17 +341,22 @@ export abstract class SubgraphProvider<
         });
     } else if (this.protocol === Protocol.V4) {
       poolsSanitized = allPools
-        .filter(
-          (pool) =>
-            parseInt(pool.liquidity) > 0 ||
-            parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
-            (((pool as unknown as V4RawSubgraphPool).hooks ===
-              '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040' || // Zora Creator Hook on Base
-              (pool as unknown as V4RawSubgraphPool).hooks ===
-                '0x9ea932730a7787000042e34390b8e435dd839040') && // Zora Post Hook on Base
-              parseFloat(pool.totalValueLockedETH) >
-                this.trackedZoraEthThreshold)
-        )
+        .filter((pool) => {
+          const ZORA_HOOKS = new Set([
+            '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040', // Zora Creator Hook on Base
+            '0x9ea932730a7787000042e34390b8e435dd839040', // Zora Post Hook on Base
+          ]);
+          const liquidity = parseInt(pool.liquidity);
+          const tvl = parseFloat(pool.totalValueLockedETH);
+          const hooks = (pool as unknown as V4RawSubgraphPool).hooks;
+          const isZora = ZORA_HOOKS.has(hooks);
+
+          if (isZora) {
+            return tvl > this.trackedZoraEthThreshold;
+          }
+
+          return liquidity > 0 || tvl > this.trackedEthThreshold;
+        })
         .map((pool) => {
           return this.mapSubgraphPool(pool);
         });
