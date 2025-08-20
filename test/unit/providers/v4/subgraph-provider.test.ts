@@ -102,6 +102,44 @@ describe('SubgraphProvider V4', () => {
     expect(pools.length).toEqual(0);
   });
 
+  it('filters zora pools based on trackedZoraEthThreshold', async () => {
+    requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+
+    const zoraHooksResponse = {
+      pools: [
+        // Zora pools
+        {
+          ...constructPool('0xZora1', '0', '0.002'), // Above threshold
+          hooks: '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040' // Zora Creator Hook
+        },
+        {
+          ...constructPool('0xZora2', '0', '0.0005'), // Below threshold
+          hooks: '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040'
+        },
+        {
+          ...constructPool('0xZora3', '0', '0.003'), // Above threshold
+          hooks: '0x9ea932730a7787000042e34390b8e435dd839040' // Zora Post Hook
+        },
+        // Non-Zora pool
+        {
+          ...constructPool('0xNonZora', '0', '0.005'), // Above ETH threshold but no liquidity
+          hooks: '0x1234567890123456789012345678901234567890'
+        }
+      ]
+    };
+    const emptyResponse = { pools: [] };
+
+    requestStub.resolves(emptyResponse);
+    requestStub.onCall(0).resolves(zoraHooksResponse);
+    requestStub.onCall(1).resolves(emptyResponse);
+
+    const pools = await subgraphProvider.getPools();
+    expect(pools.length).toEqual(2);
+    expect(pools[0]!.id).toEqual('0xZora1');
+    expect(pools[1]!.id).toEqual('0xZora3');
+  });
+
   it('deduplicates pools that match multiple criteria', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
     subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
