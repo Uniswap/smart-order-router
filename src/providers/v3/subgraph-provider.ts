@@ -86,7 +86,6 @@ export class V3SubgraphProvider
     timeout = 30000,
     rollback = true,
     trackedEthThreshold = 0.01,
-    trackedZoraEthThreshold = 0.001,
     untrackedUsdThreshold = Number.MAX_VALUE,
     subgraphUrlOverride?: string
   ) {
@@ -97,7 +96,7 @@ export class V3SubgraphProvider
       timeout,
       rollback,
       trackedEthThreshold,
-      trackedZoraEthThreshold,
+      0, // trackedZoraEthThreshold is not applicable for V3
       untrackedUsdThreshold,
       subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
     );
