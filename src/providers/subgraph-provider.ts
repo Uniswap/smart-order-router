@@ -343,8 +343,21 @@ export abstract class SubgraphProvider<
       poolsSanitized = allPools
         .filter((pool) => {
           const ZORA_HOOKS = new Set([
-            '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040', // Zora Creator Hook on Base
-            '0x9ea932730a7787000042e34390b8e435dd839040', // Zora Post Hook on Base
+            '0x1258e5f3c71ca9dce95ce734ba5759532e46d040', // Zora Creator Hook on Base v2.2.1
+            '0x2b15a16b3ef024005ba899bb51764fcd58cf9040', // Zora Post Hook on Base v2.2.1
+            '0x8218fa8d7922e22aed3556a09d5a715f16ad5040', // Zora Creator Hook on Base v2.2
+            '0xff74be9d3596ea7a33bb4983dd7906fb34135040', // Zora Post Hook on Base v2.2
+            '0xfbce3d80c659c765bc6c55e29e87d839c7609040', // Zora Creator Hook on Base v1
+            '0xa1ebdd5ca6470bbd67114331387f2dda7bfad040', // Zora Post Hook on Base v1
+            '0x854f820475b229b7805a386f758cfb285023d040', // Zora Creator Hook on Base v1.0.0.1
+            '0xb030fd8c2f8576f8ab05cfbbe659285e7d7a1040', // Zora Post Hook on Base v1.0.0.1
+            '0xe61bdf0c9e665f02df20fede6dcef379cb751040', // Zora Post Hook on Base v1.0.0.2
+            '0x9301690be9ac901de52c5ebff883862bbfc99040', // Zora Creator Hook on Base v1.1.1
+            '0x81542dc43aff247eff4a0ecefc286a2973ae1040', // Zora Post Hook on Base v1.1.1
+            '0x5e5d19d22c85a4aef7c1fdf25fb22a5a38f71040', // Zora Creator Hook on Base v1.1.1.1
+            '0x5bf219b3cc11e3f6dd8dc8fc89d7d1deb0431040', // Zora Post Hook on Base v1.1.1.1
+            '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040', // Zora Creator Hook on Base v1.1.2
+            '0x9ea932730a7787000042e34390b8e435dd839040', // Zora Post Hook on Base v1.1.2
           ]);
           const liquidity = parseInt(pool.liquidity);
           const tvl = parseFloat(pool.totalValueLockedETH);
