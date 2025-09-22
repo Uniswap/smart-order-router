@@ -10,6 +10,7 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
   public forceFail: boolean = false;
   public internalGetCacheRouteCalls: number = 0;
   public internalSetCacheRouteCalls: number = 0;
+  public internalDeleteCacheRouteCalls: number = 0;
   public getCacheModeCalls: number = 0;
 
   protected async _getBlocksToLive(_cachedRoutes: CachedRoutes, _amount: CurrencyAmount<Currency>): Promise<number> {
@@ -47,6 +48,15 @@ export class InMemoryRouteCachingProvider extends IRouteCachingProvider {
     this.routesCache.set(cacheKey, cachedRoutes);
 
     return true;
+  }
+
+  protected async _deleteCachedRoute(
+    cachedRoutes: CachedRoutes
+  ): Promise<boolean> {
+    this.internalDeleteCacheRouteCalls += 1;
+
+    const cacheKey = `${cachedRoutes.currencyIn.symbol}/${cachedRoutes.currencyOut.symbol}/${cachedRoutes.chainId}/${cachedRoutes.tradeType}/${cachedRoutes.protocolsCovered.sort()}`;
+    return this.routesCache.delete(cacheKey);
   }
 
   async getCacheMode(

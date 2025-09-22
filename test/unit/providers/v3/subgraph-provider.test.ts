@@ -2,11 +2,11 @@ import { ChainId } from '@uniswap/sdk-core';
 import dotenv from 'dotenv';
 import { GraphQLClient } from 'graphql-request';
 import sinon from 'sinon';
-import { V4SubgraphProvider } from '../../../../src';
+import { V3SubgraphProvider } from '../../../../src';
 
 dotenv.config();
 
-describe('SubgraphProvider V4', () => {
+describe('SubgraphProvider V3', () => {
   function constructPool(id: string, liquidity: string, totalValueLockedETH: string) {
     return {
       id: id,
@@ -16,8 +16,6 @@ describe('SubgraphProvider V4', () => {
       },
       token1: { id: '0xToken1', symbol: 'TOKEN1' },
       feeTier: '3000',
-      tickSpacing: '60',
-      hooks: '0x0000000000000000000000000000000000000000',
       liquidity: liquidity,
       totalValueLockedUSD: '1000.0',
       totalValueLockedETH: totalValueLockedETH,
@@ -25,7 +23,7 @@ describe('SubgraphProvider V4', () => {
   }
 
   let requestStub: sinon.SinonStub;
-  let subgraphProvider: V4SubgraphProvider;
+  let subgraphProvider: V3SubgraphProvider;
 
   beforeEach(() => {});
 
@@ -35,17 +33,17 @@ describe('SubgraphProvider V4', () => {
 
   it('fetches subgraph pools if totalValueLockedETH is above threshold', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001,Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
     const highTrackedETHResponse = {
       pools: [constructPool('0xAddress1', '1000000', '1.0')], // High tracked ETH
     };
     const emptyResponse = { pools: [] };
 
-    // For V4, we expect 2 queries: High tracked ETH, High liquidity
+    // For V3, we expect 2 queries: High tracked ETH, V3 zero ETH pools
     requestStub.resolves(emptyResponse); // Default response for most queries
     requestStub.onCall(0).resolves(highTrackedETHResponse); // High tracked ETH query
-    requestStub.onCall(1).resolves(emptyResponse); // High liquidity query
+    requestStub.onCall(1).resolves(emptyResponse); // V3 zero ETH pools query
 
     const pools = await subgraphProvider.getPools();
     expect(pools.length).toEqual(1);
@@ -54,7 +52,7 @@ describe('SubgraphProvider V4', () => {
 
   it('fetches 0 subgraph pools if totalValueLockedETH is below threshold and liquidity is 0', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
     const lowTrackedETHResponse = {
       pools: [constructPool('0xAddress2', '0', '0.001')], // Low tracked ETH and zero liquidity
@@ -69,26 +67,27 @@ describe('SubgraphProvider V4', () => {
     expect(pools.length).toEqual(0);
   });
 
-  it('fetches subgraph pools if liquidity is above 0', async () => {
+  it('fetches subgraph pools with liquidity > 0 AND totalValueLockedETH = 0 (V3 specific)', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
-    const highLiquidityResponse = {
-      pools: [constructPool('0xAddress3', '1000000', '0.001')], // High liquidity, low tracked ETH
+    const v3ZeroETHResponse = {
+      pools: [constructPool('0xAddress3', '1000000', '0')], // High liquidity, zero tracked ETH (V3 specific)
     };
     const emptyResponse = { pools: [] };
 
     requestStub.resolves(emptyResponse);
-    requestStub.onCall(1).resolves(highLiquidityResponse); // High liquidity query
+    requestStub.onCall(1).resolves(v3ZeroETHResponse); // V3 zero ETH pools query
 
     const pools = await subgraphProvider.getPools();
     expect(pools.length).toEqual(1);
     expect(pools[0]!.liquidity).toEqual('1000000');
+    expect(pools[0]!.tvlETH).toEqual(0);
   });
 
   it('fetches 0 subgraph pools if liquidity is 0', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
     const zeroLiquidityResponse = {
       pools: [constructPool('0xAddress4', '0', '0.001')], // Zero liquidity
@@ -96,62 +95,40 @@ describe('SubgraphProvider V4', () => {
     const emptyResponse = { pools: [] };
 
     requestStub.resolves(emptyResponse);
-    requestStub.onCall(1).resolves(zeroLiquidityResponse); // High liquidity query
+    requestStub.onCall(1).resolves(zeroLiquidityResponse); // V3 zero ETH pools query
 
     const pools = await subgraphProvider.getPools();
     expect(pools.length).toEqual(0);
   });
 
-  it('filters zora pools based on trackedZoraEthThreshold', async () => {
+  it('fetches 0 subgraph pools if liquidity > 0 but totalValueLockedETH > 0 (not V3 zero ETH condition)', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
-    const zoraHooksResponse = {
-      pools: [
-        // Zora pools
-        {
-          ...constructPool('0xZora1', '0', '0.002'), // Above threshold
-          hooks: '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040' // Zora Creator Hook
-        },
-        {
-          ...constructPool('0xZora2', '0', '0.0005'), // Below threshold
-          hooks: '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040'
-        },
-        {
-          ...constructPool('0xZora3', '0', '0.003'), // Above threshold
-          hooks: '0x9ea932730a7787000042e34390b8e435dd839040' // Zora Post Hook
-        },
-        // Non-Zora pool
-        {
-          ...constructPool('0xNonZora', '0', '0.005'), // Above ETH threshold but no liquidity
-          hooks: '0x1234567890123456789012345678901234567890'
-        }
-      ]
+    const highLiquidityNonZeroETHResponse = {
+      pools: [constructPool('0xAddress5', '1000000', '0.001')], // High liquidity, non-zero tracked ETH
     };
     const emptyResponse = { pools: [] };
 
     requestStub.resolves(emptyResponse);
-    requestStub.onCall(0).resolves(zoraHooksResponse);
-    requestStub.onCall(1).resolves(emptyResponse);
+    requestStub.onCall(1).resolves(highLiquidityNonZeroETHResponse); // V3 zero ETH pools query
 
     const pools = await subgraphProvider.getPools();
-    expect(pools.length).toEqual(2);
-    expect(pools[0]!.id).toEqual('0xZora1');
-    expect(pools[1]!.id).toEqual('0xZora3');
+    expect(pools.length).toEqual(0);
   });
 
   it('deduplicates pools that match multiple criteria', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
-    const samePool = constructPool('0xAddress5', '1000000', '1.0'); // Pool with high liquidity and high tracked ETH
+    const samePool = constructPool('0xAddress6', '1000000', '1.0'); // Pool with high liquidity and high tracked ETH
     const highTrackedETHResponse = { pools: [samePool] };
-    const highLiquidityResponse = { pools: [samePool] }; // Same pool returned by different query
+    const v3ZeroETHResponse = { pools: [samePool] }; // Same pool returned by different query
     const emptyResponse = { pools: [] };
 
     requestStub.resolves(emptyResponse);
     requestStub.onCall(0).resolves(highTrackedETHResponse); // High tracked ETH query
-    requestStub.onCall(1).resolves(highLiquidityResponse); // High liquidity query
+    requestStub.onCall(1).resolves(v3ZeroETHResponse); // V3 zero ETH pools query
 
     const pools = await subgraphProvider.getPools();
     expect(pools.length).toEqual(1); // Should be deduplicated
@@ -159,18 +136,16 @@ describe('SubgraphProvider V4', () => {
     expect(pools[0]!.liquidity).toEqual('1000000');
   });
 
-  it('correctly maps V4-specific fields', async () => {
+  it('correctly maps V3-specific fields', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
-    const v4PoolResponse = {
+    const v3PoolResponse = {
       pools: [{
-        id: '0xAddress2',
+        id: '0xAddress7',
         token0: { id: '0xToken0', symbol: 'TOKEN0' },
         token1: { id: '0xToken1', symbol: 'TOKEN1' },
         feeTier: '500',
-        tickSpacing: '10',
-        hooks: '0x1234567890123456789012345678901234567890',
         liquidity: '500000',
         totalValueLockedUSD: '2000.0',
         totalValueLockedETH: '2.0',
@@ -179,14 +154,12 @@ describe('SubgraphProvider V4', () => {
     const emptyResponse = { pools: [] };
 
     requestStub.resolves(emptyResponse);
-    requestStub.onCall(0).resolves(v4PoolResponse); // High tracked ETH query
+    requestStub.onCall(0).resolves(v3PoolResponse); // High tracked ETH query
 
     const pools = await subgraphProvider.getPools();
     expect(pools.length).toEqual(1);
-    expect(pools[0]!.id).toEqual('0xAddress2');
+    expect(pools[0]!.id).toEqual('0xAddress7');
     expect(pools[0]!.feeTier).toEqual('500');
-    expect(pools[0]!.tickSpacing).toEqual('10');
-    expect(pools[0]!.hooks).toEqual('0x1234567890123456789012345678901234567890');
     expect(pools[0]!.liquidity).toEqual('500000');
     expect(pools[0]!.tvlUSD).toEqual(2000.0);
     expect(pools[0]!.tvlETH).toEqual(2.0);
@@ -194,7 +167,7 @@ describe('SubgraphProvider V4', () => {
 
   it('handles empty responses from all queries', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
     const emptyResponse = { pools: [] };
 
@@ -207,25 +180,25 @@ describe('SubgraphProvider V4', () => {
 
   it('handles multiple pools from different queries', async () => {
     requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-    subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
     const highTrackedETHResponse = {
-      pools: [constructPool('0xAddress6', '1000000', '1.0')],
+      pools: [constructPool('0xAddress8', '1000000', '1.0')],
     };
-    const highLiquidityResponse = {
-      pools: [constructPool('0xAddress7', '2000000', '2.0')],
+    const v3ZeroETHResponse = {
+      pools: [constructPool('0xAddress9', '2000000', '0')], // V3 zero ETH pool
     };
     const emptyResponse = { pools: [] };
 
-    // Mock responses for the two V4 queries
+    // Mock responses for the two V3 queries
     let callCount = 0;
     requestStub.callsFake(() => {
       callCount++;
       // High tracked ETH query returns one pool
       if (callCount === 1) return Promise.resolve(highTrackedETHResponse);
       if (callCount === 2) return Promise.resolve(emptyResponse); // End pagination for first query
-      // High liquidity query returns another pool
-      if (callCount === 3) return Promise.resolve(highLiquidityResponse);
+      // V3 zero ETH pools query returns another pool
+      if (callCount === 3) return Promise.resolve(v3ZeroETHResponse);
       if (callCount === 4) return Promise.resolve(emptyResponse); // End pagination for second query
       // Default for any other calls
       return Promise.resolve(emptyResponse);
@@ -234,13 +207,14 @@ describe('SubgraphProvider V4', () => {
     const pools = await subgraphProvider.getPools();
     expect(pools.length).toEqual(2);
     expect(pools[0]!.tvlETH).toEqual(1.0);
-    expect(pools[1]!.tvlETH).toEqual(2.0);
+    expect(pools[1]!.tvlETH).toEqual(0);
+    expect(pools[1]!.liquidity).toEqual('2000000');
   });
 
   describe('parallel query error handling', () => {
     it('fails entire operation when one query throws an error', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+      subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
       const highTrackedETHResponse = {
         pools: [constructPool('0xAddress1', '1000000', '1.0')],
@@ -249,7 +223,7 @@ describe('SubgraphProvider V4', () => {
 
       // First query succeeds, second query fails
       requestStub.onCall(0).resolves(highTrackedETHResponse); // High tracked ETH query succeeds
-      requestStub.onCall(1).rejects(new Error('Network error')); // High liquidity query fails
+      requestStub.onCall(1).rejects(new Error('Network error')); // V3 zero ETH pools query fails
       requestStub.onCall(2).resolves(emptyResponse); // End pagination for first query
 
       await expect(subgraphProvider.getPools()).rejects.toThrow('Network error');
@@ -257,13 +231,13 @@ describe('SubgraphProvider V4', () => {
 
     it('fails entire operation when one query times out', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+      subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
       const emptyResponse = { pools: [] };
 
       // First query succeeds, second query times out
       requestStub.onCall(0).resolves(emptyResponse); // High tracked ETH query succeeds
-      requestStub.onCall(1).rejects(new Error('timeout')); // High liquidity query times out
+      requestStub.onCall(1).rejects(new Error('timeout')); // V3 zero ETH pools query times out
       requestStub.onCall(2).resolves(emptyResponse); // End pagination for first query
 
       await expect(subgraphProvider.getPools()).rejects.toThrow('timeout');
@@ -271,7 +245,7 @@ describe('SubgraphProvider V4', () => {
 
     it('retries entire operation when parallel queries fail', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 1, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url');
+      subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 1, 1000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
       const highTrackedETHResponse = {
         pools: [constructPool('0xAddress2', '1000000', '1.0')],
@@ -285,7 +259,7 @@ describe('SubgraphProvider V4', () => {
       // Second attempt: queries succeed
       requestStub.onCall(2).resolves(highTrackedETHResponse); // High tracked ETH query
       requestStub.onCall(3).resolves(emptyResponse); // End pagination for first query
-      requestStub.onCall(4).resolves(emptyResponse); // High liquidity query
+      requestStub.onCall(4).resolves(emptyResponse); // V3 zero ETH pools query
       requestStub.onCall(5).resolves(emptyResponse); // End pagination for second query
 
       const pools = await subgraphProvider.getPools();
@@ -295,7 +269,7 @@ describe('SubgraphProvider V4', () => {
 
     it('fails after all retries when parallel queries consistently fail', async () => {
       requestStub = sinon.stub(GraphQLClient.prototype, 'request');
-      subgraphProvider = new V4SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, 0.001, Number.MAX_VALUE, 'test_url'); // No retries
+      subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 0, 1000, true, 0.01, Number.MAX_VALUE, 'test_url'); // No retries
 
       // All attempts fail
       requestStub.rejects(new Error('Persistent network error'));
@@ -304,37 +278,34 @@ describe('SubgraphProvider V4', () => {
     });
   });
 
-  // Keep the original test but unskip it and update it to work with the new structure
-  it.skip('can fetch subgraph pools from actual subgraph', async () => {
-    if (!process.env.SUBGRAPH_URL_SEPOLIA) {
-      console.log('Skipping actual subgraph test - no SUBGRAPH_URL_SEPOLIA provided');
-      return;
-    }
+  it('correctly filters V3 pools based on V3-specific logic', async () => {
+    requestStub = sinon.stub(GraphQLClient.prototype, 'request');
+    subgraphProvider = new V3SubgraphProvider(ChainId.MAINNET, 2, 30000, true, 0.01, Number.MAX_VALUE, 'test_url');
 
-    const subgraphProvider = new V4SubgraphProvider(
-      ChainId.MAINNET,
-      2,
-      30000,
-      true,
-      0.01,
-      0.001,
-      Number.MAX_VALUE,
-      process.env.SUBGRAPH_URL_SEPOLIA
-    );
+    // Test the V3-specific filtering logic:
+    // - Include pools with liquidity > 0 AND totalValueLockedETH = 0
+    // - Include pools with totalValueLockedETH > threshold
+    const highTrackedETHResponse = {
+      pools: [constructPool('0xAddress10', '1000000', '1.0')], // High tracked ETH
+    };
+    const v3ZeroETHResponse = {
+      pools: [constructPool('0xAddress11', '500000', '0')], // V3 zero ETH pool
+    };
+    const emptyResponse = { pools: [] };
+
+    requestStub.resolves(emptyResponse);
+    requestStub.onCall(0).resolves(highTrackedETHResponse); // High tracked ETH query
+    requestStub.onCall(1).resolves(v3ZeroETHResponse); // V3 zero ETH pools query
 
     const pools = await subgraphProvider.getPools();
+    expect(pools.length).toEqual(2);
 
-    // Just verify we get some pools and they have the expected structure
-    expect(pools.length).toBeGreaterThanOrEqual(0);
-    if (pools.length > 0) {
-      const pool = pools[0]!;
-      expect(pool.id).toBeDefined();
-      expect(pool.feeTier).toBeDefined();
-      expect(pool.tickSpacing).toBeDefined();
-      expect(pool.hooks).toBeDefined();
-      expect(pool.liquidity).toBeDefined();
-      expect(pool.tvlUSD).toBeDefined();
-      expect(pool.tvlETH).toBeDefined();
-    }
+    // First pool should have high tracked ETH
+    expect(pools[0]!.tvlETH).toEqual(1.0);
+    expect(pools[0]!.liquidity).toEqual('1000000');
+
+    // Second pool should be V3 zero ETH pool
+    expect(pools[1]!.tvlETH).toEqual(0);
+    expect(pools[1]!.liquidity).toEqual('500000');
   });
 });

@@ -9,6 +9,7 @@ import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-po
 import { log, metric } from '../util';
 
 import { ProviderConfig } from './provider';
+import { V4RawSubgraphPool } from './v4/subgraph-provider';
 
 export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
   getPools(
@@ -19,7 +20,7 @@ export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
 }
 
 export const PAGE_SIZE = 1000; // 1k is max possible query size from subgraph.
-const MAX_PAGE_SIZE = 10000; // 10k is max possible query size from subgraph.
+export const BASE_V4_PAGE_SIZE = 3500; // TheGraph v4 base max pagesize is 3600.
 
 export type V3V4SubgraphPool = {
   id: string;
@@ -65,14 +66,25 @@ export abstract class SubgraphProvider<
     private timeout = 30000,
     private rollback = true,
     private trackedEthThreshold = 0.01,
+    private trackedZoraEthThreshold = 0.001,
+    // @ts-expect-error - kept for backward compatibility
     private untrackedUsdThreshold = Number.MAX_VALUE,
-    private subgraphUrl?: string
+    private subgraphUrl?: string,
+    private bearerToken?: string
   ) {
     this.protocol = protocol;
     if (!this.subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
-    this.client = new GraphQLClient(this.subgraphUrl);
+    if (this.bearerToken) {
+      this.client = new GraphQLClient(this.subgraphUrl, {
+        headers: {
+          authorization: `Bearer ${this.bearerToken}`,
+        },
+      });
+    } else {
+      this.client = new GraphQLClient(this.subgraphUrl);
+    }
   }
 
   public async getPools(
@@ -85,41 +97,104 @@ export abstract class SubgraphProvider<
       ? await providerConfig.blockNumber
       : undefined;
 
-    const query = gql`
-      ${this.subgraphQuery(blockNumber)}
-    `;
-
-    let pools: TRawSubgraphPool[] = [];
-
-    // For Base, we need to fetch more pools at once as V3 pools size is >1.6m as of 6/19/2025.
-    // TODO: This is temporary to unblock timeouts. Come up with a long term fix: https://linear.app/uniswap/issue/ROUTE-551
-    const finalPageSize =
-      this.chainId === ChainId.BASE && this.protocol === Protocol.V3
-        ? MAX_PAGE_SIZE
+    const pageSizeToUse =
+      this.protocol === Protocol.V4 && this.chainId == ChainId.BASE
+        ? BASE_V4_PAGE_SIZE
         : PAGE_SIZE;
 
     log.info(
       `Getting ${
         this.protocol
-      } pools from the subgraph with page size ${finalPageSize}${
+      } pools from the subgraph with page size ${pageSizeToUse}${
         providerConfig?.blockNumber
           ? ` as of block ${providerConfig?.blockNumber}`
           : ''
       }.`
     );
 
+    // Define separate queries for each filtering condition
+    const queries = [
+      // 1. Pools with high tracked ETH (for both V3 and V4)
+      {
+        name: 'High tracked ETH pools',
+        query: gql`
+          query getHighTrackedETHPools($pageSize: Int!, $id: String, $threshold: String!) {
+            pools(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: {
+                id_gt: $id,
+                totalValueLockedETH_gt: $threshold
+              }
+            ) {
+              ${this.getPoolFields()}
+            }
+          }
+        `,
+        variables: { threshold: this.trackedEthThreshold.toString() },
+      },
+      // 2. V4: Pools with liquidity > 0 (separate condition for V4)
+      ...(this.protocol === Protocol.V4
+        ? [
+            {
+              name: 'V4 high liquidity pools',
+              query: gql`
+          query getV4HighLiquidityPools($pageSize: Int!, $id: String) {
+            pools(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: {
+                id_gt: $id,
+                liquidity_gt: "0"
+              }
+            ) {
+              ${this.getPoolFields()}
+            }
+          }
+        `,
+              variables: {},
+            },
+          ]
+        : []),
+      // 3. V3: Pools with liquidity > 0 AND totalValueLockedETH = 0 (special V3 condition)
+      ...(this.protocol === Protocol.V3
+        ? [
+            {
+              name: 'V3 zero ETH pools',
+              query: gql`
+          query getV3ZeroETHPools($pageSize: Int!, $id: String) {
+            pools(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: {
+                id_gt: $id,
+                liquidity_gt: "0",
+                totalValueLockedETH: "0"
+              }
+            ) {
+              ${this.getPoolFields()}
+            }
+          }
+        `,
+              variables: {},
+            },
+          ]
+        : []),
+    ];
+
+    let allPools: TRawSubgraphPool[] = [];
     let retries = 0;
 
     await retry(
       async () => {
         const timeout = new Timeout();
 
-        const getPools = async (): Promise<TRawSubgraphPool[]> => {
+        const fetchPoolsForQuery = async (
+          queryConfig: any
+        ): Promise<TRawSubgraphPool[]> => {
           let lastId = '';
           let pools: TRawSubgraphPool[] = [];
           let poolsPage: TRawSubgraphPool[] = [];
-
-          // metrics variables
           let totalPages = 0;
 
           do {
@@ -127,36 +202,54 @@ export abstract class SubgraphProvider<
 
             const start = Date.now();
             log.info(
-              `Starting fetching for page ${totalPages} with page size ${finalPageSize}`
+              `Starting fetching for ${queryConfig.name} page ${totalPages} with page size ${pageSizeToUse}`
             );
 
             const poolsResult = await this.client.request<{
               pools: TRawSubgraphPool[];
-            }>(query, {
-              pageSize: finalPageSize,
+            }>(queryConfig.query, {
+              pageSize: pageSizeToUse,
               id: lastId,
+              ...queryConfig.variables,
             });
 
             poolsPage = poolsResult.pools;
 
             pools = pools.concat(poolsPage);
 
-            lastId = pools[pools.length - 1]!.id;
+            if (pools.length > 0) {
+              lastId = pools[pools.length - 1]!.id;
+            }
+
             metric.putMetric(
-              `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.paginate.pageSize`,
+              `${this.protocol}SubgraphProvider.chain_${
+                this.chainId
+              }.getPools.${queryConfig.name
+                .replace(/\s+/g, '_')
+                .toLowerCase()}.paginate.pageSize`,
               poolsPage.length
             );
             log.info(
-              `Fetched ${poolsPage.length} pools in ${Date.now() - start}ms`
+              `Fetched ${poolsPage.length} pools for ${queryConfig.name} in ${
+                Date.now() - start
+              }ms`
             );
           } while (poolsPage.length > 0);
 
           metric.putMetric(
-            `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.paginate`,
+            `${this.protocol}SubgraphProvider.chain_${
+              this.chainId
+            }.getPools.${queryConfig.name
+              .replace(/\s+/g, '_')
+              .toLowerCase()}.paginate`,
             totalPages
           );
           metric.putMetric(
-            `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.pools.length`,
+            `${this.protocol}SubgraphProvider.chain_${
+              this.chainId
+            }.getPools.${queryConfig.name
+              .replace(/\s+/g, '_')
+              .toLowerCase()}.pools.length`,
             pools.length
           );
 
@@ -164,13 +257,29 @@ export abstract class SubgraphProvider<
         };
 
         try {
-          const getPoolsPromise = getPools();
+          // Fetch pools for each query in parallel
+          const poolPromises = queries.map((queryConfig) =>
+            fetchPoolsForQuery(queryConfig)
+          );
+          const allPoolsArrays = await Promise.all(poolPromises);
+
+          // Merge all results and deduplicate by pool ID
+          const poolMap = new Map<string, TRawSubgraphPool>();
+          allPoolsArrays.forEach((pools) => {
+            pools.forEach((pool) => {
+              poolMap.set(pool.id, pool);
+            });
+          });
+
+          allPools = Array.from(poolMap.values());
+
+          const getPoolsPromise = Promise.resolve(allPools);
           const timerPromise = timeout.set(this.timeout).then(() => {
             throw new Error(
               `Timed out getting pools from subgraph: ${this.timeout}`
             );
           });
-          pools = await Promise.race([getPoolsPromise, timerPromise]);
+          allPools = await Promise.race([getPoolsPromise, timerPromise]);
           return;
         } catch (err) {
           log.error({ err }, `Error fetching ${this.protocol} Subgraph Pools.`);
@@ -201,7 +310,7 @@ export abstract class SubgraphProvider<
             `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.timeout`,
             1
           );
-          pools = [];
+          allPools = [];
           log.info(
             { err },
             `Failed to get pools from subgraph. Retry attempt: ${retry}`
@@ -215,28 +324,12 @@ export abstract class SubgraphProvider<
       retries
     );
 
-    const untrackedPools = pools.filter(
-      (pool) =>
-        parseInt(pool.liquidity) > 0 ||
-        parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold ||
-        parseFloat(pool.totalValueLockedUSDUntracked) >
-          this.untrackedUsdThreshold
-    );
-    metric.putMetric(
-      `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.untracked.length`,
-      untrackedPools.length
-    );
-    metric.putMetric(
-      `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.untracked.percent`,
-      (untrackedPools.length / pools.length) * 100
-    );
-
     const beforeFilter = Date.now();
     let poolsSanitized: TSubgraphPool[] = [];
     if (this.protocol === Protocol.V3) {
       // Special treatment for all V3 pools in order to reduce latency due to thousands of pools with very low TVL locked
       // - Include "parseFloat(pool.totalValueLockedETH) === 0" as in certain occasions we have no way of calculating derivedETH so this is 0
-      poolsSanitized = pools
+      poolsSanitized = allPools
         .filter(
           (pool) =>
             (parseInt(pool.liquidity) > 0 &&
@@ -246,13 +339,24 @@ export abstract class SubgraphProvider<
         .map((pool) => {
           return this.mapSubgraphPool(pool);
         });
-    } else {
-      poolsSanitized = pools
-        .filter(
-          (pool) =>
-            parseInt(pool.liquidity) > 0 ||
-            parseFloat(pool.totalValueLockedETH) > this.trackedEthThreshold
-        )
+    } else if (this.protocol === Protocol.V4) {
+      poolsSanitized = allPools
+        .filter((pool) => {
+          const ZORA_HOOKS = new Set([
+            '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040', // Zora Creator Hook on Base
+            '0x9ea932730a7787000042e34390b8e435dd839040', // Zora Post Hook on Base
+          ]);
+          const liquidity = parseInt(pool.liquidity);
+          const tvl = parseFloat(pool.totalValueLockedETH);
+          const hooks = (pool as unknown as V4RawSubgraphPool).hooks;
+          const isZora = ZORA_HOOKS.has(hooks);
+
+          if (isZora) {
+            return tvl > this.trackedZoraEthThreshold;
+          }
+
+          return liquidity > 0 || tvl > this.trackedEthThreshold;
+        })
         .map((pool) => {
           return this.mapSubgraphPool(pool);
         });
@@ -268,7 +372,7 @@ export abstract class SubgraphProvider<
     );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools.filter.percent`,
-      (poolsSanitized.length / pools.length) * 100
+      (poolsSanitized.length / allPools.length) * 100
     );
     metric.putMetric(
       `${this.protocol}SubgraphProvider.chain_${this.chainId}.getPools`,
@@ -280,15 +384,32 @@ export abstract class SubgraphProvider<
     );
 
     log.info(
-      `Got ${pools.length} ${this.protocol} pools from the subgraph. ${poolsSanitized.length} after filtering`
+      `Got ${allPools.length} ${this.protocol} pools from the subgraph (after deduplication). ${poolsSanitized.length} after filtering`
     );
 
     return poolsSanitized;
   }
 
-  protected abstract subgraphQuery(blockNumber?: number): string;
-
   protected abstract mapSubgraphPool(
     rawSubgraphPool: TRawSubgraphPool
   ): TSubgraphPool;
+
+  // Helper method to get the pool fields for GraphQL queries
+  protected getPoolFields(): string {
+    return `
+      id
+      token0 {
+        symbol
+        id
+      }
+      token1 {
+        symbol
+        id
+      }
+      feeTier
+      liquidity
+      totalValueLockedUSD
+      totalValueLockedETH
+    `;
+  }
 }

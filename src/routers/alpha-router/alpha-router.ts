@@ -54,6 +54,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -111,6 +112,7 @@ import {
   getAddressLowerCase,
   getApplicableV4FeesTickspacingsHooks,
   HooksOptions,
+  MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED,
   MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
@@ -347,6 +349,11 @@ export type AlphaRouterParams = {
   mixedSupported?: ChainId[];
 
   /**
+   * All the supported mixed cross-liquidity high v3 tvl pools against low-to-mid v4 pools chains configuration
+   */
+  mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
+
+  /**
    * The v4 pool params to be used for the v4 pool provider.
    * fee tiers, tickspacings, and hook addresses
    */
@@ -357,6 +364,12 @@ export type AlphaRouterParams = {
    * Because a wrong fix might impact prod success rate and/or latency.
    */
   cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
+
+  /**
+   * All the chains that have the cache invalidation enabled
+   * https://linear.app/uniswap/issue/ROUTE-467/tenderly-simulation-during-caching-lambda
+   */
+  deleteCacheEnabledChains?: ChainId[];
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -597,9 +610,11 @@ export class AlphaRouter
   protected v2Supported?: ChainId[];
   protected v4Supported?: ChainId[];
   protected mixedSupported?: ChainId[];
+  protected mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
   protected shouldEnableMixedRouteEthWeth?: boolean;
+  protected deleteCacheEnabledChains?: ChainId[];
 
   constructor({
     chainId,
@@ -630,8 +645,10 @@ export class AlphaRouter
     v2Supported,
     v4Supported,
     mixedSupported,
+    mixedCrossLiquidityV3AgainstV4Supported,
     v4PoolParams,
     cachedRoutesCacheInvalidationFixRolloutPercentage,
+    deleteCacheEnabledChains,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -1099,9 +1116,15 @@ export class AlphaRouter
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
     this.v4Supported = v4Supported ?? V4_SUPPORTED;
     this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
+    this.mixedCrossLiquidityV3AgainstV4Supported =
+      mixedCrossLiquidityV3AgainstV4Supported ??
+      MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED;
 
     this.cachedRoutesCacheInvalidationFixRolloutPercentage =
       cachedRoutesCacheInvalidationFixRolloutPercentage;
+
+    // https://linear.app/uniswap/issue/ROUTE-467/tenderly-simulation-during-caching-lambda
+    this.deleteCacheEnabledChains = deleteCacheEnabledChains;
   }
 
   public async routeToRatio(
@@ -2080,6 +2103,54 @@ export class AlphaRouter
         CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
         providerConfig
       );
+
+      if (
+        this.deleteCacheEnabledChains?.includes(this.chainId) &&
+        swapRouteWithSimulation.simulationStatus === SimulationStatus.Failed
+      ) {
+        // invalidate cached route if simulation failed
+        log.info(
+          {
+            simulationStatus: swapRouteWithSimulation.simulationStatus,
+            swapRoute: swapRouteWithSimulation,
+          },
+          `Simulation failed - detailed failure information: CacheInvalidationCount_${this.chainId}`
+        );
+        metric.putMetric(
+          `CacheInvalidationCount_${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+
+        // Generate the object to be cached
+        const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+          swapRouteWithSimulation.route,
+          this.chainId,
+          currencyIn,
+          currencyOut,
+          protocols.sort(),
+          await blockNumber,
+          tradeType,
+          amount.toExact()
+        );
+
+        if (!routesToCache) {
+          log.error(
+            { swapRouteWithSimulation },
+            'Failed to generate cached routes after simulation failure'
+          );
+        } else {
+          try {
+            await this.routeCachingProvider?.deleteCachedRoute(routesToCache);
+          } catch (err) {
+            log.error(
+              { err, routesToCache },
+              'Failed to delete cached route after simulation failure'
+            );
+          }
+        }
+      }
+
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
@@ -2985,15 +3056,19 @@ export class AlphaRouter
                   blockNumber: routingConfig.blockNumber,
                   v2SubgraphProvider: this.v2SubgraphProvider,
                   v3SubgraphProvider: this.v3SubgraphProvider,
+                  v4SubgraphProvider: this.v4SubgraphProvider,
                   v2Candidates: v2CandidatePools,
                   v3Candidates: v3CandidatePools,
                   v4Candidates: v4CandidatePools,
+                  mixedCrossLiquidityV3AgainstV4Supported:
+                    this.mixedCrossLiquidityV3AgainstV4Supported,
+                  chainId: this.chainId,
                 });
 
               return this.mixedQuoter
                 .getRoutesThenQuotes(
-                  tokenIn,
-                  tokenOut,
+                  currencyIn,
+                  currencyOut,
                   amount,
                   amounts,
                   percents,

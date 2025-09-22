@@ -106,6 +106,20 @@ export abstract class IRouteCachingProvider {
   };
 
   /**
+   * Final implementation of the public `deleteCachedRoute` method.
+   * This method will delete the cached route from the cache.
+   *
+   * @public
+   * @readonly
+   * @param cachedRoutes the cached routes to delete
+   */
+  public readonly deleteCachedRoute = async (
+    cachedRoutes: CachedRoutes
+  ): Promise<boolean> => {
+    return this._deleteCachedRoute(cachedRoutes);
+  };
+
+  /**
    * Returns the CacheMode for the given cachedRoutes and amount
    *
    * @param cachedRoutes
@@ -209,4 +223,12 @@ export abstract class IRouteCachingProvider {
     cachedRoutes: CachedRoutes,
     amount: CurrencyAmount<Currency>
   ): Promise<number>;
+
+  /**
+   * Removes or invalidates a cached route from the cache.
+   * Must be implemented by subclasses.
+   */
+  protected abstract _deleteCachedRoute(
+    cachedRoutes: CachedRoutes
+  ): Promise<boolean>;
 }

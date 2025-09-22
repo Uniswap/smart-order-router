@@ -59,7 +59,9 @@ export class CachedRoute<Route extends SupportedRoutes> {
         return (this.route as V4Route).pools
           .map(
             (pool) =>
-              `[V4]${getAddress(pool.token0)}/${getAddress(pool.token1)}`
+              `[V4]${getAddress(pool.token0)}/${getAddress(pool.token1)}/${
+                pool.fee
+              }/${pool.hooks}/${pool.tickSpacing}`
           )
           .join('->');
       case Protocol.V3:
@@ -78,15 +80,9 @@ export class CachedRoute<Route extends SupportedRoutes> {
           .map((pool) => {
             if (pool instanceof V4Pool) {
               // TODO: ROUTE-217 - Support native currency routing in V4
-              return `[V4]${
-                pool.token0.isToken
-                  ? pool.token0.wrapped.address
-                  : pool.token0.symbol
-              }/${
-                pool.token1.isToken
-                  ? pool.token1.wrapped.address
-                  : pool.token1.symbol
-              }`;
+              return `[V4]${getAddress(pool.token0)}/${getAddress(
+                pool.token1
+              )}/${pool.fee}/${pool.hooks}/${pool.tickSpacing}`;
             } else if (pool instanceof V3Pool) {
               return `[V3]${pool.token0.address}/${pool.token1.address}/${pool.fee}`;
             } else if (pool instanceof Pair) {

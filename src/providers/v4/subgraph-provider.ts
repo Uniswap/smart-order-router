@@ -11,10 +11,16 @@ export interface V4SubgraphPool {
   hooks: string;
   liquidity: string;
   token0: {
+    symbol?: string;
     id: string;
+    name?: string;
+    decimals: string;
   };
   token1: {
+    symbol?: string;
     id: string;
+    name?: string;
+    decimals: string;
   };
   tvlETH: number;
   tvlUSD: number;
@@ -29,10 +35,14 @@ export type V4RawSubgraphPool = {
   token0: {
     symbol: string;
     id: string;
+    name: string;
+    decimals: string;
   };
   token1: {
     symbol: string;
     id: string;
+    name: string;
+    decimals: string;
   };
   totalValueLockedUSD: string;
   totalValueLockedETH: string;
@@ -67,8 +77,10 @@ export class V4SubgraphProvider
     timeout = 30000,
     rollback = true,
     trackedEthThreshold = 0.01,
+    trackedZoraEthThreshold = 0.001,
     untrackedUsdThreshold = Number.MAX_VALUE,
-    subgraphUrlOverride?: string
+    subgraphUrlOverride?: string,
+    bearerToken?: string
   ) {
     super(
       Protocol.V4,
@@ -77,38 +89,11 @@ export class V4SubgraphProvider
       timeout,
       rollback,
       trackedEthThreshold,
+      trackedZoraEthThreshold,
       untrackedUsdThreshold,
-      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
+      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId],
+      bearerToken
     );
-  }
-
-  protected override subgraphQuery(blockNumber?: number): string {
-    return `
-    query getPools($pageSize: Int!, $id: String) {
-      pools(
-        first: $pageSize
-        ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
-        ) {
-          id
-          token0 {
-            symbol
-            id
-          }
-          token1 {
-            symbol
-            id
-          }
-          feeTier
-          tickSpacing
-          hooks
-          liquidity
-          totalValueLockedUSD
-          totalValueLockedETH
-          totalValueLockedUSDUntracked
-        }
-      }
-   `;
   }
 
   protected override mapSubgraphPool(
@@ -121,13 +106,44 @@ export class V4SubgraphProvider
       hooks: rawPool.hooks,
       liquidity: rawPool.liquidity,
       token0: {
+        symbol: rawPool.token0.symbol,
         id: rawPool.token0.id,
+        name: rawPool.token0.name,
+        decimals: rawPool.token0.decimals,
       },
       token1: {
+        symbol: rawPool.token1.symbol,
         id: rawPool.token1.id,
+        name: rawPool.token1.name,
+        decimals: rawPool.token1.decimals,
       },
       tvlETH: parseFloat(rawPool.totalValueLockedETH),
       tvlUSD: parseFloat(rawPool.totalValueLockedUSD),
     };
+  }
+
+  // Override to include V4-specific fields
+  protected override getPoolFields(): string {
+    return `
+      id
+      token0 {
+        symbol
+        id
+        name
+        decimals
+      }
+      token1 {
+        symbol
+        id
+        name
+        decimals
+      }
+      feeTier
+      tickSpacing
+      hooks
+      liquidity
+      totalValueLockedUSD
+      totalValueLockedETH
+    `;
   }
 }
