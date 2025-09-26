@@ -14,11 +14,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+        with:
+          # List of IPs to allow outbound connections to.
+          # By default, only localhost and IPs required for the essential operations of Github Actions are allowed.
+          #allowed-ips: |
+          # List of domains to allow outbound connections to.
+          # Wildcards are accepted. For example, if allowing `*.google.com`, this will allow `www.google.com`, `console.cloud.google.com` but not `google.com`.
+          # By default, only domains required for essential operations of Github Actions and uploading job summaries are allowed.
+          # Refer to https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#communication-requirements-for-github-hosted-runners-and-github for additional domains that should be allowed for additional Github Actions features.
+          #allowed-domains:
+      
+          # The egress policy to enforce. Valid values are `audit` and `block`.
+          # Default: audit
+          egress-policy: audit
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
 
       - name: Set up node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 16.x
           registry-url: https://registry.npmjs.org

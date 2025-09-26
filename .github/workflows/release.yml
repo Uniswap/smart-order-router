@@ -13,8 +13,22 @@ jobs:
       contents: write
       id-token: write
     steps:
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+        with:
+          # List of IPs to allow outbound connections to.
+          # By default, only localhost and IPs required for the essential operations of Github Actions are allowed.
+          #allowed-ips: |
+          # List of domains to allow outbound connections to.
+          # Wildcards are accepted. For example, if allowing `*.google.com`, this will allow `www.google.com`, `console.cloud.google.com` but not `google.com`.
+          # By default, only domains required for essential operations of Github Actions and uploading job summaries are allowed.
+          # Refer to https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#communication-requirements-for-github-hosted-runners-and-github for additional domains that should be allowed for additional Github Actions features.
+          #allowed-domains:
+      
+          # The egress policy to enforce. Valid values are `audit` and `block`.
+          # Default: audit
+          egress-policy: audit
       - name: Load Secrets
-        uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0
+        uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0 # 581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0
         with:
           # Export loaded secrets as environment variables
           export-env: true
@@ -23,13 +37,13 @@ jobs:
           NPM_TOKEN: op://npm-deploy/npm-runner-token/secret
       
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           submodules: "true"
           fetch-depth: 2
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 18
           registry-url: 'https://registry.npmjs.org'

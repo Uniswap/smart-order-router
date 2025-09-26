@@ -10,10 +10,24 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+        with:
+          # List of IPs to allow outbound connections to.
+          # By default, only localhost and IPs required for the essential operations of Github Actions are allowed.
+          #allowed-ips: |      
+          # List of domains to allow outbound connections to.
+          # Wildcards are accepted. For example, if allowing `*.google.com`, this will allow `www.google.com`, `console.cloud.google.com` but not `google.com`.
+          # By default, only domains required for essential operations of Github Actions and uploading job summaries are allowed.
+          # Refer to https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#communication-requirements-for-github-hosted-runners-and-github for additional domains that should be allowed for additional Github Actions features.
+          #allowed-domains:
+      
+          # The egress policy to enforce. Valid values are `audit` and `block`.
+          # Default: audit
+          egress-policy: audit
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
       - name: Use npm audit fix
-        uses: ybiquitous/npm-audit-fix-action@e7e5e66fe613cd5e556db66eef24156b4bfa6134
+        uses: ybiquitous/npm-audit-fix-action@e7e5e66fe613cd5e556db66eef24156b4bfa6134 # e7e5e66fe613cd5e556db66eef24156b4bfa6134
         with: 
           commit_title: "chore(deps): update npm dependencies"
           default_branch: "main"
