@@ -83,6 +83,19 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
           return false;
         }
 
+        // if the involved token is stETH, we do not filter out any pools
+        if (
+          token.wrapped.address.toLowerCase() ===
+          '0xae7ab96520de3a18e5e111b5eaab095312d7fe84'
+        ) {
+          log.info(
+            `for those pools ${poolsRaw.map((pool) =>
+              poolToString(pool)
+            )} that involve stETH, we do not filter out any pools`
+          );
+          return false;
+        }
+
         // Only filters out *intermediate* pools that involve tokens that we detect
         // cant be transferred. This prevents us trying to route through tokens that may
         // not be transferrable, but allows users to still swap those tokens if they
