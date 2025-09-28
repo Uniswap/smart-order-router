@@ -6,7 +6,7 @@ import _ from 'lodash';
 
 import { IUniswapV3PoolState__factory } from '../../types/v3/factories/IUniswapV3PoolState__factory';
 import { ChainId } from '../../util';
-import { V3_CORE_FACTORY_ADDRESSES, CFX_TEST_POOL_INIT_CODE_HASH } from '../../util/addresses';
+import { V3_CORE_FACTORY_ADDRESSES, CFX_POOL_INIT_CODE_HASH } from '../../util/addresses';
 import { log } from '../../util/log';
 import { poolToString } from '../../util/routes';
 import { IMulticallProvider, Result } from '../multicall-provider';
@@ -229,7 +229,7 @@ export class V3PoolProvider implements IV3PoolProvider {
       tokenA: token0,
       tokenB: token1,
       fee: feeAmount,
-      initCodeHashManualOverride: CFX_TEST_POOL_INIT_CODE_HASH,
+      initCodeHashManualOverride: CFX_POOL_INIT_CODE_HASH,
     });
     log.info(`Computed pool address for factory ${V3_CORE_FACTORY_ADDRESSES[this.chainId]!} token0: ${token0.address}, token1: ${token1.address}, fee: ${feeAmount}. pool address is ${poolAddress}`);
 
