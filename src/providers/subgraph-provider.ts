@@ -59,26 +59,6 @@ export abstract class SubgraphProvider<
 > {
   private client: GraphQLClient;
 
-  // Zora hooks addresses for V4 filtering
-  private static readonly ZORA_HOOKS = new Set([
-    '0x1258e5f3c71ca9dce95ce734ba5759532e46d040', // Zora Creator Hook on Base v2.2.1
-    '0x2b15a16b3ef024005ba899bb51764fcd58cf9040', // Zora Post Hook on Base v2.2.1
-    '0x8218fa8d7922e22aed3556a09d5a715f16ad5040', // Zora Creator Hook on Base v2.2
-    '0xff74be9d3596ea7a33bb4983dd7906fb34135040', // Zora Post Hook on Base v2.2
-    '0xfbce3d80c659c765bc6c55e29e87d839c7609040', // Zora Creator Hook on Base v1
-    '0xa1ebdd5ca6470bbd67114331387f2dda7bfad040', // Zora Post Hook on Base v1
-    '0x854f820475b229b7805a386f758cfb285023d040', // Zora Creator Hook on Base v1.0.0.1
-    '0xb030fd8c2f8576f8ab05cfbbe659285e7d7a1040', // Zora Post Hook on Base v1.0.0.1
-    '0xe61bdf0c9e665f02df20fede6dcef379cb751040', // Zora Post Hook on Base v1.0.0.2
-    '0x9301690be9ac901de52c5ebff883862bbfc99040', // Zora Creator Hook on Base v1.1.1
-    '0x81542dc43aff247eff4a0ecefc286a2973ae1040', // Zora Post Hook on Base v1.1.1
-    '0x5e5d19d22c85a4aef7c1fdf25fb22a5a38f71040', // Zora Creator Hook on Base v1.1.1.1
-    '0x5bf219b3cc11e3f6dd8dc8fc89d7d1deb0431040', // Zora Post Hook on Base v1.1.1.1
-    '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040', // Zora Creator Hook on Base v1.1.2
-    '0x9ea932730a7787000042e34390b8e435dd839040', // Zora Post Hook on Base v1.1.2,
-    '0xc8d077444625eb300a427a6dfb2b1dbf9b159040', // Latest zora hook (add details)
-  ]);
-
   constructor(
     private protocol: Protocol,
     private chainId: ChainId,
@@ -87,6 +67,7 @@ export abstract class SubgraphProvider<
     private rollback = true,
     private trackedEthThreshold = 0.01,
     private trackedZoraEthThreshold = 0.001,
+    private zoraHooks: Set<string>,
     // @ts-expect-error - kept for backward compatibility
     private untrackedUsdThreshold = Number.MAX_VALUE,
     private subgraphUrl?: string,
@@ -104,6 +85,9 @@ export abstract class SubgraphProvider<
       });
     } else {
       this.client = new GraphQLClient(this.subgraphUrl);
+    }
+    if (protocol === Protocol.V4 && this.zoraHooks.size === 0) {
+      throw new Error('Zora hooks param is mandatory for V4');
     }
   }
 
@@ -173,7 +157,7 @@ export abstract class SubgraphProvider<
             }
           }
         `,
-              variables: { zoraHooks: Array.from(SubgraphProvider.ZORA_HOOKS) },
+              variables: { zoraHooks: Array.from(this.zoraHooks) },
             },
             // 3. V4: Zora pools with liquidity > 0 AND TVL > trackedZoraEthThreshold
             {
@@ -195,7 +179,7 @@ export abstract class SubgraphProvider<
           }
         `,
               variables: {
-                zoraHooks: Array.from(SubgraphProvider.ZORA_HOOKS),
+                zoraHooks: Array.from(this.zoraHooks),
                 zoraThreshold: this.trackedZoraEthThreshold.toString(),
               },
             },
@@ -391,7 +375,7 @@ export abstract class SubgraphProvider<
           const liquidity = parseInt(pool.liquidity);
           const tvl = parseFloat(pool.totalValueLockedETH);
           const hooks = (pool as unknown as V4RawSubgraphPool).hooks;
-          const isZora = SubgraphProvider.ZORA_HOOKS.has(hooks);
+          const isZora = this.zoraHooks.has(hooks);
 
           if (isZora) {
             return tvl > this.trackedZoraEthThreshold;
