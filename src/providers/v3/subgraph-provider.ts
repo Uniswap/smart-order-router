@@ -97,6 +97,7 @@ export class V3SubgraphProvider
       rollback,
       trackedEthThreshold,
       0, // trackedZoraEthThreshold is not applicable for V3
+      new Set<string>(), // zoraHooks is not applicable for V3
       untrackedUsdThreshold,
       subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
     );
