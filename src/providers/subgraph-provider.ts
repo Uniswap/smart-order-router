@@ -59,6 +59,26 @@ export abstract class SubgraphProvider<
 > {
   private client: GraphQLClient;
 
+  // Zora hooks addresses for V4 filtering
+  private static readonly ZORA_HOOKS = new Set([
+    '0x1258e5f3c71ca9dce95ce734ba5759532e46d040', // Zora Creator Hook on Base v2.2.1
+    '0x2b15a16b3ef024005ba899bb51764fcd58cf9040', // Zora Post Hook on Base v2.2.1
+    '0x8218fa8d7922e22aed3556a09d5a715f16ad5040', // Zora Creator Hook on Base v2.2
+    '0xff74be9d3596ea7a33bb4983dd7906fb34135040', // Zora Post Hook on Base v2.2
+    '0xfbce3d80c659c765bc6c55e29e87d839c7609040', // Zora Creator Hook on Base v1
+    '0xa1ebdd5ca6470bbd67114331387f2dda7bfad040', // Zora Post Hook on Base v1
+    '0x854f820475b229b7805a386f758cfb285023d040', // Zora Creator Hook on Base v1.0.0.1
+    '0xb030fd8c2f8576f8ab05cfbbe659285e7d7a1040', // Zora Post Hook on Base v1.0.0.1
+    '0xe61bdf0c9e665f02df20fede6dcef379cb751040', // Zora Post Hook on Base v1.0.0.2
+    '0x9301690be9ac901de52c5ebff883862bbfc99040', // Zora Creator Hook on Base v1.1.1
+    '0x81542dc43aff247eff4a0ecefc286a2973ae1040', // Zora Post Hook on Base v1.1.1
+    '0x5e5d19d22c85a4aef7c1fdf25fb22a5a38f71040', // Zora Creator Hook on Base v1.1.1.1
+    '0x5bf219b3cc11e3f6dd8dc8fc89d7d1deb0431040', // Zora Post Hook on Base v1.1.1.1
+    '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040', // Zora Creator Hook on Base v1.1.2
+    '0x9ea932730a7787000042e34390b8e435dd839040', // Zora Post Hook on Base v1.1.2,
+    '0xc8d077444625eb300a427a6dfb2b1dbf9b159040', // Latest zora hook (add details)
+  ]);
+
   constructor(
     private protocol: Protocol,
     private chainId: ChainId,
@@ -133,30 +153,55 @@ export abstract class SubgraphProvider<
         `,
         variables: { threshold: this.trackedEthThreshold.toString() },
       },
-      // 2. V4: Pools with liquidity > 0 (separate condition for V4)
+      // 2. V4: Non-Zora pools with liquidity > 0
       ...(this.protocol === Protocol.V4
         ? [
             {
-              name: 'V4 high liquidity pools',
+              name: 'V4 non-Zora high liquidity pools',
               query: gql`
-          query getV4HighLiquidityPools($pageSize: Int!, $id: String) {
+          query getV4NonZoraHighLiquidityPools($pageSize: Int!, $id: String, $zoraHooks: [String!]!) {
             pools(
               first: $pageSize
               ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
               where: {
                 id_gt: $id,
-                liquidity_gt: "0"
+                liquidity_gt: "0",
+                hooks_not_in: $zoraHooks
               }
             ) {
               ${this.getPoolFields()}
             }
           }
         `,
-              variables: {},
+              variables: { zoraHooks: Array.from(SubgraphProvider.ZORA_HOOKS) },
+            },
+            // 3. V4: Zora pools with liquidity > 0 AND TVL > trackedZoraEthThreshold
+            {
+              name: 'V4 Zora high liquidity pools',
+              query: gql`
+          query getV4ZoraHighLiquidityPools($pageSize: Int!, $id: String, $zoraHooks: [String!]!, $zoraThreshold: String!) {
+            pools(
+              first: $pageSize
+              ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
+              where: {
+                id_gt: $id,
+                liquidity_gt: "0",
+                hooks_in: $zoraHooks,
+                totalValueLockedETH_gt: $zoraThreshold
+              }
+            ) {
+              ${this.getPoolFields()}
+            }
+          }
+        `,
+              variables: {
+                zoraHooks: Array.from(SubgraphProvider.ZORA_HOOKS),
+                zoraThreshold: this.trackedZoraEthThreshold.toString(),
+              },
             },
           ]
         : []),
-      // 3. V3: Pools with liquidity > 0 AND totalValueLockedETH = 0 (special V3 condition)
+      // 4. V3: Pools with liquidity > 0 AND totalValueLockedETH = 0 (special V3 condition)
       ...(this.protocol === Protocol.V3
         ? [
             {
@@ -340,29 +385,13 @@ export abstract class SubgraphProvider<
           return this.mapSubgraphPool(pool);
         });
     } else if (this.protocol === Protocol.V4) {
+      // For V4, apply additional filtering as a safety measure even though queries are optimized
       poolsSanitized = allPools
         .filter((pool) => {
-          const ZORA_HOOKS = new Set([
-            '0x1258e5f3c71ca9dce95ce734ba5759532e46d040', // Zora Creator Hook on Base v2.2.1
-            '0x2b15a16b3ef024005ba899bb51764fcd58cf9040', // Zora Post Hook on Base v2.2.1
-            '0x8218fa8d7922e22aed3556a09d5a715f16ad5040', // Zora Creator Hook on Base v2.2
-            '0xff74be9d3596ea7a33bb4983dd7906fb34135040', // Zora Post Hook on Base v2.2
-            '0xfbce3d80c659c765bc6c55e29e87d839c7609040', // Zora Creator Hook on Base v1
-            '0xa1ebdd5ca6470bbd67114331387f2dda7bfad040', // Zora Post Hook on Base v1
-            '0x854f820475b229b7805a386f758cfb285023d040', // Zora Creator Hook on Base v1.0.0.1
-            '0xb030fd8c2f8576f8ab05cfbbe659285e7d7a1040', // Zora Post Hook on Base v1.0.0.1
-            '0xe61bdf0c9e665f02df20fede6dcef379cb751040', // Zora Post Hook on Base v1.0.0.2
-            '0x9301690be9ac901de52c5ebff883862bbfc99040', // Zora Creator Hook on Base v1.1.1
-            '0x81542dc43aff247eff4a0ecefc286a2973ae1040', // Zora Post Hook on Base v1.1.1
-            '0x5e5d19d22c85a4aef7c1fdf25fb22a5a38f71040', // Zora Creator Hook on Base v1.1.1.1
-            '0x5bf219b3cc11e3f6dd8dc8fc89d7d1deb0431040', // Zora Post Hook on Base v1.1.1.1
-            '0xd61a675f8a0c67a73dc3b54fb7318b4d91409040', // Zora Creator Hook on Base v1.1.2
-            '0x9ea932730a7787000042e34390b8e435dd839040', // Zora Post Hook on Base v1.1.2
-          ]);
           const liquidity = parseInt(pool.liquidity);
           const tvl = parseFloat(pool.totalValueLockedETH);
           const hooks = (pool as unknown as V4RawSubgraphPool).hooks;
-          const isZora = ZORA_HOOKS.has(hooks);
+          const isZora = SubgraphProvider.ZORA_HOOKS.has(hooks);
 
           if (isZora) {
             return tvl > this.trackedZoraEthThreshold;
