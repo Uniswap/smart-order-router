@@ -3686,6 +3686,7 @@ describe('quote for other networks', () => {
               true,
               0.01,
               0.001,
+              new Set<string>(),
               Number.MAX_VALUE,
               SUBGRAPH_URL_BY_CHAIN[chain],
             );
