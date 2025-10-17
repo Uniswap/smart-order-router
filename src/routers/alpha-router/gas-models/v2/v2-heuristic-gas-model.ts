@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import { BaseProvider } from '@ethersproject/providers';
 import { ChainId, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import _ from 'lodash';
 
-import { BaseProvider } from '@ethersproject/providers';
 import { ProviderConfig } from '../../../../providers/provider';
 import { IV2PoolProvider } from '../../../../providers/v2/pool-provider';
 import { log, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
