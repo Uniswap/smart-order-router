@@ -19,10 +19,10 @@ import {
 } from '@uniswap/universal-router-sdk';
 import { Pair, Route as V2RouteRaw } from '@uniswap/v2-sdk';
 import {
-  MethodParameters as SDKMethodParameters,
   Pool,
-  Pool as V3Pool,
   Position,
+  MethodParameters as SDKMethodParameters,
+  Pool as V3Pool,
   Route as V3RouteRaw,
 } from '@uniswap/v3-sdk';
 import { Pool as V4Pool, Route as V4RouteRaw } from '@uniswap/v4-sdk';

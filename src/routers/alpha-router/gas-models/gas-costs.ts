@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
-
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency } from '@uniswap/sdk-core';
+
 import { AAVE_MAINNET, LIDO_MAINNET } from '../../../providers';
 import { V3Route, V4Route } from '../../router';
 
@@ -31,6 +31,7 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
     case ChainId.UNICHAIN:
     case ChainId.BASE_SEPOLIA:
     case ChainId.MONAD_TESTNET: // TODO: double check on monad gas
+    case ChainId.MONAD: // TODO: double check on monad gas
     case ChainId.SONEIUM:
       return BigNumber.from(2000);
     case ChainId.ARBITRUM_ONE:
@@ -75,6 +76,7 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
     case ChainId.UNICHAIN:
     case ChainId.BASE_SEPOLIA:
     case ChainId.MONAD_TESTNET: // TODO: double check on monad gas
+    case ChainId.MONAD: // TODO: double check on monad gas
     case ChainId.SONEIUM:
       return BigNumber.from(31000);
     case ChainId.ARBITRUM_ONE:
@@ -116,6 +118,7 @@ export const COST_PER_HOP = (id: ChainId): BigNumber => {
     case ChainId.UNICHAIN:
     case ChainId.BASE_SEPOLIA:
     case ChainId.MONAD_TESTNET: // TODO: double check on monad gas
+    case ChainId.MONAD: // TODO: double check on monad gas
     case ChainId.SONEIUM:
       return BigNumber.from(80000);
     case ChainId.ARBITRUM_ONE:

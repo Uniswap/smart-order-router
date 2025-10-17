@@ -1,5 +1,6 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, TradeType } from '@uniswap/sdk-core';
+import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import _ from 'lodash';
 
 import {
@@ -22,6 +23,7 @@ import {
   MetricLoggerUnit,
   routeToString,
 } from '../../../util';
+import { mixedRouteFilterOutV4Pools } from '../../../util/mixedRouteFilterOutV4Pools';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { MixedRouteWithValidQuote } from '../entities';
@@ -36,8 +38,7 @@ import {
 } from '../functions/get-candidate-pools';
 import { IGasModel } from '../gas-models';
 
-import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
-import { mixedRouteFilterOutV4Pools } from '../../../util/mixedRouteFilterOutV4Pools';
+
 import { BaseQuoter } from './base-quoter';
 import { GetQuotesResult, GetRoutesResult } from './model';
 

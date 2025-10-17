@@ -164,6 +164,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.UNICHAIN_SEPOLIA]: 50,
   [ChainId.UNICHAIN]: 85,
   [ChainId.MONAD_TESTNET]: 50,
+  [ChainId.MONAD]: 50,
   [ChainId.BASE_SEPOLIA]: 50,
   [ChainId.SONEIUM]: 50,
 };
@@ -3543,6 +3544,7 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN_SEPOLIA]: () => USDC_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => USDC_ON(ChainId.MONAD_TESTNET),
+    [ChainId.MONAD]: () => USDC_ON(ChainId.MONAD),
     [ChainId.BASE_SEPOLIA]: () => USDC_ON(ChainId.BASE_SEPOLIA),
     [ChainId.SONEIUM]: () => USDC_ON(ChainId.SONEIUM),
   };
@@ -3575,6 +3577,7 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => DAI_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
+    [ChainId.MONAD]: () => WNATIVE_ON(ChainId.MONAD),
     [ChainId.BASE_SEPOLIA]: () => WNATIVE_ON(ChainId.BASE_SEPOLIA),
     [ChainId.SONEIUM]: () => WNATIVE_ON(ChainId.SONEIUM),
   };
@@ -3593,6 +3596,7 @@ describe('quote for other networks', () => {
       c != ChainId.ZORA_SEPOLIA &&
       c != ChainId.ROOTSTOCK &&
       c != ChainId.MONAD_TESTNET &&
+      c != ChainId.MONAD &&
       c != ChainId.BASE_SEPOLIA
   )) {
     for (const tradeType of [TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT]) {
@@ -3861,12 +3865,12 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.MONAD || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
               // UNICHAIN sepolia doesn't have liquid USDC/DAI pool yet
-              // monad testnet doesn't have liquid USDC/DAI pool yet
+              // monad testnet / mainnet doesn't have liquid USDC/DAI pool yet
               // soneium doesn't have liquid USDC/DAI pool yet
               return;
             }

@@ -22,6 +22,7 @@ export const DEFAULT_BLOCKS_TO_LIVE: { [chain in ChainId]: number } = {
   [ChainId.UNICHAIN_SEPOLIA]: 3600,
   [ChainId.UNICHAIN]: 3600,
   [ChainId.MONAD_TESTNET]: 3600,
+  [ChainId.MONAD]: 3600,
   // (60 minutes) / (250 milliseconds) = 14400
   [ChainId.ARBITRUM_ONE]: 14400,
   [ChainId.ARBITRUM_GOERLI]: 14400,
