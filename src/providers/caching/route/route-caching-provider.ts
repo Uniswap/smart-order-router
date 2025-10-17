@@ -14,6 +14,7 @@ import {
 
 import { AlphaRouterConfig } from '../../../routers';
 import { SwapOptions } from '../../../routers/router';
+
 import { CacheMode } from './model';
 import { CachedRoutes } from './model/cached-routes';
 

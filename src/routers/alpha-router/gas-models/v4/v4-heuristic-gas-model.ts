@@ -1,5 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
+import { ChainId } from '@uniswap/sdk-core';
+
 import { CurrencyAmount, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
 import { V4RouteWithValidQuote } from '../../entities';
 import {
@@ -10,7 +12,6 @@ import {
 } from '../gas-model';
 import { TickBasedHeuristicGasModelFactory } from '../tick-based-heuristic-gas-model';
 
-import { ChainId } from '@uniswap/sdk-core';
 
 export class V4HeuristicGasModelFactory
   extends TickBasedHeuristicGasModelFactory<V4RouteWithValidQuote>

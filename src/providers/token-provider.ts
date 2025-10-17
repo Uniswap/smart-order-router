@@ -748,6 +748,14 @@ export const USDT_MONAD_TESTNET = new Token(
   'USDT'
 );
 
+export const USDT_MONAD = new Token(
+  ChainId.MONAD,
+  '0xfBC2D240A5eD44231AcA3A9e9066bc4b33f01149', // yuliu - this is not right
+  6,
+  'USDT',
+  'USDT'
+);
+
 export const WLD_WORLDCHAIN = new Token(
   ChainId.WORLDCHAIN,
   '0x2cFc85d8E48F8EAB294be644d9E25C3030863003',
@@ -1061,6 +1069,8 @@ export const USDT_ON = (chainId: ChainId): Token => {
       return USDT_BNB;
     case ChainId.MONAD_TESTNET:
       return USDT_MONAD_TESTNET;
+    case ChainId.MONAD:
+      return USDT_MONAD;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

@@ -1,5 +1,7 @@
 import { Protocol } from '@uniswap/router-sdk';
+
 import { SubgraphProviderWithFallBacks } from '../subgraph-provider-with-fallback';
+
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';
 
 /**
