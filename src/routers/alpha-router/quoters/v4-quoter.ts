@@ -16,6 +16,7 @@ import {
   log,
   metric,
   MetricLoggerUnit,
+  poolToString,
   routeToString,
 } from '../../../util';
 import { V4Route } from '../../router';
@@ -80,6 +81,19 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
       ): boolean => {
         // If there is no available validation result we assume the token is fine.
         if (!tokenValidation) {
+          return false;
+        }
+
+        // if the involved token is stETH, we do not filter out any pools
+        if (
+          token.wrapped.address.toLowerCase() ===
+          '0xae7ab96520de3a18e5e111b5eaab095312d7fe84'
+        ) {
+          log.info(
+            `for those pools ${poolsRaw.map((pool) =>
+              poolToString(pool)
+            )} that involve stETH, we do not filter out any pools`
+          );
           return false;
         }
 
