@@ -4,7 +4,7 @@ import { ChainId, Token, WETH9 } from '@uniswap/sdk-core';
 import {
   OnChainTokenFeeFetcher
 } from '../../../src/providers/token-fee-fetcher';
-import { BITBOY, BOYS, BULLET, DFNDR } from '../../test-util/mock-data';
+import { BFB, BITBOY, BOYS, BUFF, BULLET, DFNDR, DGW } from '../../test-util/mock-data';
 import dotenv from 'dotenv';
 import { ProviderConfig } from '../../../src/providers/provider';
 const each = require("jest-each").default;
@@ -50,4 +50,28 @@ describe('TokenFeeFetcher', () => {
     expect(tokenFeeMap[outputToken.address]?.buyFeeBps).toEqual(outputToken.buyFeeBps)
     expect(tokenFeeMap[outputToken.address]?.sellFeeBps).toEqual(outputToken.sellFeeBps)
   });
+
+  it('Fetch Arbitrum FOT tokens without WETH liquidity (multi-base token fallback)', async () => {
+    const chain = ChainId.ARBITRUM_ONE;
+    const providerConfig: ProviderConfig = {
+      // Use latest block - don't specify blockNumber
+    };
+    const chainProvider = ID_TO_PROVIDER(chain);
+    const provider = new JsonRpcProvider(chainProvider, chain);
+
+    const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+    const tokenAddresses = [BUFF.address, DGW.address, BFB.address];
+
+    const tokenFeeMap = await tokenFeeFetcher.fetchFees(tokenAddresses, providerConfig)
+
+    // These tokens should be detected as FOT via USDC or USDT base tokens
+    for (const token of [BUFF, DGW, BFB]) {
+      const result = tokenFeeMap[token.address];
+      expect(result).toBeDefined();
+      // At least one of buyFee or sellFee should be > 0 to be detected as FOT
+      const buyFee = result?.buyFeeBps?.toNumber() || 0;
+      const sellFee = result?.sellFeeBps?.toNumber() || 0;
+      expect(buyFee + sellFee).toBeGreaterThan(0);
+    }
+  }, 90000);
 });
