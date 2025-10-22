@@ -42,6 +42,9 @@ jobs:
           # Defaults to the user or organization that owns the workflow file
           scope: '@uniswap'
       
+      - name: Install npm
+        run: npm install -g npm@latest
+
       - name: Setup CI
         run: npm ci 
       
