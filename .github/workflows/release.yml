@@ -27,14 +27,6 @@ jobs:
           # The egress policy to enforce. Valid values are `audit` and `block`.
           # Default: audit
           egress-policy: audit
-      - name: Load Secrets
-        uses: 1password/load-secrets-action@581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0 # 581a835fb51b8e7ec56b71cf2ffddd7e68bb25e0
-        with:
-          # Export loaded secrets as environment variables
-          export-env: true
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          NPM_TOKEN: op://npm-deploy/npm-runner-token/secret
       
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
@@ -57,7 +49,4 @@ jobs:
         run: npm run build
       
       - name: Publish
-        run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
-
+        run: npm publish
