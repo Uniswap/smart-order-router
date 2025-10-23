@@ -259,6 +259,11 @@ Total ticks crossed: 7
 ./bin/cli quote --tokenIn 0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701 --tokenOut 0xfBC2D240A5eD44231AcA3A9e9066bc4b33f01149 --amount 0.1 --exactIn --minSplits 1 --protocols v2 --router alpha --chainId 10143
 ```
 
+## Monad Mainnet
+```
+./bin/cli quote --tokenIn 0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A --tokenOut 0x754704Bc059F8C67012fEd69BC8A327a5aafb603 --amount 0.1 --exactIn --minSplits 1 --protocols v2 --router alpha --chainId 143
+```
+
 ## Base Sepolia
 
 ```

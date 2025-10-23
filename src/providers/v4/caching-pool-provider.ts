@@ -1,9 +1,11 @@
 import { ChainId, Currency } from '@uniswap/sdk-core';
 import { Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
+
 import { log, metric, MetricLoggerUnit } from '../../util';
 import { ICache } from '../cache';
 import { ProviderConfig } from '../provider';
+
 import { IV4PoolProvider, V4PoolAccessor } from './pool-provider';
 
 export class CachingV4PoolProvider implements IV4PoolProvider {

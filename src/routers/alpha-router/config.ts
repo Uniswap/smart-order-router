@@ -17,6 +17,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     case ChainId.WORLDCHAIN:
     case ChainId.UNICHAIN_SEPOLIA:
     case ChainId.MONAD_TESTNET:
+    case ChainId.MONAD:
     case ChainId.UNICHAIN:
     case ChainId.SONEIUM:
       return {
