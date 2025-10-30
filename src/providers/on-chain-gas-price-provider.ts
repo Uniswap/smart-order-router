@@ -1,6 +1,7 @@
 import { ChainId } from '@uniswap/sdk-core';
 
 import { opStackChains } from '../util/l2FeeChains';
+
 import { EIP1559GasPriceProvider } from './eip-1559-gas-price-provider';
 import { GasPrice, IGasPriceProvider } from './gas-price-provider';
 import { LegacyGasPriceProvider } from './legacy-gas-price-provider';

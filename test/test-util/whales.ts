@@ -21,6 +21,7 @@ import {
   USDC_ZORA,
   USDT_MAINNET,
   USDT_MONAD_TESTNET,
+  USDC_MONAD,
   V4_SEPOLIA_TEST_A,
   WETH9,
   WLD_WORLDCHAIN,
@@ -168,6 +169,15 @@ export const WHALES = (token: Currency): string => {
     case WNATIVE_ON(ChainId.MONAD_TESTNET):
       // TODO: get a real whale address for monad testnet
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c'
+    case USDC_MONAD:
+      // TODO: get a real whale address for monad mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case USDT_ON(ChainId.MONAD):
+      // TODO: get a real whale address for monad mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
+    case WNATIVE_ON(ChainId.MONAD):
+      // TODO: get a real whale address for monad mainnet
+      return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
     case USDC_UNICHAIN:
       // TODO: get a real whale address for unichain mainnet
       return '0x440e9a5b9df01D7CFf465D391A883315A5e8f41c';
