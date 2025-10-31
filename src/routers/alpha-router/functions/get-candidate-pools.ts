@@ -950,7 +950,13 @@ export async function getV4CandidatePools({
     let fee: number;
     try {
       fee = Number(subgraphPool.feeTier);
-      fee = isPoolFeeDynamic(tokenA!, tokenB!, subgraphPool)
+      fee = isPoolFeeDynamic(
+        tokenA!,
+        tokenB!,
+        Number(subgraphPool.tickSpacing),
+        subgraphPool.hooks,
+        subgraphPool.id
+      )
         ? DYNAMIC_FEE_FLAG
         : fee;
     } catch (err) {
