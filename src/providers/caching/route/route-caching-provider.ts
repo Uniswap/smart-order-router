@@ -46,6 +46,8 @@ export abstract class IRouteCachingProvider {
     tradeType: TradeType,
     protocols: Protocol[],
     blockNumber: number,
+    currencyIn: Currency,
+    currencyOut: Currency,
     optimistic = false,
     alphaRouterConfig?: AlphaRouterConfig,
     swapOptions?: SwapOptions
@@ -69,6 +71,8 @@ export abstract class IRouteCachingProvider {
       tradeType,
       protocols,
       blockNumber,
+      currencyIn,
+      currencyOut,
       optimistic,
       alphaRouterConfig,
       swapOptions
@@ -181,6 +185,8 @@ export abstract class IRouteCachingProvider {
    * @param tradeType
    * @param protocols
    * @param currentBlockNumber
+   * @param currencyIn
+   * @param currencyOut
    * @param optimistic
    * @param alphaRouterConfig
    * @param swapOptions
@@ -193,6 +199,8 @@ export abstract class IRouteCachingProvider {
     tradeType: TradeType,
     protocols: Protocol[],
     currentBlockNumber: number,
+    currencyIn: Currency,
+    currencyOut: Currency,
     optimistic: boolean,
     alphaRouterConfig?: AlphaRouterConfig,
     swapOptions?: SwapOptions

@@ -1568,6 +1568,8 @@ export class AlphaRouter
                 tradeType,
                 protocols,
                 await blockNumber,
+                currencyIn,
+                currencyOut,
                 routingConfig.optimisticCachedRoutes,
                 routingConfig,
                 swapConfig
@@ -1579,6 +1581,8 @@ export class AlphaRouter
                 tradeType,
                 [Protocol.V4],
                 await blockNumber,
+                currencyIn,
+                currencyOut,
                 routingConfig.optimisticCachedRoutes,
                 routingConfig,
                 swapConfig
@@ -1619,6 +1623,8 @@ export class AlphaRouter
             tradeType,
             protocols,
             await blockNumber,
+            currencyIn,
+            currencyOut,
             routingConfig.optimisticCachedRoutes,
             routingConfig,
             swapConfig
