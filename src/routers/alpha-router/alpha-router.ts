@@ -579,6 +579,12 @@ export type AlphaRouterConfig = {
    * async call request id passed from sync routing lambda
    */
   asyncRequestId?: string;
+  /**
+   * pools to manually route through
+   * couple use cases for this, the top one is to route through hooked pool(s)
+   * Note this can only work when cached routes are not hit
+   */
+  poolsToManuallyRouteThrough?: string[];
 };
 
 export class AlphaRouter
