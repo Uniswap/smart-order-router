@@ -571,6 +571,14 @@ export type AlphaRouterConfig = {
    * pass in hooks options for hooks routing toggles from the frontend
    */
   hooksOptions?: HooksOptions;
+  /**
+   * sync call request id passed from the upstream (TAPI)
+   */
+  requestId?: string;
+  /**
+   * async call request id passed from sync routing lambda
+   */
+  asyncRequestId?: string;
 };
 
 export class AlphaRouter
