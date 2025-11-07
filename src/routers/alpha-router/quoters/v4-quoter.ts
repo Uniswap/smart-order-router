@@ -70,10 +70,11 @@ export class V4Quoter extends BaseQuoter<V4CandidatePools, V4Route, Currency> {
     // result in good prices.
     const { poolAccessor, candidatePools } = v4CandidatePools;
     const poolsRaw = poolAccessor.getAllPools();
+    const manuallyRoutedPools = poolsRaw.filter((pool) => routingConfig.poolsToManuallyRouteThrough?.includes(pool.poolId));
 
     // Drop any pools that contain fee on transfer tokens (not supported by v4) or have issues with being transferred.
     const pools = await this.applyTokenValidatorToPools(
-      poolsRaw,
+      [...poolsRaw, ...manuallyRoutedPools],
       (
         token: Currency,
         tokenValidation: TokenValidationResult | undefined
