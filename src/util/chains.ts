@@ -872,6 +872,30 @@ class AvalancheNativeCurrency extends NativeCurrency {
   }
 }
 
+function isMonad(chainId: number): chainId is ChainId.MONAD {
+  return chainId === ChainId.MONAD;
+}
+
+class MonadNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isMonad(this.chainId)) throw new Error('Not monad');
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isMonad(chainId)) throw new Error('Not monad');
+    super(chainId, 18, 'MON', 'Monad');
+  }
+}
+
 export class ExtendedEther extends Ether {
   public get wrapped(): Token {
     if (this.chainId in WRAPPED_NATIVE_CURRENCY) {
@@ -909,6 +933,8 @@ export function nativeOnChain(chainId: number): NativeCurrency {
     cachedNativeCurrency[chainId] = new BnbNativeCurrency(chainId);
   } else if (isAvax(chainId)) {
     cachedNativeCurrency[chainId] = new AvalancheNativeCurrency(chainId);
+  } else if (isMonad(chainId)) {
+    cachedNativeCurrency[chainId] = new MonadNativeCurrency(chainId);
   } else {
     cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
   }
