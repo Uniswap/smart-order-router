@@ -2,9 +2,9 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import {
+  TPool as MixedPool,
   Protocol,
   SwapRouter,
-  TPool as MixedPool,
   Trade,
   ZERO,
 } from '@uniswap/router-sdk';
@@ -20,10 +20,10 @@ import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair as V2Pool } from '@uniswap/v2-sdk';
 import {
   Pool,
-  Pool as V3Pool,
   Position,
   SqrtPriceMath,
   TickMath,
+  Pool as V3Pool,
 } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import retry from 'async-retry';
@@ -571,6 +571,20 @@ export type AlphaRouterConfig = {
    * pass in hooks options for hooks routing toggles from the frontend
    */
   hooksOptions?: HooksOptions;
+  /**
+   * sync call request id passed from the upstream (TAPI)
+   */
+  requestId?: string;
+  /**
+   * async call request id passed from sync routing lambda
+   */
+  asyncRequestId?: string;
+  /**
+   * pools to manually route through
+   * couple use cases for this, the top one is to route through hooked pool(s)
+   * Note this can only work when cached routes are not hit
+   */
+  poolsToManuallyRouteThrough?: string[];
 };
 
 export class AlphaRouter
@@ -725,6 +739,7 @@ export class AlphaRouter
         case ChainId.WORLDCHAIN:
         case ChainId.UNICHAIN_SEPOLIA:
         case ChainId.MONAD_TESTNET:
+        case ChainId.MONAD:
         case ChainId.BASE_SEPOLIA:
         case ChainId.UNICHAIN:
         case ChainId.BASE_GOERLI:

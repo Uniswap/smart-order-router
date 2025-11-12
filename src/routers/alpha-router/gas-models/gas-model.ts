@@ -24,7 +24,6 @@ import {
   DAI_UNICHAIN,
   DAI_ZKSYNC,
   USDB_BLAST,
-  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
@@ -37,6 +36,7 @@ import {
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
   USDC_MAINNET,
+  USDC_MONAD,
   USDC_MOONBEAM,
   USDC_NATIVE_ARBITRUM,
   USDC_NATIVE_AVAX,
@@ -56,6 +56,7 @@ import {
   USDC_WORMHOLE_CELO,
   USDC_ZKSYNC,
   USDC_ZORA,
+  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -132,6 +133,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.WORLDCHAIN]: [USDC_WORLDCHAIN],
   [ChainId.UNICHAIN_SEPOLIA]: [USDC_UNICHAIN_SEPOLIA],
   [ChainId.MONAD_TESTNET]: [USDT_MONAD_TESTNET],
+  [ChainId.MONAD]: [USDC_MONAD],
   [ChainId.BASE_SEPOLIA]: [USDC_BASE_SEPOLIA],
   [ChainId.UNICHAIN]: [DAI_UNICHAIN, USDC_UNICHAIN],
   [ChainId.SONEIUM]: [USDC_SONEIUM],
@@ -247,7 +249,7 @@ export abstract class IV2GasModelFactory {
  */
 export abstract class IOnChainGasModelFactory<
   TRouteWithValidQuote extends RouteWithValidQuote
-> {
+  > {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,

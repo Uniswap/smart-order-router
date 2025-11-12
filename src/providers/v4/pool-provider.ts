@@ -1,13 +1,12 @@
 import { ChainId, Currency } from '@uniswap/sdk-core';
 import { DYNAMIC_FEE_FLAG, Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
-import { IMulticallProvider, Result } from '../multicall-provider';
-import { ProviderConfig } from '../provider';
 
 import { StateView__factory } from '../../types/other/factories/StateView__factory';
+import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
+import { IMulticallProvider, Result } from '../multicall-provider';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
-import { V4SubgraphPool } from './subgraph-provider';
+import { ProviderConfig } from '../provider';
 
 type V4ISlot0 = ISlot0 & {
   poolId: string;
@@ -57,16 +56,18 @@ export function sortsBefore(currencyA: Currency, currencyB: Currency): boolean {
 export function isPoolFeeDynamic(
   tokenA: Currency,
   tokenB: Currency,
-  subgraphPool: V4SubgraphPool
+  tickSpacing: number,
+  hooks: string,
+  poolId: string
 ): boolean {
   return (
     Pool.getPoolId(
       tokenA!,
       tokenB!,
       DYNAMIC_FEE_FLAG,
-      Number(subgraphPool.tickSpacing),
-      subgraphPool.hooks
-    ).toLowerCase() === subgraphPool.id.toLowerCase()
+      tickSpacing,
+      hooks
+    ).toLowerCase() === poolId.toLowerCase()
   );
 }
 
