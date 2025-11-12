@@ -66,6 +66,7 @@ export const V4_SUPPORTED = [
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
+  ChainId.CELO,
 ];
 
 export const MIXED_SUPPORTED = [
