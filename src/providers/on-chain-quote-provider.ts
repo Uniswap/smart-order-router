@@ -1403,7 +1403,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
             if (
               route.protocol === Protocol.MIXED &&
-              ((route as MixedRoute).pools?.some?.(pool => pool instanceof V4Pool && pool.hooks !== ZERO_ADDRESS))
+              ((route as MixedRoute).pools?.some?.(pool => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO))
             ) {
               log.debug(
                 {
