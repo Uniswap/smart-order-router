@@ -8,6 +8,7 @@ import {
   Protocol,
 } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
+import { ZERO_ADDRESS } from '@uniswap/universal-router-sdk/dist/utils/constants';
 import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
 import {
   encodeRouteToPath as encodeV4RouteToPath,
@@ -1332,7 +1333,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     routes: TRoute[],
     amounts: CurrencyAmount[],
-    gasLimit: BigNumber
+    gasLimit: BigNumber,
+    useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
+    protocol: Protocol,
+    optimisticCachedRoutes: boolean
   ): RouteWithQuotes<TRoute>[] {
     const routesQuotes: RouteWithQuotes<TRoute>[] = [];
 
@@ -1366,6 +1371,56 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               percent,
               amount: amountStr,
             });
+
+            if (
+              route.protocol === Protocol.V4 &&
+              (route as V4Route).pools.some(pool =>  pool.hooks !== ZERO_ADDRESS)
+            ) {
+              log.debug(
+                {
+                  route: routeStr,
+                  quoteResult,
+                },
+                'Failed to get quote for V4 route with hooks'
+              );
+
+              metric.putMetric(
+                `${this.metricsPrefix(
+                  this.chainId,
+                  useMixedRouteQuoter,
+                  mixedRouteContainsV4Pool,
+                  protocol,
+                  optimisticCachedRoutes
+                )}QuoteFailedWithHooks`,
+                1,
+                MetricLoggerUnit.Count
+              );
+            }
+
+            if (
+              route.protocol === Protocol.MIXED &&
+              ((route as MixedRoute).pools?.some?.(pool => pool instanceof V4Pool && pool.hooks !== ZERO_ADDRESS))
+            ) {
+              log.debug(
+                {
+                  route: routeStr,
+                  quoteResult,
+                },
+                'Failed to get quote for Mixed protocol route with hooks'
+              );
+
+              metric.putMetric(
+                `${this.metricsPrefix(
+                  this.chainId,
+                  useMixedRouteQuoter,
+                  mixedRouteContainsV4Pool,
+                  protocol,
+                  optimisticCachedRoutes
+                )}QuoteFailedWithHooks`,
+                1,
+                MetricLoggerUnit.Count
+              );
+            }
 
             return {
               amount,
