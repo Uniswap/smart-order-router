@@ -3,12 +3,12 @@ import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { BytesLike } from '@ethersproject/bytes';
 import { BaseProvider } from '@ethersproject/providers';
 import {
+  ADDRESS_ZERO,
   encodeMixedRouteToPath,
   MixedRouteSDK,
   Protocol,
 } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
-import { ZERO_ADDRESS } from '@uniswap/universal-router-sdk/dist/utils/constants';
 import { encodeRouteToPath as encodeV3RouteToPath } from '@uniswap/v3-sdk';
 import {
   encodeRouteToPath as encodeV4RouteToPath,
@@ -1378,7 +1378,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
             if (
               route.protocol === Protocol.V4 &&
-              (route as V4Route).pools.some(pool =>  pool.hooks !== ZERO_ADDRESS)
+              (route as V4Route).pools.some(pool =>  pool.hooks !== ADDRESS_ZERO)
             ) {
               log.debug(
                 {
