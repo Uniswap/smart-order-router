@@ -1399,6 +1399,22 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 1,
                 MetricLoggerUnit.Count
               );
+
+              (route as V4Route).pools.forEach((pool) => {
+                if (pool.hooks !== ADDRESS_ZERO) {
+                  metric.putMetric(
+                    `${this.metricsPrefix(
+                      this.chainId,
+                      useMixedRouteQuoter,
+                      mixedRouteContainsV4Pool,
+                      protocol,
+                      optimisticCachedRoutes
+                    )}QuoteFailedWithHooks${pool.hooks}`,
+                    1,
+                    MetricLoggerUnit.Count
+                  );
+                }
+              })
             }
 
             if (
@@ -1412,6 +1428,22 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                 },
                 'Failed to get quote for Mixed protocol route with hooks'
               );
+
+              (route as MixedRoute).pools.forEach((pool) => {
+                if (pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO) {
+                  metric.putMetric(
+                    `${this.metricsPrefix(
+                      this.chainId,
+                      useMixedRouteQuoter,
+                      mixedRouteContainsV4Pool,
+                      protocol,
+                      optimisticCachedRoutes
+                    )}QuoteFailedWithHooks${pool.hooks}`,
+                    1,
+                    MetricLoggerUnit.Count
+                  );
+                }
+              })
 
               metric.putMetric(
                 `${this.metricsPrefix(
