@@ -1145,7 +1145,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       quoteResults,
       routes,
       amounts,
-      BigNumber.from(gasLimitOverride)
+      BigNumber.from(gasLimitOverride),
+      useMixedRouteQuoter,
+      mixedRouteContainsV4Pool,
+      protocol,
+      optimisticCachedRoutes
     );
 
     const endTime = Date.now();
