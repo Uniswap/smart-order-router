@@ -33,7 +33,6 @@ import {
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
-  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_AVAX,
@@ -43,6 +42,7 @@ import {
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
   USDC_MAINNET,
+  USDC_MONAD,
   USDC_MOONBEAM,
   USDC_OPTIMISM,
   USDC_OPTIMISM_GOERLI,
@@ -53,6 +53,7 @@ import {
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
   USDC_ZKSYNC,
+  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -203,6 +204,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.MONAD_TESTNET]!,
     USDT_MONAD_TESTNET,
   ],
+  [ChainId.MONAD]: [WRAPPED_NATIVE_CURRENCY[ChainId.MONAD]!, USDC_MONAD],
   [ChainId.BASE_SEPOLIA]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
     USDC_BASE_SEPOLIA,
@@ -225,7 +227,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private poolProvider: IV3PoolProvider
-  ) {}
+  ) { }
 
   public async getPools(
     tokenIn?: Token,

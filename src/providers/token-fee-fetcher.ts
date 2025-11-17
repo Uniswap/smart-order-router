@@ -2,8 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
-import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
 import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
+import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
 import {
   log,
   metric,
@@ -12,6 +12,7 @@ import {
 } from '../util';
 
 import { ProviderConfig } from './provider';
+import { USDC_ON, USDT_ON } from './token-provider';
 
 const DEFAULT_TOKEN_BUY_FEE_BPS = BigNumber.from(0);
 const DEFAULT_TOKEN_SELL_FEE_BPS = BigNumber.from(0);
@@ -82,21 +83,51 @@ export interface ITokenFeeFetcher {
 }
 
 export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
-  private BASE_TOKEN: string;
+  private BASE_TOKENS: string[];
   private readonly contract: TokenFeeDetector;
 
   constructor(
-    private chainId: ChainId,
+    chainId: ChainId,
     rpcProvider: BaseProvider,
     private tokenFeeAddress = FEE_DETECTOR_ADDRESS(chainId),
     private gasLimitPerCall = GAS_LIMIT_PER_VALIDATE,
     private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW
   ) {
-    this.BASE_TOKEN = WRAPPED_NATIVE_CURRENCY[this.chainId]?.address;
+    this.BASE_TOKENS = this.getBaseTokensByChain(chainId);
     this.contract = TokenFeeDetector__factory.connect(
       this.tokenFeeAddress,
       rpcProvider
     );
+  }
+
+  private getBaseTokensByChain(chainId: ChainId): string[] {
+    const baseTokens: string[] = [];
+
+    // Priority order: WETH -> USDT -> USDC
+    const weth = WRAPPED_NATIVE_CURRENCY[chainId]?.address;
+    if (weth) {
+      baseTokens.push(weth);
+    }
+
+    try {
+      const usdt = USDT_ON(chainId)?.address;
+      if (usdt) {
+        baseTokens.push(usdt);
+      }
+    } catch (e) {
+      // USDT not available on this chain
+    }
+
+    try {
+      const usdc = USDC_ON(chainId)?.address;
+      if (usdc) {
+        baseTokens.push(usdc);
+      }
+    } catch (e) {
+      // USDC not available on this chain
+    }
+
+    return baseTokens;
   }
 
   public async fetchFees(
@@ -105,15 +136,21 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
   ): Promise<TokenFeeMap> {
     const tokenToResult: TokenFeeMap = {};
 
-    const addressesWithoutBaseToken = addresses.filter(
-      (address) => address.toLowerCase() !== this.BASE_TOKEN.toLowerCase()
+    // Filter out all base tokens from the addresses to check
+    const baseTokensLower = this.BASE_TOKENS.map((addr) => addr.toLowerCase());
+    const addressesWithoutBaseTokens = addresses.filter(
+      (address) => !baseTokensLower.includes(address.toLowerCase())
     );
-    const functionParams = addressesWithoutBaseToken.map((address) => [
-      address,
-      this.BASE_TOKEN,
-      this.amountToFlashBorrow,
-    ]) as [string, string, string][];
 
+    // Create function params for all token x base token combinations
+    const functionParams: [string, string, string][] = [];
+    for (const address of addressesWithoutBaseTokens) {
+      for (const baseToken of this.BASE_TOKENS) {
+        functionParams.push([address, baseToken, this.amountToFlashBorrow]);
+      }
+    }
+
+    // Execute all validation calls in parallel
     const results = await Promise.all(
       functionParams.map(async ([address, baseToken, amountToBorrow]) => {
         try {
@@ -135,11 +172,11 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
             MetricLoggerUnit.Count
           );
 
-          return { address, ...feeResult };
+          return { address, baseToken, ...feeResult };
         } catch (err) {
           log.error(
             { err },
-            `Error calling validate on-chain for token ${address}`
+            `Error calling validate on-chain for token ${address} with base token ${baseToken}`
           );
 
           metric.putMetric(
@@ -153,6 +190,7 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
           // and thus no fee will be applied, and the cache won't cache on FOT tokens with failed fee fetching
           return {
             address,
+            baseToken,
             buyFeeBps: undefined,
             sellFeeBps: undefined,
             feeTakenOnTransfer: false,
@@ -163,26 +201,42 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
       })
     );
 
-    results.forEach(
-      ({
-        address,
-        buyFeeBps,
-        sellFeeBps,
-        feeTakenOnTransfer,
-        externalTransferFailed,
-        sellReverted,
-      }) => {
-        if (buyFeeBps || sellFeeBps) {
-          tokenToResult[address] = {
-            buyFeeBps,
-            sellFeeBps,
-            feeTakenOnTransfer,
-            externalTransferFailed,
-            sellReverted,
-          };
-        }
+    // Group results by token address and pick the first successful result
+    // (prioritizing by base token order: WETH -> USDT -> USDC)
+    const resultsByToken = new Map<string, typeof results>();
+    for (const result of results) {
+      const existing = resultsByToken.get(result.address) || [];
+      existing.push(result);
+      resultsByToken.set(result.address, existing);
+    }
+
+    // For each token, find the first successful result (by base token priority)
+    for (const [address, tokenResults] of resultsByToken) {
+      // Sort by base token priority order
+      const sortedResults = tokenResults.sort((a, b) => {
+        const aIndex = this.BASE_TOKENS.indexOf(a.baseToken);
+        const bIndex = this.BASE_TOKENS.indexOf(b.baseToken);
+        return aIndex - bIndex;
+      });
+
+
+      // Find first result with valid fee data (buyFeeBps or sellFeeBps > 0)
+      const validResult = sortedResults.find(
+        (result) =>
+          (result.buyFeeBps && !result.buyFeeBps.isZero()) ||
+          (result.sellFeeBps && !result.sellFeeBps.isZero())
+      );
+
+      if (validResult) {
+        tokenToResult[address] = {
+          buyFeeBps: validResult.buyFeeBps,
+          sellFeeBps: validResult.sellFeeBps,
+          feeTakenOnTransfer: validResult.feeTakenOnTransfer,
+          externalTransferFailed: validResult.externalTransferFailed,
+          sellReverted: validResult.sellReverted,
+        };
       }
-    );
+    }
 
     return tokenToResult;
   }

@@ -12,13 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -49,13 +50,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -84,13 +86,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -119,13 +122,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -154,13 +158,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -189,13 +194,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -224,13 +230,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -259,13 +266,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -294,13 +302,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -329,13 +338,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -364,13 +374,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -400,13 +411,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -436,13 +448,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -472,13 +485,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -507,13 +521,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -543,13 +558,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -578,13 +594,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -613,13 +630,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -649,13 +667,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -684,13 +703,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -719,13 +739,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -753,13 +774,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -786,13 +808,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -821,13 +844,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -849,18 +873,53 @@ jobs:
           TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
           TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
 
+  integration-tests-quote-for-other-networks-monad-mainnet:
+    name: Integration Tests - Quote For Other Networks Monad Mainnet
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
+        with:
+          node-version: 18.x
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm install
+
+      # This is required separately from yarn test because it generates the typechain definitions
+      - name: Compile
+        run: npm run build
+
+      - name: Run Integration tests
+        run: npm run integ-test  -- -t 'quote for other networks * monad-mainnet'
+        env:
+          JSON_RPC_PROVIDER_MONAD: ${{ secrets.JSON_RPC_PROVIDER_MONAD }}
+          TENDERLY_BASE_URL: ${{ secrets.TENDERLY_BASE_URL }}
+          TENDERLY_USER: ${{ secrets.TENDERLY_USER }}
+          TENDERLY_PROJECT: ${{ secrets.TENDERLY_PROJECT }}
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+
   integration-tests-quote-for-other-networks-soneium:
     name: Integration Tests - Quote For Other Networks Soneium
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -887,13 +946,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
+      - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
+      - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+      - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -909,7 +969,7 @@ jobs:
 
       # This is to capture any new networks added into the integ-test suite
       - name: Run Integration tests
-        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|sepolia|celo|bnb|avalanche|base|blast|zora|zksync|worldchain|unichain|monad-testnet|soneium))'
+        run: npm run integ-test  -- -t 'quote for other networks * (?!(mainnet|optimism|arbitrum|polygon|sepolia|celo|bnb|avalanche|base|blast|zora|zksync|worldchain|unichain|monad-testnet|monad|soneium))'
         env:
           # We don't know which new networks will be added, so we have no way to provider RPC URL ahead of time
           # This will make remaining networks integ-test suite to fail, and dev is expected to manually add RPC URL for the new network

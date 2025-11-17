@@ -68,14 +68,23 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     private pageSize = PAGE_SIZE,
     private trackedEthThreshold = 0.025,
     private untrackedUsdThreshold = Number.MAX_VALUE,
-    private subgraphUrlOverride?: string
+    private subgraphUrlOverride?: string,
+    private bearerToken?: string
   ) {
     const subgraphUrl =
       this.subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[this.chainId];
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
-    this.client = new GraphQLClient(subgraphUrl);
+    if (this.bearerToken) {
+      this.client = new GraphQLClient(subgraphUrl, {
+        headers: {
+          authorization: `Bearer ${this.bearerToken}`,
+        },
+      });
+    } else {
+      this.client = new GraphQLClient(subgraphUrl);
+    }
   }
 
   public async getPools(

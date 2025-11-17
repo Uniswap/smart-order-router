@@ -3,6 +3,7 @@ import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { BytesLike } from '@ethersproject/bytes';
 import { BaseProvider } from '@ethersproject/providers';
 import {
+  ADDRESS_ZERO,
   encodeMixedRouteToPath,
   MixedRouteSDK,
   Protocol,
@@ -1144,7 +1145,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
       quoteResults,
       routes,
       amounts,
-      BigNumber.from(gasLimitOverride)
+      BigNumber.from(gasLimitOverride),
+      useMixedRouteQuoter,
+      mixedRouteContainsV4Pool,
+      protocol,
+      optimisticCachedRoutes
     );
 
     const endTime = Date.now();
@@ -1332,7 +1337,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
     quoteResults: Result<[BigNumber, BigNumber[], number[], BigNumber]>[],
     routes: TRoute[],
     amounts: CurrencyAmount[],
-    gasLimit: BigNumber
+    gasLimit: BigNumber,
+    useMixedRouteQuoter: boolean,
+    mixedRouteContainsV4Pool: boolean,
+    protocol: Protocol,
+    optimisticCachedRoutes: boolean
   ): RouteWithQuotes<TRoute>[] {
     const routesQuotes: RouteWithQuotes<TRoute>[] = [];
 
@@ -1366,6 +1375,88 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
               percent,
               amount: amountStr,
             });
+
+            if (
+              route.protocol === Protocol.V4 &&
+              (route as V4Route).pools.some(pool =>  pool.hooks !== ADDRESS_ZERO)
+            ) {
+              log.debug(
+                {
+                  route: routeStr,
+                  quoteResult,
+                },
+                'Failed to get quote for V4 route with hooks'
+              );
+
+              metric.putMetric(
+                `${this.metricsPrefix(
+                  this.chainId,
+                  useMixedRouteQuoter,
+                  mixedRouteContainsV4Pool,
+                  protocol,
+                  optimisticCachedRoutes
+                )}QuoteFailedWithHooks`,
+                1,
+                MetricLoggerUnit.Count
+              );
+
+              (route as V4Route).pools.forEach((pool) => {
+                if (pool.hooks !== ADDRESS_ZERO) {
+                  metric.putMetric(
+                    `${this.metricsPrefix(
+                      this.chainId,
+                      useMixedRouteQuoter,
+                      mixedRouteContainsV4Pool,
+                      protocol,
+                      optimisticCachedRoutes
+                    )}QuoteFailedWithHooks${pool.hooks}`,
+                    1,
+                    MetricLoggerUnit.Count
+                  );
+                }
+              })
+            }
+
+            if (
+              route.protocol === Protocol.MIXED &&
+              ((route as MixedRoute).pools?.some?.(pool => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO))
+            ) {
+              log.debug(
+                {
+                  route: routeStr,
+                  quoteResult,
+                },
+                'Failed to get quote for Mixed protocol route with hooks'
+              );
+
+              (route as MixedRoute).pools.forEach((pool) => {
+                if (pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO) {
+                  metric.putMetric(
+                    `${this.metricsPrefix(
+                      this.chainId,
+                      useMixedRouteQuoter,
+                      mixedRouteContainsV4Pool,
+                      protocol,
+                      optimisticCachedRoutes
+                    )}QuoteFailedWithHooks${pool.hooks}`,
+                    1,
+                    MetricLoggerUnit.Count
+                  );
+                }
+              })
+
+              metric.putMetric(
+                `${this.metricsPrefix(
+                  this.chainId,
+                  useMixedRouteQuoter,
+                  mixedRouteContainsV4Pool,
+                  protocol,
+                  optimisticCachedRoutes
+                )}QuoteFailedWithHooks`,
+                1,
+                MetricLoggerUnit.Count
+              );
+            }
 
             return {
               amount,

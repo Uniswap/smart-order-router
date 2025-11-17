@@ -1,7 +1,7 @@
+import { BaseProvider } from '@ethersproject/providers';
+
 import { V3RouteWithValidQuote } from '../../entities/route-with-valid-quote';
 import { BuildOnChainGasModelFactoryType, IGasModel } from '../gas-model';
-
-import { BaseProvider } from '@ethersproject/providers';
 import { TickBasedHeuristicGasModelFactory } from '../tick-based-heuristic-gas-model';
 
 /**
