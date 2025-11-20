@@ -156,6 +156,8 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
       return `https://unichain.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     case ChainId.SONEIUM:
       return `https://soneium.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.MONAD:
+      return `https://omega-14.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     default:
       throw new Error(
         `ChainId ${chainId} does not correspond to a tenderly node endpoint`
@@ -171,7 +173,6 @@ export const TENDERLY_NOT_SUPPORTED_CHAINS = [
   ChainId.BNB,
   ChainId.ZORA,
   ChainId.MONAD_TESTNET,
-  ChainId.MONAD,
 ];
 
 // We multiply tenderly gas limit by this to overestimate gas limit
