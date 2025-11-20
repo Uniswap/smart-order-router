@@ -173,7 +173,6 @@ export const TENDERLY_NOT_SUPPORTED_CHAINS = [
   ChainId.BNB,
   ChainId.ZORA,
   ChainId.MONAD_TESTNET,
-  ChainId.MONAD,
 ];
 
 // We multiply tenderly gas limit by this to overestimate gas limit
