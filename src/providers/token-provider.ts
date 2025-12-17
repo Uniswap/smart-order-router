@@ -756,6 +756,14 @@ export const USDC_MONAD = new Token(
   'USDC'
 );
 
+export const USDC_XLAYER = new Token(
+  ChainId.XLAYER,
+  '0x74b7F16337b8972027F6196A17a631aC6dE26d22',
+  6,
+  'USDC',
+  'USDC'
+);
+
 export const WLD_WORLDCHAIN = new Token(
   ChainId.WORLDCHAIN,
   '0x2cFc85d8E48F8EAB294be644d9E25C3030863003',

@@ -167,6 +167,7 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.MONAD]: 50,
   [ChainId.BASE_SEPOLIA]: 50,
   [ChainId.SONEIUM]: 50,
+  [ChainId.XLAYER]: 50,
 };
 
 const V2_SUPPORTED_PAIRS = [
@@ -3547,6 +3548,7 @@ describe('quote for other networks', () => {
     [ChainId.MONAD]: () => USDC_ON(ChainId.MONAD),
     [ChainId.BASE_SEPOLIA]: () => USDC_ON(ChainId.BASE_SEPOLIA),
     [ChainId.SONEIUM]: () => USDC_ON(ChainId.SONEIUM),
+    [ChainId.XLAYER]: () => USDC_ON(ChainId.XLAYER),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3580,6 +3582,7 @@ describe('quote for other networks', () => {
     [ChainId.MONAD]: () => WNATIVE_ON(ChainId.MONAD),
     [ChainId.BASE_SEPOLIA]: () => WNATIVE_ON(ChainId.BASE_SEPOLIA),
     [ChainId.SONEIUM]: () => WNATIVE_ON(ChainId.SONEIUM),
+    [ChainId.XLAYER]: () => WNATIVE_ON(ChainId.XLAYER),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.

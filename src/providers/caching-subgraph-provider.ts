@@ -192,6 +192,11 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.MONAD]!,
     USDC_MONAD,
   ],
+  [ChainId.XLAYER]: [
+    nativeOnChain(ChainId.XLAYER),
+    WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!,
+    USDC_XLAYER,
+  ],
 };
 
 export interface IV3SubgraphProvider {

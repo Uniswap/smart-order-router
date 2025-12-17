@@ -211,6 +211,10 @@ export const CACHE_SEED_TOKENS: {
     USDC: USDC_SONEIUM,
     WETH: WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM],
   },
+  [ChainId.XLAYER]: {
+    USDC: USDC_XLAYER,
+    WETH: WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER],
+  },
   // Currently we do not have providers for Moonbeam mainnet or Gnosis testnet
 };
 

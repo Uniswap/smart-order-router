@@ -57,6 +57,7 @@ import {
   USDC_SEPOLIA,
   USDC_SONEIUM,
   USDC_UNICHAIN,
+  USDC_XLAYER,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,
@@ -267,6 +268,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDC_UNICHAIN,
   ],
   [ChainId.SONEIUM]: [USDC_SONEIUM, WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!],
+  [ChainId.XLAYER]: [USDC_XLAYER, WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!],
 };
 
 const excludedV3PoolIds = new Set([

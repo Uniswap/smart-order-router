@@ -30,6 +30,7 @@ import {
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
+  USDC_XLAYER,
 } from '../../providers/token-provider';
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
@@ -121,6 +122,10 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     [ChainId.SONEIUM]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!,
       USDC_SONEIUM,
+    ],
+    [ChainId.XLAYER]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!,
+      USDC_XLAYER,
     ],
   };
 };
