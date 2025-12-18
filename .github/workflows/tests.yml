@@ -27,7 +27,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -65,7 +65,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -101,7 +101,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -137,7 +137,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -173,7 +173,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -209,7 +209,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -245,7 +245,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -281,7 +281,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -317,7 +317,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -353,7 +353,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -389,7 +389,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -426,7 +426,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -463,7 +463,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -500,7 +500,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -536,7 +536,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -573,7 +573,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -609,7 +609,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -645,7 +645,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -682,7 +682,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -718,7 +718,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -753,7 +753,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -788,7 +788,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -822,7 +822,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -858,7 +858,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -892,7 +892,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -926,7 +926,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -960,7 +960,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
@@ -995,7 +995,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       # This is required separately from yarn test because it generates the typechain definitions
       - name: Compile
