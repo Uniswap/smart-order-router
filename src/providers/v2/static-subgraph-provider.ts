@@ -53,6 +53,7 @@ import {
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WSTETH_MAINNET,
+  USDC_XLAYER,
 } from '../token-provider';
 
 import { IV2SubgraphProvider, V2SubgraphPool } from './subgraph-provider';

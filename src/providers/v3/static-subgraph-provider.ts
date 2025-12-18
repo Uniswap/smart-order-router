@@ -75,6 +75,7 @@ import {
   WMATIC_POLYGON_MUMBAI,
   WSTETH_MAINNET,
   WXDAI_GNOSIS,
+  USDC_XLAYER,
 } from '../token-provider';
 
 import { IV3PoolProvider } from './pool-provider';
