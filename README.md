@@ -60,6 +60,7 @@ JSON_RPC_PROVIDER_CELO_ALFAJORES = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_BNB = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_AVALANCHE = '<JSON_RPC_PROVIDER>'
 JSON_RPC_PROVIDER_BASE = '<JSON_RPC_PROVIDER>'
+JSON_RPC_PROVIDER_XLAYER = '<JSON_RPC_XLAYER>'
 ```
 
 Then from the root directory you can execute the CLI.
@@ -274,6 +275,12 @@ Total ticks crossed: 7
 
 ```
 ./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut 0xbA9986D2381edf1DA03B0B9c1f8b00dc4AacC369 --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 1868
+```
+
+## XLayer
+
+```
+./bin/cli quote --tokenIn 0x4200000000000000000000000000000000000006 --tokenOut ETH --amount 0.1 --exactIn --minSplits 1 --protocols v3 --router alpha --chainId 196
 ```
 
 ## Adding a new Chain

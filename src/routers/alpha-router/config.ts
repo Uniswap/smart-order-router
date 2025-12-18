@@ -20,6 +20,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     case ChainId.MONAD:
     case ChainId.UNICHAIN:
     case ChainId.SONEIUM:
+    case ChainId.XLAYER:
       return {
         v2PoolSelection: {
           topN: 3,

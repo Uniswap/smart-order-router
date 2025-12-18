@@ -1,6 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { partitionMixedRouteByProtocol } from '@uniswap/router-sdk';
-import { TPool } from '@uniswap/router-sdk';
+import { partitionMixedRouteByProtocol, TPool } from '@uniswap/router-sdk';
 import { ChainId } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';

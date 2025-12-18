@@ -756,6 +756,14 @@ export const USDC_MONAD = new Token(
   'USDC'
 );
 
+export const USDC_XLAYER = new Token(
+  ChainId.XLAYER,
+  '0x74b7F16337b8972027F6196A17a631aC6dE26d22',
+  6,
+  'USDC',
+  'USDC'
+);
+
 export const WLD_WORLDCHAIN = new Token(
   ChainId.WORLDCHAIN,
   '0x2cFc85d8E48F8EAB294be644d9E25C3030863003',
@@ -817,7 +825,7 @@ export class TokenProvider implements ITokenProvider {
   constructor(
     private chainId: ChainId,
     protected multicall2Provider: IMulticallProvider
-  ) { }
+  ) {}
 
   private async getTokenSymbol(
     addresses: string[],
@@ -984,8 +992,10 @@ export class TokenProvider implements ITokenProvider {
       }
 
       log.info(
-        `Got token symbol and decimals for ${Object.values(addressToToken).length
-        } out of ${addresses.length} tokens on-chain ${providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
+        `Got token symbol and decimals for ${
+          Object.values(addressToToken).length
+        } out of ${addresses.length} tokens on-chain ${
+          providerConfig ? `as of: ${providerConfig?.blockNumber}` : ''
         }`
       );
     }
@@ -1124,6 +1134,8 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_SONEIUM;
     case ChainId.MONAD:
       return USDC_MONAD;
+    case ChainId.XLAYER:
+      return USDC_XLAYER;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }

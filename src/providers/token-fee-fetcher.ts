@@ -2,8 +2,8 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId } from '@uniswap/sdk-core';
 
-import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
 import { TokenFeeDetector__factory } from '../types/other/factories/TokenFeeDetector__factory';
+import { TokenFeeDetector } from '../types/other/TokenFeeDetector';
 import {
   log,
   metric,
@@ -218,7 +218,6 @@ export class OnChainTokenFeeFetcher implements ITokenFeeFetcher {
         const bIndex = this.BASE_TOKENS.indexOf(b.baseToken);
         return aIndex - bIndex;
       });
-
 
       // Find first result with valid fee data (buyFeeBps or sellFeeBps > 0)
       const validResult = sortedResults.find(

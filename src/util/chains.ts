@@ -33,6 +33,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.MONAD,
   ChainId.BASE_SEPOLIA,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -50,6 +51,7 @@ export const V2_SUPPORTED = [
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
 ];
 
 export const V4_SUPPORTED = [
@@ -67,6 +69,7 @@ export const V4_SUPPORTED = [
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
   ChainId.CELO,
+  ChainId.XLAYER,
 ];
 
 export const MIXED_SUPPORTED = [
@@ -85,6 +88,7 @@ export const MIXED_SUPPORTED = [
   ChainId.WORLDCHAIN,
   ChainId.ZORA,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
 ];
 
 export const MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED = [ChainId.BASE];
@@ -106,6 +110,7 @@ export const HAS_L1_FEE = [
   ChainId.MONAD,
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -177,6 +182,8 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.UNICHAIN;
     case 1868:
       return ChainId.SONEIUM;
+    case 196:
+      return ChainId.XLAYER;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -212,6 +219,7 @@ export enum ChainName {
   MONAD_TESTNET = 'monad-testnet',
   SONEIUM = 'soneium-mainnet',
   MONAD = 'monad-mainnet',
+  XLAYER = 'xlayer-mainnet',
 }
 
 export enum NativeCurrencyName {
@@ -342,6 +350,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.XLAYER]: [
+    'ETH',
+    'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
 };
 
 export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
@@ -373,6 +386,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.BASE_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.UNICHAIN]: NativeCurrencyName.ETHER,
   [ChainId.SONEIUM]: NativeCurrencyName.ETHER,
+  [ChainId.XLAYER]: NativeCurrencyName.ETHER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -435,6 +449,8 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.MONAD;
     case 1868:
       return ChainName.SONEIUM;
+    case 196:
+      return ChainName.XLAYER;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -498,6 +514,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_UNICHAIN!;
     case ChainId.SONEIUM:
       return process.env.JSON_RPC_PROVIDER_SONEIUM!;
+    case ChainId.XLAYER:
+      return process.env.JSON_RPC_PROVIDER_XLAYER!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
@@ -722,6 +740,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     18,
     'WETH',
     'Wrapped Ether'
+  ),
+  [ChainId.XLAYER]: new Token(
+    ChainId.XLAYER,
+    '0xe538905cf8410324e03A5A23C1c177a474D59b2b',
+    18,
+    'WOKB',
+    'Wrapped OKB'
   ),
 };
 

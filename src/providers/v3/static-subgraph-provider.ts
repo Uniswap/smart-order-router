@@ -33,6 +33,7 @@ import {
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
+  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_AVAX,
@@ -52,8 +53,8 @@ import {
   USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
+  USDC_XLAYER,
   USDC_ZKSYNC,
-  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -210,6 +211,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDC_BASE_SEPOLIA,
   ],
   [ChainId.SONEIUM]: [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!, USDC_SONEIUM],
+  [ChainId.XLAYER]: [WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!, USDC_XLAYER],
 };
 
 /**
@@ -227,7 +229,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
   constructor(
     private chainId: ChainId,
     private poolProvider: IV3PoolProvider
-  ) { }
+  ) {}
 
   public async getPools(
     tokenIn?: Token,
