@@ -1,7 +1,7 @@
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import {
-  CHAIN_TO_ADDRESSES_MAP,
   ChainId,
+  CHAIN_TO_ADDRESSES_MAP,
   Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,

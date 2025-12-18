@@ -2,9 +2,9 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import {
-  TPool as MixedPool,
   Protocol,
   SwapRouter,
+  TPool as MixedPool,
   Trade,
   ZERO,
 } from '@uniswap/router-sdk';
@@ -20,10 +20,10 @@ import { UniversalRouterVersion } from '@uniswap/universal-router-sdk';
 import { Pair as V2Pool } from '@uniswap/v2-sdk';
 import {
   Pool,
+  Pool as V3Pool,
   Position,
   SqrtPriceMath,
   TickMath,
-  Pool as V3Pool,
 } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import retry from 'async-retry';

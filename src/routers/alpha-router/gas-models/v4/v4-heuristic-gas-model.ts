@@ -12,7 +12,6 @@ import {
 } from '../gas-model';
 import { TickBasedHeuristicGasModelFactory } from '../tick-based-heuristic-gas-model';
 
-
 export class V4HeuristicGasModelFactory
   extends TickBasedHeuristicGasModelFactory<V4RouteWithValidQuote>
   implements IOnChainGasModelFactory<V4RouteWithValidQuote>

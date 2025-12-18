@@ -10,6 +10,7 @@ import {
   DAI_UNICHAIN,
   ITokenProvider,
   USDB_BLAST,
+  USDCE_ZKSYNC,
   USDC_AVAX,
   USDC_BASE,
   USDC_BASE_SEPOLIA,
@@ -20,8 +21,8 @@ import {
   USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
+  USDC_XLAYER,
   USDC_ZKSYNC,
-  USDCE_ZKSYNC,
   USDT_BNB,
   USDT_MAINNET,
   USDT_MONAD_TESTNET,
@@ -30,7 +31,6 @@ import {
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
-  USDC_XLAYER,
 } from '../../providers/token-provider';
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
@@ -123,10 +123,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!,
       USDC_SONEIUM,
     ],
-    [ChainId.XLAYER]: [
-      WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!,
-      USDC_XLAYER,
-    ],
+    [ChainId.XLAYER]: [WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!, USDC_XLAYER],
   };
 };
 

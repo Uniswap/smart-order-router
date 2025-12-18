@@ -24,6 +24,7 @@ import {
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
+  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_AVAX,
   USDC_BASE,
@@ -39,8 +40,8 @@ import {
   USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
+  USDC_XLAYER,
   USDC_ZKSYNC,
-  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,
@@ -55,7 +56,6 @@ import {
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WSTETH_MAINNET,
-  USDC_XLAYER,
 } from './token-provider';
 import { V3SubgraphPool } from './v3/subgraph-provider';
 
@@ -218,7 +218,7 @@ export interface ISubgraphProvider<TSubgraphPool extends SubgraphPool> {
 
 export abstract class CachingSubgraphProvider<
   TSubgraphPool extends SubgraphPool
-  > implements ISubgraphProvider<TSubgraphPool>
+> implements ISubgraphProvider<TSubgraphPool>
 {
   private SUBGRAPH_KEY = (chainId: ChainId) =>
     `subgraph-pools-${this.protocol}-${chainId}`;
@@ -235,7 +235,7 @@ export abstract class CachingSubgraphProvider<
     protected subgraphProvider: ISubgraphProvider<TSubgraphPool>,
     private cache: ICache<TSubgraphPool[]>,
     private protocol: Protocol
-  ) { }
+  ) {}
 
   public async getPools(): Promise<TSubgraphPool[]> {
     const cachedPools = await this.cache.get(this.SUBGRAPH_KEY(this.chainId));

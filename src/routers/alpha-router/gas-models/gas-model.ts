@@ -24,6 +24,7 @@ import {
   DAI_UNICHAIN,
   DAI_ZKSYNC,
   USDB_BLAST,
+  USDCE_ZKSYNC,
   USDC_ARBITRUM,
   USDC_ARBITRUM_GOERLI,
   USDC_ARBITRUM_SEPOLIA,
@@ -54,9 +55,9 @@ import {
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
   USDC_WORMHOLE_CELO,
+  USDC_XLAYER,
   USDC_ZKSYNC,
   USDC_ZORA,
-  USDCE_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_GOERLI,
@@ -66,7 +67,6 @@ import {
   USDT_OPTIMISM_GOERLI,
   USDT_OPTIMISM_SEPOLIA,
   WBTC_GOERLI,
-  USDC_XLAYER,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
 import {
@@ -251,7 +251,7 @@ export abstract class IV2GasModelFactory {
  */
 export abstract class IOnChainGasModelFactory<
   TRouteWithValidQuote extends RouteWithValidQuote
-  > {
+> {
   public abstract buildGasModel({
     chainId,
     gasPriceWei,

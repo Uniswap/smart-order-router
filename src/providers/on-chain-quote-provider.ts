@@ -1378,7 +1378,9 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
 
             if (
               route.protocol === Protocol.V4 &&
-              (route as V4Route).pools.some(pool =>  pool.hooks !== ADDRESS_ZERO)
+              (route as V4Route).pools.some(
+                (pool) => pool.hooks !== ADDRESS_ZERO
+              )
             ) {
               log.debug(
                 {
@@ -1414,12 +1416,14 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     MetricLoggerUnit.Count
                   );
                 }
-              })
+              });
             }
 
             if (
               route.protocol === Protocol.MIXED &&
-              ((route as MixedRoute).pools?.some?.(pool => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO))
+              (route as MixedRoute).pools?.some?.(
+                (pool) => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO
+              )
             ) {
               log.debug(
                 {
@@ -1443,7 +1447,7 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
                     MetricLoggerUnit.Count
                   );
                 }
-              })
+              });
 
               metric.putMetric(
                 `${this.metricsPrefix(
