@@ -23,15 +23,15 @@ jobs:
           # By default, only domains required for essential operations of Github Actions and uploading job summaries are allowed.
           # Refer to https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#communication-requirements-for-github-hosted-runners-and-github for additional domains that should be allowed for additional Github Actions features.
           #allowed-domains:
-      
+
           # The egress policy to enforce. Valid values are `audit` and `block`.
           # Default: audit
           egress-policy: audit
-      
+
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
-          submodules: "true"
+          submodules: 'true'
           fetch-depth: 2
 
       - name: Setup Node
@@ -41,15 +41,15 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           # Defaults to the user or organization that owns the workflow file
           scope: '@uniswap'
-      
+
       - name: Install npm
-        run: npm install -g npm@latest
+        run: npm install -g npm@latest --ignore-scripts
 
       - name: Setup CI
-        run: npm ci 
-      
+        run: npm ci
+
       - name: Build
         run: npm run build
-      
+
       - name: Publish
         run: npm publish
