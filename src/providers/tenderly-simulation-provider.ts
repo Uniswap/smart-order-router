@@ -158,6 +158,8 @@ const TENDERLY_NODE_API = (chainId: ChainId, tenderlyNodeApiKey: string) => {
       return `https://soneium.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     case ChainId.MONAD:
       return `https://monad.gateway.tenderly.co/${tenderlyNodeApiKey}`;
+    case ChainId.XLAYER:
+      return `https://xlayer.gateway.tenderly.co/${tenderlyNodeApiKey}`;
     default:
       throw new Error(
         `ChainId ${chainId} does not correspond to a tenderly node endpoint`
