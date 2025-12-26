@@ -232,6 +232,7 @@ export enum NativeCurrencyName {
   BNB = 'BNB',
   AVALANCHE = 'AVAX',
   MONAD = 'MON',
+  XLAYER = 'OKB',
 }
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
@@ -386,7 +387,7 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.BASE_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.UNICHAIN]: NativeCurrencyName.ETHER,
   [ChainId.SONEIUM]: NativeCurrencyName.ETHER,
-  [ChainId.XLAYER]: NativeCurrencyName.ETHER,
+  [ChainId.XLAYER]: NativeCurrencyName.XLAYER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
