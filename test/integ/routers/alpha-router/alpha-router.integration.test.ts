@@ -3867,13 +3867,14 @@ describe('quote for other networks', () => {
           const native = NATIVE_CURRENCY[chain];
 
           it(`${native} -> erc20`, async () => {
-            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
+            if (chain === ChainId.BLAST || chain === ChainId.ZORA || chain === ChainId.ZKSYNC || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM || chain === ChainId.XLAYER) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
               // UNICHAIN sepolia doesn't have liquid USDC/DAI pool yet
               // monad testnet / mainnet doesn't have liquid USDC/DAI pool yet
               // soneium doesn't have liquid USDC/DAI pool yet
+              // xlayer doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -4277,6 +4278,11 @@ describe('quote for other networks', () => {
                 return;
               }
 
+              if (chain === ChainId.XLAYER) {
+                // XLayer only has wokb/usdc pool
+                return;
+              }
+
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
@@ -4375,7 +4381,7 @@ describe('quote for other networks', () => {
             const native = NATIVE_CURRENCY[chain];
 
             it(`${native} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.MONAD_TESTNET || chain === ChainId.BASE_SEPOLIA || chain === ChainId.SONEIUM || chain === ChainId.XLAYER) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
