@@ -198,6 +198,10 @@ export const WHALES = (token: Currency): string => {
       return '0xfdF6a5b37910fbDa8A52F566E4F3e224652C4818';
     case USDC_ON(ChainId.SONEIUM):
       return '0x07aE8551Be970cB1cCa11Dd7a11F47Ae82e70E67';
+    case nativeOnChain(ChainId.XLAYER):
+      return '0x5075ff68a0efb54db13423ad924bd680327d305e';
+    case USDC_ON(ChainId.XLAYER):
+      return '0x5075ff68a0efb54db13423ad924bd680327d305e';
     default:
       return '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
   }
