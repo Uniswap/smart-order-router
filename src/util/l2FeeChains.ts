@@ -12,4 +12,5 @@ export const opStackChains = [
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
 ];
