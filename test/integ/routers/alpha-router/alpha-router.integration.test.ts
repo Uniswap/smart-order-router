@@ -3773,10 +3773,10 @@ describe('quote for other networks', () => {
 
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
-            const amount = chain === ChainId.UNICHAIN_SEPOLIA ?
+            const amount = chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.XLAYER ?
               tradeType == TradeType.EXACT_INPUT ?
                 parseAmount('0.001', tokenIn):
-                parseAmount('0.001', tokenOut) :
+                parseAmount('0.000001', tokenOut) :
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('10', tokenIn)
                 : parseAmount('10', tokenOut);
@@ -3832,6 +3832,11 @@ describe('quote for other networks', () => {
           it(`${erc1.symbol} -> ${erc2.symbol}`, async () => {
             if (chain === ChainId.SONEIUM) {
               // Soneium only has weth/usdc pool
+              return;
+            }
+
+            if (chain === ChainId.XLAYER) {
+              // xlayer doesn't have liquid DAI/USDC pool yet
               return;
             }
 
@@ -3993,6 +3998,11 @@ describe('quote for other networks', () => {
               return;
             }
 
+            if (chain === ChainId.XLAYER) {
+              // xlayer doesn't have liquid DAI/USDC pool yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -4061,7 +4071,7 @@ describe('quote for other networks', () => {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA || chain === ChainId.SONEIUM) {
+              if (chain === ChainId.SEPOLIA || chain === ChainId.SONEIUM || chain === ChainId.XLAYER) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
