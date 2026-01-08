@@ -89,6 +89,7 @@ export const MIXED_SUPPORTED = [
   ChainId.ZORA,
   ChainId.SONEIUM,
   ChainId.XLAYER,
+  ChainId.MONAD,
 ];
 
 export const MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED = [ChainId.BASE];
