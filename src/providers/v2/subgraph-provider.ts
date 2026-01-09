@@ -76,6 +76,7 @@ export class V2SubgraphProvider implements IV2SubgraphProvider {
     if (!subgraphUrl) {
       throw new Error(`No subgraph url for chain id: ${this.chainId}`);
     }
+    log.info('bearerToken is', this.bearerToken);
     if (this.bearerToken) {
       this.client = new GraphQLClient(subgraphUrl, {
         headers: {
