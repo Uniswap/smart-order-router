@@ -924,6 +924,30 @@ class MonadNativeCurrency extends NativeCurrency {
   }
 }
 
+function isXLayer(chainId: number): chainId is ChainId.XLAYER {
+  return chainId === ChainId.XLAYER;
+}
+
+class XLayerNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isXLayer(this.chainId)) throw new Error('Not xlayer');
+    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isXLayer(chainId)) throw new Error('Not xlayer');
+    super(chainId, 18, 'OKB', 'OKB');
+  }
+}
+
 export class ExtendedEther extends Ether {
   public get wrapped(): Token {
     if (this.chainId in WRAPPED_NATIVE_CURRENCY) {
@@ -963,6 +987,8 @@ export function nativeOnChain(chainId: number): NativeCurrency {
     cachedNativeCurrency[chainId] = new AvalancheNativeCurrency(chainId);
   } else if (isMonad(chainId)) {
     cachedNativeCurrency[chainId] = new MonadNativeCurrency(chainId);
+  } else if (isXLayer(chainId)) {
+    cachedNativeCurrency[chainId] = new XLayerNativeCurrency(chainId);
   } else {
     cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
   }
