@@ -354,7 +354,7 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   ],
   [ChainId.XLAYER]: [
     'OKB',
-    'WOKB',
+    'OKB',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
 };
