@@ -26,6 +26,8 @@ jobs:
           egress-policy: audit
       - name: Check out Git repository
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        with:
+          persist-credentials: false
       - name: Use npm audit fix
         uses: ybiquitous/npm-audit-fix-action@e7e5e66fe613cd5e556db66eef24156b4bfa6134 # e7e5e66fe613cd5e556db66eef24156b4bfa6134
         with: 

@@ -6,6 +6,9 @@ on:
       - main
   pull_request:
 
+
+permissions: {}
+
 jobs:
   unit-tests:
     name: Unit Tests
@@ -14,6 +17,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -52,6 +57,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -88,6 +95,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -124,6 +133,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -160,6 +171,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -196,6 +209,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -232,6 +247,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -268,6 +285,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -304,6 +323,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -340,6 +361,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -376,6 +399,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -413,6 +438,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -450,6 +477,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -487,6 +516,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -523,6 +554,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -560,6 +593,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -596,6 +631,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -632,6 +669,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -669,6 +708,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -705,6 +746,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -741,6 +784,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -776,6 +821,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -810,6 +857,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -846,6 +895,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -880,6 +931,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -914,6 +967,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -948,6 +1003,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
@@ -982,6 +1039,8 @@ jobs:
     steps:
       - uses: bullfrogsec/bullfrog@dcde5841b19b7ef693224207a7fdec67fce604db # v0.8.3
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
           node-version: 18.x
