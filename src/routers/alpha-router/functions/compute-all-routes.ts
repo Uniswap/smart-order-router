@@ -214,13 +214,14 @@ export function computeAllRoutes<
       return;
     }
 
+    const previousTokenOut = _previousTokenOut ? _previousTokenOut : tokenIn;
+
     for (let i = 0; i < pools.length; i++) {
       if (poolsUsed[i]) {
         continue;
       }
 
       const curPool = pools[i]!;
-      const previousTokenOut = _previousTokenOut ? _previousTokenOut : tokenIn;
 
       if (!involvesToken(curPool, previousTokenOut)) {
         continue;
