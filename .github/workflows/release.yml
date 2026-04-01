@@ -44,7 +44,7 @@ jobs:
           scope: '@uniswap'
 
       - name: Install npm
-        run: npm install -g npm@latest --ignore-scripts
+        run: npm install -g npm@11.7.0 --ignore-scripts
 
       - name: Setup CI
         run: npm ci
