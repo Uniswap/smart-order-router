@@ -44,7 +44,7 @@ jobs:
           scope: '@uniswap'
 
       - name: Install npm
-        run: npm install -g npm@latest --ignore-scripts
+        run: npm install -g github:npm/cli#6d1db8724b1d0e5457a87bb31e62e43d566348ce --ignore-scripts # npm@11.7.0
 
       - name: Setup CI
         run: npm ci
