@@ -24,6 +24,8 @@
     "fix": "run-s fix:*",
     "fix:prettier": "prettier \"src/**/*.ts\" --write",
     "fix:lint": "eslint src --ext .ts --fix",
+    "lint": "eslint src --ext .ts",
+    "format:check": "prettier \"src/**/*.ts\" --check",
     "prepare-release": "run-s cov:check doc:html version doc:publish",
     "test": "jest test/unit",
     "integ-test": "TS_NODE=true jest test/integ --testRunner='jest-circus/runner'",
