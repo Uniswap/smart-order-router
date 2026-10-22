@@ -39,7 +39,7 @@ jobs:
       - name: Set up node
         uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 16.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies

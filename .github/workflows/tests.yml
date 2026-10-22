@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -61,7 +61,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -99,7 +99,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -137,7 +137,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -175,7 +175,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -213,7 +213,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -251,7 +251,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -289,7 +289,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -327,7 +327,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -365,7 +365,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -403,7 +403,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -442,7 +442,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -481,7 +481,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -520,7 +520,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -558,7 +558,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -597,7 +597,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -635,7 +635,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -673,7 +673,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -712,7 +712,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -750,7 +750,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -788,7 +788,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -825,7 +825,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -861,7 +861,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -899,7 +899,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -935,7 +935,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -971,7 +971,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -1007,7 +1007,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
@@ -1043,7 +1043,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
         with:
-          node-version: 18.x
+          node-version: 22.23.4
           registry-url: https://registry.npmjs.org
 
       - uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3
