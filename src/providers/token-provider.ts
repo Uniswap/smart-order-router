@@ -359,8 +359,8 @@ export const WMATIC_POLYGON = new Token(
   ChainId.POLYGON,
   '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
   18,
-  'WMATIC',
-  'Wrapped MATIC'
+  'WPOL',
+  'Wrapped POL'
 );
 
 export const WETH_POLYGON = new Token(
@@ -407,8 +407,8 @@ export const WMATIC_POLYGON_MUMBAI = new Token(
   ChainId.POLYGON_MUMBAI,
   '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889',
   18,
-  'WMATIC',
-  'Wrapped MATIC'
+  'WPOL',
+  'Wrapped POL'
 );
 
 export const USDC_POLYGON_MUMBAI = new Token(

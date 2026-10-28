@@ -723,6 +723,8 @@ export async function getV4CandidatePools({
       currencyOut.symbol != 'WETH9' &&
       currencyOut.symbol != 'ETH') ||
     (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
+      currencyOut.symbol != 'POL' &&
+      currencyOut.symbol != 'WPOL' &&
       currencyOut.symbol != 'MATIC' &&
       currencyOut.symbol != 'WMATIC')
   ) {
@@ -1234,6 +1236,8 @@ export async function getV3CandidatePools({
       tokenOut.symbol != 'WETH9' &&
       tokenOut.symbol != 'ETH') ||
     (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
+      tokenOut.symbol != 'POL' &&
+      tokenOut.symbol != 'WPOL' &&
       tokenOut.symbol != 'MATIC' &&
       tokenOut.symbol != 'WMATIC')
   ) {

@@ -117,7 +117,7 @@ export class Quote extends BaseCommand {
     const tokenProvider = this.tokenProvider;
     const router = this.router;
 
-    // if the tokenIn str is 'ETH' or 'MATIC' or in NATIVE_NAMES_BY_ID
+    // if the tokenIn str is 'ETH' or 'POL'/'MATIC' or in NATIVE_NAMES_BY_ID
     const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
       ? nativeOnChain(chainId)
       : (await tokenProvider.getTokens([tokenInStr])).getTokenByAddress(

@@ -226,6 +226,8 @@ export enum ChainName {
 export enum NativeCurrencyName {
   // Strings match input for CLI
   ETHER = 'ETH',
+  // Polygon rebranded MATIC -> POL; keep MATIC as a CLI alias via NATIVE_NAMES_BY_ID
+  POL = 'POL',
   MATIC = 'MATIC',
   CELO = 'CELO',
   GNOSIS = 'XDAI',
@@ -282,8 +284,9 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'ETHER',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
-  [ChainId.POLYGON]: ['MATIC', '0x0000000000000000000000000000000000001010'],
+  [ChainId.POLYGON]: ['POL', 'MATIC', '0x0000000000000000000000000000000000001010'],
   [ChainId.POLYGON_MUMBAI]: [
+    'POL',
     'MATIC',
     '0x0000000000000000000000000000000000001010',
   ],
@@ -369,8 +372,8 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.ARBITRUM_ONE]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_GOERLI]: NativeCurrencyName.ETHER,
   [ChainId.ARBITRUM_SEPOLIA]: NativeCurrencyName.ETHER,
-  [ChainId.POLYGON]: NativeCurrencyName.MATIC,
-  [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.MATIC,
+  [ChainId.POLYGON]: NativeCurrencyName.POL,
+  [ChainId.POLYGON_MUMBAI]: NativeCurrencyName.POL,
   [ChainId.CELO]: NativeCurrencyName.CELO,
   [ChainId.CELO_ALFAJORES]: NativeCurrencyName.CELO,
   [ChainId.GNOSIS]: NativeCurrencyName.GNOSIS,
@@ -598,15 +601,15 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     ChainId.POLYGON,
     '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
     18,
-    'WMATIC',
-    'Wrapped MATIC'
+    'WPOL',
+    'Wrapped POL'
   ),
   [ChainId.POLYGON_MUMBAI]: new Token(
     ChainId.POLYGON_MUMBAI,
     '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889',
     18,
-    'WMATIC',
-    'Wrapped MATIC'
+    'WPOL',
+    'Wrapped POL'
   ),
 
   // The Celo native currency 'CELO' implements the erc-20 token standard
@@ -774,7 +777,7 @@ class MaticNativeCurrency extends NativeCurrency {
 
   public constructor(chainId: number) {
     if (!isMatic(chainId)) throw new Error('Not matic');
-    super(chainId, 18, 'MATIC', 'Polygon Matic');
+    super(chainId, 18, 'POL', 'Polygon POL');
   }
 }
 
