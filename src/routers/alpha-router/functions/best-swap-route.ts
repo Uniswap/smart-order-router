@@ -171,6 +171,56 @@ export async function getBestSwapRoute(
   return swapRoute;
 }
 
+
+async function l1GasCostInQuoteToken(
+  routes: RouteWithValidQuote[],
+  chainId: ChainId,
+  quoteCurrency: CurrencyAmount['currency'],
+  v2GasModel?: IGasModel<V2RouteWithValidQuote>,
+  v3GasModel?: IGasModel<V3RouteWithValidQuote>,
+  v4GasModel?: IGasModel<V4RouteWithValidQuote>
+): Promise<CurrencyAmount> {
+  let gasCostL1QuoteToken = CurrencyAmount.fromRawAmount(quoteCurrency, 0);
+
+  if (!HAS_L1_FEE.includes(chainId)) {
+    return gasCostL1QuoteToken;
+  }
+
+  if (
+    v2GasModel == undefined &&
+    v3GasModel == undefined &&
+    v4GasModel == undefined
+  ) {
+    throw new Error("Can't compute L1 gas fees.");
+  }
+
+  const v2Routes = routes.filter((route) => route.protocol === Protocol.V2);
+  if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId) && v2GasModel) {
+    const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(
+      v2Routes as V2RouteWithValidQuote[]
+    );
+    gasCostL1QuoteToken = gasCostL1QuoteToken.add(v2GasCostL1.gasCostL1QuoteToken);
+  }
+
+  const v3Routes = routes.filter((route) => route.protocol === Protocol.V3);
+  if (v3Routes.length > 0 && v3GasModel) {
+    const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
+      v3Routes as V3RouteWithValidQuote[]
+    );
+    gasCostL1QuoteToken = gasCostL1QuoteToken.add(v3GasCostL1.gasCostL1QuoteToken);
+  }
+
+  const v4Routes = routes.filter((route) => route.protocol === Protocol.V4);
+  if (v4Routes.length > 0 && V4_SUPPORTED.includes(chainId) && v4GasModel) {
+    const v4GasCostL1 = await v4GasModel.calculateL1GasFees!(
+      v4Routes as V4RouteWithValidQuote[]
+    );
+    gasCostL1QuoteToken = gasCostL1QuoteToken.add(v4GasCostL1.gasCostL1QuoteToken);
+  }
+
+  return gasCostL1QuoteToken;
+}
+
 export async function getBestSwapRouteBy(
   routeType: TradeType,
   percentToQuotes: { [percent: number]: RouteWithValidQuote[] },
@@ -240,12 +290,40 @@ export async function getBestSwapRouteBy(
       'Did not find a valid route without any splits. Continuing search anyway.'
     );
   } else {
-    bestQuote = by(percentToSortedQuotes[100][0]!);
-    bestSwap = [percentToSortedQuotes[100][0]!];
+    // Apply L1 fees to the unsplit 100% route the same way split candidates do,
+    // otherwise bestQuote is compared without L1 while BFS candidates include it.
+    const route100 = percentToSortedQuotes[100][0]!;
+    const quote100 = by(route100);
+    const gasCostL1For100 = await l1GasCostInQuoteToken(
+      [route100],
+      chainId,
+      quote100.currency,
+      v2GasModel,
+      v3GasModel,
+      v4GasModel
+    );
+    bestQuote =
+      routeType == TradeType.EXACT_INPUT
+        ? quote100.subtract(gasCostL1For100)
+        : quote100.add(gasCostL1For100);
+    bestSwap = [route100];
 
     for (const routeWithQuote of percentToSortedQuotes[100].slice(0, 5)) {
+      const quote = by(routeWithQuote);
+      const gasCostL1 = await l1GasCostInQuoteToken(
+        [routeWithQuote],
+        chainId,
+        quote.currency,
+        v2GasModel,
+        v3GasModel,
+        v4GasModel
+      );
+      const quoteAfterL1 =
+        routeType == TradeType.EXACT_INPUT
+          ? quote.subtract(gasCostL1)
+          : quote.add(gasCostL1);
       bestSwapsPerSplit.push({
-        quote: by(routeWithQuote),
+        quote: quoteAfterL1,
         routes: [routeWithQuote],
       });
     }
@@ -385,61 +463,15 @@ export async function getBestSwapRouteBy(
           const quotesNew = _.map(curRoutesNew, (r) => by(r));
           const quoteNew = sumFn(quotesNew);
 
-          let gasCostL1QuoteToken = CurrencyAmount.fromRawAmount(
+          // ROUTE-249: consolidate L1 + L2 gas fee adjustment within best-swap-route
+          const gasCostL1QuoteToken = await l1GasCostInQuoteToken(
+            curRoutesNew,
+            chainId,
             quoteNew.currency,
-            0
+            v2GasModel,
+            v3GasModel,
+            v4GasModel
           );
-
-          if (HAS_L1_FEE.includes(chainId)) {
-            if (
-              v2GasModel == undefined &&
-              v3GasModel == undefined &&
-              v4GasModel == undefined
-            ) {
-              throw new Error("Can't compute L1 gas fees.");
-            } else {
-              // ROUTE-249: consoliate L1 + L2 gas fee adjustment within best-swap-route
-              const v2Routes = curRoutesNew.filter(
-                (routes) => routes.protocol === Protocol.V2
-              );
-              if (v2Routes.length > 0 && V2_SUPPORTED.includes(chainId)) {
-                if (v2GasModel) {
-                  const v2GasCostL1 = await v2GasModel.calculateL1GasFees!(
-                    v2Routes as V2RouteWithValidQuote[]
-                  );
-                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(
-                    v2GasCostL1.gasCostL1QuoteToken
-                  );
-                }
-              }
-              const v3Routes = curRoutesNew.filter(
-                (routes) => routes.protocol === Protocol.V3
-              );
-              if (v3Routes.length > 0) {
-                if (v3GasModel) {
-                  const v3GasCostL1 = await v3GasModel.calculateL1GasFees!(
-                    v3Routes as V3RouteWithValidQuote[]
-                  );
-                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(
-                    v3GasCostL1.gasCostL1QuoteToken
-                  );
-                }
-              }
-              const v4Routes = curRoutesNew.filter(
-                (routes) => routes.protocol === Protocol.V4
-              );
-              if (v4Routes.length > 0 && V4_SUPPORTED.includes(chainId)) {
-                if (v4GasModel) {
-                  const v4GasCostL1 = await v4GasModel.calculateL1GasFees!(
-                    v4Routes as V4RouteWithValidQuote[]
-                  );
-                  gasCostL1QuoteToken = gasCostL1QuoteToken.add(
-                    v4GasCostL1.gasCostL1QuoteToken
-                  );
-                }
-              }
-            }
-          }
 
           const quoteAfterL1Adjust =
             routeType == TradeType.EXACT_INPUT
