@@ -118,19 +118,33 @@ export class Quote extends BaseCommand {
     const router = this.router;
 
     // if the tokenIn str is 'ETH' or 'MATIC' or in NATIVE_NAMES_BY_ID
-    const tokenIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(tokenInStr)
+    const tokenIn: Currency | undefined = NATIVE_NAMES_BY_ID[
+      chainId
+    ]!.includes(tokenInStr)
       ? nativeOnChain(chainId)
       : (await tokenProvider.getTokens([tokenInStr])).getTokenByAddress(
-        tokenInStr
-      )!;
+          tokenInStr
+        );
 
-    const tokenOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
-      tokenOutStr
-    )
+    if (!tokenIn) {
+      throw new Error(
+        `Could not find tokenIn ${tokenInStr} on chain ${chainId}. Provide a token that is on a supported token list or that the token provider can fetch on-chain.`
+      );
+    }
+
+    const tokenOut: Currency | undefined = NATIVE_NAMES_BY_ID[
+      chainId
+    ]!.includes(tokenOutStr)
       ? nativeOnChain(chainId)
       : (await tokenProvider.getTokens([tokenOutStr])).getTokenByAddress(
-        tokenOutStr
-      )!;
+          tokenOutStr
+        );
+
+    if (!tokenOut) {
+      throw new Error(
+        `Could not find tokenOut ${tokenOutStr} on chain ${chainId}. Provide a token that is on a supported token list or that the token provider can fetch on-chain.`
+      );
+    }
 
     let swapRoutes: SwapRoute | null;
     if (exactIn) {
